@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Web (Chrome PHP Local Debug)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "preLaunchTask": "Backend PHP Local Debug",
+      "args": [
+        "--dart-define=API_BASE_URL=http://127.0.0.1:8080/api"
+      ]
+    },
+    {
+      "name": "Flutter Web (Chrome PHP Local Debug - No Task)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "args": [
+        "--dart-define=API_BASE_URL=http://127.0.0.1:8080/api"
+      ]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Local Debug Full Stack (PHP)",
+      "configurations": [
+        "Flutter Web (Chrome PHP Local Debug)"
+      ],
+      "stopAll": true
+    }
+  ]
+}
