@@ -39,20 +39,17 @@ class AdminDeviceRequestCard extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: CircleAvatar(
-              backgroundColor: AppTheme.primary.withOpacity(0.1),
-              child: const Icon(Icons.important_devices_rounded, color: AppTheme.primary),
+              backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+              child: const Icon(
+                Icons.important_devices_rounded,
+                color: AppTheme.primary,
+              ),
             ),
             title: InkWell(
               onTap: onTap,
-              child: Text(
-                _displayName(),
-                style: AppTheme.bodyBold,
-              ),
+              child: Text(_displayName(), style: AppTheme.bodyBold),
             ),
-            subtitle: Text(
-              '$deviceName • $deviceId',
-              style: AppTheme.caption,
-            ),
+            subtitle: Text('$deviceName • $deviceId', style: AppTheme.caption),
           ),
           const SizedBox(height: 12),
           Text(

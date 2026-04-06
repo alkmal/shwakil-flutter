@@ -59,10 +59,36 @@ class _AppSidebarState extends State<AppSidebar> {
       _user?['permissions'] as Map? ?? const {},
     );
 
-    final canViewCustomers = permissions['canViewCustomers'] == true;
-    final canTransfer = permissions['canTransfer'] == true;
+    final canViewBalance = permissions['canViewBalance'] != false;
+    final canViewTransactions = permissions['canViewTransactions'] != false;
+    final canViewInventory = permissions['canViewInventory'] == true;
+    final canViewQuickTransfer = permissions['canViewQuickTransfer'] == true;
+    final canViewContact = permissions['canViewContact'] != false;
+    final canViewLocations = permissions['canViewLocations'] != false;
+    final canViewUsagePolicy = permissions['canViewUsagePolicy'] != false;
+    final canViewSecuritySettings =
+        permissions['canViewSecuritySettings'] != false;
+    final canViewAccountSettings =
+        permissions['canViewAccountSettings'] != false;
+    final canRequestVerification =
+        permissions['canRequestVerification'] == true;
     final canIssueCards = permissions['canIssueCards'] == true;
-    final canScanCards = permissions['canScanCards'] != false;
+    final canRequestCardPrinting =
+        permissions['canRequestCardPrinting'] == true;
+    final canScanCards = permissions['canScanCards'] == true;
+    final canTransfer = permissions['canTransfer'] == true;
+    final canViewCustomers = permissions['canViewCustomers'] == true;
+    final canManageLocations = permissions['canManageLocations'] == true;
+    final canManageSystemSettings =
+        permissions['canManageSystemSettings'] == true;
+    final canReviewWithdrawals =
+        permissions['canReviewWithdrawals'] == true || canViewCustomers;
+    final canReviewTopups = permissions['canReviewTopups'] == true;
+    final canHandleCardPrintRequests =
+        permissions['canReviewCardPrintRequests'] == true ||
+        permissions['canPrepareCardPrintRequests'] == true ||
+        permissions['canFinalizeCardPrintRequests'] == true;
+    final canReviewDevices = permissions['canReviewDevices'] == true;
 
     return Drawer(
       backgroundColor: AppTheme.sidebarSurface,
@@ -83,7 +109,6 @@ class _AppSidebarState extends State<AppSidebar> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const ShwakelLogo(size: 48, framed: true),
                       const SizedBox(width: 14),
@@ -124,30 +149,40 @@ class _AppSidebarState extends State<AppSidebar> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                 children: [
+                  _buildSectionLabel('الرئيسية'),
                   _buildItem(
                     context,
                     icon: Icons.home_rounded,
                     title: 'الرئيسية',
                     routeName: '/home',
                   ),
-                  _buildItem(
-                    context,
-                    icon: Icons.account_balance_wallet_rounded,
-                    title: 'الرصيد',
-                    routeName: '/balance',
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.receipt_long_rounded,
-                    title: 'الحركات',
-                    routeName: '/transactions',
-                  ),
-                  if (canIssueCards)
+                  if (canViewBalance)
+                    _buildItem(
+                      context,
+                      icon: Icons.account_balance_wallet_rounded,
+                      title: 'الرصيد',
+                      routeName: '/balance',
+                    ),
+                  if (canViewTransactions)
+                    _buildItem(
+                      context,
+                      icon: Icons.receipt_long_rounded,
+                      title: 'الحركات',
+                      routeName: '/transactions',
+                    ),
+                  if (canViewInventory && canIssueCards)
                     _buildItem(
                       context,
                       icon: Icons.inventory_2_rounded,
                       title: 'البطاقات',
                       routeName: '/inventory',
+                    ),
+                  if (canRequestCardPrinting)
+                    _buildItem(
+                      context,
+                      icon: Icons.print_rounded,
+                      title: 'طلبات الطباعة',
+                      routeName: '/card-print-requests',
                     ),
                   if (canScanCards)
                     _buildItem(
@@ -157,65 +192,130 @@ class _AppSidebarState extends State<AppSidebar> {
                       routeName: '/scan-card',
                     ),
                   const Divider(indent: 8, endIndent: 8, height: 28),
-                  _buildItem(
-                    context,
-                    icon: Icons.person_rounded,
-                    title: 'الحساب',
-                    routeName: '/account-settings',
-                  ),
-                  if (canViewCustomers)
+                  _buildSectionLabel('الحساب'),
+                  if (canViewAccountSettings)
                     _buildItem(
                       context,
-                      icon: Icons.admin_panel_settings_rounded,
-                      title: 'الإدارة',
-                      routeName: '/admin-dashboard',
+                      icon: Icons.person_rounded,
+                      title: 'الحساب',
+                      routeName: '/account-settings',
                     ),
-                  if (canViewCustomers)
-                    _buildItem(
-                      context,
-                      icon: Icons.outbox_rounded,
-                      title: 'طلبات السحب',
-                      routeName: '/withdrawal-requests',
-                    ),
-                  if (canTransfer)
+                  if (canTransfer && canViewQuickTransfer)
                     _buildItem(
                       context,
                       icon: Icons.send_to_mobile_rounded,
                       title: 'النقل السريع',
                       routeName: '/quick-transfer',
                     ),
-                  if (verificationStatus != 'approved')
+                  if (verificationStatus != 'approved' && canRequestVerification)
                     _buildItem(
                       context,
                       icon: Icons.verified_user_rounded,
                       title: 'توثيق الحساب',
                       routeName: '/account-verification',
                     ),
-                  _buildItem(
-                    context,
-                    icon: Icons.security_rounded,
-                    title: 'الأمان',
-                    routeName: '/security-settings',
-                  ),
+                  if (canViewSecuritySettings)
+                    _buildItem(
+                      context,
+                      icon: Icons.security_rounded,
+                      title: 'الأمان',
+                      routeName: '/security-settings',
+                    ),
+                  if (canViewCustomers ||
+                      canReviewWithdrawals ||
+                      canReviewTopups ||
+                      canHandleCardPrintRequests ||
+                      canReviewDevices ||
+                      canManageLocations ||
+                      canManageSystemSettings) ...[
+                    const Divider(indent: 8, endIndent: 8, height: 28),
+                    _buildSectionLabel('الإدارة'),
+                    _buildItem(
+                      context,
+                      icon: Icons.dashboard_customize_rounded,
+                      title: 'مركز الإدارة',
+                      routeName: '/admin-dashboard',
+                    ),
+                    if (canViewCustomers)
+                      _buildItem(
+                        context,
+                        icon: Icons.people_alt_rounded,
+                        title: 'إدارة العملاء',
+                        routeName: '/admin-customers',
+                      ),
+                    if (canReviewDevices)
+                      _buildItem(
+                        context,
+                        icon: Icons.devices_other_rounded,
+                        title: 'طلبات الأجهزة',
+                        routeName: '/admin-device-requests',
+                      ),
+                    if (canReviewWithdrawals)
+                      _buildItem(
+                        context,
+                        icon: Icons.outbox_rounded,
+                        title: 'طلبات السحب',
+                        routeName: '/withdrawal-requests',
+                      ),
+                    if (canReviewTopups)
+                      _buildItem(
+                        context,
+                        icon: Icons.add_card_rounded,
+                        title: 'طلبات شحن الرصيد',
+                        routeName: '/topup-requests',
+                      ),
+                    if (canHandleCardPrintRequests)
+                      _buildItem(
+                        context,
+                        icon: Icons.print_rounded,
+                        title: 'طلبات طباعة البطاقات',
+                        routeName: '/admin-card-print-requests',
+                      ),
+                    if (canManageLocations)
+                      _buildItem(
+                        context,
+                        icon: Icons.map_rounded,
+                        title: 'الفروع والمواقع',
+                        routeName: '/admin-locations',
+                      ),
+                    if (canManageSystemSettings)
+                      _buildItem(
+                        context,
+                        icon: Icons.settings_applications_rounded,
+                        title: 'إعدادات النظام',
+                        routeName: '/admin-system-settings',
+                      ),
+                    if (canManageSystemSettings)
+                      _buildItem(
+                        context,
+                        icon: Icons.rule_folder_rounded,
+                        title: 'قوالب الصلاحيات',
+                        routeName: '/admin-permissions',
+                      ),
+                  ],
                   const Divider(indent: 8, endIndent: 8, height: 28),
-                  _buildItem(
-                    context,
-                    icon: Icons.policy_rounded,
-                    title: 'سياسة الاستخدام',
-                    routeName: '/usage-policy',
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.support_agent_rounded,
-                    title: 'الدعم',
-                    routeName: '/contact-us',
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.storefront_rounded,
-                    title: 'الوكلاء',
-                    routeName: '/supported-locations',
-                  ),
+                  _buildSectionLabel('المزيد'),
+                  if (canViewUsagePolicy)
+                    _buildItem(
+                      context,
+                      icon: Icons.policy_rounded,
+                      title: 'سياسة الاستخدام',
+                      routeName: '/usage-policy',
+                    ),
+                  if (canViewContact)
+                    _buildItem(
+                      context,
+                      icon: Icons.support_agent_rounded,
+                      title: 'الدعم',
+                      routeName: '/contact-us',
+                    ),
+                  if (canViewLocations)
+                    _buildItem(
+                      context,
+                      icon: Icons.storefront_rounded,
+                      title: 'الوكلاء',
+                      routeName: '/supported-locations',
+                    ),
                 ],
               ),
             ),
@@ -275,7 +375,8 @@ class _AppSidebarState extends State<AppSidebar> {
     final isSelected = currentRoute == routeName;
 
     return ListTile(
-      minTileHeight: 48,
+      minTileHeight: 50,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       leading: Icon(
         icon,
@@ -288,6 +389,22 @@ class _AppSidebarState extends State<AppSidebar> {
           fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
         ),
       ),
+      trailing: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primary.withValues(alpha: 0.14)
+              : AppTheme.surfaceMuted,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 14,
+          color: isSelected ? AppTheme.primary : AppTheme.textTertiary,
+        ),
+      ),
       selected: isSelected,
       selectedTileColor: AppTheme.tabSurface,
       onTap: () {
@@ -296,6 +413,20 @@ class _AppSidebarState extends State<AppSidebar> {
           Navigator.pushNamed(context, routeName);
         }
       },
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      child: Text(
+        label,
+        style: AppTheme.caption.copyWith(
+          color: AppTheme.textTertiary,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.2,
+        ),
+      ),
     );
   }
 }

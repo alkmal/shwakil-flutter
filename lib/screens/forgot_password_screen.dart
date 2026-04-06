@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+
 import '../services/index.dart';
+import '../utils/app_theme.dart';
 import '../widgets/responsive_scaffold_container.dart';
+import '../widgets/shwakel_button.dart';
+import '../widgets/shwakel_card.dart';
 import '../widgets/support_contact_card.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
+
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   static final RegExp _usernamePattern = RegExp(
-    r"^[A-Za-z\u0600-\u06FF0-9._@+\-\s]+$",
+    r'^[A-Za-z\u0600-\u06FF0-9._@+\-\s]+$',
     unicode: true,
   );
   static final RegExp _nationalIdPattern = RegExp(r'^[0-9-]+$', unicode: true);
@@ -21,6 +26,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     unicode: true,
   );
   static final RegExp _passwordDigitPattern = RegExp(r'\d');
+
   final AuthService _authService = AuthService();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _nationalIdController = TextEditingController();
@@ -28,12 +34,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _whatsappController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
+
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
   bool _isRequesting = false;
   bool _isResetting = false;
   bool _isLookingUp = false;
   String? _debugOtpCode;
   String? _supportWhatsapp;
+
   @override
   void initState() {
     super.initState();
@@ -58,10 +66,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) {
         return;
       }
-      setState(
-        () =>
-            _supportWhatsapp = supportWhatsapp.isEmpty ? null : supportWhatsapp,
-      );
+      setState(() {
+        _supportWhatsapp = supportWhatsapp.isEmpty ? null : supportWhatsapp;
+      });
     } catch (_) {}
   }
 
@@ -126,7 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
     if (!_passwordLetterPattern.hasMatch(newPassword) ||
         !_passwordDigitPattern.hasMatch(newPassword)) {
-      return 'كلمة المرور يجب أن تحتوي على أحرف وأرقام معا.';
+      return 'كلمة المرور يجب أن تحتوي على أحرف وأرقام معًا.';
     }
     return null;
   }
@@ -164,6 +171,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       return;
     }
+
     setState(() => _isRequesting = true);
     try {
       final result = await _authService.requestPasswordResetOtp(
@@ -223,6 +231,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       return;
     }
+
     setState(() => _isLookingUp = true);
     try {
       final result = await _authService.lookupAccountByIdentity(
@@ -282,6 +291,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       return;
     }
+
     setState(() => _isResetting = true);
     try {
       await _authService.resetPassword(
@@ -324,7 +334,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('استعادة كلمة المرور')),
       body: ListView(
         padding: EdgeInsets.zero,
@@ -332,204 +342,217 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ResponsiveScaffoldContainer(
             maxWidth: 860,
             padding: const EdgeInsets.fromLTRB(0, 14, 0, 24),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0F0F172A),
-                    blurRadius: 22,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'استعادة كلمة المرور',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'ابحث عن الحساب أولًا، ثم اطلب رمز الاستعادة.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFF64748B),
-                      height: 1.7,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  if ((_supportWhatsapp ?? '').isNotEmpty) ...[
-                    SupportContactCard(
-                      phoneNumber: _supportWhatsapp!,
-                      title: 'تحتاج مساعدة؟',
-                      message:
-                          'إذا لم تتطابق البيانات أو فقدت الرقم المرتبط، تواصل مع الدعم من هذا الرقم.',
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'البحث عن الحساب عبر الهوية',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
+            child: Column(
+              children: [
+                _buildHeroCard(),
+                const SizedBox(height: 18),
+                ShwakelCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'استعادة كلمة المرور',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'ابحث عن الحساب أولًا، ثم اطلب رمز الاستعادة، وبعدها عيّن كلمة مرور جديدة.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          height: 1.7,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      if ((_supportWhatsapp ?? '').isNotEmpty) ...[
+                        SupportContactCard(
+                          phoneNumber: _supportWhatsapp!,
+                          title: 'تحتاج مساعدة؟',
+                          message:
+                              'إذا لم تتطابق البيانات أو فقدت الرقم المرتبط، تواصل مع الدعم من هذا الرقم.',
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.10),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _nationalIdController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'رقم الهوية',
-                            prefixIcon: Icon(Icons.badge_outlined),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _birthDateController,
-                          readOnly: true,
-                          onTap: _pickBirthDate,
-                          decoration: InputDecoration(
-                            labelText: 'تاريخ الميلاد',
-                            helperText: 'مثال: 1995-04-21',
-                            prefixIcon: const Icon(Icons.cake_outlined),
-                            suffixIcon: IconButton(
-                              onPressed: _pickBirthDate,
-                              icon: const Icon(Icons.calendar_month_rounded),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'البحث عن الحساب عبر الهوية',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF0F172A),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<CountryOption>(
-                          initialValue: _selectedCountry,
-                          decoration: const InputDecoration(
-                            labelText: 'اختر الدولة',
-                            prefixIcon: Icon(Icons.public_rounded),
-                          ),
-                          items: PhoneNumberService.countries
-                              .map(
-                                (country) => DropdownMenuItem<CountryOption>(
-                                  value: country,
-                                  child: Text(
-                                    '${country.name} (+${country.dialCode})',
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _nationalIdController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'رقم الهوية',
+                                prefixIcon: Icon(Icons.badge_outlined),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _birthDateController,
+                              readOnly: true,
+                              onTap: _pickBirthDate,
+                              decoration: InputDecoration(
+                                labelText: 'تاريخ الميلاد',
+                                helperText: 'مثال: 1995-04-21',
+                                prefixIcon: const Icon(Icons.cake_outlined),
+                                suffixIcon: IconButton(
+                                  onPressed: _pickBirthDate,
+                                  icon: const Icon(
+                                    Icons.calendar_month_rounded,
                                   ),
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => _selectedCountry = value);
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _whatsappController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: 'رقم الجوال',
-                            prefixIcon: const Icon(Icons.phone_rounded),
-                            prefixText: '+${_selectedCountry.dialCode}  ',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _isLookingUp ? null : _lookupAccount,
-                            icon: _isLookingUp
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<CountryOption>(
+                              initialValue: _selectedCountry,
+                              decoration: const InputDecoration(
+                                labelText: 'اختر الدولة',
+                                prefixIcon: Icon(Icons.public_rounded),
+                              ),
+                              items: PhoneNumberService.countries
+                                  .map(
+                                    (
+                                      country,
+                                    ) => DropdownMenuItem<CountryOption>(
+                                      value: country,
+                                      child: Text(
+                                        '${country.name} (+${country.dialCode})',
+                                      ),
                                     ),
                                   )
-                                : const Icon(Icons.search_rounded),
-                            label: Text(
-                              _isLookingUp ? 'جار البحث...' : 'بحث عن الحساب',
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() => _selectedCountry = value);
+                              },
                             ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _whatsappController,
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                labelText: 'رقم الجوال',
+                                prefixIcon: const Icon(Icons.phone_rounded),
+                                prefixText: '+${_selectedCountry.dialCode}  ',
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ShwakelButton(
+                              label: _isLookingUp
+                                  ? 'جار البحث...'
+                                  : 'بحث عن الحساب',
+                              icon: Icons.search_rounded,
+                              onPressed: _isLookingUp ? null : _lookupAccount,
+                              isLoading: _isLookingUp,
+                              width: double.infinity,
+                              isSecondary: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      TextField(
+                        controller: _usernameController,
+                        decoration: const InputDecoration(
+                          labelText: 'اسم المستخدم أو رقم الجوال',
+                          helperText: 'يمكن استخدام أي منهما.',
+                          prefixIcon: Icon(Icons.person_outline_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ShwakelButton(
+                        label: _isRequesting ? 'جار الإرسال...' : 'إرسال الرمز',
+                        icon: Icons.mark_chat_read_rounded,
+                        onPressed: _isRequesting ? null : _requestOtp,
+                        isLoading: _isRequesting,
+                        width: double.infinity,
+                      ),
+                      if ((_debugOtpCode ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          'رمز تجريبي: $_debugOtpCode',
+                          style: const TextStyle(
+                            color: Color(0xFFB45309),
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  TextField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: 'اسم المستخدم أو رقم الجوال',
-                      helperText: 'يمكن استخدام أي منهما.',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isRequesting ? null : _requestOtp,
-                      child: Text(
-                        _isRequesting ? 'جار الإرسال...' : 'إرسال الرمز',
+                      const SizedBox(height: 18),
+                      TextField(
+                        controller: _otpController,
+                        decoration: const InputDecoration(
+                          labelText: 'رمز التحقق',
+                          prefixIcon: Icon(Icons.verified_user_outlined),
+                        ),
                       ),
-                    ),
-                  ),
-                  if ((_debugOtpCode ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Text(
-                      'رمز تجريبي: $_debugOtpCode',
-                      style: const TextStyle(
-                        color: Color(0xFFB45309),
-                        fontWeight: FontWeight.w900,
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _newPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'كلمة المرور الجديدة',
+                          prefixIcon: Icon(Icons.password_rounded),
+                        ),
                       ),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  TextField(
-                    controller: _otpController,
-                    decoration: const InputDecoration(
-                      labelText: 'رمز التحقق',
-                      prefixIcon: Icon(Icons.verified_user_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _newPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'كلمة المرور الجديدة',
-                      prefixIcon: Icon(Icons.password_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isResetting ? null : _resetPassword,
-                      child: Text(
-                        _isResetting
+                      const SizedBox(height: 16),
+                      ShwakelButton(
+                        label: _isResetting
                             ? 'جار التحديث...'
                             : 'حفظ كلمة المرور الجديدة',
+                        icon: Icons.lock_reset_rounded,
+                        onPressed: _isResetting ? null : _resetPassword,
+                        isLoading: _isResetting,
+                        width: double.infinity,
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroCard() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      gradient: AppTheme.primaryGradient,
+      shadowLevel: ShwakelShadowLevel.premium,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'استعادة الحساب بشكل آمن',
+            style: AppTheme.h2.copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'ابحث عن الحساب، اطلب الرمز، ثم عيّن كلمة مرور جديدة بخطوات واضحة وسريعة.',
+            style: AppTheme.bodyAction.copyWith(color: Colors.white70),
           ),
         ],
       ),

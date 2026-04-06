@@ -45,13 +45,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   void _onChanged() => _load();
 
   Future<void> _load() async {
-    final hp = await LocalSecurityService.hasPin();
-    final cb = await LocalSecurityService.canUseBiometrics();
-    final be = await LocalSecurityService.isBiometricEnabled() && cb;
-    final td = await LocalSecurityService.isTrustedDevice();
-    final tu = await LocalSecurityService.trustedUsername() ?? '';
-    final la = await LocalSecurityService.lastLocalAuthMethod() ?? '';
-    final rt = await LocalSecurityService.relockTimeoutInSeconds();
+    final hasPin = await LocalSecurityService.hasPin();
+    final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
+    final biometricEnabled =
+        await LocalSecurityService.isBiometricEnabled() && canUseBiometrics;
+    final isTrustedDevice = await LocalSecurityService.isTrustedDevice();
+    final trustedUsername = await LocalSecurityService.trustedUsername() ?? '';
+    final lastAuthMethod =
+        await LocalSecurityService.lastLocalAuthMethod() ?? '';
+    final relockTimeout = await LocalSecurityService.relockTimeoutInSeconds();
 
     List<Map<String, dynamic>> devices = const [];
     try {
@@ -67,13 +69,13 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       return;
     }
     setState(() {
-      _hasPin = hp;
-      _biometricEnabled = be;
-      _canUseBiometrics = cb;
-      _isTrustedDevice = td;
-      _trustedUsername = tu;
-      _lastAuthMethod = la;
-      _relockTimeout = rt;
+      _hasPin = hasPin;
+      _biometricEnabled = biometricEnabled;
+      _canUseBiometrics = canUseBiometrics;
+      _isTrustedDevice = isTrustedDevice;
+      _trustedUsername = trustedUsername;
+      _lastAuthMethod = lastAuthMethod;
+      _relockTimeout = relockTimeout;
       _devices = devices;
       _isLoading = false;
     });
@@ -97,9 +99,28 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             children: [
               _buildSecurityHero(),
               const SizedBox(height: 24),
-              _buildStatusOverview(),
-              const SizedBox(height: 16),
-              _buildPinSection(),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 920;
+                  if (isCompact) {
+                    return Column(
+                      children: [
+                        _buildStatusOverview(),
+                        const SizedBox(height: 16),
+                        _buildPinSection(),
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 5, child: _buildStatusOverview()),
+                      const SizedBox(width: 16),
+                      Expanded(flex: 4, child: _buildPinSection()),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 16),
               _buildTimeoutSection(),
               const SizedBox(height: 16),
@@ -111,6 +132,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   icon: Icons.phonelink_erase_rounded,
                   isSecondary: true,
                   onPressed: _clearTrusted,
+                  width: double.infinity,
                 ),
               ],
             ],
@@ -125,25 +147,68 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       padding: const EdgeInsets.all(28),
       gradient: AppTheme.darkGradient,
       shadowLevel: ShwakelShadowLevel.premium,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.shield_rounded, color: Colors.white, size: 48),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'إعدادات الحماية',
-                  style: AppTheme.h2.copyWith(color: Colors.white),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'أدر PIN والبصمة والأجهزة من مكان واحد.',
-                  style: AppTheme.bodyAction.copyWith(color: Colors.white70),
+                child: const Icon(
+                  Icons.shield_rounded,
+                  color: Colors.white,
+                  size: 38,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'إعدادات الحماية',
+                      style: AppTheme.h2.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'أدر PIN والبصمة والأجهزة الموثقة وإعادة القفل من مكان واحد.',
+                      style: AppTheme.bodyAction.copyWith(
+                        color: Colors.white70,
+                        height: 1.55,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _heroChip(
+                icon: Icons.verified_user_rounded,
+                label: _isTrustedDevice ? 'الجهاز موثق' : 'الجهاز غير موثق',
+              ),
+              _heroChip(
+                icon: Icons.pin_rounded,
+                label: _hasPin ? 'PIN مفعل' : 'PIN غير مفعل',
+              ),
+              _heroChip(
+                icon: Icons.fingerprint_rounded,
+                label: _biometricEnabled ? 'البصمة مفعلة' : 'البصمة غير مفعلة',
+              ),
+            ],
           ),
         ],
       ),
@@ -157,7 +222,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('ملخص الأمان', style: AppTheme.h3),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Text(
+            'حالة طرق التحقق والجهاز الموثق ووسيلة الدخول الأخيرة.',
+            style: AppTheme.bodyAction,
+          ),
+          const SizedBox(height: 18),
           _statusLine(
             'توثيق الجهاز',
             _isTrustedDevice ? 'موثوق' : 'غير موثوق',
@@ -198,31 +268,88 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('PIN والبصمة', style: AppTheme.h3),
-          const SizedBox(height: 16),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(_hasPin ? 'تغيير رمز PIN' : 'إعداد رمز PIN'),
-            subtitle: const Text('لفتح التطبيق وتأكيد العمليات.'),
-            trailing: IconButton(
-              icon: const Icon(Icons.edit_rounded, color: AppTheme.primary),
-              onPressed: _createOrChangePin,
+          const SizedBox(height: 8),
+          Text(
+            'فعّل وسيلة دخول محلية لتسريع استخدام التطبيق وتأكيد العمليات.',
+            style: AppTheme.bodyAction,
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.10),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _hasPin ? 'تغيير رمز PIN' : 'إعداد رمز PIN',
+                        style: AppTheme.bodyBold,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'لفتح التطبيق وتأكيد العمليات الحساسة.',
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ShwakelButton(
+                  label: _hasPin ? 'تحديث' : 'إعداد',
+                  icon: Icons.pin_rounded,
+                  onPressed: _createOrChangePin,
+                  isSecondary: true,
+                ),
+              ],
             ),
           ),
-          if (_hasPin)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('تفعيل البصمة'),
-              subtitle: Text(
-                _canUseBiometrics
-                    ? 'استخدم البصمة أو الوجه للدخول السريع.'
-                    : 'هذا الجهاز لا يدعم البصمة.',
+          if (_hasPin) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.secondary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppTheme.secondary.withValues(alpha: 0.10),
+                ),
               ),
-              trailing: Switch(
-                value: _biometricEnabled,
-                onChanged: _canUseBiometrics ? _toggleBiometric : null,
-                activeThumbColor: AppTheme.primary,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('تفعيل البصمة', style: AppTheme.bodyBold),
+                        const SizedBox(height: 4),
+                        Text(
+                          _canUseBiometrics
+                              ? 'استخدم البصمة أو الوجه لتسجيل الدخول السريع.'
+                              : 'هذا الجهاز لا يدعم البصمة أو لم يتم تفعيلها.',
+                          style: AppTheme.caption,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Switch(
+                    value: _biometricEnabled,
+                    onChanged: _canUseBiometrics ? _toggleBiometric : null,
+                    activeThumbColor: AppTheme.primary,
+                  ),
+                ],
               ),
             ),
+          ],
         ],
       ),
     );
@@ -235,7 +362,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('إعادة القفل التلقائي', style: AppTheme.h3),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Text(
+            'حدد متى يطلب التطبيق التحقق المحلي مجددًا بعد تركه في الخلفية.',
+            style: AppTheme.bodyAction,
+          ),
+          const SizedBox(height: 18),
           DropdownButtonFormField<int>(
             initialValue: _relockTimeout,
             items: LocalSecurityService.relockTimeoutOptionsInSeconds
@@ -268,19 +400,36 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         children: [
           Text('الأجهزة النشطة', style: AppTheme.h3),
           const SizedBox(height: 8),
-          Text('احذف أي جهاز لطلب توثيق جديد.', style: AppTheme.caption),
+          Text(
+            'يمكنك إزالة أي جهاز لطلب توثيق جديد عليه عند تسجيل الدخول لاحقًا.',
+            style: AppTheme.bodyAction,
+          ),
           const SizedBox(height: 18),
           if (_devices.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppTheme.background,
+                color: AppTheme.primary.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                ),
               ),
-              child: Text(
-                'لا توجد أجهزة نشطة ظاهرة حاليًا.',
-                style: AppTheme.bodyText,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.devices_other_rounded,
+                    color: AppTheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'لا توجد أجهزة نشطة ظاهرة حاليًا.',
+                      style: AppTheme.bodyText,
+                    ),
+                  ),
+                ],
               ),
             )
           else
@@ -385,6 +534,31 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           Expanded(child: Text(label, style: AppTheme.bodyAction)),
           const SizedBox(width: 12),
           Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

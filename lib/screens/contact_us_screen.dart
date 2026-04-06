@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../services/index.dart';
+import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
-import '../utils/app_theme.dart';
 import '../widgets/shwakel_card.dart';
 
 class ContactUsScreen extends StatefulWidget {
   const ContactUsScreen({super.key});
+
   @override
   State<ContactUsScreen> createState() => _ContactUsScreenState();
 }
@@ -24,31 +26,34 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
 
   Future<void> _load() async {
     try {
-      final c = await ContactInfoService.getContactInfo(refresh: true);
-      if (mounted)
+      final contact = await ContactInfoService.getContactInfo(refresh: true);
+      if (mounted) {
         setState(() {
-          _contact = c;
+          _contact = contact;
           _isLoading = false;
         });
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _contact = ContactInfoService.fallbackContact();
           _isLoading = false;
         });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading)
+    if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
-    final c = _contact ?? ContactInfoService.fallbackContact();
-    final title = ContactInfoService.title(c);
-    final whatsapp = ContactInfoService.supportWhatsapp(c);
-    final email = ContactInfoService.supportEmail(c);
-    final address = ContactInfoService.address(c);
+    final contact = _contact ?? ContactInfoService.fallbackContact();
+    final title = ContactInfoService.title(contact);
+    final whatsapp = ContactInfoService.supportWhatsapp(contact);
+    final email = ContactInfoService.supportEmail(contact);
+    final address = ContactInfoService.address(contact);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -62,29 +67,29 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               _buildSupportHero(),
               const SizedBox(height: 24),
               _buildContactItem(
-                Icons.chat_rounded,
-                'واتساب الدعم المباشر',
-                whatsapp,
-                'https://wa.me/$whatsapp',
-                AppTheme.success,
+                icon: Icons.chat_rounded,
+                label: 'واتساب الدعم المباشر',
+                value: whatsapp,
+                url: whatsapp.isEmpty ? null : 'https://wa.me/$whatsapp',
+                color: AppTheme.success,
               ),
               const SizedBox(height: 16),
               _buildContactItem(
-                Icons.email_rounded,
-                'البريد الرسمي',
-                email,
-                'mailto:$email',
-                AppTheme.primary,
+                icon: Icons.email_rounded,
+                label: 'البريد الرسمي',
+                value: email,
+                url: email.isEmpty ? null : 'mailto:$email',
+                color: AppTheme.primary,
               ),
               const SizedBox(height: 16),
               _buildContactItem(
-                Icons.location_on_rounded,
-                'المقر الرئيسي',
-                address,
-                '',
-                AppTheme.accent,
+                icon: Icons.location_on_rounded,
+                label: 'المقر الرئيسي',
+                value: address,
+                url: null,
+                color: AppTheme.accent,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               ShwakelCard(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -99,10 +104,11 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                         'ساعات العمل: 9:00 ص - 9:00 م',
                         style: AppTheme.bodyBold,
                       ),
+                      const SizedBox(height: 8),
                       Text(
                         'نحن جاهزون لخدمتكم طوال أيام الأسبوع، باستثناء العطل الرسمية.',
                         textAlign: TextAlign.center,
-                        style: AppTheme.caption,
+                        style: AppTheme.caption.copyWith(height: 1.6),
                       ),
                     ],
                   ),
@@ -117,17 +123,26 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
 
   Widget _buildSupportHero() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(30),
       gradient: AppTheme.primaryGradient,
-      child: Row(
-        children: [
-          const Icon(
-            Icons.support_agent_rounded,
-            color: Colors.white,
-            size: 48,
-          ),
-          const SizedBox(width: 24),
-          Expanded(
+      shadowLevel: ShwakelShadowLevel.premium,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+          final iconBox = Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.support_agent_rounded,
+              color: Colors.white,
+              size: 38,
+            ),
+          );
+          final content = Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -135,27 +150,40 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                   'مركز مساعدة شواكل',
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
+                const SizedBox(height: 8),
                 Text(
                   'فريقنا جاهز للرد على استفساراتكم ومعالجة المشكلات التقنية بأسرع وقت.',
-                  style: AppTheme.caption.copyWith(color: Colors.white70),
+                  style: AppTheme.bodyAction.copyWith(
+                    color: Colors.white70,
+                    height: 1.6,
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [iconBox, const SizedBox(height: 18), content],
+            );
+          }
+
+          return Row(children: [iconBox, const SizedBox(width: 20), content]);
+        },
       ),
     );
   }
 
-  Widget _buildContactItem(
-    IconData icon,
-    String label,
-    String value,
-    String url,
-    Color color,
-  ) {
+  Widget _buildContactItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String? url,
+    required Color color,
+  }) {
     return ShwakelCard(
-      onTap: url.isEmpty
+      onTap: url == null
           ? null
           : () =>
                 launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
@@ -163,7 +191,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: color.withOpacity(0.1),
+            backgroundColor: color.withValues(alpha: 0.10),
             child: Icon(icon, color: color),
           ),
           const SizedBox(width: 16),
@@ -172,11 +200,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: AppTheme.bodyBold),
-                Text(value, style: AppTheme.caption),
+                const SizedBox(height: 4),
+                Text(value, style: AppTheme.caption.copyWith(height: 1.5)),
               ],
             ),
           ),
-          if (url.isNotEmpty)
+          if (url != null)
             Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,

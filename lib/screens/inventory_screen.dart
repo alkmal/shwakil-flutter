@@ -116,11 +116,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       gradient: AppTheme.darkGradient,
-      child: Row(
-        children: [
-          const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 40),
-          const SizedBox(width: 24),
-          Expanded(
+      shadowLevel: ShwakelShadowLevel.premium,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 760;
+          final iconBox = Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: const Icon(
+              Icons.inventory_2_rounded,
+              color: Colors.white,
+              size: 34,
+            ),
+          );
+          final content = Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -128,14 +141,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   'مخزون البطاقات',
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
+                const SizedBox(height: 8),
                 Text(
                   'استعرض البطاقات الصادرة، وأعد طباعتها، أو احذف البطاقات غير المستخدمة عند الحاجة.',
-                  style: AppTheme.caption.copyWith(color: Colors.white70),
+                  style: AppTheme.bodyAction.copyWith(
+                    color: Colors.white70,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ShwakelButton(
+                  label: 'طلب طباعة بطاقات',
+                  icon: Icons.print_rounded,
+                  isSecondary: true,
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/card-print-requests'),
                 ),
               ],
             ),
-          ),
-          Container(
+          );
+          final badge = Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white12,
@@ -145,8 +170,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
               '$_totalCards بطاقة',
               style: AppTheme.bodyBold.copyWith(color: Colors.white),
             ),
-          ),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [iconBox, const SizedBox(width: 16), badge]),
+                const SizedBox(height: 18),
+                content,
+              ],
+            );
+          }
+
+          return Row(
+            children: [iconBox, const SizedBox(width: 24), content, badge],
+          );
+        },
       ),
     );
   }
@@ -220,7 +260,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: AppTheme.radiusMd,
                 ),
                 child: Icon(
@@ -277,55 +317,55 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildPopup(VirtualCard card) => PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert_rounded),
-        onSelected: (value) => value == 'print' ? _reprint(card) : _delete(card.id),
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'print',
-            child: Row(
-              children: [
-                Icon(Icons.print_rounded, size: 18),
-                SizedBox(width: 8),
-                Text('طباعة'),
-              ],
-            ),
-          ),
-          if (card.status == CardStatus.unused)
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete_rounded, size: 18, color: AppTheme.error),
-                  SizedBox(width: 8),
-                  Text(
-                    'حذف وإرجاع القيمة',
-                    style: TextStyle(color: AppTheme.error),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      );
-
-  Widget _buildEmptyState() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(60),
-          child: Column(
+    icon: const Icon(Icons.more_vert_rounded),
+    onSelected: (value) => value == 'print' ? _reprint(card) : _delete(card.id),
+    itemBuilder: (context) => [
+      const PopupMenuItem(
+        value: 'print',
+        child: Row(
+          children: [
+            Icon(Icons.print_rounded, size: 18),
+            SizedBox(width: 8),
+            Text('طباعة'),
+          ],
+        ),
+      ),
+      if (card.status == CardStatus.unused)
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
             children: [
-              Icon(
-                Icons.inbox_rounded,
-                size: 64,
-                color: AppTheme.textTertiary.withOpacity(0.3),
-              ),
-              const SizedBox(height: 24),
+              Icon(Icons.delete_rounded, size: 18, color: AppTheme.error),
+              SizedBox(width: 8),
               Text(
-                'لا توجد بطاقات في هذا القسم',
-                style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
+                'حذف وإرجاع القيمة',
+                style: TextStyle(color: AppTheme.error),
               ),
             ],
           ),
         ),
-      );
+    ],
+  );
+
+  Widget _buildEmptyState() => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(60),
+      child: Column(
+        children: [
+          Icon(
+            Icons.inbox_rounded,
+            size: 64,
+            color: AppTheme.textTertiary.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'لا توجد بطاقات في هذا القسم',
+            style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Future<void> _reprint(VirtualCard card) async {
     final user = await _authService.currentUser();

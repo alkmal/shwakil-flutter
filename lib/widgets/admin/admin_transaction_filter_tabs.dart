@@ -19,14 +19,17 @@ class AdminTransactionFilterTabs extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.background,
         borderRadius: AppTheme.radiusXl,
-        border: Border.all(color: AppTheme.border.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.border.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _filterButton('الكل', AdminTransactionAuditFilter.all),
           _filterButton('قرب فرع', AdminTransactionAuditFilter.nearBranch),
-          _filterButton('خارج النطاق', AdminTransactionAuditFilter.outsideBranches),
+          _filterButton(
+            'خارج النطاق',
+            AdminTransactionAuditFilter.outsideBranches,
+          ),
         ],
       ),
     );

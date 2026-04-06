@@ -6,6 +6,7 @@ import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_logo.dart';
+import '../widgets/support_contact_card.dart';
 import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -16,6 +17,12 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  static final RegExp _usernamePattern = RegExp(r'^[a-zA-Z0-9._@+-]{3,32}$');
+  static final RegExp _passwordLetterPattern = RegExp(r'[A-Za-z\u0600-\u06FF]');
+  static final RegExp _passwordSymbolPattern = RegExp(
+    r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:\|,.<>\/\?~`]',
+  );
+
   final PageController _pageController = PageController();
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
@@ -34,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
+  String? _supportWhatsapp;
 
   @override
   void initState() {
@@ -58,49 +66,158 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _loadSettings() async {
     try {
       final settings = await _apiService.getAuthSettings();
-      if (mounted) {
-        setState(() {
-          _registrationEnabled = settings['registrationEnabled'] == true;
-        });
+      final contact = await ContactInfoService.getContactInfo();
+      if (!mounted) {
+        return;
       }
+      setState(() {
+        _registrationEnabled = settings['registrationEnabled'] == true;
+        _supportWhatsapp = ContactInfoService.supportWhatsapp(contact);
+      });
     } catch (_) {}
   }
 
-  void _next() {
+  Future<void> _next() async {
+    final error = _validateStep(_currentStep);
+    if (error != null) {
+      await AppAlertService.showError(
+        context,
+        title: 'تحقق من البيانات',
+        message: error,
+      );
+      return;
+    }
+
     if (_currentStep < 2) {
       setState(() => _currentStep++);
-      _pageController.nextPage(
+      await _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
       return;
     }
 
-    _register();
+    await _register();
   }
 
-  void _prev() {
-    if (_currentStep <= 0) return;
+  Future<void> _prev() async {
+    if (_currentStep <= 0) {
+      return;
+    }
+
     setState(() => _currentStep--);
-    _pageController.previousPage(
+    await _pageController.previousPage(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
 
-  Future<void> _register() async {
-    if (!_termsAccepted) {
-      AppAlertService.showError(
-        context,
-        message: 'يرجى الموافقة على الشروط والأحكام أولًا.',
-      );
-      return;
+  String? _validateStep(int step) {
+    return switch (step) {
+      0 => _validatePersonalStep(),
+      1 => _validateContactStep(),
+      2 => _validateSecurityStep(),
+      _ => null,
+    };
+  }
+
+  String? _validatePersonalStep() {
+    final fullName = _fullNameC.text.trim();
+    final username = _usernameC.text.trim();
+    final nationalId = _digitsOnly(_nationalIdC.text);
+    final birthDate = _birthDateC.text.trim();
+
+    if (fullName.isEmpty || fullName.length < 4) {
+      return 'أدخل الاسم الكامل بشكل صحيح.';
+    }
+    if (username.isEmpty) {
+      return 'اسم المستخدم مطلوب.';
+    }
+    if (!_usernamePattern.hasMatch(username)) {
+      return 'اسم المستخدم يجب أن يكون بالإنجليزية ويحتوي على أحرف أو أرقام فقط مع السماح بـ . و _ و -';
+    }
+    if (nationalId.length < 6 || nationalId.length > 16) {
+      return 'رقم الهوية غير صالح.';
+    }
+    if (birthDate.isEmpty) {
+      return 'اختر تاريخ الميلاد.';
     }
 
-    if (_passwordC.text != _confirmPassC.text) {
-      AppAlertService.showError(
+    final parsedDate = DateTime.tryParse(birthDate);
+    if (parsedDate == null || parsedDate.isAfter(DateTime.now())) {
+      return 'تاريخ الميلاد غير صالح.';
+    }
+
+    return null;
+  }
+
+  String? _validateContactStep() {
+    final whatsapp = PhoneNumberService.normalize(
+      input: _whatsappC.text,
+      defaultDialCode: _selectedCountry.dialCode,
+    );
+    if (whatsapp.isEmpty ||
+        whatsapp.length < _selectedCountry.dialCode.length + 8) {
+      return 'أدخل رقم واتساب صحيحًا.';
+    }
+
+    if (_referralPhoneC.text.trim().isNotEmpty) {
+      final referral = PhoneNumberService.normalize(
+        input: _referralPhoneC.text,
+        defaultDialCode: _selectedCountry.dialCode,
+      );
+      if (referral.length < _selectedCountry.dialCode.length + 8) {
+        return 'رقم المحيل أو الموصي غير صالح.';
+      }
+    }
+
+    return null;
+  }
+
+  String? _validateSecurityStep() {
+    final password = _passwordC.text;
+    final confirm = _confirmPassC.text;
+
+    if (password.trim().isEmpty) {
+      return 'كلمة المرور مطلوبة.';
+    }
+    if (password.length < 8) {
+      return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.';
+    }
+    if (!_passwordLetterPattern.hasMatch(password)) {
+      return 'كلمة المرور يجب أن تحتوي على حرف واحد على الأقل.';
+    }
+    if (!_passwordSymbolPattern.hasMatch(password)) {
+      return 'كلمة المرور يجب أن تحتوي على رمز واحد على الأقل.';
+    }
+    if (confirm.trim().isEmpty) {
+      return 'تأكيد كلمة المرور مطلوب.';
+    }
+    if (password.length < 6) {
+      return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
+    }
+    if (password != confirm) {
+      return 'تأكيد كلمة المرور غير مطابق.';
+    }
+    if (!_termsAccepted) {
+      return 'يجب الموافقة على الشروط والأحكام لإكمال التسجيل.';
+    }
+
+    return null;
+  }
+
+  String _digitsOnly(String value) => value.replaceAll(RegExp(r'\D'), '');
+
+  Future<void> _register() async {
+    final localError =
+        _validatePersonalStep() ??
+        _validateContactStep() ??
+        _validateSecurityStep();
+    if (localError != null) {
+      await AppAlertService.showError(
         context,
-        message: 'تأكيد كلمة المرور غير مطابق.',
+        title: 'تحقق من البيانات',
+        message: localError,
       );
       return;
     }
@@ -111,35 +228,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
         input: _whatsappC.text,
         defaultDialCode: _selectedCountry.dialCode,
       );
+      final referralPhone = _referralPhoneC.text.trim().isEmpty
+          ? null
+          : PhoneNumberService.normalize(
+              input: _referralPhoneC.text,
+              defaultDialCode: _selectedCountry.dialCode,
+            );
       final otp = await _authService.startRegistration(
-        fullName: _fullNameC.text,
-        username: _usernameC.text,
+        fullName: _fullNameC.text.trim(),
+        username: _usernameC.text.trim(),
         password: _passwordC.text,
         whatsapp: whatsapp,
         countryCode: _selectedCountry.dialCode,
-        nationalId: _nationalIdC.text,
-        birthDate: _birthDateC.text,
+        nationalId: _digitsOnly(_nationalIdC.text),
+        birthDate: _birthDateC.text.trim(),
         termsAccepted: true,
-        referralPhone: _referralPhoneC.text.isEmpty ? null : _referralPhoneC.text,
+        referralPhone: referralPhone,
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => OtpVerificationScreen(
-            fullName: _fullNameC.text,
-            username: _usernameC.text,
+            fullName: _fullNameC.text.trim(),
+            username: _usernameC.text.trim(),
             password: _passwordC.text,
             whatsapp: whatsapp,
             countryCode: _selectedCountry.dialCode,
-            nationalId: _nationalIdC.text,
-            birthDate: _birthDateC.text,
+            nationalId: _digitsOnly(_nationalIdC.text),
+            birthDate: _birthDateC.text.trim(),
             termsAccepted: true,
-            referralPhone: _referralPhoneC.text.isEmpty
-                ? null
-                : _referralPhoneC.text,
+            referralPhone: referralPhone,
             pendingRegistrationId: otp.pendingRegistrationId,
             purpose: 'register',
             initialDebugOtpCode: otp.debugOtpCode,
@@ -147,19 +270,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     } catch (error) {
-      if (!mounted) return;
-      AppAlertService.showError(
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
         context,
+        title: 'تعذر بدء التسجيل',
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_registrationEnabled) return _buildDisabledState();
+    if (!_registrationEnabled) {
+      return _buildDisabledState();
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -175,11 +305,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Column(
                     children: [
                       const ShwakelLogo(size: 80, framed: true),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
+                      Text(
+                        'إنشاء حساب جديد',
+                        style: AppTheme.h1.copyWith(fontSize: 28),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'أكمل البيانات خطوة بخطوة، ولن تنتقل للخطوة التالية قبل اكتمال الحقول المطلوبة.',
+                        textAlign: TextAlign.center,
+                        style: AppTheme.bodyAction.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
                       _buildStepperHeader(),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       SizedBox(
-                        height: 520,
+                        height: 540,
                         width: 500,
                         child: PageView(
                           controller: _pageController,
@@ -191,8 +334,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       _buildNavigationButtons(),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pushReplacementNamed(context, '/login'),
+                        child: const Text('لديك حساب بالفعل؟ تسجيل الدخول'),
+                      ),
                     ],
                   ),
                 ),
@@ -208,10 +357,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('المعلومات الشخصية', style: AppTheme.h3),
+          Text('البيانات الأساسية', style: AppTheme.h3),
           const SizedBox(height: 24),
-          _field('الاسم الرباعي', _fullNameC, Icons.badge_rounded),
+          _field('الاسم الكامل', _fullNameC, Icons.badge_rounded),
           const SizedBox(height: 16),
           _field(
             'اسم المستخدم بالإنجليزية',
@@ -242,11 +392,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('بيانات التواصل والتوصية', style: AppTheme.h3),
+          Text('بيانات التواصل', style: AppTheme.h3),
           const SizedBox(height: 24),
           DropdownButtonFormField<CountryOption>(
-            value: _selectedCountry,
+            initialValue: _selectedCountry,
             decoration: const InputDecoration(
               labelText: 'الدولة',
               prefixIcon: Icon(Icons.public_rounded),
@@ -275,7 +426,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 16),
           _field(
-            'رقم هاتف المحيل أو الموصي (اختياري)',
+            'رقم المحيل أو الموصي',
             _referralPhoneC,
             Icons.link_rounded,
             type: TextInputType.phone,
@@ -289,6 +440,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('تأمين الحساب', style: AppTheme.h3),
           const SizedBox(height: 24),
@@ -300,10 +452,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Icons.lock_reset_rounded,
             obscure: true,
           ),
+          const SizedBox(height: 12),
+          Text(
+            'يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل، مع حرف واحد ورمز واحد على الأقل.',
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
           const Spacer(),
           CheckboxListTile(
             value: _termsAccepted,
-            onChanged: (value) => setState(() => _termsAccepted = value ?? false),
+            onChanged: (value) {
+              setState(() => _termsAccepted = value ?? false);
+            },
             title: Text(
               'أوافق على الشروط والسياسات والرسوم المعروضة.',
               style: AppTheme.caption.copyWith(fontWeight: FontWeight.bold),
@@ -332,9 +491,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           if (_currentStep > 0) const SizedBox(width: 16),
           Expanded(
             child: ShwakelButton(
-              label: _currentStep == 2 ? 'إنشاء الحساب' : 'التالي',
+              label: _currentStep == 2 ? 'إرسال رمز التحقق' : 'التالي',
               onPressed: _next,
               isLoading: _isLoading,
+              icon: _currentStep == 2
+                  ? Icons.sms_rounded
+                  : Icons.arrow_back_rounded,
+              iconAtEnd: true,
             ),
           ),
         ],
@@ -343,8 +506,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildStepperHeader() {
+    final labels = ['البيانات', 'التواصل', 'الحماية'];
     return SizedBox(
-      width: 400,
+      width: 460,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(3, (index) {
@@ -353,25 +517,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
           return Row(
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: isCurrent
-                    ? AppTheme.primary
-                    : (isDone ? AppTheme.success : AppTheme.border),
-                child: isDone
-                    ? const Icon(Icons.check, size: 16, color: Colors.white)
-                    : Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: isCurrent ? Colors.white : AppTheme.textTertiary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+              Column(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: isCurrent
+                        ? AppTheme.primary
+                        : isDone
+                        ? AppTheme.success
+                        : AppTheme.border,
+                    child: isDone
+                        ? const Icon(Icons.check, size: 18, color: Colors.white)
+                        : Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              color: isCurrent
+                                  ? Colors.white
+                                  : AppTheme.textTertiary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(labels[index], style: AppTheme.caption),
+                ],
               ),
               if (index < 2)
                 Container(
-                  width: 60,
+                  width: 56,
                   height: 2,
                   margin: const EdgeInsets.symmetric(horizontal: 8),
                   color: isDone ? AppTheme.success : AppTheme.border,
@@ -393,7 +567,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: 300,
             height: 300,
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.05),
+              color: AppTheme.primary.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
           ),
@@ -405,7 +579,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: 200,
             height: 200,
             decoration: BoxDecoration(
-              color: AppTheme.accent.withOpacity(0.05),
+              color: AppTheme.accent.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
           ),
@@ -416,29 +590,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildDisabledState() {
     return Scaffold(
-      body: Center(
-        child: ShwakelCard(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.lock_clock_rounded,
-                size: 64,
-                color: AppTheme.warning,
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Center(
+          child: ResponsiveScaffoldContainer(
+            maxWidth: 560,
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ShwakelCard(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(
+                    Icons.pause_circle_filled_rounded,
+                    size: 64,
+                    color: AppTheme.warning,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'التسجيل متوقف حاليًا',
+                    textAlign: TextAlign.center,
+                    style: AppTheme.h2,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'يمكنك التواصل مع الإدارة لطلب إنشاء حساب جديد أو تفعيل التسجيل من جديد.',
+                    textAlign: TextAlign.center,
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.6,
+                    ),
+                  ),
+                  if ((_supportWhatsapp ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    SupportContactCard(
+                      phoneNumber: _supportWhatsapp!,
+                      title: 'رقم الإدارة',
+                      message:
+                          'راسل الإدارة مباشرة عبر واتساب لطلب فتح التسجيل أو إنشاء حساب لك.',
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  ShwakelButton(
+                    label: 'العودة إلى تسجيل الدخول',
+                    onPressed: () =>
+                        Navigator.pushReplacementNamed(context, '/login'),
+                    isSecondary: true,
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              Text('التسجيل غير متاح حاليًا', style: AppTheme.h2),
-              Text(
-                'يرجى التواصل مع الإدارة إذا كنت بحاجة إلى إنشاء حساب جديد.',
-                style: AppTheme.caption,
-              ),
-              const SizedBox(height: 32),
-              ShwakelButton(
-                label: 'العودة إلى تسجيل الدخول',
-                onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -477,7 +679,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      setState(() => _birthDateC.text = picked.toString().split(' ')[0]);
+      setState(
+        () => _birthDateC.text = picked.toIso8601String().split('T').first,
+      );
     }
   }
 }

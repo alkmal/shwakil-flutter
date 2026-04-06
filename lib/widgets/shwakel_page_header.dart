@@ -22,13 +22,13 @@ class ShwakelPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasTrailing = trailing != null;
     return ShwakelCard(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(24),
       gradient: const LinearGradient(
-        colors: [Color(0xFFFFFFFF), Color(0xFFF0FDFA)],
+        colors: [Color(0xFFFFFFFF), Color(0xFFF4FFFC), Color(0xFFF7FBFF)],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),
-      shadowLevel: ShwakelShadowLevel.soft,
+      shadowLevel: ShwakelShadowLevel.medium,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final stacked = constraints.maxWidth < 760 || !hasTrailing;
@@ -74,6 +74,9 @@ class ShwakelPageHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.primary.withValues(alpha: 0.08),
               borderRadius: AppTheme.radiusMd,
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.10),
+              ),
             ),
             child: Text(
               eyebrow!,
@@ -85,11 +88,18 @@ class ShwakelPageHeader extends StatelessWidget {
           ),
           const SizedBox(height: 14),
         ],
-        Text(title, style: AppTheme.h1.copyWith(fontSize: titleSize)),
+        Text(
+          title,
+          style: AppTheme.h1.copyWith(fontSize: titleSize, height: 1.15),
+        ),
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: AppTheme.bodyAction.copyWith(height: 1.55, fontSize: 14),
+          style: AppTheme.bodyAction.copyWith(
+            height: 1.65,
+            fontSize: 14,
+            color: AppTheme.textSecondary,
+          ),
         ),
         if (badges.isNotEmpty) ...[
           const SizedBox(height: 16),

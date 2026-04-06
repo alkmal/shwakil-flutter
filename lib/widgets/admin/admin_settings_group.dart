@@ -36,7 +36,7 @@ class AdminSettingsGroup extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: AppTheme.radiusMd,
                 ),
                 child: Icon(icon, color: AppTheme.primary, size: 24),
@@ -48,7 +48,12 @@ class AdminSettingsGroup extends StatelessWidget {
                   children: [
                     Text(title, style: AppTheme.h3),
                     if (subtitle != null)
-                      Text(subtitle!, style: AppTheme.caption.copyWith(color: AppTheme.textSecondary)),
+                      Text(
+                        subtitle!,
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
                   ],
                 ),
               ),

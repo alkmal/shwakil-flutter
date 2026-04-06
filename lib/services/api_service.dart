@@ -85,6 +85,17 @@ class ApiService {
     return Map<String, dynamic>.from(body['auth'] as Map? ?? const {});
   }
 
+  Future<Map<String, dynamic>> getTopupRequestSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('app/topup-request-settings'),
+      headers: await _publicHeaders(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(
+      body['topupRequest'] as Map? ?? const {},
+    );
+  }
+
   Future<Map<String, dynamic>> getTransferSettings() async {
     final response = await http.get(
       AppConfig.apiUri('admin/settings/transfer'),
@@ -92,6 +103,23 @@ class ApiService {
     );
     final body = _decodeObject(response);
     return Map<String, dynamic>.from(body['transfer'] as Map? ?? const {});
+  }
+
+  Future<Map<String, dynamic>> getFeeSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/fees'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(body['fees'] as Map? ?? const {});
+  }
+
+  Future<Map<String, dynamic>> getPermissionTemplates() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/permissions'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> getUsagePolicy() async {
@@ -251,6 +279,19 @@ class ApiService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getPendingTopupRequests() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/topup-requests/pending'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['requests'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> getWithdrawalRequests({
     String? status,
     String query = '',
@@ -269,6 +310,29 @@ class ApiService {
     }
     final response = await http.get(
       AppConfig.apiUri('admin/withdrawals', params),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getTopupRequests({
+    String? status,
+    String query = '',
+    int page = 1,
+    int perPage = 8,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'perPage': perPage.toString(),
+    };
+    if (status != null && status.trim().isNotEmpty && status.trim() != 'all') {
+      params['status'] = status.trim();
+    }
+    if (query.trim().isNotEmpty) {
+      params['q'] = query.trim();
+    }
+    final response = await http.get(
+      AppConfig.apiUri('admin/topup-requests', params),
       headers: await _headers(),
     );
     return _decodeObject(response);
@@ -299,11 +363,25 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> approvePendingWithdrawalRequest(
-    String requestId,
-  ) async {
+    String requestId, {
+    required String approvalImageBase64,
+  }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/withdrawals/$requestId/approve'),
       headers: await _headers(),
+      body: jsonEncode({'approvalImageBase64': approvalImageBase64}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> approvePendingTopupRequest(
+    String requestId, {
+    required String approvalImageBase64,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/topup-requests/$requestId/approve'),
+      headers: await _headers(),
+      body: jsonEncode({'approvalImageBase64': approvalImageBase64}),
     );
     return _decodeObject(response);
   }
@@ -314,6 +392,18 @@ class ApiService {
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/withdrawals/$requestId/reject'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> rejectPendingTopupRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/topup-requests/$requestId/reject'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
     );
@@ -343,6 +433,10 @@ class ApiService {
     required bool canIssueHighValueCards,
     required bool canIssuePrivateCards,
     required bool canResellCards,
+    required bool canRequestCardPrinting,
+    required bool canReviewCardPrintRequests,
+    required bool canPrepareCardPrintRequests,
+    required bool canFinalizeCardPrintRequests,
     required bool canManageUsers,
   }) async {
     final response = await http.put(
@@ -354,6 +448,10 @@ class ApiService {
         'canIssueHighValueCards': canIssueHighValueCards,
         'canIssuePrivateCards': canIssuePrivateCards,
         'canResellCards': canResellCards,
+        'canRequestCardPrinting': canRequestCardPrinting,
+        'canReviewCardPrintRequests': canReviewCardPrintRequests,
+        'canPrepareCardPrintRequests': canPrepareCardPrintRequests,
+        'canFinalizeCardPrintRequests': canFinalizeCardPrintRequests,
         'canManageUsers': canManageUsers,
       }),
     );
@@ -371,6 +469,7 @@ class ApiService {
     double? customTransferFeePercent,
     double? customCardRedeemFeePercent,
     double? customCardResellFeePercent,
+    double? customCardPrintRequestFeePercent,
   }) async {
     final response = await http.put(
       AppConfig.apiUri('admin/users/$userId/account-controls'),
@@ -385,7 +484,196 @@ class ApiService {
         'customTransferFeePercent': customTransferFeePercent,
         'customCardRedeemFeePercent': customCardRedeemFeePercent,
         'customCardResellFeePercent': customCardResellFeePercent,
+        'customCardPrintRequestFeePercent': customCardPrintRequestFeePercent,
       }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateFeeSettings({
+    required double walletTopupPercent,
+    required double walletTransferPercent,
+    required double cardRedeemPercent,
+    required double cardResellPercent,
+    required double cardPrintRequestPercent,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/fees'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'walletTopupPercent': walletTopupPercent,
+        'walletTransferPercent': walletTransferPercent,
+        'cardRedeemPercent': cardRedeemPercent,
+        'cardResellPercent': cardResellPercent,
+        'cardPrintRequestPercent': cardPrintRequestPercent,
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updatePermissionTemplates({
+    required Map<String, dynamic> templates,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/permissions'),
+      headers: await _headers(),
+      body: jsonEncode({'templates': templates}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getMyCardPrintRequests() async {
+    final response = await http.get(
+      AppConfig.apiUri('cards/print-requests'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['requests'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> requestCardPrint({
+    required double value,
+    required int quantity,
+    required String cardType,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('cards/print-requests'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'value': value,
+        'quantity': quantity,
+        'cardType': cardType,
+        'notes': notes.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['user'] is Map<String, dynamic>) {
+      await _authService.cacheCurrentUser(
+        Map<String, dynamic>.from(body['user'] as Map<String, dynamic>),
+      );
+    } else if (body['user'] is Map) {
+      await _authService.cacheCurrentUser(
+        Map<String, dynamic>.from(body['user'] as Map),
+      );
+    }
+    return body;
+  }
+
+  Future<Map<String, dynamic>> getCardPrintRequests({
+    String status = 'all',
+    String query = '',
+    int page = 1,
+    int perPage = 8,
+  }) async {
+    final params = <String, String>{
+      'status': status,
+      'page': page.toString(),
+      'perPage': perPage.toString(),
+    };
+    if (query.trim().isNotEmpty) {
+      params['q'] = query.trim();
+    }
+    final response = await http.get(
+      AppConfig.apiUri('admin/card-print-requests', params),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> approveCardPrintRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests/$requestId/approve'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> startCardPrintRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests/$requestId/start'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> readyCardPrintRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests/$requestId/ready'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> completeCardPrintRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests/$requestId/complete'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> rejectCardPrintRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests/$requestId/reject'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createAdminUser({
+    required String username,
+    required String whatsapp,
+    String fullName = '',
+    String password = '',
+    String countryCode = '970',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'username': username.trim(),
+        'whatsapp': whatsapp.trim(),
+        'fullName': fullName.trim(),
+        'password': password,
+        'countryCode': countryCode.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> resendAdminUserAccountDetails({
+    required String userId,
+    bool regeneratePassword = true,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users/$userId/resend-account-details'),
+      headers: await _headers(),
+      body: jsonEncode({'regeneratePassword': regeneratePassword}),
     );
     return _decodeObject(response);
   }
@@ -434,6 +722,96 @@ class ApiService {
       body: jsonEncode({'unverifiedTransferLimit': unverifiedTransferLimit}),
     );
     return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminTopupRequestSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/topup-request'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(
+      body['topupRequest'] as Map? ?? const {},
+    );
+  }
+
+  Future<Map<String, dynamic>> updateAdminTopupRequestSettings({
+    required bool enabled,
+    required String instructions,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/topup-request'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'enabled': enabled,
+        'instructions': instructions.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminTopupPaymentMethods() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/topup-payment-methods'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['methods'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> saveAdminTopupPaymentMethod({
+    String? methodId,
+    required String title,
+    required String description,
+    required String imageUrl,
+    required String accountNumber,
+    required bool isActive,
+    required int sortOrder,
+  }) async {
+    final payload = {
+      'title': title.trim(),
+      'description': description.trim(),
+      'imageUrl': imageUrl.trim(),
+      'accountNumber': accountNumber.trim(),
+      'isActive': isActive,
+      'sortOrder': sortOrder,
+    };
+    final response = methodId == null
+        ? await http.post(
+            AppConfig.apiUri('admin/topup-payment-methods'),
+            headers: await _headers(),
+            body: jsonEncode(payload),
+          )
+        : await http.put(
+            AppConfig.apiUri('admin/topup-payment-methods/$methodId'),
+            headers: await _headers(),
+            body: jsonEncode(payload),
+          );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['methods'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> deleteAdminTopupPaymentMethod(
+    String methodId,
+  ) async {
+    final response = await http.delete(
+      AppConfig.apiUri('admin/topup-payment-methods/$methodId'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['methods'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
   }
 
   Future<Map<String, dynamic>> updatePrintLogo({
@@ -542,10 +920,28 @@ class ApiService {
     String requestId, {
     required bool approve,
     String notes = '',
+    String approvalImageBase64 = '',
   }) {
     return approve
-        ? approvePendingWithdrawalRequest(requestId)
+        ? approvePendingWithdrawalRequest(
+            requestId,
+            approvalImageBase64: approvalImageBase64,
+          )
         : rejectPendingWithdrawalRequest(requestId, notes: notes);
+  }
+
+  Future<Map<String, dynamic>> reviewTopupRequest(
+    String requestId, {
+    required bool approve,
+    String notes = '',
+    String approvalImageBase64 = '',
+  }) {
+    return approve
+        ? approvePendingTopupRequest(
+            requestId,
+            approvalImageBase64: approvalImageBase64,
+          )
+        : rejectPendingTopupRequest(requestId, notes: notes);
   }
 
   Future<Map<String, dynamic>> releaseAdminUserDevice({
@@ -767,6 +1163,42 @@ class ApiService {
     final body = _decodeObject(response);
     await _patchCachedBalanceFromPayload(body);
     return body;
+  }
+
+  Future<Map<String, dynamic>> getTopupRequestOptions() async {
+    final response = await http.get(
+      AppConfig.apiUri('wallet/topup-request/options'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> requestTopup({
+    required double amount,
+    required String paymentMethodId,
+    String senderName = '',
+    String senderPhone = '',
+    String transferReference = '',
+    String? transferredAt,
+    String notes = '',
+  }) async {
+    final payload = <String, dynamic>{
+      'amount': amount,
+      'paymentMethodId': paymentMethodId,
+      'senderName': senderName.trim(),
+      'senderPhone': senderPhone.trim(),
+      'transferReference': transferReference.trim(),
+      'notes': notes.trim(),
+    };
+    if (transferredAt != null && transferredAt.trim().isNotEmpty) {
+      payload['transferredAt'] = transferredAt.trim();
+    }
+    final response = await http.post(
+      AppConfig.apiUri('wallet/topup-request'),
+      headers: await _headers(),
+      body: jsonEncode(payload),
+    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> getVerificationStatus() async {
@@ -1023,22 +1455,23 @@ class ApiService {
         trimmedBody.startsWith('<!DOCTYPE html') ||
         trimmedBody.startsWith('<html') ||
         trimmedBody.startsWith('<');
+    const fallbackMessage = 'تأكد من جميع البيانات وحاول مرة أخرى.';
+
     if (!contentType.contains('application/json') && looksLikeHtml) {
-      throw Exception(
-        'الخادم أعاد صفحة ويب بدل بيانات التطبيق. حاول تسجيل الدخول من جديد أو تحديث نسخة التطبيق.',
-      );
+      throw Exception(fallbackMessage);
     }
+
     Map<String, dynamic> body;
     try {
       body = jsonDecode(rawBody) as Map<String, dynamic>;
     } on FormatException {
-      throw Exception(
-        'تعذر قراءة استجابة الخادم. تأكد من أن خدمة التطبيق تعمل بشكل صحيح.',
-      );
+      throw Exception(fallbackMessage);
     }
+
     if (response.statusCode >= 400) {
       throw Exception(ErrorMessageService.sanitize(body['message']));
     }
+
     return body;
   }
 }

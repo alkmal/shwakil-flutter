@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../services/index.dart';
+import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
-import '../utils/app_theme.dart';
-import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_button.dart';
+import '../widgets/shwakel_card.dart';
 
 class SupportedLocationsScreen extends StatefulWidget {
   const SupportedLocationsScreen({super.key});
+
   @override
   State<SupportedLocationsScreen> createState() =>
       _SupportedLocationsScreenState();
@@ -17,8 +19,9 @@ class SupportedLocationsScreen extends StatefulWidget {
 
 class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   final ApiService _apiService = ApiService();
+
   List<Map<String, dynamic>> _locations = const [];
-  Position? _pos;
+  Position? _position;
   bool _isLoading = true;
 
   @override
@@ -30,20 +33,25 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final locs = await _apiService.getSupportedLocations();
-      final pos = await TransactionLocationService.currentPosition();
-      final sorted = locs.map((l) => Map<String, dynamic>.from(l)).toList();
-      if (pos != null) {
-        for (final l in sorted) {
-          final lat = (l['latitude'] as num?)?.toDouble();
-          final lon = (l['longitude'] as num?)?.toDouble();
-          if (lat != null && lon != null)
-            l['dist'] = Geolocator.distanceBetween(
-              pos.latitude,
-              pos.longitude,
-              lat,
-              lon,
+      final locations = await _apiService.getSupportedLocations();
+      final currentPosition =
+          await TransactionLocationService.currentPosition();
+      final sorted = locations
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      if (currentPosition != null) {
+        for (final location in sorted) {
+          final latitude = (location['latitude'] as num?)?.toDouble();
+          final longitude = (location['longitude'] as num?)?.toDouble();
+          if (latitude != null && longitude != null) {
+            location['dist'] = Geolocator.distanceBetween(
+              currentPosition.latitude,
+              currentPosition.longitude,
+              latitude,
+              longitude,
             );
+          }
         }
         sorted.sort(
           (a, b) => (a['dist'] as double? ?? 999999).compareTo(
@@ -51,14 +59,20 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
           ),
         );
       }
-      if (mounted)
-        setState(() {
-          _locations = sorted;
-          _pos = pos;
-          _isLoading = false;
-        });
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _locations = sorted;
+        _position = currentPosition;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isLoading = false);
     }
   }
 
@@ -79,8 +93,10 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                     children: [
                       _buildMapHero(),
                       const SizedBox(height: 24),
-                      if (_pos != null) _buildDistanceHint(),
-                      const SizedBox(height: 16),
+                      if (_position != null) ...[
+                        _buildDistanceHint(),
+                        const SizedBox(height: 16),
+                      ],
                       if (_locations.isEmpty)
                         _buildEmptyState()
                       else
@@ -94,14 +110,26 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   Widget _buildMapHero() {
+    final hasDistanceSorting = _position != null;
+
     return ShwakelCard(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(30),
       gradient: AppTheme.primaryGradient,
-      child: Row(
-        children: [
-          const Icon(Icons.map_rounded, color: Colors.white, size: 40),
-          const SizedBox(width: 24),
-          Expanded(
+      shadowLevel: ShwakelShadowLevel.premium,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+          final iconBox = Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(Icons.map_rounded, color: Colors.white, size: 38),
+          );
+
+          final content = Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -109,23 +137,53 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                   'خريطة شواكل التفاعلية',
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
+                const SizedBox(height: 8),
                 Text(
-                  'اعثر على أقرب وكيل أو نقطة شحن أو توزيع معتمدة في منطقتك.',
-                  style: AppTheme.caption.copyWith(color: Colors.white70),
+                  'اعثر على أقرب وكيل أو نقطة شحن معتمدة في منطقتك مع ترتيب تلقائي حسب المسافة.',
+                  style: AppTheme.bodyAction.copyWith(
+                    color: Colors.white70,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _heroChip(
+                      icon: Icons.storefront_rounded,
+                      label: '${_locations.length} مواقع متاحة',
+                    ),
+                    _heroChip(
+                      icon: Icons.my_location_rounded,
+                      label: hasDistanceSorting
+                          ? 'مرتبة حسب المسافة'
+                          : 'الترتيب العام',
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [iconBox, const SizedBox(height: 18), content],
+            );
+          }
+
+          return Row(children: [iconBox, const SizedBox(width: 20), content]);
+        },
       ),
     );
   }
 
   Widget _buildDistanceHint() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(12),
-      color: AppTheme.success.withOpacity(0.05),
-      borderColor: AppTheme.success.withOpacity(0.2),
+      padding: const EdgeInsets.all(14),
+      color: AppTheme.success.withValues(alpha: 0.05),
+      borderColor: AppTheme.success.withValues(alpha: 0.20),
       child: Row(
         children: [
           const Icon(
@@ -148,8 +206,8 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
     );
   }
 
-  Widget _buildLocationTile(Map<String, dynamic> l) {
-    final dist = l['dist'] as double?;
+  Widget _buildLocationTile(Map<String, dynamic> location) {
+    final distance = location['dist'] as double?;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: ShwakelCard(
@@ -159,8 +217,8 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppTheme.primary.withOpacity(0.1),
-                  child: Icon(
+                  backgroundColor: AppTheme.primary.withValues(alpha: 0.10),
+                  child: const Icon(
                     Icons.storefront_rounded,
                     color: AppTheme.primary,
                   ),
@@ -170,9 +228,13 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l['title'] ?? 'فرع شواكل', style: AppTheme.bodyBold),
                       Text(
-                        l['type'] ?? 'نقطة بيع معتمدة',
+                        location['title']?.toString() ?? 'فرع شواكل',
+                        style: AppTheme.bodyBold,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        location['type']?.toString() ?? 'نقطة خدمة معتمدة',
                         style: AppTheme.caption.copyWith(
                           color: AppTheme.primary,
                         ),
@@ -180,25 +242,39 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                     ],
                   ),
                 ),
-                if (dist != null)
-                  Text(
-                    _fmtDist(dist),
-                    style: AppTheme.caption.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textTertiary,
+                if (distance != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      _formatDistance(distance),
+                      style: AppTheme.caption.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ),
               ],
             ),
-            const Divider(height: 32),
-            _info(Icons.location_on_rounded, l['address'] ?? '-'),
-            const SizedBox(height: 8),
-            _info(Icons.phone_rounded, l['phone'] ?? '-'),
-            const SizedBox(height: 24),
+            const Divider(height: 30),
+            _info(
+              Icons.location_on_rounded,
+              location['address']?.toString() ?? '-',
+            ),
+            const SizedBox(height: 10),
+            _info(Icons.phone_rounded, location['phone']?.toString() ?? '-'),
+            const SizedBox(height: 20),
             ShwakelButton(
               label: 'فتح في الخرائط',
               icon: Icons.directions_rounded,
-              onPressed: () => _openMap(l),
+              onPressed: () => _openMap(location),
+              width: double.infinity,
             ),
           ],
         ),
@@ -206,40 +282,85 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
     );
   }
 
-  Widget _buildEmptyState() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(60),
-      child: Column(
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(60),
+        child: Column(
+          children: [
+            Icon(
+              Icons.map_outlined,
+              size: 60,
+              color: AppTheme.textTertiary.withValues(alpha: 0.30),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'لا توجد مواقع مسجلة حاليًا',
+              style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'يمكن العودة لاحقًا أو سحب الشاشة لإعادة التحديث.',
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyAction,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _info(IconData icon, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppTheme.textTertiary),
+        const SizedBox(width: 12),
+        Expanded(child: Text(value, style: AppTheme.caption)),
+      ],
+    );
+  }
+
+  Widget _heroChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.map_outlined,
-            size: 60,
-            color: AppTheme.textTertiary.withOpacity(0.3),
-          ),
-          const SizedBox(height: 24),
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
           Text(
-            'لا توجد مواقع مسجلة حالياً',
-            style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
+            label,
+            style: AppTheme.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
-    ),
-  );
-  Widget _info(IconData i, String v) => Row(
-    children: [
-      Icon(i, size: 16, color: AppTheme.textTertiary),
-      const SizedBox(width: 12),
-      Expanded(child: Text(v, style: AppTheme.caption)),
-    ],
-  );
-  String _fmtDist(double m) =>
-      m < 1000 ? '${m.round()} متر' : '${(m / 1000).toStringAsFixed(1)} كم';
+    );
+  }
 
-  Future<void> _openMap(Map<String, dynamic> l) async {
-    final lat = l['latitude'], lon = l['longitude'];
-    if (lat == null || lon == null) return;
+  String _formatDistance(double meters) {
+    return meters < 1000
+        ? '${meters.round()} متر'
+        : '${(meters / 1000).toStringAsFixed(1)} كم';
+  }
+
+  Future<void> _openMap(Map<String, dynamic> location) async {
+    final latitude = location['latitude'];
+    final longitude = location['longitude'];
+    if (latitude == null || longitude == null) {
+      return;
+    }
     await launchUrl(
-      Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon'),
+      Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
+      ),
       mode: LaunchMode.externalApplication,
     );
   }

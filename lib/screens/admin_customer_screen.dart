@@ -6,7 +6,6 @@ import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_button.dart';
-import '../widgets/shwakel_logo.dart';
 import '../widgets/admin/admin_enums.dart';
 import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
@@ -37,6 +36,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   final _transferFeeController = TextEditingController();
   final _redeemFeeController = TextEditingController();
   final _resellFeeController = TextEditingController();
+  final _cardPrintRequestFeeController = TextEditingController();
 
   late Map<String, dynamic> _customer;
   List<Map<String, dynamic>> _transactions = const [];
@@ -66,6 +66,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     _transferFeeController.dispose();
     _redeemFeeController.dispose();
     _resellFeeController.dispose();
+    _cardPrintRequestFeeController.dispose();
     super.dispose();
   }
 
@@ -90,6 +91,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     );
     _resellFeeController.text = _formatPct(
       _customer['customCardResellFeePercent'],
+    );
+    _cardPrintRequestFeeController.text = _formatPct(
+      _customer['customCardPrintRequestFeePercent'],
     );
   }
 
@@ -134,11 +138,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         _busy = false;
       });
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _firstLoad = false;
           _busy = false;
         });
+      }
       AppAlertService.showError(
         context,
         message: ErrorMessageService.sanitize(e),
@@ -161,6 +166,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         customTransferFeePercent: double.tryParse(_transferFeeController.text),
         customCardRedeemFeePercent: double.tryParse(_redeemFeeController.text),
         customCardResellFeePercent: double.tryParse(_resellFeeController.text),
+        customCardPrintRequestFeePercent: double.tryParse(
+          _cardPrintRequestFeeController.text,
+        ),
       );
       if (mounted) {
         setState(() {
@@ -174,7 +182,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         );
       }
     } catch (e) {
-      if (mounted) setState(() => _busy = false);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
       AppAlertService.showError(
         context,
         message: ErrorMessageService.sanitize(e),
@@ -182,10 +193,65 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     }
   }
 
+  Future<void> _resendAccountDetails() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إعادة إرسال بيانات المستخدم'),
+        content: const Text(
+          'سيتم إنشاء كلمة مرور جديدة لهذا المستخدم ثم إرسال بيانات الدخول إلى واتساب الحساب. هل تريد المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('تأكيد الإرسال'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final response = await _api.resendAdminUserAccountDetails(
+        userId: _customer['id'].toString(),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم الإرسال',
+        message: response['message']?.toString() ??
+            'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر واتساب.',
+      );
+      await _loadCustomer(full: true);
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر الإرسال',
+        message: ErrorMessageService.sanitize(e),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_firstLoad)
+    if (_firstLoad) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     final name = _customer['fullName'] ?? _customer['username'] ?? 'عميل شواكل';
 
@@ -257,6 +323,30 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         child: Column(
           children: [
             _buildProfileHero(),
+            if (widget.canManageUsers) ...[
+              const SizedBox(height: 16),
+              ShwakelCard(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('إجراءات سريعة', style: AppTheme.h3),
+                    const SizedBox(height: 10),
+                    Text(
+                      'إعادة إرسال بيانات المستخدم عبر واتساب ستنشئ كلمة مرور جديدة تلقائيًا قبل الإرسال.',
+                      style: AppTheme.bodyAction,
+                    ),
+                    const SizedBox(height: 16),
+                    ShwakelButton(
+                      label: 'إعادة إرسال بيانات المستخدم',
+                      icon: Icons.mark_chat_unread_rounded,
+                      onPressed: _busy ? null : _resendAccountDetails,
+                      isLoading: _busy,
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,7 +404,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         children: [
           CircleAvatar(
             radius: 40,
-            backgroundColor: Colors.white.withOpacity(0.2),
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Text(
               (_customer['username']
                       ?.toString()
@@ -441,11 +531,23 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   Text('إدارة الحساب والرسوم', style: AppTheme.h3),
                   const SizedBox(height: 24),
                   DropdownButtonFormField<String>(
-                    value: _verification,
+                    initialValue: _verification,
                     decoration: const InputDecoration(
                       labelText: 'حالة التوثيق (تفعيل التحقق)',
                     ),
                     items: const [
+                      DropdownMenuItem(
+                        value: 'restricted',
+                        child: Text('عضوية مقيدة'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'verified_member',
+                        child: Text('عضوية موثقة'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'advanced_member',
+                        child: Text('عضوية مطورة'),
+                      ),
                       DropdownMenuItem(
                         value: 'unverified',
                         child: Text('غير موثق'),
@@ -464,7 +566,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _role,
+                    initialValue: _role,
                     decoration: const InputDecoration(labelText: 'دور الحساب'),
                     items: const [
                       DropdownMenuItem(
@@ -517,6 +619,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         _feeField('التحويل', _transferFeeController),
         _feeField('الاسترداد', _redeemFeeController),
         _feeField('إعادة البيع', _resellFeeController),
+        _feeField('طلب الطباعة', _cardPrintRequestFeeController),
       ],
     );
   }
@@ -536,6 +639,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               Text('صلاحيات البطاقات والإدارة', style: AppTheme.h3),
               const SizedBox(height: 16),
               _permItem('إصدار بطاقات رصيد', 'canIssueCards', perms),
+              _permItem('طلب طباعة البطاقات', 'canRequestCardPrinting', perms),
               _permItem('إصدار أجزاء الشيكل', 'canIssueSubShekelCards', perms),
               _permItem(
                 'إصدار بطاقات عالية القيمة',
@@ -545,6 +649,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               _permItem(
                 'إعادة تفعيل البطاقات المستخدمة',
                 'canResellCards',
+                perms,
+              ),
+              _permItem(
+                'مراجعة طلبات طباعة البطاقات',
+                'canReviewCardPrintRequests',
+                perms,
+              ),
+              _permItem(
+                'تجهيز وطباعة الطلبات',
+                'canPrepareCardPrintRequests',
+                perms,
+              ),
+              _permItem(
+                'إكمال وتسليم الطلبات',
+                'canFinalizeCardPrintRequests',
                 perms,
               ),
               if (widget.canManageUsers)
@@ -692,7 +811,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           p[k] = v;
           await _savePermissions(p);
         },
-        activeColor: AppTheme.primary,
+        activeThumbColor: AppTheme.primary,
         contentPadding: EdgeInsets.zero,
       );
 
@@ -707,6 +826,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canIssueHighValueCards: p['canIssueHighValueCards'] == true,
         canIssuePrivateCards: p['canIssuePrivateCards'] == true,
         canResellCards: p['canResellCards'] == true,
+        canRequestCardPrinting: p['canRequestCardPrinting'] == true,
+        canReviewCardPrintRequests: p['canReviewCardPrintRequests'] == true,
+        canPrepareCardPrintRequests: p['canPrepareCardPrintRequests'] == true,
+        canFinalizeCardPrintRequests: p['canFinalizeCardPrintRequests'] == true,
         canManageUsers: p['canManageUsers'] == true,
       );
       setState(() {

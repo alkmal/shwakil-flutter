@@ -7,7 +7,6 @@ import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/shwakel_page_header.dart';
 
 class CreateCardScreen extends StatefulWidget {
   const CreateCardScreen({super.key});
@@ -78,9 +77,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       }
     }
   }
-
-  double get _printBal =>
-      (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
 
   Map<String, dynamic> get _permissions =>
       Map<String, dynamic>.from(_user?['permissions'] as Map? ?? const {});
@@ -388,24 +384,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            //   ShwakelPageHeader(
-            //     eyebrow: 'إنشاء وطباعة',
-            //     title: 'صمّم الدفعة الجديدة قبل إصدارها',
-            //     subtitle:
-            //         'أعدنا ترتيب الشاشة لتجمع بيانات الإصدار وتخصيص الطباعة في عرض حديث وواضح، مع نصوص أخف وأنسب للشاشات.',
-            //     badges: [
-            //       ShwakelInfoBadge(
-            //         icon: Icons.account_balance_wallet_rounded,
-            //         label: 'الرصيد ${CurrencyFormatter.ils(_printBal)}',
-            //       ),
-            //       const ShwakelInfoBadge(
-            //         icon: Icons.auto_awesome_rounded,
-            //         label: 'تصميم طباعة مخصص',
-            //         color: AppTheme.secondary,
-            //       ),
-            //     ],
-            //   ),
-            //   const SizedBox(height: 20),
+              //   ShwakelPageHeader(
+              //     eyebrow: 'إنشاء وطباعة',
+              //     title: 'صمّم الدفعة الجديدة قبل إصدارها',
+              //     subtitle:
+              //         'أعدنا ترتيب الشاشة لتجمع بيانات الإصدار وتخصيص الطباعة في عرض حديث وواضح، مع نصوص أخف وأنسب للشاشات.',
+              //     badges: [
+              //       ShwakelInfoBadge(
+              //         icon: Icons.account_balance_wallet_rounded,
+              //         label: 'الرصيد ${CurrencyFormatter.ils(_printBal)}',
+              //       ),
+              //       const ShwakelInfoBadge(
+              //         icon: Icons.auto_awesome_rounded,
+              //         label: 'تصميم طباعة مخصص',
+              //         color: AppTheme.secondary,
+              //       ),
+              //     ],
+              //   ),
+              //   const SizedBox(height: 20),
               _buildHero(),
               const SizedBox(height: 24),
               LayoutBuilder(

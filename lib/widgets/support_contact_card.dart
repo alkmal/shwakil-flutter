@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/app_theme.dart';
+
 class SupportContactCard extends StatelessWidget {
   const SupportContactCard({
     super.key,
@@ -9,9 +11,11 @@ class SupportContactCard extends StatelessWidget {
     this.message,
     this.title = 'الدعم والتواصل',
   });
+
   final String phoneNumber;
   final String? message;
   final String title;
+
   Future<void> _copyNumber(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     if (!context.mounted) {
@@ -37,35 +41,50 @@ class SupportContactCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDFA),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF99F6E4)),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFFFFF), Color(0xFFF0FDFA)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFBEEAE1)),
+        boxShadow: AppTheme.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.support_agent_rounded, color: Color(0xFF0F766E)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.support_agent_rounded,
+                  color: Color(0xFF0F766E),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Text(
             phoneNumber,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
               color: Color(0xFF115E59),
             ),
@@ -77,11 +96,11 @@ class SupportContactCard extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF334155),
                 fontWeight: FontWeight.w600,
-                height: 1.5,
+                height: 1.6,
               ),
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 10,
             runSpacing: 10,

@@ -32,6 +32,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   int _page = 1;
   static const int _perPage = 8;
   int _lastPage = 1;
+  bool _topupRequestEnabled = true;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
 
@@ -87,6 +88,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         perPage: _perPage,
         printingDebtOnly: _auditFilter == _BalanceAuditFilter.printingDebt,
       );
+      final topupSettings = await _apiService.getTopupRequestSettings();
       final pagination = Map<String, dynamic>.from(
         data['pagination'] as Map? ?? const {},
       );
@@ -98,6 +100,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         _transactions = List<dynamic>.from(
           data['transactions'] as List? ?? const [],
         );
+        _topupRequestEnabled = topupSettings['enabled'] == true;
         _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
         _isLoading = false;
       });
@@ -169,6 +172,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       );
     }
   }
+
   Future<void> _openWithdrawalDialog() async {
     if (!_canWithdrawAction || !_isVerifiedAccount) {
       _showMessage(
@@ -215,6 +219,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       );
     }
   }
+
   Future<void> _openTopUpDialog() async {
     if (!_canManageUsersAction) {
       _showMessage(
@@ -261,6 +266,279 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         ErrorMessageService.sanitize(error),
         isError: true,
         operation: 'wallet_topup',
+      );
+    }
+  }
+
+  Future<void> _openTopupRequestDialog() async {
+    try {
+      final options = await _apiService.getTopupRequestOptions();
+      final topupRequest = Map<String, dynamic>.from(
+        options['topupRequest'] as Map? ?? const {},
+      );
+      final methods = List<Map<String, dynamic>>.from(
+        (options['methods'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      if (!mounted) {
+        return;
+      }
+      if (topupRequest['enabled'] != true) {
+        await AppAlertService.showInfo(
+          context,
+          title: 'الخدمة غير متاحة',
+          message: 'طلبات شحن الرصيد متوقفة حاليًا. يمكنك التواصل مع الإدارة.',
+        );
+        return;
+      }
+      if (methods.isEmpty) {
+        await AppAlertService.showInfo(
+          context,
+          title: 'لا توجد طرق دفع',
+          message: 'لم تتم إضافة طرق شحن متاحة بعد من الإدارة.',
+        );
+        return;
+      }
+
+      final amountController = TextEditingController();
+      final senderNameController = TextEditingController(
+        text: _user?['fullName']?.toString() ?? _user?['username']?.toString() ?? '',
+      );
+      final senderPhoneController = TextEditingController(
+        text: _user?['whatsapp']?.toString() ?? '',
+      );
+      final transferReferenceController = TextEditingController();
+      final transferredAtController = TextEditingController();
+      final notesController = TextEditingController();
+      String? selectedMethodId = methods.first['id']?.toString();
+      String? errorText;
+      var isSubmitting = false;
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final selectedMethod = methods.firstWhere(
+              (item) => item['id']?.toString() == selectedMethodId,
+              orElse: () => methods.first,
+            );
+
+            Future<void> submit() async {
+              final amount = double.tryParse(amountController.text.trim()) ?? 0;
+              if (amount <= 0 || selectedMethodId == null) {
+                setDialogState(
+                  () => errorText = 'أدخل مبلغًا صحيحًا واختر طريقة شحن مناسبة.',
+                );
+                return;
+              }
+              setDialogState(() {
+                isSubmitting = true;
+                errorText = null;
+              });
+              try {
+                final response = await _apiService.requestTopup(
+                  amount: amount,
+                  paymentMethodId: selectedMethodId!,
+                  senderName: senderNameController.text,
+                  senderPhone: senderPhoneController.text,
+                  transferReference: transferReferenceController.text,
+                  transferredAt: transferredAtController.text,
+                  notes: notesController.text,
+                );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                Navigator.pop(dialogContext);
+                if (!mounted) {
+                  return;
+                }
+                await AppAlertService.showSuccess(
+                  context,
+                  title: 'تم إرسال الطلب',
+                  message:
+                      response['message']?.toString() ??
+                      'تم تسجيل طلب شحن الرصيد وسيراجعه فريق الإدارة.',
+                );
+              } catch (error) {
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                setDialogState(() {
+                  isSubmitting = false;
+                  errorText = ErrorMessageService.sanitize(error);
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('طلب شحن رصيد'),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Text(
+                          topupRequest['instructions']?.toString() ??
+                              'اختر طريقة الشحن المناسبة ثم أرسل بيانات الحوالة.',
+                          style: AppTheme.bodyAction,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedMethodId,
+                        decoration: const InputDecoration(
+                          labelText: 'طريقة الدفع',
+                          prefixIcon: Icon(Icons.account_balance_wallet_rounded),
+                        ),
+                        items: methods
+                            .map(
+                              (method) => DropdownMenuItem(
+                                value: method['id']?.toString(),
+                                child: Text(method['title']?.toString() ?? '-'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setDialogState(() => selectedMethodId = value),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              selectedMethod['title']?.toString() ?? '-',
+                              style: AppTheme.bodyBold,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'الرقم: ${selectedMethod['accountNumber']?.toString() ?? '-'}',
+                              style: AppTheme.bodyAction,
+                            ),
+                            if ((selectedMethod['description']?.toString() ?? '')
+                                .trim()
+                                .isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                selectedMethod['description']?.toString() ?? '',
+                                style: AppTheme.bodyAction.copyWith(
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'مبلغ الشحن',
+                          prefixIcon: Icon(Icons.payments_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: senderNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'اسم المحول',
+                          prefixIcon: Icon(Icons.person_outline_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: senderPhoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'جوال المحول',
+                          prefixIcon: Icon(Icons.phone_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: transferReferenceController,
+                        decoration: const InputDecoration(
+                          labelText: 'رقم العملية أو المرجع',
+                          prefixIcon: Icon(Icons.tag_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: transferredAtController,
+                        decoration: const InputDecoration(
+                          labelText: 'وقت التحويل',
+                          helperText: 'مثال: 2026-04-06 14:30',
+                          prefixIcon: Icon(Icons.schedule_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: notesController,
+                        minLines: 2,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'ملاحظات إضافية',
+                          prefixIcon: Icon(Icons.notes_rounded),
+                        ),
+                      ),
+                      if (errorText != null) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          errorText!,
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.error,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('إلغاء'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting ? null : submit,
+                  child: Text(isSubmitting ? 'جارٍ الإرسال...' : 'إرسال الطلب'),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر فتح الخدمة',
+        message: ErrorMessageService.sanitize(error),
       );
     }
   }
@@ -479,7 +757,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                       child: button,
                     ),
                   )
-                  .toList()
+                  .toList(),
             )
           else
             Wrap(
@@ -493,6 +771,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       ),
     );
   }
+
   List<Widget> _buildActionButtons() {
     final buttons = <Widget>[];
 
@@ -515,6 +794,16 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         ),
       );
     }
+    if (_topupRequestEnabled) {
+      buttons.add(
+        ShwakelButton(
+          label: 'طلب شحن رصيد',
+          icon: Icons.add_card_rounded,
+          isSecondary: buttons.isNotEmpty,
+          onPressed: _openTopupRequestDialog,
+        ),
+      );
+    }
     if (_canWithdrawAction && _isVerifiedAccount) {
       buttons.add(
         ShwakelButton(
@@ -528,6 +817,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
 
     return buttons;
   }
+
   Widget _buildLockedActionsHint() {
     return ShwakelCard(
       padding: const EdgeInsets.all(18),
@@ -550,6 +840,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       ),
     );
   }
+
   Widget _buildPermissionSummaryCard() {
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
@@ -578,6 +869,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       ),
     );
   }
+
   Widget _permissionRow(String label, String value) {
     final isAvailable = value == 'متاح' || value == 'موثق';
     return Padding(
@@ -610,6 +902,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       ],
     );
   }
+
   Widget _filterChip(String label, _BalanceAuditFilter filter) {
     final selected = _auditFilter == filter;
     return ChoiceChip(
@@ -648,6 +941,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       ),
     );
   }
+
   Future<void> _showTransferSuccessReport(Map<String, dynamic> response) async {
     await showDialog<void>(
       context: context,
@@ -663,6 +957,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       ),
     );
   }
+
   Future<_UserAmountResult?> _showSearchableUserAmountDialog({
     required String title,
     required String confirmLabel,
@@ -705,7 +1000,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           searchResults = results;
           selectedUser = results.length == 1 ? results.first : null;
           isSearching = false;
-          searchError = results.isEmpty ? 'لم يتم العثور على مستخدم مطابق.' : null;
+          searchError = results.isEmpty
+              ? 'لم يتم العثور على مستخدم مطابق.'
+              : null;
         });
       } catch (error) {
         if (!mounted) return;
@@ -745,7 +1042,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             phoneLookupMessage = 'الرقم موجود ويمكن متابعة التحويل.';
           } else {
             selectedUser = null;
-            phoneLookupMessage = response['message']?.toString() ?? 'الرقم غير موجود.';
+            phoneLookupMessage =
+                response['message']?.toString() ?? 'الرقم غير موجود.';
           }
         });
       } catch (error) {
@@ -771,76 +1069,84 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                 children: [
                   Text(
                     enablePhoneLookup
-                        ? 'ابحث بالاسم أو افحص رقم الجوال ثم أدخل مبلغ العملية.'
+                        ? 'أدخل رقم الجوال ثم افحصه للعثور على المستلم قبل تنفيذ التحويل.'
                         : 'ابحث عن المستخدم ثم أدخل مبلغ العملية.',
                     style: AppTheme.bodyAction,
                   ),
-                  const SizedBox(height: 14),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isCompact = constraints.maxWidth < 360;
-                      if (isCompact) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextField(
-                              controller: queryController,
-                              decoration: const InputDecoration(
-                                labelText: 'اسم المستخدم أو رقم واتساب',
+                  if (!enablePhoneLookup) ...[
+                    const SizedBox(height: 14),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxWidth < 360;
+                        if (isCompact) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextField(
+                                controller: queryController,
+                                decoration: const InputDecoration(
+                                  labelText: 'اسم المستخدم أو رقم واتساب',
+                                ),
+                                onSubmitted: (_) =>
+                                    performSearch(setDialogState),
                               ),
-                              onSubmitted: (_) => performSearch(setDialogState),
+                              const SizedBox(height: 10),
+                              FilledButton.icon(
+                                onPressed: isSearching
+                                    ? null
+                                    : () => performSearch(setDialogState),
+                                icon: const Icon(Icons.search_rounded),
+                                label: Text(
+                                  isSearching ? 'جارٍ البحث...' : 'بحث',
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: queryController,
+                                decoration: const InputDecoration(
+                                  labelText: 'اسم المستخدم أو رقم واتساب',
+                                ),
+                                onSubmitted: (_) =>
+                                    performSearch(setDialogState),
+                              ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(width: 12),
                             FilledButton.icon(
                               onPressed: isSearching
                                   ? null
                                   : () => performSearch(setDialogState),
-                              icon: const Icon(Icons.search_rounded),
-                              label: Text(isSearching ? 'جارٍ البحث...' : 'بحث'),
+                              icon: isSearching
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.search_rounded),
+                              label: const Text('بحث'),
                             ),
                           ],
                         );
-                      }
-
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: queryController,
-                              decoration: const InputDecoration(
-                                labelText: 'اسم المستخدم أو رقم واتساب',
-                              ),
-                              onSubmitted: (_) => performSearch(setDialogState),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          FilledButton.icon(
-                            onPressed: isSearching
-                                ? null
-                                : () => performSearch(setDialogState),
-                            icon: isSearching
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.search_rounded),
-                            label: const Text('بحث'),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  if (searchError != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      searchError!,
-                      style: AppTheme.caption.copyWith(color: AppTheme.error),
+                      },
                     ),
+                    if (searchError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        searchError!,
+                        style: AppTheme.caption.copyWith(color: AppTheme.error),
+                      ),
+                    ],
                   ],
                   if (enablePhoneLookup) ...[
                     const SizedBox(height: 16),
-                    Text('فحص رقم الجوال', style: AppTheme.bodyBold),
+                    Text('البحث برقم الجوال', style: AppTheme.bodyBold),
                     const SizedBox(height: 10),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -850,7 +1156,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               DropdownButtonFormField<String>(
-                                value: countryCode,
+                                initialValue: countryCode,
                                 decoration: const InputDecoration(
                                   labelText: 'رمز الدولة',
                                 ),
@@ -858,7 +1164,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                     .map(
                                       (country) => DropdownMenuItem(
                                         value: country.dialCode,
-                                        child: Text('${country.name} (+${country.dialCode})'),
+                                        child: Text(
+                                          '${country.name} (+${country.dialCode})',
+                                        ),
                                       ),
                                     )
                                     .toList(),
@@ -883,7 +1191,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                     : () => performPhoneLookup(setDialogState),
                                 icon: const Icon(Icons.verified_user_outlined),
                                 label: Text(
-                                  isLookingUpPhone ? 'جارٍ الفحص...' : 'فحص الرقم',
+                                  isLookingUpPhone
+                                      ? 'جارٍ الفحص...'
+                                      : 'فحص الرقم',
                                 ),
                               ),
                             ],
@@ -895,7 +1205,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             SizedBox(
                               width: 150,
                               child: DropdownButtonFormField<String>(
-                                value: countryCode,
+                                initialValue: countryCode,
                                 decoration: const InputDecoration(
                                   labelText: 'رمز الدولة',
                                 ),
@@ -929,7 +1239,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                               onPressed: isLookingUpPhone
                                   ? null
                                   : () => performPhoneLookup(setDialogState),
-                              child: Text(isLookingUpPhone ? 'جارٍ الفحص...' : 'فحص'),
+                              child: Text(
+                                isLookingUpPhone ? 'جارٍ الفحص...' : 'فحص',
+                              ),
                             ),
                           ],
                         );
@@ -940,7 +1252,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                       Text(
                         phoneLookupMessage!,
                         style: AppTheme.caption.copyWith(
-                          color: selectedUser != null ? AppTheme.success : AppTheme.error,
+                          color: selectedUser != null
+                              ? AppTheme.success
+                              : AppTheme.error,
                         ),
                       ),
                     ],
@@ -952,11 +1266,13 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: searchResults.length,
-                        separatorBuilder: (_, index) => const Divider(height: 1),
+                        separatorBuilder: (_, index) =>
+                            const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final item = searchResults[index];
                           final isSelected =
-                              selectedUser?['id']?.toString() == item['id']?.toString();
+                              selectedUser?['id']?.toString() ==
+                              item['id']?.toString();
                           return ListTile(
                             dense: true,
                             contentPadding: EdgeInsets.zero,
@@ -971,9 +1287,12 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             ),
                             title: Text(item['username']?.toString() ?? '-'),
                             subtitle: Text(
-                              'رقم المستخدم: ${item['id']} | الرصيد: ${CurrencyFormatter.ils((item['balance'] as num?)?.toDouble() ?? 0)}',
+                              enablePhoneLookup
+                                  ? 'رقم المستخدم: ${item['id']}'
+                                  : 'رقم المستخدم: ${item['id']} | الرصيد: ${CurrencyFormatter.ils((item['balance'] as num?)?.toDouble() ?? 0)}',
                             ),
-                            onTap: () => setDialogState(() => selectedUser = item),
+                            onTap: () =>
+                                setDialogState(() => selectedUser = item),
                           );
                         },
                       ),
@@ -993,18 +1312,34 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         children: [
                           Text(
                             'المستخدم المحدد',
-                            style: AppTheme.caption.copyWith(color: AppTheme.primary),
+                            style: AppTheme.caption.copyWith(
+                              color: AppTheme.primary,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             selectedUser!['username']?.toString() ?? '-',
-                            style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                            style: AppTheme.bodyBold.copyWith(
+                              color: AppTheme.primary,
+                            ),
                           ),
-                          if ((selectedUser!['whatsapp']?.toString() ?? '').isNotEmpty) ...[
+                          if (enablePhoneLookup) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'تم إخفاء الرصيد حفاظًا على خصوصية المستخدم.',
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                          if ((selectedUser!['whatsapp']?.toString() ?? '')
+                              .isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Text(
                               selectedUser!['whatsapp']?.toString() ?? '',
-                              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
                             ),
                           ],
                         ],
@@ -1019,7 +1354,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                       helperText: amountHelperText,
                       prefixIcon: const Icon(Icons.payments_outlined),
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -1043,7 +1380,11 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             ElevatedButton(
               onPressed: () {
                 if (selectedUser == null) {
-                  setDialogState(() => searchError = 'اختر مستخدمًا من النتائج أو افحص رقم الجوال أولًا.');
+                  setDialogState(
+                    () => searchError = enablePhoneLookup
+                        ? 'افحص رقم الجوال أولًا لاختيار المستلم.'
+                        : 'اختر مستخدمًا من النتائج أولًا.',
+                  );
                   return;
                 }
                 Navigator.pop(
@@ -1062,6 +1403,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       ),
     );
   }
+
   Future<_WithdrawalRequestResult?> _showWithdrawalDialog() async {
     final amountController = TextEditingController();
     final accountController = TextEditingController();
@@ -1099,14 +1441,17 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     ),
                     const SizedBox(height: 14),
                     DropdownButtonFormField<String>(
-                      value: destinationType,
+                      initialValue: destinationType,
                       decoration: const InputDecoration(
                         labelText: 'جهة السحب',
                         prefixIcon: Icon(Icons.account_balance_wallet_outlined),
                       ),
                       items: const [
                         DropdownMenuItem(value: 'wallet', child: Text('محفظة')),
-                        DropdownMenuItem(value: 'bank', child: Text('حساب بنكي')),
+                        DropdownMenuItem(
+                          value: 'bank',
+                          child: Text('حساب بنكي'),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value == null) return;
@@ -1121,7 +1466,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         helperText: 'الحد الأدنى للسحب 100 ₪',
                         prefixIcon: Icon(Icons.payments_outlined),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(

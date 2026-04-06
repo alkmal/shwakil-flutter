@@ -40,6 +40,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isSaving = false;
   bool _isUploadingLogo = false;
   bool _profileLocked = false;
+  Set<String> _editableProfileFields = const <String>{};
   Uint8List? _printLogoPreview;
   String? _printLogoFileName;
   Map<String, dynamic>? _user;
@@ -85,8 +86,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
       final verification =
           user['transferVerificationStatus']?.toString() ?? 'unverified';
+      _editableProfileFields = Set<String>.from(
+        (user['editableProfileFields'] as List? ?? const []).map(
+          (item) => item.toString(),
+        ),
+      );
       _profileLocked =
-          user['profileEditable'] == false || verification == 'approved';
+          user['profileEditable'] == false ||
+          (verification == 'approved' && _editableProfileFields.isEmpty);
       _isLoading = false;
     });
   }
@@ -98,7 +105,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await _authService.updateProfile(
+      final response = await _authService.updateProfile(
         fullName: _fullNameController.text,
         email: _emailController.text,
         address: _addressController.text,
@@ -106,9 +113,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         birthDate: _birthDateController.text,
         referralPhone: _referralPhoneController.text,
       );
+      final user = Map<String, dynamic>.from(response['user'] as Map);
       if (!mounted) {
         return;
       }
+      setState(() {
+        _user = user;
+        _editableProfileFields = Set<String>.from(
+          (user['editableProfileFields'] as List? ?? const []).map(
+            (item) => item.toString(),
+          ),
+        );
+        _profileLocked = user['profileEditable'] == false;
+      });
       AppAlertService.showSuccess(
         context,
         title: 'تم الحفظ',
@@ -193,6 +210,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
+  bool get _hasPendingProfileCompletion {
+    final verification =
+        _user?['transferVerificationStatus']?.toString() ?? 'unverified';
+    return verification == 'approved' && _editableProfileFields.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -250,6 +273,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildProfileHero(),
+            if (_hasPendingProfileCompletion) ...[
+              const SizedBox(height: 16),
+              _buildCompletionNotice(),
+            ],
             if (_profileLocked) ...[
               const SizedBox(height: 16),
               _buildLockedNotice(),
@@ -361,6 +388,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final verification =
         _user?['transferVerificationStatus']?.toString() ?? 'unverified';
     final isApproved = verification == 'approved';
+    final pendingFieldsCount = _editableProfileFields.length;
 
     return ShwakelCard(
       padding: const EdgeInsets.all(28),
@@ -405,12 +433,43 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildHeroStatusChip(
+                      icon: Icons.phone_rounded,
+                      label: _whatsappController.text.trim().isEmpty
+                          ? 'Ø±Ù‚Ù… ØºÙŠØ± Ù…Ø­Ø¯Ø¯'
+                          : _whatsappController.text.trim(),
+                    ),
+                    if (_hasPendingProfileCompletion)
+                      _buildHeroStatusChip(
+                        icon: Icons.edit_note_rounded,
+                        label:
+                            '$pendingFieldsCount Ø­Ù‚Ù„ ÙŠØ­ØªØ§Ø¬ Ø¥ÙƒÙ…Ø§Ù„',
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  bool _canEditField(String fieldKey) {
+    if (_user == null) {
+      return false;
+    }
+    final verification =
+        _user?['transferVerificationStatus']?.toString() ?? 'unverified';
+    if (verification != 'approved') {
+      return true;
+    }
+    return _editableProfileFields.contains(fieldKey);
   }
 
   Widget _buildBasicInfoCard() {
@@ -425,7 +484,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             'الاسم الكامل',
             _fullNameController,
             Icons.badge_rounded,
-            enabled: !_profileLocked,
+            enabled: _canEditField('fullName'),
           ),
           const SizedBox(height: 16),
           _field(
@@ -446,14 +505,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             'البريد الإلكتروني',
             _emailController,
             Icons.email_rounded,
-            enabled: !_profileLocked,
+            enabled: _canEditField('email'),
           ),
           const SizedBox(height: 16),
           _field(
             'العنوان',
             _addressController,
             Icons.location_on_rounded,
-            enabled: !_profileLocked,
+            enabled: _canEditField('address'),
             lines: 2,
           ),
         ],
@@ -475,23 +534,23 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             'رقم الهوية',
             _nationalIdController,
             Icons.credit_card_rounded,
-            enabled: !_profileLocked,
+            enabled: _canEditField('nationalId'),
           ),
           const SizedBox(height: 16),
           _field(
             'تاريخ الميلاد',
             _birthDateController,
             Icons.cake_rounded,
-            enabled: !_profileLocked,
+            enabled: _canEditField('birthDate'),
             readOnly: true,
-            onTap: _pickDate,
+            onTap: _canEditField('birthDate') ? _pickDate : null,
           ),
           const SizedBox(height: 16),
           _field(
             'رقم الإحالة',
             _referralPhoneController,
             Icons.call_split_rounded,
-            enabled: !_profileLocked,
+            enabled: _canEditField('referralPhone'),
           ),
           if (!isMobile) const SizedBox(height: 4),
         ],
@@ -513,6 +572,29 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               'بعض البيانات مقفلة بعد التوثيق. للتعديل تواصل مع الدعم.',
               style: AppTheme.bodyText.copyWith(
                 color: AppTheme.warning,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletionNotice() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(16),
+      color: AppTheme.secondary.withValues(alpha: 0.08),
+      borderColor: AppTheme.secondary.withValues(alpha: 0.16),
+      child: Row(
+        children: [
+          const Icon(Icons.edit_note_rounded, color: AppTheme.secondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Ø¨Ø¥Ù…ÙƒØ§Ù†Ùƒ Ø¥ÙƒÙ…Ø§Ù„ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù†Ø§Ù‚ØµØ© ÙÙ‚Ø·. Ø¨Ø¹Ø¯ Ø§Ù„Ø­ÙØ¸ Ø³ÙŠØªÙ… Ø¥ØºÙ„Ø§Ù‚Ù‡Ø§ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ù„Ø£Ù† Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…ÙˆØ«Ù‚.',
+              style: AppTheme.bodyText.copyWith(
+                color: AppTheme.secondary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -608,6 +690,30 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   width: 160,
                 ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroStatusChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -734,6 +840,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, size: 20),
+        suffixIcon: enabled
+            ? null
+            : const Icon(Icons.lock_outline_rounded, size: 18),
         filled: !enabled,
         fillColor: enabled ? null : AppTheme.background,
       ),

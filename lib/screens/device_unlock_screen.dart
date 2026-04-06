@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import '../services/index.dart';
-import '../widgets/shwakel_logo.dart';
 import '../utils/app_theme.dart';
-import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_button.dart';
+import '../widgets/shwakel_card.dart';
+import '../widgets/shwakel_logo.dart';
 
 class DeviceUnlockScreen extends StatefulWidget {
   const DeviceUnlockScreen({super.key});
+
   @override
   State<DeviceUnlockScreen> createState() => _DeviceUnlockScreenState();
 }
 
 class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
-  final TextEditingController _pinC = TextEditingController();
+  final TextEditingController _pinController = TextEditingController();
   final AuthService _auth = AuthService();
-  String _user = '';
-  bool _bio = false, _isLoading = true, _isUnlocking = false;
+
+  String _username = '';
+  bool _biometricEnabled = false;
+  bool _isLoading = true;
+  bool _isUnlocking = false;
 
   @override
   void initState() {
@@ -25,46 +29,94 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   }
 
   @override
-  void dispose() { _pinC.dispose(); super.dispose(); }
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
 
   Future<void> _load() async {
-    final u = await LocalSecurityService.trustedUsername() ?? '';
-    final canBio = await LocalSecurityService.canUseBiometrics();
-    final bioEn = await LocalSecurityService.isBiometricEnabled();
-    if (mounted) setState(() { _user = u; _bio = bioEn && canBio; _isLoading = false; });
+    final trustedUsername = await LocalSecurityService.trustedUsername() ?? '';
+    final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
+    final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _username = trustedUsername;
+        _biometricEnabled = biometricEnabled && canUseBiometrics;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _unlockPin() async {
-    if (_pinC.text.length != 4) return;
+    if (_pinController.text.trim().length != 4) {
+      await AppAlertService.showError(
+        context,
+        title: 'PIN غير مكتمل',
+        message: 'أدخل رمز PIN المكوّن من 4 أرقام.',
+      );
+      return;
+    }
+
     setState(() => _isUnlocking = true);
-    final ok = await LocalSecurityService.verifyPin(_pinC.text.trim());
-    if (ok) {
+    final isValid = await LocalSecurityService.verifyPin(
+      _pinController.text.trim(),
+    );
+    if (isValid) {
       await LocalSecurityService.clearRelockRequirement();
       await LocalSecurityService.skipNextUnlock();
       await RealtimeNotificationService.start();
-      if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
-    } else {
-      if (mounted) { setState(() => _isUnlocking = false); AppAlertService.showError(context, message: 'رمز PIN غير صحيح.'); }
+      if (!mounted) {
+        return;
+      }
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _isUnlocking = false);
+      await AppAlertService.showError(
+        context,
+        title: 'رمز غير صحيح',
+        message: 'رمز PIN الذي أدخلته غير صحيح.',
+      );
     }
   }
 
-  Future<void> _unlockBio() async {
+  Future<void> _unlockBiometric() async {
     setState(() => _isUnlocking = true);
-    final ok = await LocalSecurityService.authenticateWithBiometrics();
-    if (ok) {
+    final authenticated =
+        await LocalSecurityService.authenticateWithBiometrics();
+    if (authenticated) {
       await LocalSecurityService.clearRelockRequirement();
       await LocalSecurityService.skipNextUnlock();
       await RealtimeNotificationService.start();
-      if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
-    } else {
-      if (mounted) setState(() => _isUnlocking = false);
+      if (!mounted) {
+        return;
+      }
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      return;
     }
+
+    if (mounted) {
+      setState(() => _isUnlocking = false);
+    }
+  }
+
+  Future<void> _loginAnotherAccount() async {
+    await _auth.logout();
+    await LocalSecurityService.clearTrustedState();
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: Stack(
@@ -75,14 +127,20 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppTheme.spacingLg),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 450),
+                  constraints: const BoxConstraints(maxWidth: 460),
                   child: Column(
                     children: [
                       const ShwakelLogo(size: 80, framed: true),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
                       _buildMainCard(),
-                      const SizedBox(height: 32),
-                      TextButton(onPressed: () async { await _auth.logout(); await LocalSecurityService.clearTrustedState(); Navigator.pushReplacementNamed(context, '/login'); }, child: const Text('تسجيل الدخول بحساب آخر', style: TextStyle(fontWeight: FontWeight.bold))),
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: _loginAnotherAccount,
+                        child: const Text(
+                          'تسجيل الدخول بحساب آخر',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -96,37 +154,101 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
 
   Widget _buildMainCard() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.all(32),
       shadowLevel: ShwakelShadowLevel.premium,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('فتح الجهاز الآمن', style: AppTheme.h2),
-          const SizedBox(height: 12),
-          Text('مرحباً $_user، الرجاء إدخال الرمز السري للمتابعة.', textAlign: TextAlign.center, style: AppTheme.caption),
-          const SizedBox(height: 40),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.lock_open_rounded,
+              color: AppTheme.primary,
+              size: 36,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'فتح الجهاز الآمن',
+            style: AppTheme.h2,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _username.isEmpty
+                ? 'أدخل رمز PIN أو استخدم البصمة للمتابعة.'
+                : 'مرحبًا $_username، أدخل رمز PIN أو استخدم البصمة للمتابعة.',
+            textAlign: TextAlign.center,
+            style: AppTheme.bodyAction.copyWith(height: 1.6),
+          ),
+          const SizedBox(height: 24),
           TextField(
-            controller: _pinC,
+            controller: _pinController,
             obscureText: true,
             maxLength: 4,
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
-            style: AppTheme.h1.copyWith(letterSpacing: 20, color: AppTheme.primary),
-            decoration: const InputDecoration(hintText: '••••', counterText: ''),
-            onChanged: (v) { if (v.length == 4) _unlockPin(); },
+            style: AppTheme.h1.copyWith(
+              letterSpacing: 20,
+              color: AppTheme.primary,
+            ),
+            decoration: const InputDecoration(
+              hintText: '••••',
+              counterText: '',
+              labelText: 'رمز PIN',
+            ),
+            onChanged: (value) {
+              if (value.length == 4) {
+                _unlockPin();
+              }
+            },
           ),
-          const SizedBox(height: 40),
-          ShwakelButton(label: 'فتح القفل بـ PIN', icon: Icons.lock_open_rounded, onPressed: _unlockPin, isLoading: _isUnlocking),
-          if (_bio) ...[
-            const SizedBox(height: 16),
-            ShwakelButton(label: 'فتح بواسطة البصمة', icon: Icons.fingerprint_rounded, isSecondary: true, onPressed: _unlockBio),
+          const SizedBox(height: 24),
+          ShwakelButton(
+            label: 'فتح القفل بـ PIN',
+            icon: Icons.lock_open_rounded,
+            onPressed: _unlockPin,
+            isLoading: _isUnlocking,
+          ),
+          if (_biometricEnabled) ...[
+            const SizedBox(height: 14),
+            ShwakelButton(
+              label: 'فتح بواسطة البصمة',
+              icon: Icons.fingerprint_rounded,
+              isSecondary: true,
+              onPressed: _isUnlocking ? null : _unlockBiometric,
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildDecor() => Stack(children: [
-    Positioned(top: -100, right: -100, child: CircleAvatar(radius: 200, backgroundColor: AppTheme.primary.withOpacity(0.05))),
-    Positioned(bottom: -50, left: -50, child: CircleAvatar(radius: 150, backgroundColor: AppTheme.accent.withOpacity(0.05))),
-  ]);
+  Widget _buildDecor() {
+    return Stack(
+      children: [
+        Positioned(
+          top: -100,
+          right: -100,
+          child: CircleAvatar(
+            radius: 200,
+            backgroundColor: AppTheme.primary.withValues(alpha: 0.05),
+          ),
+        ),
+        Positioned(
+          bottom: -50,
+          left: -50,
+          child: CircleAvatar(
+            radius: 150,
+            backgroundColor: AppTheme.accent.withValues(alpha: 0.05),
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -36,7 +36,7 @@ class AdminLocationCard extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: AppTheme.accent.withOpacity(0.1),
+                backgroundColor: AppTheme.accent.withValues(alpha: 0.1),
                 child: const Icon(Icons.place_rounded, color: AppTheme.accent),
               ),
               const SizedBox(width: 12),
@@ -52,13 +52,16 @@ class AdminLocationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (isActive ? AppTheme.secondary : AppTheme.textTertiary).withOpacity(0.1),
+                  color: (isActive ? AppTheme.secondary : AppTheme.textTertiary)
+                      .withValues(alpha: 0.1),
                   borderRadius: AppTheme.radiusSm,
                 ),
                 child: Text(
                   isActive ? 'مفعل' : 'معطل',
                   style: AppTheme.caption.copyWith(
-                    color: isActive ? AppTheme.secondary : AppTheme.textTertiary,
+                    color: isActive
+                        ? AppTheme.secondary
+                        : AppTheme.textTertiary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -68,11 +71,21 @@ class AdminLocationCard extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              _iconButton(Icons.edit_rounded, AppTheme.primary, onEdit, isSaving),
+              _iconButton(
+                Icons.edit_rounded,
+                AppTheme.primary,
+                onEdit,
+                isSaving,
+              ),
               const SizedBox(width: 8),
               _iconButton(Icons.map_rounded, AppTheme.accent, onMap, false),
               const Spacer(),
-              _iconButton(Icons.delete_rounded, AppTheme.warning, onDelete, isDeleting),
+              _iconButton(
+                Icons.delete_rounded,
+                AppTheme.warning,
+                onDelete,
+                isDeleting,
+              ),
             ],
           ),
         ],
@@ -80,14 +93,19 @@ class AdminLocationCard extends StatelessWidget {
     );
   }
 
-  Widget _iconButton(IconData icon, Color color, VoidCallback onPressed, bool isLoading) {
+  Widget _iconButton(
+    IconData icon,
+    Color color,
+    VoidCallback onPressed,
+    bool isLoading,
+  ) {
     return InkWell(
       onTap: isLoading ? null : onPressed,
       borderRadius: AppTheme.radiusMd,
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: AppTheme.radiusMd,
         ),
         child: isLoading

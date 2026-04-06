@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'screens/index.dart';
 import 'services/index.dart';
@@ -96,13 +97,24 @@ class MyApp extends StatelessWidget {
         '/balance': (context) => const BalanceScreen(),
         '/create-card': (context) => const CreateCardScreen(),
         '/quick-transfer': (context) => const QuickTransferScreen(),
+        '/card-print-requests': (context) => const CardPrintRequestsScreen(),
         '/scan-card': (context) => const ScanCardScreen(),
         '/inventory': (context) => const InventoryScreen(),
         '/transactions': (context) => const TransactionsScreen(),
         '/security-settings': (context) => const SecuritySettingsScreen(),
         '/account-settings': (context) => const AccountSettingsScreen(),
         '/admin-dashboard': (context) => const AdminDashboardScreen(),
+        '/admin-card-print-requests': (context) =>
+            const AdminCardPrintRequestsScreen(),
+        '/admin-customers': (context) => const AdminCustomersScreen(),
+        '/admin-device-requests': (context) =>
+            const AdminDeviceRequestsScreen(),
+        '/admin-locations': (context) => const AdminLocationsScreen(),
+        '/admin-system-settings': (context) =>
+            const AdminSystemSettingsScreen(),
+        '/admin-permissions': (context) => const AdminPermissionsScreen(),
         '/withdrawal-requests': (context) => const WithdrawalRequestsScreen(),
+        '/topup-requests': (context) => const TopupRequestsScreen(),
         '/usage-policy': (context) => const UsagePolicyScreen(),
         '/contact-us': (context) => const ContactUsScreen(),
         '/supported-locations': (context) => const SupportedLocationsScreen(),
@@ -156,7 +168,7 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
   }
 }
 
-enum _LaunchState { login, unlock, home, updateRequired }
+enum _LaunchState { onboarding, login, unlock, home, updateRequired }
 
 class _LaunchDecision {
   const _LaunchDecision({required this.state, this.updateRequirement});
@@ -172,6 +184,7 @@ class AppEntryPoint extends StatefulWidget {
 }
 
 class _AppEntryPointState extends State<AppEntryPoint> {
+  static const String _onboardingSeenKey = 'onboarding_seen_v1';
   late Future<_LaunchDecision> _launchStateFuture;
   bool _localUnlockSatisfiedThisSession = false;
   @override
@@ -207,6 +220,12 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         state: _LaunchState.updateRequired,
         updateRequirement: updateRequirement,
       );
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool(_onboardingSeenKey) ?? false;
+    if (!hasSeenOnboarding) {
+      return const _LaunchDecision(state: _LaunchState.onboarding);
     }
 
     final authService = AuthService();
@@ -251,6 +270,12 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     return const _LaunchDecision(state: _LaunchState.home);
   }
 
+  Future<void> _finishOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingSeenKey, true);
+    _refreshLaunchState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<_LaunchDecision>(
@@ -261,6 +286,8 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         }
         final decision = snapshot.data!;
         switch (decision.state) {
+          case _LaunchState.onboarding:
+            return OnboardingScreen(onFinished: _finishOnboarding);
           case _LaunchState.unlock:
             return const DeviceUnlockScreen();
           case _LaunchState.home:

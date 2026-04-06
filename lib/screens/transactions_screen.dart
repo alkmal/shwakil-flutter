@@ -198,11 +198,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       padding: const EdgeInsets.all(28),
       gradient: AppTheme.primaryGradient,
       shadowLevel: ShwakelShadowLevel.premium,
-      child: Row(
-        children: [
-          const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 42),
-          const SizedBox(width: 18),
-          Expanded(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+          final iconBox = Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              color: Colors.white,
+              size: 38,
+            ),
+          );
+          final content = Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -212,13 +224,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'راجع الحركات وابحث فيها بسرعة.',
-                  style: AppTheme.bodyAction.copyWith(color: Colors.white70),
+                  'راجع الحركات وابحث فيها بسرعة مع فلاتر أوضح وملخص مالي مباشر.',
+                  style: AppTheme.bodyAction.copyWith(
+                    color: Colors.white70,
+                    height: 1.6,
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [iconBox, const SizedBox(height: 18), content],
+            );
+          }
+
+          return Row(children: [iconBox, const SizedBox(width: 18), content]);
+        },
       ),
     );
   }

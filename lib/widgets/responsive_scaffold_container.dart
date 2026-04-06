@@ -68,6 +68,20 @@ class ResponsiveScaffoldContainer extends StatelessWidget {
             ),
           ),
           Positioned(
+            top: 120,
+            left: -30,
+            child: IgnorePointer(
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: AppTheme.highlight.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(36),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
             bottom: -100,
             left: -40,
             child: IgnorePointer(
