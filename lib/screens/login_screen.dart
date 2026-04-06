@@ -71,17 +71,27 @@ class _LoginScreenState extends State<LoginScreen> {
     required String username,
     required String password,
   }) {
+    final l = context.loc;
     if (username.isEmpty || password.isEmpty) {
-      return 'يرجى إدخال اسم المستخدم وكلمة المرور.';
+      return l.text(
+        'يرجى إدخال اسم المستخدم وكلمة المرور.',
+        'Please enter your username and password.',
+      );
     }
     if (username.length < 3 || username.length > 64) {
-      return 'اسم المستخدم يجب أن يكون بين 3 و64 حرفًا.';
+      return l.text(
+        'اسم المستخدم يجب أن يكون بين 3 و64 حرفًا.',
+        'Username must be between 3 and 64 characters.',
+      );
     }
     if (!_usernamePattern.hasMatch(username)) {
-      return 'اسم المستخدم يحتوي على أحرف غير مسموح بها.';
+      return l.text(
+        'اسم المستخدم يحتوي على أحرف غير مسموح بها.',
+        'Username contains unsupported characters.',
+      );
     }
     if (password.length > 255) {
-      return 'كلمة المرور طويلة جدًا.';
+      return l.text('كلمة المرور طويلة جدًا.', 'Password is too long.');
     }
     return null;
   }
@@ -229,19 +239,27 @@ class _LoginScreenState extends State<LoginScreen> {
     bool isError = false,
     String? username,
   }) {
+    final l = context.loc;
     final message = isError && username != null && username.trim().isNotEmpty
-        ? 'للمستخدم ${username.trim()}: $text'
+        ? l.text(
+            'للمستخدم ${username.trim()}: $text',
+            'For user ${username.trim()}: $text',
+          )
         : text;
     return isError
         ? AppAlertService.showError(
             context,
-            title: 'خطأ',
+            title: l.text('خطأ', 'Error'),
             message: message,
             extraContext: {
               'username': username ?? _usernameController.text.trim(),
             },
           )
-        : AppAlertService.showSuccess(context, title: 'نجاح', message: message);
+        : AppAlertService.showSuccess(
+            context,
+            title: l.text('نجاح', 'Success'),
+            message: message,
+          );
   }
 
   @override
@@ -265,7 +283,12 @@ class _LoginScreenState extends State<LoginScreen> {
             maxWidth: 520,
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             child: Center(
-              child: SingleChildScrollView(child: _buildFormCard()),
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: _buildFormCard(context),
+                ),
+              ),
             ),
           ),
         ),
@@ -273,7 +296,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildFormCard() {
+  Widget _buildFormCard(BuildContext context) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(AppTheme.spacingXl),
       shadowLevel: ShwakelShadowLevel.premium,
@@ -283,17 +307,33 @@ class _LoginScreenState extends State<LoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Center(child: ShwakelLogo(size: 82, framed: true)),
+          const SizedBox(height: 18),
+          Text(
+            l.text('تسجيل الدخول', 'Log In'),
+            style: AppTheme.h2,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l.text(
+              'أدخل بياناتك فقط وسنأخذك مباشرةً لخطوة التحقق.',
+              'Enter your credentials and move directly to verification.',
+            ),
+            style: AppTheme.bodyAction.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 22),
-          Text('تسجيل الدخول', style: AppTheme.h2, textAlign: TextAlign.center),
-          const SizedBox(height: 24),
           TextField(
             focusNode: _usernameFocusNode,
             controller: _usernameController,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => _submitFromUsername(),
-            decoration: const InputDecoration(
-              labelText: 'اسم المستخدم أو الجوال',
-              prefixIcon: Icon(Icons.person_outline_rounded),
+            decoration: InputDecoration(
+              labelText: l.text('اسم المستخدم أو الجوال', 'Username or phone'),
+              prefixIcon: const Icon(Icons.person_outline_rounded),
             ),
           ),
           const SizedBox(height: 16),
@@ -304,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _submitFromPassword(),
             decoration: InputDecoration(
-              labelText: 'كلمة المرور',
+              labelText: l.text('كلمة المرور', 'Password'),
               prefixIcon: const Icon(Icons.lock_outline_rounded),
               suffixIcon: IconButton(
                 onPressed: () =>
@@ -317,19 +357,22 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
           ShwakelButton(
-            label: 'دخول',
+            label: l.text('دخول', 'Sign In'),
             isLoading: _isLoading,
             onPressed: _continueToOtp,
             icon: Icons.login_rounded,
             gradient: AppTheme.primaryGradient,
           ),
           const SizedBox(height: 12),
-          ShwakelButton(
-            label: 'إنشاء حساب جديد',
-            onPressed: () => Navigator.pushNamed(context, '/register'),
-            isSecondary: true,
+          SizedBox(
+            width: double.infinity,
+            child: ShwakelButton(
+              label: l.text('إنشاء حساب جديد', 'Create account'),
+              onPressed: () => Navigator.pushNamed(context, '/register'),
+              isSecondary: true,
+            ),
           ),
           if (!_registrationEnabled) ...[
             const SizedBox(height: 16),
@@ -345,18 +388,33 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.support_agent_rounded, color: AppTheme.warning),
+                  const Icon(
+                    Icons.support_agent_rounded,
+                    color: AppTheme.warning,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('التسجيل متوقف حاليًا', style: AppTheme.bodyBold),
+                        Text(
+                          l.text(
+                            'التسجيل متوقف حاليًا',
+                            'Registration is currently disabled',
+                          ),
+                          style: AppTheme.bodyBold,
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           (_supportWhatsapp ?? '').isNotEmpty
-                              ? 'لإنشاء حساب جديد تواصل مع الإدارة على واتساب: $_supportWhatsapp'
-                              : 'لإنشاء حساب جديد تواصل مع الإدارة.',
+                              ? l.text(
+                                  'لإنشاء حساب جديد تواصل مع الإدارة على واتساب: $_supportWhatsapp',
+                                  'To create a new account, contact admin on WhatsApp: $_supportWhatsapp',
+                                )
+                              : l.text(
+                                  'لإنشاء حساب جديد تواصل مع الإدارة.',
+                                  'To create a new account, contact admin.',
+                                ),
                           style: AppTheme.caption.copyWith(
                             color: AppTheme.textSecondary,
                             height: 1.6,

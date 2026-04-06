@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../services/index.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/currency_formatter.dart';
 import '../shwakel_card.dart';
@@ -7,12 +9,14 @@ class AdminCustomerCard extends StatelessWidget {
   final Map<String, dynamic> customer;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onResendCredentials;
 
   const AdminCustomerCard({
     super.key,
     required this.customer,
     this.isSelected = false,
     required this.onTap,
+    this.onResendCredentials,
   });
 
   String _displayName() {
@@ -25,16 +29,17 @@ class AdminCustomerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final balance = (customer['balance'] as num?)?.toDouble() ?? 0;
     final isNegative = balance < 0;
     final role = customer['role']?.toString() ?? '';
     final verificationStatus =
         customer['transferVerificationStatus']?.toString() ?? 'unverified';
     final statusLabel = verificationStatus == 'approved'
-        ? 'موثق'
+        ? l.text('موثق', 'Verified')
         : verificationStatus == 'pending'
-        ? 'قيد المراجعة'
-        : 'غير موثق';
+        ? l.text('قيد المراجعة', 'Under review')
+        : l.text('غير موثق', 'Unverified');
 
     return ShwakelCard(
       padding: EdgeInsets.zero,
@@ -88,6 +93,30 @@ class AdminCustomerCard extends StatelessWidget {
                       color: AppTheme.success,
                       size: 18,
                     ),
+                  if (onResendCredentials != null)
+                    PopupMenuButton<_CustomerAction>(
+                      icon: const Icon(Icons.more_vert_rounded, size: 20),
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppTheme.radiusMd,
+                      ),
+                      itemBuilder: (context) => [
+                        PopupMenuItem<_CustomerAction>(
+                          value: _CustomerAction.resendCredentials,
+                          child: Text(
+                            context.loc.text(
+                              'Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø§Ø­Ø³Ø§Ø¨',
+                              'Resend account details',
+                            ),
+                          ),
+                        ),
+                      ],
+                      onSelected: (action) {
+                        if (action == _CustomerAction.resendCredentials) {
+                          onResendCredentials?.call();
+                        }
+                      },
+                    ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -104,7 +133,7 @@ class AdminCustomerCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'الرصيد',
+                      l.text('الرصيد', 'Balance'),
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textSecondary,
                       ),
@@ -127,13 +156,17 @@ class AdminCustomerCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    role == 'admin' ? 'نوع الحساب' : 'حالة التوثيق',
+                    role == 'admin'
+                        ? l.text('نوع الحساب', 'Account type')
+                        : l.text('حالة التوثيق', 'Verification status'),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),
                   ),
                   Text(
-                    role == 'admin' ? 'مسؤول' : statusLabel,
+                    role == 'admin'
+                        ? l.text('مسؤول', 'Admin')
+                        : statusLabel,
                     style: AppTheme.caption.copyWith(
                       color: verificationStatus == 'approved'
                           ? AppTheme.success
@@ -155,7 +188,7 @@ class AdminCustomerCard extends StatelessWidget {
                     borderRadius: AppTheme.radiusSm,
                   ),
                   child: Text(
-                    'مسؤول نظام',
+                    l.text('مسؤول نظام', 'System administrator'),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.accent,
                       fontWeight: FontWeight.bold,
@@ -169,3 +202,5 @@ class AdminCustomerCard extends StatelessWidget {
     );
   }
 }
+
+enum _CustomerAction { resendCredentials }

@@ -14,3 +14,4 @@ export 'local_security_service.dart';
 export 'transfer_security_service.dart';
 export 'transaction_location_service.dart';
 export 'location_audit_service.dart';
+export '../localization/index.dart';
