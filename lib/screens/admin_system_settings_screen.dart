@@ -86,7 +86,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           await _apiService.getAdminTopupPaymentMethods();
       final usagePolicy = await _apiService.getUsagePolicy();
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       _contactTitleController.text = contactSettings['title'] ?? '';
       _contactWhatsappController.text =
@@ -129,17 +131,23 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _isLoading = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل الإعدادات',
+        title: context.loc.text(
+          'تعذر تحميل الإعدادات',
+          'Could not load settings',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
   Future<void> _save() async {
+    final l = context.loc;
     setState(() => _isSaving = true);
     try {
       await Future.wait([
@@ -182,25 +190,35 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           content: _policyContentController.text,
         ),
       ]);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم الحفظ',
-        message: 'تم حفظ الإعدادات بنجاح.',
+        title: l.text('تم الحفظ', 'Saved'),
+        message: l.text(
+          'تم حفظ الإعدادات بنجاح.',
+          'Settings have been saved successfully.',
+        ),
       );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await AppAlertService.showError(
         context,
-        title: 'تعذر الحفظ',
+        title: l.text('تعذر الحفظ', 'Could not save'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
   Future<void> _showTopupMethodDialog({Map<String, dynamic>? method}) async {
+    final l = context.loc;
     final titleController = TextEditingController(
       text: method?['title']?.toString() ?? '',
     );
@@ -229,8 +247,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 accountNumberController.text.trim().isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'بيانات ناقصة',
-                message: 'العنوان ورقم التحويل مطلوبان.',
+                title: l.text('بيانات ناقصة', 'Missing data'),
+                message: l.text(
+                  'العنوان ورقم التحويل مطلوبان.',
+                  'Title and transfer number are required.',
+                ),
               );
               return;
             }
@@ -245,23 +266,33 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 isActive: isActive,
                 sortOrder: int.tryParse(sortOrderController.text) ?? 0,
               );
-              if (!dialogContext.mounted) return;
+              if (!dialogContext.mounted) {
+                return;
+              }
               Navigator.pop(dialogContext);
-              if (!mounted) return;
+              if (!mounted) {
+                return;
+              }
               setState(() => _topupPaymentMethods = methods);
             } catch (error) {
-              if (!dialogContext.mounted) return;
+              if (!dialogContext.mounted) {
+                return;
+              }
               setDialogState(() => isSaving = false);
               await AppAlertService.showError(
                 dialogContext,
-                title: 'تعذر الحفظ',
+                title: l.text('تعذر الحفظ', 'Could not save'),
                 message: ErrorMessageService.sanitize(error),
               );
             }
           }
 
           return AlertDialog(
-            title: Text(method == null ? 'إضافة طريقة شحن' : 'تعديل طريقة شحن'),
+            title: Text(
+              method == null
+                  ? l.text('إضافة طريقة شحن', 'Add top-up method')
+                  : l.text('تعديل طريقة شحن', 'Edit top-up method'),
+            ),
             content: SizedBox(
               width: 460,
               child: SingleChildScrollView(
@@ -269,30 +300,41 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   children: [
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(labelText: 'العنوان'),
+                      decoration: InputDecoration(
+                        labelText: l.text('العنوان', 'Title'),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: accountNumberController,
-                      decoration: const InputDecoration(
-                        labelText: 'رقم الحساب أو المحفظة',
+                      decoration: InputDecoration(
+                        labelText: l.text(
+                          'رقم الحساب أو المحفظة',
+                          'Account or wallet number',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: imageUrlController,
-                      decoration: const InputDecoration(labelText: 'رابط الصورة'),
+                      decoration: InputDecoration(
+                        labelText: l.text('رابط الصورة', 'Image URL'),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: sortOrderController,
-                      decoration: const InputDecoration(labelText: 'ترتيب الظهور'),
+                      decoration: InputDecoration(
+                        labelText: l.text('ترتيب الظهور', 'Display order'),
+                      ),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: descriptionController,
-                      decoration: const InputDecoration(labelText: 'الوصف'),
+                      decoration: InputDecoration(
+                        labelText: l.text('الوصف', 'Description'),
+                      ),
                       minLines: 2,
                       maxLines: 4,
                     ),
@@ -302,7 +344,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       value: isActive,
                       onChanged: (value) =>
                           setDialogState(() => isActive = value),
-                      title: const Text('مفعل'),
+                      title: Text(l.text('مفعل', 'Active')),
                     ),
                   ],
                 ),
@@ -311,11 +353,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             actions: [
               TextButton(
                 onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                child: const Text('إلغاء'),
+                child: Text(l.text('إلغاء', 'Cancel')),
               ),
               ElevatedButton(
                 onPressed: isSaving ? null : submit,
-                child: Text(isSaving ? 'جارٍ الحفظ...' : 'حفظ'),
+                child: Text(
+                  isSaving
+                      ? l.text('جارٍ الحفظ...', 'Saving...')
+                      : l.text('حفظ', 'Save'),
+                ),
               ),
             ],
           );
@@ -331,17 +377,22 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   }
 
   Future<void> _deleteTopupMethod(Map<String, dynamic> method) async {
+    final l = context.loc;
     try {
       final methods = await _apiService.deleteAdminTopupPaymentMethod(
         method['id'].toString(),
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _topupPaymentMethods = methods);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await AppAlertService.showError(
         context,
-        title: 'تعذر الحذف',
+        title: l.text('تعذر الحذف', 'Could not delete'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -349,13 +400,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('إعدادات النظام')),
+      appBar: AppBar(title: Text(l.text('إعدادات النظام', 'System Settings'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -372,12 +424,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'إعدادات النظام',
+                        l.text('إعدادات النظام', 'System settings'),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'كل إعدادات الإدارة نُقلت إلى شاشة مستقلة وتُحمّل فقط عند الحاجة.',
+                        l.text(
+                          'كل إعدادات الإدارة نُقلت إلى شاشة مستقلة وتُحمّل فقط عند الحاجة.',
+                          'All administration settings were moved to a dedicated screen and load only when needed.',
+                        ),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
                         ),
@@ -387,8 +442,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 AdminSectionHeader(
-                  title: 'بيانات التواصل',
-                  subtitle: 'إعدادات الدعم ووسائل الاتصال.',
+                  title: l.text('بيانات التواصل', 'Contact Details'),
+                  subtitle: l.text(
+                    'إعدادات الدعم ووسائل الاتصال.',
+                    'Support and contact settings.',
+                  ),
                   icon: Icons.support_agent_rounded,
                 ),
                 const SizedBox(height: 16),
@@ -397,32 +455,44 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     children: [
                       TextField(
                         controller: _contactTitleController,
-                        decoration: const InputDecoration(labelText: 'العنوان'),
+                        decoration: InputDecoration(
+                          labelText: l.text('العنوان', 'Title'),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _contactWhatsappController,
-                        decoration: const InputDecoration(
-                          labelText: 'واتساب الدعم',
+                        decoration: InputDecoration(
+                          labelText: l.text('واتساب الدعم', 'Support WhatsApp'),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _contactEmailController,
-                        decoration: const InputDecoration(labelText: 'البريد'),
+                        decoration: InputDecoration(
+                          labelText: l.text('البريد', 'Email'),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _contactAddressController,
-                        decoration: const InputDecoration(labelText: 'العنوان الفعلي'),
+                        decoration: InputDecoration(
+                          labelText: l.text('العنوان الفعلي', 'Address'),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
                 AdminSectionHeader(
-                  title: 'إعدادات التسجيل والتحويل',
-                  subtitle: 'السياسات العامة وحدود النظام.',
+                  title: l.text(
+                    'إعدادات التسجيل والتحويل',
+                    'Registration & Transfer Settings',
+                  ),
+                  subtitle: l.text(
+                    'السياسات العامة وحدود النظام.',
+                    'General policies and system limits.',
+                  ),
                   icon: Icons.tune_rounded,
                 ),
                 const SizedBox(height: 16),
@@ -434,55 +504,74 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                         value: _registrationEnabled,
                         onChanged: (value) =>
                             setState(() => _registrationEnabled = value),
-                        title: const Text('السماح بالتسجيل الجديد'),
+                        title: Text(
+                          l.text(
+                            'السماح بالتسجيل الجديد',
+                            'Allow new registration',
+                          ),
+                        ),
                       ),
                       TextField(
                         controller: _unverifiedTransferLimitController,
-                        decoration: const InputDecoration(
-                          labelText: 'سقف التحويل للحسابات غير الموثقة',
+                        decoration: InputDecoration(
+                          labelText: l.text(
+                            'سقف التحويل للحسابات غير الموثقة',
+                            'Transfer limit for unverified accounts',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _minSupportedVersionController,
-                        decoration: const InputDecoration(
-                          labelText: 'أقل نسخة مدعومة',
+                        decoration: InputDecoration(
+                          labelText: l.text(
+                            'أقل نسخة مدعومة',
+                            'Minimum supported version',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _latestVersionController,
-                        decoration: const InputDecoration(
-                          labelText: 'أحدث نسخة متاحة',
+                        decoration: InputDecoration(
+                          labelText: l.text(
+                            'أحدث نسخة متاحة',
+                            'Latest available version',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _androidStoreUrlController,
                         decoration: const InputDecoration(
-                          labelText: 'رابط Android',
+                          labelText: 'Android URL',
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _iosStoreUrlController,
-                        decoration: const InputDecoration(labelText: 'رابط iOS'),
+                        decoration: const InputDecoration(labelText: 'iOS URL'),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _webStoreUrlController,
-                        decoration: const InputDecoration(labelText: 'رابط الويب'),
+                        decoration: InputDecoration(
+                          labelText: l.text('رابط الويب', 'Web URL'),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
                 AdminSectionHeader(
-                  title: 'طلبات شحن الرصيد',
-                  subtitle: 'تفعيل الخدمة وإدارة طرق الدفع.',
+                  title: l.text('طلبات شحن الرصيد', 'Top-up Requests'),
+                  subtitle: l.text(
+                    'تفعيل الخدمة وإدارة طرق الدفع.',
+                    'Enable the service and manage payment methods.',
+                  ),
                   icon: Icons.add_card_rounded,
                   trailing: ShwakelButton(
-                    label: 'إضافة طريقة',
+                    label: l.text('إضافة طريقة', 'Add method'),
                     icon: Icons.playlist_add_rounded,
                     onPressed: _showTopupMethodDialog,
                   ),
@@ -497,20 +586,31 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                         value: _topupRequestEnabled,
                         onChanged: (value) =>
                             setState(() => _topupRequestEnabled = value),
-                        title: const Text('تفعيل طلبات شحن الرصيد'),
+                        title: Text(
+                          l.text(
+                            'تفعيل طلبات شحن الرصيد',
+                            'Enable top-up requests',
+                          ),
+                        ),
                       ),
                       TextField(
                         controller: _topupRequestInstructionsController,
                         minLines: 3,
                         maxLines: 5,
-                        decoration: const InputDecoration(
-                          labelText: 'تعليمات الشحن للعميل',
+                        decoration: InputDecoration(
+                          labelText: l.text(
+                            'تعليمات الشحن للعميل',
+                            'Top-up instructions for customer',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       if (_topupPaymentMethods.isEmpty)
                         Text(
-                          'لا توجد طرق شحن مضافة حاليًا.',
+                          l.text(
+                            'لا توجد طرق شحن مضافة حاليًا.',
+                            'No top-up methods have been added yet.',
+                          ),
                           style: AppTheme.bodyAction,
                         )
                       else
@@ -536,8 +636,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          method['accountNumber']?.toString() ??
-                                              '-',
+                                          method['accountNumber']?.toString() ?? '-',
                                           style: AppTheme.bodyAction,
                                         ),
                                       ],
@@ -562,8 +661,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 AdminSectionHeader(
-                  title: 'سياسة الاستخدام',
-                  subtitle: 'تحديث النصوص المعروضة داخل التطبيق.',
+                  title: l.text('سياسة الاستخدام', 'Usage Policy'),
+                  subtitle: l.text(
+                    'تحديث النصوص المعروضة داخل التطبيق.',
+                    'Update the policy text displayed inside the app.',
+                  ),
                   icon: Icons.policy_rounded,
                 ),
                 const SizedBox(height: 16),
@@ -572,14 +674,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     children: [
                       TextField(
                         controller: _policyTitleController,
-                        decoration: const InputDecoration(labelText: 'العنوان'),
+                        decoration: InputDecoration(
+                          labelText: l.text('العنوان', 'Title'),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _policyContentController,
                         minLines: 4,
                         maxLines: 6,
-                        decoration: const InputDecoration(labelText: 'المحتوى'),
+                        decoration: InputDecoration(
+                          labelText: l.text('المحتوى', 'Content'),
+                        ),
                       ),
                     ],
                   ),
@@ -590,12 +696,24 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     spacing: 16,
                     runSpacing: 16,
                     children: [
-                      _buildFeeField('رسوم الإيداع', _walletTopupFeeController),
-                      _buildFeeField('رسوم التحويل', _walletTransferFeeController),
-                      _buildFeeField('رسوم الاسترداد', _cardRedeemFeeController),
-                      _buildFeeField('رسوم إعادة البيع', _cardResellFeeController),
                       _buildFeeField(
-                        'رسوم طلب الطباعة',
+                        l.text('رسوم الإيداع', 'Top-up fee'),
+                        _walletTopupFeeController,
+                      ),
+                      _buildFeeField(
+                        l.text('رسوم التحويل', 'Transfer fee'),
+                        _walletTransferFeeController,
+                      ),
+                      _buildFeeField(
+                        l.text('رسوم الاسترداد', 'Redeem fee'),
+                        _cardRedeemFeeController,
+                      ),
+                      _buildFeeField(
+                        l.text('رسوم إعادة البيع', 'Resell fee'),
+                        _cardResellFeeController,
+                      ),
+                      _buildFeeField(
+                        l.text('رسوم طلب الطباعة', 'Print request fee'),
                         _cardPrintRequestFeeController,
                       ),
                     ],
@@ -603,7 +721,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 ShwakelButton(
-                  label: 'حفظ الإعدادات',
+                  label: l.text('حفظ الإعدادات', 'Save settings'),
                   icon: Icons.save_rounded,
                   onPressed: _save,
                   isLoading: _isSaving,

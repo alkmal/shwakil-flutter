@@ -99,6 +99,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _save() async {
+    final l = context.loc;
     if (_profileLocked) {
       return;
     }
@@ -128,8 +129,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       });
       AppAlertService.showSuccess(
         context,
-        title: 'تم الحفظ',
-        message: 'تم تحديث بيانات الملف الشخصي بنجاح.',
+        title: l.text('تم الحفظ', 'Saved'),
+        message: l.text(
+          'تم تحديث بيانات الملف الشخصي بنجاح.',
+          'Profile details were updated successfully.',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -137,7 +141,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر الحفظ',
+        title: l.text('تعذر الحفظ', 'Could not save'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -148,6 +152,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _changePassword() async {
+    final l = context.loc;
     final current = _currentPassController.text.trim();
     final next = _newPassController.text;
     final confirm = _confirmNewPassController.text;
@@ -155,24 +160,33 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
       AppAlertService.showError(
         context,
-        title: 'بيانات ناقصة',
-        message: 'أدخل كلمة المرور الحالية والجديدة وتأكيدها.',
+        title: l.text('بيانات ناقصة', 'Missing data'),
+        message: l.text(
+          'أدخل كلمة المرور الحالية والجديدة وتأكيدها.',
+          'Enter the current password, new password, and confirmation.',
+        ),
       );
       return;
     }
     if (next != confirm) {
       AppAlertService.showError(
         context,
-        title: 'عدم تطابق',
-        message: 'تأكيد كلمة المرور الجديدة غير مطابق.',
+        title: l.text('عدم تطابق', 'Mismatch'),
+        message: l.text(
+          'تأكيد كلمة المرور الجديدة غير مطابق.',
+          'The new password confirmation does not match.',
+        ),
       );
       return;
     }
     if (next.length < 8) {
       AppAlertService.showError(
         context,
-        title: 'كلمة المرور قصيرة',
-        message: 'يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل.',
+        title: l.text('كلمة المرور قصيرة', 'Password too short'),
+        message: l.text(
+          'يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل.',
+          'The new password must be at least 8 characters.',
+        ),
       );
       return;
     }
@@ -191,8 +205,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       AppAlertService.showSuccess(
         context,
-        title: 'تم التحديث',
-        message: 'تم تغيير كلمة المرور بنجاح.',
+        title: l.text('تم التحديث', 'Updated'),
+        message: l.text(
+          'تم تغيير كلمة المرور بنجاح.',
+          'Password changed successfully.',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -200,7 +217,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر التحديث',
+        title: l.text('تعذر التحديث', 'Could not update'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -218,6 +235,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -227,7 +245,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('إعدادات الحساب'),
+          title: Text(l.text('إعدادات الحساب', 'Account Settings')),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(72),
             child: Padding(
@@ -237,18 +255,18 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   color: Colors.white.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const TabBar(
+                child: TabBar(
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: EdgeInsets.all(6),
                   labelPadding: EdgeInsets.symmetric(horizontal: 8),
                   tabs: [
                     Tab(
-                      text: 'البيانات',
+                      text: l.text('البيانات', 'Profile'),
                       icon: Icon(Icons.person_rounded, size: 20),
                     ),
                     Tab(
-                      text: 'الكلمة',
+                      text: l.text('كلمة المرور', 'Password'),
                       icon: Icon(Icons.lock_rounded, size: 20),
                     ),
                   ],
@@ -264,6 +282,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildProfileTab() {
+    final l = context.loc;
     final isMobile = MediaQuery.of(context).size.width < 760;
 
     return SingleChildScrollView(
@@ -302,7 +321,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ],
             const SizedBox(height: 24),
             ShwakelButton(
-              label: 'حفظ التغييرات',
+              label: l.text('حفظ التغييرات', 'Save changes'),
               icon: Icons.save_rounded,
               onPressed: _profileLocked ? null : _save,
               isLoading: _isSaving,
@@ -314,6 +333,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildPasswordTab() {
+    final l = context.loc;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: ResponsiveScaffoldContainer(
@@ -328,12 +348,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'تحديث كلمة المرور',
+                    l.text('تحديث كلمة المرور', 'Update password'),
                     style: AppTheme.h2.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'أدخل الكلمة الحالية ثم الجديدة.',
+                    l.text(
+                      'أدخل الكلمة الحالية ثم الجديدة.',
+                      'Enter the current password, then the new one.',
+                    ),
                     style: AppTheme.bodyAction.copyWith(color: Colors.white70),
                   ),
                 ],
@@ -346,28 +369,31 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _field(
-                    'كلمة المرور الحالية',
+                    l.text('كلمة المرور الحالية', 'Current password'),
                     _currentPassController,
                     Icons.lock_outline_rounded,
                     obscure: true,
                   ),
                   const SizedBox(height: 16),
                   _field(
-                    'كلمة المرور الجديدة',
+                    l.text('كلمة المرور الجديدة', 'New password'),
                     _newPassController,
                     Icons.lock_reset_rounded,
                     obscure: true,
                   ),
                   const SizedBox(height: 16),
                   _field(
-                    'تأكيد كلمة المرور الجديدة',
+                    l.text(
+                      'تأكيد كلمة المرور الجديدة',
+                      'Confirm new password',
+                    ),
                     _confirmNewPassController,
                     Icons.verified_user_rounded,
                     obscure: true,
                   ),
                   const SizedBox(height: 24),
                   ShwakelButton(
-                    label: 'تحديث كلمة المرور',
+                    label: l.text('تحديث كلمة المرور', 'Update password'),
                     icon: Icons.security_rounded,
                     onPressed: _changePassword,
                     isLoading: _isSaving,
@@ -382,6 +408,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildProfileHero() {
+    final l = context.loc;
     final name = _fullNameController.text.trim().isEmpty
         ? _usernameController.text.trim()
         : _fullNameController.text.trim();
@@ -426,7 +453,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    isApproved ? 'الحساب موثق' : 'الحساب غير موثق',
+                    isApproved
+                        ? l.text('الحساب موثق', 'Verified account')
+                        : l.text('الحساب غير موثق', 'Unverified account'),
                     style: AppTheme.caption.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -441,14 +470,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     _buildHeroStatusChip(
                       icon: Icons.phone_rounded,
                       label: _whatsappController.text.trim().isEmpty
-                          ? 'Ø±Ù‚Ù… ØºÙŠØ± Ù…Ø­Ø¯Ø¯'
+                          ? l.text('رقم غير محدد', 'No phone number')
                           : _whatsappController.text.trim(),
                     ),
                     if (_hasPendingProfileCompletion)
                       _buildHeroStatusChip(
                         icon: Icons.edit_note_rounded,
-                        label:
-                            '$pendingFieldsCount Ø­Ù‚Ù„ ÙŠØ­ØªØ§Ø¬ Ø¥ÙƒÙ…Ø§Ù„',
+                        label: l.text(
+                          '$pendingFieldsCount حقل يحتاج إكمال',
+                          '$pendingFieldsCount fields need completion',
+                        ),
                       ),
                   ],
                 ),
@@ -473,43 +504,44 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildBasicInfoCard() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('البيانات الأساسية', style: AppTheme.h3),
+          Text(l.text('البيانات الأساسية', 'Basic information'), style: AppTheme.h3),
           const SizedBox(height: 18),
           _field(
-            'الاسم الكامل',
+            l.text('الاسم الكامل', 'Full name'),
             _fullNameController,
             Icons.badge_rounded,
             enabled: _canEditField('fullName'),
           ),
           const SizedBox(height: 16),
           _field(
-            'اسم المستخدم',
+            l.text('اسم المستخدم', 'Username'),
             _usernameController,
             Icons.alternate_email_rounded,
             enabled: false,
           ),
           const SizedBox(height: 16),
           _field(
-            'رقم الهاتف / واتساب',
+            l.text('رقم الهاتف / واتساب', 'Phone / WhatsApp'),
             _whatsappController,
             Icons.phone_rounded,
             enabled: false,
           ),
           const SizedBox(height: 16),
           _field(
-            'البريد الإلكتروني',
+            l.text('البريد الإلكتروني', 'Email'),
             _emailController,
             Icons.email_rounded,
             enabled: _canEditField('email'),
           ),
           const SizedBox(height: 16),
           _field(
-            'العنوان',
+            l.text('العنوان', 'Address'),
             _addressController,
             Icons.location_on_rounded,
             enabled: _canEditField('address'),
@@ -521,6 +553,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildIdentityCard() {
+    final l = context.loc;
     final isMobile = MediaQuery.of(context).size.width < 760;
 
     return ShwakelCard(
@@ -528,17 +561,17 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('الهوية والمعلومات الإضافية', style: AppTheme.h3),
+          Text(l.text('الهوية والمعلومات الإضافية', 'Identity & extra details'), style: AppTheme.h3),
           const SizedBox(height: 18),
           _field(
-            'رقم الهوية',
+            l.text('رقم الهوية', 'National ID'),
             _nationalIdController,
             Icons.credit_card_rounded,
             enabled: _canEditField('nationalId'),
           ),
           const SizedBox(height: 16),
           _field(
-            'تاريخ الميلاد',
+            l.text('تاريخ الميلاد', 'Birth date'),
             _birthDateController,
             Icons.cake_rounded,
             enabled: _canEditField('birthDate'),
@@ -547,7 +580,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
           const SizedBox(height: 16),
           _field(
-            'رقم الإحالة',
+            l.text('رقم الإحالة', 'Referral number'),
             _referralPhoneController,
             Icons.call_split_rounded,
             enabled: _canEditField('referralPhone'),
@@ -559,6 +592,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildLockedNotice() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
       color: AppTheme.warning.withValues(alpha: 0.06),
@@ -569,7 +603,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'بعض البيانات مقفلة بعد التوثيق. للتعديل تواصل مع الدعم.',
+              l.text(
+                'بعض البيانات مقفلة بعد التوثيق. للتعديل تواصل مع الدعم.',
+                'Some fields are locked after verification. Contact support to edit them.',
+              ),
               style: AppTheme.bodyText.copyWith(
                 color: AppTheme.warning,
                 fontWeight: FontWeight.w700,
@@ -582,6 +619,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildCompletionNotice() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
       color: AppTheme.secondary.withValues(alpha: 0.08),
@@ -592,7 +630,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Ø¨Ø¥Ù…ÙƒØ§Ù†Ùƒ Ø¥ÙƒÙ…Ø§Ù„ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù†Ø§Ù‚ØµØ© ÙÙ‚Ø·. Ø¨Ø¹Ø¯ Ø§Ù„Ø­ÙØ¸ Ø³ÙŠØªÙ… Ø¥ØºÙ„Ø§Ù‚Ù‡Ø§ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ù„Ø£Ù† Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…ÙˆØ«Ù‚.',
+              l.text(
+                'بإمكانك إكمال الحقول الناقصة فقط. بعد الحفظ سيتم إغلاقها تلقائيًا لأن الحساب موثق.',
+                'You can complete only the missing fields. After saving, they will be locked automatically because the account is verified.',
+              ),
               style: AppTheme.bodyText.copyWith(
                 color: AppTheme.secondary,
                 fontWeight: FontWeight.w700,
@@ -605,6 +646,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildPrintLogoCard() {
+    final l = context.loc;
     final remoteLogoUrl = _user?['printLogoUrl']?.toString();
     final hasRemoteLogo = remoteLogoUrl != null && remoteLogoUrl.isNotEmpty;
 
@@ -613,9 +655,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('شعار الطباعة', style: AppTheme.h3),
+          Text(l.text('شعار الطباعة', 'Print logo'), style: AppTheme.h3),
           const SizedBox(height: 8),
-          Text('شعار يظهر على البطاقات عند الطباعة.', style: AppTheme.caption),
+          Text(
+            l.text(
+              'شعار يظهر على البطاقات عند الطباعة.',
+              'A logo shown on cards during printing.',
+            ),
+            style: AppTheme.caption,
+          ),
           const SizedBox(height: 18),
           Container(
             width: double.infinity,
@@ -662,8 +710,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 Text(
                   _printLogoFileName ??
                       (hasRemoteLogo
-                          ? 'تم حفظ شعار مخصص'
-                          : 'لا يوجد شعار مخصص حتى الآن'),
+                          ? l.text('تم حفظ شعار مخصص', 'A custom logo is saved')
+                          : l.text('لا يوجد شعار مخصص حتى الآن', 'No custom logo yet')),
                   style: AppTheme.bodyText,
                 ),
               ],
@@ -675,7 +723,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             runSpacing: 12,
             children: [
               ShwakelButton(
-                label: 'رفع شعار',
+                label: l.text('رفع شعار', 'Upload logo'),
                 icon: Icons.upload_rounded,
                 onPressed: _pickAndUploadPrintLogo,
                 isLoading: _isUploadingLogo,
@@ -683,7 +731,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
               if (hasRemoteLogo)
                 ShwakelButton(
-                  label: 'حذف الشعار',
+                  label: l.text('حذف الشعار', 'Delete logo'),
                   icon: Icons.delete_outline_rounded,
                   isSecondary: true,
                   onPressed: _isUploadingLogo ? null : _removePrintLogo,
@@ -721,6 +769,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _pickAndUploadPrintLogo() async {
+    final l = context.loc;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
@@ -734,8 +783,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     if (bytes == null || bytes.isEmpty) {
       AppAlertService.showError(
         context,
-        title: 'تعذر القراءة',
-        message: 'تعذر قراءة ملف الشعار.',
+        title: l.text('تعذر القراءة', 'Could not read file'),
+        message: l.text(
+          'تعذر قراءة ملف الشعار.',
+          'The logo file could not be read.',
+        ),
       );
       return;
     }
@@ -758,8 +810,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       });
       AppAlertService.showSuccess(
         context,
-        title: 'تم الرفع',
-        message: 'تم تحديث شعار الطباعة بنجاح.',
+        title: l.text('تم الرفع', 'Uploaded'),
+        message: l.text(
+          'تم تحديث شعار الطباعة بنجاح.',
+          'The print logo was updated successfully.',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -767,7 +822,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر الرفع',
+        title: l.text('تعذر الرفع', 'Could not upload'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -778,6 +833,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _removePrintLogo() async {
+    final l = context.loc;
     setState(() => _isUploadingLogo = true);
     try {
       final response = await _apiService.updatePrintLogo(remove: true);
@@ -791,8 +847,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       });
       AppAlertService.showSuccess(
         context,
-        title: 'تم الحذف',
-        message: 'تم حذف شعار الطباعة بنجاح.',
+        title: l.text('تم الحذف', 'Deleted'),
+        message: l.text(
+          'تم حذف شعار الطباعة بنجاح.',
+          'The print logo was deleted successfully.',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -800,7 +859,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر الحذف',
+        title: l.text('تعذر الحذف', 'Could not delete'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {

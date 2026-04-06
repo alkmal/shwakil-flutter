@@ -122,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Future<void> _startHomeBarcodeScan() async {
     if (!_canIssueCards) return;
+    final l = context.loc;
 
     final controller = MobileScannerController(
       detectionSpeed: DetectionSpeed.noDuplicates,
@@ -140,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             vertical: 24,
           ),
           title: const Text(
-            'ÙØ­Øµ Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯',
+            'فحص الباركود',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
@@ -148,7 +149,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'ÙˆØ¬Ù‘Ù‡ Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ø¥Ù„Ù‰ Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯.',
+                l.text(
+                  'وجّه الكاميرا إلى الباركود.',
+                  'Point the camera at the barcode.',
+                ),
                 textAlign: TextAlign.center,
                 style: AppTheme.bodyAction,
               ),
@@ -179,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
           actions: [
             ShwakelButton(
-              label: 'Ø¥Ù„ØºØ§Ø¡',
+              label: l.text('إلغاء', 'Cancel'),
               isSecondary: true,
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -201,17 +205,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final services = _serviceItems(context);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Ø´ÙˆØ§ÙƒÙ„'),
+        title: Text(l.text('شواكل', 'Shawakel')),
         actions: [
           IconButton(
             onPressed: _logout,
             icon: const Icon(Icons.logout_rounded),
-            tooltip: 'ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬',
+            tooltip: l.text('تسجيل الخروج', 'Log Out'),
           ),
         ],
       ),
@@ -244,9 +249,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               _buildHomeBarcodeCard(isMobile: isMobile),
                               const SizedBox(height: 22),
                             ],
-                            Text('Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø®Ø¯Ù…Ø§Øª', style: AppTheme.h1),
+                            Text(
+                              l.text('جميع الخدمات', 'All Services'),
+                              style: AppTheme.h1,
+                            ),
                             const SizedBox(height: 6),
-                            Text('Ø§Ø®ØªØ± Ø®Ø¯Ù…ØªÙƒ.', style: AppTheme.bodyAction),
+                            Text(
+                              l.text('اختر خدمتك.', 'Choose your service.'),
+                              style: AppTheme.bodyAction,
+                            ),
                             const SizedBox(height: 18),
                             Wrap(
                               spacing: spacing,
@@ -375,6 +386,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget _buildHeroCard({required bool isMobile}) {
+    final l = context.loc;
     final username = _user?['username']?.toString() ?? '';
     final fullName = _user?['fullName']?.toString().trim() ?? '';
     final role =
@@ -403,7 +415,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      displayName.isEmpty ? 'Ù…Ø±Ø­Ø¨Ù‹Ø§ Ø¨Ùƒ' : 'Ù…Ø±Ø­Ø¨Ù‹Ø§ $displayName',
+                      displayName.isEmpty
+                          ? l.text('مرحبًا بك', 'Welcome')
+                          : l.text('مرحبًا $displayName', 'Welcome, $displayName'),
                       style: AppTheme.h2.copyWith(
                         color: Colors.white,
                         fontSize: isMobile ? 18 : 22,
@@ -411,7 +425,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      role.isEmpty ? 'Ø­Ø³Ø§Ø¨Ùƒ Ø¬Ø§Ù‡Ø²' : role,
+                      role.isEmpty
+                          ? l.text('حسابك جاهز', 'Your account is ready')
+                          : role,
                       style: AppTheme.bodyBold.copyWith(
                         color: Colors.white.withValues(alpha: 0.92),
                         fontSize: 15,
@@ -448,14 +464,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø³Ø±ÙŠØ¹Ø©',
+                  l.text('الخدمات السريعة', 'Quick Services'),
                   style: AppTheme.bodyBold.copyWith(
                     color: Colors.white.withValues(alpha: 0.92),
                   ),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'ÙƒÙ„ Ø®Ø¯Ù…Ø§ØªÙƒ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯.',
+                  l.text(
+                    'كل خدماتك في مكان واحد.',
+                    'All your services in one place.',
+                  ),
                   style: AppTheme.h1.copyWith(
                     color: Colors.white,
                     fontSize: isMobile ? 20 : 28,
@@ -464,7 +483,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Ø§Ø®ØªØ± Ø§Ù„Ø®Ø¯Ù…Ø© ÙˆØ§Ø¨Ø¯Ø£ Ù…Ø¨Ø§Ø´Ø±Ø©.',
+                  l.text(
+                    'اختر الخدمة وابدأ مباشرة.',
+                    'Choose a service and get started instantly.',
+                  ),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white.withValues(alpha: 0.92),
                     height: 1.45,
@@ -478,14 +500,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     _buildHeroChip(
                       icon: Icons.verified_user_rounded,
                       label: _isVerifiedAccount
-                          ? 'Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â³Ã˜Â§Ã˜Â¨ Ã™â€¦Ã™Ë†Ã˜Â«Ã™â€š'
-                          : 'Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â³Ã˜Â§Ã˜Â¨ Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã™Ë†Ã˜Â«Ã™â€š',
+                          ? l.text('الحساب موثق', 'Verified account')
+                          : l.text('الحساب غير موثق', 'Unverified account'),
                     ),
                     if (role.isNotEmpty)
                       _buildHeroChip(icon: Icons.badge_rounded, label: role),
                     _buildHeroChip(
                       icon: Icons.grid_view_rounded,
-                      label: '$serviceCount Ã˜Â®Ã˜Â¯Ã™â€¦Ã˜Â© Ã™â€¦Ã˜ÂªÃ˜Â§Ã˜Â­Ã˜Â©',
+                      label: l.text(
+                        '$serviceCount خدمة متاحة',
+                        '$serviceCount services available',
+                      ),
                     ),
                   ],
                 ),
@@ -569,6 +594,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget _buildHomeBarcodeCard({required bool isMobile}) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       borderRadius: BorderRadius.circular(30),
@@ -584,12 +610,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ÙØ­Øµ Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯',
+                      l.text('فحص الباركود', 'Barcode Scan'),
                       style: AppTheme.h2.copyWith(fontSize: 18),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Ø§ÙØªØ­ Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ù„Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ø¨Ø·Ø§Ù‚Ø©.',
+                      l.text(
+                        'افتح الكاميرا لقراءة البطاقة.',
+                        'Open the camera to scan the card.',
+                      ),
                       style: AppTheme.bodyAction.copyWith(height: 1.45),
                     ),
                   ],
@@ -613,7 +642,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
           const SizedBox(height: 22),
           ShwakelButton(
-            label: 'ÙØªØ­ Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§',
+            label: l.text('فتح الكاميرا', 'Open Camera'),
             icon: Icons.camera_alt_rounded,
             onPressed: _startHomeBarcodeScan,
           ),

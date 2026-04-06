@@ -37,6 +37,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -121,7 +122,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('Ù…Ø±ÙƒØ² Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©')),
+      appBar: AppBar(title: Text(l.text('مركز الإدارة', 'Admin Center'))),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -137,12 +138,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Ù…Ø±ÙƒØ² Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø³Ø±ÙŠØ¹',
+                      l.text('مركز الإدارة السريع', 'Quick Admin Hub'),
                       style: AppTheme.h2.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Ø£Ù‡Ù„Ù‹Ø§ $fullName. ÙƒÙ„ Ù‚Ø³Ù… Ø¥Ø¯Ø§Ø±ÙŠ Ø£ØµØ¨Ø­ ÙÙŠ Ø´Ø§Ø´Ø© Ù…Ø³ØªÙ‚Ù„Ø©ØŒ Ù„Ø°Ù„Ùƒ ÙŠØªÙ… Ø¬Ù„Ø¨ Ø¨ÙŠØ§Ù†Ø§ØªÙ‡ ÙÙ‚Ø· Ø¹Ù†Ø¯ ÙØªØ­Ù‡ Ù„Ø³Ø±Ø¹Ø© Ø£Ø¹Ù„Ù‰ ÙˆØªØ¬Ø±Ø¨Ø© Ø£ÙˆØ¶Ø­.',
+                      l.text(
+                        'أهلًا $fullName. كل قسم إداري أصبح في شاشة مستقلة، لذلك يتم جلب بياناته فقط عند فتحه لسرعة أعلى وتجربة أوضح.',
+                        'Welcome $fullName. Each admin section now opens in its own screen and loads only its own data for a faster and clearer experience.',
+                      ),
                       style: AppTheme.bodyAction.copyWith(
                         color: Colors.white70,
                         height: 1.6,

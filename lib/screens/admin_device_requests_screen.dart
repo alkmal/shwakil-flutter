@@ -32,17 +32,24 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await _apiService.getPendingDeviceAccessRequests();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _requests = data;
         _isLoading = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل الطلبات',
+        title: context.loc.text(
+          'تعذر تحميل الطلبات',
+          'Could not load requests',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -60,24 +67,30 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
       if (mounted) {
         await AppAlertService.showError(
           context,
-          title: 'تعذر تحديث الطلب',
+          title: context.loc.text(
+            'تعذر تحديث الطلب',
+            'Could not update request',
+          ),
           message: ErrorMessageService.sanitize(error),
         );
       }
     } finally {
-      if (mounted) setState(() => _busyId = null);
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('طلبات الأجهزة')),
+      appBar: AppBar(title: Text(l.text('طلبات الأجهزة', 'Device Requests'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -94,12 +107,15 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'طلبات الأجهزة',
+                        l.text('طلبات الأجهزة', 'Device requests'),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'هذه الشاشة مخصصة فقط لمراجعة طلبات الأجهزة الجديدة بدون أي تحميل إداري إضافي.',
+                        l.text(
+                          'هذه الشاشة مخصصة فقط لمراجعة طلبات الأجهزة الجديدة بدون أي تحميل إداري إضافي.',
+                          'This screen is dedicated to reviewing new device requests without loading extra admin data.',
+                        ),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
                         ),
@@ -109,8 +125,11 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
                 ),
                 const SizedBox(height: 24),
                 AdminSectionHeader(
-                  title: 'الطلبات المعلقة',
-                  subtitle: 'وافق أو ارفض طلبات الربط من هذه الشاشة مباشرة.',
+                  title: l.text('الطلبات المعلقة', 'Pending requests'),
+                  subtitle: l.text(
+                    'وافق أو ارفض طلبات الربط من هذه الشاشة مباشرة.',
+                    'Approve or reject device linking requests directly from this screen.',
+                  ),
                   icon: Icons.devices_other_rounded,
                 ),
                 const SizedBox(height: 16),
@@ -119,7 +138,10 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
                     padding: const EdgeInsets.all(28),
                     child: Center(
                       child: Text(
-                        'لا توجد طلبات أجهزة معلقة حاليًا.',
+                        l.text(
+                          'لا توجد طلبات أجهزة معلقة حاليًا.',
+                          'There are no pending device requests right now.',
+                        ),
                         style: AppTheme.bodyAction,
                       ),
                     ),

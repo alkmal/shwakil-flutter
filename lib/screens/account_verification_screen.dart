@@ -94,14 +94,18 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   }
 
   Future<void> _submit() async {
+    final l = context.loc;
     if (_isApproved) {
       return;
     }
     if ((_identityBase64 ?? '').isEmpty || (_selfieBase64 ?? '').isEmpty) {
       await AppAlertService.showError(
         context,
-        title: 'مرفقات ناقصة',
-        message: 'يرجى اختيار صورة الهوية وصورة السيلفي أولًا.',
+        title: l.text('مرفقات ناقصة', 'Missing attachments'),
+        message: l.text(
+          'يرجى اختيار صورة الهوية وصورة السيلفي أولًا.',
+          'Please select the identity document and selfie image first.',
+        ),
       );
       return;
     }
@@ -118,8 +122,11 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم الإرسال بنجاح',
-        message: 'طلب التوثيق قيد المراجعة الآن.',
+        title: l.text('تم الإرسال بنجاح', 'Submitted successfully'),
+        message: l.text(
+          'طلب التوثيق قيد المراجعة الآن.',
+          'Your verification request is now under review.',
+        ),
       );
       await _loadStatus();
     } catch (error) {
@@ -128,7 +135,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر الإرسال',
+        title: l.text('تعذر الإرسال', 'Submission failed'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -140,6 +147,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isApproved) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -148,7 +156,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('توثيق الهوية')),
+      appBar: AppBar(title: Text(l.text('توثيق الهوية', 'Identity Verification'))),
       drawer: const AppSidebar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -170,6 +178,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   }
 
   Widget _buildHeader() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(30),
       gradient: AppTheme.darkGradient,
@@ -196,12 +205,15 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'توثيق الحساب',
+                  l.text('توثيق الحساب', 'Verify your account'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'ارفع وثائقك بشكل واضح لتفعيل التحويلات الكاملة وميزات الحساب المتقدمة.',
+                  l.text(
+                    'ارفع وثائقك بشكل واضح لتفعيل التحويلات الكاملة وميزات الحساب المتقدمة.',
+                    'Upload clear documents to unlock full transfers and advanced account features.',
+                  ),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -225,6 +237,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   }
 
   Widget _buildStatusIndicator(String status) {
+    final l = context.loc;
     Color color;
     String title;
     String text;
@@ -233,21 +246,29 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     switch (status) {
       case 'pending':
         color = AppTheme.warning;
-        title = 'قيد المراجعة';
-        text =
-            'طلبك قيد المراجعة من قبل الإدارة، وسيتم إشعارك عند تحديث الحالة.';
+        title = l.text('قيد المراجعة', 'Under review');
+        text = l.text(
+          'طلبك قيد المراجعة من قبل الإدارة، وسيتم إشعارك عند تحديث الحالة.',
+          'Your request is under review by the administration. You will be notified when the status changes.',
+        );
         icon = Icons.timer_rounded;
         break;
       case 'rejected':
         color = AppTheme.error;
-        title = 'مطلوب إعادة المحاولة';
-        text = 'تم رفض الطلب السابق، يرجى إعادة رفع صور أوضح للهوية والسيلفي.';
+        title = l.text('مطلوب إعادة المحاولة', 'Resubmission required');
+        text = l.text(
+          'تم رفض الطلب السابق، يرجى إعادة رفع صور أوضح للهوية والسيلفي.',
+          'Your previous request was rejected. Please upload clearer identity and selfie images.',
+        );
         icon = Icons.cancel_rounded;
         break;
       default:
         color = AppTheme.primary;
-        title = 'غير موثق بعد';
-        text = 'حسابك غير موثق حاليًا، ارفع المستندات المطلوبة لإكمال التفعيل.';
+        title = l.text('غير موثق بعد', 'Not verified yet');
+        text = l.text(
+          'حسابك غير موثق حاليًا، ارفع المستندات المطلوبة لإكمال التفعيل.',
+          'Your account is not verified yet. Upload the required documents to complete activation.',
+        );
         icon = Icons.info_rounded;
     }
 
@@ -282,26 +303,30 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   }
 
   Widget _buildUploadSection(String status) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('المرفقات المطلوبة', style: AppTheme.h3),
+          Text(l.text('المرفقات المطلوبة', 'Required documents'), style: AppTheme.h3),
           const SizedBox(height: 10),
           Text(
-            'ارفع صورة واضحة للهوية وصورة سيلفي تحمل الهوية نفسها لتسريع المراجعة.',
+            l.text(
+              'ارفع صورة واضحة للهوية وصورة سيلفي تحمل الهوية نفسها لتسريع المراجعة.',
+              'Upload a clear identity image and a selfie holding the same identity document to speed up review.',
+            ),
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
           const SizedBox(height: 22),
           _docPicker(
-            'صورة الهوية أو جواز السفر',
+            l.text('صورة الهوية أو جواز السفر', 'Identity or passport image'),
             _identityBase64,
             () => _pickImage(true),
           ),
           const SizedBox(height: 16),
           _docPicker(
-            'صورة سيلفي مع الهوية',
+            l.text('صورة سيلفي مع الهوية', 'Selfie with identity'),
             _selfieBase64,
             () => _pickImage(false),
           ),
@@ -309,10 +334,10 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           TextField(
             controller: _notesController,
             maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'ملاحظات إضافية',
+            decoration: InputDecoration(
+              labelText: l.text('ملاحظات إضافية', 'Additional notes'),
               alignLabelWithHint: true,
-              prefixIcon: Padding(
+              prefixIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 40),
                 child: Icon(Icons.note_rounded),
               ),
@@ -323,12 +348,15 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Text(
-                'يمكنك إعادة الإرسال بعد تعديل الصور أو استبدالها.',
+                l.text(
+                  'يمكنك إعادة الإرسال بعد تعديل الصور أو استبدالها.',
+                  'You can resubmit after editing or replacing the uploaded images.',
+                ),
                 style: AppTheme.caption.copyWith(color: AppTheme.error),
               ),
             ),
           ShwakelButton(
-            label: 'إرسال طلب التوثيق',
+            label: l.text('إرسال طلب التوثيق', 'Submit verification request'),
             icon: Icons.cloud_upload_rounded,
             onPressed: _submit,
             isLoading: _isSubmitting,
@@ -339,6 +367,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   }
 
   Widget _docPicker(String label, String? base64, VoidCallback onTap) {
+    final l = context.loc;
     final hasFile = base64 != null && base64.isNotEmpty;
     return InkWell(
       onTap: onTap,
@@ -372,7 +401,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               ),
             ),
             Text(
-              hasFile ? 'تم الاختيار' : 'اختيار ملف',
+              hasFile
+                  ? l.text('تم الاختيار', 'Selected')
+                  : l.text('اختيار ملف', 'Choose file'),
               style: TextStyle(
                 color: hasFile ? AppTheme.success : AppTheme.textSecondary,
                 fontSize: 12,

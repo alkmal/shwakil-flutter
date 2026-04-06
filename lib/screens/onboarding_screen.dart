@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
@@ -21,24 +22,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   static const List<_OnboardingSlideData> _slides = [
     _OnboardingSlideData(
+      id: 'wallet',
       icon: Icons.account_balance_wallet_rounded,
-      title: 'رصيدك وخدماتك في مكان واحد',
-      description:
-          'تابع الرصيد، أنشئ البطاقات، وادخل إلى أهم العمليات اليومية من واجهة بسيطة وواضحة.',
       accentColor: Color(0xFF0F766E),
     ),
     _OnboardingSlideData(
+      id: 'speed',
       icon: Icons.qr_code_scanner_rounded,
-      title: 'تنفيذ أسرع للبطاقات والتحويلات',
-      description:
-          'التطبيق مصمم لتقليل الخطوات وتسريع الوصول إلى إنشاء البطاقات، المسح، والتحويل.',
       accentColor: Color(0xFF2563EB),
     ),
     _OnboardingSlideData(
+      id: 'security',
       icon: Icons.verified_user_rounded,
-      title: 'حماية وتجربة استخدام موثوقة',
-      description:
-          'التحقق، إدارة الحساب، والعمليات الحساسة كلها منظمة بطريقة آمنة ومريحة للمستخدم.',
       accentColor: Color(0xFFF97316),
     ),
   ];
@@ -89,6 +84,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: Container(
@@ -115,7 +111,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     const Spacer(),
                     TextButton(
                       onPressed: _isFinishing ? null : _skip,
-                      child: const Text('تخطي'),
+                      child: Text(l.text('تخطي', 'Skip')),
                     ),
                   ],
                 ),
@@ -155,11 +151,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 20),
                 ShwakelButton(
                   label: _currentPage == _slides.length - 1
-                      ? 'ابدأ الآن'
-                      : 'التالي',
+                      ? l.text('ابدأ الآن', 'Get Started')
+                      : l.text('التالي', 'Next'),
                   icon: _currentPage == _slides.length - 1
-                      ? Icons.arrow_forward_rounded
-                      : Icons.chevron_left_rounded,
+                      ? (l.isArabic
+                            ? Icons.arrow_back_rounded
+                            : Icons.arrow_forward_rounded)
+                      : (l.isArabic
+                            ? Icons.chevron_left_rounded
+                            : Icons.chevron_right_rounded),
                   iconAtEnd: true,
                   isLoading: _isFinishing,
                   onPressed: _goNext,
@@ -180,6 +180,36 @@ class _OnboardingSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
+    final title = switch (slide.id) {
+      'wallet' => l.text(
+          'رصيدك وخدماتك في مكان واحد',
+          'Your balance and services in one place',
+        ),
+      'speed' => l.text(
+          'تنفيذ أسرع للبطاقات والتحويلات',
+          'Faster card and transfer actions',
+        ),
+      _ => l.text(
+          'حماية وتجربة استخدام موثوقة',
+          'Trusted protection and a reliable experience',
+        ),
+    };
+    final description = switch (slide.id) {
+      'wallet' => l.text(
+          'تابع الرصيد، أنشئ البطاقات، وادخل إلى أهم العمليات اليومية من واجهة بسيطة وواضحة.',
+          'Track your balance, create cards, and access daily operations from a clear and simple interface.',
+        ),
+      'speed' => l.text(
+          'التطبيق مصمم لتقليل الخطوات وتسريع الوصول إلى إنشاء البطاقات، المسح، والتحويل.',
+          'The app is designed to reduce steps and speed up access to card creation, scanning, and transfers.',
+        ),
+      _ => l.text(
+          'التحقق، إدارة الحساب، والعمليات الحساسة كلها منظمة بطريقة آمنة ومريحة للمستخدم.',
+          'Verification, account management, and sensitive actions are organized in a secure and user-friendly way.',
+        ),
+    };
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -218,7 +248,7 @@ class _OnboardingSlide extends StatelessWidget {
         ),
         const SizedBox(height: 36),
         Text(
-          slide.title,
+          title,
           textAlign: TextAlign.center,
           style: AppTheme.h1.copyWith(fontSize: 28),
         ),
@@ -226,7 +256,7 @@ class _OnboardingSlide extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Text(
-            slide.description,
+            description,
             textAlign: TextAlign.center,
             style: AppTheme.bodyAction.copyWith(
               color: AppTheme.textSecondary,
@@ -241,14 +271,12 @@ class _OnboardingSlide extends StatelessWidget {
 
 class _OnboardingSlideData {
   const _OnboardingSlideData({
+    required this.id,
     required this.icon,
-    required this.title,
-    required this.description,
     required this.accentColor,
   });
 
+  final String id;
   final IconData icon;
-  final String title;
-  final String description;
   final Color accentColor;
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../../services/index.dart';
 import '../../utils/app_theme.dart';
-import '../shwakel_card.dart';
 import '../shwakel_button.dart';
+import '../shwakel_card.dart';
 
 class AdminSettingsGroup extends StatelessWidget {
   final String title;
@@ -25,6 +27,7 @@ class AdminSettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       shadowLevel: ShwakelShadowLevel.soft,
@@ -59,7 +62,7 @@ class AdminSettingsGroup extends StatelessWidget {
               ),
               if (onSave != null)
                 ShwakelButton(
-                  label: saveLabel ?? 'حفظ الإعدادات',
+                  label: saveLabel ?? l.text('حفظ الإعدادات', 'Save settings'),
                   isLoading: isSaving,
                   onPressed: onSave,
                   isSecondary: true,

@@ -17,6 +17,7 @@ Future<void> main() async {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      await AppLocaleService.instance.init();
       await LocalNotificationService.initialize();
       await LocalSecurityService.getOrCreateDeviceId();
       FlutterError.onError = (details) {
@@ -54,72 +55,84 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      navigatorKey: AppAlertService.navigatorKey,
-      title: 'شواكل',
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      navigatorObservers: [appRouteObserver],
-      theme: AppTheme.lightTheme,
-      builder: (context, child) {
-        SystemChrome.setSystemUIOverlayStyle(
-          const SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.dark,
-            statusBarBrightness: Brightness.light,
-            systemNavigationBarColor: Colors.white,
-            systemNavigationBarIconBrightness: Brightness.dark,
-          ),
+    return AnimatedBuilder(
+      animation: AppLocaleService.instance,
+      builder: (context, _) {
+        final locale = AppLocaleService.instance.locale ?? const Locale('ar');
+        final localizer = AppLocalizer(locale);
+
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          navigatorKey: AppAlertService.navigatorKey,
+          title: localizer.text('شواكل', 'Shawakel'),
+          locale: locale,
+          supportedLocales: const [Locale('ar'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          navigatorObservers: [appRouteObserver],
+          theme: AppTheme.lightTheme,
+          builder: (context, child) {
+            SystemChrome.setSystemUIOverlayStyle(
+              const SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.dark,
+                statusBarBrightness: Brightness.light,
+                systemNavigationBarColor: Colors.white,
+                systemNavigationBarIconBrightness: Brightness.dark,
+              ),
+            );
+            return Directionality(
+              textDirection: context.loc.textDirection,
+              child: MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(1)),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
+          },
+          home: const _AppLifecycleShell(),
+          routes: {
+            '/app-shell': (context) => const _AppLifecycleShell(),
+            '/home': (context) => const HomeScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/register': (context) => const RegisterScreen(),
+            '/unlock': (context) => const DeviceUnlockScreen(),
+            '/balance': (context) => const BalanceScreen(),
+            '/create-card': (context) => const CreateCardScreen(),
+            '/quick-transfer': (context) => const QuickTransferScreen(),
+            '/card-print-requests': (context) =>
+                const CardPrintRequestsScreen(),
+            '/scan-card': (context) => const ScanCardScreen(),
+            '/inventory': (context) => const InventoryScreen(),
+            '/transactions': (context) => const TransactionsScreen(),
+            '/security-settings': (context) => const SecuritySettingsScreen(),
+            '/account-settings': (context) => const AccountSettingsScreen(),
+            '/admin-dashboard': (context) => const AdminDashboardScreen(),
+            '/admin-card-print-requests': (context) =>
+                const AdminCardPrintRequestsScreen(),
+            '/admin-customers': (context) => const AdminCustomersScreen(),
+            '/admin-device-requests': (context) =>
+                const AdminDeviceRequestsScreen(),
+            '/admin-locations': (context) => const AdminLocationsScreen(),
+            '/admin-system-settings': (context) =>
+                const AdminSystemSettingsScreen(),
+            '/admin-permissions': (context) => const AdminPermissionsScreen(),
+            '/withdrawal-requests': (context) =>
+                const WithdrawalRequestsScreen(),
+            '/topup-requests': (context) => const TopupRequestsScreen(),
+            '/usage-policy': (context) => const UsagePolicyScreen(),
+            '/contact-us': (context) => const ContactUsScreen(),
+            '/supported-locations': (context) =>
+                const SupportedLocationsScreen(),
+            '/forgot-password': (context) => const ForgotPasswordScreen(),
+            '/account-verification': (context) =>
+                const AccountVerificationScreen(),
+          },
         );
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: const TextScaler.linear(1)),
-            child: child ?? const SizedBox.shrink(),
-          ),
-        );
-      },
-      home: const _AppLifecycleShell(),
-      routes: {
-        '/app-shell': (context) => const _AppLifecycleShell(),
-        '/home': (context) => const HomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/unlock': (context) => const DeviceUnlockScreen(),
-        '/balance': (context) => const BalanceScreen(),
-        '/create-card': (context) => const CreateCardScreen(),
-        '/quick-transfer': (context) => const QuickTransferScreen(),
-        '/card-print-requests': (context) => const CardPrintRequestsScreen(),
-        '/scan-card': (context) => const ScanCardScreen(),
-        '/inventory': (context) => const InventoryScreen(),
-        '/transactions': (context) => const TransactionsScreen(),
-        '/security-settings': (context) => const SecuritySettingsScreen(),
-        '/account-settings': (context) => const AccountSettingsScreen(),
-        '/admin-dashboard': (context) => const AdminDashboardScreen(),
-        '/admin-card-print-requests': (context) =>
-            const AdminCardPrintRequestsScreen(),
-        '/admin-customers': (context) => const AdminCustomersScreen(),
-        '/admin-device-requests': (context) =>
-            const AdminDeviceRequestsScreen(),
-        '/admin-locations': (context) => const AdminLocationsScreen(),
-        '/admin-system-settings': (context) =>
-            const AdminSystemSettingsScreen(),
-        '/admin-permissions': (context) => const AdminPermissionsScreen(),
-        '/withdrawal-requests': (context) => const WithdrawalRequestsScreen(),
-        '/topup-requests': (context) => const TopupRequestsScreen(),
-        '/usage-policy': (context) => const UsagePolicyScreen(),
-        '/contact-us': (context) => const ContactUsScreen(),
-        '/supported-locations': (context) => const SupportedLocationsScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/account-verification': (context) => const AccountVerificationScreen(),
       },
     );
   }

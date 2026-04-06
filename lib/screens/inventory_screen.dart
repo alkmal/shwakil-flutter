@@ -52,7 +52,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _cards = List<VirtualCard>.from(payload['cards'] as List? ?? const []);
         _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
@@ -60,15 +62,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _isLoading = false;
       });
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('مخزون البطاقات الرقمية')),
+      appBar: AppBar(title: Text(l.text('مخزون البطاقات الرقمية', 'Digital Card Inventory'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -113,6 +118,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildHero() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       gradient: AppTheme.darkGradient,
@@ -138,12 +144,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'مخزون البطاقات',
+                  l.text('مخزون البطاقات', 'Card Inventory'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'استعرض البطاقات الصادرة، وأعد طباعتها، أو احذف البطاقات غير المستخدمة عند الحاجة.',
+                  l.text(
+                    'استعرض البطاقات الصادرة، وأعد طباعتها، أو احذف البطاقات غير المستخدمة عند الحاجة.',
+                    'Review issued cards, reprint them, or delete unused cards whenever needed.',
+                  ),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -151,7 +160,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 const SizedBox(height: 18),
                 ShwakelButton(
-                  label: 'طلب طباعة بطاقات',
+                  label: l.text('طلب طباعة بطاقات', 'Request card printing'),
                   icon: Icons.print_rounded,
                   isSecondary: true,
                   onPressed: () =>
@@ -167,7 +176,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '$_totalCards بطاقة',
+              l.text('$_totalCards بطاقة', '$_totalCards cards'),
               style: AppTheme.bodyBold.copyWith(color: Colors.white),
             ),
           );
@@ -192,13 +201,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildFilters() {
+    final l = context.loc;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: CardStatus.values.map((status) {
           final label = status == CardStatus.unused
-              ? 'جديدة'
-              : (status == CardStatus.used ? 'مستخدمة' : 'مؤرشفة');
+              ? l.text('جديدة', 'New')
+              : (status == CardStatus.used
+                    ? l.text('مستخدمة', 'Used')
+                    : l.text('مؤرشفة', 'Archived'));
           final isSelected = _filter == status;
           return Padding(
             padding: const EdgeInsets.only(left: 12),
@@ -206,7 +218,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               label: Text(label),
               selected: isSelected,
               onSelected: (selected) {
-                if (!selected) return;
+                if (!selected) {
+                  return;
+                }
                 setState(() {
                   _filter = status;
                   _page = 1;
@@ -316,87 +330,112 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildPopup(VirtualCard card) => PopupMenuButton<String>(
-    icon: const Icon(Icons.more_vert_rounded),
-    onSelected: (value) => value == 'print' ? _reprint(card) : _delete(card.id),
-    itemBuilder: (context) => [
-      const PopupMenuItem(
-        value: 'print',
-        child: Row(
-          children: [
-            Icon(Icons.print_rounded, size: 18),
-            SizedBox(width: 8),
-            Text('طباعة'),
-          ],
-        ),
-      ),
-      if (card.status == CardStatus.unused)
-        const PopupMenuItem(
-          value: 'delete',
+  Widget _buildPopup(VirtualCard card) {
+    final l = context.loc;
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert_rounded),
+      onSelected: (value) => value == 'print' ? _reprint(card) : _delete(card.id),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'print',
           child: Row(
             children: [
-              Icon(Icons.delete_rounded, size: 18, color: AppTheme.error),
-              SizedBox(width: 8),
-              Text(
-                'حذف وإرجاع القيمة',
-                style: TextStyle(color: AppTheme.error),
-              ),
+              const Icon(Icons.print_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text(l.text('طباعة', 'Print')),
             ],
           ),
         ),
-    ],
-  );
+        if (card.status == CardStatus.unused)
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                const Icon(Icons.delete_rounded, size: 18, color: AppTheme.error),
+                const SizedBox(width: 8),
+                Text(
+                  l.text('حذف وإرجاع القيمة', 'Delete and refund'),
+                  style: const TextStyle(color: AppTheme.error),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 
-  Widget _buildEmptyState() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(60),
-      child: Column(
-        children: [
-          Icon(
-            Icons.inbox_rounded,
-            size: 64,
-            color: AppTheme.textTertiary.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'لا توجد بطاقات في هذا القسم',
-            style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
-          ),
-        ],
+  Widget _buildEmptyState() {
+    final l = context.loc;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(60),
+        child: Column(
+          children: [
+            Icon(
+              Icons.inbox_rounded,
+              size: 64,
+              color: AppTheme.textTertiary.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l.text(
+                'لا توجد بطاقات في هذا القسم',
+                'There are no cards in this section',
+              ),
+              style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Future<void> _reprint(VirtualCard card) async {
+    final l = context.loc;
     final user = await _authService.currentUser();
-    await _pdfService.printCards([
-      card,
-    ], printedBy: user?['username'] ?? 'شواكل');
+    await _pdfService.printCards(
+      [card],
+      printedBy: user?['username'] ?? l.text('شواكل', 'Shawakel'),
+    );
     if (mounted) {
-      AppAlertService.showSuccess(context, message: 'تم إرسال الطلب للطباعة.');
+      AppAlertService.showSuccess(
+        context,
+        message: l.text(
+          'تم إرسال الطلب للطباعة.',
+          'The print request has been sent.',
+        ),
+      );
     }
   }
 
   Future<void> _delete(String id) async {
+    final l = context.loc;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('حذف نهائي؟'),
-        content: const Text('سيتم حذف البطاقة وإعادة الرصيد لحسابك فورًا.'),
+        title: Text(l.text('حذف نهائي؟', 'Permanent deletion?')),
+        content: Text(
+          l.text(
+            'سيتم حذف البطاقة وإعادة الرصيد لحسابك فورًا.',
+            'The card will be deleted and the balance will be refunded to your account immediately.',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           ShwakelButton(
-            label: 'حذف',
+            label: l.text('حذف', 'Delete'),
             onPressed: () => Navigator.pop(dialogContext, true),
             isSecondary: true,
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
 
     try {
       await _apiService.deleteCard(id);
@@ -404,7 +443,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
       if (mounted) {
         AppAlertService.showSuccess(
           context,
-          message: 'تم حذف البطاقة وإرجاع القيمة.',
+          message: l.text(
+            'تم حذف البطاقة وإرجاع القيمة.',
+            'The card was deleted and the value was refunded.',
+          ),
         );
       }
     } catch (error) {

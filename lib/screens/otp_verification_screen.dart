@@ -80,11 +80,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Future<void> _verify() async {
+    final l = context.loc;
     if (_otpController.text.trim().length < 4) {
       await AppAlertService.showError(
         context,
-        title: 'رمز غير مكتمل',
-        message: 'أدخل رمز التحقق كاملًا للمتابعة.',
+        title: l.text('رمز غير مكتمل', 'Incomplete code'),
+        message: l.text(
+          'أدخل رمز التحقق كاملًا للمتابعة.',
+          'Please enter the full verification code to continue.',
+        ),
       );
       return;
     }
@@ -111,8 +115,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         }
         await AppAlertService.showSuccess(
           context,
-          title: 'تم التفعيل',
-          message: 'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.',
+          title: l.text('تم التفعيل', 'Completed'),
+          message: l.text(
+            'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.',
+            'Your account has been created successfully. You can log in now.',
+          ),
         );
         if (!mounted) {
           return;
@@ -142,7 +149,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر التحقق',
+        title: l.text('تعذر التحقق', 'Verification failed'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -157,6 +164,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       return;
     }
 
+    final l = context.loc;
     setState(() => _isResending = true);
     try {
       final response = await _authService.requestOtp(
@@ -178,8 +186,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       _startTimer();
       await AppAlertService.showSuccess(
         context,
-        title: 'تمت إعادة الإرسال',
-        message: 'تم إرسال رمز تحقق جديد إلى واتساب.',
+        title: l.text('تمت إعادة الإرسال', 'Code sent again'),
+        message: l.text(
+          'تم إرسال رمز تحقق جديد إلى واتساب.',
+          'A new verification code has been sent to WhatsApp.',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -187,7 +198,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر الإرسال',
+        title: l.text('تعذر الإرسال', 'Could not resend'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -221,6 +232,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Widget _buildMainCard() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       shadowLevel: ShwakelShadowLevel.premium,
@@ -242,12 +254,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('تأكيد الرمز', style: AppTheme.h2, textAlign: TextAlign.center),
+          Text(
+            l.text('تأكيد الرمز', 'Verify Code'),
+            style: AppTheme.h2,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 10),
           Text(
             _isRegisterFlow
-                ? 'أدخل رمز التحقق المرسل إلى واتساب لإكمال إنشاء الحساب.'
-                : 'أدخل رمز التحقق المرسل إلى واتساب لتسجيل الدخول بأمان.',
+                ? l.text(
+                    'أدخل رمز التحقق المرسل إلى واتساب لإكمال إنشاء الحساب.',
+                    'Enter the code sent to your WhatsApp to complete registration.',
+                  )
+                : l.text(
+                    'أدخل رمز التحقق المرسل إلى واتساب لتسجيل الدخول بأمان.',
+                    'Enter the code sent to your WhatsApp to sign in securely.',
+                  ),
             textAlign: TextAlign.center,
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
@@ -262,12 +284,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('اسم المستخدم', style: AppTheme.caption),
+                Text(l.text('اسم المستخدم', 'Username'), style: AppTheme.caption),
                 const SizedBox(height: 4),
                 Text(widget.username, style: AppTheme.bodyBold),
                 if ((widget.whatsapp ?? '').trim().isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  Text('واتساب', style: AppTheme.caption),
+                  Text(l.text('واتساب', 'WhatsApp'), style: AppTheme.caption),
                   const SizedBox(height: 4),
                   Text(widget.whatsapp!, style: AppTheme.bodyAction),
                 ],
@@ -284,10 +306,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               letterSpacing: 10,
               color: AppTheme.primary,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: '••••••',
               counterText: '',
-              labelText: 'رمز التحقق',
+              labelText: l.text('رمز التحقق', 'Verification code'),
             ),
           ),
           if (_debugCode != null) ...[
@@ -302,7 +324,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ),
               ),
               child: Text(
-                'رمز تجريبي: $_debugCode',
+                l.text('رمز تجريبي: $_debugCode', 'Debug code: $_debugCode'),
                 textAlign: TextAlign.center,
                 style: AppTheme.bodyBold.copyWith(color: AppTheme.warning),
               ),
@@ -310,7 +332,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ],
           const SizedBox(height: 24),
           ShwakelButton(
-            label: _isRegisterFlow ? 'إكمال إنشاء الحساب' : 'تأكيد الدخول',
+            label: _isRegisterFlow
+                ? l.text('إكمال إنشاء الحساب', 'Complete registration')
+                : l.text('تأكيد الدخول', 'Confirm sign in'),
             icon: Icons.verified_rounded,
             onPressed: _verify,
             isLoading: _isLoading,
@@ -327,8 +351,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 Expanded(
                   child: Text(
                     _cooldown > 0
-                        ? 'يمكنك إعادة الإرسال خلال $_cooldown ثانية'
-                        : 'لم يصلك الرمز بعد؟',
+                        ? l.text(
+                            'يمكنك إعادة الإرسال خلال $_cooldown ثانية',
+                            'You can resend the code in $_cooldown seconds',
+                          )
+                        : l.text(
+                            'لم يصلك الرمز بعد؟',
+                            "Didn't receive the code yet?",
+                          ),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),
@@ -337,7 +367,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 TextButton(
                   onPressed: (_cooldown > 0 || _isResending) ? null : _resend,
                   child: Text(
-                    _isResending ? 'جارٍ الإرسال...' : 'إعادة الإرسال',
+                    _isResending
+                        ? l.text('جارٍ الإرسال...', 'Sending...')
+                        : l.text('إعادة الإرسال', 'Resend'),
                   ),
                 ),
               ],

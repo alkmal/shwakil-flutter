@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../../services/index.dart';
 import '../../utils/app_theme.dart';
-import '../shwakel_card.dart';
 import '../shwakel_button.dart';
+import '../shwakel_card.dart';
 
 class AdminDeviceRequestCard extends StatelessWidget {
   final Map<String, dynamic> request;
@@ -26,8 +28,12 @@ class AdminDeviceRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deviceName = request['deviceName']?.toString() ?? 'جهاز غير معروف';
-    final deviceId = request['deviceId']?.toString() ?? 'ID غير متوفر';
+    final l = context.loc;
+    final deviceName =
+        request['deviceName']?.toString() ??
+        l.text('جهاز غير معروف', 'Unknown device');
+    final deviceId =
+        request['deviceId']?.toString() ?? l.text('ID غير متوفر', 'ID unavailable');
     final createdAt = request['createdAt']?.toString() ?? '';
 
     return ShwakelCard(
@@ -53,7 +59,7 @@ class AdminDeviceRequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'طلب الوصول: $createdAt',
+            l.text('طلب الوصول: $createdAt', 'Access request: $createdAt'),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -61,7 +67,7 @@ class AdminDeviceRequestCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ShwakelButton(
-                  label: 'قبول',
+                  label: l.text('قبول', 'Approve'),
                   isLoading: isProcessing,
                   onPressed: () => onAction(true),
                   color: AppTheme.secondary,
@@ -71,7 +77,7 @@ class AdminDeviceRequestCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ShwakelButton(
-                  label: 'رفض',
+                  label: l.text('رفض', 'Reject'),
                   isLoading: isProcessing,
                   onPressed: () => onAction(false),
                   color: AppTheme.warning,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../services/index.dart';
 import '../../utils/app_theme.dart';
 import '../shwakel_card.dart';
 
@@ -22,10 +24,15 @@ class AdminLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = location['title']?.toString() ?? 'فرع غير معروف';
-    final address = location['address']?.toString() ?? 'لا يوجد عنوان';
+    final l = context.loc;
+    final title =
+        location['title']?.toString() ??
+        l.text('فرع غير معروف', 'Unknown branch');
+    final address =
+        location['address']?.toString() ??
+        l.text('لا يوجد عنوان', 'No address available');
     final isActive = location['isActive'] != false;
-    final type = location['type']?.toString() ?? 'فرع';
+    final type = location['type']?.toString() ?? l.text('فرع', 'Branch');
 
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
@@ -57,7 +64,9 @@ class AdminLocationCard extends StatelessWidget {
                   borderRadius: AppTheme.radiusSm,
                 ),
                 child: Text(
-                  isActive ? 'مفعل' : 'معطل',
+                  isActive
+                      ? l.text('مفعل', 'Active')
+                      : l.text('معطل', 'Disabled'),
                   style: AppTheme.caption.copyWith(
                     color: isActive
                         ? AppTheme.secondary

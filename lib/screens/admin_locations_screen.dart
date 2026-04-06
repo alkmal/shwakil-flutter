@@ -31,23 +31,28 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await _apiService.getAdminSupportedLocations();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _locations = data;
         _isLoading = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل الفروع',
+        title: context.loc.text('تعذر تحميل الفروع', 'Could not load branches'),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
   Future<void> _showLocationDialog({Map<String, dynamic>? location}) async {
+    final l = context.loc;
     final titleController = TextEditingController(
       text: location?['title']?.toString() ?? '',
     );
@@ -82,8 +87,11 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                 addressController.text.trim().isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'بيانات ناقصة',
-                message: 'اسم الفرع والعنوان مطلوبان.',
+                title: l.text('بيانات ناقصة', 'Missing data'),
+                message: l.text(
+                  'اسم الفرع والعنوان مطلوبان.',
+                  'Branch name and address are required.',
+                ),
               );
               return;
             }
@@ -102,23 +110,33 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                 isActive: isActive,
                 sortOrder: int.tryParse(sortOrderController.text) ?? 0,
               );
-              if (!dialogContext.mounted) return;
+              if (!dialogContext.mounted) {
+                return;
+              }
               Navigator.pop(dialogContext);
-              if (!mounted) return;
+              if (!mounted) {
+                return;
+              }
               setState(() => _locations = data);
             } catch (error) {
-              if (!dialogContext.mounted) return;
+              if (!dialogContext.mounted) {
+                return;
+              }
               setDialogState(() => isSaving = false);
               await AppAlertService.showError(
                 dialogContext,
-                title: 'تعذر الحفظ',
+                title: l.text('تعذر الحفظ', 'Could not save'),
                 message: ErrorMessageService.sanitize(error),
               );
             }
           }
 
           return AlertDialog(
-            title: Text(location == null ? 'إضافة فرع' : 'تعديل الفرع'),
+            title: Text(
+              location == null
+                  ? l.text('إضافة فرع', 'Add branch')
+                  : l.text('تعديل الفرع', 'Edit branch'),
+            ),
             content: SizedBox(
               width: 520,
               child: SingleChildScrollView(
@@ -126,22 +144,30 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                   children: [
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(labelText: 'اسم الفرع'),
+                      decoration: InputDecoration(
+                        labelText: l.text('اسم الفرع', 'Branch name'),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: addressController,
-                      decoration: const InputDecoration(labelText: 'العنوان'),
+                      decoration: InputDecoration(
+                        labelText: l.text('العنوان', 'Address'),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: phoneController,
-                      decoration: const InputDecoration(labelText: 'الهاتف'),
+                      decoration: InputDecoration(
+                        labelText: l.text('الهاتف', 'Phone'),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: typeController,
-                      decoration: const InputDecoration(labelText: 'النوع'),
+                      decoration: InputDecoration(
+                        labelText: l.text('النوع', 'Type'),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -149,8 +175,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                         Expanded(
                           child: TextField(
                             controller: latController,
-                            decoration: const InputDecoration(
-                              labelText: 'خط العرض',
+                            decoration: InputDecoration(
+                              labelText: l.text('خط العرض', 'Latitude'),
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -161,8 +187,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                         Expanded(
                           child: TextField(
                             controller: lngController,
-                            decoration: const InputDecoration(
-                              labelText: 'خط الطول',
+                            decoration: InputDecoration(
+                              labelText: l.text('خط الطول', 'Longitude'),
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -174,8 +200,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: sortOrderController,
-                      decoration: const InputDecoration(
-                        labelText: 'ترتيب الظهور',
+                      decoration: InputDecoration(
+                        labelText: l.text('ترتيب الظهور', 'Display order'),
                       ),
                       keyboardType: TextInputType.number,
                     ),
@@ -185,7 +211,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                       value: isActive,
                       onChanged: (value) =>
                           setDialogState(() => isActive = value),
-                      title: const Text('مفعل'),
+                      title: Text(l.text('مفعل', 'Active')),
                     ),
                   ],
                 ),
@@ -194,11 +220,15 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
             actions: [
               TextButton(
                 onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                child: const Text('إلغاء'),
+                child: Text(l.text('إلغاء', 'Cancel')),
               ),
               ElevatedButton(
                 onPressed: isSaving ? null : submit,
-                child: Text(isSaving ? 'جارٍ الحفظ...' : 'حفظ'),
+                child: Text(
+                  isSaving
+                      ? l.text('جارٍ الحفظ...', 'Saving...')
+                      : l.text('حفظ', 'Save'),
+                ),
               ),
             ],
           );
@@ -216,17 +246,22 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   }
 
   Future<void> _deleteLocation(Map<String, dynamic> location) async {
+    final l = context.loc;
     try {
       final data = await _apiService.deleteAdminSupportedLocation(
         location['id'].toString(),
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _locations = data);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await AppAlertService.showError(
         context,
-        title: 'تعذر الحذف',
+        title: l.text('تعذر الحذف', 'Could not delete'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -234,13 +269,14 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('الفروع والمواقع')),
+      appBar: AppBar(title: Text(l.text('الفروع والمواقع', 'Branches & Locations'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -257,12 +293,15 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'الفروع والمواقع',
+                        l.text('الفروع والمواقع', 'Branches & locations'),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'إدارة المواقع شاشة مستقلة الآن، ولا تُجلب إلا عند فتحها.',
+                        l.text(
+                          'إدارة المواقع شاشة مستقلة الآن، ولا تُجلب إلا عند فتحها.',
+                          'Location management now lives in a dedicated screen and loads only when opened.',
+                        ),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
                         ),
@@ -272,11 +311,14 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                 ),
                 const SizedBox(height: 24),
                 AdminSectionHeader(
-                  title: 'الفروع المدعومة',
-                  subtitle: 'أضف أو عدل المواقع من شاشة مخصصة وسريعة.',
+                  title: l.text('الفروع المدعومة', 'Supported branches'),
+                  subtitle: l.text(
+                    'أضف أو عدل المواقع من شاشة مخصصة وسريعة.',
+                    'Add or edit locations from a dedicated fast screen.',
+                  ),
                   icon: Icons.map_rounded,
                   trailing: ShwakelButton(
-                    label: 'إضافة فرع',
+                    label: l.text('إضافة فرع', 'Add branch'),
                     icon: Icons.add_location_alt_rounded,
                     onPressed: _showLocationDialog,
                   ),

@@ -1,15 +1,15 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+
 import '../services/index.dart';
-import '../widgets/responsive_scaffold_container.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
-import '../widgets/shwakel_card.dart';
-import '../widgets/shwakel_button.dart';
 import '../widgets/admin/admin_enums.dart';
-import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_section_header.dart';
+import '../widgets/admin/admin_transaction_audit_card.dart';
+import '../widgets/responsive_scaffold_container.dart';
+import '../widgets/shwakel_button.dart';
+import '../widgets/shwakel_card.dart';
 
 class AdminCustomerScreen extends StatefulWidget {
   const AdminCustomerScreen({
@@ -42,7 +42,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   List<Map<String, dynamic>> _transactions = const [];
   List<Map<String, dynamic>> _devices = const [];
   bool _firstLoad = true;
-  bool _busy = false; // Combined busy state for simplicity in UI
+  bool _busy = false;
   String _role = 'basic';
   String _verification = 'unverified';
   int _txPage = 1;
@@ -69,6 +69,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     _cardPrintRequestFeeController.dispose();
     super.dispose();
   }
+
+  String _t(String ar, String en) => context.loc.text(ar, en);
 
   void _syncFields() {
     _role = _customer['role']?.toString() ?? 'basic';
@@ -112,16 +114,13 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           : (_auditFilter == AdminTransactionAuditFilter.outsideBranches
                 ? 'outside_branches'
                 : 'all');
-
       final results = await Future.wait([
         _api.getAdminCustomerTransactions(id, locationFilter: filter),
         _api.getAdminUserDevices(id),
       ]);
-
       if (!mounted) return;
       final txData = results[0];
       final dvData = results[1];
-
       setState(() {
         _customer = Map<String, dynamic>.from(
           txData['customer'] as Map? ?? _customer,
@@ -154,37 +153,36 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   Future<void> _updateAccount() async {
     setState(() => _busy = true);
     try {
-      final debt = double.tryParse(_printingDebtLimitController.text) ?? 20;
       final payload = await _api.updateAdminUserAccountControls(
         userId: _customer['id'].toString(),
         isDisabled: _customer['isDisabled'] == true,
         transferVerificationStatus: _verification,
         role: _role,
-        printingDebtLimit: debt,
+        printingDebtLimit:
+            double.tryParse(_printingDebtLimitController.text) ?? 20,
         customTopupFeePercent: double.tryParse(_topupFeeController.text),
         customWithdrawFeePercent: double.tryParse(_withdrawFeeController.text),
         customTransferFeePercent: double.tryParse(_transferFeeController.text),
         customCardRedeemFeePercent: double.tryParse(_redeemFeeController.text),
         customCardResellFeePercent: double.tryParse(_resellFeeController.text),
-        customCardPrintRequestFeePercent: double.tryParse(
-          _cardPrintRequestFeeController.text,
+        customCardPrintRequestFeePercent:
+            double.tryParse(_cardPrintRequestFeeController.text),
+      );
+      if (!mounted) return;
+      setState(() {
+        _customer = Map<String, dynamic>.from(payload['user']);
+        _syncFields();
+        _busy = false;
+      });
+      AppAlertService.showSuccess(
+        context,
+        message: _t(
+          'تم تحديث بيانات العميل بنجاح.',
+          'Customer details were updated successfully.',
         ),
       );
-      if (mounted) {
-        setState(() {
-          _customer = Map<String, dynamic>.from(payload['user']);
-          _syncFields();
-          _busy = false;
-        });
-        AppAlertService.showSuccess(
-          context,
-          message: 'تم تحديث بيانات العميل بنجاح.',
-        );
-      }
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _busy = false);
       AppAlertService.showError(
         context,
@@ -197,51 +195,49 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('إعادة إرسال بيانات المستخدم'),
-        content: const Text(
-          'سيتم إنشاء كلمة مرور جديدة لهذا المستخدم ثم إرسال بيانات الدخول إلى واتساب الحساب. هل تريد المتابعة؟',
+        title: Text(_t('إعادة إرسال بيانات المستخدم', 'Resend user details')),
+        content: Text(
+          _t(
+            'سيتم إنشاء كلمة مرور جديدة لهذا المستخدم ثم إرسال بيانات الدخول إلى واتساب الحساب. هل تريد المتابعة؟',
+            'A new password will be generated, then the login details will be sent to the account WhatsApp. Continue?',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(_t('إلغاء', 'Cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('تأكيد الإرسال'),
+            child: Text(_t('تأكيد الإرسال', 'Confirm send')),
           ),
         ],
       ),
     );
-
-    if (confirmed != true) {
-      return;
-    }
-
+    if (confirmed != true) return;
     setState(() => _busy = true);
     try {
       final response = await _api.resendAdminUserAccountDetails(
         userId: _customer['id'].toString(),
       );
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _busy = false);
       await AppAlertService.showSuccess(
         context,
-        title: 'تم الإرسال',
+        title: _t('تم الإرسال', 'Sent'),
         message: response['message']?.toString() ??
-            'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر واتساب.',
+            _t(
+              'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر واتساب.',
+              'A new password was created and the user details were sent via WhatsApp.',
+            ),
       );
       await _loadCustomer(full: true);
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _busy = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر الإرسال',
+        title: _t('تعذر الإرسال', 'Could not send'),
         message: ErrorMessageService.sanitize(e),
       );
     }
@@ -252,9 +248,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     if (_firstLoad) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
-    final name = _customer['fullName'] ?? _customer['username'] ?? 'عميل شواكل';
-
+    final name =
+        _customer['fullName'] ?? _customer['username'] ?? _t('عميل شواكل', 'Shawakel customer');
     return DefaultTabController(
       length: 5,
       child: Scaffold(
@@ -270,33 +265,18 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   color: Colors.white.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const TabBar(
+                child: TabBar(
                   isScrollable: true,
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: EdgeInsets.all(6),
-                  labelPadding: EdgeInsets.symmetric(horizontal: 14),
+                  indicatorPadding: const EdgeInsets.all(6),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 14),
                   tabs: [
-                    Tab(
-                      text: 'نظرة عامة',
-                      icon: Icon(Icons.info_outline_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: 'سجل الحركات',
-                      icon: Icon(Icons.receipt_long_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: 'الإدارة والرسوم',
-                      icon: Icon(Icons.manage_accounts_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: 'الصلاحيات',
-                      icon: Icon(Icons.security_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: 'الأجهزة',
-                      icon: Icon(Icons.devices_rounded, size: 20),
-                    ),
+                    Tab(text: _t('نظرة عامة', 'Overview'), icon: const Icon(Icons.info_outline_rounded, size: 20)),
+                    Tab(text: _t('سجل الحركات', 'Transactions'), icon: const Icon(Icons.receipt_long_rounded, size: 20)),
+                    Tab(text: _t('الإدارة والرسوم', 'Management & Fees'), icon: const Icon(Icons.manage_accounts_rounded, size: 20)),
+                    Tab(text: _t('الصلاحيات', 'Permissions'), icon: const Icon(Icons.security_rounded, size: 20)),
+                    Tab(text: _t('الأجهزة', 'Devices'), icon: const Icon(Icons.devices_rounded, size: 20)),
                   ],
                 ),
               ),
@@ -330,15 +310,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('إجراءات سريعة', style: AppTheme.h3),
+                    Text(_t('إجراءات سريعة', 'Quick actions'), style: AppTheme.h3),
                     const SizedBox(height: 10),
                     Text(
-                      'إعادة إرسال بيانات المستخدم عبر واتساب ستنشئ كلمة مرور جديدة تلقائيًا قبل الإرسال.',
+                      _t(
+                        'إعادة إرسال بيانات المستخدم عبر واتساب ستنشئ كلمة مرور جديدة تلقائيًا قبل الإرسال.',
+                        'Resending user details through WhatsApp will automatically generate a new password before sending.',
+                      ),
                       style: AppTheme.bodyAction,
                     ),
                     const SizedBox(height: 16),
                     ShwakelButton(
-                      label: 'إعادة إرسال بيانات المستخدم',
+                      label: _t(
+                        'إعادة إرسال بيانات المستخدم',
+                        'Resend user details',
+                      ),
                       icon: Icons.mark_chat_unread_rounded,
                       onPressed: _busy ? null : _resendAccountDetails,
                       isLoading: _busy,
@@ -353,7 +339,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               children: [
                 Expanded(
                   child: _buildMetricCard(
-                    'الرصيد الحالي',
+                    _t('الرصيد الحالي', 'Current balance'),
                     CurrencyFormatter.ils(
                       ((_customer['balance'] as num?) ?? 0).toDouble(),
                     ),
@@ -364,8 +350,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildMetricCard(
-                    'حالة الحساب',
-                    _customer['isDisabled'] == true ? 'معطل' : 'نشط',
+                    _t('حالة الحساب', 'Account status'),
+                    _customer['isDisabled'] == true
+                        ? _t('معطل', 'Disabled')
+                        : _t('نشط', 'Active'),
                     Icons.verified_user_rounded,
                     _customer['isDisabled'] == true
                         ? AppTheme.error
@@ -380,12 +368,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('بيانات التواصل', style: AppTheme.h3),
+                  Text(_t('بيانات التواصل', 'Contact details'), style: AppTheme.h3),
                   const SizedBox(height: 16),
-                  _infoRow('اسم المستخدم', _customer['username'] ?? '-'),
-                  _infoRow('الاسم الرباعي', _customer['fullName'] ?? '-'),
-                  _infoRow('الواتساب', _customer['whatsapp'] ?? '-'),
-                  _infoRow('تاريخ الانضمام', _customer['createdAt'] ?? '-'),
+                  _infoRow(_t('اسم المستخدم', 'Username'), _customer['username'] ?? '-'),
+                  _infoRow(_t('الاسم الرباعي', 'Full name'), _customer['fullName'] ?? '-'),
+                  _infoRow(_t('الواتساب', 'WhatsApp'), _customer['whatsapp'] ?? '-'),
+                  _infoRow(_t('تاريخ الانضمام', 'Join date'), _customer['createdAt'] ?? '-'),
                 ],
               ),
             ),
@@ -406,11 +394,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             radius: 40,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Text(
-              (_customer['username']
-                      ?.toString()
-                      .substring(0, 1)
-                      .toUpperCase() ??
-                  'U'),
+              (_customer['username']?.toString().substring(0, 1).toUpperCase() ?? 'U'),
               style: AppTheme.h1.copyWith(color: Colors.white, fontSize: 32),
             ),
           ),
@@ -424,7 +408,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 Text(
-                  _customer['roleLabel'] ?? 'عميل أساسي',
+                  _customer['roleLabel'] ?? _t('عميل أساسي', 'Basic customer'),
                   style: AppTheme.caption.copyWith(
                     color: Colors.white70,
                     fontWeight: FontWeight.bold,
@@ -449,16 +433,17 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         .ceil()
         .clamp(1, 999)
         .toInt();
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: ResponsiveScaffoldContainer(
         child: Column(
           children: [
             AdminSectionHeader(
-              title: 'سجل حركات العميل',
-              subtitle:
-                  'استعرض الحركات المالية والعمليات المرتبطة بهذا العميل.',
+              title: _t('سجل حركات العميل', 'Customer transactions'),
+              subtitle: _t(
+                'استعرض الحركات المالية والعمليات المرتبطة بهذا العميل.',
+                'Review financial transactions and activity related to this customer.',
+              ),
               icon: Icons.history_rounded,
               trailing: DropdownButton<AdminTransactionAuditFilter>(
                 value: _auditFilter,
@@ -468,18 +453,18 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     _loadCustomer();
                   }
                 },
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: AdminTransactionAuditFilter.all,
-                    child: Text('الكل'),
+                    child: Text(_t('الكل', 'All')),
                   ),
                   DropdownMenuItem(
                     value: AdminTransactionAuditFilter.nearBranch,
-                    child: Text('قرب الفروع'),
+                    child: Text(_t('قرب الفروع', 'Near branches')),
                   ),
                   DropdownMenuItem(
                     value: AdminTransactionAuditFilter.outsideBranches,
-                    child: Text('خارج الفروع'),
+                    child: Text(_t('خارج الفروع', 'Outside branches')),
                   ),
                 ],
               ),
@@ -491,7 +476,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(40),
-                  child: Text('لا توجد حركات حديثة.', style: AppTheme.caption),
+                  child: Text(
+                    _t('لا توجد حركات حديثة.', 'No recent transactions.'),
+                    style: AppTheme.caption,
+                  ),
                 ),
               )
             else ...[
@@ -528,74 +516,55 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('إدارة الحساب والرسوم', style: AppTheme.h3),
+                  Text(_t('إدارة الحساب والرسوم', 'Account management & fees'), style: AppTheme.h3),
                   const SizedBox(height: 24),
                   DropdownButtonFormField<String>(
                     initialValue: _verification,
-                    decoration: const InputDecoration(
-                      labelText: 'حالة التوثيق (تفعيل التحقق)',
+                    decoration: InputDecoration(
+                      labelText: _t('حالة التوثيق', 'Verification status'),
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'restricted',
-                        child: Text('عضوية مقيدة'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'verified_member',
-                        child: Text('عضوية موثقة'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'advanced_member',
-                        child: Text('عضوية مطورة'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'unverified',
-                        child: Text('غير موثق'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'pending',
-                        child: Text('قيد المراجعة'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'approved',
-                        child: Text('موثق / مفعل'),
-                      ),
-                      DropdownMenuItem(value: 'rejected', child: Text('مرفوض')),
+                    items: [
+                      DropdownMenuItem(value: 'restricted', child: Text(_t('عضوية مقيدة', 'Restricted member'))),
+                      DropdownMenuItem(value: 'verified_member', child: Text(_t('عضوية موثقة', 'Verified member'))),
+                      DropdownMenuItem(value: 'advanced_member', child: Text(_t('عضوية مطورة', 'Advanced member'))),
+                      DropdownMenuItem(value: 'unverified', child: Text(_t('غير موثق', 'Unverified'))),
+                      DropdownMenuItem(value: 'pending', child: Text(_t('قيد المراجعة', 'Pending'))),
+                      DropdownMenuItem(value: 'approved', child: Text(_t('موثق / مفعل', 'Verified / active'))),
+                      DropdownMenuItem(value: 'rejected', child: Text(_t('مرفوض', 'Rejected'))),
                     ],
                     onChanged: (v) => setState(() => _verification = v!),
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: _role,
-                    decoration: const InputDecoration(labelText: 'دور الحساب'),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'basic',
-                        child: Text('مستخدم عادي'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'support',
-                        child: Text('فريق الدعم'),
-                      ),
-                      DropdownMenuItem(value: 'admin', child: Text('مدير فني')),
+                    decoration: InputDecoration(
+                      labelText: _t('دور الحساب', 'Account role'),
+                    ),
+                    items: [
+                      DropdownMenuItem(value: 'basic', child: Text(_t('مستخدم عادي', 'Basic user'))),
+                      DropdownMenuItem(value: 'support', child: Text(_t('فريق الدعم', 'Support team'))),
+                      DropdownMenuItem(value: 'admin', child: Text(_t('مدير فني', 'Technical admin'))),
                     ],
                     onChanged: (v) => setState(() => _role = v!),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _printingDebtLimitController,
-                    decoration: const InputDecoration(
-                      labelText: 'سقف دين الطباعة (₪)',
+                    decoration: InputDecoration(
+                      labelText: _t('سقف دين الطباعة (₪)', 'Printing debt limit (₪)'),
                       suffixText: '₪',
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Text('رسوم مخصصة لهذا العميل (%)', style: AppTheme.bodyBold),
+                  Text(
+                    _t('رسوم مخصصة لهذا العميل (%)', 'Custom fees for this customer (%)'),
+                    style: AppTheme.bodyBold,
+                  ),
                   const SizedBox(height: 16),
                   _feeGrid(),
                   const SizedBox(height: 40),
                   ShwakelButton(
-                    label: 'حفظ التغييرات',
+                    label: _t('حفظ التغييرات', 'Save changes'),
                     icon: Icons.save_rounded,
                     onPressed: _updateAccount,
                     isLoading: _busy,
@@ -614,12 +583,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       spacing: 16,
       runSpacing: 16,
       children: [
-        _feeField('الإيداع', _topupFeeController),
-        _feeField('السحب', _withdrawFeeController),
-        _feeField('التحويل', _transferFeeController),
-        _feeField('الاسترداد', _redeemFeeController),
-        _feeField('إعادة البيع', _resellFeeController),
-        _feeField('طلب الطباعة', _cardPrintRequestFeeController),
+        _feeField(_t('الإيداع', 'Top-up'), _topupFeeController),
+        _feeField(_t('السحب', 'Withdraw'), _withdrawFeeController),
+        _feeField(_t('التحويل', 'Transfer'), _transferFeeController),
+        _feeField(_t('الاسترداد', 'Redeem'), _redeemFeeController),
+        _feeField(_t('إعادة البيع', 'Resell'), _resellFeeController),
+        _feeField(_t('طلب الطباعة', 'Print request'), _cardPrintRequestFeeController),
       ],
     );
   }
@@ -636,38 +605,18 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('صلاحيات البطاقات والإدارة', style: AppTheme.h3),
+              Text(_t('صلاحيات البطاقات والإدارة', 'Card & admin permissions'), style: AppTheme.h3),
               const SizedBox(height: 16),
-              _permItem('إصدار بطاقات رصيد', 'canIssueCards', perms),
-              _permItem('طلب طباعة البطاقات', 'canRequestCardPrinting', perms),
-              _permItem('إصدار أجزاء الشيكل', 'canIssueSubShekelCards', perms),
-              _permItem(
-                'إصدار بطاقات عالية القيمة',
-                'canIssueHighValueCards',
-                perms,
-              ),
-              _permItem(
-                'إعادة تفعيل البطاقات المستخدمة',
-                'canResellCards',
-                perms,
-              ),
-              _permItem(
-                'مراجعة طلبات طباعة البطاقات',
-                'canReviewCardPrintRequests',
-                perms,
-              ),
-              _permItem(
-                'تجهيز وطباعة الطلبات',
-                'canPrepareCardPrintRequests',
-                perms,
-              ),
-              _permItem(
-                'إكمال وتسليم الطلبات',
-                'canFinalizeCardPrintRequests',
-                perms,
-              ),
+              _permItem(_t('إصدار بطاقات رصيد', 'Issue balance cards'), 'canIssueCards', perms),
+              _permItem(_t('طلب طباعة البطاقات', 'Request card printing'), 'canRequestCardPrinting', perms),
+              _permItem(_t('إصدار أجزاء الشيكل', 'Issue sub-shekel cards'), 'canIssueSubShekelCards', perms),
+              _permItem(_t('إصدار بطاقات عالية القيمة', 'Issue high-value cards'), 'canIssueHighValueCards', perms),
+              _permItem(_t('إعادة تفعيل البطاقات المستخدمة', 'Resell used cards'), 'canResellCards', perms),
+              _permItem(_t('مراجعة طلبات طباعة البطاقات', 'Review print requests'), 'canReviewCardPrintRequests', perms),
+              _permItem(_t('تجهيز وطباعة الطلبات', 'Prepare and print requests'), 'canPrepareCardPrintRequests', perms),
+              _permItem(_t('إكمال وتسليم الطلبات', 'Finalize and deliver requests'), 'canFinalizeCardPrintRequests', perms),
               if (widget.canManageUsers)
-                _permItem('إدارة المستخدمين الآخرين', 'canManageUsers', perms),
+                _permItem(_t('إدارة المستخدمين الآخرين', 'Manage other users'), 'canManageUsers', perms),
             ],
           ),
         ),
@@ -686,17 +635,17 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('سياسة الأجهزة ونقاط الوصول', style: AppTheme.h3),
+                  Text(_t('سياسة الأجهزة ونقاط الوصول', 'Device policy & access points'), style: AppTheme.h3),
                   const SizedBox(height: 24),
                   TextField(
                     controller: _maxDevicesController,
-                    decoration: const InputDecoration(
-                      labelText: 'الحد الأقصى للأجهزة المسموح بها',
+                    decoration: InputDecoration(
+                      labelText: _t('الحد الأقصى للأجهزة المسموح بها', 'Maximum allowed devices'),
                     ),
                   ),
                   const SizedBox(height: 24),
                   ShwakelButton(
-                    label: 'تحديث سياسة الأجهزة',
+                    label: _t('تحديث سياسة الأجهزة', 'Update device policy'),
                     icon: Icons.phonelink_lock_rounded,
                     isSecondary: true,
                     onPressed: _saveDevicePolicy,
@@ -707,14 +656,19 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             ),
             const SizedBox(height: 24),
             AdminSectionHeader(
-              title: 'الأجهزة النشطة',
+              title: _t('الأجهزة النشطة', 'Active devices'),
               icon: Icons.smartphone_rounded,
             ),
             if (_devices.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Text('لا توجد أجهزة مرتبطة بهذا الحساب.'),
+                  padding: const EdgeInsets.all(40),
+                  child: Text(
+                    _t(
+                      'لا توجد أجهزة مرتبطة بهذا الحساب.',
+                      'No devices are linked to this account.',
+                    ),
+                  ),
                 ),
               )
             else
@@ -744,18 +698,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    d['deviceName'] ?? 'جهاز غير معروف',
+                    d['deviceName'] ?? _t('جهاز غير معروف', 'Unknown device'),
                     style: AppTheme.bodyBold,
                   ),
                   Text(
-                    'معرف الجهاز: ${d['deviceId']}',
+                    _t(
+                      'معرف الجهاز: ${d['deviceId']}',
+                      'Device ID: ${d['deviceId']}',
+                    ),
                     style: AppTheme.caption,
                   ),
                 ],
               ),
             ),
             IconButton(
-              icon: Icon(Icons.delete_outline_rounded, color: AppTheme.error),
+              icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
               onPressed: () => _releaseDevice(d),
             ),
           ],
@@ -764,13 +721,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     );
   }
 
-  // UI Helpers
-  Widget _buildMetricCard(
-    String title,
-    String val,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildMetricCard(String title, String val, IconData icon, Color color) {
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -786,25 +737,26 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _infoRow(String l, String v) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(l, style: AppTheme.bodyAction),
-        Text(v, style: AppTheme.bodyBold),
-      ],
-    ),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(l, style: AppTheme.bodyAction),
+            Text(v, style: AppTheme.bodyBold),
+          ],
+        ),
+      );
+
   Widget _feeField(String l, TextEditingController c) => SizedBox(
-    width: 140,
-    child: TextField(
-      controller: c,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(labelText: l, suffixText: '%'),
-    ),
-  );
-  Widget _permItem(String l, String k, Map<String, dynamic> p) =>
-      SwitchListTile(
+        width: 140,
+        child: TextField(
+          controller: c,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(labelText: l, suffixText: '%'),
+        ),
+      );
+
+  Widget _permItem(String l, String k, Map<String, dynamic> p) => SwitchListTile(
         title: Text(l, style: AppTheme.bodyText),
         value: p[k] == true,
         onChanged: (v) async {
@@ -815,7 +767,6 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         contentPadding: EdgeInsets.zero,
       );
 
-  // Partial handlers
   Future<void> _savePermissions(Map<String, dynamic> p) async {
     setState(() => _busy = true);
     try {

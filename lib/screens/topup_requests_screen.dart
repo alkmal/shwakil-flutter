@@ -59,7 +59,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       final role = user?['role']?.toString() ?? '';
       final isAdmin = role == 'admin' || user?['id']?.toString() == '1';
       if (!isAdmin) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         setState(() {
           _isAuthorized = false;
           _isLoading = false;
@@ -76,16 +78,19 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
+      final requests = List<Map<String, dynamic>>.from(
+        (payload['requests'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
       setState(() {
         _isAuthorized = true;
-        _requests = List<Map<String, dynamic>>.from(
-          (payload['requests'] as List? ?? const []).map(
-            (item) => Map<String, dynamic>.from(item as Map),
-          ),
-        );
+        _requests = requests;
         _summary = {
-          'pending': _requests
+          'pending': requests
               .where((item) => item['status']?.toString() == 'pending')
               .length,
         };
@@ -116,6 +121,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -123,7 +129,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: const Text('طلبات شحن الرصيد')),
+        appBar: AppBar(title: Text(l.text('طلبات شحن الرصيد', 'Top-up Requests'))),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
@@ -137,7 +143,13 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text('هذه الشاشة مخصصة لعضوية الإدارة فقط.', style: AppTheme.h3),
+                Text(
+                  l.text(
+                    'هذه الشاشة مخصصة لعضوية الإدارة فقط.',
+                    'This screen is available for administrators only.',
+                  ),
+                  style: AppTheme.h3,
+                ),
               ],
             ),
           ),
@@ -147,7 +159,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('طلبات شحن الرصيد')),
+      appBar: AppBar(title: Text(l.text('طلبات شحن الرصيد', 'Top-up Requests'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -185,6 +197,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Widget _buildHero() {
+    final l = context.loc;
     final pending = (_summary['pending'] as num?)?.toInt() ?? 0;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
@@ -211,12 +224,18 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'مراجعة طلبات شحن الرصيد',
+                  l.text(
+                    'مراجعة طلبات شحن الرصيد',
+                    'Review top-up requests',
+                  ),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'راجع بيانات الحوالة وطريقة الدفع قبل اعتماد الشحن للمستخدم أو رفض الطلب.',
+                  l.text(
+                    'راجع بيانات الحوالة وطريقة الدفع قبل اعتماد الشحن للمستخدم أو رفض الطلب.',
+                    'Review transfer details and payment method before approving or rejecting the top-up request.',
+                  ),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -232,7 +251,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '$pending طلب معلق',
+              l.text('$pending طلب معلق', '$pending pending'),
               style: AppTheme.bodyBold.copyWith(color: Colors.white),
             ),
           );
@@ -257,18 +276,24 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Widget _buildFilterBar() {
+    final l = context.loc;
     return Column(
       children: [
         TextField(
           controller: _searchController,
-          decoration: const InputDecoration(
-            labelText: 'ابحث باسم المستخدم أو رقم المرجع...',
-            prefixIcon: Icon(Icons.search_rounded),
+          decoration: InputDecoration(
+            labelText: l.text(
+              'ابحث باسم المستخدم أو رقم المرجع...',
+              'Search by username or reference number...',
+            ),
+            prefixIcon: const Icon(Icons.search_rounded),
           ),
           onChanged: (_) {
             _searchDebounce?.cancel();
             _searchDebounce = Timer(const Duration(milliseconds: 350), () {
-              if (!mounted) return;
+              if (!mounted) {
+                return;
+              }
               setState(() => _page = 1);
               _load();
             });
@@ -281,10 +306,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             children: _TopupStatusFilter.values.map((filter) {
               final isSelected = _filter == filter;
               final label = switch (filter) {
-                _TopupStatusFilter.all => 'الكل',
-                _TopupStatusFilter.pending => 'المعلقة',
-                _TopupStatusFilter.approved => 'المعتمدة',
-                _TopupStatusFilter.rejected => 'المرفوضة',
+                _TopupStatusFilter.all => l.text('الكل', 'All'),
+                _TopupStatusFilter.pending => l.text('المعلقة', 'Pending'),
+                _TopupStatusFilter.approved => l.text('المعتمدة', 'Approved'),
+                _TopupStatusFilter.rejected => l.text('المرفوضة', 'Rejected'),
               };
               return Padding(
                 padding: const EdgeInsets.only(left: 12),
@@ -292,7 +317,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                   label: Text(label),
                   selected: isSelected,
                   onSelected: (selected) {
-                    if (!selected) return;
+                    if (!selected) {
+                      return;
+                    }
                     setState(() {
                       _filter = filter;
                       _page = 1;
@@ -314,6 +341,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Widget _buildRequestTile(Map<String, dynamic> request) {
+    final l = context.loc;
     final user = Map<String, dynamic>.from(request['user'] as Map? ?? const {});
     final isPending = request['status'] == 'pending';
     final color = isPending
@@ -354,13 +382,37 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
               ],
             ),
             const Divider(height: 32),
-            _infoLine('طريقة الدفع', request['paymentMethodTitle']?.toString() ?? '-'),
-            _infoLine('رقم الطريقة', request['paymentMethodNumber']?.toString() ?? '-'),
-            _infoLine('اسم المحول', request['senderName']?.toString().isNotEmpty == true ? request['senderName'].toString() : '-'),
-            _infoLine('جوال المحول', request['senderPhone']?.toString().isNotEmpty == true ? request['senderPhone'].toString() : '-'),
-            _infoLine('مرجع التحويل', request['transferReference']?.toString().isNotEmpty == true ? request['transferReference'].toString() : '-'),
+            _infoLine(
+              l.text('طريقة الدفع', 'Payment method'),
+              request['paymentMethodTitle']?.toString() ?? '-',
+            ),
+            _infoLine(
+              l.text('رقم الطريقة', 'Method number'),
+              request['paymentMethodNumber']?.toString() ?? '-',
+            ),
+            _infoLine(
+              l.text('اسم المحول', 'Sender name'),
+              request['senderName']?.toString().isNotEmpty == true
+                  ? request['senderName'].toString()
+                  : '-',
+            ),
+            _infoLine(
+              l.text('جوال المحول', 'Sender phone'),
+              request['senderPhone']?.toString().isNotEmpty == true
+                  ? request['senderPhone'].toString()
+                  : '-',
+            ),
+            _infoLine(
+              l.text('مرجع التحويل', 'Transfer reference'),
+              request['transferReference']?.toString().isNotEmpty == true
+                  ? request['transferReference'].toString()
+                  : '-',
+            ),
             if ((request['notes']?.toString() ?? '').isNotEmpty)
-              _infoLine('الملاحظات', request['notes']?.toString() ?? '-'),
+              _infoLine(
+                l.text('الملاحظات', 'Notes'),
+                request['notes']?.toString() ?? '-',
+              ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -382,7 +434,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                           ? null
                           : () => _approve(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.check_rounded),
-                      label: const Text('اعتماد الشحن'),
+                      label: Text(l.text('اعتماد الشحن', 'Approve top-up')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -392,7 +444,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                           ? null
                           : () => _reject(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.close_rounded),
-                      label: const Text('رفض'),
+                      label: Text(l.text('رفض', 'Reject')),
                     ),
                   ),
                 ],
@@ -405,15 +457,16 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
+    final l = context.loc;
     final color = switch (status) {
       'approved' => AppTheme.success,
       'rejected' => AppTheme.error,
       _ => AppTheme.warning,
     };
     final label = switch (status) {
-      'approved' => 'تم الاعتماد',
-      'rejected' => 'مرفوض',
-      _ => 'قيد المراجعة',
+      'approved' => l.text('تم الاعتماد', 'Approved'),
+      'rejected' => l.text('مرفوض', 'Rejected'),
+      _ => l.text('قيد المراجعة', 'Under review'),
     };
 
     return Container(
@@ -433,6 +486,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -443,7 +497,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             color: AppTheme.textTertiary,
           ),
           const SizedBox(height: 16),
-          Text('لا توجد طلبات مطابقة حاليًا', style: AppTheme.h3),
+          Text(
+            l.text('لا توجد طلبات مطابقة حاليًا', 'No matching requests right now'),
+            style: AppTheme.h3,
+          ),
         ],
       ),
     );
@@ -486,12 +543,16 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Future<void> _approve(String requestId) async {
+    final l = context.loc;
     final approvalImage = await _pickApprovalImage();
     if (approvalImage == null || approvalImage.isEmpty) {
       if (mounted) {
         AppAlertService.showError(
           context,
-          message: 'يجب إرفاق صورة إثبات قبل اعتماد طلب شحن الرصيد.',
+          message: l.text(
+            'يجب إرفاق صورة إثبات قبل اعتماد طلب شحن الرصيد.',
+            'A proof image is required before approving the top-up request.',
+          ),
         );
       }
       return;
@@ -502,11 +563,17 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         requestId,
         approvalImageBase64: approvalImage,
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       AppAlertService.showSuccess(
         context,
         message:
-            response['message']?.toString() ?? 'تم اعتماد طلب شحن الرصيد.',
+            response['message']?.toString() ??
+            l.text(
+              'تم اعتماد طلب شحن الرصيد.',
+              'The top-up request has been approved.',
+            ),
       );
       await _load();
     } catch (error) {
@@ -517,33 +584,39 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _busyId = null);
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
     }
   }
 
   Future<void> _reject(String requestId) async {
+    final l = context.loc;
     final notesController = TextEditingController();
     final approved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('رفض طلب الشحن'),
+        title: Text(l.text('رفض طلب الشحن', 'Reject top-up request')),
         content: TextField(
           controller: notesController,
           minLines: 3,
           maxLines: 5,
-          decoration: const InputDecoration(
-            labelText: 'سبب الرفض',
-            hintText: 'اكتب ملاحظة مختصرة للمستخدم',
+          decoration: InputDecoration(
+            labelText: l.text('سبب الرفض', 'Rejection reason'),
+            hintText: l.text(
+              'اكتب ملاحظة مختصرة للمستخدم',
+              'Write a short note for the user',
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('تأكيد الرفض'),
+            child: Text(l.text('تأكيد الرفض', 'Confirm rejection')),
           ),
         ],
       ),
@@ -560,10 +633,14 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         requestId,
         notes: notesController.text.trim(),
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       AppAlertService.showSuccess(
         context,
-        message: response['message']?.toString() ?? 'تم رفض الطلب.',
+        message:
+            response['message']?.toString() ??
+            l.text('تم رفض الطلب.', 'The request has been rejected.'),
       );
       await _load();
     } catch (error) {
@@ -575,7 +652,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       }
     } finally {
       notesController.dispose();
-      if (mounted) setState(() => _busyId = null);
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
     }
   }
 

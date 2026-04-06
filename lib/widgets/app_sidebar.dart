@@ -51,7 +51,9 @@ class _AppSidebarState extends State<AppSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final username = _user?['username']?.toString() ?? 'شواكل';
+    final l = context.loc;
+    final username =
+        _user?['username']?.toString() ?? l.text('شواكل', 'Shawakel');
     final fullName = _user?['fullName']?.toString().trim() ?? '';
     final verificationStatus =
         _user?['transferVerificationStatus']?.toString() ?? 'unverified';
@@ -149,76 +151,76 @@ class _AppSidebarState extends State<AppSidebar> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                 children: [
-                  _buildSectionLabel('الرئيسية'),
+                  _buildSectionLabel(l.text('الرئيسية', 'Main')),
                   _buildItem(
                     context,
                     icon: Icons.home_rounded,
-                    title: 'الرئيسية',
+                    title: l.text('الرئيسية', 'Home'),
                     routeName: '/home',
                   ),
                   if (canViewBalance)
                     _buildItem(
                       context,
                       icon: Icons.account_balance_wallet_rounded,
-                      title: 'الرصيد',
+                      title: l.text('الرصيد', 'Balance'),
                       routeName: '/balance',
                     ),
                   if (canViewTransactions)
                     _buildItem(
                       context,
                       icon: Icons.receipt_long_rounded,
-                      title: 'الحركات',
+                      title: l.text('الحركات', 'Transactions'),
                       routeName: '/transactions',
                     ),
                   if (canViewInventory && canIssueCards)
                     _buildItem(
                       context,
                       icon: Icons.inventory_2_rounded,
-                      title: 'البطاقات',
+                      title: l.text('البطاقات', 'Cards'),
                       routeName: '/inventory',
                     ),
                   if (canRequestCardPrinting)
                     _buildItem(
                       context,
                       icon: Icons.print_rounded,
-                      title: 'طلبات الطباعة',
+                      title: l.text('طلبات الطباعة', 'Print Requests'),
                       routeName: '/card-print-requests',
                     ),
                   if (canScanCards)
                     _buildItem(
                       context,
                       icon: Icons.qr_code_scanner_rounded,
-                      title: 'فحص البطاقات',
+                      title: l.text('فحص البطاقات', 'Scan Cards'),
                       routeName: '/scan-card',
                     ),
                   const Divider(indent: 8, endIndent: 8, height: 28),
-                  _buildSectionLabel('الحساب'),
+                  _buildSectionLabel(l.text('الحساب', 'Account')),
                   if (canViewAccountSettings)
                     _buildItem(
                       context,
                       icon: Icons.person_rounded,
-                      title: 'الحساب',
+                      title: l.text('الحساب', 'Account'),
                       routeName: '/account-settings',
                     ),
                   if (canTransfer && canViewQuickTransfer)
                     _buildItem(
                       context,
                       icon: Icons.send_to_mobile_rounded,
-                      title: 'النقل السريع',
+                      title: l.text('النقل السريع', 'Quick Transfer'),
                       routeName: '/quick-transfer',
                     ),
                   if (verificationStatus != 'approved' && canRequestVerification)
                     _buildItem(
                       context,
                       icon: Icons.verified_user_rounded,
-                      title: 'توثيق الحساب',
+                      title: l.text('توثيق الحساب', 'Verify Account'),
                       routeName: '/account-verification',
                     ),
                   if (canViewSecuritySettings)
                     _buildItem(
                       context,
                       icon: Icons.security_rounded,
-                      title: 'الأمان',
+                      title: l.text('الأمان', 'Security'),
                       routeName: '/security-settings',
                     ),
                   if (canViewCustomers ||
@@ -229,93 +231,140 @@ class _AppSidebarState extends State<AppSidebar> {
                       canManageLocations ||
                       canManageSystemSettings) ...[
                     const Divider(indent: 8, endIndent: 8, height: 28),
-                    _buildSectionLabel('الإدارة'),
+                    _buildSectionLabel(l.text('الإدارة', 'Admin')),
                     _buildItem(
                       context,
                       icon: Icons.dashboard_customize_rounded,
-                      title: 'مركز الإدارة',
+                      title: l.text('مركز الإدارة', 'Admin Center'),
                       routeName: '/admin-dashboard',
                     ),
                     if (canViewCustomers)
                       _buildItem(
                         context,
                         icon: Icons.people_alt_rounded,
-                        title: 'إدارة العملاء',
+                        title: l.text(
+                          'إدارة العملاء',
+                          'Customer Management',
+                        ),
                         routeName: '/admin-customers',
                       ),
                     if (canReviewDevices)
                       _buildItem(
                         context,
                         icon: Icons.devices_other_rounded,
-                        title: 'طلبات الأجهزة',
+                        title: l.text('طلبات الأجهزة', 'Device Requests'),
                         routeName: '/admin-device-requests',
                       ),
                     if (canReviewWithdrawals)
                       _buildItem(
                         context,
                         icon: Icons.outbox_rounded,
-                        title: 'طلبات السحب',
+                        title: l.text(
+                          'طلبات السحب',
+                          'Withdrawal Requests',
+                        ),
                         routeName: '/withdrawal-requests',
                       ),
                     if (canReviewTopups)
                       _buildItem(
                         context,
                         icon: Icons.add_card_rounded,
-                        title: 'طلبات شحن الرصيد',
+                        title: l.text('طلبات شحن الرصيد', 'Top-up Requests'),
                         routeName: '/topup-requests',
                       ),
                     if (canHandleCardPrintRequests)
                       _buildItem(
                         context,
                         icon: Icons.print_rounded,
-                        title: 'طلبات طباعة البطاقات',
+                        title: l.text(
+                          'طلبات طباعة البطاقات',
+                          'Card Print Requests',
+                        ),
                         routeName: '/admin-card-print-requests',
                       ),
                     if (canManageLocations)
                       _buildItem(
                         context,
                         icon: Icons.map_rounded,
-                        title: 'الفروع والمواقع',
+                        title: l.text('الفروع والمواقع', 'Branches & Locations'),
                         routeName: '/admin-locations',
                       ),
                     if (canManageSystemSettings)
                       _buildItem(
                         context,
                         icon: Icons.settings_applications_rounded,
-                        title: 'إعدادات النظام',
+                        title: l.text('إعدادات النظام', 'System Settings'),
                         routeName: '/admin-system-settings',
                       ),
                     if (canManageSystemSettings)
                       _buildItem(
                         context,
                         icon: Icons.rule_folder_rounded,
-                        title: 'قوالب الصلاحيات',
+                        title: l.text(
+                          'قوالب الصلاحيات',
+                          'Permission Templates',
+                        ),
                         routeName: '/admin-permissions',
                       ),
                   ],
                   const Divider(indent: 8, endIndent: 8, height: 28),
-                  _buildSectionLabel('المزيد'),
+                  _buildSectionLabel(l.text('المزيد', 'More')),
                   if (canViewUsagePolicy)
                     _buildItem(
                       context,
                       icon: Icons.policy_rounded,
-                      title: 'سياسة الاستخدام',
+                      title: l.text('سياسة الاستخدام', 'Usage Policy'),
                       routeName: '/usage-policy',
                     ),
                   if (canViewContact)
                     _buildItem(
                       context,
                       icon: Icons.support_agent_rounded,
-                      title: 'الدعم',
+                      title: l.text('الدعم', 'Support'),
                       routeName: '/contact-us',
                     ),
                   if (canViewLocations)
                     _buildItem(
                       context,
                       icon: Icons.storefront_rounded,
-                      title: 'الوكلاء',
+                      title: l.text('الوكلاء', 'Agents'),
                       routeName: '/supported-locations',
                     ),
+                  const Divider(indent: 8, endIndent: 8, height: 28),
+                  _buildSectionLabel(l.text('اللغة', 'Language')),
+                  ListTile(
+                    minTileHeight: 50,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    leading: const Icon(
+                      Icons.language_rounded,
+                      color: AppTheme.textSecondary,
+                    ),
+                    title: Text(
+                      l.text('العربية / English', 'English / العربية'),
+                      style: AppTheme.bodyText.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      l.text(
+                        'اضغط للتبديل بين اللغتين',
+                        'Tap to switch between Arabic and English',
+                      ),
+                      style: AppTheme.caption,
+                    ),
+                    onTap: () async {
+                      await AppLocaleService.instance.toggleLocale();
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
                 ],
               ),
             ),
@@ -323,7 +372,7 @@ class _AppSidebarState extends State<AppSidebar> {
             ListTile(
               leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
               title: Text(
-                'تسجيل الخروج',
+                l.text('تسجيل الخروج', 'Log Out'),
                 style: AppTheme.bodyText.copyWith(
                   color: AppTheme.error,
                   fontWeight: FontWeight.bold,
@@ -339,13 +388,14 @@ class _AppSidebarState extends State<AppSidebar> {
   }
 
   Widget _verificationBadge(String status) {
-    var label = 'غير موثق';
+    final l = context.loc;
+    var label = l.text('غير موثق', 'Unverified');
     var color = Colors.white24;
     if (status == 'approved') {
-      label = 'موثق';
+      label = l.text('موثق', 'Verified');
       color = AppTheme.success.withValues(alpha: 0.28);
     } else if (status == 'pending') {
-      label = 'قيد المراجعة';
+      label = l.text('قيد المراجعة', 'Under Review');
       color = AppTheme.warning.withValues(alpha: 0.28);
     }
 
@@ -373,6 +423,7 @@ class _AppSidebarState extends State<AppSidebar> {
   }) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
     final isSelected = currentRoute == routeName;
+    final isArabic = context.loc.isArabic;
 
     return ListTile(
       minTileHeight: 50,
@@ -400,7 +451,9 @@ class _AppSidebarState extends State<AppSidebar> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
-          Icons.arrow_back_ios_new_rounded,
+          isArabic
+              ? Icons.arrow_back_ios_new_rounded
+              : Icons.arrow_forward_ios_rounded,
           size: 14,
           color: isSelected ? AppTheme.primary : AppTheme.textTertiary,
         ),

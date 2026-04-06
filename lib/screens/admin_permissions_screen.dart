@@ -24,56 +24,21 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
 
   static const List<Map<String, String>> _groups = [
     {
-      'title': 'الصفحات العامة',
+      'titleKey': 'public_pages',
       'keys':
           'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canViewContact,canViewLocations,canViewUsagePolicy,canViewSecuritySettings,canViewAccountSettings,canRequestVerification',
     },
     {
-      'title': 'البطاقات والعمليات',
+      'titleKey': 'cards_and_ops',
       'keys':
           'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canDeleteCards,canResellCards,canRequestCardPrinting,canScanCards,canTransfer,canWithdraw',
     },
     {
-      'title': 'الإدارة والمتابعة',
+      'titleKey': 'admin_followup',
       'keys':
           'canViewCustomers,canLookupMembers,canManageUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canReviewCardPrintRequests,canPrepareCardPrintRequests,canFinalizeCardPrintRequests,canExportCustomerTransactions',
     },
   ];
-
-  static const Map<String, String> _labels = {
-    'canViewBalance': 'عرض صفحة الرصيد',
-    'canViewTransactions': 'عرض الحركات',
-    'canViewInventory': 'عرض البطاقات',
-    'canViewQuickTransfer': 'عرض النقل السريع',
-    'canViewContact': 'عرض الدعم',
-    'canViewLocations': 'عرض الوكلاء والمواقع',
-    'canViewUsagePolicy': 'عرض سياسة الاستخدام',
-    'canViewSecuritySettings': 'عرض الأمان',
-    'canViewAccountSettings': 'عرض الحساب',
-    'canRequestVerification': 'السماح بطلب التوثيق',
-    'canIssueCards': 'إصدار البطاقات',
-    'canIssueSubShekelCards': 'بطاقات أقل من شيكل',
-    'canIssueHighValueCards': 'بطاقات عالية القيمة',
-    'canIssuePrivateCards': 'بطاقات خاصة',
-    'canDeleteCards': 'حذف البطاقات',
-    'canResellCards': 'إعادة بيع البطاقات',
-    'canRequestCardPrinting': 'طلب طباعة البطاقات',
-    'canScanCards': 'فحص البطاقات',
-    'canTransfer': 'التحويل',
-    'canWithdraw': 'السحب والاسترداد',
-    'canViewCustomers': 'عرض العملاء',
-    'canLookupMembers': 'البحث عن الأعضاء',
-    'canManageUsers': 'إدارة المستخدمين',
-    'canManageLocations': 'إدارة المواقع',
-    'canManageSystemSettings': 'إدارة إعدادات النظام',
-    'canReviewWithdrawals': 'مراجعة السحب',
-    'canReviewTopups': 'مراجعة شحن الرصيد',
-    'canReviewDevices': 'مراجعة الأجهزة',
-    'canReviewCardPrintRequests': 'مراجعة طلبات الطباعة',
-    'canPrepareCardPrintRequests': 'تجهيز طلبات الطباعة',
-    'canFinalizeCardPrintRequests': 'إكمال طلبات الطباعة',
-    'canExportCustomerTransactions': 'تصدير كشف العملاء',
-  };
 
   @override
   void initState() {
@@ -104,7 +69,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل الصلاحيات',
+        title: context.loc.text(
+          'تعذر تحميل الصلاحيات',
+          'Could not load permissions',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -119,8 +87,11 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم الحفظ',
-        message: 'تم تحديث قوالب الصلاحيات بنجاح.',
+        title: context.loc.text('تم الحفظ', 'Saved'),
+        message: context.loc.text(
+          'تم تحديث قوالب الصلاحيات بنجاح.',
+          'Permission templates have been updated successfully.',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -128,7 +99,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر الحفظ',
+        title: context.loc.text('تعذر الحفظ', 'Could not save'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -140,6 +111,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -149,7 +121,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('قوالب الصلاحيات'),
+          title: Text(l.text('قوالب الصلاحيات', 'Permission Templates')),
           bottom: TabBar(
             isScrollable: true,
             tabs: _roles
@@ -166,13 +138,18 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _isSaving ? null : _save,
           icon: const Icon(Icons.save_rounded),
-          label: Text(_isSaving ? 'جارٍ الحفظ...' : 'حفظ'),
+          label: Text(
+            _isSaving
+                ? l.text('جارٍ الحفظ...', 'Saving...')
+                : l.text('حفظ', 'Save'),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildRoleView(String roleKey) {
+    final l = context.loc;
     final template = Map<String, dynamic>.from(
       _templates[roleKey] as Map? ?? const {},
     );
@@ -187,7 +164,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
               padding: const EdgeInsets.all(24),
               gradient: AppTheme.primaryGradient,
               child: Text(
-                'يمكنك من هنا تحديد ما يظهر وما يعمل لهذا المستوى من الأعضاء داخل التطبيق ولوحة الإدارة.',
+                l.text(
+                  'يمكنك من هنا تحديد ما يظهر وما يعمل لهذا المستوى من الأعضاء داخل التطبيق ولوحة الإدارة.',
+                  'From here you can define what this membership level can see and use across the app and admin panel.',
+                ),
                 style: AppTheme.bodyAction.copyWith(
                   color: Colors.white,
                   height: 1.6,
@@ -205,7 +185,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AdminSectionHeader(
-                        title: group['title'] ?? '',
+                        title: _groupTitle(group['titleKey'] ?? ''),
                         icon: Icons.tune_rounded,
                       ),
                       const SizedBox(height: 8),
@@ -214,7 +194,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                         return SwitchListTile(
                           value: current,
                           contentPadding: EdgeInsets.zero,
-                          title: Text(_labels[key] ?? key),
+                          title: Text(_permissionLabel(key)),
                           onChanged: (value) {
                             setState(() {
                               final next = Map<String, dynamic>.from(
@@ -237,5 +217,53 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         ),
       ),
     );
+  }
+
+  String _groupTitle(String key) {
+    final l = context.loc;
+    return switch (key) {
+      'public_pages' => l.text('الصفحات العامة', 'Public Pages'),
+      'cards_and_ops' => l.text('البطاقات والعمليات', 'Cards & Operations'),
+      _ => l.text('الإدارة والمتابعة', 'Administration & Follow-up'),
+    };
+  }
+
+  String _permissionLabel(String key) {
+    final l = context.loc;
+    return switch (key) {
+      'canViewBalance' => l.text('عرض صفحة الرصيد', 'View balance screen'),
+      'canViewTransactions' => l.text('عرض الحركات', 'View transactions'),
+      'canViewInventory' => l.text('عرض البطاقات', 'View cards'),
+      'canViewQuickTransfer' => l.text('عرض النقل السريع', 'View quick transfer'),
+      'canViewContact' => l.text('عرض الدعم', 'View support'),
+      'canViewLocations' => l.text('عرض الوكلاء والمواقع', 'View agents and locations'),
+      'canViewUsagePolicy' => l.text('عرض سياسة الاستخدام', 'View usage policy'),
+      'canViewSecuritySettings' => l.text('عرض الأمان', 'View security settings'),
+      'canViewAccountSettings' => l.text('عرض الحساب', 'View account settings'),
+      'canRequestVerification' => l.text('السماح بطلب التوثيق', 'Allow verification requests'),
+      'canIssueCards' => l.text('إصدار البطاقات', 'Issue cards'),
+      'canIssueSubShekelCards' => l.text('بطاقات أقل من شيكل', 'Issue sub-shekel cards'),
+      'canIssueHighValueCards' => l.text('بطاقات عالية القيمة', 'Issue high-value cards'),
+      'canIssuePrivateCards' => l.text('بطاقات خاصة', 'Issue private cards'),
+      'canDeleteCards' => l.text('حذف البطاقات', 'Delete cards'),
+      'canResellCards' => l.text('إعادة بيع البطاقات', 'Resell cards'),
+      'canRequestCardPrinting' => l.text('طلب طباعة البطاقات', 'Request card printing'),
+      'canScanCards' => l.text('فحص البطاقات', 'Scan cards'),
+      'canTransfer' => l.text('التحويل', 'Transfer funds'),
+      'canWithdraw' => l.text('السحب والاسترداد', 'Withdraw and redeem'),
+      'canViewCustomers' => l.text('عرض العملاء', 'View customers'),
+      'canLookupMembers' => l.text('البحث عن الأعضاء', 'Lookup members'),
+      'canManageUsers' => l.text('إدارة المستخدمين', 'Manage users'),
+      'canManageLocations' => l.text('إدارة المواقع', 'Manage locations'),
+      'canManageSystemSettings' => l.text('إدارة إعدادات النظام', 'Manage system settings'),
+      'canReviewWithdrawals' => l.text('مراجعة السحب', 'Review withdrawals'),
+      'canReviewTopups' => l.text('مراجعة شحن الرصيد', 'Review top-ups'),
+      'canReviewDevices' => l.text('مراجعة الأجهزة', 'Review devices'),
+      'canReviewCardPrintRequests' => l.text('مراجعة طلبات الطباعة', 'Review print requests'),
+      'canPrepareCardPrintRequests' => l.text('تجهيز طلبات الطباعة', 'Prepare print requests'),
+      'canFinalizeCardPrintRequests' => l.text('إكمال طلبات الطباعة', 'Finalize print requests'),
+      'canExportCustomerTransactions' => l.text('تصدير كشف العملاء', 'Export customer transactions'),
+      _ => key,
+    };
   }
 }

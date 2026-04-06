@@ -63,7 +63,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _requests = List<Map<String, dynamic>>.from(
           (payload['requests'] as List? ?? const []).map(
@@ -79,7 +81,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         _isLoading = false;
       });
     } catch (error) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
       AppAlertService.showError(
         context,
         message: ErrorMessageService.sanitize(error),
@@ -98,13 +102,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('طلبات السحب')),
+      appBar: AppBar(title: Text(l.text('طلبات السحب', 'Withdrawal Requests'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -142,6 +147,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Widget _buildHero() {
+    final l = context.loc;
     final pending = (_summary['pending'] as num?)?.toInt() ?? 0;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
@@ -168,12 +174,15 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'متابعة طلبات السحب',
+                  l.text('متابعة طلبات السحب', 'Track withdrawal requests'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'راجع طلبات التحويل إلى الحسابات البنكية أو المحافظ الإلكترونية قبل اعتمادها.',
+                  l.text(
+                    'راجع طلبات التحويل إلى الحسابات البنكية أو المحافظ الإلكترونية قبل اعتمادها.',
+                    'Review transfer requests to bank accounts or digital wallets before approval.',
+                  ),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -189,7 +198,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '$pending طلب معلق',
+              l.text('$pending طلب معلق', '$pending pending'),
               style: AppTheme.bodyBold.copyWith(color: Colors.white),
             ),
           );
@@ -214,18 +223,21 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Widget _buildFilterBar() {
+    final l = context.loc;
     return Column(
       children: [
         TextField(
           controller: _searchController,
-          decoration: const InputDecoration(
-            labelText: 'ابحث عن طلب...',
-            prefixIcon: Icon(Icons.search_rounded),
+          decoration: InputDecoration(
+            labelText: l.text('ابحث عن طلب...', 'Search for a request...'),
+            prefixIcon: const Icon(Icons.search_rounded),
           ),
           onChanged: (_) {
             _searchDebounce?.cancel();
             _searchDebounce = Timer(const Duration(milliseconds: 350), () {
-              if (!mounted) return;
+              if (!mounted) {
+                return;
+              }
               setState(() => _page = 1);
               _load();
             });
@@ -238,10 +250,10 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
             children: _StatusFilter.values.map((filter) {
               final isSelected = _filter == filter;
               final label = switch (filter) {
-                _StatusFilter.all => 'الكل',
-                _StatusFilter.pending => 'المعلقة',
-                _StatusFilter.approved => 'المكتملة',
-                _StatusFilter.rejected => 'المرفوضة',
+                _StatusFilter.all => l.text('الكل', 'All'),
+                _StatusFilter.pending => l.text('المعلقة', 'Pending'),
+                _StatusFilter.approved => l.text('المكتملة', 'Approved'),
+                _StatusFilter.rejected => l.text('المرفوضة', 'Rejected'),
               };
               return Padding(
                 padding: const EdgeInsets.only(left: 12),
@@ -249,7 +261,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                   label: Text(label),
                   selected: isSelected,
                   onSelected: (selected) {
-                    if (!selected) return;
+                    if (!selected) {
+                      return;
+                    }
                     setState(() {
                       _filter = filter;
                       _page = 1;
@@ -271,6 +285,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Widget _buildRequestTile(Map<String, dynamic> request) {
+    final l = context.loc;
     final user = Map<String, dynamic>.from(request['user'] as Map? ?? const {});
     final isPending = request['status'] == 'pending';
     final color = isPending
@@ -311,13 +326,13 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
               ],
             ),
             const Divider(height: 32),
-            _infoLine('جهة التحويل', request['destinationTypeLabel'] ?? '-'),
-            _infoLine('اسم المستفيد', request['accountHolderName'] ?? '-'),
-            _infoLine('رقم الحساب', request['destinationAccount'] ?? '-'),
+            _infoLine(l.text('جهة التحويل', 'Transfer destination'), request['destinationTypeLabel'] ?? '-'),
+            _infoLine(l.text('اسم المستفيد', 'Beneficiary name'), request['accountHolderName'] ?? '-'),
+            _infoLine(l.text('رقم الحساب', 'Account number'), request['destinationAccount'] ?? '-'),
             if ((request['bankName']?.toString() ?? '').isNotEmpty)
-              _infoLine('اسم البنك', request['bankName'] ?? '-'),
+              _infoLine(l.text('اسم البنك', 'Bank name'), request['bankName'] ?? '-'),
             if ((request['notes']?.toString() ?? '').isNotEmpty)
-              _infoLine('الملاحظات', request['notes'] ?? '-'),
+              _infoLine(l.text('الملاحظات', 'Notes'), request['notes'] ?? '-'),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -339,7 +354,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                           ? null
                           : () => _approve(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.check_rounded),
-                      label: const Text('اعتماد'),
+                      label: Text(l.text('اعتماد', 'Approve')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -349,7 +364,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                           ? null
                           : () => _reject(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.close_rounded),
-                      label: const Text('رفض'),
+                      label: Text(l.text('رفض', 'Reject')),
                     ),
                   ),
                 ],
@@ -362,15 +377,16 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
+    final l = context.loc;
     final color = switch (status) {
       'approved' => AppTheme.success,
       'rejected' => AppTheme.error,
       _ => AppTheme.warning,
     };
     final label = switch (status) {
-      'approved' => 'تم الاعتماد',
-      'rejected' => 'مرفوض',
-      _ => 'قيد المراجعة',
+      'approved' => l.text('تم الاعتماد', 'Approved'),
+      'rejected' => l.text('مرفوض', 'Rejected'),
+      _ => l.text('قيد المراجعة', 'Under review'),
     };
 
     return Container(
@@ -390,6 +406,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -400,7 +417,10 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
             color: AppTheme.textTertiary,
           ),
           const SizedBox(height: 16),
-          Text('لا توجد طلبات مطابقة حاليًا', style: AppTheme.h3),
+          Text(
+            l.text('لا توجد طلبات مطابقة حاليًا', 'No matching requests right now'),
+            style: AppTheme.h3,
+          ),
         ],
       ),
     );
@@ -443,12 +463,16 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Future<void> _approve(String requestId) async {
+    final l = context.loc;
     final approvalImage = await _pickApprovalImage();
     if (approvalImage == null || approvalImage.isEmpty) {
       if (mounted) {
         AppAlertService.showError(
           context,
-          message: 'يجب إرفاق صورة إثبات قبل اعتماد طلب السحب.',
+          message: l.text(
+            'يجب إرفاق صورة إثبات قبل اعتماد طلب السحب.',
+            'A proof image is required before approving the withdrawal request.',
+          ),
         );
       }
       return;
@@ -459,10 +483,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         requestId,
         approvalImageBase64: approvalImage,
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       AppAlertService.showSuccess(
         context,
-        message: response['message']?.toString() ?? 'تم اعتماد الطلب.',
+        message:
+            response['message']?.toString() ??
+            l.text('تم اعتماد الطلب.', 'The request has been approved.'),
       );
       await _load();
     } catch (error) {
@@ -473,33 +501,39 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _busyId = null);
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
     }
   }
 
   Future<void> _reject(String requestId) async {
+    final l = context.loc;
     final notesController = TextEditingController();
     final approved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('رفض الطلب'),
+        title: Text(l.text('رفض الطلب', 'Reject request')),
         content: TextField(
           controller: notesController,
           minLines: 3,
           maxLines: 5,
-          decoration: const InputDecoration(
-            labelText: 'سبب الرفض',
-            hintText: 'اكتب ملاحظة مختصرة للمستخدم',
+          decoration: InputDecoration(
+            labelText: l.text('سبب الرفض', 'Rejection reason'),
+            hintText: l.text(
+              'اكتب ملاحظة مختصرة للمستخدم',
+              'Write a short note for the user',
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('تأكيد الرفض'),
+            child: Text(l.text('تأكيد الرفض', 'Confirm rejection')),
           ),
         ],
       ),
@@ -516,10 +550,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         requestId,
         notes: notesController.text,
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       AppAlertService.showSuccess(
         context,
-        message: response['message']?.toString() ?? 'تم رفض الطلب.',
+        message:
+            response['message']?.toString() ??
+            l.text('تم رفض الطلب.', 'The request has been rejected.'),
       );
       await _load();
     } catch (error) {
@@ -531,13 +569,17 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       }
     } finally {
       notesController.dispose();
-      if (mounted) setState(() => _busyId = null);
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
     }
   }
 
   String _formatDate(String? raw) {
     final parsed = DateTime.tryParse(raw ?? '');
-    if (parsed == null) return '-';
+    if (parsed == null) {
+      return '-';
+    }
     return DateFormat('yyyy/MM/dd - HH:mm').format(parsed.toLocal());
   }
 }
