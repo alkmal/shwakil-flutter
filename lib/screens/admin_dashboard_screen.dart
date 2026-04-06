@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -122,7 +122,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('مركز الإدارة', 'Admin Center'))),
+      appBar: AppBar(title: Text(l.tr('screens_admin_dashboard_screen.001'))),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -138,7 +138,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l.text('مركز الإدارة السريع', 'Quick Admin Hub'),
+                      l.tr('screens_admin_dashboard_screen.002'),
                       style: AppTheme.h2.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 10),
@@ -243,4 +243,3 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-

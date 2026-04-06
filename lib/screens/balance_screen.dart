@@ -303,7 +303,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
 
       final amountController = TextEditingController();
       final senderNameController = TextEditingController(
-        text: _user?['fullName']?.toString() ?? _user?['username']?.toString() ?? '',
+        text:
+            _user?['fullName']?.toString() ??
+            _user?['username']?.toString() ??
+            '',
       );
       final senderPhoneController = TextEditingController(
         text: _user?['whatsapp']?.toString() ?? '',
@@ -329,7 +332,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
               final amount = double.tryParse(amountController.text.trim()) ?? 0;
               if (amount <= 0 || selectedMethodId == null) {
                 setDialogState(
-                  () => errorText = 'أدخل مبلغًا صحيحًا واختر طريقة شحن مناسبة.',
+                  () =>
+                      errorText = 'أدخل مبلغًا صحيحًا واختر طريقة شحن مناسبة.',
                 );
                 return;
               }
@@ -399,7 +403,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         initialValue: selectedMethodId,
                         decoration: const InputDecoration(
                           labelText: 'طريقة الدفع',
-                          prefixIcon: Icon(Icons.account_balance_wallet_rounded),
+                          prefixIcon: Icon(
+                            Icons.account_balance_wallet_rounded,
+                          ),
                         ),
                         items: methods
                             .map(
@@ -433,7 +439,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                               'الرقم: ${selectedMethod['accountNumber']?.toString() ?? '-'}',
                               style: AppTheme.bodyAction,
                             ),
-                            if ((selectedMethod['description']?.toString() ?? '')
+                            if ((selectedMethod['description']?.toString() ??
+                                    '')
                                 .trim()
                                 .isNotEmpty) ...[
                               const SizedBox(height: 6),

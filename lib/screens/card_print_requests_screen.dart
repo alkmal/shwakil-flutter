@@ -12,7 +12,8 @@ class CardPrintRequestsScreen extends StatefulWidget {
   const CardPrintRequestsScreen({super.key});
 
   @override
-  State<CardPrintRequestsScreen> createState() => _CardPrintRequestsScreenState();
+  State<CardPrintRequestsScreen> createState() =>
+      _CardPrintRequestsScreenState();
 }
 
 class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
@@ -210,8 +211,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   Widget build(BuildContext context) {
     final availableBalance =
         (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
-    final printFee =
-        (_user?['customCardPrintRequestFeePercent'] as num?)?.toDouble();
+    final printFee = (_user?['customCardPrintRequestFeePercent'] as num?)
+        ?.toDouble();
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -340,7 +341,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 ),
               ],
             ),
-            if ((request['customerNotes']?.toString().trim().isNotEmpty ?? false))
+            if ((request['customerNotes']?.toString().trim().isNotEmpty ??
+                false))
               Padding(
                 padding: const EdgeInsets.only(top: 14),
                 child: Text(
@@ -376,10 +378,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         children: [
           Text(label, style: AppTheme.caption.copyWith(color: Colors.white70)),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: AppTheme.bodyBold.copyWith(color: Colors.white),
-          ),
+          Text(value, style: AppTheme.bodyBold.copyWith(color: Colors.white)),
         ],
       ),
     );

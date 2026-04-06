@@ -18,6 +18,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   final AuthService _auth = AuthService();
 
   String _username = '';
+  bool _hasPin = false;
   bool _biometricEnabled = false;
   bool _isLoading = true;
   bool _isUnlocking = false;
@@ -36,11 +37,13 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
 
   Future<void> _load() async {
     final trustedUsername = await LocalSecurityService.trustedUsername() ?? '';
+    final hasPin = await LocalSecurityService.hasPin();
     final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
     final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
     if (mounted) {
       setState(() {
         _username = trustedUsername;
+        _hasPin = hasPin;
         _biometricEnabled = biometricEnabled && canUseBiometrics;
         _isLoading = false;
       });
@@ -181,46 +184,53 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
           const SizedBox(height: 10),
           Text(
             _username.isEmpty
-                ? 'أدخل رمز PIN أو استخدم البصمة للمتابعة.'
-                : 'مرحبًا $_username، أدخل رمز PIN أو استخدم البصمة للمتابعة.',
+                ? (_hasPin
+                      ? 'أدخل رمز PIN أو استخدم البصمة للمتابعة.'
+                      : 'استخدم البصمة للمتابعة إلى التطبيق.')
+                : (_hasPin
+                      ? 'مرحبًا $_username، أدخل رمز PIN أو استخدم البصمة للمتابعة.'
+                      : 'مرحبًا $_username، استخدم البصمة للمتابعة إلى التطبيق.'),
             textAlign: TextAlign.center,
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _pinController,
-            obscureText: true,
-            maxLength: 4,
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            style: AppTheme.h1.copyWith(
-              letterSpacing: 20,
-              color: AppTheme.primary,
+          if (_hasPin) ...[
+            const SizedBox(height: 24),
+            TextField(
+              controller: _pinController,
+              obscureText: true,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              style: AppTheme.h1.copyWith(
+                letterSpacing: 20,
+                color: AppTheme.primary,
+              ),
+              decoration: const InputDecoration(
+                hintText: '••••',
+                counterText: '',
+                labelText: 'رمز PIN',
+              ),
+              onChanged: (value) {
+                if (value.length == 4) {
+                  _unlockPin();
+                }
+              },
             ),
-            decoration: const InputDecoration(
-              hintText: '••••',
-              counterText: '',
-              labelText: 'رمز PIN',
+            const SizedBox(height: 24),
+            ShwakelButton(
+              label: 'فتح القفل بـ PIN',
+              icon: Icons.lock_open_rounded,
+              onPressed: _unlockPin,
+              isLoading: _isUnlocking,
             ),
-            onChanged: (value) {
-              if (value.length == 4) {
-                _unlockPin();
-              }
-            },
-          ),
-          const SizedBox(height: 24),
-          ShwakelButton(
-            label: 'فتح القفل بـ PIN',
-            icon: Icons.lock_open_rounded,
-            onPressed: _unlockPin,
-            isLoading: _isUnlocking,
-          ),
+          ],
           if (_biometricEnabled) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: _hasPin ? 14 : 24),
             ShwakelButton(
               label: 'فتح بواسطة البصمة',
               icon: Icons.fingerprint_rounded,
-              isSecondary: true,
+              isSecondary: _hasPin,
+              gradient: _hasPin ? null : AppTheme.primaryGradient,
               onPressed: _isUnlocking ? null : _unlockBiometric,
             ),
           ],

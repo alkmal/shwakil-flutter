@@ -70,7 +70,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     super.dispose();
   }
 
-  String _t(String ar, String en) => context.loc.text(ar, en);
+  String _t(String key, [String? english]) =>
+      english == null ? context.loc.tr(key) : context.loc.text(key, english);
 
   void _syncFields() {
     _role = _customer['role']?.toString() ?? 'basic';
@@ -165,8 +166,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         customTransferFeePercent: double.tryParse(_transferFeeController.text),
         customCardRedeemFeePercent: double.tryParse(_redeemFeeController.text),
         customCardResellFeePercent: double.tryParse(_resellFeeController.text),
-        customCardPrintRequestFeePercent:
-            double.tryParse(_cardPrintRequestFeeController.text),
+        customCardPrintRequestFeePercent: double.tryParse(
+          _cardPrintRequestFeeController.text,
+        ),
       );
       if (!mounted) return;
       setState(() {
@@ -195,7 +197,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(_t('إعادة إرسال بيانات المستخدم', 'Resend user details')),
+        title: Text(_t('screens_admin_customer_screen.001')),
         content: Text(
           _t(
             'سيتم إنشاء كلمة مرور جديدة لهذا المستخدم ثم إرسال بيانات الدخول إلى واتساب الحساب. هل تريد المتابعة؟',
@@ -205,11 +207,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(_t('إلغاء', 'Cancel')),
+            child: Text(_t('screens_admin_customer_screen.002')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(_t('تأكيد الإرسال', 'Confirm send')),
+            child: Text(_t('screens_admin_customer_screen.003')),
           ),
         ],
       ),
@@ -224,8 +226,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       setState(() => _busy = false);
       await AppAlertService.showSuccess(
         context,
-        title: _t('تم الإرسال', 'Sent'),
-        message: response['message']?.toString() ??
+        title: _t('screens_admin_customer_screen.004'),
+        message:
+            response['message']?.toString() ??
             _t(
               'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر واتساب.',
               'A new password was created and the user details were sent via WhatsApp.',
@@ -237,7 +240,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       setState(() => _busy = false);
       await AppAlertService.showError(
         context,
-        title: _t('تعذر الإرسال', 'Could not send'),
+        title: _t('screens_admin_customer_screen.005'),
         message: ErrorMessageService.sanitize(e),
       );
     }
@@ -249,7 +252,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final name =
-        _customer['fullName'] ?? _customer['username'] ?? _t('عميل شواكل', 'Shawakel customer');
+        _customer['fullName'] ??
+        _customer['username'] ??
+        _t('screens_admin_customer_screen.006');
     return DefaultTabController(
       length: 5,
       child: Scaffold(
@@ -272,11 +277,26 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   indicatorPadding: const EdgeInsets.all(6),
                   labelPadding: const EdgeInsets.symmetric(horizontal: 14),
                   tabs: [
-                    Tab(text: _t('نظرة عامة', 'Overview'), icon: const Icon(Icons.info_outline_rounded, size: 20)),
-                    Tab(text: _t('سجل الحركات', 'Transactions'), icon: const Icon(Icons.receipt_long_rounded, size: 20)),
-                    Tab(text: _t('الإدارة والرسوم', 'Management & Fees'), icon: const Icon(Icons.manage_accounts_rounded, size: 20)),
-                    Tab(text: _t('الصلاحيات', 'Permissions'), icon: const Icon(Icons.security_rounded, size: 20)),
-                    Tab(text: _t('الأجهزة', 'Devices'), icon: const Icon(Icons.devices_rounded, size: 20)),
+                    Tab(
+                      text: _t('screens_admin_customer_screen.007'),
+                      icon: const Icon(Icons.info_outline_rounded, size: 20),
+                    ),
+                    Tab(
+                      text: _t('screens_admin_customer_screen.008'),
+                      icon: const Icon(Icons.receipt_long_rounded, size: 20),
+                    ),
+                    Tab(
+                      text: _t('screens_admin_customer_screen.009'),
+                      icon: const Icon(Icons.manage_accounts_rounded, size: 20),
+                    ),
+                    Tab(
+                      text: _t('screens_admin_customer_screen.010'),
+                      icon: const Icon(Icons.security_rounded, size: 20),
+                    ),
+                    Tab(
+                      text: _t('screens_admin_customer_screen.011'),
+                      icon: const Icon(Icons.devices_rounded, size: 20),
+                    ),
                   ],
                 ),
               ),
@@ -310,7 +330,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_t('إجراءات سريعة', 'Quick actions'), style: AppTheme.h3),
+                    Text(
+                      _t('screens_admin_customer_screen.012'),
+                      style: AppTheme.h3,
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       _t(
@@ -339,7 +362,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               children: [
                 Expanded(
                   child: _buildMetricCard(
-                    _t('الرصيد الحالي', 'Current balance'),
+                    _t('screens_admin_customer_screen.013'),
                     CurrencyFormatter.ils(
                       ((_customer['balance'] as num?) ?? 0).toDouble(),
                     ),
@@ -350,10 +373,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildMetricCard(
-                    _t('حالة الحساب', 'Account status'),
+                    _t('screens_admin_customer_screen.014'),
                     _customer['isDisabled'] == true
-                        ? _t('معطل', 'Disabled')
-                        : _t('نشط', 'Active'),
+                        ? _t('screens_admin_customer_screen.015')
+                        : _t('screens_admin_customer_screen.016'),
                     Icons.verified_user_rounded,
                     _customer['isDisabled'] == true
                         ? AppTheme.error
@@ -368,12 +391,27 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_t('بيانات التواصل', 'Contact details'), style: AppTheme.h3),
+                  Text(
+                    _t('screens_admin_customer_screen.017'),
+                    style: AppTheme.h3,
+                  ),
                   const SizedBox(height: 16),
-                  _infoRow(_t('اسم المستخدم', 'Username'), _customer['username'] ?? '-'),
-                  _infoRow(_t('الاسم الرباعي', 'Full name'), _customer['fullName'] ?? '-'),
-                  _infoRow(_t('الواتساب', 'WhatsApp'), _customer['whatsapp'] ?? '-'),
-                  _infoRow(_t('تاريخ الانضمام', 'Join date'), _customer['createdAt'] ?? '-'),
+                  _infoRow(
+                    _t('screens_admin_customer_screen.018'),
+                    _customer['username'] ?? '-',
+                  ),
+                  _infoRow(
+                    _t('screens_admin_customer_screen.019'),
+                    _customer['fullName'] ?? '-',
+                  ),
+                  _infoRow(
+                    _t('screens_admin_customer_screen.020'),
+                    _customer['whatsapp'] ?? '-',
+                  ),
+                  _infoRow(
+                    _t('screens_admin_customer_screen.021'),
+                    _customer['createdAt'] ?? '-',
+                  ),
                 ],
               ),
             ),
@@ -394,7 +432,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             radius: 40,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Text(
-              (_customer['username']?.toString().substring(0, 1).toUpperCase() ?? 'U'),
+              (_customer['username']
+                      ?.toString()
+                      .substring(0, 1)
+                      .toUpperCase() ??
+                  'U'),
               style: AppTheme.h1.copyWith(color: Colors.white, fontSize: 32),
             ),
           ),
@@ -408,7 +450,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 Text(
-                  _customer['roleLabel'] ?? _t('عميل أساسي', 'Basic customer'),
+                  _customer['roleLabel'] ??
+                      _t('screens_admin_customer_screen.022'),
                   style: AppTheme.caption.copyWith(
                     color: Colors.white70,
                     fontWeight: FontWeight.bold,
@@ -439,7 +482,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         child: Column(
           children: [
             AdminSectionHeader(
-              title: _t('سجل حركات العميل', 'Customer transactions'),
+              title: _t('screens_admin_customer_screen.023'),
               subtitle: _t(
                 'استعرض الحركات المالية والعمليات المرتبطة بهذا العميل.',
                 'Review financial transactions and activity related to this customer.',
@@ -456,15 +499,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 items: [
                   DropdownMenuItem(
                     value: AdminTransactionAuditFilter.all,
-                    child: Text(_t('الكل', 'All')),
+                    child: Text(_t('screens_admin_customer_screen.024')),
                   ),
                   DropdownMenuItem(
                     value: AdminTransactionAuditFilter.nearBranch,
-                    child: Text(_t('قرب الفروع', 'Near branches')),
+                    child: Text(_t('screens_admin_customer_screen.025')),
                   ),
                   DropdownMenuItem(
                     value: AdminTransactionAuditFilter.outsideBranches,
-                    child: Text(_t('خارج الفروع', 'Outside branches')),
+                    child: Text(_t('screens_admin_customer_screen.026')),
                   ),
                 ],
               ),
@@ -477,7 +520,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(40),
                   child: Text(
-                    _t('لا توجد حركات حديثة.', 'No recent transactions.'),
+                    _t('screens_admin_customer_screen.027'),
                     style: AppTheme.caption,
                   ),
                 ),
@@ -516,21 +559,45 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_t('إدارة الحساب والرسوم', 'Account management & fees'), style: AppTheme.h3),
+                  Text(
+                    _t('screens_admin_customer_screen.028'),
+                    style: AppTheme.h3,
+                  ),
                   const SizedBox(height: 24),
                   DropdownButtonFormField<String>(
                     initialValue: _verification,
                     decoration: InputDecoration(
-                      labelText: _t('حالة التوثيق', 'Verification status'),
+                      labelText: _t('screens_admin_customer_screen.029'),
                     ),
                     items: [
-                      DropdownMenuItem(value: 'restricted', child: Text(_t('عضوية مقيدة', 'Restricted member'))),
-                      DropdownMenuItem(value: 'verified_member', child: Text(_t('عضوية موثقة', 'Verified member'))),
-                      DropdownMenuItem(value: 'advanced_member', child: Text(_t('عضوية مطورة', 'Advanced member'))),
-                      DropdownMenuItem(value: 'unverified', child: Text(_t('غير موثق', 'Unverified'))),
-                      DropdownMenuItem(value: 'pending', child: Text(_t('قيد المراجعة', 'Pending'))),
-                      DropdownMenuItem(value: 'approved', child: Text(_t('موثق / مفعل', 'Verified / active'))),
-                      DropdownMenuItem(value: 'rejected', child: Text(_t('مرفوض', 'Rejected'))),
+                      DropdownMenuItem(
+                        value: 'restricted',
+                        child: Text(_t('screens_admin_customer_screen.030')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'verified_member',
+                        child: Text(_t('screens_admin_customer_screen.031')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'advanced_member',
+                        child: Text(_t('screens_admin_customer_screen.032')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'unverified',
+                        child: Text(_t('screens_admin_customer_screen.033')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'pending',
+                        child: Text(_t('screens_admin_customer_screen.034')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'approved',
+                        child: Text(_t('screens_admin_customer_screen.035')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'rejected',
+                        child: Text(_t('screens_admin_customer_screen.036')),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _verification = v!),
                   ),
@@ -538,12 +605,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: _role,
                     decoration: InputDecoration(
-                      labelText: _t('دور الحساب', 'Account role'),
+                      labelText: _t('screens_admin_customer_screen.037'),
                     ),
                     items: [
-                      DropdownMenuItem(value: 'basic', child: Text(_t('مستخدم عادي', 'Basic user'))),
-                      DropdownMenuItem(value: 'support', child: Text(_t('فريق الدعم', 'Support team'))),
-                      DropdownMenuItem(value: 'admin', child: Text(_t('مدير فني', 'Technical admin'))),
+                      DropdownMenuItem(
+                        value: 'basic',
+                        child: Text(_t('screens_admin_customer_screen.038')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'support',
+                        child: Text(_t('screens_admin_customer_screen.039')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'admin',
+                        child: Text(_t('screens_admin_customer_screen.040')),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _role = v!),
                   ),
@@ -551,20 +627,20 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   TextField(
                     controller: _printingDebtLimitController,
                     decoration: InputDecoration(
-                      labelText: _t('سقف دين الطباعة (₪)', 'Printing debt limit (₪)'),
+                      labelText: _t('screens_admin_customer_screen.041'),
                       suffixText: '₪',
                     ),
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    _t('رسوم مخصصة لهذا العميل (%)', 'Custom fees for this customer (%)'),
+                    _t('screens_admin_customer_screen.042'),
                     style: AppTheme.bodyBold,
                   ),
                   const SizedBox(height: 16),
                   _feeGrid(),
                   const SizedBox(height: 40),
                   ShwakelButton(
-                    label: _t('حفظ التغييرات', 'Save changes'),
+                    label: _t('screens_admin_customer_screen.043'),
                     icon: Icons.save_rounded,
                     onPressed: _updateAccount,
                     isLoading: _busy,
@@ -583,12 +659,27 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       spacing: 16,
       runSpacing: 16,
       children: [
-        _feeField(_t('الإيداع', 'Top-up'), _topupFeeController),
-        _feeField(_t('السحب', 'Withdraw'), _withdrawFeeController),
-        _feeField(_t('التحويل', 'Transfer'), _transferFeeController),
-        _feeField(_t('الاسترداد', 'Redeem'), _redeemFeeController),
-        _feeField(_t('إعادة البيع', 'Resell'), _resellFeeController),
-        _feeField(_t('طلب الطباعة', 'Print request'), _cardPrintRequestFeeController),
+        _feeField(_t('screens_admin_customer_screen.044'), _topupFeeController),
+        _feeField(
+          _t('screens_admin_customer_screen.045'),
+          _withdrawFeeController,
+        ),
+        _feeField(
+          _t('screens_admin_customer_screen.046'),
+          _transferFeeController,
+        ),
+        _feeField(
+          _t('screens_admin_customer_screen.047'),
+          _redeemFeeController,
+        ),
+        _feeField(
+          _t('screens_admin_customer_screen.048'),
+          _resellFeeController,
+        ),
+        _feeField(
+          _t('screens_admin_customer_screen.049'),
+          _cardPrintRequestFeeController,
+        ),
       ],
     );
   }
@@ -605,18 +696,54 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_t('صلاحيات البطاقات والإدارة', 'Card & admin permissions'), style: AppTheme.h3),
+              Text(_t('screens_admin_customer_screen.050'), style: AppTheme.h3),
               const SizedBox(height: 16),
-              _permItem(_t('إصدار بطاقات رصيد', 'Issue balance cards'), 'canIssueCards', perms),
-              _permItem(_t('طلب طباعة البطاقات', 'Request card printing'), 'canRequestCardPrinting', perms),
-              _permItem(_t('إصدار أجزاء الشيكل', 'Issue sub-shekel cards'), 'canIssueSubShekelCards', perms),
-              _permItem(_t('إصدار بطاقات عالية القيمة', 'Issue high-value cards'), 'canIssueHighValueCards', perms),
-              _permItem(_t('إعادة تفعيل البطاقات المستخدمة', 'Resell used cards'), 'canResellCards', perms),
-              _permItem(_t('مراجعة طلبات طباعة البطاقات', 'Review print requests'), 'canReviewCardPrintRequests', perms),
-              _permItem(_t('تجهيز وطباعة الطلبات', 'Prepare and print requests'), 'canPrepareCardPrintRequests', perms),
-              _permItem(_t('إكمال وتسليم الطلبات', 'Finalize and deliver requests'), 'canFinalizeCardPrintRequests', perms),
+              _permItem(
+                _t('screens_admin_customer_screen.051'),
+                'canIssueCards',
+                perms,
+              ),
+              _permItem(
+                _t('screens_admin_customer_screen.052'),
+                'canRequestCardPrinting',
+                perms,
+              ),
+              _permItem(
+                _t('screens_admin_customer_screen.053'),
+                'canIssueSubShekelCards',
+                perms,
+              ),
+              _permItem(
+                _t('screens_admin_customer_screen.054'),
+                'canIssueHighValueCards',
+                perms,
+              ),
+              _permItem(
+                _t('screens_admin_customer_screen.055'),
+                'canResellCards',
+                perms,
+              ),
+              _permItem(
+                _t('screens_admin_customer_screen.056'),
+                'canReviewCardPrintRequests',
+                perms,
+              ),
+              _permItem(
+                _t('screens_admin_customer_screen.057'),
+                'canPrepareCardPrintRequests',
+                perms,
+              ),
+              _permItem(
+                _t('screens_admin_customer_screen.058'),
+                'canFinalizeCardPrintRequests',
+                perms,
+              ),
               if (widget.canManageUsers)
-                _permItem(_t('إدارة المستخدمين الآخرين', 'Manage other users'), 'canManageUsers', perms),
+                _permItem(
+                  _t('screens_admin_customer_screen.059'),
+                  'canManageUsers',
+                  perms,
+                ),
             ],
           ),
         ),
@@ -635,17 +762,20 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_t('سياسة الأجهزة ونقاط الوصول', 'Device policy & access points'), style: AppTheme.h3),
+                  Text(
+                    _t('screens_admin_customer_screen.060'),
+                    style: AppTheme.h3,
+                  ),
                   const SizedBox(height: 24),
                   TextField(
                     controller: _maxDevicesController,
                     decoration: InputDecoration(
-                      labelText: _t('الحد الأقصى للأجهزة المسموح بها', 'Maximum allowed devices'),
+                      labelText: _t('screens_admin_customer_screen.061'),
                     ),
                   ),
                   const SizedBox(height: 24),
                   ShwakelButton(
-                    label: _t('تحديث سياسة الأجهزة', 'Update device policy'),
+                    label: _t('screens_admin_customer_screen.062'),
                     icon: Icons.phonelink_lock_rounded,
                     isSecondary: true,
                     onPressed: _saveDevicePolicy,
@@ -656,7 +786,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             ),
             const SizedBox(height: 24),
             AdminSectionHeader(
-              title: _t('الأجهزة النشطة', 'Active devices'),
+              title: _t('screens_admin_customer_screen.063'),
               icon: Icons.smartphone_rounded,
             ),
             if (_devices.isEmpty)
@@ -698,7 +828,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    d['deviceName'] ?? _t('جهاز غير معروف', 'Unknown device'),
+                    d['deviceName'] ?? _t('screens_admin_customer_screen.064'),
                     style: AppTheme.bodyBold,
                   ),
                   Text(
@@ -712,7 +842,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppTheme.error,
+              ),
               onPressed: () => _releaseDevice(d),
             ),
           ],
@@ -721,7 +854,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     );
   }
 
-  Widget _buildMetricCard(String title, String val, IconData icon, Color color) {
+  Widget _buildMetricCard(
+    String title,
+    String val,
+    IconData icon,
+    Color color,
+  ) {
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -737,26 +875,27 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _infoRow(String l, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(l, style: AppTheme.bodyAction),
-            Text(v, style: AppTheme.bodyBold),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(l, style: AppTheme.bodyAction),
+        Text(v, style: AppTheme.bodyBold),
+      ],
+    ),
+  );
 
   Widget _feeField(String l, TextEditingController c) => SizedBox(
-        width: 140,
-        child: TextField(
-          controller: c,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: l, suffixText: '%'),
-        ),
-      );
+    width: 140,
+    child: TextField(
+      controller: c,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(labelText: l, suffixText: '%'),
+    ),
+  );
 
-  Widget _permItem(String l, String k, Map<String, dynamic> p) => SwitchListTile(
+  Widget _permItem(String l, String k, Map<String, dynamic> p) =>
+      SwitchListTile(
         title: Text(l, style: AppTheme.bodyText),
         value: p[k] == true,
         onChanged: (v) async {

@@ -1,1 +1,17 @@
-import 'dart:async';class RealtimeNotificationService {  RealtimeNotificationService._();  static final StreamController<Map<String, dynamic>> _balanceUpdatesController =      StreamController<Map<String, dynamic>>.broadcast();  static Stream<Map<String, dynamic>> get balanceUpdatesStream => _balanceUpdatesController.stream;  static Future<void> start() async {}  static Future<void> stop() async {}  static void notifyBalanceUpdated([Map<String, dynamic> payload = const {}]) {    if (!_balanceUpdatesController.isClosed) {      _balanceUpdatesController.add(payload);    }  }}
+import 'dart:async';
+
+class RealtimeNotificationService {
+  RealtimeNotificationService._();
+  static final StreamController<Map<String, dynamic>>
+  _balanceUpdatesController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  static Stream<Map<String, dynamic>> get balanceUpdatesStream =>
+      _balanceUpdatesController.stream;
+  static Future<void> start() async {}
+  static Future<void> stop() async {}
+  static void notifyBalanceUpdated([Map<String, dynamic> payload = const {}]) {
+    if (!_balanceUpdatesController.isClosed) {
+      _balanceUpdatesController.add(payload);
+    }
+  }
+}

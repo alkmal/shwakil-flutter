@@ -62,7 +62,9 @@ class AdminSettingsGroup extends StatelessWidget {
               ),
               if (onSave != null)
                 ShwakelButton(
-                  label: saveLabel ?? l.text('حفظ الإعدادات', 'Save settings'),
+                  label:
+                      saveLabel ??
+                      l.tr('widgets_admin_admin_settings_group.001'),
                   isLoading: isSaving,
                   onPressed: onSave,
                   isSecondary: true,

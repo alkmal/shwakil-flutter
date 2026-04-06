@@ -80,10 +80,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       final authSettings = await _apiService.getAuthSettings();
       final transferSettings = await _apiService.getTransferSettings();
       final feeSettings = await _apiService.getFeeSettings();
-      final topupRequestSettings =
-          await _apiService.getAdminTopupRequestSettings();
-      final topupPaymentMethods =
-          await _apiService.getAdminTopupPaymentMethods();
+      final topupRequestSettings = await _apiService
+          .getAdminTopupRequestSettings();
+      final topupPaymentMethods = await _apiService
+          .getAdminTopupPaymentMethods();
       final usagePolicy = await _apiService.getUsagePolicy();
 
       if (!mounted) {
@@ -195,7 +195,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: l.text('تم الحفظ', 'Saved'),
+        title: l.tr('screens_admin_system_settings_screen.001'),
         message: l.text(
           'تم حفظ الإعدادات بنجاح.',
           'Settings have been saved successfully.',
@@ -207,7 +207,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: l.text('تعذر الحفظ', 'Could not save'),
+        title: l.tr('screens_admin_system_settings_screen.002'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -247,7 +247,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 accountNumberController.text.trim().isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
-                title: l.text('بيانات ناقصة', 'Missing data'),
+                title: l.tr('screens_admin_system_settings_screen.003'),
                 message: l.text(
                   'العنوان ورقم التحويل مطلوبان.',
                   'Title and transfer number are required.',
@@ -281,7 +281,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               setDialogState(() => isSaving = false);
               await AppAlertService.showError(
                 dialogContext,
-                title: l.text('تعذر الحفظ', 'Could not save'),
+                title: l.tr('screens_admin_system_settings_screen.004'),
                 message: ErrorMessageService.sanitize(error),
               );
             }
@@ -290,8 +290,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           return AlertDialog(
             title: Text(
               method == null
-                  ? l.text('إضافة طريقة شحن', 'Add top-up method')
-                  : l.text('تعديل طريقة شحن', 'Edit top-up method'),
+                  ? l.tr('screens_admin_system_settings_screen.005')
+                  : l.tr('screens_admin_system_settings_screen.006'),
             ),
             content: SizedBox(
               width: 460,
@@ -301,7 +301,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     TextField(
                       controller: titleController,
                       decoration: InputDecoration(
-                        labelText: l.text('العنوان', 'Title'),
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.007',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -318,14 +320,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     TextField(
                       controller: imageUrlController,
                       decoration: InputDecoration(
-                        labelText: l.text('رابط الصورة', 'Image URL'),
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.008',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: sortOrderController,
                       decoration: InputDecoration(
-                        labelText: l.text('ترتيب الظهور', 'Display order'),
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.009',
+                        ),
                       ),
                       keyboardType: TextInputType.number,
                     ),
@@ -333,7 +339,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     TextField(
                       controller: descriptionController,
                       decoration: InputDecoration(
-                        labelText: l.text('الوصف', 'Description'),
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.010',
+                        ),
                       ),
                       minLines: 2,
                       maxLines: 4,
@@ -344,7 +352,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       value: isActive,
                       onChanged: (value) =>
                           setDialogState(() => isActive = value),
-                      title: Text(l.text('مفعل', 'Active')),
+                      title: Text(
+                        l.tr('screens_admin_system_settings_screen.011'),
+                      ),
                     ),
                   ],
                 ),
@@ -353,14 +363,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             actions: [
               TextButton(
                 onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                child: Text(l.text('إلغاء', 'Cancel')),
+                child: Text(l.tr('screens_admin_system_settings_screen.012')),
               ),
               ElevatedButton(
                 onPressed: isSaving ? null : submit,
                 child: Text(
                   isSaving
-                      ? l.text('جارٍ الحفظ...', 'Saving...')
-                      : l.text('حفظ', 'Save'),
+                      ? l.tr('screens_admin_system_settings_screen.013')
+                      : l.tr('screens_admin_system_settings_screen.014'),
                 ),
               ),
             ],
@@ -392,7 +402,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: l.text('تعذر الحذف', 'Could not delete'),
+        title: l.tr('screens_admin_system_settings_screen.015'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -407,7 +417,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('إعدادات النظام', 'System Settings'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_admin_system_settings_screen.016')),
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -424,7 +436,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.text('إعدادات النظام', 'System settings'),
+                        l.tr('screens_admin_system_settings_screen.017'),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
@@ -442,7 +454,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 AdminSectionHeader(
-                  title: l.text('بيانات التواصل', 'Contact Details'),
+                  title: l.tr('screens_admin_system_settings_screen.018'),
                   subtitle: l.text(
                     'إعدادات الدعم ووسائل الاتصال.',
                     'Support and contact settings.',
@@ -456,28 +468,36 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       TextField(
                         controller: _contactTitleController,
                         decoration: InputDecoration(
-                          labelText: l.text('العنوان', 'Title'),
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.019',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _contactWhatsappController,
                         decoration: InputDecoration(
-                          labelText: l.text('واتساب الدعم', 'Support WhatsApp'),
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.020',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _contactEmailController,
                         decoration: InputDecoration(
-                          labelText: l.text('البريد', 'Email'),
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.021',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _contactAddressController,
                         decoration: InputDecoration(
-                          labelText: l.text('العنوان الفعلي', 'Address'),
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.022',
+                          ),
                         ),
                       ),
                     ],
@@ -556,7 +576,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       TextField(
                         controller: _webStoreUrlController,
                         decoration: InputDecoration(
-                          labelText: l.text('رابط الويب', 'Web URL'),
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.023',
+                          ),
                         ),
                       ),
                     ],
@@ -564,14 +586,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 AdminSectionHeader(
-                  title: l.text('طلبات شحن الرصيد', 'Top-up Requests'),
+                  title: l.tr('screens_admin_system_settings_screen.024'),
                   subtitle: l.text(
                     'تفعيل الخدمة وإدارة طرق الدفع.',
                     'Enable the service and manage payment methods.',
                   ),
                   icon: Icons.add_card_rounded,
                   trailing: ShwakelButton(
-                    label: l.text('إضافة طريقة', 'Add method'),
+                    label: l.tr('screens_admin_system_settings_screen.025'),
                     icon: Icons.playlist_add_rounded,
                     onPressed: _showTopupMethodDialog,
                   ),
@@ -636,7 +658,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          method['accountNumber']?.toString() ?? '-',
+                                          method['accountNumber']?.toString() ??
+                                              '-',
                                           style: AppTheme.bodyAction,
                                         ),
                                       ],
@@ -649,7 +672,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                                   ),
                                   IconButton(
                                     onPressed: () => _deleteTopupMethod(method),
-                                    icon: const Icon(Icons.delete_outline_rounded),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -661,7 +686,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 AdminSectionHeader(
-                  title: l.text('سياسة الاستخدام', 'Usage Policy'),
+                  title: l.tr('screens_admin_system_settings_screen.026'),
                   subtitle: l.text(
                     'تحديث النصوص المعروضة داخل التطبيق.',
                     'Update the policy text displayed inside the app.',
@@ -675,7 +700,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       TextField(
                         controller: _policyTitleController,
                         decoration: InputDecoration(
-                          labelText: l.text('العنوان', 'Title'),
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.027',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -684,7 +711,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                         minLines: 4,
                         maxLines: 6,
                         decoration: InputDecoration(
-                          labelText: l.text('المحتوى', 'Content'),
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.028',
+                          ),
                         ),
                       ),
                     ],
@@ -697,23 +726,23 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     runSpacing: 16,
                     children: [
                       _buildFeeField(
-                        l.text('رسوم الإيداع', 'Top-up fee'),
+                        l.tr('screens_admin_system_settings_screen.029'),
                         _walletTopupFeeController,
                       ),
                       _buildFeeField(
-                        l.text('رسوم التحويل', 'Transfer fee'),
+                        l.tr('screens_admin_system_settings_screen.030'),
                         _walletTransferFeeController,
                       ),
                       _buildFeeField(
-                        l.text('رسوم الاسترداد', 'Redeem fee'),
+                        l.tr('screens_admin_system_settings_screen.031'),
                         _cardRedeemFeeController,
                       ),
                       _buildFeeField(
-                        l.text('رسوم إعادة البيع', 'Resell fee'),
+                        l.tr('screens_admin_system_settings_screen.032'),
                         _cardResellFeeController,
                       ),
                       _buildFeeField(
-                        l.text('رسوم طلب الطباعة', 'Print request fee'),
+                        l.tr('screens_admin_system_settings_screen.033'),
                         _cardPrintRequestFeeController,
                       ),
                     ],
@@ -721,7 +750,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 ShwakelButton(
-                  label: l.text('حفظ الإعدادات', 'Save settings'),
+                  label: l.tr('screens_admin_system_settings_screen.034'),
                   icon: Icons.save_rounded,
                   onPressed: _save,
                   isLoading: _isSaving,

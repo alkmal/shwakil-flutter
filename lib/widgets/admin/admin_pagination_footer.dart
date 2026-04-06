@@ -42,7 +42,9 @@ class AdminPaginationFooter extends StatelessWidget {
         children: [
           Expanded(
             child: ShwakelButton(
-              label: nextLabel ?? l.text('التالي', 'Next'),
+              label:
+                  nextLabel ??
+                  l.tr('widgets_admin_admin_pagination_footer.001'),
               onPressed: currentPage < lastPage
                   ? () => onPageChanged(currentPage + 1)
                   : null,
@@ -70,7 +72,9 @@ class AdminPaginationFooter extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: ShwakelButton(
-              label: previousLabel ?? l.text('السابق', 'Previous'),
+              label:
+                  previousLabel ??
+                  l.tr('widgets_admin_admin_pagination_footer.002'),
               isSecondary: true,
               onPressed: currentPage > 1
                   ? () => onPageChanged(currentPage - 1)

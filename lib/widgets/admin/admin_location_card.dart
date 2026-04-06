@@ -27,12 +27,14 @@ class AdminLocationCard extends StatelessWidget {
     final l = context.loc;
     final title =
         location['title']?.toString() ??
-        l.text('فرع غير معروف', 'Unknown branch');
+        l.tr('widgets_admin_admin_location_card.001');
     final address =
         location['address']?.toString() ??
-        l.text('لا يوجد عنوان', 'No address available');
+        l.tr('widgets_admin_admin_location_card.002');
     final isActive = location['isActive'] != false;
-    final type = location['type']?.toString() ?? l.text('فرع', 'Branch');
+    final type =
+        location['type']?.toString() ??
+        l.tr('widgets_admin_admin_location_card.003');
 
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
@@ -65,8 +67,8 @@ class AdminLocationCard extends StatelessWidget {
                 ),
                 child: Text(
                   isActive
-                      ? l.text('مفعل', 'Active')
-                      : l.text('معطل', 'Disabled'),
+                      ? l.tr('widgets_admin_admin_location_card.004')
+                      : l.tr('widgets_admin_admin_location_card.005'),
                   style: AppTheme.caption.copyWith(
                     color: isActive
                         ? AppTheme.secondary

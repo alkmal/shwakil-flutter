@@ -128,10 +128,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
     final parsedBirthDate = DateTime.tryParse(birthDate);
     if (parsedBirthDate == null || _formatDate(parsedBirthDate) != birthDate) {
-      return l.text('تاريخ الميلاد غير صالح.', 'Invalid birth date.');
+      return l.tr('screens_forgot_password_screen.001');
     }
     if (normalizedWhatsapp.length < 6 || normalizedWhatsapp.length > 15) {
-      return l.text('رقم الجوال غير صالح.', 'Invalid phone number.');
+      return l.tr('screens_forgot_password_screen.002');
     }
     return null;
   }
@@ -147,7 +147,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return usernameMessage;
     }
     if (otpCode.trim().length < 4 || otpCode.trim().length > 10) {
-      return l.text('رمز التحقق غير صالح.', 'Invalid verification code.');
+      return l.tr('screens_forgot_password_screen.003');
     }
     if (newPassword.length < 8 || newPassword.length > 64) {
       return l.text(
@@ -177,9 +177,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       initialDate: initialDate.isAfter(lastDate) ? lastDate : initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
-      helpText: l.text('اختر تاريخ الميلاد', 'Select birth date'),
-      cancelText: l.text('إلغاء', 'Cancel'),
-      confirmText: l.text('اعتماد', 'Confirm'),
+      helpText: l.tr('screens_forgot_password_screen.004'),
+      cancelText: l.tr('screens_forgot_password_screen.005'),
+      confirmText: l.tr('screens_forgot_password_screen.006'),
     );
     if (pickedDate == null) {
       return;
@@ -194,7 +194,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (validationMessage != null) {
       await AppAlertService.showError(
         context,
-        title: l.text('خطأ', 'Error'),
+        title: l.tr('screens_forgot_password_screen.007'),
         message: validationMessage,
         extraContext: {'username': username},
       );
@@ -212,7 +212,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => _debugOtpCode = result.debugOtpCode);
       await AppAlertService.showSuccess(
         context,
-        title: l.text('تم الإرسال', 'Sent successfully'),
+        title: l.tr('screens_forgot_password_screen.008'),
         message: l.text(
           'تم إرسال رمز الاستعادة إلى واتساب الحساب. لن تتغير كلمة المرور بدون الرمز.',
           'A recovery code has been sent to the account WhatsApp. The password will not change without the code.',
@@ -224,7 +224,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: l.text('خطأ', 'Error'),
+        title: l.tr('screens_forgot_password_screen.009'),
         message: ErrorMessageService.sanitize(error),
         extraContext: {
           'username': _usernameController.text.trim(),
@@ -254,7 +254,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (validationMessage != null) {
       await AppAlertService.showError(
         context,
-        title: l.text('خطأ', 'Error'),
+        title: l.tr('screens_forgot_password_screen.010'),
         message: validationMessage,
         extraContext: {
           'username': _usernameController.text.trim(),
@@ -279,7 +279,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: l.text('تم العثور على الحساب', 'Account found'),
+        title: l.tr('screens_forgot_password_screen.011'),
         message: l.text(
           'تمت المطابقة. اسم المستخدم: ${_usernameController.text}',
           'Match found. Username: ${_usernameController.text}',
@@ -291,7 +291,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: l.text('خطأ', 'Error'),
+        title: l.tr('screens_forgot_password_screen.012'),
         message: ErrorMessageService.sanitize(error),
         extraContext: {
           'username': _usernameController.text.trim(),
@@ -318,7 +318,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (validationMessage != null) {
       await AppAlertService.showError(
         context,
-        title: l.text('خطأ', 'Error'),
+        title: l.tr('screens_forgot_password_screen.013'),
         message: validationMessage,
         extraContext: {
           'username': username,
@@ -340,7 +340,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: l.text('نجاح', 'Success'),
+        title: l.tr('screens_forgot_password_screen.014'),
         message: l.text(
           'تمت إعادة تعيين كلمة المرور. يمكنك تسجيل الدخول الآن.',
           'Your password has been reset. You can log in now.',
@@ -356,7 +356,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: l.text('خطأ', 'Error'),
+        title: l.tr('screens_forgot_password_screen.015'),
         message: ErrorMessageService.sanitize(error),
         extraContext: {
           'username': _usernameController.text.trim(),
@@ -375,7 +375,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('استعادة كلمة المرور', 'Reset Password'))),
+      appBar: AppBar(title: Text(l.tr('screens_forgot_password_screen.016'))),
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -391,7 +391,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   child: Column(
                     children: [
                       Text(
-                        l.text('استعادة كلمة المرور', 'Reset Password'),
+                        l.tr('screens_forgot_password_screen.017'),
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -414,7 +414,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       if ((_supportWhatsapp ?? '').isNotEmpty) ...[
                         SupportContactCard(
                           phoneNumber: _supportWhatsapp!,
-                          title: l.text('تحتاج مساعدة؟', 'Need help?'),
+                          title: l.tr('screens_forgot_password_screen.018'),
                           message: l.text(
                             'إذا لم تتطابق البيانات أو فقدت الرقم المرتبط، تواصل مع الدعم من هذا الرقم.',
                             'If your data does not match or you lost access to the linked number, contact support using this number.',
@@ -449,7 +449,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               controller: _nationalIdController,
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
-                                labelText: l.text('رقم الهوية', 'National ID'),
+                                labelText: l.tr(
+                                  'screens_forgot_password_screen.019',
+                                ),
                                 prefixIcon: const Icon(Icons.badge_outlined),
                               ),
                             ),
@@ -459,7 +461,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               readOnly: true,
                               onTap: _pickBirthDate,
                               decoration: InputDecoration(
-                                labelText: l.text('تاريخ الميلاد', 'Birth date'),
+                                labelText: l.tr(
+                                  'screens_forgot_password_screen.020',
+                                ),
                                 helperText: l.text(
                                   'مثال: 1995-04-21',
                                   'Example: 1995-04-21',
@@ -477,12 +481,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             DropdownButtonFormField<CountryOption>(
                               initialValue: _selectedCountry,
                               decoration: InputDecoration(
-                                labelText: l.text('اختر الدولة', 'Select country'),
+                                labelText: l.tr(
+                                  'screens_forgot_password_screen.021',
+                                ),
                                 prefixIcon: const Icon(Icons.public_rounded),
                               ),
                               items: PhoneNumberService.countries
                                   .map(
-                                    (country) => DropdownMenuItem<CountryOption>(
+                                    (
+                                      country,
+                                    ) => DropdownMenuItem<CountryOption>(
                                       value: country,
                                       child: Text(
                                         '${country.name} (+${country.dialCode})',
@@ -502,7 +510,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               controller: _whatsappController,
                               keyboardType: TextInputType.phone,
                               decoration: InputDecoration(
-                                labelText: l.text('رقم الجوال', 'Phone number'),
+                                labelText: l.tr(
+                                  'screens_forgot_password_screen.022',
+                                ),
                                 prefixIcon: const Icon(Icons.phone_rounded),
                                 prefixText: '+${_selectedCountry.dialCode}  ',
                               ),
@@ -510,8 +520,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             const SizedBox(height: 12),
                             ShwakelButton(
                               label: _isLookingUp
-                                  ? l.text('جارٍ البحث...', 'Searching...')
-                                  : l.text('بحث عن الحساب', 'Find account'),
+                                  ? l.tr('screens_forgot_password_screen.023')
+                                  : l.tr('screens_forgot_password_screen.024'),
                               icon: Icons.search_rounded,
                               onPressed: _isLookingUp ? null : _lookupAccount,
                               isLoading: _isLookingUp,
@@ -539,8 +549,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       const SizedBox(height: 12),
                       ShwakelButton(
                         label: _isRequesting
-                            ? l.text('جارٍ الإرسال...', 'Sending...')
-                            : l.text('إرسال الرمز', 'Send code'),
+                            ? l.tr('screens_forgot_password_screen.025')
+                            : l.tr('screens_forgot_password_screen.026'),
                         icon: Icons.mark_chat_read_rounded,
                         onPressed: _isRequesting ? null : _requestOtp,
                         isLoading: _isRequesting,
@@ -563,7 +573,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       TextField(
                         controller: _otpController,
                         decoration: InputDecoration(
-                          labelText: l.text('رمز التحقق', 'Verification code'),
+                          labelText: l.tr('screens_forgot_password_screen.027'),
                           prefixIcon: const Icon(Icons.verified_user_outlined),
                         ),
                       ),
@@ -582,7 +592,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       const SizedBox(height: 16),
                       ShwakelButton(
                         label: _isResetting
-                            ? l.text('جارٍ التحديث...', 'Updating...')
+                            ? l.tr('screens_forgot_password_screen.028')
                             : l.text(
                                 'حفظ كلمة المرور الجديدة',
                                 'Save new password',
@@ -613,7 +623,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l.text('استعادة الحساب بشكل آمن', 'Secure account recovery'),
+            l.tr('screens_forgot_password_screen.029'),
             style: AppTheme.h2.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),

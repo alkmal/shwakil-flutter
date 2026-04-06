@@ -31,9 +31,10 @@ class AdminDeviceRequestCard extends StatelessWidget {
     final l = context.loc;
     final deviceName =
         request['deviceName']?.toString() ??
-        l.text('جهاز غير معروف', 'Unknown device');
+        l.tr('widgets_admin_admin_device_request_card.001');
     final deviceId =
-        request['deviceId']?.toString() ?? l.text('ID غير متوفر', 'ID unavailable');
+        request['deviceId']?.toString() ??
+        l.tr('widgets_admin_admin_device_request_card.002');
     final createdAt = request['createdAt']?.toString() ?? '';
 
     return ShwakelCard(
@@ -59,7 +60,10 @@ class AdminDeviceRequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            l.text('طلب الوصول: $createdAt', 'Access request: $createdAt'),
+            l.tr(
+              'widgets_admin_admin_device_request_card.003',
+              params: {'createdAt': createdAt},
+            ),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -67,7 +71,7 @@ class AdminDeviceRequestCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ShwakelButton(
-                  label: l.text('قبول', 'Approve'),
+                  label: l.tr('widgets_admin_admin_device_request_card.004'),
                   isLoading: isProcessing,
                   onPressed: () => onAction(true),
                   color: AppTheme.secondary,
@@ -77,7 +81,7 @@ class AdminDeviceRequestCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ShwakelButton(
-                  label: l.text('رفض', 'Reject'),
+                  label: l.tr('widgets_admin_admin_device_request_card.005'),
                   isLoading: isProcessing,
                   onPressed: () => onAction(false),
                   color: AppTheme.warning,

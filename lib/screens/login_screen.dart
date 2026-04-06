@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
     if (password.length > 255) {
-      return l.text('كلمة المرور طويلة جدًا.', 'Password is too long.');
+      return l.tr('screens_login_screen.001');
     }
     return null;
   }
@@ -249,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return isError
         ? AppAlertService.showError(
             context,
-            title: l.text('خطأ', 'Error'),
+            title: l.tr('screens_login_screen.002'),
             message: message,
             extraContext: {
               'username': username ?? _usernameController.text.trim(),
@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
           )
         : AppAlertService.showSuccess(
             context,
-            title: l.text('نجاح', 'Success'),
+            title: l.tr('screens_login_screen.003'),
             message: message,
           );
   }
@@ -309,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const Center(child: ShwakelLogo(size: 82, framed: true)),
           const SizedBox(height: 18),
           Text(
-            l.text('تسجيل الدخول', 'Log In'),
+            l.tr('screens_login_screen.004'),
             style: AppTheme.h2,
             textAlign: TextAlign.center,
           ),
@@ -332,7 +332,7 @@ class _LoginScreenState extends State<LoginScreen> {
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => _submitFromUsername(),
             decoration: InputDecoration(
-              labelText: l.text('اسم المستخدم أو الجوال', 'Username or phone'),
+              labelText: l.tr('screens_login_screen.005'),
               prefixIcon: const Icon(Icons.person_outline_rounded),
             ),
           ),
@@ -344,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _submitFromPassword(),
             decoration: InputDecoration(
-              labelText: l.text('كلمة المرور', 'Password'),
+              labelText: l.tr('screens_login_screen.006'),
               prefixIcon: const Icon(Icons.lock_outline_rounded),
               suffixIcon: IconButton(
                 onPressed: () =>
@@ -359,7 +359,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 28),
           ShwakelButton(
-            label: l.text('دخول', 'Sign In'),
+            label: l.tr('screens_login_screen.007'),
             isLoading: _isLoading,
             onPressed: _continueToOtp,
             icon: Icons.login_rounded,
@@ -369,7 +369,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SizedBox(
             width: double.infinity,
             child: ShwakelButton(
-              label: l.text('إنشاء حساب جديد', 'Create account'),
+              label: l.tr('screens_login_screen.008'),
               onPressed: () => Navigator.pushNamed(context, '/register'),
               isSecondary: true,
             ),

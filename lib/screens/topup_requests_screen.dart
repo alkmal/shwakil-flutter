@@ -129,7 +129,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(l.text('طلبات شحن الرصيد', 'Top-up Requests'))),
+        appBar: AppBar(title: Text(l.tr('screens_topup_requests_screen.001'))),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
@@ -159,7 +159,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('طلبات شحن الرصيد', 'Top-up Requests'))),
+      appBar: AppBar(title: Text(l.tr('screens_topup_requests_screen.002'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -224,10 +224,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.text(
-                    'مراجعة طلبات شحن الرصيد',
-                    'Review top-up requests',
-                  ),
+                  l.text('مراجعة طلبات شحن الرصيد', 'Review top-up requests'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
@@ -251,7 +248,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              l.text('$pending طلب معلق', '$pending pending'),
+              l.tr(
+                'screens_topup_requests_screen.003',
+                params: {'pending': '$pending'},
+              ),
               style: AppTheme.bodyBold.copyWith(color: Colors.white),
             ),
           );
@@ -306,10 +306,18 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             children: _TopupStatusFilter.values.map((filter) {
               final isSelected = _filter == filter;
               final label = switch (filter) {
-                _TopupStatusFilter.all => l.text('الكل', 'All'),
-                _TopupStatusFilter.pending => l.text('المعلقة', 'Pending'),
-                _TopupStatusFilter.approved => l.text('المعتمدة', 'Approved'),
-                _TopupStatusFilter.rejected => l.text('المرفوضة', 'Rejected'),
+                _TopupStatusFilter.all => l.tr(
+                  'screens_topup_requests_screen.004',
+                ),
+                _TopupStatusFilter.pending => l.tr(
+                  'screens_topup_requests_screen.005',
+                ),
+                _TopupStatusFilter.approved => l.tr(
+                  'screens_topup_requests_screen.006',
+                ),
+                _TopupStatusFilter.rejected => l.tr(
+                  'screens_topup_requests_screen.007',
+                ),
               };
               return Padding(
                 padding: const EdgeInsets.only(left: 12),
@@ -369,7 +377,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                         user['fullName'] ?? user['username'] ?? '-',
                         style: AppTheme.bodyBold,
                       ),
-                      Text('@${user['username'] ?? '-'}', style: AppTheme.caption),
+                      Text(
+                        '@${user['username'] ?? '-'}',
+                        style: AppTheme.caption,
+                      ),
                     ],
                   ),
                 ),
@@ -383,34 +394,34 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             ),
             const Divider(height: 32),
             _infoLine(
-              l.text('طريقة الدفع', 'Payment method'),
+              l.tr('screens_topup_requests_screen.008'),
               request['paymentMethodTitle']?.toString() ?? '-',
             ),
             _infoLine(
-              l.text('رقم الطريقة', 'Method number'),
+              l.tr('screens_topup_requests_screen.009'),
               request['paymentMethodNumber']?.toString() ?? '-',
             ),
             _infoLine(
-              l.text('اسم المحول', 'Sender name'),
+              l.tr('screens_topup_requests_screen.010'),
               request['senderName']?.toString().isNotEmpty == true
                   ? request['senderName'].toString()
                   : '-',
             ),
             _infoLine(
-              l.text('جوال المحول', 'Sender phone'),
+              l.tr('screens_topup_requests_screen.011'),
               request['senderPhone']?.toString().isNotEmpty == true
                   ? request['senderPhone'].toString()
                   : '-',
             ),
             _infoLine(
-              l.text('مرجع التحويل', 'Transfer reference'),
+              l.tr('screens_topup_requests_screen.012'),
               request['transferReference']?.toString().isNotEmpty == true
                   ? request['transferReference'].toString()
                   : '-',
             ),
             if ((request['notes']?.toString() ?? '').isNotEmpty)
               _infoLine(
-                l.text('الملاحظات', 'Notes'),
+                l.tr('screens_topup_requests_screen.013'),
                 request['notes']?.toString() ?? '-',
               ),
             const SizedBox(height: 16),
@@ -434,7 +445,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                           ? null
                           : () => _approve(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.check_rounded),
-                      label: Text(l.text('اعتماد الشحن', 'Approve top-up')),
+                      label: Text(l.tr('screens_topup_requests_screen.014')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -444,7 +455,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                           ? null
                           : () => _reject(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.close_rounded),
-                      label: Text(l.text('رفض', 'Reject')),
+                      label: Text(l.tr('screens_topup_requests_screen.015')),
                     ),
                   ),
                 ],
@@ -464,9 +475,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       _ => AppTheme.warning,
     };
     final label = switch (status) {
-      'approved' => l.text('تم الاعتماد', 'Approved'),
-      'rejected' => l.text('مرفوض', 'Rejected'),
-      _ => l.text('قيد المراجعة', 'Under review'),
+      'approved' => l.tr('screens_topup_requests_screen.016'),
+      'rejected' => l.tr('screens_topup_requests_screen.017'),
+      _ => l.tr('screens_topup_requests_screen.018'),
     };
 
     return Container(
@@ -497,10 +508,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             color: AppTheme.textTertiary,
           ),
           const SizedBox(height: 16),
-          Text(
-            l.text('لا توجد طلبات مطابقة حاليًا', 'No matching requests right now'),
-            style: AppTheme.h3,
-          ),
+          Text(l.tr('screens_topup_requests_screen.019'), style: AppTheme.h3),
         ],
       ),
     );
@@ -596,13 +604,13 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     final approved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l.text('رفض طلب الشحن', 'Reject top-up request')),
+        title: Text(l.tr('screens_topup_requests_screen.020')),
         content: TextField(
           controller: notesController,
           minLines: 3,
           maxLines: 5,
           decoration: InputDecoration(
-            labelText: l.text('سبب الرفض', 'Rejection reason'),
+            labelText: l.tr('screens_topup_requests_screen.021'),
             hintText: l.text(
               'اكتب ملاحظة مختصرة للمستخدم',
               'Write a short note for the user',
@@ -612,11 +620,11 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(l.text('إلغاء', 'Cancel')),
+            child: Text(l.tr('screens_topup_requests_screen.022')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(l.text('تأكيد الرفض', 'Confirm rejection')),
+            child: Text(l.tr('screens_topup_requests_screen.023')),
           ),
         ],
       ),
@@ -640,7 +648,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         context,
         message:
             response['message']?.toString() ??
-            l.text('تم رفض الطلب.', 'The request has been rejected.'),
+            l.tr('screens_topup_requests_screen.024'),
       );
       await _load();
     } catch (error) {

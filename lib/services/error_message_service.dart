@@ -35,10 +35,7 @@ class ErrorMessageService {
           RegExp(r'^(?:[A-Za-z_]+\s*)?Exception:\s*', caseSensitive: false),
           '',
         )
-        .replaceFirst(
-          RegExp(r'^exception:\s*', caseSensitive: false),
-          '',
-        )
+        .replaceFirst(RegExp(r'^exception:\s*', caseSensitive: false), '')
         .trim();
 
     if (cleaned.isEmpty ||

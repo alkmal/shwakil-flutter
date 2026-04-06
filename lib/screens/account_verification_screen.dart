@@ -101,7 +101,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     if ((_identityBase64 ?? '').isEmpty || (_selfieBase64 ?? '').isEmpty) {
       await AppAlertService.showError(
         context,
-        title: l.text('مرفقات ناقصة', 'Missing attachments'),
+        title: l.tr('screens_account_verification_screen.001'),
         message: l.text(
           'يرجى اختيار صورة الهوية وصورة السيلفي أولًا.',
           'Please select the identity document and selfie image first.',
@@ -122,7 +122,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: l.text('تم الإرسال بنجاح', 'Submitted successfully'),
+        title: l.tr('screens_account_verification_screen.002'),
         message: l.text(
           'طلب التوثيق قيد المراجعة الآن.',
           'Your verification request is now under review.',
@@ -135,7 +135,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: l.text('تعذر الإرسال', 'Submission failed'),
+        title: l.tr('screens_account_verification_screen.003'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -156,7 +156,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('توثيق الهوية', 'Identity Verification'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_account_verification_screen.004')),
+      ),
       drawer: const AppSidebar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -205,7 +207,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.text('توثيق الحساب', 'Verify your account'),
+                  l.tr('screens_account_verification_screen.005'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
@@ -246,7 +248,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     switch (status) {
       case 'pending':
         color = AppTheme.warning;
-        title = l.text('قيد المراجعة', 'Under review');
+        title = l.tr('screens_account_verification_screen.006');
         text = l.text(
           'طلبك قيد المراجعة من قبل الإدارة، وسيتم إشعارك عند تحديث الحالة.',
           'Your request is under review by the administration. You will be notified when the status changes.',
@@ -255,7 +257,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         break;
       case 'rejected':
         color = AppTheme.error;
-        title = l.text('مطلوب إعادة المحاولة', 'Resubmission required');
+        title = l.tr('screens_account_verification_screen.007');
         text = l.text(
           'تم رفض الطلب السابق، يرجى إعادة رفع صور أوضح للهوية والسيلفي.',
           'Your previous request was rejected. Please upload clearer identity and selfie images.',
@@ -264,7 +266,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         break;
       default:
         color = AppTheme.primary;
-        title = l.text('غير موثق بعد', 'Not verified yet');
+        title = l.tr('screens_account_verification_screen.008');
         text = l.text(
           'حسابك غير موثق حاليًا، ارفع المستندات المطلوبة لإكمال التفعيل.',
           'Your account is not verified yet. Upload the required documents to complete activation.',
@@ -309,7 +311,10 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.text('المرفقات المطلوبة', 'Required documents'), style: AppTheme.h3),
+          Text(
+            l.tr('screens_account_verification_screen.009'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 10),
           Text(
             l.text(
@@ -320,13 +325,13 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           ),
           const SizedBox(height: 22),
           _docPicker(
-            l.text('صورة الهوية أو جواز السفر', 'Identity or passport image'),
+            l.tr('screens_account_verification_screen.010'),
             _identityBase64,
             () => _pickImage(true),
           ),
           const SizedBox(height: 16),
           _docPicker(
-            l.text('صورة سيلفي مع الهوية', 'Selfie with identity'),
+            l.tr('screens_account_verification_screen.011'),
             _selfieBase64,
             () => _pickImage(false),
           ),
@@ -335,7 +340,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             controller: _notesController,
             maxLines: 3,
             decoration: InputDecoration(
-              labelText: l.text('ملاحظات إضافية', 'Additional notes'),
+              labelText: l.tr('screens_account_verification_screen.012'),
               alignLabelWithHint: true,
               prefixIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 40),
@@ -356,7 +361,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               ),
             ),
           ShwakelButton(
-            label: l.text('إرسال طلب التوثيق', 'Submit verification request'),
+            label: l.tr('screens_account_verification_screen.013'),
             icon: Icons.cloud_upload_rounded,
             onPressed: _submit,
             isLoading: _isSubmitting,
@@ -402,8 +407,8 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             ),
             Text(
               hasFile
-                  ? l.text('تم الاختيار', 'Selected')
-                  : l.text('اختيار ملف', 'Choose file'),
+                  ? l.tr('screens_account_verification_screen.014')
+                  : l.tr('screens_account_verification_screen.015'),
               style: TextStyle(
                 color: hasFile ? AppTheme.success : AppTheme.textSecondary,
                 fontSize: 12,

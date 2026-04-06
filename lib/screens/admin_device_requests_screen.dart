@@ -90,7 +90,9 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('طلبات الأجهزة', 'Device Requests'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_admin_device_requests_screen.001')),
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -107,7 +109,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.text('طلبات الأجهزة', 'Device requests'),
+                        l.tr('screens_admin_device_requests_screen.002'),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
@@ -125,7 +127,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
                 ),
                 const SizedBox(height: 24),
                 AdminSectionHeader(
-                  title: l.text('الطلبات المعلقة', 'Pending requests'),
+                  title: l.tr('screens_admin_device_requests_screen.003'),
                   subtitle: l.text(
                     'وافق أو ارفض طلبات الربط من هذه الشاشة مباشرة.',
                     'Approve or reject device linking requests directly from this screen.',

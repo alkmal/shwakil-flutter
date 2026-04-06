@@ -33,7 +33,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   bool _isLookingUpRecipient = false;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
 
-  String _t(String ar, String en) => context.loc.text(ar, en);
+  String _t(String key, [String? english]) =>
+      english == null ? context.loc.tr(key) : context.loc.text(key, english);
 
   @override
   void initState() {
@@ -69,11 +70,11 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   }
 
   String _payload() => jsonEncode({
-        'type': 'shwakel_transfer',
-        'userId': _user?['id']?.toString() ?? '',
-        'username': _user?['username']?.toString() ?? '',
-        'phone': _user?['whatsapp']?.toString() ?? '',
-      });
+    'type': 'shwakel_transfer',
+    'userId': _user?['id']?.toString() ?? '',
+    'username': _user?['username']?.toString() ?? '',
+    'phone': _user?['whatsapp']?.toString() ?? '',
+  });
 
   Future<void> _scan() async {
     await showDialog(
@@ -87,7 +88,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_t('امسح رمز المستلم', 'Scan recipient code'), style: AppTheme.h3),
+                Text(
+                  _t('screens_quick_transfer_screen.005'),
+                  style: AppTheme.h3,
+                ),
                 const SizedBox(height: 24),
                 ClipRRect(
                   borderRadius: AppTheme.radiusMd,
@@ -106,7 +110,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                 ),
                 const SizedBox(height: 24),
                 ShwakelButton(
-                  label: _t('إلغاء', 'Cancel'),
+                  label: _t('screens_quick_transfer_screen.006'),
                   isSecondary: true,
                   onPressed: () => Navigator.pop(dialogContext),
                 ),
@@ -126,15 +130,17 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     try {
       final payload = Map<String, dynamic>.from(jsonDecode(raw));
       if (payload['type'] != 'shwakel_transfer') {
-        throw _t('الرمز غير مدعوم.', 'Unsupported QR code.');
+        throw _t('screens_quick_transfer_screen.007');
       }
       if (payload['userId'] == _user?['id']?.toString()) {
-        throw _t('لا يمكن التحويل لنفسك.', 'You cannot transfer to yourself.');
+        throw _t('screens_quick_transfer_screen.008');
       }
 
       final recipient = <String, dynamic>{
         'id': payload['userId']?.toString() ?? '',
-        'username': payload['username']?.toString() ?? _t('مستخدم', 'User'),
+        'username':
+            payload['username']?.toString() ??
+            _t('screens_quick_transfer_screen.009'),
         'whatsapp': payload['phone']?.toString() ?? '',
         'role': '',
       };
@@ -155,7 +161,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (rawPhone.isEmpty) {
       await AppAlertService.showError(
         context,
-        title: _t('رقم مطلوب', 'Phone required'),
+        title: _t('screens_quick_transfer_screen.010'),
         message: _t(
           'أدخل رقم الهاتف للبحث عن المستلم.',
           'Enter a phone number to find the recipient.',
@@ -184,10 +190,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       setState(() => _recipient = null);
       await AppAlertService.showError(
         context,
-        title: _t(
-          'تعذر العثور على المستخدم',
-          'Could not find the user',
-        ),
+        title: _t('تعذر العثور على المستخدم', 'Could not find the user'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -212,7 +215,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (recipientId == _user?['id']?.toString()) {
       await AppAlertService.showError(
         context,
-        message: _t('لا يمكن التحويل لنفسك.', 'You cannot transfer to yourself.'),
+        message: _t('screens_quick_transfer_screen.011'),
       );
       return;
     }
@@ -247,7 +250,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: _t('تم التحويل', 'Transfer complete'),
+        title: _t('screens_quick_transfer_screen.012'),
         message: _t(
           'تم إرسال الرصيد بنجاح إلى المستلم.',
           'The balance was sent successfully to the recipient.',
@@ -270,7 +273,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       builder: (dialogContext) {
         final amountController = TextEditingController();
         return AlertDialog(
-          title: Text(_t('تحويل رصيد', 'Transfer balance')),
+          title: Text(_t('screens_quick_transfer_screen.013')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,10 +298,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(_t('إلغاء', 'Cancel')),
+              child: Text(_t('screens_quick_transfer_screen.014')),
             ),
             ShwakelButton(
-              label: _t('تأكيد', 'Confirm'),
+              label: _t('screens_quick_transfer_screen.015'),
               width: 140,
               onPressed: () {
                 Navigator.pop(
@@ -333,7 +336,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(_t('إرسال الرصيد', 'Send Balance'))),
+      appBar: AppBar(title: Text(_t('screens_quick_transfer_screen.016'))),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -392,26 +395,28 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                         final isCompact = constraints.maxWidth < 520;
                         final countryField =
                             DropdownButtonFormField<CountryOption>(
-                          initialValue: _selectedCountry,
-                          decoration: InputDecoration(
-                            labelText: _t('رمز الدولة', 'Country code'),
-                          ),
-                          items: PhoneNumberService.countries
-                              .map(
-                                (country) =>
-                                    DropdownMenuItem<CountryOption>(
-                                  value: country,
-                                  child: Text('+${country.dialCode}'),
+                              initialValue: _selectedCountry,
+                              decoration: InputDecoration(
+                                labelText: _t(
+                                  'screens_quick_transfer_screen.017',
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => _selectedCountry = value);
-                          },
-                        );
+                              ),
+                              items: PhoneNumberService.countries
+                                  .map(
+                                    (country) =>
+                                        DropdownMenuItem<CountryOption>(
+                                          value: country,
+                                          child: Text('+${country.dialCode}'),
+                                        ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() => _selectedCountry = value);
+                              },
+                            );
                         final phoneField = TextField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
@@ -448,7 +453,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                     ),
                     const SizedBox(height: 16),
                     ShwakelButton(
-                      label: _t('بحث عن المستلم', 'Find recipient'),
+                      label: _t('screens_quick_transfer_screen.018'),
                       icon: Icons.search_rounded,
                       isLoading: _isLookingUpRecipient,
                       onPressed: _lookupRecipient,
@@ -466,7 +471,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(_t('نتيجة البحث', 'Search result'), style: AppTheme.bodyBold),
+                            Text(
+                              _t('screens_quick_transfer_screen.019'),
+                              style: AppTheme.bodyBold,
+                            ),
                             const SizedBox(height: 14),
                             _RecipientPreviewCard(recipient: _recipient!),
                             const SizedBox(height: 14),
@@ -521,7 +529,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_t('أو استخدم QR', 'Or use QR'), style: AppTheme.h3),
+                              Text(
+                                _t('screens_quick_transfer_screen.020'),
+                                style: AppTheme.h3,
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 _t(
@@ -537,7 +548,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                     ),
                     const SizedBox(height: 18),
                     ShwakelButton(
-                      label: _t('فتح الكاميرا والمسح', 'Open camera and scan'),
+                      label: _t('screens_quick_transfer_screen.021'),
                       icon: Icons.qr_code_scanner_rounded,
                       onPressed: _scan,
                       isSecondary: true,
@@ -561,7 +572,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       child: Column(
         children: [
           Text(
-            _t('رمز استلام الرصيد', 'Balance receiving code'),
+            _t('screens_quick_transfer_screen.022'),
             style: AppTheme.h2.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 12),
@@ -615,11 +626,11 @@ class _RecipientPreviewCard extends StatelessWidget {
     final l = context.loc;
     switch (role) {
       case 'admin':
-        return l.text('إدارة', 'Admin');
+        return l.tr('screens_quick_transfer_screen.001');
       case 'support':
-        return l.text('دعم', 'Support');
+        return l.tr('screens_quick_transfer_screen.002');
       default:
-        return l.text('مستخدم', 'User');
+        return l.tr('screens_quick_transfer_screen.003');
     }
   }
 
@@ -655,7 +666,9 @@ class _RecipientPreviewCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  username?.isNotEmpty == true ? username! : l.text('مستخدم', 'User'),
+                  username?.isNotEmpty == true
+                      ? username!
+                      : l.tr('screens_quick_transfer_screen.004'),
                   style: AppTheme.bodyBold,
                 ),
                 const SizedBox(height: 4),

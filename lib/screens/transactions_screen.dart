@@ -36,7 +36,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   int _totalTransactions = 0;
   Timer? _searchDebounce;
 
-  String _t(String ar, String en) => context.loc.text(ar, en);
+  String _t(String key, [String? english]) =>
+      english == null ? context.loc.tr(key) : context.loc.text(key, english);
 
   @override
   void initState() {
@@ -94,7 +95,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }
       setState(() => _isLoading = false);
       await _showMessage(
-        '${_t('تعذر تحميل سجل الحركات', 'Could not load transaction history')}: ${ErrorMessageService.sanitize(error)}',
+        '${_t('screens_transactions_screen.001')}: ${ErrorMessageService.sanitize(error)}',
         isError: true,
       );
     }
@@ -104,12 +105,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return isError
         ? AppAlertService.showError(
             context,
-            title: _t('خطأ', 'Error'),
+            title: _t('screens_transactions_screen.002'),
             message: text,
           )
         : AppAlertService.showSuccess(
             context,
-            title: _t('نجاح', 'Success'),
+            title: _t('screens_transactions_screen.003'),
             message: text,
           );
   }
@@ -141,7 +142,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return;
       }
       await _showMessage(
-        '${_t('تعذر تصدير الحركات', 'Could not export transactions')}: ${ErrorMessageService.sanitize(error)}',
+        '${_t('screens_transactions_screen.004')}: ${ErrorMessageService.sanitize(error)}',
         isError: true,
       );
     }
@@ -169,7 +170,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(_t('سجل الحركات', 'Transactions'))),
+      appBar: AppBar(title: Text(_t('screens_transactions_screen.005'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _loadTransactions,
@@ -248,7 +249,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _t('كشف الحساب', 'Account statement'),
+                  _t('screens_transactions_screen.006'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 6),
@@ -285,11 +286,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       spacing: 16,
       runSpacing: 16,
       children: [
-        _buildSummaryCard(_t('الرصيد الحالي', 'Current balance'), _currentBalance, AppTheme.primary),
-        _buildSummaryCard(_t('إجمالي الإضافات', 'Total credits'), _totalCredits, AppTheme.success),
-        _buildSummaryCard(_t('إجمالي الخصومات', 'Total debits'), _totalDebits, AppTheme.error),
         _buildSummaryCard(
-          _t('صافي الفترة', 'Net period'),
+          _t('screens_transactions_screen.007'),
+          _currentBalance,
+          AppTheme.primary,
+        ),
+        _buildSummaryCard(
+          _t('screens_transactions_screen.008'),
+          _totalCredits,
+          AppTheme.success,
+        ),
+        _buildSummaryCard(
+          _t('screens_transactions_screen.009'),
+          _totalDebits,
+          AppTheme.error,
+        ),
+        _buildSummaryCard(
+          _t('screens_transactions_screen.010'),
           net,
           net >= 0 ? AppTheme.primary : AppTheme.error,
         ),
@@ -327,14 +340,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       runSpacing: 12,
       children: [
         ShwakelButton(
-          label: _t('تحديث السجل', 'Refresh history'),
+          label: _t('screens_transactions_screen.011'),
           icon: Icons.refresh_rounded,
           isSecondary: true,
           width: 180,
           onPressed: _loadTransactions,
         ),
         ShwakelButton(
-          label: _t('تصدير CSV', 'Export CSV'),
+          label: _t('screens_transactions_screen.012'),
           icon: Icons.download_rounded,
           isSecondary: true,
           width: 180,
@@ -367,7 +380,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_t('البحث والفلاتر', 'Search & filters'), style: AppTheme.h3),
+                    Text(
+                      _t('screens_transactions_screen.013'),
+                      style: AppTheme.h3,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       _t(
@@ -393,7 +409,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               });
             },
             decoration: InputDecoration(
-              labelText: _t('البحث في الحركات', 'Search transactions'),
+              labelText: _t('screens_transactions_screen.014'),
               hintText: _t(
                 'ابحث بالوصف أو البطاقة أو نوع الحركة',
                 'Search by description, card, or transaction type',
@@ -409,24 +425,48 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 return Column(
                   children: [
                     _buildFilterPanel(
-                      title: _t('الفترة الزمنية', 'Date range'),
+                      title: _t('screens_transactions_screen.015'),
                       icon: Icons.calendar_month_rounded,
                       chips: [
-                        _buildDateChip(_t('الكل', 'All'), _TransactionDateFilter.all),
-                        _buildDateChip(_t('اليوم', 'Today'), _TransactionDateFilter.today),
-                        _buildDateChip(_t('آخر 7 أيام', 'Last 7 days'), _TransactionDateFilter.last7Days),
-                        _buildDateChip(_t('هذا الشهر', 'This month'), _TransactionDateFilter.thisMonth),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.016'),
+                          _TransactionDateFilter.all,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.017'),
+                          _TransactionDateFilter.today,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.018'),
+                          _TransactionDateFilter.last7Days,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.019'),
+                          _TransactionDateFilter.thisMonth,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 14),
                     _buildFilterPanel(
-                      title: _t('الموقع والنوع', 'Location & type'),
+                      title: _t('screens_transactions_screen.020'),
                       icon: Icons.filter_alt_rounded,
                       chips: [
-                        _buildAuditChip(_t('الكل', 'All'), _TransactionAuditFilter.all),
-                        _buildAuditChip(_t('قرب فرع', 'Near branch'), _TransactionAuditFilter.nearBranch),
-                        _buildAuditChip(_t('خارج الفروع', 'Outside branches'), _TransactionAuditFilter.outsideBranches),
-                        _buildAuditChip(_t('دين الطباعة', 'Printing debt'), _TransactionAuditFilter.printingDebt),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.021'),
+                          _TransactionAuditFilter.all,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.022'),
+                          _TransactionAuditFilter.nearBranch,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.023'),
+                          _TransactionAuditFilter.outsideBranches,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.024'),
+                          _TransactionAuditFilter.printingDebt,
+                        ),
                       ],
                     ),
                   ],
@@ -438,26 +478,50 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 children: [
                   Expanded(
                     child: _buildFilterPanel(
-                      title: _t('الفترة الزمنية', 'Date range'),
+                      title: _t('screens_transactions_screen.025'),
                       icon: Icons.calendar_month_rounded,
                       chips: [
-                        _buildDateChip(_t('الكل', 'All'), _TransactionDateFilter.all),
-                        _buildDateChip(_t('اليوم', 'Today'), _TransactionDateFilter.today),
-                        _buildDateChip(_t('آخر 7 أيام', 'Last 7 days'), _TransactionDateFilter.last7Days),
-                        _buildDateChip(_t('هذا الشهر', 'This month'), _TransactionDateFilter.thisMonth),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.026'),
+                          _TransactionDateFilter.all,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.027'),
+                          _TransactionDateFilter.today,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.028'),
+                          _TransactionDateFilter.last7Days,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.029'),
+                          _TransactionDateFilter.thisMonth,
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: _buildFilterPanel(
-                      title: _t('الموقع والنوع', 'Location & type'),
+                      title: _t('screens_transactions_screen.030'),
                       icon: Icons.filter_alt_rounded,
                       chips: [
-                        _buildAuditChip(_t('الكل', 'All'), _TransactionAuditFilter.all),
-                        _buildAuditChip(_t('قرب فرع', 'Near branch'), _TransactionAuditFilter.nearBranch),
-                        _buildAuditChip(_t('خارج الفروع', 'Outside branches'), _TransactionAuditFilter.outsideBranches),
-                        _buildAuditChip(_t('دين الطباعة', 'Printing debt'), _TransactionAuditFilter.printingDebt),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.031'),
+                          _TransactionAuditFilter.all,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.032'),
+                          _TransactionAuditFilter.nearBranch,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.033'),
+                          _TransactionAuditFilter.outsideBranches,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.034'),
+                          _TransactionAuditFilter.printingDebt,
+                        ),
                       ],
                     ),
                   ),
@@ -560,7 +624,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               color: AppTheme.textTertiary,
             ),
             const SizedBox(height: 24),
-            Text(_t('لا توجد حركات متاحة', 'No transactions available'), style: AppTheme.h3),
+            Text(_t('screens_transactions_screen.035'), style: AppTheme.h3),
             const SizedBox(height: 8),
             Text(
               _t(

@@ -28,6 +28,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   int _relockTimeout = 30;
   List<Map<String, dynamic>> _devices = const [];
   String? _busyDeviceId;
+  bool _isUpdatingBiometric = false;
 
   @override
   void initState() {
@@ -267,10 +268,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('PIN والبصمة', style: AppTheme.h3),
+          Text('وسائل القفل المحلي', style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'فعّل وسيلة دخول محلية لتسريع استخدام التطبيق وتأكيد العمليات.',
+            'فعّل رمز PIN أو البصمة أو كليهما لتسريع فتح التطبيق وتأكيد العمليات.',
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
@@ -311,45 +312,47 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               ],
             ),
           ),
-          if (_hasPin) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.secondary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppTheme.secondary.withValues(alpha: 0.10),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('تفعيل البصمة', style: AppTheme.bodyBold),
-                        const SizedBox(height: 4),
-                        Text(
-                          _canUseBiometrics
-                              ? 'استخدم البصمة أو الوجه لتسجيل الدخول السريع.'
-                              : 'هذا الجهاز لا يدعم البصمة أو لم يتم تفعيلها.',
-                          style: AppTheme.caption,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Switch(
-                    value: _biometricEnabled,
-                    onChanged: _canUseBiometrics ? _toggleBiometric : null,
-                    activeThumbColor: AppTheme.primary,
-                  ),
-                ],
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.secondary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppTheme.secondary.withValues(alpha: 0.10),
               ),
             ),
-          ],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('تفعيل البصمة', style: AppTheme.bodyBold),
+                      const SizedBox(height: 4),
+                      Text(
+                        _canUseBiometrics
+                            ? _hasPin
+                                  ? 'يمكنك استخدام البصمة أو PIN، وتعمل البصمة حتى بدون PIN.'
+                                  : 'يمكنك تفعيل البصمة مباشرة حتى لو لم تقم بإعداد PIN.'
+                            : 'هذا الجهاز لا يدعم البصمة أو لم يتم إعدادها على النظام.',
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Switch(
+                  value: _biometricEnabled,
+                  onChanged: (_canUseBiometrics && !_isUpdatingBiometric)
+                      ? _toggleBiometric
+                      : null,
+                  activeThumbColor: AppTheme.primary,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -586,19 +589,18 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Future<void> _toggleBiometric(bool value) async {
-    if (value && !_hasPin) {
-      AppAlertService.showError(
-        context,
-        title: 'يلزم PIN',
-        message: 'يجب إعداد رمز PIN أولًا قبل تفعيل البصمة.',
-      );
-      return;
+    setState(() => _isUpdatingBiometric = true);
+    try {
+      if (value && !await LocalSecurityService.authenticateWithBiometrics()) {
+        return;
+      }
+      await LocalSecurityService.setBiometricEnabled(value);
+      await _load();
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingBiometric = false);
+      }
     }
-    if (value && !await LocalSecurityService.authenticateWithBiometrics()) {
-      return;
-    }
-    await LocalSecurityService.setBiometricEnabled(value);
-    _load();
   }
 
   Future<void> _updateTimeout(int seconds) async {

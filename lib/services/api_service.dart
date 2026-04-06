@@ -91,9 +91,7 @@ class ApiService {
       headers: await _publicHeaders(),
     );
     final body = _decodeObject(response);
-    return Map<String, dynamic>.from(
-      body['topupRequest'] as Map? ?? const {},
-    );
+    return Map<String, dynamic>.from(body['topupRequest'] as Map? ?? const {});
   }
 
   Future<Map<String, dynamic>> getTransferSettings() async {
@@ -730,9 +728,7 @@ class ApiService {
       headers: await _headers(),
     );
     final body = _decodeObject(response);
-    return Map<String, dynamic>.from(
-      body['topupRequest'] as Map? ?? const {},
-    );
+    return Map<String, dynamic>.from(body['topupRequest'] as Map? ?? const {});
   }
 
   Future<Map<String, dynamic>> updateAdminTopupRequestSettings({

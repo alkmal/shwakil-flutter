@@ -36,10 +36,10 @@ class AdminCustomerCard extends StatelessWidget {
     final verificationStatus =
         customer['transferVerificationStatus']?.toString() ?? 'unverified';
     final statusLabel = verificationStatus == 'approved'
-        ? l.text('موثق', 'Verified')
+        ? l.tr('widgets_admin_admin_customer_card.001')
         : verificationStatus == 'pending'
-        ? l.text('قيد المراجعة', 'Under review')
-        : l.text('غير موثق', 'Unverified');
+        ? l.tr('widgets_admin_admin_customer_card.002')
+        : l.tr('widgets_admin_admin_customer_card.003');
 
     return ShwakelCard(
       padding: EdgeInsets.zero,
@@ -133,7 +133,7 @@ class AdminCustomerCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      l.text('الرصيد', 'Balance'),
+                      l.tr('widgets_admin_admin_customer_card.004'),
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textSecondary,
                       ),
@@ -157,15 +157,15 @@ class AdminCustomerCard extends StatelessWidget {
                 children: [
                   Text(
                     role == 'admin'
-                        ? l.text('نوع الحساب', 'Account type')
-                        : l.text('حالة التوثيق', 'Verification status'),
+                        ? l.tr('widgets_admin_admin_customer_card.005')
+                        : l.tr('widgets_admin_admin_customer_card.006'),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),
                   ),
                   Text(
                     role == 'admin'
-                        ? l.text('مسؤول', 'Admin')
+                        ? l.tr('widgets_admin_admin_customer_card.007')
                         : statusLabel,
                     style: AppTheme.caption.copyWith(
                       color: verificationStatus == 'approved'
@@ -188,7 +188,7 @@ class AdminCustomerCard extends StatelessWidget {
                     borderRadius: AppTheme.radiusSm,
                   ),
                   child: Text(
-                    l.text('مسؤول نظام', 'System administrator'),
+                    l.tr('widgets_admin_admin_customer_card.008'),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.accent,
                       fontWeight: FontWeight.bold,

@@ -73,7 +73,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('مخزون البطاقات الرقمية', 'Digital Card Inventory'))),
+      appBar: AppBar(title: Text(l.tr('screens_inventory_screen.001'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -144,7 +144,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.text('مخزون البطاقات', 'Card Inventory'),
+                  l.tr('screens_inventory_screen.002'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
@@ -160,7 +160,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 const SizedBox(height: 18),
                 ShwakelButton(
-                  label: l.text('طلب طباعة بطاقات', 'Request card printing'),
+                  label: l.tr('screens_inventory_screen.003'),
                   icon: Icons.print_rounded,
                   isSecondary: true,
                   onPressed: () =>
@@ -176,7 +176,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              l.text('$_totalCards بطاقة', '$_totalCards cards'),
+              l.tr(
+                'screens_inventory_screen.004',
+                params: {'totalCards': '$_totalCards'},
+              ),
               style: AppTheme.bodyBold.copyWith(color: Colors.white),
             ),
           );
@@ -207,10 +210,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
       child: Row(
         children: CardStatus.values.map((status) {
           final label = status == CardStatus.unused
-              ? l.text('جديدة', 'New')
+              ? l.tr('screens_inventory_screen.005')
               : (status == CardStatus.used
-                    ? l.text('مستخدمة', 'Used')
-                    : l.text('مؤرشفة', 'Archived'));
+                    ? l.tr('screens_inventory_screen.006')
+                    : l.tr('screens_inventory_screen.007'));
           final isSelected = _filter == status;
           return Padding(
             padding: const EdgeInsets.only(left: 12),
@@ -334,7 +337,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final l = context.loc;
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert_rounded),
-      onSelected: (value) => value == 'print' ? _reprint(card) : _delete(card.id),
+      onSelected: (value) =>
+          value == 'print' ? _reprint(card) : _delete(card.id),
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 'print',
@@ -342,7 +346,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             children: [
               const Icon(Icons.print_rounded, size: 18),
               const SizedBox(width: 8),
-              Text(l.text('طباعة', 'Print')),
+              Text(l.tr('screens_inventory_screen.008')),
             ],
           ),
         ),
@@ -351,10 +355,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
             value: 'delete',
             child: Row(
               children: [
-                const Icon(Icons.delete_rounded, size: 18, color: AppTheme.error),
+                const Icon(
+                  Icons.delete_rounded,
+                  size: 18,
+                  color: AppTheme.error,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  l.text('حذف وإرجاع القيمة', 'Delete and refund'),
+                  l.tr('screens_inventory_screen.009'),
                   style: const TextStyle(color: AppTheme.error),
                 ),
               ],
@@ -393,10 +401,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Future<void> _reprint(VirtualCard card) async {
     final l = context.loc;
     final user = await _authService.currentUser();
-    await _pdfService.printCards(
-      [card],
-      printedBy: user?['username'] ?? l.text('شواكل', 'Shawakel'),
-    );
+    await _pdfService.printCards([
+      card,
+    ], printedBy: user?['username'] ?? l.tr('screens_inventory_screen.010'));
     if (mounted) {
       AppAlertService.showSuccess(
         context,
@@ -413,7 +420,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l.text('حذف نهائي؟', 'Permanent deletion?')),
+        title: Text(l.tr('screens_inventory_screen.011')),
         content: Text(
           l.text(
             'سيتم حذف البطاقة وإعادة الرصيد لحسابك فورًا.',
@@ -423,10 +430,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.text('إلغاء', 'Cancel')),
+            child: Text(l.tr('screens_inventory_screen.012')),
           ),
           ShwakelButton(
-            label: l.text('حذف', 'Delete'),
+            label: l.tr('screens_inventory_screen.013'),
             onPressed: () => Navigator.pop(dialogContext, true),
             isSecondary: true,
           ),

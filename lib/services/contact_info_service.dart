@@ -1,1 +1,65 @@
-import 'api_service.dart';class ContactInfoService {  ContactInfoService._();  static final ApiService _apiService = ApiService();  static Map<String, dynamic>? _cachedContact;  static Map<String, dynamic> fallbackContact() {    return <String, dynamic>{      'title': 'التواصل',      'supportWhatsapp': '',      'supportEmail': 'support@alkmal.com',      'address': 'فلسطين',    };  }  static Future<Map<String, dynamic>> getContactInfo({    bool refresh = false,  }) async {    if (!refresh && _cachedContact != null) {      return Map<String, dynamic>.from(_cachedContact!);    }    try {      final contact = await _apiService.getContactInfo();      _cachedContact = _mergedWithFallback(contact);    } catch (_) {      _cachedContact ??= fallbackContact();    }    return Map<String, dynamic>.from(_cachedContact!);  }  static Map<String, dynamic> _mergedWithFallback(Map<String, dynamic> contact) {    final fallback = fallbackContact();    String pickString(String key) {      final value = contact[key]?.toString().trim() ?? '';      final fallbackValue = fallback[key]?.toString() ?? '';      return value.isNotEmpty ? value : fallbackValue;    }    return <String, dynamic>{      'title': pickString('title'),      'supportWhatsapp': pickString('supportWhatsapp'),      'supportEmail': pickString('supportEmail'),      'address': pickString('address'),    };  }  static String supportWhatsapp(Map<String, dynamic> contact) =>      contact['supportWhatsapp']?.toString().trim().isNotEmpty == true      ? contact['supportWhatsapp'].toString().trim()      : '';  static String supportEmail(Map<String, dynamic> contact) =>      contact['supportEmail']?.toString().trim().isNotEmpty == true      ? contact['supportEmail'].toString().trim()      : 'support@alkmal.com';  static String title(Map<String, dynamic> contact) =>      contact['title']?.toString().trim().isNotEmpty == true      ? contact['title'].toString().trim()      : 'التواصل';  static String address(Map<String, dynamic> contact) =>      contact['address']?.toString().trim().isNotEmpty == true      ? contact['address'].toString().trim()      : 'فلسطين';}
+import 'api_service.dart';
+
+class ContactInfoService {
+  ContactInfoService._();
+  static final ApiService _apiService = ApiService();
+  static Map<String, dynamic>? _cachedContact;
+  static Map<String, dynamic> fallbackContact() {
+    return <String, dynamic>{
+      'title': 'التواصل',
+      'supportWhatsapp': '',
+      'supportEmail': 'support@alkmal.com',
+      'address': 'فلسطين',
+    };
+  }
+
+  static Future<Map<String, dynamic>> getContactInfo({
+    bool refresh = false,
+  }) async {
+    if (!refresh && _cachedContact != null) {
+      return Map<String, dynamic>.from(_cachedContact!);
+    }
+    try {
+      final contact = await _apiService.getContactInfo();
+      _cachedContact = _mergedWithFallback(contact);
+    } catch (_) {
+      _cachedContact ??= fallbackContact();
+    }
+    return Map<String, dynamic>.from(_cachedContact!);
+  }
+
+  static Map<String, dynamic> _mergedWithFallback(
+    Map<String, dynamic> contact,
+  ) {
+    final fallback = fallbackContact();
+    String pickString(String key) {
+      final value = contact[key]?.toString().trim() ?? '';
+      final fallbackValue = fallback[key]?.toString() ?? '';
+      return value.isNotEmpty ? value : fallbackValue;
+    }
+
+    return <String, dynamic>{
+      'title': pickString('title'),
+      'supportWhatsapp': pickString('supportWhatsapp'),
+      'supportEmail': pickString('supportEmail'),
+      'address': pickString('address'),
+    };
+  }
+
+  static String supportWhatsapp(Map<String, dynamic> contact) =>
+      contact['supportWhatsapp']?.toString().trim().isNotEmpty == true
+      ? contact['supportWhatsapp'].toString().trim()
+      : '';
+  static String supportEmail(Map<String, dynamic> contact) =>
+      contact['supportEmail']?.toString().trim().isNotEmpty == true
+      ? contact['supportEmail'].toString().trim()
+      : 'support@alkmal.com';
+  static String title(Map<String, dynamic> contact) =>
+      contact['title']?.toString().trim().isNotEmpty == true
+      ? contact['title'].toString().trim()
+      : 'التواصل';
+  static String address(Map<String, dynamic> contact) =>
+      contact['address']?.toString().trim().isNotEmpty == true
+      ? contact['address'].toString().trim()
+      : 'فلسطين';
+}

@@ -87,7 +87,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: context.loc.text('تم الحفظ', 'Saved'),
+        title: context.loc.tr('screens_admin_permissions_screen.001'),
         message: context.loc.text(
           'تم تحديث قوالب الصلاحيات بنجاح.',
           'Permission templates have been updated successfully.',
@@ -99,7 +99,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: context.loc.text('تعذر الحفظ', 'Could not save'),
+        title: context.loc.tr('screens_admin_permissions_screen.002'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -121,7 +121,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: Text(l.text('قوالب الصلاحيات', 'Permission Templates')),
+          title: Text(l.tr('screens_admin_permissions_screen.003')),
           bottom: TabBar(
             isScrollable: true,
             tabs: _roles
@@ -132,7 +132,9 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         drawer: const AppSidebar(),
         body: TabBarView(
           children: _roles
-              .map((role) => _buildRoleView(role['value']?.toString() ?? 'basic'))
+              .map(
+                (role) => _buildRoleView(role['value']?.toString() ?? 'basic'),
+              )
               .toList(),
         ),
         floatingActionButton: FloatingActionButton.extended(
@@ -140,8 +142,8 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
           icon: const Icon(Icons.save_rounded),
           label: Text(
             _isSaving
-                ? l.text('جارٍ الحفظ...', 'Saving...')
-                : l.text('حفظ', 'Save'),
+                ? l.tr('screens_admin_permissions_screen.004')
+                : l.tr('screens_admin_permissions_screen.005'),
           ),
         ),
       ),
@@ -222,47 +224,55 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   String _groupTitle(String key) {
     final l = context.loc;
     return switch (key) {
-      'public_pages' => l.text('الصفحات العامة', 'Public Pages'),
-      'cards_and_ops' => l.text('البطاقات والعمليات', 'Cards & Operations'),
-      _ => l.text('الإدارة والمتابعة', 'Administration & Follow-up'),
+      'public_pages' => l.tr('screens_admin_permissions_screen.006'),
+      'cards_and_ops' => l.tr('screens_admin_permissions_screen.007'),
+      _ => l.tr('screens_admin_permissions_screen.008'),
     };
   }
 
   String _permissionLabel(String key) {
     final l = context.loc;
     return switch (key) {
-      'canViewBalance' => l.text('عرض صفحة الرصيد', 'View balance screen'),
-      'canViewTransactions' => l.text('عرض الحركات', 'View transactions'),
-      'canViewInventory' => l.text('عرض البطاقات', 'View cards'),
-      'canViewQuickTransfer' => l.text('عرض النقل السريع', 'View quick transfer'),
-      'canViewContact' => l.text('عرض الدعم', 'View support'),
-      'canViewLocations' => l.text('عرض الوكلاء والمواقع', 'View agents and locations'),
-      'canViewUsagePolicy' => l.text('عرض سياسة الاستخدام', 'View usage policy'),
-      'canViewSecuritySettings' => l.text('عرض الأمان', 'View security settings'),
-      'canViewAccountSettings' => l.text('عرض الحساب', 'View account settings'),
-      'canRequestVerification' => l.text('السماح بطلب التوثيق', 'Allow verification requests'),
-      'canIssueCards' => l.text('إصدار البطاقات', 'Issue cards'),
-      'canIssueSubShekelCards' => l.text('بطاقات أقل من شيكل', 'Issue sub-shekel cards'),
-      'canIssueHighValueCards' => l.text('بطاقات عالية القيمة', 'Issue high-value cards'),
-      'canIssuePrivateCards' => l.text('بطاقات خاصة', 'Issue private cards'),
-      'canDeleteCards' => l.text('حذف البطاقات', 'Delete cards'),
-      'canResellCards' => l.text('إعادة بيع البطاقات', 'Resell cards'),
-      'canRequestCardPrinting' => l.text('طلب طباعة البطاقات', 'Request card printing'),
-      'canScanCards' => l.text('فحص البطاقات', 'Scan cards'),
-      'canTransfer' => l.text('التحويل', 'Transfer funds'),
-      'canWithdraw' => l.text('السحب والاسترداد', 'Withdraw and redeem'),
-      'canViewCustomers' => l.text('عرض العملاء', 'View customers'),
-      'canLookupMembers' => l.text('البحث عن الأعضاء', 'Lookup members'),
-      'canManageUsers' => l.text('إدارة المستخدمين', 'Manage users'),
-      'canManageLocations' => l.text('إدارة المواقع', 'Manage locations'),
-      'canManageSystemSettings' => l.text('إدارة إعدادات النظام', 'Manage system settings'),
-      'canReviewWithdrawals' => l.text('مراجعة السحب', 'Review withdrawals'),
-      'canReviewTopups' => l.text('مراجعة شحن الرصيد', 'Review top-ups'),
-      'canReviewDevices' => l.text('مراجعة الأجهزة', 'Review devices'),
-      'canReviewCardPrintRequests' => l.text('مراجعة طلبات الطباعة', 'Review print requests'),
-      'canPrepareCardPrintRequests' => l.text('تجهيز طلبات الطباعة', 'Prepare print requests'),
-      'canFinalizeCardPrintRequests' => l.text('إكمال طلبات الطباعة', 'Finalize print requests'),
-      'canExportCustomerTransactions' => l.text('تصدير كشف العملاء', 'Export customer transactions'),
+      'canViewBalance' => l.tr('screens_admin_permissions_screen.009'),
+      'canViewTransactions' => l.tr('screens_admin_permissions_screen.010'),
+      'canViewInventory' => l.tr('screens_admin_permissions_screen.011'),
+      'canViewQuickTransfer' => l.tr('screens_admin_permissions_screen.012'),
+      'canViewContact' => l.tr('screens_admin_permissions_screen.013'),
+      'canViewLocations' => l.tr('screens_admin_permissions_screen.014'),
+      'canViewUsagePolicy' => l.tr('screens_admin_permissions_screen.015'),
+      'canViewSecuritySettings' => l.tr('screens_admin_permissions_screen.016'),
+      'canViewAccountSettings' => l.tr('screens_admin_permissions_screen.017'),
+      'canRequestVerification' => l.tr('screens_admin_permissions_screen.018'),
+      'canIssueCards' => l.tr('screens_admin_permissions_screen.019'),
+      'canIssueSubShekelCards' => l.tr('screens_admin_permissions_screen.020'),
+      'canIssueHighValueCards' => l.tr('screens_admin_permissions_screen.021'),
+      'canIssuePrivateCards' => l.tr('screens_admin_permissions_screen.022'),
+      'canDeleteCards' => l.tr('screens_admin_permissions_screen.023'),
+      'canResellCards' => l.tr('screens_admin_permissions_screen.024'),
+      'canRequestCardPrinting' => l.tr('screens_admin_permissions_screen.025'),
+      'canScanCards' => l.tr('screens_admin_permissions_screen.026'),
+      'canTransfer' => l.tr('screens_admin_permissions_screen.027'),
+      'canWithdraw' => l.tr('screens_admin_permissions_screen.028'),
+      'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),
+      'canLookupMembers' => l.tr('screens_admin_permissions_screen.030'),
+      'canManageUsers' => l.tr('screens_admin_permissions_screen.031'),
+      'canManageLocations' => l.tr('screens_admin_permissions_screen.032'),
+      'canManageSystemSettings' => l.tr('screens_admin_permissions_screen.033'),
+      'canReviewWithdrawals' => l.tr('screens_admin_permissions_screen.034'),
+      'canReviewTopups' => l.tr('screens_admin_permissions_screen.035'),
+      'canReviewDevices' => l.tr('screens_admin_permissions_screen.036'),
+      'canReviewCardPrintRequests' => l.tr(
+        'screens_admin_permissions_screen.037',
+      ),
+      'canPrepareCardPrintRequests' => l.tr(
+        'screens_admin_permissions_screen.038',
+      ),
+      'canFinalizeCardPrintRequests' => l.tr(
+        'screens_admin_permissions_screen.039',
+      ),
+      'canExportCustomerTransactions' => l.tr(
+        'screens_admin_permissions_screen.040',
+      ),
       _ => key,
     };
   }

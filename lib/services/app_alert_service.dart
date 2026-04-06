@@ -318,4 +318,3 @@ class _AlertStyle {
   final Color softColor;
   final IconData icon;
 }
-

@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           navigatorKey: AppAlertService.navigatorKey,
-          title: localizer.text('شواكل', 'Shawakel'),
+          title: localizer.tr('main.001'),
           locale: locale,
           supportedLocales: const [Locale('ar'), Locale('en')],
           localizationsDelegates: const [

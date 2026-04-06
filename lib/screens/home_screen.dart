@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
           actions: [
             ShwakelButton(
-              label: l.text('إلغاء', 'Cancel'),
+              label: l.tr('screens_home_screen.001'),
               isSecondary: true,
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -211,12 +211,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(l.text('شواكل', 'Shawakel')),
+        title: Text(l.tr('screens_home_screen.002')),
         actions: [
           IconButton(
             onPressed: _logout,
             icon: const Icon(Icons.logout_rounded),
-            tooltip: l.text('تسجيل الخروج', 'Log Out'),
+            tooltip: l.tr('screens_home_screen.003'),
           ),
         ],
       ),
@@ -250,12 +250,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               const SizedBox(height: 22),
                             ],
                             Text(
-                              l.text('جميع الخدمات', 'All Services'),
+                              l.tr('screens_home_screen.004'),
                               style: AppTheme.h1,
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              l.text('اختر خدمتك.', 'Choose your service.'),
+                              l.tr('screens_home_screen.005'),
                               style: AppTheme.bodyAction,
                             ),
                             const SizedBox(height: 18),
@@ -416,8 +416,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   children: [
                     Text(
                       displayName.isEmpty
-                          ? l.text('مرحبًا بك', 'Welcome')
-                          : l.text('مرحبًا $displayName', 'Welcome, $displayName'),
+                          ? l.tr('screens_home_screen.006')
+                          : l.text(
+                              'مرحبًا $displayName',
+                              'Welcome, $displayName',
+                            ),
                       style: AppTheme.h2.copyWith(
                         color: Colors.white,
                         fontSize: isMobile ? 18 : 22,
@@ -425,9 +428,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      role.isEmpty
-                          ? l.text('حسابك جاهز', 'Your account is ready')
-                          : role,
+                      role.isEmpty ? l.tr('screens_home_screen.007') : role,
                       style: AppTheme.bodyBold.copyWith(
                         color: Colors.white.withValues(alpha: 0.92),
                         fontSize: 15,
@@ -464,7 +465,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.text('الخدمات السريعة', 'Quick Services'),
+                  l.tr('screens_home_screen.008'),
                   style: AppTheme.bodyBold.copyWith(
                     color: Colors.white.withValues(alpha: 0.92),
                   ),
@@ -500,8 +501,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     _buildHeroChip(
                       icon: Icons.verified_user_rounded,
                       label: _isVerifiedAccount
-                          ? l.text('الحساب موثق', 'Verified account')
-                          : l.text('الحساب غير موثق', 'Unverified account'),
+                          ? l.tr('screens_home_screen.009')
+                          : l.tr('screens_home_screen.010'),
                     ),
                     if (role.isNotEmpty)
                       _buildHeroChip(icon: Icons.badge_rounded, label: role),
@@ -535,34 +536,41 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       padding: EdgeInsets.all(compact ? 20 : 22),
       borderRadius: BorderRadius.circular(28),
       shadowLevel: ShwakelShadowLevel.medium,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                width: compact ? 60 : 68,
-                height: compact ? 60 : 68,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(icon, color: color, size: compact ? 28 : 32),
-              ),
-              const Spacer(),
-              Icon(Icons.chevron_left_rounded, color: color, size: 26),
-            ],
+          Container(
+            width: compact ? 58 : 66,
+            height: compact ? 58 : 66,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(icon, color: color, size: compact ? 28 : 32),
           ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: AppTheme.h3.copyWith(
-              color: color,
-              fontSize: compact ? 17 : 19,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: AppTheme.h3.copyWith(
+                    color: color,
+                    fontSize: compact ? 17 : 19,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: AppTheme.bodyAction.copyWith(height: 1.45),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(subtitle, style: AppTheme.bodyAction.copyWith(height: 1.55)),
+          const SizedBox(width: 12),
+          Icon(Icons.chevron_left_rounded, color: color, size: 26),
         ],
       ),
     );
@@ -610,7 +618,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l.text('فحص الباركود', 'Barcode Scan'),
+                      l.tr('screens_home_screen.011'),
                       style: AppTheme.h2.copyWith(fontSize: 18),
                     ),
                     const SizedBox(height: 8),
@@ -642,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
           const SizedBox(height: 22),
           ShwakelButton(
-            label: l.text('فتح الكاميرا', 'Open Camera'),
+            label: l.tr('screens_home_screen.012'),
             icon: Icons.camera_alt_rounded,
             onPressed: _startHomeBarcodeScan,
           ),
@@ -667,4 +675,3 @@ class _HomeServiceItem {
   final Color color;
   final VoidCallback onTap;
 }
-

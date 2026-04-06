@@ -111,7 +111,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     const Spacer(),
                     TextButton(
                       onPressed: _isFinishing ? null : _skip,
-                      child: Text(l.text('تخطي', 'Skip')),
+                      child: Text(l.tr('screens_onboarding_screen.001')),
                     ),
                   ],
                 ),
@@ -151,8 +151,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 20),
                 ShwakelButton(
                   label: _currentPage == _slides.length - 1
-                      ? l.text('ابدأ الآن', 'Get Started')
-                      : l.text('التالي', 'Next'),
+                      ? l.tr('screens_onboarding_screen.002')
+                      : l.tr('screens_onboarding_screen.003'),
                   icon: _currentPage == _slides.length - 1
                       ? (l.isArabic
                             ? Icons.arrow_back_rounded
@@ -183,31 +183,31 @@ class _OnboardingSlide extends StatelessWidget {
     final l = context.loc;
     final title = switch (slide.id) {
       'wallet' => l.text(
-          'رصيدك وخدماتك في مكان واحد',
-          'Your balance and services in one place',
-        ),
+        'رصيدك وخدماتك في مكان واحد',
+        'Your balance and services in one place',
+      ),
       'speed' => l.text(
-          'تنفيذ أسرع للبطاقات والتحويلات',
-          'Faster card and transfer actions',
-        ),
+        'تنفيذ أسرع للبطاقات والتحويلات',
+        'Faster card and transfer actions',
+      ),
       _ => l.text(
-          'حماية وتجربة استخدام موثوقة',
-          'Trusted protection and a reliable experience',
-        ),
+        'حماية وتجربة استخدام موثوقة',
+        'Trusted protection and a reliable experience',
+      ),
     };
     final description = switch (slide.id) {
       'wallet' => l.text(
-          'تابع الرصيد، أنشئ البطاقات، وادخل إلى أهم العمليات اليومية من واجهة بسيطة وواضحة.',
-          'Track your balance, create cards, and access daily operations from a clear and simple interface.',
-        ),
+        'تابع الرصيد، أنشئ البطاقات، وادخل إلى أهم العمليات اليومية من واجهة بسيطة وواضحة.',
+        'Track your balance, create cards, and access daily operations from a clear and simple interface.',
+      ),
       'speed' => l.text(
-          'التطبيق مصمم لتقليل الخطوات وتسريع الوصول إلى إنشاء البطاقات، المسح، والتحويل.',
-          'The app is designed to reduce steps and speed up access to card creation, scanning, and transfers.',
-        ),
+        'التطبيق مصمم لتقليل الخطوات وتسريع الوصول إلى إنشاء البطاقات، المسح، والتحويل.',
+        'The app is designed to reduce steps and speed up access to card creation, scanning, and transfers.',
+      ),
       _ => l.text(
-          'التحقق، إدارة الحساب، والعمليات الحساسة كلها منظمة بطريقة آمنة ومريحة للمستخدم.',
-          'Verification, account management, and sensitive actions are organized in a secure and user-friendly way.',
-        ),
+        'التحقق، إدارة الحساب، والعمليات الحساسة كلها منظمة بطريقة آمنة ومريحة للمستخدم.',
+        'Verification, account management, and sensitive actions are organized in a secure and user-friendly way.',
+      ),
     };
 
     return Column(

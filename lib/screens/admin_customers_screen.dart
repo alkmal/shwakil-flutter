@@ -87,7 +87,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       });
       await AppAlertService.showError(
         context,
-        title: context.loc.text('تعذر تحميل العملاء', 'Could not load customers'),
+        title: context.loc.tr('screens_admin_customers_screen.001'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -121,7 +121,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 whatsappController.text.trim().isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
-                title: l.text('بيانات ناقصة', 'Missing data'),
+                title: l.tr('screens_admin_customers_screen.002'),
                 message: l.text(
                   'اسم المستخدم ورقم الواتساب مطلوبان.',
                   'Username and WhatsApp number are required.',
@@ -147,7 +147,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               }
               await AppAlertService.showSuccess(
                 context,
-                title: l.text('تم إنشاء المستخدم', 'User created'),
+                title: l.tr('screens_admin_customers_screen.003'),
                 message:
                     response['message']?.toString() ??
                     l.text(
@@ -163,14 +163,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               setDialogState(() => isSaving = false);
               await AppAlertService.showError(
                 dialogContext,
-                title: l.text('تعذر الإنشاء', 'Creation failed'),
+                title: l.tr('screens_admin_customers_screen.004'),
                 message: ErrorMessageService.sanitize(error),
               );
             }
           }
 
           return AlertDialog(
-            title: Text(l.text('إضافة مستخدم جديد', 'Add new user')),
+            title: Text(l.tr('screens_admin_customers_screen.005')),
             content: SizedBox(
               width: 460,
               child: SingleChildScrollView(
@@ -180,7 +180,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                     TextField(
                       controller: usernameController,
                       decoration: InputDecoration(
-                        labelText: l.text('اسم المستخدم', 'Username'),
+                        labelText: l.tr('screens_admin_customers_screen.006'),
                         prefixIcon: const Icon(Icons.person_outline_rounded),
                       ),
                     ),
@@ -188,7 +188,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                     TextField(
                       controller: fullNameController,
                       decoration: InputDecoration(
-                        labelText: l.text('الاسم الكامل', 'Full name'),
+                        labelText: l.tr('screens_admin_customers_screen.007'),
                         prefixIcon: const Icon(Icons.badge_rounded),
                       ),
                     ),
@@ -201,7 +201,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                           child: DropdownButtonFormField<String>(
                             initialValue: countryCode,
                             decoration: InputDecoration(
-                              labelText: l.text('رمز الدولة', 'Country code'),
+                              labelText: l.tr(
+                                'screens_admin_customers_screen.008',
+                              ),
                             ),
                             items: PhoneNumberService.countries
                                 .map(
@@ -224,7 +226,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                             controller: whatsappController,
                             keyboardType: TextInputType.phone,
                             decoration: InputDecoration(
-                              labelText: l.text('رقم الواتساب', 'WhatsApp'),
+                              labelText: l.tr(
+                                'screens_admin_customers_screen.009',
+                              ),
                               prefixIcon: const Icon(Icons.phone_rounded),
                             ),
                           ),
@@ -235,7 +239,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                             children: [
                               countryField,
                               const SizedBox(height: 12),
-                              SizedBox(width: double.infinity, child: phoneField),
+                              SizedBox(
+                                width: double.infinity,
+                                child: phoneField,
+                              ),
                             ],
                           );
                         }
@@ -256,7 +263,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                         'A temporary password will be generated and sent automatically to the provided WhatsApp number.',
                       ),
                       textAlign: TextAlign.center,
-                      style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -265,14 +274,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             actions: [
               TextButton(
                 onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                child: Text(l.text('إلغاء', 'Cancel')),
+                child: Text(l.tr('screens_admin_customers_screen.010')),
               ),
               ElevatedButton(
                 onPressed: isSaving ? null : submit,
                 child: Text(
                   isSaving
-                      ? l.text('جارٍ الحفظ...', 'Saving...')
-                      : l.text('إنشاء', 'Create'),
+                      ? l.tr('screens_admin_customers_screen.011')
+                      : l.tr('screens_admin_customers_screen.012'),
                 ),
               ),
             ],
@@ -307,7 +316,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l.text('Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ§ØªØ³Ø§Ø¨', 'Resend WhatsApp credentials')),
+        title: Text(l.tr('screens_admin_customers_screen.013')),
         content: Text(
           l.text(
             'Ø³ÙŠØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¬Ø¯ÙŠØ¯Ø© ÙˆØ±Ù‚Ù… Ø§Ù„ÙˆØ§ØªØ³Ø§Ø¨ Ø§Ù„Ù…Ø¹ØØÙˆØ¯ Ù…Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….',
@@ -317,10 +326,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.text('Ù„ØºÙŠ', 'Cancel')),
+            child: Text(l.tr('screens_admin_customers_screen.014')),
           ),
           ShwakelButton(
-            label: l.text('Ø¥Ø±Ø³Ø§Ù„', 'Send'),
+            label: l.tr('screens_admin_customers_screen.015'),
             onPressed: () => Navigator.pop(dialogContext, true),
             width: 120,
           ),
@@ -343,8 +352,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       }
       AppAlertService.showSuccess(
         context,
-        message: response['message']?.toString() ??
-            l.text('ØªÙ… Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.', 'Account details resent.'),
+        message:
+            response['message']?.toString() ??
+            l.tr('screens_admin_customers_screen.016'),
       );
     } catch (error) {
       if (!mounted) {
@@ -370,7 +380,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('إدارة العملاء', 'Customer Management'))),
+      appBar: AppBar(title: Text(l.tr('screens_admin_customers_screen.017'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: () => _loadCustomers(reset: true),
@@ -387,7 +397,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.text('إدارة العملاء', 'Customer Management'),
+                        l.tr('screens_admin_customers_screen.018'),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
@@ -406,14 +416,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                         runSpacing: 12,
                         children: [
                           _heroBadge(
-                            l.text('إجمالي الظاهر', 'Visible now'),
+                            l.tr('screens_admin_customers_screen.019'),
                             l.text(
                               '${_customers.length} عميل',
                               '${_customers.length} customers',
                             ),
                           ),
                           _heroBadge(
-                            l.text('إجمالي النظام', 'Total in system'),
+                            l.tr('screens_admin_customers_screen.020'),
                             l.text(
                               '${(_summary['totalCustomers'] as num?)?.toInt() ?? _customers.length} حساب',
                               '${(_summary['totalCustomers'] as num?)?.toInt() ?? _customers.length} accounts',
@@ -426,14 +436,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 ),
                 const SizedBox(height: 24),
                 AdminSectionHeader(
-                  title: l.text('العملاء', 'Customers'),
+                  title: l.tr('screens_admin_customers_screen.021'),
                   subtitle: l.text(
                     'كل البيانات هنا تخص العملاء فقط، وتُجلب عند فتح هذه الشاشة.',
                     'All data here belongs only to customers and is loaded when this screen opens.',
                   ),
                   icon: Icons.people_alt_rounded,
                   trailing: ShwakelButton(
-                    label: l.text('إضافة مستخدم', 'Add user'),
+                    label: l.tr('screens_admin_customers_screen.022'),
                     icon: Icons.person_add_alt_1_rounded,
                     onPressed: _showCreateCustomerDialog,
                   ),
@@ -442,17 +452,20 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    labelText: l.text('ابحث عن عميل...', 'Search for a customer...'),
+                    labelText: l.tr('screens_admin_customers_screen.023'),
                     prefixIcon: const Icon(Icons.search_rounded),
                   ),
                   onChanged: (_) {
                     _searchDebounce?.cancel();
-                    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
-                      if (!mounted) {
-                        return;
-                      }
-                      _loadCustomers(reset: true);
-                    });
+                    _searchDebounce = Timer(
+                      const Duration(milliseconds: 350),
+                      () {
+                        if (!mounted) {
+                          return;
+                        }
+                        _loadCustomers(reset: true);
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 16),
@@ -481,7 +494,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                         return AdminCustomerCard(
                           customer: customer,
                           onTap: () => _openCustomerDetails(customer),
-                          onResendCredentials: () => _resendCustomerCredentials(customer),
+                          onResendCredentials: () =>
+                              _resendCustomerCredentials(customer),
                         );
                       },
                     );

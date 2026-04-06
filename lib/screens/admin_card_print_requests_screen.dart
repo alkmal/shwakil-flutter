@@ -82,7 +82,10 @@ class _AdminCardPrintRequestsScreenState
     }
   }
 
-  Future<void> _handleAction(Map<String, dynamic> request, String action) async {
+  Future<void> _handleAction(
+    Map<String, dynamic> request,
+    String action,
+  ) async {
     setState(() => _busyId = request['id']?.toString());
     try {
       switch (action) {
@@ -127,7 +130,7 @@ class _AdminCardPrintRequestsScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(l.text('طلبات طباعة البطاقات', 'Card Print Requests')),
+        title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -166,7 +169,7 @@ class _AdminCardPrintRequestsScreenState
                 ),
                 const SizedBox(height: 24),
                 AdminSectionHeader(
-                  title: l.text('متابعة الطلبات', 'Request tracking'),
+                  title: l.tr('screens_admin_card_print_requests_screen.002'),
                   subtitle: l.text(
                     'فلترة وبحث ثم متابعة كل طلب حسب مرحلته الحالية.',
                     'Filter, search, and follow each request based on its current stage.',
@@ -198,38 +201,66 @@ class _AdminCardPrintRequestsScreenState
                       child: DropdownButtonFormField<String>(
                         initialValue: _status,
                         decoration: InputDecoration(
-                          labelText: l.text('الحالة', 'Status'),
+                          labelText: l.tr(
+                            'screens_admin_card_print_requests_screen.003',
+                          ),
                         ),
                         items: [
                           DropdownMenuItem(
                             value: 'all',
-                            child: Text(l.text('الكل', 'All')),
+                            child: Text(
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.004',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'pending_review',
                             child: Text(
-                              l.text('بانتظار المراجعة', 'Pending review'),
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.005',
+                              ),
                             ),
                           ),
                           DropdownMenuItem(
                             value: 'approved',
-                            child: Text(l.text('تمت الموافقة', 'Approved')),
+                            child: Text(
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.006',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'printing',
-                            child: Text(l.text('قيد الطباعة', 'Printing')),
+                            child: Text(
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.007',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'ready',
-                            child: Text(l.text('جاهز للتسليم', 'Ready')),
+                            child: Text(
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.008',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'completed',
-                            child: Text(l.text('مكتمل', 'Completed')),
+                            child: Text(
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.009',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'rejected',
-                            child: Text(l.text('مرفوض', 'Rejected')),
+                            child: Text(
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.010',
+                              ),
+                            ),
                           ),
                         ],
                         onChanged: (value) {
@@ -270,19 +301,19 @@ class _AdminCardPrintRequestsScreenState
                   runSpacing: 12,
                   children: [
                     _summaryChip(
-                      l.text('مراجعة', 'Review'),
+                      l.tr('screens_admin_card_print_requests_screen.011'),
                       (_summary['pendingReviewCount'] as num?)?.toInt() ?? 0,
                     ),
                     _summaryChip(
-                      l.text('معتمد', 'Approved'),
+                      l.tr('screens_admin_card_print_requests_screen.012'),
                       (_summary['approvedCount'] as num?)?.toInt() ?? 0,
                     ),
                     _summaryChip(
-                      l.text('طباعة', 'Printing'),
+                      l.tr('screens_admin_card_print_requests_screen.013'),
                       (_summary['printingCount'] as num?)?.toInt() ?? 0,
                     ),
                     _summaryChip(
-                      l.text('جاهز', 'Ready'),
+                      l.tr('screens_admin_card_print_requests_screen.014'),
                       (_summary['readyCount'] as num?)?.toInt() ?? 0,
                     ),
                   ],
@@ -347,10 +378,13 @@ class _AdminCardPrintRequestsScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        request['fullName']?.toString().trim().isNotEmpty == true
+                        request['fullName']?.toString().trim().isNotEmpty ==
+                                true
                             ? request['fullName'].toString()
                             : (request['username']?.toString() ??
-                                  l.text('عميل', 'Customer')),
+                                  l.tr(
+                                    'screens_admin_card_print_requests_screen.015',
+                                  )),
                         style: AppTheme.h3,
                       ),
                       const SizedBox(height: 4),
@@ -369,35 +403,39 @@ class _AdminCardPrintRequestsScreenState
               spacing: 12,
               runSpacing: 12,
               children: [
-                _metaItem(l.text('الطلب', 'Request'), request['id']?.toString() ?? '-'),
                 _metaItem(
-                  l.text('النوع', 'Type'),
-                  request['cardType'] == 'single_use'
-                      ? l.text('مرة واحدة', 'Single use')
-                      : l.text('عادية', 'Regular'),
+                  l.tr('screens_admin_card_print_requests_screen.016'),
+                  request['id']?.toString() ?? '-',
                 ),
                 _metaItem(
-                  l.text('العدد', 'Quantity'),
+                  l.tr('screens_admin_card_print_requests_screen.017'),
+                  request['cardType'] == 'single_use'
+                      ? l.tr('screens_admin_card_print_requests_screen.018')
+                      : l.tr('screens_admin_card_print_requests_screen.019'),
+                ),
+                _metaItem(
+                  l.tr('screens_admin_card_print_requests_screen.020'),
                   l.text(
                     '${request['quantity'] ?? 0} بطاقة',
                     '${request['quantity'] ?? 0} cards',
                   ),
                 ),
                 _metaItem(
-                  l.text('القيمة', 'Value'),
+                  l.tr('screens_admin_card_print_requests_screen.021'),
                   CurrencyFormatter.ils(
                     (request['cardValue'] as num?)?.toDouble() ?? 0,
                   ),
                 ),
                 _metaItem(
-                  l.text('الإجمالي', 'Total'),
+                  l.tr('screens_admin_card_print_requests_screen.022'),
                   CurrencyFormatter.ils(
                     (request['totalAmount'] as num?)?.toDouble() ?? 0,
                   ),
                 ),
               ],
             ),
-            if ((request['customerNotes']?.toString().trim().isNotEmpty ?? false))
+            if ((request['customerNotes']?.toString().trim().isNotEmpty ??
+                false))
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
@@ -414,31 +452,31 @@ class _AdminCardPrintRequestsScreenState
               children: [
                 if (status == 'pending_review')
                   _actionButton(
-                    l.text('موافقة', 'Approve'),
+                    l.tr('screens_admin_card_print_requests_screen.023'),
                     busy,
                     () => _handleAction(request, 'approve'),
                   ),
                 if (status == 'pending_review')
                   _actionButton(
-                    l.text('رفض', 'Reject'),
+                    l.tr('screens_admin_card_print_requests_screen.024'),
                     busy,
                     () => _handleAction(request, 'reject'),
                   ),
                 if (status == 'approved')
                   _actionButton(
-                    l.text('بدء الطباعة', 'Start printing'),
+                    l.tr('screens_admin_card_print_requests_screen.025'),
                     busy,
                     () => _handleAction(request, 'start'),
                   ),
                 if (status == 'printing')
                   _actionButton(
-                    l.text('جاهز للتسليم', 'Ready for delivery'),
+                    l.tr('screens_admin_card_print_requests_screen.026'),
                     busy,
                     () => _handleAction(request, 'ready'),
                   ),
                 if (status == 'ready')
                   _actionButton(
-                    l.text('إكمال الطلب', 'Complete request'),
+                    l.tr('screens_admin_card_print_requests_screen.027'),
                     busy,
                     () => _handleAction(request, 'complete'),
                   ),
@@ -454,7 +492,9 @@ class _AdminCardPrintRequestsScreenState
     final l = context.loc;
     return ElevatedButton(
       onPressed: busy ? null : onPressed,
-      child: Text(busy ? l.text('جارٍ المعالجة...', 'Processing...') : label),
+      child: Text(
+        busy ? l.tr('screens_admin_card_print_requests_screen.028') : label,
+      ),
     );
   }
 

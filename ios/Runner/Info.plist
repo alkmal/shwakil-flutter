@@ -26,6 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>يستخدم التطبيق الكاميرا لمسح الباركود ورموز QR الخاصة بالبطاقات وعمليات التحويل بشكل آمن.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>يستخدم التطبيق الموقع لتوثيق العمليات والتحقق من تنفيذها من الموقع المناسب عند الحاجة، حتى تبقى الحركات أكثر أمانًا وموثوقية.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>يستخدم التطبيق موقعك أثناء الاستخدام لتوثيق العمليات والتحقق من الموقع عند تنفيذ بعض الخدمات الحساسة.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>يستخدم التطبيق الصور لاختيار وإرفاق المستندات أو صور إثبات التحويل والطلبات عند الحاجة.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -3,6 +3,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_strings_ar.dart';
+import 'app_strings_en.dart';
+
 class AppLocaleService extends ChangeNotifier {
   AppLocaleService._();
 
@@ -52,6 +55,18 @@ class AppLocalizer {
   bool get isEnglish => locale.languageCode == 'en';
   TextDirection get textDirection =>
       isArabic ? TextDirection.rtl : TextDirection.ltr;
+
+  Map<String, String> get _strings => isArabic ? appStringsAr : appStringsEn;
+
+  String tr(String key, {Map<String, String>? params, String? fallback}) {
+    var value = _strings[key] ?? fallback ?? key;
+    if (params != null) {
+      params.forEach((name, replacement) {
+        value = value.replaceAll('{$name}', replacement);
+      });
+    }
+    return value;
+  }
 
   String text(String arabic, String english) => isArabic ? arabic : english;
 }

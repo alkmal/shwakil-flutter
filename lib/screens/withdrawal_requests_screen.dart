@@ -109,7 +109,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.text('طلبات السحب', 'Withdrawal Requests'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_withdrawal_requests_screen.001')),
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -174,7 +176,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.text('متابعة طلبات السحب', 'Track withdrawal requests'),
+                  l.tr('screens_withdrawal_requests_screen.002'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
@@ -198,7 +200,10 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              l.text('$pending طلب معلق', '$pending pending'),
+              l.tr(
+                'screens_withdrawal_requests_screen.003',
+                params: {'pending': '$pending'},
+              ),
               style: AppTheme.bodyBold.copyWith(color: Colors.white),
             ),
           );
@@ -229,7 +234,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         TextField(
           controller: _searchController,
           decoration: InputDecoration(
-            labelText: l.text('ابحث عن طلب...', 'Search for a request...'),
+            labelText: l.tr('screens_withdrawal_requests_screen.004'),
             prefixIcon: const Icon(Icons.search_rounded),
           ),
           onChanged: (_) {
@@ -250,10 +255,18 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
             children: _StatusFilter.values.map((filter) {
               final isSelected = _filter == filter;
               final label = switch (filter) {
-                _StatusFilter.all => l.text('الكل', 'All'),
-                _StatusFilter.pending => l.text('المعلقة', 'Pending'),
-                _StatusFilter.approved => l.text('المكتملة', 'Approved'),
-                _StatusFilter.rejected => l.text('المرفوضة', 'Rejected'),
+                _StatusFilter.all => l.tr(
+                  'screens_withdrawal_requests_screen.005',
+                ),
+                _StatusFilter.pending => l.tr(
+                  'screens_withdrawal_requests_screen.006',
+                ),
+                _StatusFilter.approved => l.tr(
+                  'screens_withdrawal_requests_screen.007',
+                ),
+                _StatusFilter.rejected => l.tr(
+                  'screens_withdrawal_requests_screen.008',
+                ),
               };
               return Padding(
                 padding: const EdgeInsets.only(left: 12),
@@ -326,13 +339,28 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
               ],
             ),
             const Divider(height: 32),
-            _infoLine(l.text('جهة التحويل', 'Transfer destination'), request['destinationTypeLabel'] ?? '-'),
-            _infoLine(l.text('اسم المستفيد', 'Beneficiary name'), request['accountHolderName'] ?? '-'),
-            _infoLine(l.text('رقم الحساب', 'Account number'), request['destinationAccount'] ?? '-'),
+            _infoLine(
+              l.tr('screens_withdrawal_requests_screen.009'),
+              request['destinationTypeLabel'] ?? '-',
+            ),
+            _infoLine(
+              l.tr('screens_withdrawal_requests_screen.010'),
+              request['accountHolderName'] ?? '-',
+            ),
+            _infoLine(
+              l.tr('screens_withdrawal_requests_screen.011'),
+              request['destinationAccount'] ?? '-',
+            ),
             if ((request['bankName']?.toString() ?? '').isNotEmpty)
-              _infoLine(l.text('اسم البنك', 'Bank name'), request['bankName'] ?? '-'),
+              _infoLine(
+                l.tr('screens_withdrawal_requests_screen.012'),
+                request['bankName'] ?? '-',
+              ),
             if ((request['notes']?.toString() ?? '').isNotEmpty)
-              _infoLine(l.text('الملاحظات', 'Notes'), request['notes'] ?? '-'),
+              _infoLine(
+                l.tr('screens_withdrawal_requests_screen.013'),
+                request['notes'] ?? '-',
+              ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -354,7 +382,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                           ? null
                           : () => _approve(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.check_rounded),
-                      label: Text(l.text('اعتماد', 'Approve')),
+                      label: Text(
+                        l.tr('screens_withdrawal_requests_screen.014'),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -364,7 +394,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                           ? null
                           : () => _reject(request['id']?.toString() ?? ''),
                       icon: const Icon(Icons.close_rounded),
-                      label: Text(l.text('رفض', 'Reject')),
+                      label: Text(
+                        l.tr('screens_withdrawal_requests_screen.015'),
+                      ),
                     ),
                   ),
                 ],
@@ -384,9 +416,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       _ => AppTheme.warning,
     };
     final label = switch (status) {
-      'approved' => l.text('تم الاعتماد', 'Approved'),
-      'rejected' => l.text('مرفوض', 'Rejected'),
-      _ => l.text('قيد المراجعة', 'Under review'),
+      'approved' => l.tr('screens_withdrawal_requests_screen.016'),
+      'rejected' => l.tr('screens_withdrawal_requests_screen.017'),
+      _ => l.tr('screens_withdrawal_requests_screen.018'),
     };
 
     return Container(
@@ -418,7 +450,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            l.text('لا توجد طلبات مطابقة حاليًا', 'No matching requests right now'),
+            l.tr('screens_withdrawal_requests_screen.019'),
             style: AppTheme.h3,
           ),
         ],
@@ -490,7 +522,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         context,
         message:
             response['message']?.toString() ??
-            l.text('تم اعتماد الطلب.', 'The request has been approved.'),
+            l.tr('screens_withdrawal_requests_screen.020'),
       );
       await _load();
     } catch (error) {
@@ -513,13 +545,13 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     final approved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l.text('رفض الطلب', 'Reject request')),
+        title: Text(l.tr('screens_withdrawal_requests_screen.021')),
         content: TextField(
           controller: notesController,
           minLines: 3,
           maxLines: 5,
           decoration: InputDecoration(
-            labelText: l.text('سبب الرفض', 'Rejection reason'),
+            labelText: l.tr('screens_withdrawal_requests_screen.022'),
             hintText: l.text(
               'اكتب ملاحظة مختصرة للمستخدم',
               'Write a short note for the user',
@@ -529,11 +561,11 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(l.text('إلغاء', 'Cancel')),
+            child: Text(l.tr('screens_withdrawal_requests_screen.023')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(l.text('تأكيد الرفض', 'Confirm rejection')),
+            child: Text(l.tr('screens_withdrawal_requests_screen.024')),
           ),
         ],
       ),
@@ -557,7 +589,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         context,
         message:
             response['message']?.toString() ??
-            l.text('تم رفض الطلب.', 'The request has been rejected.'),
+            l.tr('screens_withdrawal_requests_screen.025'),
       );
       await _load();
     } catch (error) {
