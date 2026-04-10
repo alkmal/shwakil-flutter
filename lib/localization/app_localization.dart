@@ -87,7 +87,7 @@ class AppLocalizer {
   }
 
   String _repairMojibake(String value) {
-    if (!RegExp(r'[ØÙÃâ�]').hasMatch(value)) {
+    if (!RegExp('[\\u00C3\\u00C2\\u00D8\\u00D9\\u00E2]').hasMatch(value)) {
       return value;
     }
 
@@ -107,7 +107,7 @@ class AppLocalizer {
       return true;
     }
 
-    if (RegExp(r'[ØÙÃâ�]').hasMatch(value)) {
+    if (RegExp('[\\u00C3\\u00C2\\u00D8\\u00D9\\u00E2]').hasMatch(value)) {
       return true;
     }
 
