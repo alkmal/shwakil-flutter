@@ -257,8 +257,27 @@ class PDFService {
     return origin.isEmpty ? 'غير محدد' : origin;
   }
 
-  String _visibilityLabel(VirtualCard card) {
-    return card.isPrivate ? 'خاصة' : 'عامة';
+  bool _isLocationSpecific(VirtualCard card) {
+    final scope = card.visibilityScope.trim().toLowerCase();
+    return card.isSingleUse ||
+        scope == 'location' ||
+        scope == 'place' ||
+        scope == 'branch' ||
+        scope == 'specific';
+  }
+
+  String _cardTypeLabel(VirtualCard card) {
+    if (_isLocationSpecific(card)) {
+      return 'لاستخدام في مكان محدد';
+    }
+    return card.isPrivate ? 'مالية خاصة' : 'مالية عامة';
+  }
+
+  String _cardBadgeLabel(VirtualCard card) {
+    if (_isLocationSpecific(card)) {
+      return 'مكان محدد';
+    }
+    return card.isPrivate ? 'مالية خاصة' : 'مالية عامة';
   }
 
   String _cardTitle(VirtualCard card) {
@@ -273,7 +292,11 @@ class PDFService {
         : _valueInArabicWords(card.value);
   }
 
-  pw.Widget _topHeader(_DenominationPalette palette, {required bool compact}) {
+  pw.Widget _topHeader(
+    _DenominationPalette palette, {
+    required bool compact,
+    required VirtualCard card,
+  }) {
     final logoSize = compact ? 24.0 : 52.0;
     final titleSize = compact ? 7.2 : 16.5;
     final badgeFont = compact ? 4.8 : 8.8;
@@ -291,7 +314,7 @@ class PDFService {
             borderRadius: pw.BorderRadius.circular(compact ? 6 : 10),
           ),
           child: pw.Text(
-            'ورقة نقدية',
+            _cardBadgeLabel(card),
             textDirection: pw.TextDirection.rtl,
             style: _textStyle(
               fontSize: badgeFont,
@@ -501,7 +524,7 @@ class PDFService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  _topHeader(palette, compact: true),
+                  _topHeader(palette, compact: true, card: card),
                   pw.Column(
                     children: [
                       if (card.isSingleUse)
@@ -632,7 +655,7 @@ class PDFService {
                         style: _textStyle(fontSize: 4.1, color: _mutedColor),
                       ),
                       pw.Text(
-                        'الإتاحة / Visibility: ${_visibilityLabel(card)}',
+                        'نوع البطاقة / Type: ${_cardTypeLabel(card)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(
@@ -660,29 +683,26 @@ class PDFService {
             pw.Positioned(
               top: 13,
               left: 2,
-              child: pw.Transform.rotate(
-                angle: -0.25,
-                child: pw.Opacity(
-                  opacity: 0.38,
-                  child: pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(
-                      horizontal: 3,
-                      vertical: 1,
-                    ),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: _stampColor, width: 0.7),
-                      borderRadius: pw.BorderRadius.circular(3),
-                    ),
-                    child: pw.Text(
-                      designSettings.stampText?.trim().isNotEmpty == true
-                          ? designSettings.stampText!.trim()
-                          : 'صالح للتداول',
-                      textDirection: pw.TextDirection.rtl,
-                      style: _textStyle(
-                        fontSize: 4.3,
-                        bold: true,
-                        color: _stampColor,
-                      ),
+              child: pw.Opacity(
+                opacity: 0.55,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 3,
+                    vertical: 1,
+                  ),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: _stampColor, width: 0.7),
+                    borderRadius: pw.BorderRadius.circular(3),
+                  ),
+                  child: pw.Text(
+                    designSettings.stampText?.trim().isNotEmpty == true
+                        ? designSettings.stampText!.trim()
+                        : 'صالح للتداول',
+                    textDirection: pw.TextDirection.rtl,
+                    style: _textStyle(
+                      fontSize: 4.6,
+                      bold: true,
+                      color: _stampColor,
                     ),
                   ),
                 ),
@@ -767,7 +787,7 @@ class PDFService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  _topHeader(palette, compact: false),
+                  _topHeader(palette, compact: false, card: card),
                   pw.Column(
                     children: [
                       if (card.isSingleUse)
@@ -894,7 +914,7 @@ class PDFService {
                         ),
                       ),
                       pw.Text(
-                        'الإتاحة / Visibility: ${_visibilityLabel(card)}',
+                        'نوع البطاقة / Type: ${_cardTypeLabel(card)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(
@@ -932,29 +952,26 @@ class PDFService {
             pw.Positioned(
               top: 78,
               left: 12,
-              child: pw.Transform.rotate(
-                angle: -0.20,
-                child: pw.Opacity(
-                  opacity: 0.32,
-                  child: pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: _stampColor, width: 1),
-                      borderRadius: pw.BorderRadius.circular(8),
-                    ),
-                    child: pw.Text(
-                      designSettings.stampText?.trim().isNotEmpty == true
-                          ? designSettings.stampText!.trim()
-                          : 'صالح للتداول',
-                      textDirection: pw.TextDirection.rtl,
-                      style: _textStyle(
-                        fontSize: 9.2,
-                        bold: true,
-                        color: _stampColor,
-                      ),
+              child: pw.Opacity(
+                opacity: 0.5,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: _stampColor, width: 1),
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Text(
+                    designSettings.stampText?.trim().isNotEmpty == true
+                        ? designSettings.stampText!.trim()
+                        : 'صالح للتداول',
+                    textDirection: pw.TextDirection.rtl,
+                    style: _textStyle(
+                      fontSize: 9.6,
+                      bold: true,
+                      color: _stampColor,
                     ),
                   ),
                 ),

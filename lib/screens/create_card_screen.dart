@@ -89,7 +89,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool get _hasAccountLogo =>
       _user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
 
-  List<DropdownMenuItem<String>> _cardTypeItems(AppLocalization l) => [
+  List<DropdownMenuItem<String>> _cardTypeItems(AppLocalizer l) => [
     DropdownMenuItem(
       value: 'standard',
       child: Text(l.tr('screens_create_card_screen.002')),

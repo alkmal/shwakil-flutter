@@ -846,7 +846,7 @@ const Map<String, String> appStringsEn = {
 
   'screens_inventory_screen.017': 'The card will be deleted and the balance will be refunded to your account immediately.',
 
-  'screens_inventory_screen.018': 'The card was deleted and the value was refunded.'
+  'screens_inventory_screen.018': 'The card was deleted and the value was refunded.',
   'screens_topup_requests_screen.025': 'This screen is available for administrators only.',
   'screens_topup_requests_screen.026': 'Review top-up requests',
   'screens_topup_requests_screen.027': 'Review transfer details and payment method before approving or rejecting the top-up request.',
@@ -958,6 +958,9 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.057': 'Balance',
   'screens_scan_card_screen.058': 'Private',
   'screens_scan_card_screen.059': 'Public',
+  'screens_scan_card_screen.065': 'Location specific',
+  'screens_scan_card_screen.066': 'Private financial',
+  'screens_scan_card_screen.067': 'Public financial',
   'screens_scan_card_screen.060': 'User',
   'screens_card_print_requests_screen.001': 'Unable to load requests',
   'screens_card_print_requests_screen.002': 'Incomplete data',
@@ -1129,5 +1132,28 @@ const Map<String, String> appStringsEn = {
   'screens_quick_transfer_screen.032': 'For privacy reasons, the recipient balance is not displayed.',
   'screens_quick_transfer_screen.033': 'Send balance to this number',
   'screens_quick_transfer_screen.034': 'You can also scan the recipient code to complete the transfer faster.',
-  'screens_quick_transfer_screen.035': 'Show this code to the sender so they can transfer balance to you directly.',};
+  'screens_quick_transfer_screen.035': 'Show this code to the sender so they can transfer balance to you directly.',
+  'screens_admin_card_print_requests_screen.029': 'Archive',
+  'screens_admin_card_print_requests_screen.030': 'Completed',
+  'screens_admin_card_print_requests_screen.031': 'Source',
+  'screens_admin_card_print_requests_screen.032': 'Print count',
+  'screens_admin_card_print_requests_screen.033': 'Last printed',
+  'screens_admin_card_print_requests_screen.034': 'Local',
+  'screens_admin_card_print_requests_screen.035': 'From app',
+  'screens_admin_card_print_requests_screen.036': 'Not printed yet',
+  'screens_admin_permissions_screen.042': 'Offline card scan',
+  'screens_admin_customer_screen.072': 'Offline card scan',
+  'screens_scan_card_screen.061': 'Offline scan',
+  'screens_scan_card_screen.062': 'Loaded the card from local cache and will sync when connected.',
+  'screens_scan_card_screen.063': 'Saved offline',
+  'screens_scan_card_screen.064': 'The scan will sync once internet is available.',
+  'screens_card_print_requests_screen.041': 'Printing limit exceeded',
+  'screens_card_print_requests_screen.042': 'Available balance {available} is lower than total {total}. Printing fee {fee}%.\nTo print higher amounts, contact us at {phone}.',
+  'screens_card_print_requests_screen.043': 'OK',
+  'screens_card_print_requests_screen.044': 'Source',
+  'screens_card_print_requests_screen.045': 'Local',
+  'screens_card_print_requests_screen.046': 'From app',
+  'screens_card_print_requests_screen.047': 'Last printed',
+  'screens_card_print_requests_screen.048': 'Not printed yet',
+};
 

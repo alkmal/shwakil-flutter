@@ -43,7 +43,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   bool get _canWithdrawAction => _permissions['canWithdraw'] == true;
   bool get _canManageUsersAction =>
       _permissions['canManageUsers'] == true || _user?['id']?.toString() == '1';
-  bool get _canScanCardsAction => _permissions['canScanCards'] != false;
+  bool get _canScanCardsAction =>
+      _permissions['canScanCards'] != false ||
+      _permissions['canOfflineCardScan'] == true;
   bool get _isVerifiedAccount =>
       _user?['transferVerificationStatus']?.toString() == 'approved';
 

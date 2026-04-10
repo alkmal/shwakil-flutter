@@ -132,6 +132,7 @@ class _AdminCardPrintRequestsScreenState
       'printableCards',
       'generatedCards',
       'preparedCards',
+      'cardsSnapshot',
     ];
 
     for (final key in candidateKeys) {
@@ -141,11 +142,44 @@ class _AdminCardPrintRequestsScreenState
       }
       return raw
           .whereType<Map>()
-          .map((item) => VirtualCard.fromMap(Map<String, dynamic>.from(item)))
+          .map((item) => _cardFromAny(Map<String, dynamic>.from(item)))
           .where((card) => card.barcode.trim().isNotEmpty)
           .toList();
     }
     return const [];
+  }
+
+  VirtualCard _cardFromAny(Map<String, dynamic> item) {
+    final normalized = <String, dynamic>{
+      'id': item['id'],
+      'barcode': item['barcode'],
+      'value': item['value'],
+      'card_type': item['card_type'] ?? item['cardType'],
+      'visibility_scope': item['visibility_scope'] ?? item['visibilityScope'],
+      'issue_cost': item['issue_cost'] ?? item['issueCost'],
+      'owner_id': item['owner_id'] ?? item['ownerId'],
+      'owner_username': item['owner_username'] ?? item['ownerUsername'],
+      'issued_by_id': item['issued_by_id'] ?? item['issuedById'],
+      'issued_by_username': item['issued_by_username'] ?? item['issuedByUsername'],
+      'redeemed_by_id': item['redeemed_by_id'] ?? item['redeemedById'],
+      'allowed_user_ids':
+          item['allowed_user_ids'] ?? item['allowedUserIds'] ?? const [],
+      'allowed_usernames':
+          item['allowed_usernames'] ?? item['allowedUsernames'] ?? const [],
+      'customer_name': item['customer_name'] ?? item['customerName'],
+      'created_at':
+          item['created_at'] ?? item['issuedAt'] ?? item['createdAt'],
+      'last_resold_at': item['last_resold_at'] ?? item['lastResoldAt'],
+      'use_count': item['use_count'] ?? item['useCount'],
+      'resale_count': item['resale_count'] ?? item['resaleCount'],
+      'total_redeemed_value':
+          item['total_redeemed_value'] ?? item['totalRedeemedValue'],
+      'status': item['status'],
+      'used_at': item['used_at'] ?? item['redeemedAt'],
+      'used_by': item['used_by'] ?? item['redeemedByUsername'],
+      'sold_price': item['sold_price'],
+    };
+    return VirtualCard.fromMap(normalized);
   }
 
   Future<void> _exportRequestPdf(Map<String, dynamic> request) async {
@@ -194,6 +228,13 @@ class _AdminCardPrintRequestsScreenState
           params: {'path': file.path},
         ),
       );
+      final requestIdValue = request['id']?.toString();
+      if (requestIdValue != null && requestIdValue.isNotEmpty) {
+        try {
+          await _apiService.markCardPrintRequestPrinted(requestIdValue);
+          await _load();
+        } catch (_) {}
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -231,6 +272,13 @@ class _AdminCardPrintRequestsScreenState
           ? currentUser!['fullName'].toString().trim()
           : currentUser?['username']?.toString();
       await _pdfService.printCards(cards, printedBy: printedBy);
+      final requestId = request['id']?.toString();
+      if (requestId != null && requestId.isNotEmpty) {
+        try {
+          await _apiService.markCardPrintRequestPrinted(requestId);
+          await _load();
+        } catch (_) {}
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -379,6 +427,14 @@ class _AdminCardPrintRequestsScreenState
                               ),
                             ),
                           ),
+                          DropdownMenuItem(
+                            value: 'archive',
+                            child: Text(
+                              l.tr(
+                                'screens_admin_card_print_requests_screen.029',
+                              ),
+                            ),
+                          ),
                         ],
                         onChanged: (value) {
                           if (value == null) {
@@ -432,6 +488,10 @@ class _AdminCardPrintRequestsScreenState
                     _summaryChip(
                       l.tr('screens_admin_card_print_requests_screen.014'),
                       (_summary['readyCount'] as num?)?.toInt() ?? 0,
+                    ),
+                    _summaryChip(
+                      l.tr('screens_admin_card_print_requests_screen.030'),
+                      (_summary['completedCount'] as num?)?.toInt() ?? 0,
                     ),
                   ],
                 ),
@@ -548,6 +608,18 @@ class _AdminCardPrintRequestsScreenState
                     (request['totalAmount'] as num?)?.toDouble() ?? 0,
                   ),
                 ),
+                _metaItem(
+                  l.tr('screens_admin_card_print_requests_screen.031'),
+                  _sourceLabel(request['sourceType']?.toString() ?? 'app'),
+                ),
+                _metaItem(
+                  l.tr('screens_admin_card_print_requests_screen.032'),
+                  '${request['printCount'] ?? 0}',
+                ),
+                _metaItem(
+                  l.tr('screens_admin_card_print_requests_screen.033'),
+                  _formatDateTime(request['lastPrintedAt']?.toString()),
+                ),
               ],
             ),
             if ((request['customerNotes']?.toString().trim().isNotEmpty ??
@@ -663,6 +735,29 @@ class _AdminCardPrintRequestsScreenState
         ],
       ),
     );
+  }
+
+  String _sourceLabel(String source) {
+    final l = context.loc;
+    return source == 'local'
+        ? l.tr('screens_admin_card_print_requests_screen.034')
+        : l.tr('screens_admin_card_print_requests_screen.035');
+  }
+
+  String _formatDateTime(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return context.loc.tr('screens_admin_card_print_requests_screen.036');
+    }
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      return value;
+    }
+    final year = parsed.year.toString().padLeft(4, '0');
+    final month = parsed.month.toString().padLeft(2, '0');
+    final day = parsed.day.toString().padLeft(2, '0');
+    final hour = parsed.hour.toString().padLeft(2, '0');
+    final minute = parsed.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute';
   }
 
   Widget _statusChip(String status) {

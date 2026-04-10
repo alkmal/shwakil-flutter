@@ -2,6 +2,7 @@
 
 import '../models/index.dart';
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
@@ -21,6 +22,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final PDFService _pdfService = PDFService();
+  final OfflineCardService _offlineCardService = OfflineCardService();
 
   List<VirtualCard> _cards = const [];
   CardStatus _filter = CardStatus.unused;
@@ -49,6 +51,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         page: _page,
         perPage: _perPage,
       );
+      final cards =
+          List<VirtualCard>.from(payload['cards'] as List? ?? const []);
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
@@ -56,11 +60,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
         return;
       }
       setState(() {
-        _cards = List<VirtualCard>.from(payload['cards'] as List? ?? const []);
+        _cards = cards;
         _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
         _totalCards = (pagination['total'] as num?)?.toInt() ?? _cards.length;
         _isLoading = false;
       });
+
+      final user = await _authService.currentUser();
+      if (user != null && user['id'] != null) {
+        final permissions = AppPermissions.fromUser(user);
+        if (permissions.canOfflineCardScan) {
+          await _offlineCardService.cacheCards(
+            userId: user['id'].toString(),
+            cards: cards,
+          );
+        }
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -264,6 +279,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget _buildCardTile(VirtualCard card) {
     final isUnused = card.status == CardStatus.unused;
     final color = isUnused ? AppTheme.success : AppTheme.error;
+    final l = context.loc;
+    final scope = card.visibilityScope.trim().toLowerCase();
+    final isLocationSpecific =
+        card.isSingleUse ||
+        scope == 'location' ||
+        scope == 'place' ||
+        scope == 'branch' ||
+        scope == 'specific';
+    final categoryLabel = isLocationSpecific
+        ? l.tr('screens_scan_card_screen.065')
+        : (card.isPrivate
+            ? l.tr('screens_scan_card_screen.066')
+            : l.tr('screens_scan_card_screen.067'));
 
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
@@ -294,6 +322,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     Text(
                       card.barcode,
                       style: AppTheme.caption.copyWith(letterSpacing: 1.5),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceMuted,
+                        borderRadius: AppTheme.radiusMd,
+                      ),
+                      child: Text(
+                        categoryLabel,
+                        style: AppTheme.caption.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
                     ),
                   ],
                 ),

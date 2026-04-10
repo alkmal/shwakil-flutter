@@ -28,12 +28,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   final TextEditingController _bcC = TextEditingController();
   final ApiService _api = ApiService();
   final AuthService _auth = AuthService();
+  final OfflineCardService _offlineCardService = OfflineCardService();
 
   VirtualCard? _card;
   Map<String, dynamic>? _user;
   bool _isSearching = false;
   bool _isSubmitting = false;
   bool _showDetails = false;
+  bool _isOfflineResult = false;
   bool _routeSubscribed = false;
 
   @override
@@ -70,6 +72,39 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (mounted) {
       setState(() => _user = user);
     }
+    await _syncOfflineRedeems();
+  }
+
+  Future<void> _syncOfflineRedeems() async {
+    final user = _user ?? await _auth.currentUser();
+    if (user == null || user['id'] == null) {
+      return;
+    }
+    final permissions = AppPermissions.fromUser(user);
+    if (!permissions.canOfflineCardScan) {
+      return;
+    }
+    final queue = await _offlineCardService.getRedeemQueue(
+      user['id'].toString(),
+    );
+    if (queue.isEmpty) {
+      return;
+    }
+    try {
+      final result = await _api.syncOfflineCardRedeems(items: queue);
+      await _offlineCardService.clearRedeemQueue(user['id'].toString());
+      if (!mounted) {
+        return;
+      }
+      final updatedBalance = (result['balance'] as num?)?.toDouble();
+      if (updatedBalance != null) {
+        setState(() {
+          _user = {...?_user, 'balance': updatedBalance};
+        });
+      }
+    } catch (_) {
+      // Keep queue for the next attempt when connection is available.
+    }
   }
 
   Future<void> _search() async {
@@ -84,6 +119,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       setState(() {
         _card = result;
         _showDetails = false;
+        _isOfflineResult = false;
         _isSearching = false;
       });
       if (result == null) {
@@ -95,6 +131,29 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
     } catch (error) {
       if (!mounted) return;
+      final user = _user;
+      final permissions = AppPermissions.fromUser(user);
+      if (permissions.canOfflineCardScan && user?['id'] != null) {
+        final cached = await _offlineCardService.findCachedCard(
+          user!['id'].toString(),
+          barcode,
+        );
+        if (cached != null) {
+          setState(() {
+            _card = cached;
+            _showDetails = false;
+            _isOfflineResult = true;
+            _isSearching = false;
+          });
+          AppAlertService.showInfo(
+            context,
+            title: l.tr('screens_scan_card_screen.061'),
+            message: l.tr('screens_scan_card_screen.062'),
+          );
+          return;
+        }
+      }
+
       setState(() => _isSearching = false);
       AppAlertService.showError(
         context,
@@ -290,9 +349,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
 
     setState(() => _isSubmitting = true);
+    Map<String, dynamic>? location;
     try {
-      final location =
-          await TransactionLocationService.captureCurrentLocation();
+      try {
+        location = await TransactionLocationService.captureCurrentLocation();
+      } catch (_) {
+        location = null;
+      }
       final response = await _api.redeemCard(
         cardId: _card!.id,
         customerName:
@@ -316,11 +379,49 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       );
     } catch (error) {
       if (!mounted) return;
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_scan_card_screen.046'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      final user = _user;
+      final permissions = AppPermissions.fromUser(user);
+      if (permissions.canOfflineCardScan &&
+          user?['id'] != null &&
+          _card != null &&
+          _card!.status != CardStatus.used) {
+        final customerName =
+            _user?['fullName'] ?? _user?['username'] ?? l.tr('screens_scan_card_screen.060');
+        await _offlineCardService.enqueueRedeem(
+          user!['id'].toString(),
+          {
+            'barcode': _card!.barcode,
+            'customerName': customerName,
+            'location': location,
+            'queuedAt': DateTime.now().toIso8601String(),
+          },
+        );
+        await _offlineCardService.markCardUsed(
+          userId: user['id'].toString(),
+          barcode: _card!.barcode,
+          customerName: customerName,
+          usedBy: _user?['username']?.toString(),
+        );
+        setState(() {
+          _card = _card!.copyWith(
+            status: CardStatus.used,
+            usedAt: DateTime.now(),
+            usedBy: _user?['username']?.toString(),
+          );
+          _isOfflineResult = true;
+        });
+        AppAlertService.showSuccess(
+          context,
+          title: l.tr('screens_scan_card_screen.063'),
+          message: l.tr('screens_scan_card_screen.064'),
+        );
+      } else {
+        AppAlertService.showError(
+          context,
+          title: l.tr('screens_scan_card_screen.046'),
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -410,13 +511,33 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   String _cardTypeLabel(VirtualCard card) {
     final l = context.loc;
-    return card.isSingleUse
-        ? l.tr('screens_scan_card_screen.056')
-        : l.tr('screens_scan_card_screen.057');
+    final scope = card.visibilityScope.trim().toLowerCase();
+    final isLocationSpecific =
+        card.isSingleUse ||
+        scope == 'location' ||
+        scope == 'place' ||
+        scope == 'branch' ||
+        scope == 'specific';
+    if (isLocationSpecific) {
+      return l.tr('screens_scan_card_screen.065');
+    }
+    return card.isPrivate
+        ? l.tr('screens_scan_card_screen.066')
+        : l.tr('screens_scan_card_screen.067');
   }
 
   String _visibilityLabel(VirtualCard card) {
     final l = context.loc;
+    final scope = card.visibilityScope.trim().toLowerCase();
+    final isLocationSpecific =
+        card.isSingleUse ||
+        scope == 'location' ||
+        scope == 'place' ||
+        scope == 'branch' ||
+        scope == 'specific';
+    if (isLocationSpecific) {
+      return l.tr('screens_scan_card_screen.065');
+    }
     return card.isPrivate
         ? l.tr('screens_scan_card_screen.058')
         : l.tr('screens_scan_card_screen.059');

@@ -31,7 +31,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     {
       'titleKey': 'cards_and_ops',
       'keys':
-          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canDeleteCards,canResellCards,canRequestCardPrinting,canScanCards,canTransfer,canWithdraw',
+          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canDeleteCards,canResellCards,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
     },
     {
       'titleKey': 'admin_followup',
@@ -248,6 +248,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canResellCards' => l.tr('screens_admin_permissions_screen.024'),
       'canRequestCardPrinting' => l.tr('screens_admin_permissions_screen.025'),
       'canScanCards' => l.tr('screens_admin_permissions_screen.026'),
+      'canOfflineCardScan' => l.tr('screens_admin_permissions_screen.042'),
       'canTransfer' => l.tr('screens_admin_permissions_screen.027'),
       'canWithdraw' => l.tr('screens_admin_permissions_screen.028'),
       'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),

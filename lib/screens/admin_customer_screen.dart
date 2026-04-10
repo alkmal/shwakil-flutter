@@ -80,7 +80,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     _maxDevicesController.text =
         ((_customer['maxDevices'] as num?)?.toInt() ?? 1).toString();
     _printingDebtLimitController.text =
-        ((_customer['printingDebtLimit'] as num?)?.toDouble() ?? 20)
+        ((_customer['printingDebtLimit'] as num?)?.toDouble() ?? 100)
             .toStringAsFixed(2);
     _topupFeeController.text = _formatPct(_customer['customTopupFeePercent']);
     _withdrawFeeController.text = _formatPct(
@@ -160,7 +160,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         transferVerificationStatus: _verification,
         role: _role,
         printingDebtLimit:
-            double.tryParse(_printingDebtLimitController.text) ?? 20,
+            double.tryParse(_printingDebtLimitController.text) ?? 100,
         customTopupFeePercent: double.tryParse(_topupFeeController.text),
         customWithdrawFeePercent: double.tryParse(_withdrawFeeController.text),
         customTransferFeePercent: double.tryParse(_transferFeeController.text),
@@ -714,6 +714,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 'canManageCardPrintRequests',
                 perms,
               ),
+              _permItem(
+                _t('screens_admin_customer_screen.072'),
+                'canOfflineCardScan',
+                perms,
+              ),
               if (widget.canManageUsers)
                 _permItem(
                   _t('screens_admin_customer_screen.059'),
@@ -891,6 +896,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canResellCards: p['canResellCards'] == true,
         canRequestCardPrinting: p['canRequestCardPrinting'] == true,
         canManageCardPrintRequests: p['canManageCardPrintRequests'] == true,
+        canOfflineCardScan: p['canOfflineCardScan'] == true,
         canManageUsers: p['canManageUsers'] == true,
       );
       setState(() {

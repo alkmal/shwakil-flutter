@@ -433,6 +433,7 @@ class ApiService {
     required bool canResellCards,
     required bool canRequestCardPrinting,
     required bool canManageCardPrintRequests,
+    required bool canOfflineCardScan,
     required bool canManageUsers,
   }) async {
     final response = await http.put(
@@ -446,6 +447,7 @@ class ApiService {
         'canResellCards': canResellCards,
         'canRequestCardPrinting': canRequestCardPrinting,
         'canManageCardPrintRequests': canManageCardPrintRequests,
+        'canOfflineCardScan': canOfflineCardScan,
         'canManageUsers': canManageUsers,
       }),
     );
@@ -623,6 +625,16 @@ class ApiService {
       AppConfig.apiUri('admin/card-print-requests/$requestId/complete'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> markCardPrintRequestPrinted(
+    String requestId,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests/$requestId/printed'),
+      headers: await _headers(),
     );
     return _decodeObject(response);
   }
@@ -1318,6 +1330,19 @@ class ApiService {
       AppConfig.apiUri('cards/$cardId/redeem'),
       headers: await _headers(),
       body: jsonEncode(payload),
+    );
+    final body = _decodeObject(response);
+    await _patchCachedBalanceFromPayload(body);
+    return body;
+  }
+
+  Future<Map<String, dynamic>> syncOfflineCardRedeems({
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('cards/offline-redeem'),
+      headers: await _headers(),
+      body: jsonEncode({'items': items}),
     );
     final body = _decodeObject(response);
     await _patchCachedBalanceFromPayload(body);

@@ -30,6 +30,7 @@ class AppPermissions {
   bool get canIssueCards => _isEnabled('canIssueCards');
   bool get canRequestCardPrinting => _isEnabled('canRequestCardPrinting');
   bool get canScanCards => _isEnabled('canScanCards');
+  bool get canOfflineCardScan => _isEnabled('canOfflineCardScan');
   bool get canTransfer => _isEnabled('canTransfer');
   bool get canWithdraw => _isEnabled('canWithdraw');
   bool get canReviewCards => _isEnabled('canReviewCards');
@@ -54,7 +55,11 @@ class AppPermissions {
       canManageCardPrintRequests;
 
   bool get canOpenCardTools =>
-      canScanCards || canReviewCards || canResellCards || canRedeemCards;
+      canScanCards ||
+      canOfflineCardScan ||
+      canReviewCards ||
+      canResellCards ||
+      canRedeemCards;
 
   bool get canOpenQuickTransfer => canViewQuickTransfer || canTransfer;
 }

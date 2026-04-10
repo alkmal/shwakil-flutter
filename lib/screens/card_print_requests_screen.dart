@@ -85,6 +85,31 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               return;
             }
 
+            final availableBalance =
+                (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
+            final feePercent =
+                (_user?['customCardPrintRequestFeePercent'] as num?)
+                    ?.toDouble() ??
+                0;
+            final unitAmount = cardType == 'single_use' ? 0.01 : value;
+            final baseAmount = unitAmount * quantity;
+            final feeAmount = baseAmount * (feePercent / 100);
+            final totalAmount = baseAmount + feeAmount;
+            if (totalAmount > availableBalance) {
+              final contact = await ContactInfoService.getContactInfo();
+              if (!dialogContext.mounted) {
+                return;
+              }
+              await _showOverLimitDialog(
+                dialogContext,
+                availableBalance: availableBalance,
+                totalAmount: totalAmount,
+                feePercent: feePercent,
+                supportWhatsapp: ContactInfoService.supportWhatsapp(contact),
+              );
+              return;
+            }
+
             setDialogState(() => _isSubmitting = true);
             try {
               final response = await _apiService.requestCardPrint(
@@ -216,6 +241,39 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     if (mounted) {
       setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _showOverLimitDialog(
+    BuildContext dialogContext, {
+    required double availableBalance,
+    required double totalAmount,
+    required double feePercent,
+    required String supportWhatsapp,
+  }) async {
+    final l = context.loc;
+    await showDialog<void>(
+      context: dialogContext,
+      builder: (context) => AlertDialog(
+        title: Text(l.tr('screens_card_print_requests_screen.041')),
+        content: Text(
+          l.tr(
+            'screens_card_print_requests_screen.042',
+            params: {
+              'available': CurrencyFormatter.ils(availableBalance),
+              'total': CurrencyFormatter.ils(totalAmount),
+              'fee': feePercent.toStringAsFixed(2),
+              'phone': supportWhatsapp,
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l.tr('screens_card_print_requests_screen.043')),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -361,6 +419,19 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     (request['totalAmount'] as num?)?.toDouble() ?? 0,
                   ),
                 ),
+                _metaItem(
+                  l.tr('screens_card_print_requests_screen.044'),
+                  request['sourceType'] == 'local'
+                      ? l.tr('screens_card_print_requests_screen.045')
+                      : l.tr('screens_card_print_requests_screen.046'),
+                ),
+                _metaItem(
+                  l.tr('screens_card_print_requests_screen.047'),
+                  _formatDateTime(
+                    request['lastPrintedAt']?.toString(),
+                    l.tr('screens_card_print_requests_screen.048'),
+                  ),
+                ),
               ],
             ),
             if ((request['customerNotes']?.toString().trim().isNotEmpty ??
@@ -463,5 +534,21 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         ),
       ),
     );
+  }
+
+  String _formatDateTime(String? value, String fallback) {
+    if (value == null || value.trim().isEmpty) {
+      return fallback;
+    }
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      return value;
+    }
+    final year = parsed.year.toString().padLeft(4, '0');
+    final month = parsed.month.toString().padLeft(2, '0');
+    final day = parsed.day.toString().padLeft(2, '0');
+    final hour = parsed.hour.toString().padLeft(2, '0');
+    final minute = parsed.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute';
   }
 }

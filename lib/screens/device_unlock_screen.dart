@@ -73,7 +73,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       if (!mounted) {
         return;
       }
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
       return;
     }
 
@@ -98,7 +98,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       if (!mounted) {
         return;
       }
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
       return;
     }
 
