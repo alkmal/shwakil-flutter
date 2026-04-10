@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
@@ -32,6 +33,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Future<void> _load() async {
+    final l = context.loc;
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
@@ -53,13 +55,14 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل الطلبات',
+        title: l.tr('screens_card_print_requests_screen.001'),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
   Future<void> _showCreateRequestDialog() async {
+    final l = context.loc;
     final valueController = TextEditingController();
     final quantityController = TextEditingController(text: '10');
     final notesController = TextEditingController();
@@ -76,8 +79,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             if (quantity <= 0 || (cardType == 'standard' && value <= 0)) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'بيانات غير مكتملة',
-                message: 'أدخل قيمة البطاقة وعدد البطاقات بشكل صحيح.',
+                title: l.tr('screens_card_print_requests_screen.002'),
+                message: l.tr('screens_card_print_requests_screen.003'),
               );
               return;
             }
@@ -99,10 +102,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               }
               await AppAlertService.showSuccess(
                 context,
-                title: 'تم إرسال الطلب',
+                title: l.tr('screens_card_print_requests_screen.004'),
                 message:
                     response['message']?.toString() ??
-                    'تم إرسال طلب طباعة البطاقات بنجاح.',
+                    l.tr('screens_card_print_requests_screen.005'),
               );
               await _load();
             } catch (error) {
@@ -112,14 +115,14 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               setDialogState(() => _isSubmitting = false);
               await AppAlertService.showError(
                 dialogContext,
-                title: 'تعذر إرسال الطلب',
+                title: l.tr('screens_card_print_requests_screen.006'),
                 message: ErrorMessageService.sanitize(error),
               );
             }
           }
 
           return AlertDialog(
-            title: const Text('طلب طباعة بطاقات'),
+            title: Text(l.tr('screens_card_print_requests_screen.007')),
             content: SizedBox(
               width: 460,
               child: SingleChildScrollView(
@@ -128,17 +131,21 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: cardType,
-                      decoration: const InputDecoration(
-                        labelText: 'نوع البطاقة',
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_card_print_requests_screen.008'),
                       ),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 'standard',
-                          child: Text('بطاقات رصيد عادية'),
+                          child: Text(
+                            l.tr('screens_card_print_requests_screen.009'),
+                          ),
                         ),
                         DropdownMenuItem(
                           value: 'single_use',
-                          child: Text('بطاقات استخدام مرة واحدة'),
+                          child: Text(
+                            l.tr('screens_card_print_requests_screen.010'),
+                          ),
                         ),
                       ],
                       onChanged: (value) {
@@ -157,16 +164,16 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       enabled: cardType == 'standard',
                       decoration: InputDecoration(
                         labelText: cardType == 'single_use'
-                            ? 'القيمة ثابتة لبطاقات المرة الواحدة'
-                            : 'قيمة البطاقة الواحدة',
+                            ? l.tr('screens_card_print_requests_screen.011')
+                            : l.tr('screens_card_print_requests_screen.012'),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: quantityController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'عدد البطاقات',
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_card_print_requests_screen.013'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -174,8 +181,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       controller: notesController,
                       minLines: 2,
                       maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'ملاحظات إضافية',
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_card_print_requests_screen.014'),
                       ),
                     ),
                   ],
@@ -187,11 +194,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 onPressed: _isSubmitting
                     ? null
                     : () => Navigator.pop(dialogContext),
-                child: const Text('إلغاء'),
+                child: Text(l.tr('screens_card_print_requests_screen.015')),
               ),
               ElevatedButton(
                 onPressed: _isSubmitting ? null : submit,
-                child: Text(_isSubmitting ? 'جارٍ الإرسال...' : 'إرسال الطلب'),
+                child: Text(
+                  _isSubmitting
+                      ? l.tr('screens_card_print_requests_screen.016')
+                      : l.tr('screens_card_print_requests_screen.017'),
+                ),
               ),
             ],
           );
@@ -209,6 +220,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final availableBalance =
         (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
     final printFee = (_user?['customCardPrintRequestFeePercent'] as num?)
@@ -216,7 +228,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('طلبات طباعة البطاقات')),
+      appBar: AppBar(
+        title: Text(l.tr('screens_card_print_requests_screen.018')),
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -233,12 +247,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'طلبات طباعة البطاقات',
+                        l.tr('screens_card_print_requests_screen.018'),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'أرسل طلبك من هنا وسيتم خصم القيمة مباشرة من رصيدك، ثم تتابع الإدارة مراحل المراجعة والطباعة والتجهيز حتى الإكمال.',
+                        l.tr('screens_card_print_requests_screen.019'),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
                           height: 1.6,
@@ -250,18 +264,18 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         runSpacing: 12,
                         children: [
                           _heroBadge(
-                            'الرصيد المتاح للطباعة',
+                            l.tr('screens_card_print_requests_screen.020'),
                             CurrencyFormatter.ils(availableBalance),
                           ),
                           _heroBadge(
-                            'رسوم طلب الطباعة',
-                            '${printFee?.toStringAsFixed(2) ?? 'الافتراضية'}%',
+                            l.tr('screens_card_print_requests_screen.021'),
+                            '${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
                           ),
                         ],
                       ),
                       const SizedBox(height: 18),
                       ShwakelButton(
-                        label: 'طلب طباعة جديد',
+                        label: l.tr('screens_card_print_requests_screen.023'),
                         icon: Icons.print_rounded,
                         onPressed: _showCreateRequestDialog,
                       ),
@@ -281,7 +295,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     padding: const EdgeInsets.all(28),
                     child: Center(
                       child: Text(
-                        'لا توجد طلبات طباعة سابقة حتى الآن.',
+                        l.tr('screens_card_print_requests_screen.024'),
                         style: AppTheme.bodyAction,
                       ),
                     ),
@@ -297,6 +311,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Widget _buildRequestCard(Map<String, dynamic> request) {
+    final l = context.loc;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: ShwakelCard(
@@ -308,7 +323,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    request['statusLabel']?.toString() ?? 'بانتظار المراجعة',
+                    request['statusLabel']?.toString() ??
+                        l.tr('screens_card_print_requests_screen.025'),
                     style: AppTheme.h3,
                   ),
                 ),
@@ -321,20 +337,26 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               runSpacing: 12,
               children: [
                 _metaItem(
-                  'النوع',
+                  l.tr('screens_card_print_requests_screen.026'),
                   request['cardType'] == 'single_use'
-                      ? 'مرة واحدة'
-                      : 'بطاقات عادية',
+                      ? l.tr('screens_card_print_requests_screen.027')
+                      : l.tr('screens_card_print_requests_screen.028'),
                 ),
-                _metaItem('العدد', '${request['quantity'] ?? 0} بطاقة'),
                 _metaItem(
-                  'القيمة',
+                  l.tr('screens_card_print_requests_screen.029'),
+                  l.tr(
+                    'screens_card_print_requests_screen.030',
+                    params: {'count': '${request['quantity'] ?? 0}'},
+                  ),
+                ),
+                _metaItem(
+                  l.tr('screens_card_print_requests_screen.031'),
                   CurrencyFormatter.ils(
                     (request['cardValue'] as num?)?.toDouble() ?? 0,
                   ),
                 ),
                 _metaItem(
-                  'الإجمالي',
+                  l.tr('screens_card_print_requests_screen.032'),
                   CurrencyFormatter.ils(
                     (request['totalAmount'] as num?)?.toDouble() ?? 0,
                   ),
@@ -346,7 +368,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 14),
                 child: Text(
-                  'ملاحظاتك: ${request['customerNotes']}',
+                  l.tr(
+                    'screens_card_print_requests_screen.033',
+                    params: {'notes': '${request['customerNotes']}'},
+                  ),
                   style: AppTheme.bodyAction,
                 ),
               ),
@@ -354,7 +379,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'ملاحظات الإدارة: ${request['adminNotes']}',
+                  l.tr(
+                    'screens_card_print_requests_screen.034',
+                    params: {'notes': '${request['adminNotes']}'},
+                  ),
                   style: AppTheme.bodyAction.copyWith(
                     color: AppTheme.textSecondary,
                   ),
@@ -403,6 +431,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Widget _statusChip(String status) {
+    final l = context.loc;
     final color = switch (status) {
       'approved' => AppTheme.primary,
       'printing' => AppTheme.warning,
@@ -411,6 +440,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       'rejected' => AppTheme.error,
       _ => AppTheme.textSecondary,
     };
+    final label = switch (status) {
+      'pending_review' => l.tr('screens_card_print_requests_screen.035'),
+      'approved' => l.tr('screens_card_print_requests_screen.036'),
+      'printing' => l.tr('screens_card_print_requests_screen.037'),
+      'ready' => l.tr('screens_card_print_requests_screen.038'),
+      'completed' => l.tr('screens_card_print_requests_screen.039'),
+      'rejected' => l.tr('screens_card_print_requests_screen.040'),
+      _ => status,
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -418,7 +456,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status == 'pending_review' ? 'مراجعة' : status,
+        label,
         style: AppTheme.caption.copyWith(
           color: color,
           fontWeight: FontWeight.w900,

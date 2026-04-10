@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/shwakel_button.dart';
@@ -85,10 +86,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_otp_verification_screen.001'),
-        message: l.text(
-          'أدخل رمز التحقق كاملًا للمتابعة.',
-          'Please enter the full verification code to continue.',
-        ),
+        message: l.tr('screens_otp_verification_screen.015'),
       );
       return;
     }
@@ -116,10 +114,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         await AppAlertService.showSuccess(
           context,
           title: l.tr('screens_otp_verification_screen.002'),
-          message: l.text(
-            'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.',
-            'Your account has been created successfully. You can log in now.',
-          ),
+          message: l.tr('screens_otp_verification_screen.016'),
         );
         if (!mounted) {
           return;
@@ -187,10 +182,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       await AppAlertService.showSuccess(
         context,
         title: l.tr('screens_otp_verification_screen.004'),
-        message: l.text(
-          'تم إرسال رمز تحقق جديد إلى واتساب.',
-          'A new verification code has been sent to WhatsApp.',
-        ),
+        message: l.tr('screens_otp_verification_screen.017'),
       );
     } catch (error) {
       if (!mounted) {
@@ -206,6 +198,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         setState(() => _isResending = false);
       }
     }
+  }
+
+  String _subtitle(AppLocalizer l) {
+    return _isRegisterFlow
+        ? l.tr('screens_otp_verification_screen.018')
+        : l.tr('screens_otp_verification_screen.019');
+  }
+
+  String _resendLabel(AppLocalizer l) {
+    if (_cooldown > 0) {
+      return l.tr(
+        'screens_otp_verification_screen.020',
+        params: {'count': '$_cooldown'},
+      );
+    }
+    return l.tr('screens_otp_verification_screen.021');
   }
 
   @override
@@ -261,15 +269,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            _isRegisterFlow
-                ? l.text(
-                    'أدخل رمز التحقق المرسل إلى واتساب لإكمال إنشاء الحساب.',
-                    'Enter the code sent to your WhatsApp to complete registration.',
-                  )
-                : l.text(
-                    'أدخل رمز التحقق المرسل إلى واتساب لتسجيل الدخول بأمان.',
-                    'Enter the code sent to your WhatsApp to sign in securely.',
-                  ),
+            _subtitle(l),
             textAlign: TextAlign.center,
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
@@ -359,15 +359,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    _cooldown > 0
-                        ? l.text(
-                            'يمكنك إعادة الإرسال خلال $_cooldown ثانية',
-                            'You can resend the code in $_cooldown seconds',
-                          )
-                        : l.text(
-                            'لم يصلك الرمز بعد؟',
-                            "Didn't receive the code yet?",
-                          ),
+                    _resendLabel(l),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),
@@ -401,10 +393,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
         ),
         Positioned(
-          bottom: -30,
-          left: -30,
+          bottom: -60,
+          left: -40,
           child: CircleAvatar(
-            radius: 80,
+            radius: 130,
             backgroundColor: AppTheme.accent.withValues(alpha: 0.05),
           ),
         ),

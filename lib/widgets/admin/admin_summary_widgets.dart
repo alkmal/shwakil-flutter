@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../localization/index.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/currency_formatter.dart';
 import '../shwakel_card.dart';
@@ -22,6 +24,7 @@ class AdminSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeColor = color ?? AppTheme.primary;
+    final l = context.loc;
     return InkWell(
       onTap: onTap,
       borderRadius: AppTheme.radiusLg,
@@ -58,7 +61,7 @@ class AdminSummaryCard extends StatelessWidget {
                     borderRadius: AppTheme.radiusSm,
                   ),
                   child: Text(
-                    'مؤشر',
+                    l.tr('widgets_admin_summary_widgets.001'),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                       fontWeight: FontWeight.w700,
@@ -103,6 +106,7 @@ class AdminDashboardSummary extends StatelessWidget {
     final adminCount = (summary['adminCount'] as num?)?.toInt() ?? 0;
     final totalPrintingDebt =
         (summary['totalPrintingDebt'] as num?)?.toDouble() ?? 0;
+    final l = context.loc;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -119,7 +123,7 @@ class AdminDashboardSummary extends StatelessWidget {
             SizedBox(
               width: cardWidth,
               child: AdminSummaryCard(
-                title: 'إجمالي الأرصدة',
+                title: l.tr('widgets_admin_summary_widgets.002'),
                 value: _currency(totalBalance),
                 icon: Icons.account_balance_wallet_rounded,
                 color: AppTheme.primary,
@@ -128,7 +132,7 @@ class AdminDashboardSummary extends StatelessWidget {
             SizedBox(
               width: cardWidth,
               child: AdminSummaryCard(
-                title: 'عدد العملاء',
+                title: l.tr('widgets_admin_summary_widgets.003'),
                 value: customerCount.toString(),
                 icon: Icons.people_alt_rounded,
                 color: AppTheme.secondary,
@@ -137,7 +141,7 @@ class AdminDashboardSummary extends StatelessWidget {
             SizedBox(
               width: cardWidth,
               child: AdminSummaryCard(
-                title: 'ديون الطباعة',
+                title: l.tr('widgets_admin_summary_widgets.004'),
                 value: _currency(totalPrintingDebt),
                 icon: Icons.print_rounded,
                 color: AppTheme.warning,
@@ -146,7 +150,7 @@ class AdminDashboardSummary extends StatelessWidget {
             SizedBox(
               width: cardWidth,
               child: AdminSummaryCard(
-                title: 'المسؤولون',
+                title: l.tr('widgets_admin_summary_widgets.005'),
                 value: adminCount.toString(),
                 icon: Icons.admin_panel_settings_rounded,
                 color: AppTheme.accent,

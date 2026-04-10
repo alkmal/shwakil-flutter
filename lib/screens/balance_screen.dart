@@ -128,9 +128,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Future<void> _openTransferDialog() async {
+    final l = context.loc;
     if (!_canTransferAction) {
       _showMessage(
-        'هذه الخدمة غير متاحة لحسابك.',
+        l.tr('screens_balance_screen.002'),
         isError: true,
         operation: 'open_transfer_dialog',
       );
@@ -138,9 +139,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     }
 
     final result = await _showSearchableUserAmountDialog(
-      title: 'تحويل رصيد',
-      confirmLabel: 'تحويل الرصيد',
-      notesLabel: 'ملاحظات التحويل',
+      title: l.tr('screens_balance_screen.003'),
+      confirmLabel: l.tr('screens_balance_screen.004'),
+      notesLabel: l.tr('screens_balance_screen.005'),
       enablePhoneLookup: true,
     );
     if (result == null || !mounted) return;
@@ -169,14 +170,16 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         ErrorMessageService.sanitize(error),
         isError: true,
         operation: 'wallet_transfer',
+        fallbackTitle: l.tr('screens_balance_screen.006'),
       );
     }
   }
 
   Future<void> _openWithdrawalDialog() async {
+    final l = context.loc;
     if (!_canWithdrawAction || !_isVerifiedAccount) {
       _showMessage(
-        'يجب توثيق الحساب قبل طلب السحب.',
+        l.tr('screens_balance_screen.007'),
         isError: true,
         operation: 'open_withdrawal_dialog',
       );
@@ -207,8 +210,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       await _loadBalance();
       if (!mounted) return;
       _showMessage(
-        response['message']?.toString() ??
-            'تم تسجيل طلب السحب، وسيتم مراجعته خلال 24 ساعة.',
+        response['message']?.toString() ?? l.tr('screens_balance_screen.008'),
       );
     } catch (error) {
       if (!mounted) return;
@@ -216,14 +218,16 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         ErrorMessageService.sanitize(error),
         isError: true,
         operation: 'wallet_withdrawal',
+        fallbackTitle: l.tr('screens_balance_screen.009'),
       );
     }
   }
 
   Future<void> _openTopUpDialog() async {
+    final l = context.loc;
     if (!_canManageUsersAction) {
       _showMessage(
-        'شحن الأرصدة متاح للإدارة فقط.',
+        l.tr('screens_balance_screen.010'),
         isError: true,
         operation: 'open_topup_dialog',
       );
@@ -231,10 +235,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     }
 
     final result = await _showSearchableUserAmountDialog(
-      title: 'شحن رصيد مستخدم',
-      confirmLabel: 'إضافة الرصيد',
-      notesLabel: 'سبب الشحن',
-      amountHelperText: 'يُخصم 1% من قيمة الشحن كرسوم خدمة.',
+      title: l.tr('screens_balance_screen.011'),
+      confirmLabel: l.tr('screens_balance_screen.012'),
+      notesLabel: l.tr('screens_balance_screen.013'),
+      amountHelperText: l.tr('screens_balance_screen.014'),
     );
     if (result == null || !mounted) return;
 
@@ -257,8 +261,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       if (!mounted) return;
       _showMessage(
         response['recipientNotified'] == true
-            ? 'تم الشحن وإشعار المستخدم.'
-            : 'تم الشحن وتعذر إرسال إشعار واتساب.',
+            ? l.tr('screens_balance_screen.015')
+            : l.tr('screens_balance_screen.016'),
       );
     } catch (error) {
       if (!mounted) return;
@@ -266,11 +270,13 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         ErrorMessageService.sanitize(error),
         isError: true,
         operation: 'wallet_topup',
+        fallbackTitle: l.tr('screens_balance_screen.017'),
       );
     }
   }
 
   Future<void> _openTopupRequestDialog() async {
+    final l = context.loc;
     try {
       final options = await _apiService.getTopupRequestOptions();
       final topupRequest = Map<String, dynamic>.from(
@@ -287,16 +293,16 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       if (topupRequest['enabled'] != true) {
         await AppAlertService.showInfo(
           context,
-          title: 'الخدمة غير متاحة',
-          message: 'طلبات شحن الرصيد متوقفة حاليًا. يمكنك التواصل مع الإدارة.',
+          title: l.tr('screens_balance_screen.052'),
+          message: l.tr('screens_balance_screen.053'),
         );
         return;
       }
       if (methods.isEmpty) {
         await AppAlertService.showInfo(
           context,
-          title: 'لا توجد طرق دفع',
-          message: 'لم تتم إضافة طرق شحن متاحة بعد من الإدارة.',
+          title: l.tr('screens_balance_screen.054'),
+          message: l.tr('screens_balance_screen.055'),
         );
         return;
       }
@@ -332,8 +338,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
               final amount = double.tryParse(amountController.text.trim()) ?? 0;
               if (amount <= 0 || selectedMethodId == null) {
                 setDialogState(
-                  () =>
-                      errorText = 'أدخل مبلغًا صحيحًا واختر طريقة شحن مناسبة.',
+                  () => errorText = l.tr('screens_balance_screen.056'),
                 );
                 return;
               }
@@ -360,10 +365,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                 }
                 await AppAlertService.showSuccess(
                   context,
-                  title: 'تم إرسال الطلب',
+                  title: l.tr('screens_balance_screen.057'),
                   message:
                       response['message']?.toString() ??
-                      'تم تسجيل طلب شحن الرصيد وسيراجعه فريق الإدارة.',
+                      l.tr('screens_balance_screen.058'),
                 );
               } catch (error) {
                 if (!dialogContext.mounted) {
@@ -377,7 +382,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             }
 
             return AlertDialog(
-              title: const Text('طلب شحن رصيد'),
+              title: Text(l.tr('screens_balance_screen.029')),
               content: SizedBox(
                 width: 520,
                 child: SingleChildScrollView(
@@ -394,16 +399,16 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         ),
                         child: Text(
                           topupRequest['instructions']?.toString() ??
-                              'اختر طريقة الشحن المناسبة ثم أرسل بيانات الحوالة.',
+                              l.tr('screens_balance_screen.059'),
                           style: AppTheme.bodyAction,
                         ),
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         initialValue: selectedMethodId,
-                        decoration: const InputDecoration(
-                          labelText: 'طريقة الدفع',
-                          prefixIcon: Icon(
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.060'),
+                          prefixIcon: const Icon(
                             Icons.account_balance_wallet_rounded,
                           ),
                         ),
@@ -436,7 +441,15 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'الرقم: ${selectedMethod['accountNumber']?.toString() ?? '-'}',
+                              l.tr(
+                                'screens_balance_screen.061',
+                                params: {
+                                  'number':
+                                      selectedMethod['accountNumber']
+                                          ?.toString() ??
+                                      '-',
+                                },
+                              ),
                               style: AppTheme.bodyAction,
                             ),
                             if ((selectedMethod['description']?.toString() ??
@@ -460,43 +473,43 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'مبلغ الشحن',
-                          prefixIcon: Icon(Icons.payments_outlined),
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.062'),
+                          prefixIcon: const Icon(Icons.payments_outlined),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: senderNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'اسم المحول',
-                          prefixIcon: Icon(Icons.person_outline_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.063'),
+                          prefixIcon: const Icon(Icons.person_outline_rounded),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: senderPhoneController,
                         keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'جوال المحول',
-                          prefixIcon: Icon(Icons.phone_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.064'),
+                          prefixIcon: const Icon(Icons.phone_rounded),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: transferReferenceController,
-                        decoration: const InputDecoration(
-                          labelText: 'رقم العملية أو المرجع',
-                          prefixIcon: Icon(Icons.tag_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.065'),
+                          prefixIcon: const Icon(Icons.tag_rounded),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: transferredAtController,
-                        decoration: const InputDecoration(
-                          labelText: 'وقت التحويل',
-                          helperText: 'مثال: 2026-04-06 14:30',
-                          prefixIcon: Icon(Icons.schedule_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.066'),
+                          helperText: l.tr('screens_balance_screen.067'),
+                          prefixIcon: const Icon(Icons.schedule_rounded),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -504,9 +517,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         controller: notesController,
                         minLines: 2,
                         maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'ملاحظات إضافية',
-                          prefixIcon: Icon(Icons.notes_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.068'),
+                          prefixIcon: const Icon(Icons.notes_rounded),
                         ),
                       ),
                       if (errorText != null) ...[
@@ -527,11 +540,15 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.pop(dialogContext),
-                  child: const Text('إلغاء'),
+                  child: Text(l.tr('screens_balance_screen.069')),
                 ),
                 ElevatedButton(
                   onPressed: isSubmitting ? null : submit,
-                  child: Text(isSubmitting ? 'جارٍ الإرسال...' : 'إرسال الطلب'),
+                  child: Text(
+                    isSubmitting
+                        ? l.tr('screens_balance_screen.070')
+                        : l.tr('screens_balance_screen.071'),
+                  ),
                 ),
               ],
             );
@@ -544,16 +561,27 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر فتح الخدمة',
+        title: l.tr('screens_balance_screen.072'),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
-  void _showMessage(String text, {bool isError = false, String? operation}) {
-    isError
-        ? AppAlertService.showError(context, title: 'خطأ', message: text)
-        : AppAlertService.showSuccess(context, title: 'نجاح', message: text);
+  void _showMessage(
+    String text, {
+    bool isError = false,
+    String? operation,
+    String? fallbackTitle,
+  }) {
+    final l = context.loc;
+    final title =
+        fallbackTitle ??
+        (isError
+            ? l.tr('screens_balance_screen.018')
+            : l.tr('screens_balance_screen.019'));
+    isError || operation != null
+        ? AppAlertService.showError(context, title: title, message: text)
+        : AppAlertService.showSuccess(context, title: title, message: text);
   }
 
   @override
@@ -567,7 +595,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('الرصيد والمعاملات')),
+      appBar: AppBar(title: Text(context.loc.tr('screens_balance_screen.020'))),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _loadBalance,
@@ -577,39 +605,13 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isCompact = constraints.maxWidth < 920;
+                final isPhone = constraints.maxWidth < 640;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeroCard(isCompact: isCompact),
+                    _buildTopSection(isCompact: isCompact, isPhone: isPhone),
                     const SizedBox(height: 24),
-                    if (isCompact) ...[
-                      _buildActionsCard(isCompact: true),
-                      const SizedBox(height: 16),
-                      _buildPermissionSummaryCard(),
-                    ] else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: _buildActionsCard(isCompact: false),
-                          ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            flex: 2,
-                            child: _buildPermissionSummaryCard(),
-                          ),
-                        ],
-                      ),
-                    const SizedBox(height: 36),
-                    AdminSectionHeader(
-                      title: 'آخر العمليات',
-                      subtitle: 'آخر حركات حسابك.',
-                      icon: Icons.history_rounded,
-                      iconColor: AppTheme.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAuditFilters(),
+                    _buildHistorySection(isCompact: isCompact),
                     const SizedBox(height: 24),
                     if (_transactions.isEmpty)
                       _buildEmptyState()
@@ -631,6 +633,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         },
                       ),
                     ],
+                    if (isCompact) ...[
+                      const SizedBox(height: 24),
+                      _buildPermissionSummaryCard(compact: true),
+                    ],
                   ],
                 );
               },
@@ -641,7 +647,60 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     );
   }
 
+  Widget _buildTopSection({required bool isCompact, required bool isPhone}) {
+    if (isCompact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeroCard(isCompact: true),
+          const SizedBox(height: 16),
+          _buildActionsCard(isCompact: true, isPhone: isPhone),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Column(
+            children: [
+              _buildHeroCard(isCompact: false),
+              const SizedBox(height: 18),
+              _buildActionsCard(isCompact: false, isPhone: false),
+            ],
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(flex: 2, child: _buildPermissionSummaryCard(compact: false)),
+      ],
+    );
+  }
+
+  Widget _buildHistorySection({required bool isCompact}) {
+    final l = context.loc;
+    return ShwakelCard(
+      padding: EdgeInsets.all(isCompact ? 18 : 24),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AdminSectionHeader(
+            title: l.tr('screens_balance_screen.021'),
+            subtitle: l.tr('screens_balance_screen.022'),
+            icon: Icons.history_rounded,
+            iconColor: AppTheme.primary,
+          ),
+          const SizedBox(height: 16),
+          _buildAuditFilters(compact: isCompact),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeroCard({required bool isCompact}) {
+    final l = context.loc;
     final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
     final printingDebtLimit =
         (_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0;
@@ -657,27 +716,69 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         '';
 
     return ShwakelCard(
-      padding: const EdgeInsets.all(30),
+      padding: EdgeInsets.all(isCompact ? 22 : 30),
       gradient: AppTheme.primaryGradient,
       withBorder: false,
       shadowLevel: ShwakelShadowLevel.premium,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ShwakelLogo(size: 44, framed: true),
-          const SizedBox(height: 20),
-          Text(fullName, style: AppTheme.h2.copyWith(color: Colors.white)),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 24,
-            runSpacing: 16,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _amountCol('الرصيد المتاح', balance, isCompact: isCompact),
-              _amountCol('للطباعة', availablePrinting, isCompact: isCompact),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fullName,
+                      style: AppTheme.h2.copyWith(
+                        color: Colors.white,
+                        fontSize: isCompact ? 20 : 22,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      l.tr('screens_balance_screen.020'),
+                      style: AppTheme.bodyAction.copyWith(
+                        color: Colors.white.withValues(alpha: 0.84),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              const ShwakelLogo(size: 44, framed: true),
             ],
           ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isCompact ? 16 : 20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+            ),
+            child: Wrap(
+              spacing: 20,
+              runSpacing: 16,
+              children: [
+                _amountCol(
+                  l.tr('screens_balance_screen.023'),
+                  balance,
+                  isCompact: isCompact,
+                ),
+                _amountCol(
+                  l.tr('screens_balance_screen.024'),
+                  availablePrinting,
+                  isCompact: isCompact,
+                ),
+              ],
+            ),
+          ),
           if (printingDebtLimit > 0) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             _debtBar(debt, printingDebtLimit),
           ],
         ],
@@ -687,7 +788,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
 
   Widget _amountCol(String label, double amount, {required bool isCompact}) {
     return ConstrainedBox(
-      constraints: BoxConstraints(minWidth: isCompact ? 140 : 180),
+      constraints: BoxConstraints(minWidth: isCompact ? 132 : 180),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -697,7 +798,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             CurrencyFormatter.ils(amount),
             style: AppTheme.h1.copyWith(
               color: Colors.white,
-              fontSize: isCompact ? 28 : 32,
+              fontSize: isCompact ? 24 : 32,
             ),
           ),
         ],
@@ -706,6 +807,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Widget _debtBar(double debt, double limit) {
+    final l = context.loc;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -729,14 +831,21 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         ),
         const SizedBox(height: 10),
         Text(
-          'المستخدم من دين الطباعة: ${CurrencyFormatter.ils(debt)} / ${CurrencyFormatter.ils(limit)}',
+          l.tr(
+            'screens_balance_screen.025',
+            params: {
+              'debt': CurrencyFormatter.ils(debt),
+              'limit': CurrencyFormatter.ils(limit),
+            },
+          ),
           style: AppTheme.caption.copyWith(color: Colors.white70),
         ),
       ],
     );
   }
 
-  Widget _buildActionsCard({required bool isCompact}) {
+  Widget _buildActionsCard({required bool isCompact, required bool isPhone}) {
+    final l = context.loc;
     final actionButtons = _buildActionButtons();
 
     return ShwakelCard(
@@ -744,23 +853,25 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('الإجراءات المتاحة', style: AppTheme.h3),
+          Text(l.tr('screens_balance_screen.026'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
             actionButtons.isEmpty
-                ? 'لا توجد عمليات مالية متاحة لهذا الحساب حاليًا.'
-                : 'تظهر لك فقط العمليات المسموح بها حسب صلاحيات حسابك.',
+                ? l.tr('screens_balance_screen.027')
+                : l.tr('screens_balance_screen.028'),
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
           if (actionButtons.isEmpty)
             _buildLockedActionsHint()
           else if (isCompact)
-            Column(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: actionButtons
                   .map(
-                    (button) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                    (button) => SizedBox(
+                      width: isPhone ? double.infinity : 220,
                       child: button,
                     ),
                   )
@@ -780,12 +891,13 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   List<Widget> _buildActionButtons() {
+    final l = context.loc;
     final buttons = <Widget>[];
 
     if (_canManageUsersAction) {
       buttons.add(
         ShwakelButton(
-          label: 'شحن رصيد مستخدم',
+          label: l.tr('screens_balance_screen.011'),
           icon: Icons.add_circle_outline_rounded,
           onPressed: _openTopUpDialog,
         ),
@@ -794,7 +906,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     if (_canTransferAction) {
       buttons.add(
         ShwakelButton(
-          label: 'تحويل رصيد',
+          label: l.tr('screens_balance_screen.003'),
           icon: Icons.send_rounded,
           isSecondary: buttons.isNotEmpty,
           onPressed: _openTransferDialog,
@@ -804,7 +916,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     if (_topupRequestEnabled) {
       buttons.add(
         ShwakelButton(
-          label: 'طلب شحن رصيد',
+          label: l.tr('screens_balance_screen.029'),
           icon: Icons.add_card_rounded,
           isSecondary: buttons.isNotEmpty,
           onPressed: _openTopupRequestDialog,
@@ -814,7 +926,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     if (_canWithdrawAction && _isVerifiedAccount) {
       buttons.add(
         ShwakelButton(
-          label: 'طلب سحب',
+          label: l.tr('screens_balance_screen.030'),
           icon: Icons.outbox_rounded,
           isSecondary: true,
           onPressed: _openWithdrawalDialog,
@@ -826,6 +938,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Widget _buildLockedActionsHint() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(18),
       color: AppTheme.warning.withValues(alpha: 0.08),
@@ -838,8 +951,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           Expanded(
             child: Text(
               _isVerifiedAccount
-                  ? 'لا توجد إجراءات إضافية متاحة لهذا الحساب.'
-                  : 'بعض العمليات مثل التحويل والسحب تتطلب توثيق الحساب أولًا.',
+                  ? l.tr('screens_balance_screen.031')
+                  : l.tr('screens_balance_screen.032'),
               style: AppTheme.bodyText,
             ),
           ),
@@ -848,29 +961,51 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     );
   }
 
-  Widget _buildPermissionSummaryCard() {
+  Widget _buildPermissionSummaryCard({required bool compact}) {
+    final l = context.loc;
     return ShwakelCard(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(compact ? 20 : 24),
       color: AppTheme.primary.withValues(alpha: 0.05),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'حالة الحساب',
+            l.tr('screens_balance_screen.033'),
             style: AppTheme.h3.copyWith(color: AppTheme.primary),
           ),
-          const SizedBox(height: 16),
-          _permissionRow('نوع الحساب', _user?['roleLabel']?.toString() ?? '-'),
-          _permissionRow('التوثيق', _isVerifiedAccount ? 'موثق' : 'غير موثق'),
-          _permissionRow('التحويل', _canTransferAction ? 'متاح' : 'غير متاح'),
+          const SizedBox(height: 14),
           _permissionRow(
-            'السحب',
-            (_canWithdrawAction && _isVerifiedAccount) ? 'متاح' : 'غير متاح',
+            l.tr('screens_balance_screen.034'),
+            _user?['roleLabel']?.toString() ?? '-',
           ),
-          if (_canManageUsersAction) _permissionRow('شحن المستخدمين', 'متاح'),
           _permissionRow(
-            'فحص البطاقات',
-            _canScanCardsAction ? 'متاح' : 'غير متاح',
+            l.tr('screens_balance_screen.035'),
+            _isVerifiedAccount
+                ? l.tr('screens_balance_screen.036')
+                : l.tr('screens_balance_screen.037'),
+          ),
+          _permissionRow(
+            l.tr('screens_balance_screen.038'),
+            _canTransferAction
+                ? l.tr('screens_balance_screen.039')
+                : l.tr('screens_balance_screen.040'),
+          ),
+          _permissionRow(
+            l.tr('screens_balance_screen.041'),
+            (_canWithdrawAction && _isVerifiedAccount)
+                ? l.tr('screens_balance_screen.039')
+                : l.tr('screens_balance_screen.040'),
+          ),
+          if (_canManageUsersAction)
+            _permissionRow(
+              l.tr('screens_balance_screen.042'),
+              l.tr('screens_balance_screen.039'),
+            ),
+          _permissionRow(
+            l.tr('screens_balance_screen.043'),
+            _canScanCardsAction
+                ? l.tr('screens_balance_screen.039')
+                : l.tr('screens_balance_screen.040'),
           ),
         ],
       ),
@@ -878,7 +1013,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Widget _permissionRow(String label, String value) {
-    final isAvailable = value == 'متاح' || value == 'موثق';
+    final l = context.loc;
+    final isAvailable =
+        value == l.tr('screens_balance_screen.039') ||
+        value == l.tr('screens_balance_screen.036');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -896,23 +1034,56 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     );
   }
 
-  Widget _buildAuditFilters() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+  Widget _buildAuditFilters({required bool compact}) {
+    final l = context.loc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _filterChip('الكل', _BalanceAuditFilter.all),
-        _filterChip('قرب فرع', _BalanceAuditFilter.nearBranch),
-        _filterChip('خارج الفروع', _BalanceAuditFilter.outsideBranches),
-        if (((_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0) > 0)
-          _filterChip('دين الطباعة', _BalanceAuditFilter.printingDebt),
+        Text(
+          l.tr('screens_balance_screen.026'),
+          style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterChip(
+              l.tr('screens_balance_screen.044'),
+              _BalanceAuditFilter.all,
+              compact: compact,
+            ),
+            _filterChip(
+              l.tr('screens_balance_screen.045'),
+              _BalanceAuditFilter.nearBranch,
+              compact: compact,
+            ),
+            _filterChip(
+              l.tr('screens_balance_screen.046'),
+              _BalanceAuditFilter.outsideBranches,
+              compact: compact,
+            ),
+            if (((_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0) > 0)
+              _filterChip(
+                l.tr('screens_balance_screen.047'),
+                _BalanceAuditFilter.printingDebt,
+                compact: compact,
+              ),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _filterChip(String label, _BalanceAuditFilter filter) {
+  Widget _filterChip(
+    String label,
+    _BalanceAuditFilter filter, {
+    required bool compact,
+  }) {
     final selected = _auditFilter == filter;
     return ChoiceChip(
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
       selected: selected,
       label: Text(label),
       onSelected: (_) {
@@ -931,6 +1102,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Widget _buildEmptyState() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(44),
       child: Center(
@@ -942,7 +1114,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
               color: AppTheme.textTertiary,
             ),
             const SizedBox(height: 14),
-            Text('لا توجد معاملات حتى الآن', style: AppTheme.h3),
+            Text(l.tr('screens_balance_screen.048'), style: AppTheme.h3),
           ],
         ),
       ),
@@ -950,15 +1122,16 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Future<void> _showTransferSuccessReport(Map<String, dynamic> response) async {
+    final l = context.loc;
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('تم التحويل بنجاح'),
-        content: const Text('تم إرسال الرصيد بنجاح.'),
+        title: Text(l.tr('screens_balance_screen.049')),
+        content: Text(l.tr('screens_balance_screen.050')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إغلاق'),
+            child: Text(l.tr('screens_balance_screen.051')),
           ),
         ],
       ),
@@ -972,6 +1145,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     String? amountHelperText,
     bool enablePhoneLookup = false,
   }) async {
+    final l = context.loc;
     final queryController = TextEditingController();
     final phoneController = TextEditingController();
     final amountController = TextEditingController();
@@ -990,7 +1164,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         setDialogState(() {
           searchResults = const [];
           selectedUser = null;
-          searchError = 'أدخل اسم المستخدم أو رقم واتساب للبحث.';
+          searchError = l.tr('screens_balance_screen.073');
         });
         return;
       }
@@ -1008,7 +1182,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           selectedUser = results.length == 1 ? results.first : null;
           isSearching = false;
           searchError = results.isEmpty
-              ? 'لم يتم العثور على مستخدم مطابق.'
+              ? l.tr('screens_balance_screen.074')
               : null;
         });
       } catch (error) {
@@ -1023,7 +1197,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     Future<void> performPhoneLookup(StateSetter setDialogState) async {
       final phone = phoneController.text.trim();
       if (phone.isEmpty) {
-        setDialogState(() => phoneLookupMessage = 'أدخل رقم الجوال أولًا.');
+        setDialogState(() {
+          phoneLookupMessage = l.tr('screens_balance_screen.075');
+        });
         return;
       }
 
@@ -1046,11 +1222,12 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           if (response['exists'] == true && user != null) {
             selectedUser = user;
             searchResults = [user];
-            phoneLookupMessage = 'الرقم موجود ويمكن متابعة التحويل.';
+            phoneLookupMessage = l.tr('screens_balance_screen.076');
           } else {
             selectedUser = null;
             phoneLookupMessage =
-                response['message']?.toString() ?? 'الرقم غير موجود.';
+                response['message']?.toString() ??
+                l.tr('screens_balance_screen.077');
           }
         });
       } catch (error) {
@@ -1076,8 +1253,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                 children: [
                   Text(
                     enablePhoneLookup
-                        ? 'أدخل رقم الجوال ثم افحصه للعثور على المستلم قبل تنفيذ التحويل.'
-                        : 'ابحث عن المستخدم ثم أدخل مبلغ العملية.',
+                        ? l.tr('screens_balance_screen.078')
+                        : l.tr('screens_balance_screen.079'),
                     style: AppTheme.bodyAction,
                   ),
                   if (!enablePhoneLookup) ...[
@@ -1091,8 +1268,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             children: [
                               TextField(
                                 controller: queryController,
-                                decoration: const InputDecoration(
-                                  labelText: 'اسم المستخدم أو رقم واتساب',
+                                decoration: InputDecoration(
+                                  labelText: l.tr('screens_balance_screen.080'),
                                 ),
                                 onSubmitted: (_) =>
                                     performSearch(setDialogState),
@@ -1104,7 +1281,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                     : () => performSearch(setDialogState),
                                 icon: const Icon(Icons.search_rounded),
                                 label: Text(
-                                  isSearching ? 'جارٍ البحث...' : 'بحث',
+                                  isSearching
+                                      ? l.tr('screens_balance_screen.081')
+                                      : l.tr('screens_balance_screen.082'),
                                 ),
                               ),
                             ],
@@ -1116,8 +1295,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             Expanded(
                               child: TextField(
                                 controller: queryController,
-                                decoration: const InputDecoration(
-                                  labelText: 'اسم المستخدم أو رقم واتساب',
+                                decoration: InputDecoration(
+                                  labelText: l.tr('screens_balance_screen.080'),
                                 ),
                                 onSubmitted: (_) =>
                                     performSearch(setDialogState),
@@ -1137,7 +1316,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                       ),
                                     )
                                   : const Icon(Icons.search_rounded),
-                              label: const Text('بحث'),
+                              label: Text(l.tr('screens_balance_screen.082')),
                             ),
                           ],
                         );
@@ -1153,7 +1332,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                   ],
                   if (enablePhoneLookup) ...[
                     const SizedBox(height: 16),
-                    Text('البحث برقم الجوال', style: AppTheme.bodyBold),
+                    Text(
+                      l.tr('screens_balance_screen.083'),
+                      style: AppTheme.bodyBold,
+                    ),
                     const SizedBox(height: 10),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -1164,8 +1346,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             children: [
                               DropdownButtonFormField<String>(
                                 initialValue: countryCode,
-                                decoration: const InputDecoration(
-                                  labelText: 'رمز الدولة',
+                                decoration: InputDecoration(
+                                  labelText: l.tr('screens_balance_screen.084'),
                                 ),
                                 items: PhoneNumberService.countries
                                     .map(
@@ -1186,9 +1368,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                               TextField(
                                 controller: phoneController,
                                 keyboardType: TextInputType.phone,
-                                decoration: const InputDecoration(
-                                  labelText: 'رقم الجوال',
-                                  prefixIcon: Icon(Icons.phone_rounded),
+                                decoration: InputDecoration(
+                                  labelText: l.tr('screens_balance_screen.085'),
+                                  prefixIcon: const Icon(Icons.phone_rounded),
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -1199,8 +1381,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                 icon: const Icon(Icons.verified_user_outlined),
                                 label: Text(
                                   isLookingUpPhone
-                                      ? 'جارٍ الفحص...'
-                                      : 'فحص الرقم',
+                                      ? l.tr('screens_balance_screen.086')
+                                      : l.tr('screens_balance_screen.087'),
                                 ),
                               ),
                             ],
@@ -1213,8 +1395,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                               width: 150,
                               child: DropdownButtonFormField<String>(
                                 initialValue: countryCode,
-                                decoration: const InputDecoration(
-                                  labelText: 'رمز الدولة',
+                                decoration: InputDecoration(
+                                  labelText: l.tr('screens_balance_screen.084'),
                                 ),
                                 items: PhoneNumberService.countries
                                     .map(
@@ -1235,9 +1417,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                               child: TextField(
                                 controller: phoneController,
                                 keyboardType: TextInputType.phone,
-                                decoration: const InputDecoration(
-                                  labelText: 'رقم الجوال',
-                                  prefixIcon: Icon(Icons.phone_rounded),
+                                decoration: InputDecoration(
+                                  labelText: l.tr('screens_balance_screen.085'),
+                                  prefixIcon: const Icon(Icons.phone_rounded),
                                 ),
                               ),
                             ),
@@ -1247,7 +1429,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                   ? null
                                   : () => performPhoneLookup(setDialogState),
                               child: Text(
-                                isLookingUpPhone ? 'جارٍ الفحص...' : 'فحص',
+                                isLookingUpPhone
+                                    ? l.tr('screens_balance_screen.086')
+                                    : l.tr('screens_balance_screen.088'),
                               ),
                             ),
                           ],
@@ -1295,8 +1479,21 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             title: Text(item['username']?.toString() ?? '-'),
                             subtitle: Text(
                               enablePhoneLookup
-                                  ? 'رقم المستخدم: ${item['id']}'
-                                  : 'رقم المستخدم: ${item['id']} | الرصيد: ${CurrencyFormatter.ils((item['balance'] as num?)?.toDouble() ?? 0)}',
+                                  ? l.tr(
+                                      'screens_balance_screen.089',
+                                      params: {'id': '${item['id']}'},
+                                    )
+                                  : l.tr(
+                                      'screens_balance_screen.090',
+                                      params: {
+                                        'id': '${item['id']}',
+                                        'balance': CurrencyFormatter.ils(
+                                          (item['balance'] as num?)
+                                                  ?.toDouble() ??
+                                              0,
+                                        ),
+                                      },
+                                    ),
                             ),
                             onTap: () =>
                                 setDialogState(() => selectedUser = item),
@@ -1318,7 +1515,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'المستخدم المحدد',
+                            l.tr('screens_balance_screen.091'),
                             style: AppTheme.caption.copyWith(
                               color: AppTheme.primary,
                             ),
@@ -1333,7 +1530,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                           if (enablePhoneLookup) ...[
                             const SizedBox(height: 4),
                             Text(
-                              'تم إخفاء الرصيد حفاظًا على خصوصية المستخدم.',
+                              l.tr('screens_balance_screen.092'),
                               style: AppTheme.caption.copyWith(
                                 color: AppTheme.textSecondary,
                               ),
@@ -1357,7 +1554,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                   TextField(
                     controller: amountController,
                     decoration: InputDecoration(
-                      labelText: 'المبلغ',
+                      labelText: l.tr('screens_balance_screen.093'),
                       helperText: amountHelperText,
                       prefixIcon: const Icon(Icons.payments_outlined),
                     ),
@@ -1375,6 +1572,13 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     minLines: 2,
                     maxLines: 3,
                   ),
+                  if (searchError != null && enablePhoneLookup) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      searchError!,
+                      style: AppTheme.caption.copyWith(color: AppTheme.error),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1382,15 +1586,15 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('إلغاء'),
+              child: Text(l.tr('screens_balance_screen.069')),
             ),
             ElevatedButton(
               onPressed: () {
                 if (selectedUser == null) {
                   setDialogState(
                     () => searchError = enablePhoneLookup
-                        ? 'افحص رقم الجوال أولًا لاختيار المستلم.'
-                        : 'اختر مستخدمًا من النتائج أولًا.',
+                        ? l.tr('screens_balance_screen.094')
+                        : l.tr('screens_balance_screen.095'),
                   );
                   return;
                 }
@@ -1412,6 +1616,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Future<_WithdrawalRequestResult?> _showWithdrawalDialog() async {
+    final l = context.loc;
     final amountController = TextEditingController();
     final accountController = TextEditingController();
     final fullName = (_user?['fullName']?.toString() ?? '').trim();
@@ -1430,11 +1635,11 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         builder: (context, setDialogState) {
           final isBankTransfer = destinationType == 'bank';
           final accountLabel = isBankTransfer
-              ? 'رقم الحساب أو الآيبان'
-              : 'رقم المحفظة أو الحساب';
+              ? l.tr('screens_balance_screen.096')
+              : l.tr('screens_balance_screen.097');
 
           return AlertDialog(
-            title: const Text('طلب سحب الرصيد'),
+            title: Text(l.tr('screens_balance_screen.030')),
             content: SizedBox(
               width: 460,
               child: SingleChildScrollView(
@@ -1443,21 +1648,26 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'أدخل بيانات الجهة التي تريد استلام السحب عليها.',
+                      l.tr('screens_balance_screen.098'),
                       style: AppTheme.bodyAction,
                     ),
                     const SizedBox(height: 14),
                     DropdownButtonFormField<String>(
                       initialValue: destinationType,
-                      decoration: const InputDecoration(
-                        labelText: 'جهة السحب',
-                        prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_balance_screen.099'),
+                        prefixIcon: const Icon(
+                          Icons.account_balance_wallet_outlined,
+                        ),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'wallet', child: Text('محفظة')),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'wallet',
+                          child: Text(l.tr('screens_balance_screen.100')),
+                        ),
                         DropdownMenuItem(
                           value: 'bank',
-                          child: Text('حساب بنكي'),
+                          child: Text(l.tr('screens_balance_screen.101')),
                         ),
                       ],
                       onChanged: (value) {
@@ -1468,10 +1678,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     const SizedBox(height: 12),
                     TextField(
                       controller: amountController,
-                      decoration: const InputDecoration(
-                        labelText: 'المبلغ',
-                        helperText: 'الحد الأدنى للسحب 100 ₪',
-                        prefixIcon: Icon(Icons.payments_outlined),
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_balance_screen.093'),
+                        helperText: l.tr('screens_balance_screen.102'),
+                        prefixIcon: const Icon(Icons.payments_outlined),
                       ),
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -1488,27 +1698,27 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     const SizedBox(height: 12),
                     TextField(
                       controller: accountHolderController,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم صاحب الحساب',
-                        prefixIcon: Icon(Icons.person_outline_rounded),
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_balance_screen.103'),
+                        prefixIcon: const Icon(Icons.person_outline_rounded),
                       ),
                     ),
                     if (isBankTransfer) ...[
                       const SizedBox(height: 12),
                       TextField(
                         controller: bankController,
-                        decoration: const InputDecoration(
-                          labelText: 'اسم البنك',
-                          prefixIcon: Icon(Icons.account_balance_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.tr('screens_balance_screen.104'),
+                          prefixIcon: const Icon(Icons.account_balance_rounded),
                         ),
                       ),
                     ],
                     const SizedBox(height: 12),
                     TextField(
                       controller: notesController,
-                      decoration: const InputDecoration(
-                        labelText: 'ملاحظات إضافية',
-                        prefixIcon: Icon(Icons.notes_rounded),
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_balance_screen.068'),
+                        prefixIcon: const Icon(Icons.notes_rounded),
                       ),
                       minLines: 2,
                       maxLines: 3,
@@ -1527,24 +1737,28 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('إلغاء'),
+                child: Text(l.tr('screens_balance_screen.069')),
               ),
               ElevatedButton(
                 onPressed: () {
                   final amount = double.tryParse(amountController.text) ?? 0;
                   if (amount <= 0) {
-                    setDialogState(() => formError = 'أدخل مبلغًا صحيحًا.');
+                    setDialogState(() {
+                      formError = l.tr('screens_balance_screen.105');
+                    });
                     return;
                   }
                   if (accountController.text.trim().isEmpty ||
                       accountHolderController.text.trim().isEmpty) {
                     setDialogState(() {
-                      formError = 'رقم الحساب واسم صاحب الحساب مطلوبان.';
+                      formError = l.tr('screens_balance_screen.106');
                     });
                     return;
                   }
                   if (isBankTransfer && bankController.text.trim().isEmpty) {
-                    setDialogState(() => formError = 'أدخل اسم البنك.');
+                    setDialogState(() {
+                      formError = l.tr('screens_balance_screen.107');
+                    });
                     return;
                   }
 
@@ -1560,7 +1774,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     ),
                   );
                 },
-                child: const Text('إرسال الطلب'),
+                child: Text(l.tr('screens_balance_screen.071')),
               ),
             ],
           );

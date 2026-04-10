@@ -130,19 +130,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final birthDate = _birthDateC.text.trim();
 
     if (fullName.isEmpty || fullName.length < 4) {
-      return l.text(
-        'أدخل الاسم الكامل بشكل صحيح.',
-        'Please enter your full name correctly.',
-      );
+      return l.tr('screens_register_screen.029');
     }
     if (username.isEmpty) {
       return l.tr('screens_register_screen.002');
     }
     if (!_usernamePattern.hasMatch(username)) {
-      return l.text(
-        'اسم المستخدم يجب أن يكون بالإنجليزية ويحتوي على أحرف أو أرقام فقط مع السماح بـ . و _ و - و + و @',
-        'Username must use English letters or numbers only, with . _ - + and @ allowed.',
-      );
+      return l.tr('screens_register_screen.030');
     }
     if (nationalId.length < 6 || nationalId.length > 16) {
       return l.tr('screens_register_screen.003');
@@ -167,10 +161,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
     if (whatsapp.isEmpty ||
         whatsapp.length < _selectedCountry.dialCode.length + 8) {
-      return l.text(
-        'أدخل رقم واتساب صحيحًا.',
-        'Please enter a valid WhatsApp number.',
-      );
+      return l.tr('screens_register_screen.031');
     }
 
     if (_referralPhoneC.text.trim().isNotEmpty) {
@@ -179,10 +170,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         defaultDialCode: _selectedCountry.dialCode,
       );
       if (referral.length < _selectedCountry.dialCode.length + 8) {
-        return l.text(
-          'رقم المحيل أو الموصي غير صالح.',
-          'Referral phone number is invalid.',
-        );
+        return l.tr('screens_register_screen.032');
       }
     }
 
@@ -198,40 +186,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return l.tr('screens_register_screen.006');
     }
     if (password.length < 8) {
-      return l.text(
-        'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
-        'Password must be at least 8 characters.',
-      );
+      return l.tr('screens_register_screen.033');
     }
     if (!_passwordLetterPattern.hasMatch(password)) {
-      return l.text(
-        'كلمة المرور يجب أن تحتوي على حرف واحد على الأقل.',
-        'Password must contain at least one letter.',
-      );
+      return l.tr('screens_register_screen.034');
     }
     if (!_passwordSymbolPattern.hasMatch(password)) {
-      return l.text(
-        'كلمة المرور يجب أن تحتوي على رمز واحد على الأقل.',
-        'Password must contain at least one symbol.',
-      );
+      return l.tr('screens_register_screen.035');
     }
     if (confirm.trim().isEmpty) {
-      return l.text(
-        'تأكيد كلمة المرور مطلوب.',
-        'Password confirmation is required.',
-      );
+      return l.tr('screens_register_screen.036');
     }
     if (password != confirm) {
-      return l.text(
-        'تأكيد كلمة المرور غير مطابق.',
-        'Password confirmation does not match.',
-      );
+      return l.tr('screens_register_screen.037');
     }
     if (!_termsAccepted) {
-      return l.text(
-        'يجب الموافقة على الشروط والأحكام لإكمال التسجيل.',
-        'You must accept the terms and conditions to continue.',
-      );
+      return l.tr('screens_register_screen.038');
     }
 
     return null;
@@ -345,10 +315,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l.text(
-                          'أكمل البيانات خطوة بخطوة، ولن تنتقل للخطوة التالية قبل اكتمال الحقول المطلوبة.',
-                          'Complete your details step by step. You will not move forward until the required fields are valid.',
-                        ),
+                        l.tr('screens_register_screen.039'),
                         textAlign: TextAlign.center,
                         style: AppTheme.bodyAction.copyWith(
                           color: AppTheme.textSecondary,
@@ -384,12 +351,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextButton(
                         onPressed: () =>
                             Navigator.pushReplacementNamed(context, '/login'),
-                        child: Text(
-                          l.text(
-                            'لديك حساب بالفعل؟ تسجيل الدخول',
-                            'Already have an account? Log in',
-                          ),
-                        ),
+                        child: Text(l.tr('screens_register_screen.040')),
                       ),
                     ],
                   ),
@@ -515,10 +477,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            l.text(
-              'يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل، مع حرف واحد ورمز واحد على الأقل.',
-              'Password must be at least 8 characters and include at least one letter and one symbol.',
-            ),
+            l.tr('screens_register_screen.041'),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const Spacer(),
@@ -528,10 +487,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               setState(() => _termsAccepted = value ?? false);
             },
             title: Text(
-              l.text(
-                'أوافق على الشروط والسياسات والرسوم المعروضة.',
-                'I agree to the displayed terms, policies, and fees.',
-              ),
+              l.tr('screens_register_screen.042'),
               style: AppTheme.caption.copyWith(fontWeight: FontWeight.bold),
             ),
             contentPadding: EdgeInsets.zero,
@@ -687,19 +643,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    l.text(
-                      'التسجيل متوقف حاليًا',
-                      'Registration is currently disabled',
-                    ),
+                    l.tr('screens_register_screen.043'),
                     textAlign: TextAlign.center,
                     style: AppTheme.h2,
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    l.text(
-                      'يمكنك التواصل مع الإدارة لطلب إنشاء حساب جديد أو تفعيل التسجيل من جديد.',
-                      'You can contact the administration to request a new account or ask them to re-enable registration.',
-                    ),
+                    l.tr('screens_register_screen.044'),
                     textAlign: TextAlign.center,
                     style: AppTheme.bodyAction.copyWith(
                       color: AppTheme.textSecondary,
@@ -711,15 +661,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SupportContactCard(
                       phoneNumber: _supportWhatsapp!,
                       title: l.tr('screens_register_screen.028'),
-                      message: l.text(
-                        'راسل الإدارة مباشرة عبر واتساب لطلب فتح التسجيل أو إنشاء حساب لك.',
-                        'Message the administration directly on WhatsApp to request account creation or registration access.',
-                      ),
+                      message: l.tr('screens_register_screen.045'),
                     ),
                   ],
                   const SizedBox(height: 24),
                   ShwakelButton(
-                    label: l.text('العودة إلى تسجيل الدخول', 'Back to login'),
+                    label: l.tr('screens_register_screen.046'),
                     onPressed: () =>
                         Navigator.pushReplacementNamed(context, '/login'),
                     isSecondary: true,

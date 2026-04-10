@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -181,10 +181,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  l.text(
-                    'راجع طلبات التحويل إلى الحسابات البنكية أو المحافظ الإلكترونية قبل اعتمادها.',
-                    'Review transfer requests to bank accounts or digital wallets before approval.',
-                  ),
+                  l.tr('screens_withdrawal_requests_screen.026'),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -501,10 +498,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       if (mounted) {
         AppAlertService.showError(
           context,
-          message: l.text(
-            'يجب إرفاق صورة إثبات قبل اعتماد طلب السحب.',
-            'A proof image is required before approving the withdrawal request.',
-          ),
+          message: l.tr('screens_withdrawal_requests_screen.027'),
         );
       }
       return;
@@ -552,10 +546,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
           maxLines: 5,
           decoration: InputDecoration(
             labelText: l.tr('screens_withdrawal_requests_screen.022'),
-            hintText: l.text(
-              'اكتب ملاحظة مختصرة للمستخدم',
-              'Write a short note for the user',
-            ),
+            hintText: l.tr('screens_withdrawal_requests_screen.028'),
           ),
         ),
         actions: [
@@ -615,3 +606,4 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     return DateFormat('yyyy/MM/dd - HH:mm').format(parsed.toLocal());
   }
 }
+

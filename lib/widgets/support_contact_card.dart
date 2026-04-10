@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../localization/index.dart';
 import '../utils/app_theme.dart';
 
 class SupportContactCard extends StatelessWidget {
@@ -9,36 +10,39 @@ class SupportContactCard extends StatelessWidget {
     super.key,
     required this.phoneNumber,
     this.message,
-    this.title = 'الدعم والتواصل',
+    this.title,
   });
 
   final String phoneNumber;
   final String? message;
-  final String title;
+  final String? title;
 
   Future<void> _copyNumber(BuildContext context) async {
+    final l = context.loc;
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     if (!context.mounted) {
       return;
     }
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('تم نسخ رقم الدعم')));
+    ).showSnackBar(SnackBar(content: Text(l.tr('widgets_support_contact_card.001'))));
   }
 
   Future<void> _openWhatsapp(BuildContext context) async {
+    final l = context.loc;
     final uri = Uri.parse('https://wa.me/$phoneNumber');
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (opened || !context.mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تعذر فتح واتساب على هذا الجهاز')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.tr('widgets_support_contact_card.002'))));
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -70,7 +74,7 @@ class SupportContactCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    title,
+                    title ?? l.tr('widgets_support_contact_card.003'),
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF0F172A),
@@ -108,12 +112,12 @@ class SupportContactCard extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: () => _openWhatsapp(context),
                 icon: const Icon(Icons.chat_rounded),
-                label: const Text('فتح واتساب'),
+                label: Text(l.tr('widgets_support_contact_card.004')),
               ),
               OutlinedButton.icon(
                 onPressed: () => _copyNumber(context),
                 icon: const Icon(Icons.copy_rounded),
-                label: const Text('نسخ الرقم'),
+                label: Text(l.tr('widgets_support_contact_card.005')),
               ),
             ],
           ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -196,10 +196,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       await AppAlertService.showSuccess(
         context,
         title: l.tr('screens_admin_system_settings_screen.001'),
-        message: l.text(
-          'تم حفظ الإعدادات بنجاح.',
-          'Settings have been saved successfully.',
-        ),
+        message: l.tr('screens_admin_system_settings_screen.035'),
       );
     } catch (error) {
       if (!mounted) {
@@ -248,10 +245,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               await AppAlertService.showError(
                 dialogContext,
                 title: l.tr('screens_admin_system_settings_screen.003'),
-                message: l.text(
-                  'العنوان ورقم التحويل مطلوبان.',
-                  'Title and transfer number are required.',
-                ),
+                message: l.tr('screens_admin_system_settings_screen.036'),
               );
               return;
             }
@@ -310,10 +304,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     TextField(
                       controller: accountNumberController,
                       decoration: InputDecoration(
-                        labelText: l.text(
-                          'رقم الحساب أو المحفظة',
-                          'Account or wallet number',
-                        ),
+                        labelText: l.tr('screens_admin_system_settings_screen.037'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -441,10 +432,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l.text(
-                          'كل إعدادات الإدارة نُقلت إلى شاشة مستقلة وتُحمّل فقط عند الحاجة.',
-                          'All administration settings were moved to a dedicated screen and load only when needed.',
-                        ),
+                        l.tr('screens_admin_system_settings_screen.038'),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
                         ),
@@ -455,10 +443,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 const SizedBox(height: 24),
                 AdminSectionHeader(
                   title: l.tr('screens_admin_system_settings_screen.018'),
-                  subtitle: l.text(
-                    'إعدادات الدعم ووسائل الاتصال.',
-                    'Support and contact settings.',
-                  ),
+                  subtitle: l.tr('screens_admin_system_settings_screen.039'),
                   icon: Icons.support_agent_rounded,
                 ),
                 const SizedBox(height: 16),
@@ -505,14 +490,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 AdminSectionHeader(
-                  title: l.text(
-                    'إعدادات التسجيل والتحويل',
-                    'Registration & Transfer Settings',
-                  ),
-                  subtitle: l.text(
-                    'السياسات العامة وحدود النظام.',
-                    'General policies and system limits.',
-                  ),
+                  title: l.tr('screens_admin_system_settings_screen.040'),
+                  subtitle: l.tr('screens_admin_system_settings_screen.041'),
                   icon: Icons.tune_rounded,
                 ),
                 const SizedBox(height: 16),
@@ -525,52 +504,46 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                         onChanged: (value) =>
                             setState(() => _registrationEnabled = value),
                         title: Text(
-                          l.text(
-                            'السماح بالتسجيل الجديد',
-                            'Allow new registration',
-                          ),
+                          l.tr('screens_admin_system_settings_screen.042'),
                         ),
                       ),
                       TextField(
                         controller: _unverifiedTransferLimitController,
                         decoration: InputDecoration(
-                          labelText: l.text(
-                            'سقف التحويل للحسابات غير الموثقة',
-                            'Transfer limit for unverified accounts',
-                          ),
+                          labelText: l.tr('screens_admin_system_settings_screen.043'),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _minSupportedVersionController,
                         decoration: InputDecoration(
-                          labelText: l.text(
-                            'أقل نسخة مدعومة',
-                            'Minimum supported version',
-                          ),
+                          labelText: l.tr('screens_admin_system_settings_screen.044'),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _latestVersionController,
                         decoration: InputDecoration(
-                          labelText: l.text(
-                            'أحدث نسخة متاحة',
-                            'Latest available version',
-                          ),
+                          labelText: l.tr('screens_admin_system_settings_screen.045'),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _androidStoreUrlController,
-                        decoration: const InputDecoration(
-                          labelText: 'Android URL',
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.051',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _iosStoreUrlController,
-                        decoration: const InputDecoration(labelText: 'iOS URL'),
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_admin_system_settings_screen.052',
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -587,10 +560,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 const SizedBox(height: 16),
                 AdminSectionHeader(
                   title: l.tr('screens_admin_system_settings_screen.024'),
-                  subtitle: l.text(
-                    'تفعيل الخدمة وإدارة طرق الدفع.',
-                    'Enable the service and manage payment methods.',
-                  ),
+                  subtitle: l.tr('screens_admin_system_settings_screen.046'),
                   icon: Icons.add_card_rounded,
                   trailing: ShwakelButton(
                     label: l.tr('screens_admin_system_settings_screen.025'),
@@ -609,10 +579,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                         onChanged: (value) =>
                             setState(() => _topupRequestEnabled = value),
                         title: Text(
-                          l.text(
-                            'تفعيل طلبات شحن الرصيد',
-                            'Enable top-up requests',
-                          ),
+                          l.tr('screens_admin_system_settings_screen.047'),
                         ),
                       ),
                       TextField(
@@ -620,19 +587,13 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                         minLines: 3,
                         maxLines: 5,
                         decoration: InputDecoration(
-                          labelText: l.text(
-                            'تعليمات الشحن للعميل',
-                            'Top-up instructions for customer',
-                          ),
+                          labelText: l.tr('screens_admin_system_settings_screen.048'),
                         ),
                       ),
                       const SizedBox(height: 16),
                       if (_topupPaymentMethods.isEmpty)
                         Text(
-                          l.text(
-                            'لا توجد طرق شحن مضافة حاليًا.',
-                            'No top-up methods have been added yet.',
-                          ),
+                          l.tr('screens_admin_system_settings_screen.049'),
                           style: AppTheme.bodyAction,
                         )
                       else
@@ -687,10 +648,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 const SizedBox(height: 16),
                 AdminSectionHeader(
                   title: l.tr('screens_admin_system_settings_screen.026'),
-                  subtitle: l.text(
-                    'تحديث النصوص المعروضة داخل التطبيق.',
-                    'Update the policy text displayed inside the app.',
-                  ),
+                  subtitle: l.tr('screens_admin_system_settings_screen.050'),
                   icon: Icons.policy_rounded,
                 ),
                 const SizedBox(height: 16),
@@ -778,3 +736,4 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     );
   }
 }
+

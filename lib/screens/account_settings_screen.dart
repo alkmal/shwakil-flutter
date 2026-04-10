@@ -130,10 +130,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showSuccess(
         context,
         title: l.tr('screens_account_settings_screen.001'),
-        message: l.text(
-          'تم تحديث بيانات الملف الشخصي بنجاح.',
-          'Profile details were updated successfully.',
-        ),
+        message: l.tr('screens_account_settings_screen.039'),
       );
     } catch (error) {
       if (!mounted) {
@@ -161,10 +158,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showError(
         context,
         title: l.tr('screens_account_settings_screen.003'),
-        message: l.text(
-          'أدخل كلمة المرور الحالية والجديدة وتأكيدها.',
-          'Enter the current password, new password, and confirmation.',
-        ),
+        message: l.tr('screens_account_settings_screen.040'),
       );
       return;
     }
@@ -172,10 +166,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showError(
         context,
         title: l.tr('screens_account_settings_screen.004'),
-        message: l.text(
-          'تأكيد كلمة المرور الجديدة غير مطابق.',
-          'The new password confirmation does not match.',
-        ),
+        message: l.tr('screens_account_settings_screen.041'),
       );
       return;
     }
@@ -183,10 +174,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showError(
         context,
         title: l.tr('screens_account_settings_screen.005'),
-        message: l.text(
-          'يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل.',
-          'The new password must be at least 8 characters.',
-        ),
+        message: l.tr('screens_account_settings_screen.042'),
       );
       return;
     }
@@ -206,10 +194,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showSuccess(
         context,
         title: l.tr('screens_account_settings_screen.006'),
-        message: l.text(
-          'تم تغيير كلمة المرور بنجاح.',
-          'Password changed successfully.',
-        ),
+        message: l.tr('screens_account_settings_screen.043'),
       );
     } catch (error) {
       if (!mounted) {
@@ -353,10 +338,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    l.text(
-                      'أدخل الكلمة الحالية ثم الجديدة.',
-                      'Enter the current password, then the new one.',
-                    ),
+                    l.tr('screens_account_settings_screen.044'),
                     style: AppTheme.bodyAction.copyWith(color: Colors.white70),
                   ),
                 ],
@@ -383,7 +365,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   ),
                   const SizedBox(height: 16),
                   _field(
-                    l.text('تأكيد كلمة المرور الجديدة', 'Confirm new password'),
+                    l.tr('screens_account_settings_screen.045'),
                     _confirmNewPassController,
                     Icons.verified_user_rounded,
                     obscure: true,
@@ -473,9 +455,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     if (_hasPendingProfileCompletion)
                       _buildHeroStatusChip(
                         icon: Icons.edit_note_rounded,
-                        label: l.text(
-                          '$pendingFieldsCount حقل يحتاج إكمال',
-                          '$pendingFieldsCount fields need completion',
+                        label: l.tr(
+                          'screens_account_settings_screen.046',
+                          params: {'count': '$pendingFieldsCount'},
                         ),
                       ),
                   ],
@@ -600,10 +582,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              l.text(
-                'بعض البيانات مقفلة بعد التوثيق. للتعديل تواصل مع الدعم.',
-                'Some fields are locked after verification. Contact support to edit them.',
-              ),
+              l.tr('screens_account_settings_screen.047'),
               style: AppTheme.bodyText.copyWith(
                 color: AppTheme.warning,
                 fontWeight: FontWeight.w700,
@@ -627,10 +606,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              l.text(
-                'بإمكانك إكمال الحقول الناقصة فقط. بعد الحفظ سيتم إغلاقها تلقائيًا لأن الحساب موثق.',
-                'You can complete only the missing fields. After saving, they will be locked automatically because the account is verified.',
-              ),
+              l.tr('screens_account_settings_screen.048'),
               style: AppTheme.bodyText.copyWith(
                 color: AppTheme.secondary,
                 fontWeight: FontWeight.w700,
@@ -655,10 +631,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           Text(l.tr('screens_account_settings_screen.029'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            l.text(
-              'شعار يظهر على البطاقات عند الطباعة.',
-              'A logo shown on cards during printing.',
-            ),
+            l.tr('screens_account_settings_screen.049'),
             style: AppTheme.caption,
           ),
           const SizedBox(height: 18),
@@ -781,10 +754,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showError(
         context,
         title: l.tr('screens_account_settings_screen.034'),
-        message: l.text(
-          'تعذر قراءة ملف الشعار.',
-          'The logo file could not be read.',
-        ),
+        message: l.tr('screens_account_settings_screen.050'),
       );
       return;
     }
@@ -808,10 +778,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showSuccess(
         context,
         title: l.tr('screens_account_settings_screen.035'),
-        message: l.text(
-          'تم تحديث شعار الطباعة بنجاح.',
-          'The print logo was updated successfully.',
-        ),
+        message: l.tr('screens_account_settings_screen.051'),
       );
     } catch (error) {
       if (!mounted) {
@@ -845,10 +812,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       AppAlertService.showSuccess(
         context,
         title: l.tr('screens_account_settings_screen.037'),
-        message: l.text(
-          'تم حذف شعار الطباعة بنجاح.',
-          'The print logo was deleted successfully.',
-        ),
+        message: l.tr('screens_account_settings_screen.052'),
       );
     } catch (error) {
       if (!mounted) {

@@ -22,7 +22,7 @@ class AdminCustomersScreen extends StatefulWidget {
 
 class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   final ApiService _apiService = ApiService();
-  final _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
   List<Map<String, dynamic>> _customers = const [];
@@ -60,12 +60,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         page: _customerPage,
         perPage: 12,
       );
-      final pag = Map<String, dynamic>.from(
+      final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
+
       if (!mounted) {
         return;
       }
+
       setState(() {
         _summary = Map<String, dynamic>.from(
           payload['summary'] as Map? ?? const {},
@@ -73,7 +75,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         _customers = List<Map<String, dynamic>>.from(
           payload['customers'] as List? ?? const [],
         );
-        _customerLastPage = (pag['lastPage'] as num?)?.toInt() ?? 1;
+        _customerLastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
         _isLoading = false;
         _isLoadingCustomers = false;
       });
@@ -122,13 +124,11 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               await AppAlertService.showError(
                 dialogContext,
                 title: l.tr('screens_admin_customers_screen.002'),
-                message: l.text(
-                  'اسم المستخدم ورقم الواتساب مطلوبان.',
-                  'Username and WhatsApp number are required.',
-                ),
+                message: l.tr('screens_admin_customers_screen.024'),
               );
               return;
             }
+
             setDialogState(() => isSaving = true);
             try {
               final response = await _apiService.createAdminUser(
@@ -150,10 +150,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 title: l.tr('screens_admin_customers_screen.003'),
                 message:
                     response['message']?.toString() ??
-                    l.text(
-                      'تم إنشاء المستخدم بنجاح.',
-                      'The user has been created successfully.',
-                    ),
+                    l.tr('screens_admin_customers_screen.025'),
               );
               await _loadCustomers(reset: true);
             } catch (error) {
@@ -258,10 +255,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      l.text(
-                        'سيتم إنشاء كلمة مرور افتراضية وإرسالها تلقائيًا إلى رقم الواتساب المدخل.',
-                        'A temporary password will be generated and sent automatically to the provided WhatsApp number.',
-                      ),
+                      l.tr('screens_admin_customers_screen.026'),
                       textAlign: TextAlign.center,
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textSecondary,
@@ -298,13 +292,11 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   Future<void> _resendCustomerCredentials(Map<String, dynamic> customer) async {
     final l = context.loc;
     final userId = customer['id']?.toString() ?? '';
+
     if (userId.isEmpty) {
       await AppAlertService.showError(
         context,
-        message: l.text(
-          'Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ­Ø¯ÙŠØ¯ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨.',
-          'Unable to determine the user account.',
-        ),
+        message: l.tr('screens_admin_customers_screen.027'),
       );
       return;
     }
@@ -317,12 +309,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('screens_admin_customers_screen.013')),
-        content: Text(
-          l.text(
-            'Ø³ÙŠØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¬Ø¯ÙŠØ¯Ø© ÙˆØ±Ù‚Ù… Ø§Ù„ÙˆØ§ØªØ³Ø§Ø¨ Ø§Ù„Ù…Ø¹ØØÙˆØ¯ Ù…Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….',
-            'A new password and account details will be sent over WhatsApp to the linked number.',
-          ),
-        ),
+        content: Text(l.tr('screens_admin_customers_screen.028')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -374,6 +361,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
+    final totalCustomers =
+        (_summary['totalCustomers'] as num?)?.toInt() ?? _customers.length;
+
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -402,10 +392,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l.text(
-                          'ابحث عن العملاء، أضف مستخدمين جدد، وافتح بطاقة كل عميل بشكل مستقل.',
-                          'Search customers, add new users, and open each customer profile independently.',
-                        ),
+                        l.tr('screens_admin_customers_screen.029'),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
                         ),
@@ -417,16 +404,16 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                         children: [
                           _heroBadge(
                             l.tr('screens_admin_customers_screen.019'),
-                            l.text(
-                              '${_customers.length} عميل',
-                              '${_customers.length} customers',
+                            l.tr(
+                              'screens_admin_customers_screen.030',
+                              params: {'count': _customers.length.toString()},
                             ),
                           ),
                           _heroBadge(
                             l.tr('screens_admin_customers_screen.020'),
-                            l.text(
-                              '${(_summary['totalCustomers'] as num?)?.toInt() ?? _customers.length} حساب',
-                              '${(_summary['totalCustomers'] as num?)?.toInt() ?? _customers.length} accounts',
+                            l.tr(
+                              'screens_admin_customers_screen.031',
+                              params: {'count': totalCustomers.toString()},
                             ),
                           ),
                         ],
@@ -437,10 +424,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 const SizedBox(height: 24),
                 AdminSectionHeader(
                   title: l.tr('screens_admin_customers_screen.021'),
-                  subtitle: l.text(
-                    'كل البيانات هنا تخص العملاء فقط، وتُجلب عند فتح هذه الشاشة.',
-                    'All data here belongs only to customers and is loaded when this screen opens.',
-                  ),
+                  subtitle: l.tr('screens_admin_customers_screen.032'),
                   icon: Icons.people_alt_rounded,
                   trailing: ShwakelButton(
                     label: l.tr('screens_admin_customers_screen.022'),
@@ -474,7 +458,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 const SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final cols = constraints.maxWidth > 1080
+                    final columns = constraints.maxWidth > 1080
                         ? 3
                         : constraints.maxWidth > 720
                         ? 2
@@ -483,7 +467,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: cols,
+                        crossAxisCount: columns,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
                         mainAxisExtent: 210,

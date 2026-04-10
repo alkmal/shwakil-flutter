@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
@@ -20,6 +21,8 @@ class AdminCardPrintRequestsScreen extends StatefulWidget {
 class _AdminCardPrintRequestsScreenState
     extends State<AdminCardPrintRequestsScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
+  final PDFService _pdfService = PDFService();
   final _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _requests = const [];
@@ -73,9 +76,8 @@ class _AdminCardPrintRequestsScreenState
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: context.loc.text(
-          'تعذر تحميل الطلبات',
-          'Could not load requests',
+        title: context.loc.tr(
+          'screens_admin_card_print_requests_screen.load_error_title',
         ),
         message: ErrorMessageService.sanitize(error),
       );
@@ -110,9 +112,8 @@ class _AdminCardPrintRequestsScreenState
       if (mounted) {
         await AppAlertService.showError(
           context,
-          title: context.loc.text(
-            'تعذر تحديث الطلب',
-            'Could not update request',
+          title: context.loc.tr(
+            'screens_admin_card_print_requests_screen.update_error_title',
           ),
           message: ErrorMessageService.sanitize(error),
         );
@@ -121,6 +122,126 @@ class _AdminCardPrintRequestsScreenState
       if (mounted) {
         setState(() => _busyId = null);
       }
+    }
+  }
+
+  List<VirtualCard> _extractCardsFromRequest(Map<String, dynamic> request) {
+    const candidateKeys = [
+      'cards',
+      'issuedCards',
+      'printableCards',
+      'generatedCards',
+      'preparedCards',
+    ];
+
+    for (final key in candidateKeys) {
+      final raw = request[key];
+      if (raw is! List || raw.isEmpty) {
+        continue;
+      }
+      return raw
+          .whereType<Map>()
+          .map((item) => VirtualCard.fromMap(Map<String, dynamic>.from(item)))
+          .where((card) => card.barcode.trim().isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  Future<void> _exportRequestPdf(Map<String, dynamic> request) async {
+    final l = context.loc;
+    final cards = _extractCardsFromRequest(request);
+    if (cards.isEmpty) {
+      await AppAlertService.showInfo(
+        context,
+        title: l.tr(
+          'screens_admin_card_print_requests_screen.file_unavailable_title',
+        ),
+        message: l.tr(
+          'screens_admin_card_print_requests_screen.export_unavailable_message',
+        ),
+      );
+      return;
+    }
+
+    try {
+      final currentUser = await _authService.currentUser();
+      final printedBy =
+          currentUser?['fullName']?.toString().trim().isNotEmpty == true
+          ? currentUser!['fullName'].toString().trim()
+          : currentUser?['username']?.toString();
+      final pdf = await _pdfService.createMultiCardPDF(
+        cards,
+        printedBy: printedBy,
+      );
+      final requestId =
+          request['id']?.toString() ??
+          DateTime.now().millisecondsSinceEpoch.toString();
+      final file = await _pdfService.savePDF(
+        pdf,
+        'card_print_request_$requestId',
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: l.tr(
+          'screens_admin_card_print_requests_screen.pdf_generated_title',
+        ),
+        message: l.tr(
+          'screens_admin_card_print_requests_screen.pdf_generated_message',
+          params: {'path': file.path},
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr(
+          'screens_admin_card_print_requests_screen.pdf_failed_title',
+        ),
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _printRequestCards(Map<String, dynamic> request) async {
+    final l = context.loc;
+    final cards = _extractCardsFromRequest(request);
+    if (cards.isEmpty) {
+      await AppAlertService.showInfo(
+        context,
+        title: l.tr(
+          'screens_admin_card_print_requests_screen.file_unavailable_title',
+        ),
+        message: l.tr(
+          'screens_admin_card_print_requests_screen.print_unavailable_message',
+        ),
+      );
+      return;
+    }
+
+    try {
+      final currentUser = await _authService.currentUser();
+      final printedBy =
+          currentUser?['fullName']?.toString().trim().isNotEmpty == true
+          ? currentUser!['fullName'].toString().trim()
+          : currentUser?['username']?.toString();
+      await _pdfService.printCards(cards, printedBy: printedBy);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr(
+          'screens_admin_card_print_requests_screen.print_failed_title',
+        ),
+        message: ErrorMessageService.sanitize(error),
+      );
     }
   }
 
@@ -148,17 +269,15 @@ class _AdminCardPrintRequestsScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.text(
-                          'إدارة طلبات طباعة البطاقات',
-                          'Manage card print requests',
+                        l.tr(
+                          'screens_admin_card_print_requests_screen.hero_title',
                         ),
                         style: AppTheme.h2.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l.text(
-                          'هذا المسار مستقل بالكامل لمراجعة الطلبات ثم اعتمادها ثم بدء الطباعة ثم تجهيزها ثم إكمالها.',
-                          'This workflow is fully separated for reviewing, approving, printing, preparing, and completing card print requests.',
+                        l.tr(
+                          'screens_admin_card_print_requests_screen.hero_subtitle',
                         ),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
@@ -170,9 +289,8 @@ class _AdminCardPrintRequestsScreenState
                 const SizedBox(height: 24),
                 AdminSectionHeader(
                   title: l.tr('screens_admin_card_print_requests_screen.002'),
-                  subtitle: l.text(
-                    'فلترة وبحث ثم متابعة كل طلب حسب مرحلته الحالية.',
-                    'Filter, search, and follow each request based on its current stage.',
+                  subtitle: l.tr(
+                    'screens_admin_card_print_requests_screen.section_subtitle',
                   ),
                   icon: Icons.print_rounded,
                 ),
@@ -184,9 +302,8 @@ class _AdminCardPrintRequestsScreenState
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          labelText: l.text(
-                            'بحث بالاسم أو الرقم أو رقم الطلب',
-                            'Search by name, phone, or request number',
+                          labelText: l.tr(
+                            'screens_admin_card_print_requests_screen.search_label',
                           ),
                           prefixIcon: const Icon(Icons.search_rounded),
                         ),
@@ -331,9 +448,8 @@ class _AdminCardPrintRequestsScreenState
                     padding: const EdgeInsets.all(28),
                     child: Center(
                       child: Text(
-                        l.text(
-                          'لا توجد طلبات مطابقة حاليًا.',
-                          'No matching requests at the moment.',
+                        l.tr(
+                          'screens_admin_card_print_requests_screen.empty_state',
                         ),
                         style: AppTheme.bodyAction,
                       ),
@@ -415,9 +531,9 @@ class _AdminCardPrintRequestsScreenState
                 ),
                 _metaItem(
                   l.tr('screens_admin_card_print_requests_screen.020'),
-                  l.text(
-                    '${request['quantity'] ?? 0} بطاقة',
-                    '${request['quantity'] ?? 0} cards',
+                  l.tr(
+                    'screens_admin_card_print_requests_screen.quantity_label',
+                    params: {'count': '${request['quantity'] ?? 0}'},
                   ),
                 ),
                 _metaItem(
@@ -439,9 +555,9 @@ class _AdminCardPrintRequestsScreenState
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  l.text(
-                    'ملاحظات العميل: ${request['customerNotes']}',
-                    'Customer notes: ${request['customerNotes']}',
+                  l.tr(
+                    'screens_admin_card_print_requests_screen.customer_notes',
+                    params: {'notes': request['customerNotes'].toString()},
                   ),
                 ),
               ),
@@ -450,6 +566,20 @@ class _AdminCardPrintRequestsScreenState
               spacing: 10,
               runSpacing: 10,
               children: [
+                OutlinedButton.icon(
+                  onPressed: busy ? null : () => _printRequestCards(request),
+                  icon: const Icon(Icons.print_rounded),
+                  label: Text(
+                    l.tr('screens_admin_card_print_requests_screen.print_now'),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: busy ? null : () => _exportRequestPdf(request),
+                  icon: const Icon(Icons.picture_as_pdf_rounded),
+                  label: Text(
+                    l.tr('screens_admin_card_print_requests_screen.export_pdf'),
+                  ),
+                ),
                 if (status == 'pending_review')
                   _actionButton(
                     l.tr('screens_admin_card_print_requests_screen.023'),
@@ -498,19 +628,20 @@ class _AdminCardPrintRequestsScreenState
     );
   }
 
-  Widget _summaryChip(String label, int value) {
+  Widget _summaryChip(String label, int count) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceMuted,
+        color: AppTheme.primary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.10)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTheme.bodyAction),
-          const SizedBox(width: 8),
-          Text('$value', style: AppTheme.bodyBold),
+          Text(label, style: AppTheme.caption),
+          const SizedBox(height: 4),
+          Text('$count', style: AppTheme.bodyBold),
         ],
       ),
     );
@@ -534,17 +665,29 @@ class _AdminCardPrintRequestsScreenState
     );
   }
 
-  Widget _statusChip(String label) {
+  Widget _statusChip(String status) {
+    final color = switch (status) {
+      'approved' => AppTheme.primary,
+      'printing' => AppTheme.warning,
+      'ready' => AppTheme.success,
+      'completed' => AppTheme.success,
+      'rejected' => AppTheme.error,
+      _ => AppTheme.textSecondary,
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        label,
+        status == 'pending_review'
+            ? context.loc.tr(
+                'screens_admin_card_print_requests_screen.pending_status',
+              )
+            : status,
         style: AppTheme.caption.copyWith(
-          color: AppTheme.primary,
+          color: color,
           fontWeight: FontWeight.w900,
         ),
       ),

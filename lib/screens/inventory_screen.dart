@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -149,10 +149,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  l.text(
-                    'استعرض البطاقات الصادرة، وأعد طباعتها، أو احذف البطاقات غير المستخدمة عند الحاجة.',
-                    'Review issued cards, reprint them, or delete unused cards whenever needed.',
-                  ),
+                  l.tr('screens_inventory_screen.014'),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -386,10 +383,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              l.text(
-                'لا توجد بطاقات في هذا القسم',
-                'There are no cards in this section',
-              ),
+              l.tr('screens_inventory_screen.015'),
               style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
             ),
           ],
@@ -407,10 +401,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (mounted) {
       AppAlertService.showSuccess(
         context,
-        message: l.text(
-          'تم إرسال الطلب للطباعة.',
-          'The print request has been sent.',
-        ),
+        message: l.tr('screens_inventory_screen.016'),
       );
     }
   }
@@ -422,10 +413,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('screens_inventory_screen.011')),
         content: Text(
-          l.text(
-            'سيتم حذف البطاقة وإعادة الرصيد لحسابك فورًا.',
-            'The card will be deleted and the balance will be refunded to your account immediately.',
-          ),
+          l.tr('screens_inventory_screen.017'),
         ),
         actions: [
           TextButton(
@@ -450,10 +438,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       if (mounted) {
         AppAlertService.showSuccess(
           context,
-          message: l.text(
-            'تم حذف البطاقة وإرجاع القيمة.',
-            'The card was deleted and the value was refunded.',
-          ),
+          message: l.tr('screens_inventory_screen.018'),
         );
       }
     } catch (error) {
@@ -466,3 +451,4 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 }
+

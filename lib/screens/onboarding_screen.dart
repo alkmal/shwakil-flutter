@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -182,32 +182,14 @@ class _OnboardingSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.loc;
     final title = switch (slide.id) {
-      'wallet' => l.text(
-        'رصيدك وخدماتك في مكان واحد',
-        'Your balance and services in one place',
-      ),
-      'speed' => l.text(
-        'تنفيذ أسرع للبطاقات والتحويلات',
-        'Faster card and transfer actions',
-      ),
-      _ => l.text(
-        'حماية وتجربة استخدام موثوقة',
-        'Trusted protection and a reliable experience',
-      ),
+      'wallet' => l.tr('screens_onboarding_screen.004'),
+      'speed' => l.tr('screens_onboarding_screen.005'),
+      _ => l.tr('screens_onboarding_screen.006'),
     };
     final description = switch (slide.id) {
-      'wallet' => l.text(
-        'تابع الرصيد، أنشئ البطاقات، وادخل إلى أهم العمليات اليومية من واجهة بسيطة وواضحة.',
-        'Track your balance, create cards, and access daily operations from a clear and simple interface.',
-      ),
-      'speed' => l.text(
-        'التطبيق مصمم لتقليل الخطوات وتسريع الوصول إلى إنشاء البطاقات، المسح، والتحويل.',
-        'The app is designed to reduce steps and speed up access to card creation, scanning, and transfers.',
-      ),
-      _ => l.text(
-        'التحقق، إدارة الحساب، والعمليات الحساسة كلها منظمة بطريقة آمنة ومريحة للمستخدم.',
-        'Verification, account management, and sensitive actions are organized in a secure and user-friendly way.',
-      ),
+      'wallet' => l.tr('screens_onboarding_screen.007'),
+      'speed' => l.tr('screens_onboarding_screen.008'),
+      _ => l.tr('screens_onboarding_screen.009'),
     };
 
     return Column(
@@ -280,3 +262,4 @@ class _OnboardingSlideData {
   final IconData icon;
   final Color accentColor;
 }
+

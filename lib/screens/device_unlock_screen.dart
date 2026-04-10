@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/shwakel_button.dart';
@@ -51,11 +52,12 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   }
 
   Future<void> _unlockPin() async {
+    final l = context.loc;
     if (_pinController.text.trim().length != 4) {
       await AppAlertService.showError(
         context,
-        title: 'PIN غير مكتمل',
-        message: 'أدخل رمز PIN المكوّن من 4 أرقام.',
+        title: l.tr('screens_device_unlock_screen.001'),
+        message: l.tr('screens_device_unlock_screen.002'),
       );
       return;
     }
@@ -79,8 +81,8 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       setState(() => _isUnlocking = false);
       await AppAlertService.showError(
         context,
-        title: 'رمز غير صحيح',
-        message: 'رمز PIN الذي أدخلته غير صحيح.',
+        title: l.tr('screens_device_unlock_screen.003'),
+        message: l.tr('screens_device_unlock_screen.004'),
       );
     }
   }
@@ -114,8 +116,26 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
+  String _subtitle(AppLocalizer l) {
+    if (_username.isEmpty) {
+      return _hasPin
+          ? l.tr('screens_device_unlock_screen.007')
+          : l.tr('screens_device_unlock_screen.008');
+    }
+    return _hasPin
+        ? l.tr(
+            'screens_device_unlock_screen.009',
+            params: {'username': _username},
+          )
+        : l.tr(
+            'screens_device_unlock_screen.010',
+            params: {'username': _username},
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -139,9 +159,9 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
                       const SizedBox(height: 20),
                       TextButton(
                         onPressed: _loginAnotherAccount,
-                        child: const Text(
-                          'تسجيل الدخول بحساب آخر',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        child: Text(
+                          l.tr('screens_device_unlock_screen.005'),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -156,6 +176,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   }
 
   Widget _buildMainCard() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       shadowLevel: ShwakelShadowLevel.premium,
@@ -177,19 +198,13 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'فتح الجهاز الآمن',
+            l.tr('screens_device_unlock_screen.006'),
             style: AppTheme.h2,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
           Text(
-            _username.isEmpty
-                ? (_hasPin
-                      ? 'أدخل رمز PIN أو استخدم البصمة للمتابعة.'
-                      : 'استخدم البصمة للمتابعة إلى التطبيق.')
-                : (_hasPin
-                      ? 'مرحبًا $_username، أدخل رمز PIN أو استخدم البصمة للمتابعة.'
-                      : 'مرحبًا $_username، استخدم البصمة للمتابعة إلى التطبيق.'),
+            _subtitle(l),
             textAlign: TextAlign.center,
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
@@ -205,10 +220,10 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
                 letterSpacing: 20,
                 color: AppTheme.primary,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: '••••',
                 counterText: '',
-                labelText: 'رمز PIN',
+                labelText: l.tr('screens_device_unlock_screen.011'),
               ),
               onChanged: (value) {
                 if (value.length == 4) {
@@ -218,7 +233,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
             ),
             const SizedBox(height: 24),
             ShwakelButton(
-              label: 'فتح القفل بـ PIN',
+              label: l.tr('screens_device_unlock_screen.012'),
               icon: Icons.lock_open_rounded,
               onPressed: _unlockPin,
               isLoading: _isUnlocking,
@@ -227,7 +242,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
           if (_biometricEnabled) ...[
             SizedBox(height: _hasPin ? 14 : 24),
             ShwakelButton(
-              label: 'فتح بواسطة البصمة',
+              label: l.tr('screens_device_unlock_screen.013'),
               icon: Icons.fingerprint_rounded,
               isSecondary: _hasPin,
               gradient: _hasPin ? null : AppTheme.primaryGradient,

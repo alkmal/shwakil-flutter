@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 class LocalSecurityService {
   LocalSecurityService._();
+
   static const _deviceIdKey = 'device_id';
   static const _pinKey = 'device_pin';
   static const _biometricEnabledKey = 'biometric_enabled';
@@ -13,12 +14,16 @@ class LocalSecurityService {
   static const _lastAuthMethodKey = 'last_local_auth_method';
   static const _backgroundedAtKey = 'app_backgrounded_at';
   static const _relockTimeoutSecondsKey = 'relock_timeout_seconds';
+
   static final LocalAuthentication _localAuth = LocalAuthentication();
   static const Uuid _uuid = Uuid();
   static final ValueNotifier<int> _securityStateVersion = ValueNotifier<int>(0);
+
   static bool _relockRequired = false;
   static bool _skipNextUnlock = false;
+
   static const List<int> relockTimeoutOptionsInSeconds = [0, 30, 60, 300];
+
   static const Map<String, String> _digitMap = {
     '٠': '0',
     '١': '1',
@@ -41,9 +46,11 @@ class LocalSecurityService {
     '۸': '8',
     '۹': '9',
   };
+
   static ValueListenable<int> get securityStateListenable =>
       _securityStateVersion;
   static bool get relockRequired => _relockRequired;
+
   static void _notifySecurityStateChanged() {
     _securityStateVersion.value++;
   }
@@ -61,15 +68,15 @@ class LocalSecurityService {
 
   static Future<String> currentDeviceLabel() async {
     if (kIsWeb) {
-      return 'متصفح الويب';
+      return 'Web Browser';
     }
     return switch (defaultTargetPlatform) {
-      TargetPlatform.android => 'جهاز Android',
-      TargetPlatform.iOS => 'جهاز iPhone / iPad',
-      TargetPlatform.windows => 'جهاز Windows',
-      TargetPlatform.macOS => 'جهاز macOS',
-      TargetPlatform.linux => 'جهاز Linux',
-      TargetPlatform.fuchsia => 'جهاز Fuchsia',
+      TargetPlatform.android => 'Android Device',
+      TargetPlatform.iOS => 'iPhone / iPad',
+      TargetPlatform.windows => 'Windows Device',
+      TargetPlatform.macOS => 'macOS Device',
+      TargetPlatform.linux => 'Linux Device',
+      TargetPlatform.fuchsia => 'Fuchsia Device',
     };
   }
 
@@ -132,11 +139,13 @@ class LocalSecurityService {
   static Future<void> savePin(String pin) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_pinKey, _normalizePin(pin));
+    _notifySecurityStateChanged();
   }
 
   static Future<void> removePin() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_pinKey);
+    _notifySecurityStateChanged();
   }
 
   static Future<bool> hasPin() async {
@@ -153,6 +162,7 @@ class LocalSecurityService {
   static Future<void> setBiometricEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_biometricEnabledKey, value);
+    _notifySecurityStateChanged();
   }
 
   static Future<bool> isBiometricEnabled() async {
@@ -190,7 +200,7 @@ class LocalSecurityService {
     }
     try {
       final authenticated = await _localAuth.authenticate(
-        localizedReason: 'استخدم البصمة لتسجيل الدخول إلى شواكل',
+        localizedReason: 'Authenticate with biometrics to continue in Shawakel',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,

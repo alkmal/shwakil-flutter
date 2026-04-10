@@ -104,10 +104,7 @@ class AdminCustomerCard extends StatelessWidget {
                         PopupMenuItem<_CustomerAction>(
                           value: _CustomerAction.resendCredentials,
                           child: Text(
-                            context.loc.text(
-                              'Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø§Ø­Ø³Ø§Ø¨',
-                              'Resend account details',
-                            ),
+                            l.tr('widgets_admin_admin_customer_card.009'),
                           ),
                         ),
                       ],

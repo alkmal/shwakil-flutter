@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
@@ -82,15 +83,56 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     });
   }
 
+  String _trustedStatusLabel(AppLocalizer l) {
+    return _isTrustedDevice
+        ? l.tr('screens_security_settings_screen.004')
+        : l.tr('screens_security_settings_screen.005');
+  }
+
+  String _pinStatusLabel(AppLocalizer l) {
+    return _hasPin
+        ? l.tr('screens_security_settings_screen.006')
+        : l.tr('screens_security_settings_screen.007');
+  }
+
+  String _biometricStatusLabel(AppLocalizer l) {
+    return _biometricEnabled
+        ? l.tr('screens_security_settings_screen.008')
+        : l.tr('screens_security_settings_screen.009');
+  }
+
+  String _lastAuthMethodLabel(AppLocalizer l) {
+    if (_lastAuthMethod == 'biometric') {
+      return l.tr('screens_security_settings_screen.010');
+    }
+    if (_lastAuthMethod == 'pin') {
+      return l.tr('screens_security_settings_screen.011');
+    }
+    return l.tr('screens_security_settings_screen.012');
+  }
+
+  String _biometricDescription(AppLocalizer l) {
+    if (!_canUseBiometrics) {
+      return l.tr('screens_security_settings_screen.024');
+    }
+    if (_hasPin) {
+      return l.tr('screens_security_settings_screen.022');
+    }
+    return l.tr('screens_security_settings_screen.023');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('أمان الجهاز')),
+      appBar: AppBar(
+        title: Text(l.tr('screens_security_settings_screen.001')),
+      ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -129,7 +171,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               if (_isTrustedDevice) ...[
                 const SizedBox(height: 20),
                 ShwakelButton(
-                  label: 'إلغاء توثيق هذا الجهاز',
+                  label: l.tr('screens_security_settings_screen.002'),
                   icon: Icons.phonelink_erase_rounded,
                   isSecondary: true,
                   onPressed: _clearTrusted,
@@ -144,6 +186,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildSecurityHero() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(28),
       gradient: AppTheme.darkGradient,
@@ -176,12 +219,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'إعدادات الحماية',
+                      l.tr('screens_security_settings_screen.003'),
                       style: AppTheme.h2.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'أدر PIN والبصمة والأجهزة الموثقة وإعادة القفل من مكان واحد.',
+                      l.tr('screens_security_settings_screen.013'),
                       style: AppTheme.bodyAction.copyWith(
                         color: Colors.white70,
                         height: 1.55,
@@ -199,15 +242,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             children: [
               _heroChip(
                 icon: Icons.verified_user_rounded,
-                label: _isTrustedDevice ? 'الجهاز موثق' : 'الجهاز غير موثق',
+                label: _trustedStatusLabel(l),
               ),
-              _heroChip(
-                icon: Icons.pin_rounded,
-                label: _hasPin ? 'PIN مفعل' : 'PIN غير مفعل',
-              ),
+              _heroChip(icon: Icons.pin_rounded, label: _pinStatusLabel(l)),
               _heroChip(
                 icon: Icons.fingerprint_rounded,
-                label: _biometricEnabled ? 'البصمة مفعلة' : 'البصمة غير مفعلة',
+                label: _biometricStatusLabel(l),
               ),
             ],
           ),
@@ -217,43 +257,51 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildStatusOverview() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ملخص الأمان', style: AppTheme.h3),
+          Text(
+            l.tr('screens_security_settings_screen.014'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 8),
           Text(
-            'حالة طرق التحقق والجهاز الموثق ووسيلة الدخول الأخيرة.',
+            l.tr('screens_security_settings_screen.015'),
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
           _statusLine(
-            'توثيق الجهاز',
-            _isTrustedDevice ? 'موثوق' : 'غير موثوق',
+            l.tr('screens_security_settings_screen.016'),
+            _isTrustedDevice
+                ? l.tr('screens_security_settings_screen.017')
+                : l.tr('screens_security_settings_screen.018'),
             _isTrustedDevice ? AppTheme.success : AppTheme.error,
           ),
           _statusLine(
-            'رمز PIN المحلي',
-            _hasPin ? 'مفعل' : 'غير مفعل',
+            l.tr('screens_security_settings_screen.019'),
+            _hasPin
+                ? l.tr('screens_security_settings_screen.020')
+                : l.tr('screens_security_settings_screen.021'),
             _hasPin ? AppTheme.success : AppTheme.warning,
           ),
           _statusLine(
-            'البصمة',
-            _biometricEnabled ? 'مفعلة' : 'غير مفعلة',
+            l.tr('screens_security_settings_screen.010'),
+            _biometricEnabled
+                ? l.tr('screens_security_settings_screen.020')
+                : l.tr('screens_security_settings_screen.021'),
             _biometricEnabled ? AppTheme.success : AppTheme.textTertiary,
           ),
           _statusLine(
-            'آخر وسيلة تحقق',
-            _lastAuthMethod == 'biometric'
-                ? 'البصمة'
-                : (_lastAuthMethod == 'pin' ? 'رمز PIN' : 'OTP'),
+            l.tr('screens_security_settings_screen.025'),
+            _lastAuthMethodLabel(l),
             AppTheme.primary,
           ),
           if (_trustedUsername.isNotEmpty)
             _statusLine(
-              'الحساب الموثق على الجهاز',
+              l.tr('screens_security_settings_screen.026'),
               '@$_trustedUsername',
               AppTheme.primary,
             ),
@@ -263,15 +311,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildPinSection() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('وسائل القفل المحلي', style: AppTheme.h3),
+          Text(
+            l.tr('screens_security_settings_screen.027'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 8),
           Text(
-            'فعّل رمز PIN أو البصمة أو كليهما لتسريع فتح التطبيق وتأكيد العمليات.',
+            l.tr('screens_security_settings_screen.028'),
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
@@ -291,12 +343,14 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _hasPin ? 'تغيير رمز PIN' : 'إعداد رمز PIN',
+                        _hasPin
+                            ? l.tr('screens_security_settings_screen.029')
+                            : l.tr('screens_security_settings_screen.030'),
                         style: AppTheme.bodyBold,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'لفتح التطبيق وتأكيد العمليات الحساسة.',
+                        l.tr('screens_security_settings_screen.031'),
                         style: AppTheme.caption,
                       ),
                     ],
@@ -304,7 +358,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 ),
                 const SizedBox(width: 12),
                 ShwakelButton(
-                  label: _hasPin ? 'تحديث' : 'إعداد',
+                  label: _hasPin
+                      ? l.tr('screens_security_settings_screen.032')
+                      : l.tr('screens_security_settings_screen.033'),
                   icon: Icons.pin_rounded,
                   onPressed: _createOrChangePin,
                   isSecondary: true,
@@ -329,16 +385,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('تفعيل البصمة', style: AppTheme.bodyBold),
-                      const SizedBox(height: 4),
                       Text(
-                        _canUseBiometrics
-                            ? _hasPin
-                                  ? 'يمكنك استخدام البصمة أو PIN، وتعمل البصمة حتى بدون PIN.'
-                                  : 'يمكنك تفعيل البصمة مباشرة حتى لو لم تقم بإعداد PIN.'
-                            : 'هذا الجهاز لا يدعم البصمة أو لم يتم إعدادها على النظام.',
-                        style: AppTheme.caption,
+                        l.tr('screens_security_settings_screen.034'),
+                        style: AppTheme.bodyBold,
                       ),
+                      const SizedBox(height: 4),
+                      Text(_biometricDescription(l), style: AppTheme.caption),
                     ],
                   ),
                 ),
@@ -359,15 +411,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildTimeoutSection() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('إعادة القفل التلقائي', style: AppTheme.h3),
+          Text(
+            l.tr('screens_security_settings_screen.035'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 8),
           Text(
-            'حدد متى يطلب التطبيق التحقق المحلي مجددًا بعد تركه في الخلفية.',
+            l.tr('screens_security_settings_screen.036'),
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
@@ -386,8 +442,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 _updateTimeout(value);
               }
             },
-            decoration: const InputDecoration(
-              labelText: 'إعادة قفل التطبيق بعد',
+            decoration: InputDecoration(
+              labelText: l.tr('screens_security_settings_screen.037'),
             ),
           ),
         ],
@@ -396,15 +452,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildDevicesSection() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('الأجهزة النشطة', style: AppTheme.h3),
+          Text(
+            l.tr('screens_security_settings_screen.038'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 8),
           Text(
-            'يمكنك إزالة أي جهاز لطلب توثيق جديد عليه عند تسجيل الدخول لاحقًا.',
+            l.tr('screens_security_settings_screen.039'),
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
@@ -428,7 +488,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'لا توجد أجهزة نشطة ظاهرة حاليًا.',
+                      l.tr('screens_security_settings_screen.040'),
                       style: AppTheme.bodyText,
                     ),
                   ),
@@ -443,6 +503,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildDeviceTile(Map<String, dynamic> device) {
+    final l = context.loc;
     final isActive = device['isActiveDevice'] == true;
     final isBusy = _busyDeviceId == device['id']?.toString();
 
@@ -478,12 +539,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    device['deviceName']?.toString() ?? 'جهاز غير معروف',
+                    device['deviceName']?.toString() ??
+                        l.tr('screens_security_settings_screen.041'),
                     style: AppTheme.bodyBold,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'معرف الجهاز: ${device['deviceId'] ?? '-'}',
+                    l.tr(
+                      'screens_security_settings_screen.042',
+                      params: {'id': '${device['deviceId'] ?? '-'}'},
+                    ),
                     style: AppTheme.caption,
                   ),
                   if (isActive) ...[
@@ -498,7 +563,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        'الجهاز الحالي',
+                        l.tr('screens_security_settings_screen.043'),
                         style: AppTheme.caption.copyWith(
                           color: AppTheme.primary,
                           fontWeight: FontWeight.w700,
@@ -510,7 +575,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               ),
             ),
             IconButton(
-              tooltip: 'حذف الجهاز',
+              tooltip: l.tr('screens_security_settings_screen.044'),
               onPressed: isBusy ? null : () => _releaseDevice(device),
               icon: isBusy
                   ? const SizedBox(
@@ -568,13 +633,20 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   String _timeoutLabel(int seconds) {
+    final l = context.loc;
     if (seconds == 0) {
-      return 'فورًا';
+      return l.tr('screens_security_settings_screen.045');
     }
     if (seconds < 60) {
-      return '$seconds ثانية';
+      return l.tr(
+        'screens_security_settings_screen.046',
+        params: {'count': '$seconds'},
+      );
     }
-    return '${seconds ~/ 60} دقيقة';
+    return l.tr(
+      'screens_security_settings_screen.047',
+      params: {'count': '${seconds ~/ 60}'},
+    );
   }
 
   Future<void> _createOrChangePin() async {
@@ -609,6 +681,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Future<void> _releaseDevice(Map<String, dynamic> device) async {
+    final l = context.loc;
     final id = device['id']?.toString();
     if (id == null || id.isEmpty) {
       return;
@@ -617,16 +690,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('حذف الجهاز'),
-        content: const Text('هل تريد إزالة هذا الجهاز من الأجهزة النشطة؟'),
+        title: Text(l.tr('screens_security_settings_screen.048')),
+        content: Text(l.tr('screens_security_settings_screen.049')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(l.tr('screens_security_settings_screen.050')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('حذف'),
+            child: Text(l.tr('screens_security_settings_screen.051')),
           ),
         ],
       ),
@@ -650,9 +723,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       });
       AppAlertService.showSuccess(
         context,
-        title: 'تم الحذف',
+        title: l.tr('screens_security_settings_screen.052'),
         message:
-            response['message']?.toString() ?? 'تم حذف الجهاز من الحساب بنجاح.',
+            response['message']?.toString() ??
+            l.tr('screens_security_settings_screen.053'),
       );
     } catch (error) {
       if (!mounted) {
@@ -660,7 +734,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر الحذف',
+        title: l.tr('screens_security_settings_screen.054'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -680,57 +754,180 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 }
 
-class _StyledPinDialog extends StatelessWidget {
-  _StyledPinDialog({required this.isEdit});
+class _StyledPinDialog extends StatefulWidget {
+  const _StyledPinDialog({required this.isEdit});
 
   final bool isEdit;
+
+  @override
+  State<_StyledPinDialog> createState() => _StyledPinDialogState();
+}
+
+class _StyledPinDialogState extends State<_StyledPinDialog> {
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
+  bool _obscurePin = true;
+  bool _obscureConfirm = true;
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(isEdit ? 'تحديث رمز PIN' : 'رمز PIN جديد'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _pinController,
-            maxLength: 4,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'أدخل 4 أرقام'),
+    final l = context.loc;
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: ShwakelCard(
+          padding: const EdgeInsets.all(24),
+          borderRadius: BorderRadius.circular(28),
+          shadowLevel: ShwakelShadowLevel.premium,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.pin_rounded,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.isEdit
+                            ? l.tr('screens_security_settings_screen.055')
+                            : l.tr('screens_security_settings_screen.056'),
+                        style: AppTheme.h3,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  l.tr('screens_security_settings_screen.031'),
+                  style: AppTheme.bodyAction,
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: _pinController,
+                  maxLength: 4,
+                  obscureText: _obscurePin,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l.tr('screens_security_settings_screen.057'),
+                    prefixIcon: const Icon(Icons.password_rounded),
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() => _obscurePin = !_obscurePin);
+                      },
+                      icon: Icon(
+                        _obscurePin
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _confirmController,
+                  maxLength: 4,
+                  obscureText: _obscureConfirm,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
+                  decoration: InputDecoration(
+                    labelText: l.tr('screens_security_settings_screen.058'),
+                    prefixIcon: const Icon(Icons.verified_user_rounded),
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() => _obscureConfirm = !_obscureConfirm);
+                      },
+                      icon: Icon(
+                        _obscureConfirm
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 360;
+                    if (isCompact) {
+                      return Column(
+                        children: [
+                          ShwakelButton(
+                            label: l.tr('screens_security_settings_screen.059'),
+                            onPressed: _submit,
+                          ),
+                          const SizedBox(height: 10),
+                          ShwakelButton(
+                            label: l.tr('screens_security_settings_screen.050'),
+                            isSecondary: true,
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: ShwakelButton(
+                            label: l.tr('screens_security_settings_screen.050'),
+                            isSecondary: true,
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ShwakelButton(
+                            label: l.tr('screens_security_settings_screen.059'),
+                            onPressed: _submit,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-          TextField(
-            controller: _confirmController,
-            maxLength: 4,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'تأكيد الرمز'),
-          ),
-        ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء'),
-        ),
-        ShwakelButton(
-          label: 'حفظ',
-          onPressed: () {
-            if (_pinController.text.length != 4 ||
-                _pinController.text != _confirmController.text) {
-              AppAlertService.showError(
-                context,
-                title: 'الرمز غير صحيح',
-                message: 'تأكد من إدخال 4 أرقام متطابقة.',
-              );
-              return;
-            }
-            Navigator.pop(context, _pinController.text);
-          },
-        ),
-      ],
     );
+  }
+
+  void _submit() {
+    final l = context.loc;
+    if (_pinController.text.length != 4 ||
+        _pinController.text != _confirmController.text) {
+      AppAlertService.showError(
+        context,
+        title: l.tr('screens_security_settings_screen.060'),
+        message: l.tr('screens_security_settings_screen.061'),
+      );
+      return;
+    }
+    Navigator.pop(context, _pinController.text);
   }
 }

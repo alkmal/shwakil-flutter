@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../localization/index.dart';
 import '../../utils/app_theme.dart';
 import 'admin_enums.dart';
 
@@ -14,6 +16,7 @@ class AdminTransactionFilterTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -24,10 +27,16 @@ class AdminTransactionFilterTabs extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _filterButton('الكل', AdminTransactionAuditFilter.all),
-          _filterButton('قرب فرع', AdminTransactionAuditFilter.nearBranch),
           _filterButton(
-            'خارج النطاق',
+            l.tr('widgets_admin_transaction_filter_tabs.001'),
+            AdminTransactionAuditFilter.all,
+          ),
+          _filterButton(
+            l.tr('widgets_admin_transaction_filter_tabs.002'),
+            AdminTransactionAuditFilter.nearBranch,
+          ),
+          _filterButton(
+            l.tr('widgets_admin_transaction_filter_tabs.003'),
             AdminTransactionAuditFilter.outsideBranches,
           ),
         ],

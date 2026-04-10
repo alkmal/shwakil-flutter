@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -144,10 +144,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  l.text(
-                    'هذه الشاشة مخصصة لعضوية الإدارة فقط.',
-                    'This screen is available for administrators only.',
-                  ),
+                  l.tr('screens_topup_requests_screen.025'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -224,15 +221,12 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.text('مراجعة طلبات شحن الرصيد', 'Review top-up requests'),
+                  l.tr('screens_topup_requests_screen.026'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  l.text(
-                    'راجع بيانات الحوالة وطريقة الدفع قبل اعتماد الشحن للمستخدم أو رفض الطلب.',
-                    'Review transfer details and payment method before approving or rejecting the top-up request.',
-                  ),
+                  l.tr('screens_topup_requests_screen.027'),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -282,10 +276,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         TextField(
           controller: _searchController,
           decoration: InputDecoration(
-            labelText: l.text(
-              'ابحث باسم المستخدم أو رقم المرجع...',
-              'Search by username or reference number...',
-            ),
+            labelText: l.tr('screens_topup_requests_screen.028'),
             prefixIcon: const Icon(Icons.search_rounded),
           ),
           onChanged: (_) {
@@ -557,10 +548,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       if (mounted) {
         AppAlertService.showError(
           context,
-          message: l.text(
-            'يجب إرفاق صورة إثبات قبل اعتماد طلب شحن الرصيد.',
-            'A proof image is required before approving the top-up request.',
-          ),
+          message: l.tr('screens_topup_requests_screen.029'),
         );
       }
       return;
@@ -578,10 +566,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         context,
         message:
             response['message']?.toString() ??
-            l.text(
-              'تم اعتماد طلب شحن الرصيد.',
-              'The top-up request has been approved.',
-            ),
+            l.tr('screens_topup_requests_screen.030'),
       );
       await _load();
     } catch (error) {
@@ -611,10 +596,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
           maxLines: 5,
           decoration: InputDecoration(
             labelText: l.tr('screens_topup_requests_screen.021'),
-            hintText: l.text(
-              'اكتب ملاحظة مختصرة للمستخدم',
-              'Write a short note for the user',
-            ),
+            hintText: l.tr('screens_topup_requests_screen.031'),
           ),
         ),
         actions: [
@@ -677,3 +659,4 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     return DateFormat('yyyy/MM/dd - hh:mm a').format(parsed.toLocal());
   }
 }
+

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
@@ -46,7 +47,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final usernameValue = _user?['username']?.toString().trim() ?? '';
     final fullName = fullNameValue.isNotEmpty
         ? fullNameValue
-        : (usernameValue.isNotEmpty ? usernameValue : 'الإدارة');
+        : (usernameValue.isNotEmpty
+              ? usernameValue
+              : l.tr('screens_admin_dashboard_screen.003'));
     final permissions = Map<String, dynamic>.from(
       _user?['permissions'] as Map? ?? const {},
     );
@@ -55,8 +58,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           permissions['canPrepareCardPrintRequests'] == true ||
           permissions['canFinalizeCardPrintRequests'] == true)
         _navCard(
-          title: 'طلبات طباعة البطاقات',
-          subtitle: 'مراجعة الطلب ثم بدء الطباعة ثم التجهيز والإكمال.',
+          title: l.tr('screens_admin_dashboard_screen.004'),
+          subtitle: l.tr('screens_admin_dashboard_screen.005'),
           icon: Icons.print_rounded,
           color: AppTheme.primary,
           routeName: '/admin-card-print-requests',
@@ -64,56 +67,56 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (permissions['canViewCustomers'] == true ||
           permissions['canManageUsers'] == true)
         _navCard(
-          title: 'إدارة العملاء',
-          subtitle: 'بحث العملاء وفتح ملفاتهم وإضافة مستخدم جديد.',
+          title: l.tr('screens_admin_dashboard_screen.006'),
+          subtitle: l.tr('screens_admin_dashboard_screen.007'),
           icon: Icons.people_alt_rounded,
           color: AppTheme.primary,
           routeName: '/admin-customers',
         ),
       if (permissions['canReviewDevices'] == true)
         _navCard(
-          title: 'طلبات الأجهزة',
-          subtitle: 'مراجعة طلبات ربط الأجهزة الجديدة فقط.',
+          title: l.tr('screens_admin_dashboard_screen.008'),
+          subtitle: l.tr('screens_admin_dashboard_screen.009'),
           icon: Icons.devices_other_rounded,
           color: AppTheme.warning,
           routeName: '/admin-device-requests',
         ),
       if (permissions['canReviewWithdrawals'] == true)
         _navCard(
-          title: 'طلبات السحب',
-          subtitle: 'اعتماد أو رفض طلبات السحب من شاشة مستقلة.',
+          title: l.tr('screens_admin_dashboard_screen.010'),
+          subtitle: l.tr('screens_admin_dashboard_screen.011'),
           icon: Icons.outbox_rounded,
           color: AppTheme.secondary,
           routeName: '/withdrawal-requests',
         ),
       if (permissions['canReviewTopups'] == true)
         _navCard(
-          title: 'طلبات شحن الرصيد',
-          subtitle: 'مراجعة طلبات الشحن واعتمادها أو رفضها بسرعة.',
+          title: l.tr('screens_admin_dashboard_screen.012'),
+          subtitle: l.tr('screens_admin_dashboard_screen.013'),
           icon: Icons.add_card_rounded,
           color: AppTheme.accent,
           routeName: '/topup-requests',
         ),
       if (permissions['canManageLocations'] == true)
         _navCard(
-          title: 'الفروع والمواقع',
-          subtitle: 'إدارة الفروع والمواقع المدعومة دون تحميل بيانات أخرى.',
+          title: l.tr('screens_admin_dashboard_screen.014'),
+          subtitle: l.tr('screens_admin_dashboard_screen.015'),
           icon: Icons.map_rounded,
           color: AppTheme.success,
           routeName: '/admin-locations',
         ),
       if (permissions['canManageSystemSettings'] == true)
         _navCard(
-          title: 'إعدادات النظام',
-          subtitle: 'التسجيل والدعم والسياسات وطرق شحن الرصيد.',
+          title: l.tr('screens_admin_dashboard_screen.016'),
+          subtitle: l.tr('screens_admin_dashboard_screen.017'),
           icon: Icons.settings_applications_rounded,
           color: AppTheme.textPrimary,
           routeName: '/admin-system-settings',
         ),
       if (permissions['canManageSystemSettings'] == true)
         _navCard(
-          title: 'قوالب الصلاحيات',
-          subtitle: 'التحكم بما يراه ويستطيع استخدامه كل مستوى من الأعضاء.',
+          title: l.tr('screens_admin_dashboard_screen.018'),
+          subtitle: l.tr('screens_admin_dashboard_screen.019'),
           icon: Icons.rule_folder_rounded,
           color: AppTheme.secondary,
           routeName: '/admin-permissions',
@@ -143,9 +146,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      l.text(
-                        'أهلًا $fullName. كل قسم إداري أصبح في شاشة مستقلة، لذلك يتم جلب بياناته فقط عند فتحه لسرعة أعلى وتجربة أوضح.',
-                        'Welcome $fullName. Each admin section now opens in its own screen and loads only its own data for a faster and clearer experience.',
+                      l.tr(
+                        'screens_admin_dashboard_screen.description',
+                        params: {'name': fullName},
                       ),
                       style: AppTheme.bodyAction.copyWith(
                         color: Colors.white70,
@@ -158,9 +161,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 28),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 1100
+                  final crossAxisCount = constraints.maxWidth > 1120
                       ? 3
-                      : constraints.maxWidth > 720
+                      : constraints.maxWidth > 740
                       ? 2
                       : 1;
                   return GridView.count(
@@ -169,7 +172,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     crossAxisCount: crossAxisCount,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
-                    childAspectRatio: 1.55,
+                    childAspectRatio: 2.05,
                     children: adminCards,
                   );
                 },
@@ -188,57 +191,49 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required Color color,
     required String routeName,
   }) {
+    final isArabic = context.loc.isArabic;
     return ShwakelCard(
-      padding: EdgeInsets.zero,
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, routeName),
-        borderRadius: AppTheme.radiusLg,
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: color, size: 26),
-              ),
-              const SizedBox(height: 18),
-              Text(title, style: AppTheme.h3.copyWith(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: AppTheme.bodyAction.copyWith(
-                  color: AppTheme.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.arrow_forward_rounded, color: color),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'فتح القسم',
-                    style: AppTheme.bodyBold.copyWith(color: color),
-                  ),
-                ],
-              ),
-            ],
+      onTap: () => Navigator.pushNamed(context, routeName),
+      padding: const EdgeInsets.all(22),
+      borderRadius: BorderRadius.circular(28),
+      shadowLevel: ShwakelShadowLevel.medium,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(icon, color: color, size: 30),
           ),
-        ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: AppTheme.h3.copyWith(color: color)),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: AppTheme.bodyAction.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Icon(
+            isArabic ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+            color: color,
+            size: 28,
+          ),
+        ],
       ),
     );
   }

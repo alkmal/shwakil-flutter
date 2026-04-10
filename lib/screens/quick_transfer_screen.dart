@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -30,11 +31,11 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   Map<String, dynamic>? _recipient;
   bool _isLoading = true;
   bool _canTransfer = false;
+  bool _canViewQuickTransfer = false;
   bool _isLookingUpRecipient = false;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
 
-  String _t(String key, [String? english]) =>
-      english == null ? context.loc.tr(key) : context.loc.text(key, english);
+  String _t(String key) => context.loc.tr(key);
 
   @override
   void initState() {
@@ -56,9 +57,11 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       if (!mounted) {
         return;
       }
+      final appPermissions = AppPermissions.fromUser(u);
       setState(() {
         _user = u;
-        _canTransfer = u?['permissions']?['canTransfer'] == true;
+        _canTransfer = appPermissions.canTransfer;
+        _canViewQuickTransfer = appPermissions.canOpenQuickTransfer;
         _isLoading = false;
       });
     } catch (_) {
@@ -77,44 +80,88 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   });
 
   Future<void> _scan() async {
+    var torchEnabled = false;
     await showDialog(
       context: context,
-      builder: (dialogContext) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: ShwakelCard(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _t('screens_quick_transfer_screen.005'),
-                  style: AppTheme.h3,
-                ),
-                const SizedBox(height: 24),
-                ClipRRect(
-                  borderRadius: AppTheme.radiusMd,
-                  child: SizedBox(
-                    height: 320,
-                    child: MobileScanner(
-                      controller: _camC,
-                      onDetect: (capture) {
-                        final rawValue = capture.barcodes.first.rawValue ?? '';
-                        if (rawValue.isNotEmpty) {
-                          Navigator.pop(dialogContext, rawValue);
-                        }
-                      },
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _t('screens_quick_transfer_screen.005'),
+                          style: AppTheme.h3,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  ClipRRect(
+                    borderRadius: AppTheme.radiusMd,
+                    child: SizedBox(
+                      height: 320,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          MobileScanner(
+                            controller: _camC,
+                            onDetect: (capture) {
+                              final rawValue =
+                                  capture.barcodes.first.rawValue ?? '';
+                              if (rawValue.isNotEmpty) {
+                                Navigator.pop(dialogContext, rawValue);
+                              }
+                            },
+                          ),
+                          Positioned(
+                            top: 14,
+                            left: 14,
+                            child: FilledButton.tonalIcon(
+                              onPressed: () async {
+                                await _camC.toggleTorch();
+                                setDialogState(() {
+                                  torchEnabled = !torchEnabled;
+                                });
+                              },
+                              icon: Icon(
+                                torchEnabled
+                                    ? Icons.flash_off_rounded
+                                    : Icons.flash_on_rounded,
+                              ),
+                              label: Text(
+                                context.loc.text(
+                                  torchEnabled
+                                      ? 'إطفاء الإضاءة'
+                                      : 'تشغيل الإضاءة',
+                                  torchEnabled ? 'Torch off' : 'Torch on',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                ShwakelButton(
-                  label: _t('screens_quick_transfer_screen.006'),
-                  isSecondary: true,
-                  onPressed: () => Navigator.pop(dialogContext),
-                ),
-              ],
+                  const SizedBox(height: 18),
+                  ShwakelButton(
+                    label: _t('screens_quick_transfer_screen.006'),
+                    isSecondary: true,
+                    onPressed: () => Navigator.pop(dialogContext),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -162,10 +209,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       await AppAlertService.showError(
         context,
         title: _t('screens_quick_transfer_screen.010'),
-        message: _t(
-          'أدخل رقم الهاتف للبحث عن المستلم.',
-          'Enter a phone number to find the recipient.',
-        ),
+        message: _t('screens_quick_transfer_screen.023'),
       );
       return;
     }
@@ -190,7 +234,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       setState(() => _recipient = null);
       await AppAlertService.showError(
         context,
-        title: _t('تعذر العثور على المستخدم', 'Could not find the user'),
+        title: _t('screens_quick_transfer_screen.024'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -205,10 +249,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (recipientId.isEmpty) {
       await AppAlertService.showError(
         context,
-        message: _t(
-          'تعذر تحديد حساب المستلم.',
-          'Could not determine the recipient account.',
-        ),
+        message: _t('screens_quick_transfer_screen.025'),
       );
       return;
     }
@@ -251,10 +292,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       await AppAlertService.showSuccess(
         context,
         title: _t('screens_quick_transfer_screen.012'),
-        message: _t(
-          'تم إرسال الرصيد بنجاح إلى المستلم.',
-          'The balance was sent successfully to the recipient.',
-        ),
+        message: _t('screens_quick_transfer_screen.026'),
       );
     } catch (error) {
       if (!mounted) {
@@ -286,10 +324,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                   decimal: true,
                 ),
                 decoration: InputDecoration(
-                  labelText: _t(
-                    'المبلغ المراد تحويله (₪)',
-                    'Amount to transfer (₪)',
-                  ),
+                  labelText: _t('screens_quick_transfer_screen.027'),
                   prefixIcon: const Icon(Icons.payments_rounded),
                 ),
               ),
@@ -321,16 +356,12 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (!_canTransfer) {
+    if (!_canViewQuickTransfer) {
       return Scaffold(
-        body: Center(
-          child: Text(
-            _t(
-              'لا تملك صلاحية استخدام التحويل السريع.',
-              'You do not have permission to use quick transfer.',
-            ),
-          ),
-        ),
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(title: Text(_t('screens_quick_transfer_screen.016'))),
+        drawer: const AppSidebar(),
+        body: Center(child: Text(_t('screens_quick_transfer_screen.028'))),
       );
     }
 
@@ -370,18 +401,12 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _t(
-                                  'إرسال الرصيد برقم الهاتف',
-                                  'Send balance by phone number',
-                                ),
+                                _t('screens_quick_transfer_screen.029'),
                                 style: AppTheme.h3,
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _t(
-                                  'أدخل رقم المستلم فقط، ثم راجع بياناته الأساسية بدون إظهار أي معلومات مالية.',
-                                  'Enter only the recipient phone number, then review basic details without showing any financial information.',
-                                ),
+                                _t('screens_quick_transfer_screen.030'),
                                 style: AppTheme.bodyAction,
                               ),
                             ],
@@ -421,10 +446,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
-                            labelText: _t(
-                              'رقم هاتف المستلم',
-                              'Recipient phone number',
-                            ),
+                            labelText: _t('screens_quick_transfer_screen.031'),
                             prefixIcon: const Icon(Icons.phone_rounded),
                           ),
                           onSubmitted: (_) => _lookupRecipient(),
@@ -456,8 +478,34 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                       label: _t('screens_quick_transfer_screen.018'),
                       icon: Icons.search_rounded,
                       isLoading: _isLookingUpRecipient,
-                      onPressed: _lookupRecipient,
+                      onPressed: _canTransfer ? _lookupRecipient : null,
                     ),
+                    if (!_canTransfer) ...[
+                      const SizedBox(height: 12),
+                      ShwakelCard(
+                        padding: const EdgeInsets.all(16),
+                        color: AppTheme.warning.withValues(alpha: 0.08),
+                        borderColor: AppTheme.warning.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.lock_outline_rounded,
+                              color: AppTheme.warning,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _t('screens_quick_transfer_screen.028'),
+                                style: AppTheme.bodyAction.copyWith(
+                                  color: AppTheme.warning,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (_recipient != null) ...[
                       const SizedBox(height: 18),
                       Container(
@@ -479,23 +527,18 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                             _RecipientPreviewCard(recipient: _recipient!),
                             const SizedBox(height: 14),
                             Text(
-                              _t(
-                                'لأسباب تتعلق بالخصوصية لا يتم عرض رصيد المستلم.',
-                                'For privacy reasons, the recipient balance is not displayed.',
-                              ),
+                              _t('screens_quick_transfer_screen.032'),
                               style: AppTheme.caption.copyWith(
                                 color: AppTheme.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 16),
                             ShwakelButton(
-                              label: _t(
-                                'إرسال الرصيد لهذا الرقم',
-                                'Send balance to this number',
-                              ),
+                              label: _t('screens_quick_transfer_screen.033'),
                               icon: Icons.send_rounded,
-                              onPressed: () =>
-                                  _startTransferToRecipient(_recipient!),
+                              onPressed: _canTransfer
+                                  ? () => _startTransferToRecipient(_recipient!)
+                                  : null,
                             ),
                           ],
                         ),
@@ -535,10 +578,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _t(
-                                  'يمكنك أيضًا مسح رمز المستلم لإكمال التحويل بسرعة.',
-                                  'You can also scan the recipient code to complete the transfer faster.',
-                                ),
+                                _t('screens_quick_transfer_screen.034'),
                                 style: AppTheme.bodyAction,
                               ),
                             ],
@@ -550,7 +590,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                     ShwakelButton(
                       label: _t('screens_quick_transfer_screen.021'),
                       icon: Icons.qr_code_scanner_rounded,
-                      onPressed: _scan,
+                      onPressed: _canTransfer ? _scan : null,
                       isSecondary: true,
                     ),
                   ],
@@ -577,10 +617,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            _t(
-              'اعرض هذا الرمز للمرسل ليتمكن من تحويل الرصيد إليك مباشرة.',
-              'Show this code to the sender so they can transfer balance to you directly.',
-            ),
+            _t('screens_quick_transfer_screen.035'),
             style: AppTheme.caption.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 32),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../localization/index.dart';
+
 class ShwakelLogo extends StatelessWidget {
   const ShwakelLogo({
     super.key,
@@ -47,7 +49,7 @@ class ShwakelLogo extends StatelessWidget {
         if (showLabel) ...[
           const SizedBox(height: 10),
           Text(
-            'شواكل',
+            context.loc.tr('widgets_shwakel_logo.001'),
             style: TextStyle(
               color: labelColor,
               fontSize: size * 0.24,

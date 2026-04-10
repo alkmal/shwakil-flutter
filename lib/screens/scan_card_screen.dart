@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../main.dart';
 import '../models/index.dart';
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
@@ -24,9 +25,6 @@ class ScanCardScreen extends StatefulWidget {
 }
 
 class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
-  final MobileScannerController _camC = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-  );
   final TextEditingController _bcC = TextEditingController();
   final ApiService _api = ApiService();
   final AuthService _auth = AuthService();
@@ -35,7 +33,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Map<String, dynamic>? _user;
   bool _isSearching = false;
   bool _isSubmitting = false;
-  bool _camActive = false;
   bool _showDetails = false;
   bool _routeSubscribed = false;
 
@@ -64,7 +61,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (_routeSubscribed) {
       appRouteObserver.unsubscribe(this);
     }
-    _camC.dispose();
     _bcC.dispose();
     super.dispose();
   }
@@ -77,6 +73,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Future<void> _search() async {
+    final l = context.loc;
     final barcode = _bcC.text.trim();
     if (barcode.isEmpty) return;
 
@@ -92,8 +89,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       if (result == null) {
         AppAlertService.showError(
           context,
-          title: 'تعذر الفحص',
-          message: 'تعذر العثور على البطاقة.',
+          title: l.tr('screens_scan_card_screen.039'),
+          message: l.tr('screens_scan_card_screen.040'),
         );
       }
     } catch (error) {
@@ -101,13 +98,183 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       setState(() => _isSearching = false);
       AppAlertService.showError(
         context,
-        title: 'تعذر الفحص',
+        title: l.tr('screens_scan_card_screen.039'),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
+  Future<void> _openScannerDialog() async {
+    final l = context.loc;
+    final controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      facing: CameraFacing.back,
+    );
+    var didScan = false;
+    var torchEnabled = false;
+
+    final scannedValue = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) => Dialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            backgroundColor: Colors.transparent,
+            child: ShwakelCard(
+              padding: const EdgeInsets.all(20),
+              borderRadius: BorderRadius.circular(28),
+              shadowLevel: ShwakelShadowLevel.premium,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.qr_code_scanner_rounded,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l.tr('screens_scan_card_screen.001'),
+                              style: AppTheme.h3,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              l.tr('screens_scan_card_screen.041'),
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textSecondary,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () async {
+                          await controller.dispose();
+                          if (dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: SizedBox(
+                      height: 360,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          MobileScanner(
+                            controller: controller,
+                            onDetect: (capture) {
+                              if (didScan) return;
+                              final value = capture.barcodes
+                                  .map(
+                                    (barcode) => barcode.rawValue?.trim() ?? '',
+                                  )
+                                  .firstWhere(
+                                    (candidate) => candidate.isNotEmpty,
+                                    orElse: () => '',
+                                  );
+                              if (value.isEmpty) return;
+                              didScan = true;
+                              Navigator.of(dialogContext).pop(value);
+                            },
+                          ),
+                          Positioned(
+                            top: 14,
+                            left: 14,
+                            child: FilledButton.tonalIcon(
+                              onPressed: () async {
+                                await controller.toggleTorch();
+                                setDialogState(() {
+                                  torchEnabled = !torchEnabled;
+                                });
+                              },
+                              icon: Icon(
+                                torchEnabled
+                                    ? Icons.flash_off_rounded
+                                    : Icons.flash_on_rounded,
+                              ),
+                              label: Text(
+                                context.loc.text(
+                                  torchEnabled
+                                      ? 'إطفاء الإضاءة'
+                                      : 'تشغيل الإضاءة',
+                                  torchEnabled ? 'Torch off' : 'Torch on',
+                                ),
+                              ),
+                            ),
+                          ),
+                          Center(
+                            child: IgnorePointer(
+                              child: Container(
+                                width: 220,
+                                height: 220,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.92),
+                                    width: 2.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    l.tr('screens_scan_card_screen.042'),
+                    textAlign: TextAlign.center,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    await controller.dispose();
+    if (!mounted || scannedValue == null || scannedValue.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _bcC.text = scannedValue;
+    });
+    await _search();
+  }
+
   Future<void> _redeem() async {
+    final l = context.loc;
     if (_card == null) return;
 
     final permissions = Map<String, dynamic>.from(
@@ -116,8 +283,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (permissions['canRedeemCards'] != true) {
       AppAlertService.showError(
         context,
-        title: 'غير متاح',
-        message: 'يمكنك فحص البطاقة فقط. استلام الرصيد يتطلب توثيق الحساب.',
+        title: l.tr('screens_scan_card_screen.043'),
+        message: l.tr('screens_scan_card_screen.022'),
       );
       return;
     }
@@ -128,7 +295,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           await TransactionLocationService.captureCurrentLocation();
       final response = await _api.redeemCard(
         cardId: _card!.id,
-        customerName: _user?['fullName'] ?? _user?['username'] ?? 'مستخدم',
+        customerName:
+            _user?['fullName'] ??
+            _user?['username'] ??
+            l.tr('screens_scan_card_screen.060'),
         location: location,
       );
       final updatedBalance = (response['balance'] as num?)?.toDouble();
@@ -141,14 +311,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
       AppAlertService.showSuccess(
         context,
-        title: 'تم الاعتماد',
-        message: 'تم اعتماد البطاقة وإضافة الرصيد بنجاح.',
+        title: l.tr('screens_scan_card_screen.044'),
+        message: l.tr('screens_scan_card_screen.045'),
       );
     } catch (error) {
       if (!mounted) return;
       AppAlertService.showError(
         context,
-        title: 'تعذر التنفيذ',
+        title: l.tr('screens_scan_card_screen.046'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -157,6 +327,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Future<void> _resell() async {
+    final l = context.loc;
     if (_card == null) return;
 
     final permissions = Map<String, dynamic>.from(
@@ -165,8 +336,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (permissions['canResellCards'] != true) {
       AppAlertService.showError(
         context,
-        title: 'غير متاح',
-        message: 'لا تملك صلاحية إعادة تفعيل البطاقات المستخدمة.',
+        title: l.tr('screens_scan_card_screen.043'),
+        message: l.tr('screens_scan_card_screen.047'),
       );
       return;
     }
@@ -174,19 +345,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تأكيد إعادة التفعيل'),
-        content: const Text(
-          'سيتم إعادة تفعيل هذه البطاقة لتصبح جاهزة للاستخدام مرة أخرى. هل تريد المتابعة؟',
-        ),
+        title: Text(l.tr('screens_scan_card_screen.048')),
+        content: Text(l.tr('screens_scan_card_screen.049')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('إلغاء'),
+            child: Text(l.tr('screens_scan_card_screen.050')),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             icon: const Icon(Icons.autorenew_rounded),
-            label: const Text('إعادة التفعيل'),
+            label: Text(l.tr('screens_scan_card_screen.011')),
           ),
         ],
       ),
@@ -212,14 +381,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
       AppAlertService.showSuccess(
         context,
-        title: 'تمت إعادة التفعيل',
-        message: 'تمت إعادة تفعيل البطاقة بنجاح وأصبحت جاهزة للاستخدام.',
+        title: l.tr('screens_scan_card_screen.051'),
+        message: l.tr('screens_scan_card_screen.052'),
       );
     } catch (error) {
       if (!mounted) return;
       AppAlertService.showError(
         context,
-        title: 'تعذر التنفيذ',
+        title: l.tr('screens_scan_card_screen.046'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -228,22 +397,29 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   String _statusLabel(VirtualCard card) {
+    final l = context.loc;
     switch (card.status) {
       case CardStatus.used:
-        return 'مستخدمة';
+        return l.tr('screens_scan_card_screen.053');
       case CardStatus.archived:
-        return 'مؤرشفة';
+        return l.tr('screens_scan_card_screen.054');
       case CardStatus.unused:
-        return 'متاحة';
+        return l.tr('screens_scan_card_screen.055');
     }
   }
 
   String _cardTypeLabel(VirtualCard card) {
-    return card.isSingleUse ? 'استخدام واحد' : 'رصيد';
+    final l = context.loc;
+    return card.isSingleUse
+        ? l.tr('screens_scan_card_screen.056')
+        : l.tr('screens_scan_card_screen.057');
   }
 
   String _visibilityLabel(VirtualCard card) {
-    return card.isPrivate ? 'خاصة' : 'عامة';
+    final l = context.loc;
+    return card.isPrivate
+        ? l.tr('screens_scan_card_screen.058')
+        : l.tr('screens_scan_card_screen.059');
   }
 
   String _formatDate(DateTime? value) {
@@ -258,9 +434,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('فحص الباركود')),
+      appBar: AppBar(title: Text(l.tr('screens_scan_card_screen.001'))),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -305,6 +482,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Widget _buildHero() {
+    final l = context.loc;
     final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
     return ShwakelCard(
       padding: const EdgeInsets.all(28),
@@ -336,12 +514,15 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'فحص البطاقات',
+                  l.tr('screens_scan_card_screen.012'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'الرصيد الحالي: ${CurrencyFormatter.ils(balance)}',
+                  l.tr(
+                    'screens_scan_card_screen.013',
+                    params: {'balance': CurrencyFormatter.ils(balance)},
+                  ),
                   style: AppTheme.bodyBold.copyWith(
                     color: Colors.white.withValues(alpha: 0.92),
                   ),
@@ -355,20 +536,24 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Widget _buildScannerPanel() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       borderRadius: BorderRadius.circular(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('البحث عن البطاقة', style: AppTheme.h3),
+          Text(l.tr('screens_scan_card_screen.002'), style: AppTheme.h3),
           const SizedBox(height: 8),
-          Text('أدخل الباركود أو افتح الكاميرا.', style: AppTheme.bodyAction),
+          Text(
+            l.tr('screens_scan_card_screen.003'),
+            style: AppTheme.bodyAction,
+          ),
           const SizedBox(height: 18),
           TextField(
             controller: _bcC,
             decoration: InputDecoration(
-              labelText: 'رقم الباركود',
+              labelText: l.tr('screens_scan_card_screen.004'),
               prefixIcon: const Icon(Icons.qr_code_rounded),
               suffixIcon: _isSearching
                   ? const Padding(
@@ -387,14 +572,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 return Column(
                   children: [
                     ShwakelButton(
-                      label: _camActive ? 'إغلاق الكاميرا' : 'فتح الكاميرا',
+                      label: l.tr('screens_scan_card_screen.005'),
                       icon: Icons.camera_alt_rounded,
                       isSecondary: true,
-                      onPressed: () => setState(() => _camActive = !_camActive),
+                      onPressed: _openScannerDialog,
                     ),
                     const SizedBox(height: 12),
                     ShwakelButton(
-                      label: 'بحث',
+                      label: l.tr('screens_scan_card_screen.006'),
                       icon: Icons.search_rounded,
                       onPressed: _search,
                     ),
@@ -406,16 +591,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 children: [
                   Expanded(
                     child: ShwakelButton(
-                      label: _camActive ? 'إغلاق الكاميرا' : 'فتح الكاميرا',
+                      label: l.tr('screens_scan_card_screen.005'),
                       icon: Icons.camera_alt_rounded,
                       isSecondary: true,
-                      onPressed: () => setState(() => _camActive = !_camActive),
+                      onPressed: _openScannerDialog,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ShwakelButton(
-                      label: 'بحث',
+                      label: l.tr('screens_scan_card_screen.006'),
                       icon: Icons.search_rounded,
                       onPressed: _search,
                     ),
@@ -424,42 +609,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               );
             },
           ),
-          if (_camActive) ...[
-            const SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: SizedBox(
-                height: 320,
-                child: MobileScanner(
-                  controller: _camC,
-                  onDetect: (capture) {
-                    final value = capture.barcodes.first.rawValue ?? '';
-                    if (value.isEmpty) return;
-                    setState(() {
-                      _bcC.text = value;
-                      _camActive = false;
-                    });
-                    _search();
-                  },
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
   Widget _buildDetails() {
+    final l = context.loc;
     final card = _card!;
     final isUsed = card.status == CardStatus.used;
     final accent = isUsed ? AppTheme.error : AppTheme.success;
-    final permissions = Map<String, dynamic>.from(
-      _user?['permissions'] as Map? ?? const {},
-    );
-    final canRedeemCards = permissions['canRedeemCards'] == true;
-    final canResellCards = permissions['canResellCards'] == true;
-    final canReviewCards = permissions['canReviewCards'] == true;
+    final appPermissions = AppPermissions.fromUser(_user);
+    final canRedeemCards = appPermissions.canRedeemCards;
+    final canResellCards = appPermissions.canResellCards;
+    final canReviewCards = appPermissions.canReviewCards;
     final canViewCardDetails = canReviewCards || canResellCards;
 
     return Column(
@@ -495,12 +658,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'نتيجة الفحص',
+                          l.tr('screens_scan_card_screen.014'),
                           style: AppTheme.caption.copyWith(color: accent),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          isUsed ? 'البطاقة مستخدمة' : 'البطاقة صالحة وجاهزة',
+                          isUsed
+                              ? l.tr('screens_scan_card_screen.015')
+                              : l.tr('screens_scan_card_screen.016'),
                           style: AppTheme.h2.copyWith(color: accent),
                         ),
                       ],
@@ -508,7 +673,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   ),
                   if (isUsed && canResellCards)
                     IconButton.filledTonal(
-                      tooltip: 'إعادة تفعيل البطاقة',
+                      tooltip: context.loc.tr('screens_scan_card_screen.011'),
                       onPressed: _isSubmitting ? null : _resell,
                       icon: const Icon(Icons.autorenew_rounded),
                     ),
@@ -527,8 +692,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
                 child: Text(
                   isUsed
-                      ? 'هذه البطاقة مستعملة سابقًا ولا يمكن اعتمادها مرة أخرى.'
-                      : 'هذه البطاقة سليمة ويمكن اعتمادها أو مراجعة تفاصيلها.',
+                      ? l.tr('screens_scan_card_screen.017')
+                      : l.tr('screens_scan_card_screen.018'),
                   style: AppTheme.bodyBold.copyWith(color: accent),
                 ),
               ),
@@ -536,12 +701,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               Row(
                 children: [
                   Expanded(
-                    child: _resultBadge('الحالة', _statusLabel(card), accent),
+                    child: _resultBadge(
+                      l.tr('screens_scan_card_screen.019'),
+                      _statusLabel(card),
+                      accent,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _resultBadge(
-                      'القيمة',
+                      l.tr('screens_scan_card_screen.020'),
                       CurrencyFormatter.ils(card.value),
                       AppTheme.primary,
                     ),
@@ -554,7 +723,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         const SizedBox(height: 16),
         if (!isUsed && canRedeemCards) ...[
           ShwakelButton(
-            label: 'اعتماد البطاقة واستلام الرصيد',
+            label: l.tr('screens_scan_card_screen.021'),
             icon: Icons.download_done_rounded,
             onPressed: _redeem,
             isLoading: _isSubmitting,
@@ -563,7 +732,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         ],
         if (isUsed && canResellCards) ...[
           ShwakelButton(
-            label: 'إعادة تفعيل البطاقة',
+            label: l.tr('screens_scan_card_screen.011'),
             icon: Icons.autorenew_rounded,
             onPressed: _resell,
             isLoading: _isSubmitting,
@@ -582,7 +751,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'يمكنك فحص البطاقة فقط. استلام الرصيد يتطلب توثيق الحساب.',
+                    l.tr('screens_scan_card_screen.022'),
                     style: AppTheme.bodyText,
                   ),
                 ),
@@ -600,7 +769,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   : Icons.visibility_rounded,
             ),
             label: Text(
-              _showDetails ? 'إخفاء تفاصيل البطاقة' : 'عرض تفاصيل البطاقة',
+              _showDetails
+                  ? context.loc.tr('screens_scan_card_screen.009')
+                  : context.loc.tr('screens_scan_card_screen.010'),
             ),
           ),
         if (_showDetails && canViewCardDetails) ...[
@@ -616,7 +787,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   children: [
                     const ShwakelLogo(size: 40, framed: true),
                     const SizedBox(width: 12),
-                    Expanded(child: Text('تفاصيل البطاقة', style: AppTheme.h2)),
+                    Expanded(
+                      child: Text(
+                        context.loc.tr('screens_scan_card_screen.007'),
+                        style: AppTheme.h2,
+                      ),
+                    ),
                     Text(
                       CurrencyFormatter.ils(card.value),
                       style: AppTheme.h2.copyWith(color: AppTheme.primary),
@@ -628,36 +804,72 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   builder: (context, constraints) {
                     final isCompact = constraints.maxWidth < 620;
                     final items = [
-                      _detailTile('الباركود', card.barcode),
-                      _detailTile('الحالة', _statusLabel(card)),
-                      _detailTile('نوع البطاقة', _cardTypeLabel(card)),
-                      _detailTile('الإتاحة', _visibilityLabel(card)),
                       _detailTile(
-                        'قيمة البطاقة',
+                        l.tr('screens_scan_card_screen.023'),
+                        card.barcode,
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.019'),
+                        _statusLabel(card),
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.024'),
+                        _cardTypeLabel(card),
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.025'),
+                        _visibilityLabel(card),
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.026'),
                         CurrencyFormatter.ils(card.value),
                       ),
                       _detailTile(
-                        'تكلفة الإصدار',
+                        l.tr('screens_scan_card_screen.027'),
                         CurrencyFormatter.ils(card.issueCost),
                       ),
-                      _detailTile('المالك', card.ownerUsername ?? '-'),
-                      _detailTile('أصدرها', card.issuedByUsername ?? '-'),
-                      _detailTile('استُخدمت بواسطة', card.usedBy ?? '-'),
-                      _detailTile('اسم العميل', card.customerName ?? '-'),
-                      _detailTile('تاريخ الإصدار', _formatDate(card.createdAt)),
-                      _detailTile('تاريخ الاستخدام', _formatDate(card.usedAt)),
                       _detailTile(
-                        'آخر إعادة بيع',
+                        l.tr('screens_scan_card_screen.028'),
+                        card.ownerUsername ?? '-',
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.029'),
+                        card.issuedByUsername ?? '-',
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.030'),
+                        card.usedBy ?? '-',
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.031'),
+                        card.customerName ?? '-',
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.032'),
+                        _formatDate(card.createdAt),
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.033'),
+                        _formatDate(card.usedAt),
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.034'),
                         _formatDate(card.lastResoldAt),
                       ),
-                      _detailTile('مرات الاستخدام', '${card.useCount}'),
-                      _detailTile('مرات إعادة البيع', '${card.resaleCount}'),
                       _detailTile(
-                        'إجمالي القيمة المستخدمة',
+                        l.tr('screens_scan_card_screen.035'),
+                        '${card.useCount}',
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.036'),
+                        '${card.resaleCount}',
+                      ),
+                      _detailTile(
+                        l.tr('screens_scan_card_screen.037'),
                         CurrencyFormatter.ils(card.totalRedeemedValue),
                       ),
                       _detailTile(
-                        'المستخدمون المسموح لهم',
+                        l.tr('screens_scan_card_screen.038'),
                         card.allowedUsernames.isEmpty
                             ? '-'
                             : card.allowedUsernames.join('، '),
@@ -735,6 +947,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Widget _buildEmptyPreview() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(40),
       borderRadius: BorderRadius.circular(28),
@@ -746,10 +959,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             color: AppTheme.textTertiary.withValues(alpha: 0.35),
           ),
           const SizedBox(height: 18),
-          Text('تفاصيل البطاقة', style: AppTheme.h3),
+          Text(l.tr('screens_scan_card_screen.007'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'ابحث عن البطاقة أو استخدم الكاميرا لعرض بياناتها.',
+            l.tr('screens_scan_card_screen.008'),
             style: AppTheme.bodyAction,
             textAlign: TextAlign.center,
           ),

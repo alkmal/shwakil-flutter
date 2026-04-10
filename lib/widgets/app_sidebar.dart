@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import 'shwakel_logo.dart';
 
@@ -57,40 +58,32 @@ class _AppSidebarState extends State<AppSidebar> {
     final fullName = _user?['fullName']?.toString().trim() ?? '';
     final verificationStatus =
         _user?['transferVerificationStatus']?.toString() ?? 'unverified';
-    final permissions = Map<String, dynamic>.from(
-      _user?['permissions'] as Map? ?? const {},
-    );
+    final permissions = AppPermissions.fromUser(_user);
 
-    final canViewBalance = permissions['canViewBalance'] != false;
-    final canViewTransactions = permissions['canViewTransactions'] != false;
-    final canViewInventory = permissions['canViewInventory'] == true;
-    final canViewQuickTransfer = permissions['canViewQuickTransfer'] == true;
-    final canViewContact = permissions['canViewContact'] != false;
-    final canViewLocations = permissions['canViewLocations'] != false;
-    final canViewUsagePolicy = permissions['canViewUsagePolicy'] != false;
-    final canViewSecuritySettings =
-        permissions['canViewSecuritySettings'] != false;
-    final canViewAccountSettings =
-        permissions['canViewAccountSettings'] != false;
-    final canRequestVerification =
-        permissions['canRequestVerification'] == true;
-    final canIssueCards = permissions['canIssueCards'] == true;
-    final canRequestCardPrinting =
-        permissions['canRequestCardPrinting'] == true;
-    final canScanCards = permissions['canScanCards'] == true;
-    final canTransfer = permissions['canTransfer'] == true;
-    final canViewCustomers = permissions['canViewCustomers'] == true;
-    final canManageLocations = permissions['canManageLocations'] == true;
-    final canManageSystemSettings =
-        permissions['canManageSystemSettings'] == true;
+    final canViewBalance = permissions.canViewBalance;
+    final canViewTransactions = permissions.canViewTransactions;
+    final canViewInventory = permissions.canViewInventory;
+    final canViewQuickTransfer = permissions.canOpenQuickTransfer;
+    final canViewContact = permissions.canViewContact;
+    final canViewLocations = permissions.canViewLocations;
+    final canViewUsagePolicy = permissions.canViewUsagePolicy;
+    final canViewSecuritySettings = permissions.canViewSecuritySettings;
+    final canViewAccountSettings = permissions.canViewAccountSettings;
+    final canRequestVerification = permissions.canRequestVerification;
+    final canIssueCards = permissions.canIssueCards;
+    final canRequestCardPrinting = permissions.canRequestCardPrinting;
+    final canScanCards = permissions.canOpenCardTools;
+    final canViewCustomers = permissions.canViewCustomers;
+    final canManageLocations = permissions.canManageLocations;
+    final canManageSystemSettings = permissions.canManageSystemSettings;
     final canReviewWithdrawals =
-        permissions['canReviewWithdrawals'] == true || canViewCustomers;
-    final canReviewTopups = permissions['canReviewTopups'] == true;
+        permissions.canReviewWithdrawals || canViewCustomers;
+    final canReviewTopups = permissions.canReviewTopups;
     final canHandleCardPrintRequests =
-        permissions['canReviewCardPrintRequests'] == true ||
-        permissions['canPrepareCardPrintRequests'] == true ||
-        permissions['canFinalizeCardPrintRequests'] == true;
-    final canReviewDevices = permissions['canReviewDevices'] == true;
+        permissions.canReviewCardPrintRequests ||
+        permissions.canPrepareCardPrintRequests ||
+        permissions.canFinalizeCardPrintRequests;
+    final canReviewDevices = permissions.canReviewDevices;
 
     return Drawer(
       backgroundColor: AppTheme.sidebarSurface,
@@ -202,7 +195,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       title: l.tr('widgets_app_sidebar.010'),
                       routeName: '/account-settings',
                     ),
-                  if (canTransfer && canViewQuickTransfer)
+                  if (canViewQuickTransfer)
                     _buildItem(
                       context,
                       icon: Icons.send_to_mobile_rounded,
@@ -243,7 +236,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       _buildItem(
                         context,
                         icon: Icons.people_alt_rounded,
-                        title: l.text('إدارة العملاء', 'Customer Management'),
+                        title: l.tr('widgets_app_sidebar.030'),
                         routeName: '/admin-customers',
                       ),
                     if (canReviewDevices)
@@ -257,7 +250,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       _buildItem(
                         context,
                         icon: Icons.outbox_rounded,
-                        title: l.text('طلبات السحب', 'Withdrawal Requests'),
+                        title: l.tr('widgets_app_sidebar.031'),
                         routeName: '/withdrawal-requests',
                       ),
                     if (canReviewTopups)
@@ -271,10 +264,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       _buildItem(
                         context,
                         icon: Icons.print_rounded,
-                        title: l.text(
-                          'طلبات طباعة البطاقات',
-                          'Card Print Requests',
-                        ),
+                        title: l.tr('widgets_app_sidebar.032'),
                         routeName: '/admin-card-print-requests',
                       ),
                     if (canManageLocations)
@@ -295,10 +285,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       _buildItem(
                         context,
                         icon: Icons.rule_folder_rounded,
-                        title: l.text(
-                          'قوالب الصلاحيات',
-                          'Permission Templates',
-                        ),
+                        title: l.tr('widgets_app_sidebar.033'),
                         routeName: '/admin-permissions',
                       ),
                   ],
@@ -347,10 +334,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       ),
                     ),
                     subtitle: Text(
-                      l.text(
-                        'اضغط للتبديل بين اللغتين',
-                        'Tap to switch between Arabic and English',
-                      ),
+                      l.tr('widgets_app_sidebar.034'),
                       style: AppTheme.caption,
                     ),
                     onTap: () async {
@@ -447,8 +431,8 @@ class _AppSidebarState extends State<AppSidebar> {
         ),
         child: Icon(
           isArabic
-              ? Icons.arrow_back_ios_new_rounded
-              : Icons.arrow_forward_ios_rounded,
+              ? Icons.arrow_forward_ios_rounded
+              : Icons.arrow_back_ios_new_rounded,
           size: 14,
           color: isSelected ? AppTheme.primary : AppTheme.textTertiary,
         ),

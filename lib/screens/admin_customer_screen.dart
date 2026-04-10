@@ -178,10 +178,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       });
       AppAlertService.showSuccess(
         context,
-        message: _t(
-          'تم تحديث بيانات العميل بنجاح.',
-          'Customer details were updated successfully.',
-        ),
+        message: context.loc.tr('screens_admin_customer_screen.065'),
       );
     } catch (e) {
       if (!mounted) return;
@@ -198,12 +195,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(_t('screens_admin_customer_screen.001')),
-        content: Text(
-          _t(
-            'سيتم إنشاء كلمة مرور جديدة لهذا المستخدم ثم إرسال بيانات الدخول إلى واتساب الحساب. هل تريد المتابعة؟',
-            'A new password will be generated, then the login details will be sent to the account WhatsApp. Continue?',
-          ),
-        ),
+        content: Text(context.loc.tr('screens_admin_customer_screen.066')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -229,10 +221,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         title: _t('screens_admin_customer_screen.004'),
         message:
             response['message']?.toString() ??
-            _t(
-              'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر واتساب.',
-              'A new password was created and the user details were sent via WhatsApp.',
-            ),
+            context.loc.tr('screens_admin_customer_screen.067'),
       );
       await _loadCustomer(full: true);
     } catch (e) {
@@ -336,10 +325,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      _t(
-                        'إعادة إرسال بيانات المستخدم عبر واتساب ستنشئ كلمة مرور جديدة تلقائيًا قبل الإرسال.',
-                        'Resending user details through WhatsApp will automatically generate a new password before sending.',
-                      ),
+                      context.loc.tr('screens_admin_customer_screen.068'),
                       style: AppTheme.bodyAction,
                     ),
                     const SizedBox(height: 16),
@@ -794,10 +780,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(40),
                   child: Text(
-                    _t(
-                      'لا توجد أجهزة مرتبطة بهذا الحساب.',
-                      'No devices are linked to this account.',
-                    ),
+                    context.loc.tr('screens_admin_customer_screen.070'),
                   ),
                 ),
               )
@@ -832,9 +815,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     style: AppTheme.bodyBold,
                   ),
                   Text(
-                    _t(
-                      'معرف الجهاز: ${d['deviceId']}',
-                      'Device ID: ${d['deviceId']}',
+                    context.loc.tr(
+                      'screens_admin_customer_screen.071',
+                      params: {'id': d['deviceId']?.toString() ?? '-'},
                     ),
                     style: AppTheme.caption,
                   ),

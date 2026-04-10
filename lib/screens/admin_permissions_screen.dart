@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -166,10 +166,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
               padding: const EdgeInsets.all(24),
               gradient: AppTheme.primaryGradient,
               child: Text(
-                l.text(
-                  'يمكنك من هنا تحديد ما يظهر وما يعمل لهذا المستوى من الأعضاء داخل التطبيق ولوحة الإدارة.',
-                  'From here you can define what this membership level can see and use across the app and admin panel.',
-                ),
+                l.tr('screens_admin_permissions_screen.041'),
                 style: AppTheme.bodyAction.copyWith(
                   color: Colors.white,
                   height: 1.6,
@@ -277,3 +274,4 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     };
   }
 }
+

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
@@ -78,9 +79,12 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('الفروع ومراكز الخدمة')),
+      appBar: AppBar(
+        title: Text(l.tr('screens_supported_locations_screen.001')),
+      ),
       drawer: const AppSidebar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -110,6 +114,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   Widget _buildMapHero() {
+    final l = context.loc;
     final hasDistanceSorting = _position != null;
 
     return ShwakelCard(
@@ -134,12 +139,12 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'خريطة شواكل التفاعلية',
+                  l.tr('screens_supported_locations_screen.002'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'اعثر على أقرب وكيل أو نقطة شحن معتمدة في منطقتك مع ترتيب تلقائي حسب المسافة.',
+                  l.tr('screens_supported_locations_screen.003'),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -152,13 +157,16 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                   children: [
                     _heroChip(
                       icon: Icons.storefront_rounded,
-                      label: '${_locations.length} مواقع متاحة',
+                      label: l.tr(
+                        'screens_supported_locations_screen.004',
+                        params: {'count': '${_locations.length}'},
+                      ),
                     ),
                     _heroChip(
                       icon: Icons.my_location_rounded,
                       label: hasDistanceSorting
-                          ? 'مرتبة حسب المسافة'
-                          : 'الترتيب العام',
+                          ? l.tr('screens_supported_locations_screen.005')
+                          : l.tr('screens_supported_locations_screen.006'),
                     ),
                   ],
                 ),
@@ -180,6 +188,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   Widget _buildDistanceHint() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(14),
       color: AppTheme.success.withValues(alpha: 0.05),
@@ -194,7 +203,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'تم ترتيب المواقع تلقائيًا حسب المسافة من موقعك الحالي.',
+              l.tr('screens_supported_locations_screen.007'),
               style: AppTheme.caption.copyWith(
                 color: AppTheme.success,
                 fontWeight: FontWeight.bold,
@@ -207,6 +216,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   Widget _buildLocationTile(Map<String, dynamic> location) {
+    final l = context.loc;
     final distance = location['dist'] as double?;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -229,12 +239,14 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        location['title']?.toString() ?? 'فرع شواكل',
+                        location['title']?.toString() ??
+                            l.tr('screens_supported_locations_screen.008'),
                         style: AppTheme.bodyBold,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        location['type']?.toString() ?? 'نقطة خدمة معتمدة',
+                        location['type']?.toString() ??
+                            l.tr('screens_supported_locations_screen.009'),
                         style: AppTheme.caption.copyWith(
                           color: AppTheme.primary,
                         ),
@@ -271,7 +283,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
             _info(Icons.phone_rounded, location['phone']?.toString() ?? '-'),
             const SizedBox(height: 20),
             ShwakelButton(
-              label: 'فتح في الخرائط',
+              label: l.tr('screens_supported_locations_screen.010'),
               icon: Icons.directions_rounded,
               onPressed: () => _openMap(location),
               width: double.infinity,
@@ -283,6 +295,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l = context.loc;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(60),
@@ -295,12 +308,12 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'لا توجد مواقع مسجلة حاليًا',
+              l.tr('screens_supported_locations_screen.011'),
               style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
             ),
             const SizedBox(height: 10),
             Text(
-              'يمكن العودة لاحقًا أو سحب الشاشة لإعادة التحديث.',
+              l.tr('screens_supported_locations_screen.012'),
               textAlign: TextAlign.center,
               style: AppTheme.bodyAction,
             ),
@@ -346,9 +359,16 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   String _formatDistance(double meters) {
+    final l = context.loc;
     return meters < 1000
-        ? '${meters.round()} متر'
-        : '${(meters / 1000).toStringAsFixed(1)} كم';
+        ? l.tr(
+            'screens_supported_locations_screen.013',
+            params: {'count': '${meters.round()}'},
+          )
+        : l.tr(
+            'screens_supported_locations_screen.014',
+            params: {'count': (meters / 1000).toStringAsFixed(1)},
+          );
   }
 
   Future<void> _openMap(Map<String, dynamic> location) async {

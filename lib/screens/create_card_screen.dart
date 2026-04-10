@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../localization/index.dart';
 import '../models/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -21,10 +23,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   final PDFService _pdfService = PDFService();
   final TextEditingController _amountC = TextEditingController();
   final TextEditingController _qtyC = TextEditingController(text: '1');
-  final TextEditingController _titleC = TextEditingController(text: 'شواكل');
-  final TextEditingController _stampC = TextEditingController(
-    text: 'صالح للتداول',
-  );
+  final TextEditingController _titleC = TextEditingController();
+  final TextEditingController _stampC = TextEditingController();
 
   bool _isLoading = false;
   bool _isLoadingUser = true;
@@ -53,6 +53,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Future<void> _load() async {
+    final l = context.loc;
     try {
       final user = await _authService.currentUser();
       if (!mounted) {
@@ -63,8 +64,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         final accountName =
             user?['fullName']?.toString().trim().isNotEmpty == true
             ? user!['fullName'].toString().trim()
-            : 'شواكل';
-        if (_titleC.text.trim().isEmpty || _titleC.text.trim() == 'شواكل') {
+            : l.tr('screens_create_card_screen.001');
+        if (_titleC.text.trim().isEmpty ||
+            _titleC.text.trim() == l.tr('screens_create_card_screen.001')) {
           _titleC.text = accountName;
         }
         _useAccountLogo =
@@ -87,15 +89,19 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool get _hasAccountLogo =>
       _user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
 
-  List<DropdownMenuItem<String>> get _cardTypeItems => const [
-    DropdownMenuItem(value: 'standard', child: Text('بطاقة رصيد مالية')),
+  List<DropdownMenuItem<String>> _cardTypeItems(AppLocalization l) => [
+    DropdownMenuItem(
+      value: 'standard',
+      child: Text(l.tr('screens_create_card_screen.002')),
+    ),
     DropdownMenuItem(
       value: 'single_use',
-      child: Text('بطاقة استخدام لمرة واحدة'),
+      child: Text(l.tr('screens_create_card_screen.003')),
     ),
   ];
 
   Future<void> _create() async {
+    final l = context.loc;
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
     final isStandard = _cardType == 'standard';
@@ -104,8 +110,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (quantity <= 0 || (isStandard && amount <= 0)) {
       await AppAlertService.showError(
         context,
-        title: 'بيانات غير مكتملة',
-        message: 'يرجى إدخال بيانات إصدار صحيحة قبل المتابعة.',
+        title: l.tr('screens_create_card_screen.004'),
+        message: l.tr('screens_create_card_screen.005'),
       );
       return;
     }
@@ -113,38 +119,50 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (isPrivate && _selectedUsers.isEmpty) {
       await AppAlertService.showError(
         context,
-        title: 'البطاقة الخاصة',
-        message: 'اختر مستخدمًا واحدًا على الأقل لإنشاء بطاقة خاصة.',
+        title: l.tr('screens_create_card_screen.006'),
+        message: l.tr('screens_create_card_screen.007'),
       );
       return;
     }
 
     final typeLabel = _cardType == 'single_use'
-        ? 'استخدام لمرة واحدة'
-        : 'رصيد مالي';
-    final visibilityLabel = isPrivate ? 'خاصة' : 'عامة';
+        ? l.tr('screens_create_card_screen.008')
+        : l.tr('screens_create_card_screen.009');
+    final visibilityLabel = isPrivate
+        ? l.tr('screens_create_card_screen.010')
+        : l.tr('screens_create_card_screen.011');
     final valueLabel = isStandard
         ? CurrencyFormatter.ils(amount)
-        : 'بدون قيمة مالية';
+        : l.tr('screens_create_card_screen.012');
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تأكيد إصدار البطاقات'),
+        title: Text(l.tr('screens_create_card_screen.013')),
         content: Text(
-          'سيتم إصدار $quantity بطاقة.\n'
-          'النوع: $typeLabel\n'
-          'الإتاحة: $visibilityLabel\n'
-          'القيمة: $valueLabel\n'
-          '${isPrivate ? 'عدد المستفيدين المحددين: ${_selectedUsers.length}' : ''}',
+          l.tr(
+            'screens_create_card_screen.014',
+            params: {
+              'quantity': '$quantity',
+              'type': typeLabel,
+              'visibility': visibilityLabel,
+              'value': valueLabel,
+              'privateLine': isPrivate
+                  ? l.tr(
+                      'screens_create_card_screen.015',
+                      params: {'count': '${_selectedUsers.length}'},
+                    )
+                  : '',
+            },
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(l.tr('screens_create_card_screen.016')),
           ),
           ShwakelButton(
-            label: 'إصدار الآن',
+            label: l.tr('screens_create_card_screen.017'),
             onPressed: () => Navigator.pop(dialogContext, true),
             width: 140,
           ),
@@ -187,13 +205,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر الإصدار',
+        title: l.tr('screens_create_card_screen.018'),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
   Future<void> _printCards(List<VirtualCard> cards) async {
+    final l = context.loc;
     final printedBy = _user?['fullName']?.toString().trim().isNotEmpty == true
         ? _user!['fullName'].toString().trim()
         : _user?['username']?.toString();
@@ -201,9 +220,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final settings = CardDesignSettings(
       showLogo: _showLogo,
       showStamp: _showStamp,
-      logoText: _titleC.text.trim().isEmpty ? 'شواكل' : _titleC.text.trim(),
+      logoText: _titleC.text.trim().isEmpty
+          ? l.tr('screens_create_card_screen.001')
+          : _titleC.text.trim(),
       stampText: _stampC.text.trim().isEmpty
-          ? 'صالح للتداول'
+          ? l.tr('screens_create_card_screen.019')
           : _stampC.text.trim(),
     );
     settings.logoUrl = (_showLogo && _useAccountLogo)
@@ -214,20 +235,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   void _showSuccess(List<VirtualCard> cards) {
+    final l = context.loc;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تم الإصدار بنجاح'),
+        title: Text(l.tr('screens_create_card_screen.020')),
         content: Text(
-          'تم إنشاء ${cards.length} بطاقة بنجاح. هل تريد إرسالها إلى الطابعة الآن؟',
+          l.tr(
+            'screens_create_card_screen.021',
+            params: {'count': '${cards.length}'},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('لاحقًا'),
+            child: Text(l.tr('screens_create_card_screen.022')),
           ),
           ShwakelButton(
-            label: 'بدء الطباعة',
+            label: l.tr('screens_create_card_screen.023'),
             onPressed: () async {
               Navigator.pop(dialogContext);
               await _printCards(cards);
@@ -240,6 +265,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Future<void> _pickPrivateUsers() async {
+    final l = context.loc;
     final results = await showDialog<List<Map<String, dynamic>>>(
       context: context,
       builder: (dialogContext) {
@@ -269,7 +295,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
         return StatefulBuilder(
           builder: (context, setModalState) => AlertDialog(
-            title: const Text('اختيار مستفيدي البطاقة الخاصة'),
+            title: Text(l.tr('screens_create_card_screen.024')),
             content: SizedBox(
               width: 460,
               child: Column(
@@ -278,7 +304,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   TextField(
                     controller: searchController,
                     decoration: InputDecoration(
-                      labelText: 'ابحث باسم المستخدم أو الرقم',
+                      labelText: l.tr('screens_create_card_screen.025'),
                       prefixIcon: const Icon(Icons.search_rounded),
                       suffixIcon: loading
                           ? const Padding(
@@ -323,8 +349,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                         final selectedNow = isSelected(user);
                         return CheckboxListTile(
                           value: selectedNow,
-                          title: Text(user['username']?.toString() ?? 'مستخدم'),
-                          subtitle: Text('المعرف: ${user['id'] ?? '-'}'),
+                          title: Text(
+                            user['username']?.toString() ??
+                                l.tr('screens_create_card_screen.026'),
+                          ),
+                          subtitle: Text(
+                            l.tr(
+                              'screens_create_card_screen.027',
+                              params: {'id': '${user['id'] ?? '-'}'},
+                            ),
+                          ),
                           onChanged: (value) {
                             setModalState(() {
                               if (value == true && !selectedNow) {
@@ -348,10 +382,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('إلغاء'),
+                child: Text(l.tr('screens_create_card_screen.016')),
               ),
               ShwakelButton(
-                label: 'اعتماد',
+                label: l.tr('screens_create_card_screen.028'),
                 width: 120,
                 onPressed: () => Navigator.pop(dialogContext, selected),
               ),
@@ -370,13 +404,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoadingUser) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('إصدار بطاقات جديدة')),
+      appBar: AppBar(
+        title: Text(l.tr('screens_create_card_screen.029')),
+      ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -384,24 +421,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              //   ShwakelPageHeader(
-              //     eyebrow: 'إنشاء وطباعة',
-              //     title: 'صمّم الدفعة الجديدة قبل إصدارها',
-              //     subtitle:
-              //         'أعدنا ترتيب الشاشة لتجمع بيانات الإصدار وتخصيص الطباعة في عرض حديث وواضح، مع نصوص أخف وأنسب للشاشات.',
-              //     badges: [
-              //       ShwakelInfoBadge(
-              //         icon: Icons.account_balance_wallet_rounded,
-              //         label: 'الرصيد ${CurrencyFormatter.ils(_printBal)}',
-              //       ),
-              //       const ShwakelInfoBadge(
-              //         icon: Icons.auto_awesome_rounded,
-              //         label: 'تصميم طباعة مخصص',
-              //         color: AppTheme.secondary,
-              //       ),
-              //     ],
-              //   ),
-              //   const SizedBox(height: 20),
               _buildHero(),
               const SizedBox(height: 24),
               LayoutBuilder(
@@ -445,6 +464,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildHero() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       gradient: AppTheme.primaryGradient,
@@ -469,7 +489,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'إصدار بطاقات رقمية بتنسيق احترافي',
+                  l.tr('screens_create_card_screen.030'),
                   style: AppTheme.h2.copyWith(
                     color: Colors.white,
                     fontSize: 22,
@@ -477,7 +497,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'اضبط القيمة والكمية ونوع البطاقة ثم خصص العنوان والختم والشعار قبل إرسال الدفعة إلى الطابعة.',
+                  l.tr('screens_create_card_screen.031'),
                   style: AppTheme.caption.copyWith(
                     color: Colors.white.withValues(alpha: 0.92),
                     fontWeight: FontWeight.w600,
@@ -492,26 +512,27 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildForm() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('بيانات الإصدار', style: AppTheme.h3),
+          Text(l.tr('screens_create_card_screen.032'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'اختر النوع والكمية والقيمة ثم حدد نطاق ظهور البطاقة.',
+            l.tr('screens_create_card_screen.033'),
             style: AppTheme.bodyAction.copyWith(fontSize: 14),
           ),
           const SizedBox(height: 24),
-          if (_cardTypeItems.length > 1) ...[
+          if (_cardTypeItems(l).length > 1) ...[
             DropdownButtonFormField<String>(
               initialValue: _cardType,
-              decoration: const InputDecoration(
-                labelText: 'نوع البطاقة',
-                prefixIcon: Icon(Icons.category_rounded),
+              decoration: InputDecoration(
+                labelText: l.tr('screens_create_card_screen.034'),
+                prefixIcon: const Icon(Icons.category_rounded),
               ),
-              items: _cardTypeItems,
+              items: _cardTypeItems(l),
               onChanged: (value) =>
                   setState(() => _cardType = value ?? 'standard'),
             ),
@@ -524,9 +545,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 decimal: true,
               ),
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'قيمة البطاقة (₪)',
-                prefixIcon: Icon(Icons.money_rounded),
+              decoration: InputDecoration(
+                labelText: l.tr('screens_create_card_screen.035'),
+                prefixIcon: const Icon(Icons.money_rounded),
               ),
             ),
           if (_cardType == 'single_use')
@@ -535,7 +556,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               color: AppTheme.secondary.withValues(alpha: 0.06),
               borderColor: AppTheme.secondary.withValues(alpha: 0.15),
               child: Text(
-                'بطاقة الاستخدام لمرة واحدة لا تحتاج إلى قيمة مالية، وسيظهر نوعها بوضوح داخل الطباعة.',
+                l.tr('screens_create_card_screen.036'),
                 style: AppTheme.bodyText.copyWith(fontSize: 14),
               ),
             ),
@@ -543,26 +564,29 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           TextField(
             controller: _qtyC,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'عدد البطاقات',
-              prefixIcon: Icon(Icons.pin_rounded),
+            decoration: InputDecoration(
+              labelText: l.tr('screens_create_card_screen.037'),
+              prefixIcon: const Icon(Icons.pin_rounded),
             ),
           ),
           if (_canIssuePrivateCards) ...[
             const SizedBox(height: 24),
-            Text('إتاحة البطاقة', style: AppTheme.bodyBold),
+            Text(
+              l.tr('screens_create_card_screen.038'),
+              style: AppTheme.bodyBold,
+            ),
             const SizedBox(height: 12),
             SegmentedButton<String>(
-              segments: const [
+              segments: [
                 ButtonSegment<String>(
                   value: 'general',
-                  icon: Icon(Icons.public_rounded),
-                  label: Text('عامة'),
+                  icon: const Icon(Icons.public_rounded),
+                  label: Text(l.tr('screens_create_card_screen.011')),
                 ),
                 ButtonSegment<String>(
                   value: 'restricted',
-                  icon: Icon(Icons.lock_rounded),
-                  label: Text('خاصة'),
+                  icon: const Icon(Icons.lock_rounded),
+                  label: Text(l.tr('screens_create_card_screen.010')),
                 ),
               ],
               selected: {_visibilityScope},
@@ -585,10 +609,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('مستفيدو البطاقة الخاصة', style: AppTheme.bodyBold),
+                  Text(
+                    l.tr('screens_create_card_screen.039'),
+                    style: AppTheme.bodyBold,
+                  ),
                   const SizedBox(height: 8),
                   Text(
-                    'لن تظهر هذه البطاقات إلا للمستخدمين الذين تحددهم هنا.',
+                    l.tr('screens_create_card_screen.040'),
                     style: AppTheme.caption.copyWith(fontSize: 13),
                   ),
                   const SizedBox(height: 16),
@@ -614,8 +641,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   const SizedBox(height: 12),
                   ShwakelButton(
                     label: _selectedUsers.isEmpty
-                        ? 'اختيار المستخدمين'
-                        : 'تعديل المستخدمين',
+                        ? l.tr('screens_create_card_screen.041')
+                        : l.tr('screens_create_card_screen.042'),
                     icon: Icons.group_add_rounded,
                     isSecondary: true,
                     onPressed: _pickPrivateUsers,
@@ -626,7 +653,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ],
           const SizedBox(height: 28),
           ShwakelButton(
-            label: 'توليد وإصدار الدفعة',
+            label: l.tr('screens_create_card_screen.043'),
             icon: Icons.verified_user_rounded,
             onPressed: _create,
             isLoading: _isLoading,
@@ -637,44 +664,45 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildDesignSettings() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('تخصيص الطباعة', style: AppTheme.h3),
+          Text(l.tr('screens_create_card_screen.044'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'أعد تفعيل العنوان والختم والشعار المخصص قبل الطباعة، مع تصغير النصوص لتبدو أنظف على البطاقات.',
+            l.tr('screens_create_card_screen.045'),
             style: AppTheme.bodyAction.copyWith(fontSize: 14),
           ),
           const SizedBox(height: 20),
           TextField(
             controller: _titleC,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'عنوان البطاقة',
-              prefixIcon: Icon(Icons.title_rounded),
+            decoration: InputDecoration(
+              labelText: l.tr('screens_create_card_screen.046'),
+              prefixIcon: const Icon(Icons.title_rounded),
             ),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _stampC,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'نص الختم',
-              prefixIcon: Icon(Icons.approval_rounded),
+            decoration: InputDecoration(
+              labelText: l.tr('screens_create_card_screen.047'),
+              prefixIcon: const Icon(Icons.approval_rounded),
             ),
           ),
           const SizedBox(height: 12),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             value: _showLogo,
-            title: const Text('إظهار الشعار'),
+            title: Text(l.tr('screens_create_card_screen.048')),
             subtitle: Text(
               _hasAccountLogo
-                  ? 'سيتم استخدام شعار الحساب المرفوع إذا كان مفعّلًا'
-                  : 'سيتم استخدام شعار التطبيق الافتراضي',
+                  ? l.tr('screens_create_card_screen.049')
+                  : l.tr('screens_create_card_screen.050'),
               style: AppTheme.caption.copyWith(fontSize: 12),
             ),
             onChanged: (value) => setState(() => _showLogo = value),
@@ -683,9 +711,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: _useAccountLogo,
-              title: const Text('استخدام شعار الحساب'),
+              title: Text(l.tr('screens_create_card_screen.051')),
               subtitle: Text(
-                'يمكنك تغيير الشعار من إعدادات الحساب عند الحاجة',
+                l.tr('screens_create_card_screen.052'),
                 style: AppTheme.caption.copyWith(fontSize: 12),
               ),
               onChanged: _showLogo
@@ -695,9 +723,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             value: _showStamp,
-            title: const Text('إظهار الختم'),
+            title: Text(l.tr('screens_create_card_screen.053')),
             subtitle: Text(
-              'يعرض بخط أخف وحجم أصغر ليبقى التصميم متوازنًا',
+              l.tr('screens_create_card_screen.054'),
               style: AppTheme.caption.copyWith(fontSize: 12),
             ),
             onChanged: (value) => setState(() => _showStamp = value),
@@ -710,13 +738,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildDesignPreview() {
-    final title = _titleC.text.trim().isEmpty ? 'شواكل' : _titleC.text.trim();
+    final l = context.loc;
+    final title = _titleC.text.trim().isEmpty
+        ? l.tr('screens_create_card_screen.001')
+        : _titleC.text.trim();
     final stamp = _stampC.text.trim().isEmpty
-        ? 'صالح للتداول'
+        ? l.tr('screens_create_card_screen.019')
         : _stampC.text.trim();
     final amount = double.tryParse(_amountC.text) ?? 0;
     final valueLabel = _cardType == 'single_use'
-        ? 'استخدام لمرة واحدة'
+        ? l.tr('screens_create_card_screen.008')
         : CurrencyFormatter.ils(amount);
 
     return Container(
@@ -769,8 +800,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               const SizedBox(height: 10),
               Text(
                 _cardType == 'single_use'
-                    ? 'بطاقة دخول أو استلام'
-                    : 'بطاقة رقمية للاستخدام الداخلي',
+                    ? l.tr('screens_create_card_screen.055')
+                    : l.tr('screens_create_card_screen.056'),
                 style: AppTheme.caption.copyWith(
                   fontSize: 11,
                   color: AppTheme.textSecondary,
@@ -808,8 +839,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   Expanded(
                     child: Text(
                       _visibilityScope == 'restricted'
-                          ? 'بطاقة خاصة'
-                          : 'بطاقة عامة',
+                          ? l.tr('screens_create_card_screen.057')
+                          : l.tr('screens_create_card_screen.058'),
                       style: AppTheme.caption.copyWith(
                         fontSize: 11,
                         color: AppTheme.primary,
@@ -818,7 +849,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     ),
                   ),
                   Text(
-                    'نص أصغر وأنظف',
+                    l.tr('screens_create_card_screen.059'),
                     style: AppTheme.caption.copyWith(fontSize: 10),
                   ),
                 ],
@@ -859,6 +890,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildRecent() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       color: AppTheme.secondary.withValues(alpha: 0.05),
@@ -870,19 +902,30 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             size: 30,
           ),
           const SizedBox(height: 10),
-          Text('الإصدار الأخير', style: AppTheme.h3.copyWith(fontSize: 18)),
+          Text(
+            l.tr('screens_create_card_screen.060'),
+            style: AppTheme.h3.copyWith(fontSize: 18),
+          ),
           const SizedBox(height: 20),
-          _buildRecentRow('عدد البطاقات', '${_recent.length} بطاقة'),
+          _buildRecentRow(
+            l.tr('screens_create_card_screen.061'),
+            l.tr(
+              'screens_create_card_screen.062',
+              params: {'count': '${_recent.length}'},
+            ),
+          ),
           const SizedBox(height: 8),
           _buildRecentRow(
-            'نوع الإتاحة',
+            l.tr('screens_create_card_screen.063'),
             _recent.isNotEmpty
-                ? (_recent.first.isPrivate ? 'خاصة' : 'عامة')
+                ? (_recent.first.isPrivate
+                      ? l.tr('screens_create_card_screen.010')
+                      : l.tr('screens_create_card_screen.011'))
                 : '-',
           ),
           const SizedBox(height: 8),
           _buildRecentRow(
-            'قيمة الواحدة',
+            l.tr('screens_create_card_screen.064'),
             _recent.isNotEmpty
                 ? CurrencyFormatter.ils(_recent.first.value)
                 : CurrencyFormatter.ils(0),
@@ -890,7 +933,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           if (_recent.isNotEmpty) ...[
             const SizedBox(height: 20),
             ShwakelButton(
-              label: 'إعادة طباعة الدفعة',
+              label: l.tr('screens_create_card_screen.065'),
               icon: Icons.print_rounded,
               isSecondary: true,
               onPressed: () => _printCards(_recent),
@@ -911,3 +954,4 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 }
+

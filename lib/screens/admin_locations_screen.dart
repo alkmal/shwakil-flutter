@@ -88,10 +88,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
               await AppAlertService.showError(
                 dialogContext,
                 title: l.tr('screens_admin_locations_screen.002'),
-                message: l.text(
-                  'اسم الفرع والعنوان مطلوبان.',
-                  'Branch name and address are required.',
-                ),
+                message: l.tr('screens_admin_locations_screen.required_fields'),
               );
               return;
             }
@@ -302,10 +299,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l.text(
-                          'إدارة المواقع شاشة مستقلة الآن، ولا تُجلب إلا عند فتحها.',
-                          'Location management now lives in a dedicated screen and loads only when opened.',
-                        ),
+                        l.tr('screens_admin_locations_screen.hero_subtitle'),
                         style: AppTheme.bodyAction.copyWith(
                           color: Colors.white70,
                         ),
@@ -316,9 +310,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                 const SizedBox(height: 24),
                 AdminSectionHeader(
                   title: l.tr('screens_admin_locations_screen.020'),
-                  subtitle: l.text(
-                    'أضف أو عدل المواقع من شاشة مخصصة وسريعة.',
-                    'Add or edit locations from a dedicated fast screen.',
+                  subtitle: l.tr(
+                    'screens_admin_locations_screen.section_subtitle',
                   ),
                   icon: Icons.map_rounded,
                   trailing: ShwakelButton(

@@ -43,15 +43,16 @@ class AdminPaginationFooter extends StatelessWidget {
           Expanded(
             child: ShwakelButton(
               label:
-                  nextLabel ??
-                  l.tr('widgets_admin_admin_pagination_footer.001'),
-              onPressed: currentPage < lastPage
-                  ? () => onPageChanged(currentPage + 1)
+                  previousLabel ??
+                  l.tr('widgets_admin_admin_pagination_footer.002'),
+              isSecondary: true,
+              onPressed: currentPage > 1
+                  ? () => onPageChanged(currentPage - 1)
                   : null,
               icon: isArabic
-                  ? Icons.chevron_left_rounded
-                  : Icons.chevron_right_rounded,
-              iconAtEnd: true,
+                  ? Icons.chevron_right_rounded
+                  : Icons.chevron_left_rounded,
+              iconAtEnd: false,
             ),
           ),
           const SizedBox(width: 16),
@@ -73,15 +74,14 @@ class AdminPaginationFooter extends StatelessWidget {
           Expanded(
             child: ShwakelButton(
               label:
-                  previousLabel ??
-                  l.tr('widgets_admin_admin_pagination_footer.002'),
-              isSecondary: true,
-              onPressed: currentPage > 1
-                  ? () => onPageChanged(currentPage - 1)
+                  nextLabel ??
+                  l.tr('widgets_admin_admin_pagination_footer.001'),
+              onPressed: currentPage < lastPage
+                  ? () => onPageChanged(currentPage + 1)
                   : null,
               icon: isArabic
-                  ? Icons.chevron_right_rounded
-                  : Icons.chevron_left_rounded,
+                  ? Icons.chevron_left_rounded
+                  : Icons.chevron_right_rounded,
               iconAtEnd: true,
             ),
           ),

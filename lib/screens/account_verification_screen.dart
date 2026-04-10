@@ -102,10 +102,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_account_verification_screen.001'),
-        message: l.text(
-          'يرجى اختيار صورة الهوية وصورة السيلفي أولًا.',
-          'Please select the identity document and selfie image first.',
-        ),
+        message: l.tr('screens_account_verification_screen.016'),
       );
       return;
     }
@@ -123,10 +120,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       await AppAlertService.showSuccess(
         context,
         title: l.tr('screens_account_verification_screen.002'),
-        message: l.text(
-          'طلب التوثيق قيد المراجعة الآن.',
-          'Your verification request is now under review.',
-        ),
+        message: l.tr('screens_account_verification_screen.017'),
       );
       await _loadStatus();
     } catch (error) {
@@ -212,10 +206,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  l.text(
-                    'ارفع وثائقك بشكل واضح لتفعيل التحويلات الكاملة وميزات الحساب المتقدمة.',
-                    'Upload clear documents to unlock full transfers and advanced account features.',
-                  ),
+                  l.tr('screens_account_verification_screen.018'),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -249,28 +240,19 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       case 'pending':
         color = AppTheme.warning;
         title = l.tr('screens_account_verification_screen.006');
-        text = l.text(
-          'طلبك قيد المراجعة من قبل الإدارة، وسيتم إشعارك عند تحديث الحالة.',
-          'Your request is under review by the administration. You will be notified when the status changes.',
-        );
+        text = l.tr('screens_account_verification_screen.019');
         icon = Icons.timer_rounded;
         break;
       case 'rejected':
         color = AppTheme.error;
         title = l.tr('screens_account_verification_screen.007');
-        text = l.text(
-          'تم رفض الطلب السابق، يرجى إعادة رفع صور أوضح للهوية والسيلفي.',
-          'Your previous request was rejected. Please upload clearer identity and selfie images.',
-        );
+        text = l.tr('screens_account_verification_screen.020');
         icon = Icons.cancel_rounded;
         break;
       default:
         color = AppTheme.primary;
         title = l.tr('screens_account_verification_screen.008');
-        text = l.text(
-          'حسابك غير موثق حاليًا، ارفع المستندات المطلوبة لإكمال التفعيل.',
-          'Your account is not verified yet. Upload the required documents to complete activation.',
-        );
+        text = l.tr('screens_account_verification_screen.021');
         icon = Icons.info_rounded;
     }
 
@@ -317,10 +299,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            l.text(
-              'ارفع صورة واضحة للهوية وصورة سيلفي تحمل الهوية نفسها لتسريع المراجعة.',
-              'Upload a clear identity image and a selfie holding the same identity document to speed up review.',
-            ),
+            l.tr('screens_account_verification_screen.022'),
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
           const SizedBox(height: 22),
@@ -353,10 +332,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Text(
-                l.text(
-                  'يمكنك إعادة الإرسال بعد تعديل الصور أو استبدالها.',
-                  'You can resubmit after editing or replacing the uploaded images.',
-                ),
+                l.tr('screens_account_verification_screen.023'),
                 style: AppTheme.caption.copyWith(color: AppTheme.error),
               ),
             ),

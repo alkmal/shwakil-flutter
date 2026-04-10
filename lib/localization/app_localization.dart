@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -59,7 +60,7 @@ class AppLocalizer {
   Map<String, String> get _strings => isArabic ? appStringsAr : appStringsEn;
 
   String tr(String key, {Map<String, String>? params, String? fallback}) {
-    var value = _strings[key] ?? fallback ?? key;
+    var value = _resolveValue(key, fallback: fallback);
     if (params != null) {
       params.forEach((name, replacement) {
         value = value.replaceAll('{$name}', replacement);
@@ -69,6 +70,49 @@ class AppLocalizer {
   }
 
   String text(String arabic, String english) => isArabic ? arabic : english;
+
+  String _resolveValue(String key, {String? fallback}) {
+    final englishValue = appStringsEn[key] ?? fallback ?? key;
+    final sourceValue = _strings[key];
+    if (!isArabic) {
+      return sourceValue ?? englishValue;
+    }
+
+    final arabicValue = sourceValue ?? englishValue;
+    final repairedValue = _repairMojibake(arabicValue);
+    if (_looksBrokenArabic(repairedValue)) {
+      return englishValue;
+    }
+    return repairedValue;
+  }
+
+  String _repairMojibake(String value) {
+    if (!RegExp(r'[ØÙÃâ�]').hasMatch(value)) {
+      return value;
+    }
+
+    try {
+      return utf8.decode(latin1.encode(value));
+    } catch (_) {
+      return value;
+    }
+  }
+
+  bool _looksBrokenArabic(String value) {
+    if (value.trim().isEmpty) {
+      return true;
+    }
+
+    if (RegExp(r'\?{2,}').hasMatch(value)) {
+      return true;
+    }
+
+    if (RegExp(r'[ØÙÃâ�]').hasMatch(value)) {
+      return true;
+    }
+
+    return false;
+  }
 }
 
 extension AppLocalizationX on BuildContext {

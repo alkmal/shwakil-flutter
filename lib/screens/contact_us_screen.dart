@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
@@ -45,6 +46,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -68,7 +70,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               const SizedBox(height: 24),
               _buildContactItem(
                 icon: Icons.chat_rounded,
-                label: 'واتساب الدعم المباشر',
+                label: l.tr('screens_contact_us_screen.001'),
                 value: whatsapp,
                 url: whatsapp.isEmpty ? null : 'https://wa.me/$whatsapp',
                 color: AppTheme.success,
@@ -76,7 +78,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               const SizedBox(height: 16),
               _buildContactItem(
                 icon: Icons.email_rounded,
-                label: 'البريد الرسمي',
+                label: l.tr('screens_contact_us_screen.002'),
                 value: email,
                 url: email.isEmpty ? null : 'mailto:$email',
                 color: AppTheme.primary,
@@ -84,7 +86,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               const SizedBox(height: 16),
               _buildContactItem(
                 icon: Icons.location_on_rounded,
-                label: 'المقر الرئيسي',
+                label: l.tr('screens_contact_us_screen.003'),
                 value: address,
                 url: null,
                 color: AppTheme.accent,
@@ -101,12 +103,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'ساعات العمل: 9:00 ص - 9:00 م',
+                        l.tr('screens_contact_us_screen.004'),
                         style: AppTheme.bodyBold,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'نحن جاهزون لخدمتكم طوال أيام الأسبوع، باستثناء العطل الرسمية.',
+                        l.tr('screens_contact_us_screen.005'),
                         textAlign: TextAlign.center,
                         style: AppTheme.caption.copyWith(height: 1.6),
                       ),
@@ -122,6 +124,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
   }
 
   Widget _buildSupportHero() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(30),
       gradient: AppTheme.primaryGradient,
@@ -147,12 +150,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'مركز مساعدة شواكل',
+                  l.tr('screens_contact_us_screen.006'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'فريقنا جاهز للرد على استفساراتكم ومعالجة المشكلات التقنية بأسرع وقت.',
+                  l.tr('screens_contact_us_screen.007'),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,

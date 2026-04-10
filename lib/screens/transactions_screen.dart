@@ -175,47 +175,52 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       body: RefreshIndicator(
         onRefresh: _loadTransactions,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: ResponsiveScaffoldContainer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeroCard(),
-                const SizedBox(height: 24),
-                _buildSummaryRow(),
-                const SizedBox(height: 24),
-                _buildQuickActions(),
-                const SizedBox(height: 24),
-                _buildSearchAndFilters(),
-                const SizedBox(height: 32),
-                if (_isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (_transactions.isEmpty)
-                  _buildEmptyState()
-                else ...[
-                  ..._transactions.map(
-                    (tx) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: AdminTransactionAuditCard(transaction: tx),
-                    ),
-                  ),
-                  AdminPaginationFooter(
-                    currentPage: _page,
-                    lastPage: _lastPage,
-                    totalItems: _totalTransactions,
-                    itemsPerPage: _perPage,
-                    onPageChanged: (page) {
-                      setState(() => _page = page);
-                      _loadTransactions();
-                    },
-                  ),
-                ],
-              ],
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 860;
+                final isPhone = constraints.maxWidth < 560;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeroCard(isCompact: isCompact),
+                    const SizedBox(height: 20),
+                    _buildSummaryGrid(isCompact: isCompact, isPhone: isPhone),
+                    const SizedBox(height: 20),
+                    _buildSearchAndFilters(isCompact: isCompact),
+                    const SizedBox(height: 24),
+                    if (_isLoading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (_transactions.isEmpty)
+                      _buildEmptyState()
+                    else ...[
+                      ..._transactions.map(
+                        (tx) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: AdminTransactionAuditCard(transaction: tx),
+                        ),
+                      ),
+                      AdminPaginationFooter(
+                        currentPage: _page,
+                        lastPage: _lastPage,
+                        totalItems: _totalTransactions,
+                        itemsPerPage: _perPage,
+                        onPageChanged: (page) {
+                          setState(() => _page = page);
+                          _loadTransactions();
+                        },
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -223,9 +228,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard({required bool isCompact}) {
     return ShwakelCard(
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(isCompact ? 22 : 28),
       gradient: AppTheme.primaryGradient,
       shadowLevel: ShwakelShadowLevel.premium,
       child: LayoutBuilder(
@@ -280,86 +285,98 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildSummaryRow() {
+  Widget _buildSummaryGrid({required bool isCompact, required bool isPhone}) {
     final net = _totalCredits - _totalDebits;
+    final cards = [
+      _buildSummaryCard(
+        _t('screens_transactions_screen.007'),
+        _currentBalance,
+        AppTheme.primary,
+        compact: isCompact,
+      ),
+      _buildSummaryCard(
+        _t('screens_transactions_screen.008'),
+        _totalCredits,
+        AppTheme.success,
+        compact: isCompact,
+      ),
+      _buildSummaryCard(
+        _t('screens_transactions_screen.009'),
+        _totalDebits,
+        AppTheme.error,
+        compact: isCompact,
+      ),
+      _buildSummaryCard(
+        _t('screens_transactions_screen.010'),
+        net,
+        net >= 0 ? AppTheme.primary : AppTheme.error,
+        compact: isCompact,
+      ),
+    ];
+
+    if (isPhone) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[1]),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: cards[2]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[3]),
+            ],
+          ),
+        ],
+      );
+    }
+
     return Wrap(
       spacing: 16,
       runSpacing: 16,
-      children: [
-        _buildSummaryCard(
-          _t('screens_transactions_screen.007'),
-          _currentBalance,
-          AppTheme.primary,
-        ),
-        _buildSummaryCard(
-          _t('screens_transactions_screen.008'),
-          _totalCredits,
-          AppTheme.success,
-        ),
-        _buildSummaryCard(
-          _t('screens_transactions_screen.009'),
-          _totalDebits,
-          AppTheme.error,
-        ),
-        _buildSummaryCard(
-          _t('screens_transactions_screen.010'),
-          net,
-          net >= 0 ? AppTheme.primary : AppTheme.error,
-        ),
-      ],
+      children: cards
+          .map((card) => SizedBox(width: isCompact ? 220 : 240, child: card))
+          .toList(),
     );
   }
 
-  Widget _buildSummaryCard(String title, double amount, Color color) {
-    return SizedBox(
-      width: 240,
-      child: ShwakelCard(
-        padding: const EdgeInsets.all(20),
-        shadowLevel: ShwakelShadowLevel.soft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+  Widget _buildSummaryCard(
+    String title,
+    double amount,
+    Color color, {
+    required bool compact,
+  }) {
+    return ShwakelCard(
+      padding: EdgeInsets.all(compact ? 16 : 20),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            CurrencyFormatter.ils(amount),
+            style: AppTheme.h3.copyWith(
+              color: color,
+              fontSize: compact ? 17 : 18,
             ),
-            const SizedBox(height: 8),
-            Text(
-              CurrencyFormatter.ils(amount),
-              style: AppTheme.h3.copyWith(color: color),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildQuickActions() {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        ShwakelButton(
-          label: _t('screens_transactions_screen.011'),
-          icon: Icons.refresh_rounded,
-          isSecondary: true,
-          width: 180,
-          onPressed: _loadTransactions,
-        ),
-        ShwakelButton(
-          label: _t('screens_transactions_screen.012'),
-          icon: Icons.download_rounded,
-          isSecondary: true,
-          width: 180,
-          onPressed: _exportTransactions,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchAndFilters() {
+  Widget _buildSearchAndFilters({required bool isCompact}) {
     return ShwakelCard(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isCompact ? 18 : 24),
       shadowLevel: ShwakelShadowLevel.soft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,6 +414,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: isCompact ? double.infinity : 180,
+                child: ShwakelButton(
+                  label: _t('screens_transactions_screen.011'),
+                  icon: Icons.refresh_rounded,
+                  isSecondary: true,
+                  onPressed: _loadTransactions,
+                ),
+              ),
+              SizedBox(
+                width: isCompact ? double.infinity : 180,
+                child: ShwakelButton(
+                  label: _t('screens_transactions_screen.012'),
+                  icon: Icons.download_rounded,
+                  isSecondary: true,
+                  onPressed: _exportTransactions,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 18),
           TextField(
             controller: _searchController,
@@ -420,8 +462,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           const SizedBox(height: 18),
           LayoutBuilder(
             builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 860;
-              if (isCompact) {
+              final filtersCompact = constraints.maxWidth < 860;
+              if (filtersCompact) {
                 return Column(
                   children: [
                     _buildFilterPanel(
@@ -614,7 +656,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Widget _buildEmptyState() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.all(32),
       child: Center(
         child: Column(
           children: [

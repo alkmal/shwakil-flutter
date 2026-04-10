@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../localization/index.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/currency_formatter.dart';
 import '../shwakel_card.dart';
@@ -11,39 +12,51 @@ class AdminTransactionAuditCard extends StatelessWidget {
 
   String _currency(num? amount) => CurrencyFormatter.ils(amount);
 
-  String _typeLabel(String type, Map<String, dynamic> metadata) {
+  String _typeLabel(
+    BuildContext context,
+    String type,
+    Map<String, dynamic> metadata,
+  ) {
+    final l = context.loc;
     switch (type) {
       case 'topup':
-        return 'شحن رصيد';
+        return l.tr('widgets_admin_transaction_audit_card.001');
       case 'transfer_out':
-        return 'تحويل صادر';
+        return l.tr('widgets_admin_transaction_audit_card.002');
       case 'transfer_in':
-        return 'تحويل وارد';
+        return l.tr('widgets_admin_transaction_audit_card.003');
       case 'redeem_card':
-        return 'اعتماد بطاقة';
+        return l.tr('widgets_admin_transaction_audit_card.004');
       case 'resell_card':
-        return 'إعادة بيع بطاقة';
+        return l.tr('widgets_admin_transaction_audit_card.005');
       case 'issue_cards':
-        return 'إصدار بطاقات';
+        return l.tr('widgets_admin_transaction_audit_card.006');
       case 'withdrawal_request':
-        return 'طلب سحب';
+        return l.tr('widgets_admin_transaction_audit_card.007');
       case 'withdrawal_rejected':
-        return 'رفض طلب السحب';
+        return l.tr('widgets_admin_transaction_audit_card.008');
       case 'withdrawal_completed':
-        return 'تنفيذ السحب';
+        return l.tr('widgets_admin_transaction_audit_card.009');
       case 'balance_credit':
         return (metadata['sourceType']?.toString() ?? '') ==
                 'printing_debt_settlement'
-            ? 'تسوية دين الطباعة'
-            : 'إضافة رصيد';
+            ? l.tr('widgets_admin_transaction_audit_card.010')
+            : l.tr('widgets_admin_transaction_audit_card.011');
       case 'app_fee_credit':
-        return 'رسوم خدمة';
+        return l.tr('widgets_admin_transaction_audit_card.012');
       default:
-        return type.trim().isEmpty ? 'حركة غير معروفة' : type;
+        return type.trim().isEmpty
+            ? l.tr('widgets_admin_transaction_audit_card.013')
+            : type;
     }
   }
 
-  String? _actorLine(String type, Map<String, dynamic> metadata) {
+  String? _actorLine(
+    BuildContext context,
+    String type,
+    Map<String, dynamic> metadata,
+  ) {
+    final l = context.loc;
     final byUsername = metadata['byUsername']?.toString().trim();
     final senderUsername = metadata['senderUsername']?.toString().trim();
     final recipientUsername = metadata['recipientUsername']?.toString().trim();
@@ -55,73 +68,106 @@ class AdminTransactionAuditCard extends StatelessWidget {
     switch (type) {
       case 'topup':
         if (byUsername != null && byUsername.isNotEmpty) {
-          return 'نفّذها: @$byUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.014',
+            params: {'username': byUsername},
+          );
         }
         break;
       case 'transfer_out':
         if (recipientUsername != null && recipientUsername.isNotEmpty) {
-          return 'إلى: @$recipientUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.015',
+            params: {'username': recipientUsername},
+          );
         }
         break;
       case 'transfer_in':
         if (senderUsername != null && senderUsername.isNotEmpty) {
-          return 'من: @$senderUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.016',
+            params: {'username': senderUsername},
+          );
         }
         break;
       case 'redeem_card':
         if (customerName != null && customerName.isNotEmpty) {
-          return 'العميل: $customerName';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.017',
+            params: {'name': customerName},
+          );
         }
         if (byUsername != null && byUsername.isNotEmpty) {
-          return 'نفّذها: @$byUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.014',
+            params: {'username': byUsername},
+          );
         }
         break;
       case 'resell_card':
         if (byUsername != null && byUsername.isNotEmpty) {
-          return 'نفّذها: @$byUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.014',
+            params: {'username': byUsername},
+          );
         }
         break;
       case 'balance_credit':
         if (byUsername != null && byUsername.isNotEmpty) {
-          return 'نفّذها: @$byUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.014',
+            params: {'username': byUsername},
+          );
         }
         break;
       case 'issue_cards':
         if (byUsername != null && byUsername.isNotEmpty) {
-          return 'أصدرها: @$byUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.018',
+            params: {'username': byUsername},
+          );
         }
         final usedDebt =
             (metadata['usedPrintingDebt'] as num?)?.toDouble() ?? 0;
         if (usedDebt > 0) {
-          return 'استخدم من دين الطباعة: ${_currency(usedDebt)}';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.019',
+            params: {'amount': _currency(usedDebt)},
+          );
         }
         break;
       case 'app_fee_credit':
         if (targetUsername != null && targetUsername.isNotEmpty) {
-          return 'مرتبطة بـ: @$targetUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.020',
+            params: {'username': targetUsername},
+          );
         }
         if (sourceUsername != null && sourceUsername.isNotEmpty) {
-          return 'مأخوذة من: @$sourceUsername';
+          return l.tr(
+            'widgets_admin_transaction_audit_card.021',
+            params: {'username': sourceUsername},
+          );
         }
         if (sourceType != null && sourceType.isNotEmpty) {
           switch (sourceType) {
             case 'topup':
-              return 'مصدرها: شحن رصيد';
+              return l.tr('widgets_admin_transaction_audit_card.022');
             case 'transfer':
-              return 'مصدرها: تحويل رصيد';
+              return l.tr('widgets_admin_transaction_audit_card.023');
             case 'card_redeem':
-              return 'مصدرها: اعتماد بطاقة';
+              return l.tr('widgets_admin_transaction_audit_card.024');
             case 'card_resell':
-              return 'مصدرها: إعادة بيع بطاقة';
+              return l.tr('widgets_admin_transaction_audit_card.025');
           }
         }
         break;
       case 'withdrawal_request':
-        return 'بانتظار مراجعة الإدارة';
+        return l.tr('widgets_admin_transaction_audit_card.026');
       case 'withdrawal_rejected':
-        return 'أعيد الرصيد إلى الحساب';
+        return l.tr('widgets_admin_transaction_audit_card.027');
       case 'withdrawal_completed':
-        return 'تم تنفيذ الطلب';
+        return l.tr('widgets_admin_transaction_audit_card.028');
     }
 
     return null;
@@ -184,113 +230,149 @@ class AdminTransactionAuditCard extends StatelessWidget {
     final isNearBranch = audit is Map && audit['isNearSupportedBranch'] == true;
     final status = transaction['status']?.toString() ?? 'completed';
     final isRejected = status == 'rejected' || type == 'withdrawal_rejected';
-    final actorLine = _actorLine(type, metadata);
+    final actorLine = _actorLine(context, type, metadata);
     final accentColor = _accentColor(
       isRejected: isRejected,
       amount: amount,
       type: type,
     );
 
-    return ShwakelCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      shadowLevel: ShwakelShadowLevel.soft,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _iconFor(isRejected: isRejected, amount: amount, type: type),
-              color: accentColor,
-              size: 20,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 640;
+
+        final leadingIcon = Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Icon(
+            _iconFor(isRejected: isRejected, amount: amount, type: type),
+            color: accentColor,
+            size: 20,
+          ),
+        );
+
+        final details = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(_typeLabel(type, metadata), style: AppTheme.bodyBold),
-                    if (isRejected)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.error.withValues(alpha: 0.10),
-                          borderRadius: AppTheme.radiusSm,
-                        ),
-                        child: Text(
-                          'مرفوضة',
-                          style: AppTheme.caption.copyWith(
-                            color: AppTheme.error,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
                 Text(
-                  createdAt,
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                  _typeLabel(context, type, metadata),
+                  style: AppTheme.bodyBold,
                 ),
-                if (actorLine != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    actorLine,
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
+                if (isRejected)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withValues(alpha: 0.10),
+                      borderRadius: AppTheme.radiusSm,
+                    ),
+                    child: Text(
+                      context.loc.tr(
+                        'widgets_admin_transaction_audit_card.029',
+                      ),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.error,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ],
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
+            const SizedBox(height: 4),
+            Text(
+              createdAt,
+              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+            ),
+            if (actorLine != null) ...[
+              const SizedBox(height: 4),
               Text(
-                _currency(amount),
-                style: AppTheme.bodyBold.copyWith(color: accentColor),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isNearBranch
-                        ? Icons.place_rounded
-                        : Icons.location_off_outlined,
-                    color: isNearBranch ? AppTheme.primary : AppTheme.warning,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    isNearBranch ? 'قرب فرع' : 'خارج النطاق',
-                    style: AppTheme.caption.copyWith(
-                      color: isNearBranch ? AppTheme.primary : AppTheme.warning,
-                    ),
-                  ),
-                ],
+                actorLine,
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
               ),
             ],
+          ],
+        );
+
+        final amountBlock = Column(
+          crossAxisAlignment: isCompact
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.end,
+          children: [
+            Text(
+              _currency(amount),
+              style: AppTheme.bodyBold.copyWith(color: accentColor),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isNearBranch
+                      ? Icons.place_rounded
+                      : Icons.location_off_outlined,
+                  color: isNearBranch ? AppTheme.primary : AppTheme.warning,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  context.loc.tr(
+                    isNearBranch
+                        ? 'widgets_admin_transaction_audit_card.030'
+                        : 'widgets_admin_transaction_audit_card.031',
+                  ),
+                  style: AppTheme.caption.copyWith(
+                    color: isNearBranch ? AppTheme.primary : AppTheme.warning,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+
+        return ShwakelCard(
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 14 : 16,
+            vertical: isCompact ? 12 : 14,
           ),
-        ],
-      ),
+          shadowLevel: ShwakelShadowLevel.soft,
+          child: isCompact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        leadingIcon,
+                        const SizedBox(width: 12),
+                        Expanded(child: details),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    amountBlock,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    leadingIcon,
+                    const SizedBox(width: 16),
+                    Expanded(child: details),
+                    const SizedBox(width: 12),
+                    amountBlock,
+                  ],
+                ),
+        );
+      },
     );
   }
 }

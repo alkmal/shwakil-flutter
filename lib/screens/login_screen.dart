@@ -73,22 +73,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     final l = context.loc;
     if (username.isEmpty || password.isEmpty) {
-      return l.text(
-        'يرجى إدخال اسم المستخدم وكلمة المرور.',
-        'Please enter your username and password.',
-      );
+      return l.tr('screens_login_screen.009');
     }
     if (username.length < 3 || username.length > 64) {
-      return l.text(
-        'اسم المستخدم يجب أن يكون بين 3 و64 حرفًا.',
-        'Username must be between 3 and 64 characters.',
-      );
+      return l.tr('screens_login_screen.010');
     }
     if (!_usernamePattern.hasMatch(username)) {
-      return l.text(
-        'اسم المستخدم يحتوي على أحرف غير مسموح بها.',
-        'Username contains unsupported characters.',
-      );
+      return l.tr('screens_login_screen.011');
     }
     if (password.length > 255) {
       return l.tr('screens_login_screen.001');
@@ -241,9 +232,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     final l = context.loc;
     final message = isError && username != null && username.trim().isNotEmpty
-        ? l.text(
-            'للمستخدم ${username.trim()}: $text',
-            'For user ${username.trim()}: $text',
+        ? l.tr(
+            'screens_login_screen.012',
+            params: {'username': username.trim(), 'message': text},
           )
         : text;
     return isError
@@ -315,10 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            l.text(
-              'أدخل بياناتك فقط وسنأخذك مباشرةً لخطوة التحقق.',
-              'Enter your credentials and move directly to verification.',
-            ),
+            l.tr('screens_login_screen.013'),
             style: AppTheme.bodyAction.copyWith(
               color: AppTheme.textSecondary,
               height: 1.6,
@@ -398,23 +386,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l.text(
-                            'التسجيل متوقف حاليًا',
-                            'Registration is currently disabled',
-                          ),
+                          l.tr('screens_login_screen.014'),
                           style: AppTheme.bodyBold,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           (_supportWhatsapp ?? '').isNotEmpty
-                              ? l.text(
-                                  'لإنشاء حساب جديد تواصل مع الإدارة على واتساب: $_supportWhatsapp',
-                                  'To create a new account, contact admin on WhatsApp: $_supportWhatsapp',
+                              ? l.tr(
+                                  'screens_login_screen.015',
+                                  params: {'whatsapp': _supportWhatsapp ?? ''},
                                 )
-                              : l.text(
-                                  'لإنشاء حساب جديد تواصل مع الإدارة.',
-                                  'To create a new account, contact admin.',
-                                ),
+                              : l.tr('screens_login_screen.016'),
                           style: AppTheme.caption.copyWith(
                             color: AppTheme.textSecondary,
                             height: 1.6,

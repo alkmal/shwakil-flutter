@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../../localization/index.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/currency_formatter.dart';
-import '../shwakel_card.dart';
 import '../shwakel_button.dart';
+import '../shwakel_card.dart';
 
 class AdminWithdrawalRequestCard extends StatelessWidget {
   final Map<String, dynamic> request;
@@ -29,9 +31,12 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final amount = (request['amount'] as num?)?.toDouble() ?? 0;
-    final method = request['method']?.toString() ?? 'غير محدد';
-    final details = request['methodDetails']?.toString() ?? 'لا توجد تفاصيل';
+    final method = request['method']?.toString() ??
+        l.tr('widgets_admin_withdrawal_request_card.001');
+    final details = request['methodDetails']?.toString() ??
+        l.tr('widgets_admin_withdrawal_request_card.002');
     final createdAt = request['createdAt']?.toString() ?? '';
 
     return ShwakelCard(
@@ -59,7 +64,7 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
                     children: [
                       Text(_displayName(), style: AppTheme.bodyBold),
                       const SizedBox(height: 2),
-                      Text('$method • $details', style: AppTheme.caption),
+                      Text('$method � $details', style: AppTheme.caption),
                     ],
                   ),
                 ),
@@ -89,7 +94,10 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
               borderRadius: AppTheme.radiusMd,
             ),
             child: Text(
-              'طلب السحب: $createdAt',
+              l.tr(
+                'widgets_admin_withdrawal_request_card.003',
+                params: {'date': createdAt},
+              ),
               style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
             ),
           ),
@@ -98,7 +106,7 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ShwakelButton(
-                  label: 'اعتماد الطلب',
+                  label: l.tr('widgets_admin_withdrawal_request_card.004'),
                   isLoading: isProcessing,
                   onPressed: () => onAction(true),
                   color: AppTheme.secondary,
@@ -108,7 +116,7 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ShwakelButton(
-                  label: 'رفض',
+                  label: l.tr('widgets_admin_withdrawal_request_card.005'),
                   isLoading: isProcessing,
                   onPressed: () => onAction(false),
                   color: AppTheme.warning,
