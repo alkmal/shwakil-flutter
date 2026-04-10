@@ -8,12 +8,14 @@ class ErrorMessageService {
     if (text.isEmpty) {
       return 'حدث خطأ غير متوقع. حاول مرة أخرى.';
     }
+
     final lower = text.toLowerCase();
     if (lower.contains('timed out') ||
         lower.contains('timeout') ||
         lower.contains('err_connection_timed_out')) {
       return 'تعذر الاتصال بالخادم في الوقت الحالي. تحقق من الإنترنت أو أعد المحاولة بعد قليل.';
     }
+
     if (lower.contains('failed host lookup') ||
         lower.contains('connection refused') ||
         lower.contains('connection reset') ||
@@ -25,8 +27,9 @@ class ErrorMessageService {
         lower.contains('failed to fetch')) {
       return 'تعذر الاتصال بالخادم. تحقق من الإنترنت أو من توفر الخدمة ثم أعد المحاولة.';
     }
+
     if (lower.contains('websocket') || lower.contains('socket.io')) {
-      return 'تعذر الاتصال الفوري بالخادم حاليًا. يمكنك المتابعة وإعادة المحاولة بعد قليل.';
+      return 'تعذر الاتصال الفوري بالخادم حالياً. يمكنك المتابعة وإعادة المحاولة بعد قليل.';
     }
 
     final withoutUrls = text.replaceAll(RegExp(r'https?://\S+'), '').trim();
@@ -43,11 +46,13 @@ class ErrorMessageService {
         cleaned.startsWith('<html')) {
       return 'تأكد من جميع البيانات وحاول مرة أخرى. Please verify all entered data and try again.';
     }
+
     if (cleaned.toLowerCase().contains('typeerror') ||
         cleaned.toLowerCase().contains('stack') ||
         cleaned.toLowerCase().contains('payload')) {
       return 'حدث خطأ أثناء تنفيذ الطلب. حاول مرة أخرى أو تواصل مع الدعم إذا استمرت المشكلة.';
     }
+
     return cleaned;
   }
 
@@ -61,6 +66,7 @@ class ErrorMessageService {
         }
       }
     } catch (_) {}
+
     return sanitize(body);
   }
 }

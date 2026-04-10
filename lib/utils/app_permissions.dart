@@ -41,12 +41,17 @@ class AppPermissions {
   bool get canReviewWithdrawals => _isEnabled('canReviewWithdrawals');
   bool get canReviewTopups => _isEnabled('canReviewTopups');
   bool get canReviewDevices => _isEnabled('canReviewDevices');
-  bool get canReviewCardPrintRequests =>
-      _isEnabled('canReviewCardPrintRequests');
-  bool get canPrepareCardPrintRequests =>
-      _isEnabled('canPrepareCardPrintRequests');
-  bool get canFinalizeCardPrintRequests =>
+  bool get canManageCardPrintRequests =>
+      _isEnabled('canManageCardPrintRequests') ||
+      _isEnabled('canReviewCardPrintRequests') ||
+      _isEnabled('canPrepareCardPrintRequests') ||
       _isEnabled('canFinalizeCardPrintRequests');
+  bool get canReviewCardPrintRequests =>
+      canManageCardPrintRequests;
+  bool get canPrepareCardPrintRequests =>
+      canManageCardPrintRequests;
+  bool get canFinalizeCardPrintRequests =>
+      canManageCardPrintRequests;
 
   bool get canOpenCardTools =>
       canScanCards || canReviewCards || canResellCards || canRedeemCards;

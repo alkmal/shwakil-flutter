@@ -80,9 +80,7 @@ class _AppSidebarState extends State<AppSidebar> {
         permissions.canReviewWithdrawals || canViewCustomers;
     final canReviewTopups = permissions.canReviewTopups;
     final canHandleCardPrintRequests =
-        permissions.canReviewCardPrintRequests ||
-        permissions.canPrepareCardPrintRequests ||
-        permissions.canFinalizeCardPrintRequests;
+        permissions.canManageCardPrintRequests;
     final canReviewDevices = permissions.canReviewDevices;
 
     return Drawer(

@@ -137,7 +137,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) {
         return;
       }
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/app-shell',
+        (route) => false,
+      );
     } catch (error) {
       if (!mounted) {
         return;

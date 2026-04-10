@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/app_theme.dart';
 import 'app_config.dart';
 import 'auth_service.dart';
 import 'error_message_service.dart';
-import '../utils/app_theme.dart';
 
 enum AppAlertType { success, error, info }
 
@@ -79,6 +79,68 @@ class AppAlertService {
     );
   }
 
+  static Future<void> reportUnhandledCrash({
+    required String title,
+    required String message,
+    String? details,
+    String? stackTrace,
+    String? route,
+    Map<String, dynamic>? extraContext,
+  }) async {
+    try {
+      final authService = AuthService();
+      final token = await authService.token();
+      final currentUser = await authService.currentUser();
+
+      final payload = <String, dynamic>{
+        'title': ErrorMessageService.sanitize(title),
+        'message': ErrorMessageService.sanitize(message),
+        'appName': 'شواكل',
+        'platform': defaultTargetPlatform.name,
+        'route': route ?? '',
+      };
+
+      if (details != null && details.trim().isNotEmpty) {
+        payload['details'] = details.trim();
+      }
+      if (stackTrace != null && stackTrace.trim().isNotEmpty) {
+        payload['stackTrace'] = stackTrace.trim();
+      }
+
+      if (currentUser != null) {
+        payload['accountId'] = currentUser['id']?.toString();
+        payload['username'] = currentUser['username']?.toString();
+        payload['fullName'] = currentUser['fullName']?.toString();
+        payload['whatsapp'] = currentUser['whatsapp']?.toString();
+        payload['role'] =
+            (currentUser['roleLabel'] ?? currentUser['role'])?.toString();
+        payload['balance'] = currentUser['balance']?.toString();
+      }
+
+      (extraContext ?? const <String, dynamic>{}).forEach((key, value) {
+        if (value == null) {
+          return;
+        }
+        final text = value.toString().trim();
+        if (text.isEmpty) {
+          return;
+        }
+        payload[key] = text;
+      });
+
+      await http.post(
+        AppConfig.apiUri('app/report-crash'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (token != null && token.isNotEmpty)
+            'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(payload),
+      );
+    } catch (_) {}
+  }
+
   static Future<void> _show(
     BuildContext context, {
     required AppAlertType type,
@@ -90,17 +152,6 @@ class AppAlertService {
     final cleanTitle = ErrorMessageService.sanitize(title);
     final cleanMessage = ErrorMessageService.sanitize(message);
     final supportNumber = _extractWhatsAppNumber(cleanMessage);
-
-    if (type == AppAlertType.error) {
-      unawaited(
-        _reportClientError(
-          cleanTitle,
-          cleanMessage,
-          context,
-          extraContext ?? const {},
-        ),
-      );
-    }
 
     return showDialog<void>(
       context: context,
@@ -207,62 +258,6 @@ class AppAlertService {
         ),
       ),
     );
-  }
-
-  static Future<void> _reportClientError(
-    String title,
-    String message,
-    BuildContext context,
-    Map<String, dynamic> extraContext,
-  ) async {
-    try {
-      final routeName = ModalRoute.of(context)?.settings.name ?? '';
-      final authService = AuthService();
-      final token = await authService.token();
-      final currentUser = await authService.currentUser();
-
-      final payload = <String, dynamic>{
-        'title': title,
-        'message': message,
-        'appName': 'شواكل',
-        'platform': defaultTargetPlatform.name,
-        'route': routeName,
-      };
-
-      if (currentUser != null) {
-        payload['accountId'] = currentUser['id']?.toString();
-        payload['username'] = (currentUser['username'] ?? payload['username'])
-            ?.toString();
-        payload['fullName'] = currentUser['fullName']?.toString();
-        payload['whatsapp'] = (currentUser['whatsapp'] ?? payload['whatsapp'])
-            ?.toString();
-        payload['role'] = (currentUser['roleLabel'] ?? currentUser['role'])
-            ?.toString();
-        payload['balance'] = currentUser['balance']?.toString();
-      }
-
-      extraContext.forEach((key, value) {
-        if (value == null) {
-          return;
-        }
-        final text = value.toString().trim();
-        if (text.isEmpty) {
-          return;
-        }
-        payload[key] = text;
-      });
-
-      await http.post(
-        AppConfig.apiUri('app/report-error'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          if (token != null && token.isNotEmpty)
-            'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(payload),
-      );
-    } catch (_) {}
   }
 
   static Future<void> _openWhatsApp(String phone) async {

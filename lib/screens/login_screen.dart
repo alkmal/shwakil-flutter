@@ -201,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     setState(() => _isLoading = false);
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
   }
 
   Future<bool> _isTrustedDeviceForUsername(String username) async {

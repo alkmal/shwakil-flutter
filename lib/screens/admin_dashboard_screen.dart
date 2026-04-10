@@ -54,7 +54,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _user?['permissions'] as Map? ?? const {},
     );
     final adminCards = <Widget>[
-      if (permissions['canReviewCardPrintRequests'] == true ||
+      if (permissions['canManageCardPrintRequests'] == true ||
+          permissions['canReviewCardPrintRequests'] == true ||
           permissions['canPrepareCardPrintRequests'] == true ||
           permissions['canFinalizeCardPrintRequests'] == true)
         _navCard(

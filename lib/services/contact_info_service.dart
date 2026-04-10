@@ -7,7 +7,7 @@ class ContactInfoService {
   static Map<String, dynamic> fallbackContact() {
     return <String, dynamic>{
       'title': 'التواصل',
-      'supportWhatsapp': '',
+      'supportWhatsapp': '0599883621',
       'supportEmail': 'support@alkmal.com',
       'address': 'فلسطين',
     };

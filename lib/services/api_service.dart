@@ -432,9 +432,7 @@ class ApiService {
     required bool canIssuePrivateCards,
     required bool canResellCards,
     required bool canRequestCardPrinting,
-    required bool canReviewCardPrintRequests,
-    required bool canPrepareCardPrintRequests,
-    required bool canFinalizeCardPrintRequests,
+    required bool canManageCardPrintRequests,
     required bool canManageUsers,
   }) async {
     final response = await http.put(
@@ -447,9 +445,7 @@ class ApiService {
         'canIssuePrivateCards': canIssuePrivateCards,
         'canResellCards': canResellCards,
         'canRequestCardPrinting': canRequestCardPrinting,
-        'canReviewCardPrintRequests': canReviewCardPrintRequests,
-        'canPrepareCardPrintRequests': canPrepareCardPrintRequests,
-        'canFinalizeCardPrintRequests': canFinalizeCardPrintRequests,
+        'canManageCardPrintRequests': canManageCardPrintRequests,
         'canManageUsers': canManageUsers,
       }),
     );

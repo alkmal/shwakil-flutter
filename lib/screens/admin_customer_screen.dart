@@ -711,17 +711,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ),
               _permItem(
                 _t('screens_admin_customer_screen.056'),
-                'canReviewCardPrintRequests',
-                perms,
-              ),
-              _permItem(
-                _t('screens_admin_customer_screen.057'),
-                'canPrepareCardPrintRequests',
-                perms,
-              ),
-              _permItem(
-                _t('screens_admin_customer_screen.058'),
-                'canFinalizeCardPrintRequests',
+                'canManageCardPrintRequests',
                 perms,
               ),
               if (widget.canManageUsers)
@@ -900,9 +890,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canIssuePrivateCards: p['canIssuePrivateCards'] == true,
         canResellCards: p['canResellCards'] == true,
         canRequestCardPrinting: p['canRequestCardPrinting'] == true,
-        canReviewCardPrintRequests: p['canReviewCardPrintRequests'] == true,
-        canPrepareCardPrintRequests: p['canPrepareCardPrintRequests'] == true,
-        canFinalizeCardPrintRequests: p['canFinalizeCardPrintRequests'] == true,
+        canManageCardPrintRequests: p['canManageCardPrintRequests'] == true,
         canManageUsers: p['canManageUsers'] == true,
       );
       setState(() {
