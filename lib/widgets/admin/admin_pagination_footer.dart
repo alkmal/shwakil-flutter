@@ -44,7 +44,7 @@ class AdminPaginationFooter extends StatelessWidget {
             child: ShwakelButton(
               label:
                   previousLabel ??
-                  l.tr('widgets_admin_admin_pagination_footer.002'),
+                  l.tr('widgets_admin_admin_pagination_footer.001'),
               isSecondary: true,
               onPressed: currentPage > 1
                   ? () => onPageChanged(currentPage - 1)
@@ -75,7 +75,7 @@ class AdminPaginationFooter extends StatelessWidget {
             child: ShwakelButton(
               label:
                   nextLabel ??
-                  l.tr('widgets_admin_admin_pagination_footer.001'),
+                  l.tr('widgets_admin_admin_pagination_footer.002'),
               onPressed: currentPage < lastPage
                   ? () => onPageChanged(currentPage + 1)
                   : null,

@@ -872,8 +872,8 @@ const Map<String, String> appStringsEn = {
   'widgets_admin_admin_location_card.003': 'Branch',
   'widgets_admin_admin_location_card.004': 'Active',
   'widgets_admin_admin_location_card.005': 'Disabled',
-  'widgets_admin_admin_pagination_footer.001': 'Next',
-  'widgets_admin_admin_pagination_footer.002': 'Previous',
+  'widgets_admin_admin_pagination_footer.001': 'Previous',
+  'widgets_admin_admin_pagination_footer.002': 'Next',
   'widgets_admin_admin_settings_group.001': 'Save settings',
   'screens_admin_dashboard_screen.description':
       'Welcome {name}. Each admin section now opens in its own screen and loads only its own data for a faster and clearer experience.',
