@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               vertical: 24,
             ),
             title: Text(
-              l.tr('screens_home_screen.049'),
+              l.tr('screens_home_screen.014'),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
@@ -332,8 +332,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     if (canReviewCards && !canIssueCards) {
       return [
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.032'),
-          subtitle: l.tr('screens_home_screen.033'),
+          title: l.tr('screens_home_screen.015'),
+          subtitle: l.tr('screens_home_screen.016'),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.success,
           onTap: () => Navigator.pushNamed(context, '/scan-card'),
@@ -344,64 +344,64 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return [
       if (canScanCards)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.032'),
-          subtitle: l.tr('screens_home_screen.034'),
+          title: l.tr('screens_home_screen.015'),
+          subtitle: l.tr('screens_home_screen.016'),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.success,
           onTap: () => Navigator.pushNamed(context, '/scan-card'),
         ),
       if (canViewBalance)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.035'),
-          subtitle: l.tr('screens_home_screen.036'),
+          title: l.tr('screens_home_screen.017'),
+          subtitle: l.tr('screens_home_screen.018'),
           icon: Icons.account_balance_wallet_rounded,
           color: AppTheme.primary,
           onTap: () => Navigator.pushNamed(context, '/balance'),
         ),
       if (canIssueCards)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.037'),
-          subtitle: l.tr('screens_home_screen.038'),
+          title: l.tr('screens_home_screen.019'),
+          subtitle: l.tr('screens_home_screen.020'),
           icon: Icons.add_card_rounded,
           color: const Color(0xFF0B75B7),
           onTap: () => Navigator.pushNamed(context, '/create-card'),
         ),
       if (canViewQuickTransfer && _canTransfer)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.039'),
-          subtitle: l.tr('screens_home_screen.040'),
+          title: l.tr('screens_home_screen.021'),
+          subtitle: l.tr('screens_home_screen.022'),
           icon: Icons.send_to_mobile_rounded,
           color: AppTheme.accent,
           onTap: () => Navigator.pushNamed(context, '/quick-transfer'),
         ),
       if (canViewInventory && canIssueCards)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.041'),
-          subtitle: l.tr('screens_home_screen.042'),
+          title: l.tr('screens_home_screen.023'),
+          subtitle: l.tr('screens_home_screen.024'),
           icon: Icons.inventory_2_rounded,
           color: AppTheme.textSecondary,
           onTap: () => Navigator.pushNamed(context, '/inventory'),
         ),
       if (canRequestCardPrinting)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.043'),
-          subtitle: l.tr('screens_home_screen.044'),
+          title: l.tr('screens_home_screen.025'),
+          subtitle: l.tr('screens_home_screen.026'),
           icon: Icons.print_rounded,
           color: AppTheme.secondary,
           onTap: () => Navigator.pushNamed(context, '/card-print-requests'),
         ),
       if (canViewTransactions)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.045'),
-          subtitle: l.tr('screens_home_screen.046'),
+          title: l.tr('screens_home_screen.027'),
+          subtitle: l.tr('screens_home_screen.028'),
           icon: Icons.receipt_long_rounded,
           color: AppTheme.warning,
           onTap: () => Navigator.pushNamed(context, '/transactions'),
         ),
       if (canViewSecuritySettings)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.047'),
-          subtitle: l.tr('screens_home_screen.048'),
+          title: l.tr('screens_home_screen.029'),
+          subtitle: l.tr('screens_home_screen.030'),
           icon: Icons.security_rounded,
           color: AppTheme.secondary,
           onTap: () => Navigator.pushNamed(context, '/security-settings'),

@@ -557,18 +557,6 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     ),
                     items: [
                       DropdownMenuItem(
-                        value: 'restricted',
-                        child: Text(_t('screens_admin_customer_screen.030')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'verified_member',
-                        child: Text(_t('screens_admin_customer_screen.031')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'advanced_member',
-                        child: Text(_t('screens_admin_customer_screen.032')),
-                      ),
-                      DropdownMenuItem(
                         value: 'unverified',
                         child: Text(_t('screens_admin_customer_screen.033')),
                       ),
