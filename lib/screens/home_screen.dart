@@ -641,7 +641,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     required VoidCallback onTap,
     required bool compact,
   }) {
-    final isArabic = context.loc.isArabic;
     return ShwakelCard(
       onTap: onTap,
       padding: EdgeInsets.all(compact ? 18 : 22),
@@ -664,9 +663,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                     const Spacer(),
                     Icon(
-                      isArabic
-                          ? Icons.chevron_left_rounded
-                          : Icons.chevron_right_rounded,
+                      Icons.arrow_forward_rounded,
                       color: color,
                       size: 24,
                     ),
@@ -720,13 +717,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(
-                  isArabic
-                      ? Icons.chevron_left_rounded
-                      : Icons.chevron_right_rounded,
-                  color: color,
-                  size: 26,
-                ),
+                Icon(Icons.arrow_forward_rounded, color: color, size: 26),
               ],
             ),
     );

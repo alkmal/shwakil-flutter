@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../localization/index.dart';
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -50,14 +51,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         : (usernameValue.isNotEmpty
               ? usernameValue
               : l.tr('screens_admin_dashboard_screen.003'));
-    final permissions = Map<String, dynamic>.from(
-      _user?['permissions'] as Map? ?? const {},
-    );
+    final permissions = AppPermissions.fromUser(_user);
     final adminCards = <Widget>[
-      if (permissions['canManageCardPrintRequests'] == true ||
-          permissions['canReviewCardPrintRequests'] == true ||
-          permissions['canPrepareCardPrintRequests'] == true ||
-          permissions['canFinalizeCardPrintRequests'] == true)
+      if (permissions.canManageCardPrintRequests ||
+          permissions.canReviewCardPrintRequests ||
+          permissions.canPrepareCardPrintRequests ||
+          permissions.canFinalizeCardPrintRequests)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.004'),
           subtitle: l.tr('screens_admin_dashboard_screen.005'),
@@ -65,8 +64,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           color: AppTheme.primary,
           routeName: '/admin-card-print-requests',
         ),
-      if (permissions['canViewCustomers'] == true ||
-          permissions['canManageUsers'] == true)
+      if (permissions.canViewCustomers)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.006'),
           subtitle: l.tr('screens_admin_dashboard_screen.007'),
@@ -74,7 +72,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           color: AppTheme.primary,
           routeName: '/admin-customers',
         ),
-      if (permissions['canReviewDevices'] == true)
+      if (permissions.canReviewDevices)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.008'),
           subtitle: l.tr('screens_admin_dashboard_screen.009'),
@@ -82,7 +80,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           color: AppTheme.warning,
           routeName: '/admin-device-requests',
         ),
-      if (permissions['canReviewWithdrawals'] == true)
+      if (permissions.canReviewWithdrawals)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.010'),
           subtitle: l.tr('screens_admin_dashboard_screen.011'),
@@ -90,7 +88,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           color: AppTheme.secondary,
           routeName: '/withdrawal-requests',
         ),
-      if (permissions['canReviewTopups'] == true)
+      if (permissions.canReviewTopups)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.012'),
           subtitle: l.tr('screens_admin_dashboard_screen.013'),
@@ -98,7 +96,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           color: AppTheme.accent,
           routeName: '/topup-requests',
         ),
-      if (permissions['canManageLocations'] == true)
+      if (permissions.canManageLocations)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.014'),
           subtitle: l.tr('screens_admin_dashboard_screen.015'),
@@ -106,7 +104,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           color: AppTheme.success,
           routeName: '/admin-locations',
         ),
-      if (permissions['canManageSystemSettings'] == true)
+      if (permissions.canManageSystemSettings)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.016'),
           subtitle: l.tr('screens_admin_dashboard_screen.017'),
@@ -114,7 +112,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           color: AppTheme.textPrimary,
           routeName: '/admin-system-settings',
         ),
-      if (permissions['canManageSystemSettings'] == true)
+      if (permissions.canManageSystemSettings)
         _navCard(
           title: l.tr('screens_admin_dashboard_screen.018'),
           subtitle: l.tr('screens_admin_dashboard_screen.019'),
@@ -192,7 +190,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required Color color,
     required String routeName,
   }) {
-    final isArabic = context.loc.isArabic;
     return ShwakelCard(
       onTap: () => Navigator.pushNamed(context, routeName),
       padding: const EdgeInsets.all(22),
@@ -229,11 +226,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Icon(
-            isArabic ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
-            color: color,
-            size: 28,
-          ),
+          Icon(Icons.arrow_forward_rounded, color: color, size: 28),
         ],
       ),
     );

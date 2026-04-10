@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
@@ -200,8 +201,22 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       return;
     }
+    final currentUser = await _authService.currentUser();
+    final permissions = AppPermissions.fromUser(currentUser);
+    final openAdminDashboard =
+        permissions.canViewCustomers ||
+        permissions.canReviewWithdrawals ||
+        permissions.canReviewTopups ||
+        permissions.canManageCardPrintRequests ||
+        permissions.canReviewDevices ||
+        permissions.canManageLocations ||
+        permissions.canManageSystemSettings;
     setState(() => _isLoading = false);
-    Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      openAdminDashboard ? '/admin-dashboard' : '/app-shell',
+      (route) => false,
+    );
   }
 
   Future<bool> _isTrustedDeviceForUsername(String username) async {

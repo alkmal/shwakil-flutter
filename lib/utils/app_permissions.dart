@@ -2,12 +2,17 @@ class AppPermissions {
   const AppPermissions._(this._raw);
 
   factory AppPermissions.fromUser(Map<String, dynamic>? user) {
-    return AppPermissions._(
-      Map<String, dynamic>.from(user?['permissions'] as Map? ?? const {}),
-    );
+    return AppPermissions._(_coerceMap(user?['permissions']));
   }
 
   final Map<String, dynamic> _raw;
+
+  static Map<String, dynamic> _coerceMap(dynamic value) {
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return const <String, dynamic>{};
+  }
 
   bool _isEnabled(String key, {bool defaultValue = false}) {
     final value = _raw[key];

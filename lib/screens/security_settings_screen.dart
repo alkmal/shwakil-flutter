@@ -30,6 +30,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   List<Map<String, dynamic>> _devices = const [];
   String? _busyDeviceId;
   bool _isUpdatingBiometric = false;
+  bool _isUpdatingPin = false;
 
   @override
   void initState() {
@@ -315,6 +316,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -336,34 +338,88 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 color: AppTheme.primary.withValues(alpha: 0.10),
               ),
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _hasPin
-                            ? l.tr('screens_security_settings_screen.029')
-                            : l.tr('screens_security_settings_screen.030'),
-                        style: AppTheme.bodyBold,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.tr('screens_security_settings_screen.019'),
+                            style: AppTheme.bodyBold,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l.tr('screens_security_settings_screen.031'),
+                            style: AppTheme.caption,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l.tr('screens_security_settings_screen.031'),
-                        style: AppTheme.caption,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    Switch(
+                      value: _hasPin,
+                      onChanged: _isUpdatingPin ? null : _togglePin,
+                      activeThumbColor: AppTheme.primary,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                ShwakelButton(
-                  label: _hasPin
-                      ? l.tr('screens_security_settings_screen.032')
-                      : l.tr('screens_security_settings_screen.033'),
-                  icon: Icons.pin_rounded,
-                  onPressed: _createOrChangePin,
-                  isSecondary: true,
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 420;
+                    final primaryAction = ShwakelButton(
+                      label: _hasPin
+                          ? l.tr('screens_security_settings_screen.029')
+                          : l.tr('screens_security_settings_screen.030'),
+                      icon: Icons.pin_rounded,
+                      onPressed: _createOrChangePin,
+                      isSecondary: true,
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      fontSize: 14,
+                      width: isCompact ? double.infinity : null,
+                    );
+                    final removeAction = ShwakelButton(
+                      label: l.tr('screens_security_settings_screen.064'),
+                      icon: Icons.delete_outline_rounded,
+                      onPressed: (_hasPin && !_isUpdatingPin)
+                          ? _removePin
+                          : null,
+                      isSecondary: true,
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      fontSize: 14,
+                      width: isCompact ? double.infinity : null,
+                    );
+
+                    if (!_hasPin) {
+                      return primaryAction;
+                    }
+
+                    if (isCompact) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          primaryAction,
+                          const SizedBox(height: 10),
+                          removeAction,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(child: primaryAction),
+                        const SizedBox(width: 10),
+                        Expanded(child: removeAction),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -658,6 +714,53 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       await LocalSecurityService.savePin(pin);
       _load();
     }
+  }
+
+  Future<void> _togglePin(bool value) async {
+    setState(() => _isUpdatingPin = true);
+    try {
+      if (value) {
+        await _createOrChangePin();
+        return;
+      }
+      await _removePin();
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingPin = false);
+      }
+    }
+  }
+
+  Future<void> _removePin() async {
+    final l = context.loc;
+    if (!_hasPin) {
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.tr('screens_security_settings_screen.062')),
+        content: Text(l.tr('screens_security_settings_screen.063')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.tr('screens_security_settings_screen.050')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.tr('screens_security_settings_screen.064')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    await LocalSecurityService.removePin();
+    await _load();
   }
 
   Future<void> _toggleBiometric(bool value) async {
