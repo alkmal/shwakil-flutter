@@ -138,6 +138,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           user!['id'].toString(),
           barcode,
         );
+        if (!mounted) return;
         if (cached != null) {
           setState(() {
             _card = cached;
@@ -330,6 +331,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       _bcC.text = scannedValue;
     });
     await _search();
+    if (!mounted) return;
   }
 
   Future<void> _redeem() async {

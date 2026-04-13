@@ -137,9 +137,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) {
         return;
       }
+      final currentUser = await _authService.currentUser();
+      if (!mounted) {
+        return;
+      }
+      final permissions = AppPermissions.fromUser(currentUser);
+      final openAdminDashboard =
+          permissions.canViewCustomers ||
+          permissions.canReviewWithdrawals ||
+          permissions.canReviewTopups ||
+          permissions.canManageCardPrintRequests ||
+          permissions.canReviewDevices ||
+          permissions.canManageLocations ||
+          permissions.canManageSystemSettings;
       Navigator.pushNamedAndRemoveUntil(
         context,
-        '/app-shell',
+        openAdminDashboard ? '/admin-dashboard' : '/app-shell',
         (route) => false,
       );
     } catch (error) {

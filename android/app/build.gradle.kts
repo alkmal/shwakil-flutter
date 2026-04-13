@@ -1,5 +1,6 @@
 import java.io.FileInputStream
 import java.util.Properties
+import org.gradle.api.GradleException
 
 plugins {
     id("com.android.application")
@@ -12,6 +13,29 @@ val keystorePropertiesFile = rootProject.file("app/key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+val isReleaseBuildRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName.contains("Release", ignoreCase = true)
+}
+
+fun requireKeystoreProperty(name: String): String {
+    val value = keystoreProperties[name] as String?
+    if (!value.isNullOrBlank()) {
+        return value
+    }
+
+    throw GradleException(
+        "Missing Android release signing property '$name' in ${keystorePropertiesFile.path}. " +
+            "Use the Play upload keystore for release builds."
+    )
+}
+
+if (isReleaseBuildRequested && !keystorePropertiesFile.exists()) {
+    throw GradleException(
+        "Android release signing is not configured. Create ${keystorePropertiesFile.path} " +
+            "and point it to the Play upload keystore before building a release bundle or APK."
+    )
 }
 
 android {
@@ -43,21 +67,17 @@ android {
     signingConfigs {
         create("release") {
             if (keystorePropertiesFile.exists()) {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = requireKeystoreProperty("keyAlias")
+                keyPassword = requireKeystoreProperty("keyPassword")
+                storeFile = file(requireKeystoreProperty("storeFile"))
+                storePassword = requireKeystoreProperty("storePassword")
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

@@ -43,7 +43,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   List<Map<String, dynamic>> _devices = const [];
   bool _firstLoad = true;
   bool _busy = false;
-  String _role = 'basic';
+  String _role = 'restricted';
   String _verification = 'unverified';
   int _txPage = 1;
   static const _perPage = 10;
@@ -74,13 +74,13 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       english == null ? context.loc.tr(key) : context.loc.text(key, english);
 
   void _syncFields() {
-    _role = _customer['role']?.toString() ?? 'basic';
+    _role = _customer['role']?.toString() ?? 'restricted';
     _verification =
         _customer['transferVerificationStatus']?.toString() ?? 'unverified';
     _maxDevicesController.text =
         ((_customer['maxDevices'] as num?)?.toInt() ?? 1).toString();
     _printingDebtLimitController.text =
-        ((_customer['printingDebtLimit'] as num?)?.toDouble() ?? 100)
+        ((_customer['printingDebtLimit'] as num?)?.toDouble() ?? 5)
             .toStringAsFixed(2);
     _topupFeeController.text = _formatPct(_customer['customTopupFeePercent']);
     _withdrawFeeController.text = _formatPct(
@@ -160,7 +160,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         transferVerificationStatus: _verification,
         role: _role,
         printingDebtLimit:
-            double.tryParse(_printingDebtLimitController.text) ?? 100,
+            double.tryParse(_printingDebtLimitController.text) ?? 0,
         customTopupFeePercent: double.tryParse(_topupFeeController.text),
         customWithdrawFeePercent: double.tryParse(_withdrawFeeController.text),
         customTransferFeePercent: double.tryParse(_transferFeeController.text),
@@ -582,6 +582,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       labelText: _t('screens_admin_customer_screen.037'),
                     ),
                     items: [
+                      DropdownMenuItem(
+                        value: 'restricted',
+                        child: Text(_t('screens_admin_customer_screen.030')),
+                      ),
                       DropdownMenuItem(
                         value: 'basic',
                         child: Text(_t('screens_admin_customer_screen.038')),

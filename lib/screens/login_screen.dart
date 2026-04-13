@@ -202,6 +202,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     final currentUser = await _authService.currentUser();
+    if (!mounted) {
+      return;
+    }
     final permissions = AppPermissions.fromUser(currentUser);
     final openAdminDashboard =
         permissions.canViewCustomers ||
