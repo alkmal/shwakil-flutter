@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 class AppConfig {
-  static const String _productionApiUrl = 'https://wa.alkmal.com/api';
+  static const String _productionApiUrl = 'https://shwakil.alkmal.com/api';
   static const String _localDebugApiUrl = 'https://shwakil.test/api';
   static String get baseUrl {
     const env = String.fromEnvironment('API_BASE_URL');

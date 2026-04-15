@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:virtual_currency_cards/utils/app_permissions.dart';
 
 import '../localization/index.dart';
 import '../services/index.dart';
