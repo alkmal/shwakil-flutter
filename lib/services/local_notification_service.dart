@@ -26,6 +26,22 @@ class LocalNotificationService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'account_updates',
+        'تحديثات الحساب',
+        description: 'إشعارات الحساب والطلبات والتنبيهات المهمة',
+        importance: Importance.max,
+      ),
+    );
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'balance_updates',
+        'ØªØ­Ø¯ÙŠØ«Ø§Øª Ø§Ù„Ø±ØµÙŠØ¯',
+        description: 'Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¥Ø¶Ø§ÙØ© ÙˆØ®ØµÙ… Ø§Ù„Ø±ØµÙŠØ¯',
+        importance: Importance.max,
+      ),
+    );
     await androidPlugin?.requestNotificationsPermission();
 
     final iosPlugin = _plugin
@@ -66,6 +82,39 @@ class LocalNotificationService {
         importance: Importance.max,
         priority: Priority.high,
         color: isCredit ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+      ),
+      iOS: const DarwinNotificationDetails(),
+      macOS: const DarwinNotificationDetails(),
+    );
+
+    await _plugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      details,
+    );
+  }
+
+  static Future<void> showPushNotification({
+    required String title,
+    required String body,
+    String channelId = 'account_updates',
+    String channelName = 'تحديثات الحساب',
+  }) async {
+    if (kIsWeb) {
+      return;
+    }
+
+    await initialize();
+
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: 'إشعارات الحساب والطلبات والتنبيهات المهمة',
+        importance: Importance.max,
+        priority: Priority.high,
+        color: const Color(0xFF0F766E),
       ),
       iOS: const DarwinNotificationDetails(),
       macOS: const DarwinNotificationDetails(),
