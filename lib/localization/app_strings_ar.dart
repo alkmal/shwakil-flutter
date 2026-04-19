@@ -524,7 +524,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.015': 'بيانات التواصل',
   'screens_register_screen.016': 'الدولة',
   'screens_register_screen.017': 'رقم واتساب',
-  'screens_register_screen.018': 'رقم هاتف الإحالة',
+  'screens_register_screen.018': 'رقم الإحالة',
   'screens_register_screen.019': 'أمان الحساب',
   'screens_register_screen.020': 'كلمة المرور',
   'screens_register_screen.021': 'تأكيد كلمة المرور',
@@ -539,7 +539,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.030':
       'يجب أن يتكون اسم المستخدم من أحرف أو أرقام إنجليزية فقط، مع السماح بالرموز . _ - + و @.',
   'screens_register_screen.031': 'يرجى إدخال رقم واتساب صحيح.',
-  'screens_register_screen.032': 'رقم هاتف الإحالة غير صالح.',
+  'screens_register_screen.032': 'رقم الإحالة غير صالح.',
   'screens_register_screen.033':
       'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.',
   'screens_register_screen.034':

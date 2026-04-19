@@ -18,8 +18,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   static final RegExp _usernamePattern = RegExp(r'^[a-zA-Z0-9._@+-]{3,32}$');
-  static final RegExp _nationalIdPattern = RegExp(r'^[0-9-]+$', unicode: true);
-  static final RegExp _datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
   static final RegExp _passwordLetterPattern = RegExp(r'[A-Za-z\u0600-\u06FF]');
   static final RegExp _passwordSymbolPattern = RegExp(
     r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:\|,.<>\/\?~`]',
@@ -30,8 +28,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final _fullNameC = TextEditingController();
   final _usernameC = TextEditingController();
-  final _nationalIdC = TextEditingController();
-  final _birthDateC = TextEditingController();
   final _passwordC = TextEditingController();
   final _confirmPassC = TextEditingController();
   final _whatsappC = TextEditingController();
@@ -53,8 +49,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _fullNameC.dispose();
     _usernameC.dispose();
-    _nationalIdC.dispose();
-    _birthDateC.dispose();
     _passwordC.dispose();
     _confirmPassC.dispose();
     _whatsappC.dispose();
@@ -76,19 +70,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (_) {}
   }
 
-  String _formatDate(DateTime date) {
-    final year = date.year.toString().padLeft(4, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
-  }
-
   String? _validatePersonalStep() {
     final l = context.loc;
     final fullName = _fullNameC.text.trim();
     final username = _usernameC.text.trim();
-    final nationalId = _nationalIdC.text.trim();
-    final birthDate = _birthDateC.text.trim();
     if (fullName.isEmpty || fullName.length < 4) {
       return l.tr('screens_register_screen.029');
     }
@@ -97,21 +82,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     if (!_usernamePattern.hasMatch(username)) {
       return l.tr('screens_register_screen.030');
-    }
-    if (nationalId.isEmpty ||
-        nationalId.length > 32 ||
-        !_nationalIdPattern.hasMatch(nationalId)) {
-      return l.tr('screens_register_screen.003');
-    }
-    if (birthDate.isEmpty) {
-      return l.tr('screens_register_screen.004');
-    }
-    if (!_datePattern.hasMatch(birthDate)) {
-      return l.tr('screens_register_screen.005');
-    }
-    final parsedBirthDate = DateTime.tryParse(birthDate);
-    if (parsedBirthDate == null || _formatDate(parsedBirthDate) != birthDate) {
-      return l.tr('screens_register_screen.005');
     }
     return null;
   }
@@ -203,8 +173,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordC.text,
         whatsapp: whatsapp,
         countryCode: _selectedCountry.dialCode,
-        nationalId: _nationalIdC.text.trim(),
-        birthDate: _birthDateC.text.trim(),
         termsAccepted: true,
         referralPhone: referralPhone,
       );
@@ -222,8 +190,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             password: _passwordC.text,
             whatsapp: whatsapp,
             countryCode: _selectedCountry.dialCode,
-            nationalId: _nationalIdC.text.trim(),
-            birthDate: _birthDateC.text.trim(),
             termsAccepted: true,
             referralPhone: referralPhone,
             pendingRegistrationId: otp.pendingRegistrationId,
@@ -323,21 +289,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Icons.alternate_email_rounded,
           ),
           const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.013'),
-            _nationalIdC,
-            Icons.credit_card_rounded,
-            type: TextInputType.number,
-          ),
-          const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.014'),
-            _birthDateC,
-            Icons.cake_rounded,
-            readOnly: true,
-            onTap: _pickBirthDate,
-          ),
-          const SizedBox(height: 16),
           DropdownButtonFormField<CountryOption>(
             initialValue: _selectedCountry,
             decoration: InputDecoration(
@@ -416,26 +367,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _pickBirthDate() async {
-    final initialDate =
-        DateTime.tryParse(_birthDateC.text) ??
-        DateTime(DateTime.now().year - 18, 1, 1);
-    final firstDate = DateTime(1940, 1, 1);
-    final lastDate = DateTime.now();
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate.isAfter(lastDate) ? lastDate : initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-    );
-    if (pickedDate == null || !mounted) {
-      return;
-    }
-    setState(() {
-      _birthDateC.text = _formatDate(pickedDate);
-    });
   }
 
   Widget _buildBackgroundDecor() {
