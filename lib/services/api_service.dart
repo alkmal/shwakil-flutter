@@ -1307,6 +1307,8 @@ class ApiService {
   Future<Map<String, dynamic>> submitVerification({
     required String identityDocumentBase64,
     required String selfieImageBase64,
+    required String nationalId,
+    required String birthDate,
     String notes = '',
   }) async {
     final response = await http.post(
@@ -1315,6 +1317,8 @@ class ApiService {
       body: jsonEncode({
         'identityDocumentBase64': identityDocumentBase64,
         'selfieImageBase64': selfieImageBase64,
+        'nationalId': nationalId.trim(),
+        'birthDate': birthDate.trim(),
         'notes': notes,
       }),
     );

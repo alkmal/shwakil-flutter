@@ -20,6 +20,8 @@ class AccountVerificationScreen extends StatefulWidget {
 
 class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   final ApiService _apiService = ApiService();
+  final TextEditingController _nationalIdController = TextEditingController();
+  final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
   bool _isLoading = true;
@@ -37,6 +39,8 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   @override
   void dispose() {
+    _nationalIdController.dispose();
+    _birthDateController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -51,10 +55,18 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         response['verification'] as Map? ?? const <String, dynamic>{},
       );
       final status = verification['status']?.toString() ?? 'unverified';
+      final nationalId = verification['nationalId']?.toString() ?? '';
+      final birthDate = verification['birthDate']?.toString() ?? '';
       setState(() {
         _verification = verification;
         _isApproved = status == 'approved';
         _isLoading = false;
+        if (nationalId.isNotEmpty) {
+          _nationalIdController.text = nationalId;
+        }
+        if (birthDate.isNotEmpty) {
+          _birthDateController.text = birthDate;
+        }
       });
       if (_isApproved) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,14 +107,28 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   Future<void> _submit() async {
     final l = context.loc;
+    final nationalId = _nationalIdController.text.trim();
+    final birthDate = _birthDateController.text.trim();
     if (_isApproved) {
       return;
     }
-    if ((_identityBase64 ?? '').isEmpty || (_selfieBase64 ?? '').isEmpty) {
+    if ((_identityBase64 ?? '').isEmpty ||
+        (_selfieBase64 ?? '').isEmpty ||
+        nationalId.isEmpty ||
+        birthDate.isEmpty) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_account_verification_screen.001'),
         message: l.tr('screens_account_verification_screen.016'),
+      );
+      return;
+    }
+
+    if (DateTime.tryParse(birthDate) == null) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_account_verification_screen.001'),
+        message: l.tr('screens_account_verification_screen.026'),
       );
       return;
     }
@@ -112,6 +138,8 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       await _apiService.submitVerification(
         identityDocumentBase64: _identityBase64!,
         selfieImageBase64: _selfieBase64!,
+        nationalId: nationalId,
+        birthDate: birthDate,
         notes: _notesController.text.trim(),
       );
       if (!mounted) {
@@ -316,6 +344,25 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           ),
           const SizedBox(height: 22),
           TextField(
+            controller: _nationalIdController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: l.tr('screens_account_verification_screen.024'),
+              prefixIcon: Icon(Icons.credit_card_rounded),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _birthDateController,
+            readOnly: true,
+            onTap: _pickBirthDate,
+            decoration: InputDecoration(
+              labelText: l.tr('screens_account_verification_screen.025'),
+              prefixIcon: Icon(Icons.cake_rounded),
+            ),
+          ),
+          const SizedBox(height: 22),
+          TextField(
             controller: _notesController,
             maxLines: 3,
             decoration: InputDecoration(
@@ -395,5 +442,19 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickBirthDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    _birthDateController.text = picked.toIso8601String().split('T').first;
+    setState(() {});
   }
 }

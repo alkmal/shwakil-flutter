@@ -18,23 +18,25 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   static final RegExp _usernamePattern = RegExp(r'^[a-zA-Z0-9._@+-]{3,32}$');
+  static final RegExp _nationalIdPattern = RegExp(r'^[0-9-]+$', unicode: true);
+  static final RegExp _datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
   static final RegExp _passwordLetterPattern = RegExp(r'[A-Za-z\u0600-\u06FF]');
   static final RegExp _passwordSymbolPattern = RegExp(
     r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:\|,.<>\/\?~`]',
   );
 
-  final PageController _pageController = PageController();
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
 
   final _fullNameC = TextEditingController();
   final _usernameC = TextEditingController();
+  final _nationalIdC = TextEditingController();
+  final _birthDateC = TextEditingController();
   final _passwordC = TextEditingController();
   final _confirmPassC = TextEditingController();
   final _whatsappC = TextEditingController();
   final _referralPhoneC = TextEditingController();
 
-  int _currentStep = 0;
   bool _isLoading = false;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
@@ -49,9 +51,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     _fullNameC.dispose();
     _usernameC.dispose();
+    _nationalIdC.dispose();
+    _birthDateC.dispose();
     _passwordC.dispose();
     _confirmPassC.dispose();
     _whatsappC.dispose();
@@ -73,55 +76,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (_) {}
   }
 
-  Future<void> _next() async {
-    final l = context.loc;
-    final error = _validateStep(_currentStep);
-    if (error != null) {
-      await AppAlertService.showError(
-        context,
-        title: l.tr('screens_register_screen.001'),
-        message: error,
-      );
-      return;
-    }
-
-    if (_currentStep < 2) {
-      setState(() => _currentStep++);
-      await _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-      return;
-    }
-
-    await _register();
-  }
-
-  Future<void> _prev() async {
-    if (_currentStep <= 0) {
-      return;
-    }
-
-    setState(() => _currentStep--);
-    await _pageController.previousPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  String? _validateStep(int step) {
-    return switch (step) {
-      0 => _validatePersonalStep(),
-      1 => _validateContactStep(),
-      2 => _validateSecurityStep(),
-      _ => null,
-    };
+  String _formatDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
   }
 
   String? _validatePersonalStep() {
     final l = context.loc;
     final fullName = _fullNameC.text.trim();
     final username = _usernameC.text.trim();
+    final nationalId = _nationalIdC.text.trim();
+    final birthDate = _birthDateC.text.trim();
     if (fullName.isEmpty || fullName.length < 4) {
       return l.tr('screens_register_screen.029');
     }
@@ -130,6 +97,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     if (!_usernamePattern.hasMatch(username)) {
       return l.tr('screens_register_screen.030');
+    }
+    if (nationalId.isEmpty ||
+        nationalId.length > 32 ||
+        !_nationalIdPattern.hasMatch(nationalId)) {
+      return l.tr('screens_register_screen.003');
+    }
+    if (birthDate.isEmpty) {
+      return l.tr('screens_register_screen.004');
+    }
+    if (!_datePattern.hasMatch(birthDate)) {
+      return l.tr('screens_register_screen.005');
+    }
+    final parsedBirthDate = DateTime.tryParse(birthDate);
+    if (parsedBirthDate == null || _formatDate(parsedBirthDate) != birthDate) {
+      return l.tr('screens_register_screen.005');
     }
     return null;
   }
@@ -221,6 +203,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordC.text,
         whatsapp: whatsapp,
         countryCode: _selectedCountry.dialCode,
+        nationalId: _nationalIdC.text.trim(),
+        birthDate: _birthDateC.text.trim(),
         termsAccepted: true,
         referralPhone: referralPhone,
       );
@@ -238,6 +222,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             password: _passwordC.text,
             whatsapp: whatsapp,
             countryCode: _selectedCountry.dialCode,
+            nationalId: _nationalIdC.text.trim(),
+            birthDate: _birthDateC.text.trim(),
             termsAccepted: true,
             referralPhone: referralPhone,
             pendingRegistrationId: otp.pendingRegistrationId,
@@ -297,31 +283,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _buildStepperHeader(),
-                      const SizedBox(height: 24),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final availableWidth = constraints.maxWidth;
-                          final pageWidth = availableWidth < 520
-                              ? availableWidth
-                              : 520.0;
-                          return SizedBox(
-                            height: 540,
-                            width: pageWidth,
-                            child: PageView(
-                              controller: _pageController,
-                              physics: const NeverScrollableScrollPhysics(),
-                              children: [
-                                _buildStepPersonal(),
-                                _buildStepContact(),
-                                _buildStepSecurity(),
-                              ],
-                            ),
-                          );
-                        },
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: _buildFormCard(),
                       ),
-                      const SizedBox(height: 24),
-                      _buildNavigationButtons(),
                       const SizedBox(height: 16),
                       TextButton(
                         onPressed: () =>
@@ -339,15 +304,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildStepPersonal() {
+  Widget _buildFormCard() {
     final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.tr('screens_register_screen.010'), style: AppTheme.h3),
-          const SizedBox(height: 24),
           _field(
             l.tr('screens_register_screen.011'),
             _fullNameC,
@@ -359,20 +322,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _usernameC,
             Icons.alternate_email_rounded,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepContact() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.tr('screens_register_screen.015'), style: AppTheme.h3),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          _field(
+            l.tr('screens_register_screen.013'),
+            _nationalIdC,
+            Icons.credit_card_rounded,
+            type: TextInputType.number,
+          ),
+          const SizedBox(height: 16),
+          _field(
+            l.tr('screens_register_screen.014'),
+            _birthDateC,
+            Icons.cake_rounded,
+            readOnly: true,
+            onTap: _pickBirthDate,
+          ),
+          const SizedBox(height: 16),
           DropdownButtonFormField<CountryOption>(
             initialValue: _selectedCountry,
             decoration: InputDecoration(
@@ -408,20 +373,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Icons.link_rounded,
             type: TextInputType.phone,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepSecurity() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.tr('screens_register_screen.019'), style: AppTheme.h3),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _field(
             l.tr('screens_register_screen.020'),
             _passwordC,
@@ -440,7 +392,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             l.tr('screens_register_screen.041'),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           CheckboxListTile(
             value: _termsAccepted,
             onChanged: (value) {
@@ -453,101 +405,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
             contentPadding: EdgeInsets.zero,
             activeColor: AppTheme.primary,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavigationButtons() {
-    final l = context.loc;
-    return SizedBox(
-      width: 500,
-      child: Row(
-        children: [
-          if (_currentStep > 0)
-            Expanded(
-              child: ShwakelButton(
-                label: l.tr('screens_register_screen.022'),
-                isSecondary: true,
-                onPressed: _prev,
-              ),
-            ),
-          if (_currentStep > 0) const SizedBox(width: 16),
-          Expanded(
-            child: ShwakelButton(
-              label: _currentStep == 2
-                  ? l.tr('screens_register_screen.023')
-                  : l.tr('screens_register_screen.024'),
-              onPressed: _next,
-              isLoading: _isLoading,
-              icon: _currentStep == 2
-                  ? Icons.sms_rounded
-                  : (l.isArabic
-                        ? Icons.arrow_back_rounded
-                        : Icons.arrow_forward_rounded),
-              iconAtEnd: true,
-            ),
+          const SizedBox(height: 12),
+          ShwakelButton(
+            label: l.tr('screens_register_screen.023'),
+            onPressed: _register,
+            isLoading: _isLoading,
+            icon: Icons.sms_rounded,
+            iconAtEnd: true,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStepperHeader() {
-    final l = context.loc;
-    final labels = [
-      l.tr('screens_register_screen.025'),
-      l.tr('screens_register_screen.026'),
-      l.tr('screens_register_screen.027'),
-    ];
-    return SizedBox(
-      width: 460,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(3, (index) {
-          final isDone = index < _currentStep;
-          final isCurrent = index == _currentStep;
-
-          return Row(
-            children: [
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: isCurrent
-                        ? AppTheme.primary
-                        : isDone
-                        ? AppTheme.success
-                        : AppTheme.border,
-                    child: isDone
-                        ? const Icon(Icons.check, size: 18, color: Colors.white)
-                        : Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              color: isCurrent
-                                  ? Colors.white
-                                  : AppTheme.textTertiary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(labels[index], style: AppTheme.caption),
-                ],
-              ),
-              if (index < 2)
-                Container(
-                  width: 56,
-                  height: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: isDone ? AppTheme.success : AppTheme.border,
-                ),
-            ],
-          );
-        }),
-      ),
+  Future<void> _pickBirthDate() async {
+    final initialDate =
+        DateTime.tryParse(_birthDateC.text) ??
+        DateTime(DateTime.now().year - 18, 1, 1);
+    final firstDate = DateTime(1940, 1, 1);
+    final lastDate = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isAfter(lastDate) ? lastDate : initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
+    if (pickedDate == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _birthDateC.text = _formatDate(pickedDate);
+    });
   }
 
   Widget _buildBackgroundDecor() {

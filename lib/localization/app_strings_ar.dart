@@ -72,7 +72,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_verification_screen.014': 'تم الاختيار',
   'screens_account_verification_screen.015': 'اختر ملفًا',
   'screens_account_verification_screen.016':
-      'أرفق المستندات المطلوبة قبل إرسال طلب التوثيق.',
+      'أرفق المستندات المطلوبة وأدخل رقم الهوية وتاريخ الميلاد قبل إرسال طلب التوثيق.',
   'screens_account_verification_screen.017':
       'تم إرسال طلب التوثيق بنجاح. سيتم مراجعته قريبًا.',
   'screens_account_verification_screen.018':
@@ -86,7 +86,11 @@ const Map<String, String> appStringsAr = {
   'screens_account_verification_screen.022':
       'أرسل الملفات المطلوبة بشكل واضح وكامل لتسريع عملية المراجعة.',
   'screens_account_verification_screen.023':
-      'أدخل ملاحظاتك هنا',
+      'تم طلب إعادة إرسال الطلب. يرجى مراجعة بياناتك ورفع ملفات أوضح.',
+  'screens_account_verification_screen.024': 'رقم الهوية',
+  'screens_account_verification_screen.025': 'تاريخ الميلاد',
+  'screens_account_verification_screen.026':
+      'يرجى إدخال تاريخ الميلاد بصيغة صحيحة.',
   'screens_admin_card_print_requests_screen.001': 'طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.002': 'متابعة الطلبات',
   'screens_admin_card_print_requests_screen.003': 'الحالة',
@@ -547,7 +551,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.038':
       'يجب الموافقة على الشروط والأحكام للمتابعة.',
   'screens_register_screen.039':
-      'أكمل بياناتك خطوة بخطوة. لن تنتقل للخطوة التالية حتى تصبح الحقول المطلوبة صحيحة.',
+      'أكمل بيانات التسجيل المطلوبة، وسنرسل لك رمز تحقق لإتمام إنشاء الحساب.',
   'screens_register_screen.040': 'لديك حساب بالفعل؟ سجّل الدخول',
   'screens_register_screen.041':
       'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل وأن تحتوي على حرف واحد ورمز واحد على الأقل.',

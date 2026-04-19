@@ -78,7 +78,7 @@ const Map<String, String> appStringsEn = {
   'screens_account_verification_screen.014': 'Selected',
   'screens_account_verification_screen.015': 'Choose file',
   'screens_account_verification_screen.016':
-      'Please select the identity document and selfie image first.',
+      'Please add the required images, national ID, and birth date before submitting.',
   'screens_account_verification_screen.017':
       'Your verification request is now under review.',
   'screens_account_verification_screen.018':
@@ -92,7 +92,11 @@ const Map<String, String> appStringsEn = {
   'screens_account_verification_screen.022':
       'Upload a clear identity image and a selfie holding the same identity document to speed up review.',
   'screens_account_verification_screen.023':
-      'You can resubmit after editing or replacing the uploaded images.',
+      'Please review your details and upload clearer files before resubmitting.',
+  'screens_account_verification_screen.024': 'National ID',
+  'screens_account_verification_screen.025': 'Birth date',
+  'screens_account_verification_screen.026':
+      'Please enter a valid birth date.',
   'screens_admin_card_print_requests_screen.001': 'Card Print Requests',
   'screens_admin_card_print_requests_screen.002': 'Request tracking',
   'screens_admin_card_print_requests_screen.003': 'Status',
@@ -685,7 +689,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.038':
       'You must accept the terms and conditions to continue.',
   'screens_register_screen.039':
-      'Complete your details step by step. You will not move forward until the required fields are valid.',
+      'Complete the required registration details and we will send a verification code to finish creating your account.',
   'screens_register_screen.040': 'Already have an account? Log in',
   'screens_register_screen.041':
       'Password must be at least 8 characters and include at least one letter and one symbol.',
