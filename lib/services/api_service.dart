@@ -1307,6 +1307,8 @@ class ApiService {
   Future<Map<String, dynamic>> submitVerification({
     required String identityDocumentBase64,
     required String selfieImageBase64,
+    required String nationalId,
+    required String birthDate,
     String notes = '',
   }) async {
     final response = await http.post(
@@ -1315,6 +1317,8 @@ class ApiService {
       body: jsonEncode({
         'identityDocumentBase64': identityDocumentBase64,
         'selfieImageBase64': selfieImageBase64,
+        'nationalId': nationalId.trim(),
+        'birthDate': birthDate.trim(),
         'notes': notes,
       }),
     );
@@ -1457,6 +1461,46 @@ class ApiService {
         'page': page.toString(),
         'perPage': perPage.toString(),
       }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getNotificationSummary() async {
+    final response = await http.get(
+      AppConfig.apiUri('notifications/summary'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAppNotifications({
+    String filter = 'all',
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('notifications', {
+        'filter': filter,
+        'page': page.toString(),
+        'perPage': perPage.toString(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
+    final response = await http.post(
+      AppConfig.apiUri('notifications/$id/read'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> markAllNotificationsAsRead() async {
+    final response = await http.post(
+      AppConfig.apiUri('notifications/read-all'),
       headers: await _headers(),
     );
     return _decodeObject(response);

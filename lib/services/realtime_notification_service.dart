@@ -29,6 +29,10 @@ class RealtimeNotificationService {
       StreamController<Map<String, dynamic>>.broadcast();
   static Stream<Map<String, dynamic>> get balanceUpdatesStream =>
       _balanceUpdatesController.stream;
+  static final StreamController<Map<String, dynamic>> _notificationsController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  static Stream<Map<String, dynamic>> get notificationsStream =>
+      _notificationsController.stream;
 
   static final AuthService _authService = AuthService();
   static StreamSubscription<RemoteMessage>? _foregroundSubscription;
@@ -64,6 +68,14 @@ class RealtimeNotificationService {
   static void notifyBalanceUpdated([Map<String, dynamic> payload = const {}]) {
     if (!_balanceUpdatesController.isClosed) {
       _balanceUpdatesController.add(payload);
+    }
+  }
+
+  static void notifyNotificationsUpdated([
+    Map<String, dynamic> payload = const {},
+  ]) {
+    if (!_notificationsController.isClosed) {
+      _notificationsController.add(payload);
     }
   }
 
@@ -151,6 +163,7 @@ class RealtimeNotificationService {
         type.contains('card')) {
       notifyBalanceUpdated(payload);
     }
+    notifyNotificationsUpdated(payload);
 
     final notification = message.notification;
     final title = notification?.title ?? payload['title']?.toString() ?? '';
@@ -169,6 +182,7 @@ class RealtimeNotificationService {
     final payload = Map<String, dynamic>.from(message.data);
     if (payload.isNotEmpty) {
       notifyBalanceUpdated(payload);
+      notifyNotificationsUpdated(payload);
     }
   }
 }

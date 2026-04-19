@@ -11,6 +11,7 @@ export 'card_print_requests_screen.dart';
 export 'scan_card_screen.dart';
 export 'inventory_screen.dart';
 export 'transactions_screen.dart';
+export 'notifications_screen.dart';
 export 'security_settings_screen.dart';
 export 'account_settings_screen.dart';
 export 'admin_dashboard_screen.dart';

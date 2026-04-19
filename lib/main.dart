@@ -110,6 +110,7 @@ class MyApp extends StatelessWidget {
             '/scan-card': (context) => const ScanCardScreen(),
             '/inventory': (context) => const InventoryScreen(),
             '/transactions': (context) => const TransactionsScreen(),
+            '/notifications': (context) => const NotificationsScreen(),
             '/security-settings': (context) => const SecuritySettingsScreen(),
             '/account-settings': (context) => const AccountSettingsScreen(),
             '/admin-dashboard': (context) => const AdminDashboardScreen(),
