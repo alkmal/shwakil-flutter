@@ -31,8 +31,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameC = TextEditingController();
   final _passwordC = TextEditingController();
   final _confirmPassC = TextEditingController();
-  final _nationalIdC = TextEditingController();
-  final _birthDateC = TextEditingController();
   final _whatsappC = TextEditingController();
   final _referralPhoneC = TextEditingController();
 
@@ -56,8 +54,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameC.dispose();
     _passwordC.dispose();
     _confirmPassC.dispose();
-    _nationalIdC.dispose();
-    _birthDateC.dispose();
     _whatsappC.dispose();
     _referralPhoneC.dispose();
     super.dispose();
@@ -126,9 +122,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final l = context.loc;
     final fullName = _fullNameC.text.trim();
     final username = _usernameC.text.trim();
-    final nationalId = _digitsOnly(_nationalIdC.text);
-    final birthDate = _birthDateC.text.trim();
-
     if (fullName.isEmpty || fullName.length < 4) {
       return l.tr('screens_register_screen.029');
     }
@@ -138,18 +131,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_usernamePattern.hasMatch(username)) {
       return l.tr('screens_register_screen.030');
     }
-    if (nationalId.length < 6 || nationalId.length > 16) {
-      return l.tr('screens_register_screen.003');
-    }
-    if (birthDate.isEmpty) {
-      return l.tr('screens_register_screen.004');
-    }
-
-    final parsedDate = DateTime.tryParse(birthDate);
-    if (parsedDate == null || parsedDate.isAfter(DateTime.now())) {
-      return l.tr('screens_register_screen.005');
-    }
-
     return null;
   }
 
@@ -207,8 +188,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  String _digitsOnly(String value) => value.replaceAll(RegExp(r'\D'), '');
-
   Future<void> _register() async {
     final l = context.loc;
     final localError =
@@ -242,8 +221,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordC.text,
         whatsapp: whatsapp,
         countryCode: _selectedCountry.dialCode,
-        nationalId: _digitsOnly(_nationalIdC.text),
-        birthDate: _birthDateC.text.trim(),
         termsAccepted: true,
         referralPhone: referralPhone,
       );
@@ -261,8 +238,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             password: _passwordC.text,
             whatsapp: whatsapp,
             countryCode: _selectedCountry.dialCode,
-            nationalId: _digitsOnly(_nationalIdC.text),
-            birthDate: _birthDateC.text.trim(),
             termsAccepted: true,
             referralPhone: referralPhone,
             pendingRegistrationId: otp.pendingRegistrationId,
@@ -383,21 +358,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             l.tr('screens_register_screen.012'),
             _usernameC,
             Icons.alternate_email_rounded,
-          ),
-          const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.013'),
-            _nationalIdC,
-            Icons.credit_card_rounded,
-            type: TextInputType.number,
-          ),
-          const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.014'),
-            _birthDateC,
-            Icons.cake_rounded,
-            readOnly: true,
-            onTap: _pickDate,
           ),
         ],
       ),
@@ -702,19 +662,5 @@ class _RegisterScreenState extends State<RegisterScreen> {
         prefixText: prefix,
       ),
     );
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000),
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(
-        () => _birthDateC.text = picked.toIso8601String().split('T').first,
-      );
-    }
   }
 }
