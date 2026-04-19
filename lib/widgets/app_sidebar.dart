@@ -68,7 +68,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canViewLocations = permissions.canViewLocations;
     final canViewUsagePolicy = permissions.canViewUsagePolicy;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
-    final canManageSubUsers = permissions.canManageSubUsers;
+    final canViewSubUsers = permissions.canViewSubUsers;
     final canViewAccountSettings = permissions.canViewAccountSettings;
     final canRequestVerification = permissions.canRequestVerification;
     final canIssueCards = permissions.canIssueCards;
@@ -215,7 +215,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       title: l.tr('widgets_app_sidebar.013'),
                       routeName: '/security-settings',
                     ),
-                  if (canManageSubUsers)
+                  if (canViewSubUsers)
                     _buildItem(
                       context,
                       icon: Icons.supervised_user_circle_rounded,

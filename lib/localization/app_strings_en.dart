@@ -1328,6 +1328,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_card_print_requests_screen.035': 'From app',
   'screens_admin_card_print_requests_screen.036': 'Not printed yet',
   'screens_admin_permissions_screen.042': 'Offline card scan',
+  'screens_admin_permissions_screen.043': 'Manage sub-users',
   'screens_admin_customer_screen.072': 'Offline card scan',
   'screens_scan_card_screen.061': 'Offline scan',
   'screens_scan_card_screen.062': 'Loaded the card from local cache and will sync when connected.',

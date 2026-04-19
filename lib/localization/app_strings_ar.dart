@@ -1190,6 +1190,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_card_print_requests_screen.035': 'من التطبيق',
   'screens_admin_card_print_requests_screen.036': 'لم يطبع بعد',
   'screens_admin_permissions_screen.042': 'فحص البطاقات بدون إنترنت',
+  'screens_admin_permissions_screen.043': 'إدارة المستخدمين التابعين',
   'screens_admin_customer_screen.072': 'فحص البطاقات بدون إنترنت',
   'screens_balance_screen.002': 'ليست لديك صلاحية لتحويل الرصيد.',
   'screens_balance_screen.003': 'تحويل رصيد',
@@ -1333,4 +1334,3 @@ const Map<String, String> appStringsAr = {
   'screens_card_print_requests_screen.047': 'آخر طباعة',
   'screens_card_print_requests_screen.048': 'لم يطبع بعد',
 };
-
