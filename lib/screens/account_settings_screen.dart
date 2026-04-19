@@ -212,6 +212,61 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف الحساب'),
+        content: const Text(
+          'سيتم حذف الحساب نهائيًا من داخل التطبيق وتسجيل خروجك من هذا الجهاز. هل تريد المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'حذف الحساب',
+              style: TextStyle(color: AppTheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await _authService.deleteAccount();
+      await RealtimeNotificationService.stop();
+      await LocalSecurityService.clearTrustedState();
+      await LocalSecurityService.clearRelockRequirement();
+      await LocalSecurityService.skipNextUnlock();
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showError(
+        context,
+        title: 'تعذر حذف الحساب',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   bool get _hasPendingProfileCompletion {
     final verification =
         _user?['transferVerificationStatus']?.toString() ?? 'unverified';
@@ -375,6 +430,36 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     label: l.tr('screens_account_settings_screen.015'),
                     icon: Icons.security_rounded,
                     onPressed: _changePassword,
+                    isLoading: _isSaving,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              borderColor: AppTheme.error.withValues(alpha: 0.24),
+              color: AppTheme.error.withValues(alpha: 0.04),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'حذف الحساب',
+                    style: AppTheme.h3.copyWith(color: AppTheme.error),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'يمكنك بدء حذف الحساب نهائيًا من هنا مباشرة.',
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ShwakelButton(
+                    label: 'حذف الحساب',
+                    icon: Icons.delete_forever_rounded,
+                    isDanger: true,
+                    onPressed: _isSaving ? null : _deleteAccount,
                     isLoading: _isSaving,
                   ),
                 ],

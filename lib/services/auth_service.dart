@@ -107,8 +107,8 @@ class AuthService {
     required String password,
     required String whatsapp,
     required String countryCode,
-    required String nationalId,
-    required String birthDate,
+    String? nationalId,
+    String? birthDate,
     required bool termsAccepted,
     String? referralPhone,
   }) async {
@@ -121,8 +121,8 @@ class AuthService {
         'password': password,
         'whatsapp': whatsapp.trim(),
         'countryCode': countryCode.trim(),
-        'nationalId': nationalId.trim(),
-        'birthDate': birthDate.trim(),
+        'nationalId': nationalId?.trim(),
+        'birthDate': birthDate?.trim(),
         'referralPhone': referralPhone?.trim().isEmpty ?? true
             ? null
             : referralPhone?.trim(),
@@ -140,8 +140,8 @@ class AuthService {
     required String password,
     required String whatsapp,
     required String countryCode,
-    required String nationalId,
-    required String birthDate,
+    String? nationalId,
+    String? birthDate,
     required bool termsAccepted,
     String? referralPhone,
   }) async {
@@ -154,8 +154,8 @@ class AuthService {
         'password': password,
         'whatsapp': whatsapp.trim(),
         'countryCode': countryCode.trim(),
-        'nationalId': nationalId.trim(),
-        'birthDate': birthDate.trim(),
+        'nationalId': nationalId?.trim(),
+        'birthDate': birthDate?.trim(),
         'referralPhone': referralPhone?.trim().isEmpty ?? true
             ? null
             : referralPhone?.trim(),
@@ -349,6 +349,18 @@ class AuthService {
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
+  }
+
+  Future<void> deleteAccount() async {
+    final authToken = await token();
+    final response = await http.delete(
+      AppConfig.apiUri('auth/account'),
+      headers: await _jsonHeaders(token: authToken),
+    );
+    if (response.statusCode >= 400) {
+      throw Exception(_extractMessage(response.body));
+    }
+    await logout();
   }
 
   Future<OtpRequestResult> requestPasswordResetOtp({
