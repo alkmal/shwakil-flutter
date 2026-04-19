@@ -1466,6 +1466,46 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getNotificationSummary() async {
+    final response = await http.get(
+      AppConfig.apiUri('notifications/summary'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAppNotifications({
+    String filter = 'all',
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('notifications', {
+        'filter': filter,
+        'page': page.toString(),
+        'perPage': perPage.toString(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
+    final response = await http.post(
+      AppConfig.apiUri('notifications/$id/read'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> markAllNotificationsAsRead() async {
+    final response = await http.post(
+      AppConfig.apiUri('notifications/read-all'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> resellCard({
     required String cardId,
     String? otpCode,
