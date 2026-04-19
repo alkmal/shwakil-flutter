@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/shwakel_button.dart';

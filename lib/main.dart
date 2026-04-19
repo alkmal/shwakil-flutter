@@ -131,6 +131,7 @@ class MyApp extends StatelessWidget {
             '/forgot-password': (context) => const ForgotPasswordScreen(),
             '/account-verification': (context) =>
                 const AccountVerificationScreen(),
+            '/sub-users': (context) => const SubUsersScreen(),
           },
         );
       },

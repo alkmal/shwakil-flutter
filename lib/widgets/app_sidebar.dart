@@ -68,6 +68,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canViewLocations = permissions.canViewLocations;
     final canViewUsagePolicy = permissions.canViewUsagePolicy;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
+    final canManageSubUsers = permissions.canManageSubUsers;
     final canViewAccountSettings = permissions.canViewAccountSettings;
     final canRequestVerification = permissions.canRequestVerification;
     final canIssueCards = permissions.canIssueCards;
@@ -79,8 +80,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canReviewWithdrawals =
         permissions.canReviewWithdrawals || canViewCustomers;
     final canReviewTopups = permissions.canReviewTopups;
-    final canHandleCardPrintRequests =
-        permissions.canManageCardPrintRequests;
+    final canHandleCardPrintRequests = permissions.canManageCardPrintRequests;
     final canReviewDevices = permissions.canReviewDevices;
 
     return Drawer(
@@ -214,6 +214,13 @@ class _AppSidebarState extends State<AppSidebar> {
                       icon: Icons.security_rounded,
                       title: l.tr('widgets_app_sidebar.013'),
                       routeName: '/security-settings',
+                    ),
+                  if (canManageSubUsers)
+                    _buildItem(
+                      context,
+                      icon: Icons.supervised_user_circle_rounded,
+                      title: 'المستخدمون التابعون',
+                      routeName: '/sub-users',
                     ),
                   if (canViewCustomers ||
                       canReviewWithdrawals ||
