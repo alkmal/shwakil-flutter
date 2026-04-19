@@ -1,17 +1,174 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+
+import 'app_config.dart';
+import 'auth_service.dart';
+import 'local_notification_service.dart';
+import 'local_security_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {
+    // Firebase is optional until the native config files are added.
+  }
+}
 
 class RealtimeNotificationService {
   RealtimeNotificationService._();
+
   static final StreamController<Map<String, dynamic>>
   _balanceUpdatesController =
       StreamController<Map<String, dynamic>>.broadcast();
   static Stream<Map<String, dynamic>> get balanceUpdatesStream =>
       _balanceUpdatesController.stream;
-  static Future<void> start() async {}
-  static Future<void> stop() async {}
+
+  static final AuthService _authService = AuthService();
+  static StreamSubscription<RemoteMessage>? _foregroundSubscription;
+  static StreamSubscription<String>? _tokenRefreshSubscription;
+  static bool _initialized = false;
+  static bool _firebaseAvailable = false;
+  static bool _backgroundHandlerRegistered = false;
+
+  static void registerBackgroundHandler() {
+    if (kIsWeb || _backgroundHandlerRegistered) {
+      return;
+    }
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    _backgroundHandlerRegistered = true;
+  }
+
+  static Future<void> start() async {
+    await _ensureInitialized();
+    if (!_firebaseAvailable) {
+      return;
+    }
+
+    await _syncCurrentToken();
+    _tokenRefreshSubscription ??= FirebaseMessaging.instance.onTokenRefresh
+        .listen((token) => unawaited(_registerToken(token)));
+  }
+
+  static Future<void> stop() async {
+    await _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
+  }
+
   static void notifyBalanceUpdated([Map<String, dynamic> payload = const {}]) {
     if (!_balanceUpdatesController.isClosed) {
       _balanceUpdatesController.add(payload);
+    }
+  }
+
+  static Future<void> _ensureInitialized() async {
+    if (_initialized) {
+      return;
+    }
+    _initialized = true;
+
+    if (kIsWeb) {
+      return;
+    }
+
+    try {
+      await Firebase.initializeApp();
+      registerBackgroundHandler();
+
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
+      await messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      _foregroundSubscription ??= FirebaseMessaging.onMessage.listen(
+        _handleForegroundMessage,
+      );
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
+
+      final initialMessage = await messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleNotificationOpen(initialMessage);
+      }
+
+      _firebaseAvailable = true;
+    } catch (_) {
+      _firebaseAvailable = false;
+    }
+  }
+
+  static Future<void> _syncCurrentToken() async {
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null || token.isEmpty) {
+      return;
+    }
+    await _registerToken(token);
+  }
+
+  static Future<void> _registerToken(String token) async {
+    final authToken = await _authService.token();
+    if (authToken == null || authToken.isEmpty) {
+      return;
+    }
+
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final packageInfo = await PackageInfo.fromPlatform();
+    final headers = <String, String>{
+      'Authorization': 'Bearer $authToken',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-App-Version': packageInfo.version,
+      'X-App-Build': packageInfo.buildNumber,
+    };
+
+    await http.post(
+      AppConfig.apiUri('notifications/push-token'),
+      headers: headers,
+      body: jsonEncode({
+        'token': token,
+        'platform': defaultTargetPlatform.name,
+        'deviceId': deviceId,
+        'appVersion': '${packageInfo.version}+${packageInfo.buildNumber}',
+      }),
+    );
+  }
+
+  static void _handleForegroundMessage(RemoteMessage message) {
+    final payload = Map<String, dynamic>.from(message.data);
+    final type = payload['type']?.toString() ?? '';
+    if (type.contains('balance') ||
+        type.contains('topup') ||
+        type.contains('transfer') ||
+        type.contains('withdrawal') ||
+        type.contains('card')) {
+      notifyBalanceUpdated(payload);
+    }
+
+    final notification = message.notification;
+    final title = notification?.title ?? payload['title']?.toString() ?? '';
+    final body = notification?.body ?? payload['body']?.toString() ?? '';
+    if (title.isNotEmpty || body.isNotEmpty) {
+      unawaited(
+        LocalNotificationService.showPushNotification(
+          title: title.isEmpty ? 'شواكل' : title,
+          body: body,
+        ),
+      );
+    }
+  }
+
+  static void _handleNotificationOpen(RemoteMessage message) {
+    final payload = Map<String, dynamic>.from(message.data);
+    if (payload.isNotEmpty) {
+      notifyBalanceUpdated(payload);
     }
   }
 }

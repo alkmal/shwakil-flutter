@@ -18,6 +18,7 @@ Future<void> main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
       await AppLocaleService.instance.init();
+      RealtimeNotificationService.registerBackgroundHandler();
       await LocalNotificationService.initialize();
       await LocalSecurityService.getOrCreateDeviceId();
       FlutterError.onError = (details) {

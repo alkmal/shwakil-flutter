@@ -60,6 +60,8 @@ dependencies:
   # UI
   url_launcher: ^6.3.2
   geolocator: ^14.0.2
+  firebase_core: ^4.7.0
+  firebase_messaging: ^16.2.0
 
 dev_dependencies:
   flutter_test:
