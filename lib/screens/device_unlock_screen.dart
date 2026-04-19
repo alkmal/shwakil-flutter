@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/shwakel_button.dart';
@@ -73,7 +72,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       if (!mounted) {
         return;
       }
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
       return;
     }
 
@@ -98,7 +97,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       if (!mounted) {
         return;
       }
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
       return;
     }
 

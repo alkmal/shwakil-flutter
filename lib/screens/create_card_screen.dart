@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../localization/index.dart';
 import '../models/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';

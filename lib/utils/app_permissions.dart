@@ -44,6 +44,7 @@ class AppPermissions {
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
+  bool get canManageSubUsers => _raw['isSubUser'] != true;
   bool get canReviewWithdrawals => _isEnabled('canReviewWithdrawals');
   bool get canReviewTopups => _isEnabled('canReviewTopups');
   bool get canReviewDevices => _isEnabled('canReviewDevices');
@@ -52,12 +53,9 @@ class AppPermissions {
       _isEnabled('canReviewCardPrintRequests') ||
       _isEnabled('canPrepareCardPrintRequests') ||
       _isEnabled('canFinalizeCardPrintRequests');
-  bool get canReviewCardPrintRequests =>
-      canManageCardPrintRequests;
-  bool get canPrepareCardPrintRequests =>
-      canManageCardPrintRequests;
-  bool get canFinalizeCardPrintRequests =>
-      canManageCardPrintRequests;
+  bool get canReviewCardPrintRequests => canManageCardPrintRequests;
+  bool get canPrepareCardPrintRequests => canManageCardPrintRequests;
+  bool get canFinalizeCardPrintRequests => canManageCardPrintRequests;
 
   bool get canOpenCardTools =>
       canScanCards ||

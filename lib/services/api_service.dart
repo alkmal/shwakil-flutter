@@ -243,6 +243,97 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<List<Map<String, dynamic>>> getSubUsers() async {
+    final response = await http.get(
+      AppConfig.apiUri('sub-users'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['subUsers'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> createSubUser({
+    required String fullName,
+    required String username,
+    required String password,
+    required Map<String, bool> permissions,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('sub-users'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'fullName': fullName.trim(),
+        'username': username.trim().toLowerCase(),
+        'password': password,
+        'permissions': permissions,
+      }),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['subUsers'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> updateSubUser({
+    required String subUserId,
+    required String fullName,
+    String? password,
+    required Map<String, bool> permissions,
+    bool isDisabled = false,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('sub-users/$subUserId'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'fullName': fullName.trim(),
+        if (password != null && password.trim().isNotEmpty)
+          'password': password.trim(),
+        'permissions': permissions,
+        'isDisabled': isDisabled,
+      }),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['subUsers'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> transferSubUserBalance({
+    required String subUserId,
+    required String direction,
+    required double amount,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('sub-users/$subUserId/balance-transfer'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'direction': direction,
+        'amount': amount,
+        'notes': notes.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['currentUser'] is Map) {
+      await _authService.cacheCurrentUser(
+        Map<String, dynamic>.from(body['currentUser'] as Map),
+      );
+    }
+    return List<Map<String, dynamic>>.from(
+      (body['subUsers'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> getAdminUserDevices(String userId) async {
     final response = await http.get(
       AppConfig.apiUri('admin/users/$userId/devices'),

@@ -44,6 +44,8 @@ dependencies:
   mobile_scanner: ^7.1.2
   qr_flutter: ^4.1.0
   shared_preferences: ^2.5.3
+  flutter_secure_storage: ^9.2.2
+  cryptography: ^2.7.0
   flutter_local_notifications: ^18.0.1
   local_auth: ^2.3.0
   package_info_plus: ^8.0.2

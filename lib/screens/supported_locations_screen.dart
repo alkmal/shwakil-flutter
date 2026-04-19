@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../localization/index.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';

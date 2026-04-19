@@ -35,7 +35,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _isSearching = false;
   bool _isSubmitting = false;
   bool _showDetails = false;
-  bool _isOfflineResult = false;
   bool _routeSubscribed = false;
 
   @override
@@ -92,7 +91,40 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
     try {
       final result = await _api.syncOfflineCardRedeems(items: queue);
-      await _offlineCardService.clearRedeemQueue(user['id'].toString());
+      final rejectedBarcodes = <String>{
+        for (final item in (result['results'] as List? ?? const []))
+          if (item is Map && item['ok'] != true)
+            (item['barcode'] ?? '').toString(),
+      }..remove('');
+      final rejectedQueue = queue
+          .where(
+            (item) => rejectedBarcodes.contains(item['barcode']?.toString()),
+          )
+          .toList();
+      await _offlineCardService.replaceRedeemQueue(
+        user['id'].toString(),
+        rejectedQueue,
+      );
+      final acceptedCount = (result['results'] as List? ?? const [])
+          .where((item) => item is Map && item['ok'] == true)
+          .length;
+      final acceptedBarcodes = <String>{
+        for (final item in (result['results'] as List? ?? const []))
+          if (item is Map && item['ok'] == true)
+            (item['barcode'] ?? '').toString(),
+      }..remove('');
+      await _offlineCardService.removeCardsByBarcode(
+        userId: user['id'].toString(),
+        barcodes: acceptedBarcodes,
+      );
+      if (acceptedCount > 0 || rejectedBarcodes.isNotEmpty) {
+        await LocalNotificationService.showBalanceChange(
+          title: 'نتيجة مزامنة البطاقات',
+          body:
+              'تم اعتماد $acceptedCount بطاقة، وبقيت ${rejectedBarcodes.length} بطاقة مرفوضة للمراجعة.',
+          isCredit: rejectedBarcodes.isEmpty,
+        );
+      }
       if (!mounted) {
         return;
       }
@@ -119,7 +151,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       setState(() {
         _card = result;
         _showDetails = false;
-        _isOfflineResult = false;
         _isSearching = false;
       });
       if (result == null) {
@@ -143,7 +174,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           setState(() {
             _card = cached;
             _showDetails = false;
-            _isOfflineResult = true;
             _isSearching = false;
           });
           AppAlertService.showInfo(
@@ -388,16 +418,15 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           _card != null &&
           _card!.status != CardStatus.used) {
         final customerName =
-            _user?['fullName'] ?? _user?['username'] ?? l.tr('screens_scan_card_screen.060');
-        await _offlineCardService.enqueueRedeem(
-          user!['id'].toString(),
-          {
-            'barcode': _card!.barcode,
-            'customerName': customerName,
-            'location': location,
-            'queuedAt': DateTime.now().toIso8601String(),
-          },
-        );
+            _user?['fullName'] ??
+            _user?['username'] ??
+            l.tr('screens_scan_card_screen.060');
+        await _offlineCardService.enqueueRedeem(user!['id'].toString(), {
+          'barcode': _card!.barcode,
+          'customerName': customerName,
+          'location': location,
+          'queuedAt': DateTime.now().toIso8601String(),
+        });
         await _offlineCardService.markCardUsed(
           userId: user['id'].toString(),
           barcode: _card!.barcode,
@@ -410,8 +439,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             usedAt: DateTime.now(),
             usedBy: _user?['username']?.toString(),
           );
-          _isOfflineResult = true;
         });
+        if (!mounted) return;
         AppAlertService.showSuccess(
           context,
           title: l.tr('screens_scan_card_screen.063'),
