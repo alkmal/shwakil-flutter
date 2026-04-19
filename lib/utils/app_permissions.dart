@@ -44,7 +44,9 @@ class AppPermissions {
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
-  bool get canManageSubUsers => _raw['isSubUser'] != true;
+  bool get canManageSubUsers => _isEnabled('canManageSubUsers');
+  bool get canViewSubUsers =>
+      _isEnabled('canViewSubUsers') || canManageSubUsers;
   bool get canReviewWithdrawals => _isEnabled('canReviewWithdrawals');
   bool get canReviewTopups => _isEnabled('canReviewTopups');
   bool get canReviewDevices => _isEnabled('canReviewDevices');

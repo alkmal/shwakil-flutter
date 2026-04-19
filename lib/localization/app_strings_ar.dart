@@ -72,7 +72,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_verification_screen.014': 'تم الاختيار',
   'screens_account_verification_screen.015': 'اختر ملفًا',
   'screens_account_verification_screen.016':
-      'أرفق المستندات المطلوبة قبل إرسال طلب التوثيق.',
+      'أرفق المستندات المطلوبة وأدخل رقم الهوية وتاريخ الميلاد قبل إرسال طلب التوثيق.',
   'screens_account_verification_screen.017':
       'تم إرسال طلب التوثيق بنجاح. سيتم مراجعته قريبًا.',
   'screens_account_verification_screen.018':
@@ -86,7 +86,11 @@ const Map<String, String> appStringsAr = {
   'screens_account_verification_screen.022':
       'أرسل الملفات المطلوبة بشكل واضح وكامل لتسريع عملية المراجعة.',
   'screens_account_verification_screen.023':
-      'أدخل ملاحظاتك هنا',
+      'تم طلب إعادة إرسال الطلب. يرجى مراجعة بياناتك ورفع ملفات أوضح.',
+  'screens_account_verification_screen.024': 'رقم الهوية',
+  'screens_account_verification_screen.025': 'تاريخ الميلاد',
+  'screens_account_verification_screen.026':
+      'يرجى إدخال تاريخ الميلاد بصيغة صحيحة.',
   'screens_admin_card_print_requests_screen.001': 'طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.002': 'متابعة الطلبات',
   'screens_admin_card_print_requests_screen.003': 'الحالة',
@@ -520,7 +524,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.015': 'بيانات التواصل',
   'screens_register_screen.016': 'الدولة',
   'screens_register_screen.017': 'رقم واتساب',
-  'screens_register_screen.018': 'رقم هاتف الإحالة',
+  'screens_register_screen.018': 'رقم الإحالة',
   'screens_register_screen.019': 'أمان الحساب',
   'screens_register_screen.020': 'كلمة المرور',
   'screens_register_screen.021': 'تأكيد كلمة المرور',
@@ -535,7 +539,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.030':
       'يجب أن يتكون اسم المستخدم من أحرف أو أرقام إنجليزية فقط، مع السماح بالرموز . _ - + و @.',
   'screens_register_screen.031': 'يرجى إدخال رقم واتساب صحيح.',
-  'screens_register_screen.032': 'رقم هاتف الإحالة غير صالح.',
+  'screens_register_screen.032': 'رقم الإحالة غير صالح.',
   'screens_register_screen.033':
       'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.',
   'screens_register_screen.034':
@@ -547,7 +551,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.038':
       'يجب الموافقة على الشروط والأحكام للمتابعة.',
   'screens_register_screen.039':
-      'أكمل بياناتك خطوة بخطوة. لن تنتقل للخطوة التالية حتى تصبح الحقول المطلوبة صحيحة.',
+      'أكمل بيانات التسجيل المطلوبة، وسنرسل لك رمز تحقق لإتمام إنشاء الحساب.',
   'screens_register_screen.040': 'لديك حساب بالفعل؟ سجّل الدخول',
   'screens_register_screen.041':
       'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل وأن تحتوي على حرف واحد ورمز واحد على الأقل.',
@@ -1186,6 +1190,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_card_print_requests_screen.035': 'من التطبيق',
   'screens_admin_card_print_requests_screen.036': 'لم يطبع بعد',
   'screens_admin_permissions_screen.042': 'فحص البطاقات بدون إنترنت',
+  'screens_admin_permissions_screen.043': 'إدارة المستخدمين التابعين',
   'screens_admin_customer_screen.072': 'فحص البطاقات بدون إنترنت',
   'screens_balance_screen.002': 'ليست لديك صلاحية لتحويل الرصيد.',
   'screens_balance_screen.003': 'تحويل رصيد',
@@ -1329,4 +1334,3 @@ const Map<String, String> appStringsAr = {
   'screens_card_print_requests_screen.047': 'آخر طباعة',
   'screens_card_print_requests_screen.048': 'لم يطبع بعد',
 };
-
