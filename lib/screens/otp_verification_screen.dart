@@ -22,6 +22,8 @@ class OtpVerificationScreen extends StatefulWidget {
     this.referralPhone,
     this.pendingRegistrationId,
     this.purpose = 'login',
+    this.redirectRoute,
+    this.offlineMode = false,
     this.initialDebugOtpCode,
   });
 
@@ -36,6 +38,8 @@ class OtpVerificationScreen extends StatefulWidget {
   final String? referralPhone;
   final String? pendingRegistrationId;
   final String purpose;
+  final String? redirectRoute;
+  final bool offlineMode;
   final String? initialDebugOtpCode;
 
   @override
@@ -133,7 +137,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       await LocalSecurityService.markDeviceTrusted(
         widget.username.trim().toLowerCase(),
       );
-      await RealtimeNotificationService.start();
+      OfflineSessionService.setOfflineMode(widget.offlineMode);
+      if (!widget.offlineMode) {
+        await RealtimeNotificationService.start();
+      }
       if (!mounted) {
         return;
       }
@@ -150,6 +157,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           permissions.canReviewDevices ||
           permissions.canManageLocations ||
           permissions.canManageSystemSettings;
+      if (widget.redirectRoute?.trim().isNotEmpty == true) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          widget.redirectRoute!,
+          (route) => false,
+        );
+        return;
+      }
       Navigator.pushNamedAndRemoveUntil(
         context,
         openAdminDashboard ? '/admin-dashboard' : '/app-shell',

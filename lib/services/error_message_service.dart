@@ -10,6 +10,17 @@ class ErrorMessageService {
     }
 
     final lower = text.toLowerCase();
+    if (lower.contains('401') ||
+        lower.contains('403') ||
+        lower.contains('unauthorized') ||
+        lower.contains('forbidden') ||
+        lower.contains('not authorized') ||
+        lower.contains('not permitted') ||
+        lower.contains('غير مصرح') ||
+        lower.contains('غير مخول')) {
+      return 'يرجى تسجيل الدخول بحساب يملك الصلاحية المطلوبة للمتابعة.';
+    }
+
     if (lower.contains('timed out') ||
         lower.contains('timeout') ||
         lower.contains('err_connection_timed_out')) {

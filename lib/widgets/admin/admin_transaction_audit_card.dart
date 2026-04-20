@@ -242,10 +242,11 @@ class AdminTransactionAuditCard extends StatelessWidget {
         final isCompact = constraints.maxWidth < 640;
 
         final leadingIcon = Container(
-          padding: const EdgeInsets.all(10),
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
             color: accentColor.withValues(alpha: 0.10),
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(
             _iconFor(isRejected: isRejected, amount: amount, type: type),
@@ -308,9 +309,16 @@ class AdminTransactionAuditCard extends StatelessWidget {
               ? CrossAxisAlignment.start
               : CrossAxisAlignment.end,
           children: [
-            Text(
-              _currency(amount),
-              style: AppTheme.bodyBold.copyWith(color: accentColor),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                _currency(amount),
+                style: AppTheme.bodyBold.copyWith(color: accentColor),
+              ),
             ),
             const SizedBox(height: 6),
             Row(
@@ -345,6 +353,7 @@ class AdminTransactionAuditCard extends StatelessWidget {
             vertical: isCompact ? 12 : 14,
           ),
           shadowLevel: ShwakelShadowLevel.soft,
+          borderRadius: BorderRadius.circular(24),
           child: isCompact
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -22,11 +22,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final PDFService _pdfService = PDFService();
-  final OfflineCardService _offlineCardService = OfflineCardService();
-
   List<VirtualCard> _cards = const [];
   CardStatus _filter = CardStatus.unused;
   bool _isLoading = true;
+  bool _isAuthorized = false;
+  bool _canRequestCardPrinting = false;
   int _page = 1;
   static const int _perPage = 12;
   int _lastPage = 1;
@@ -41,6 +41,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final user = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(user);
+      if (!permissions.canViewInventory) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
       final statusMap = {
         CardStatus.used: 'used',
         CardStatus.archived: 'archived',
@@ -60,22 +72,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
         return;
       }
       setState(() {
+        _isAuthorized = true;
+        _canRequestCardPrinting = permissions.canRequestCardPrinting;
         _cards = cards;
         _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
         _totalCards = (pagination['total'] as num?)?.toInt() ?? _cards.length;
         _isLoading = false;
       });
-
-      final user = await _authService.currentUser();
-      if (user != null && user['id'] != null) {
-        final permissions = AppPermissions.fromUser(user);
-        if (permissions.canOfflineCardScan) {
-          await _offlineCardService.cacheCards(
-            userId: user['id'].toString(),
-            cards: cards,
-          );
-        }
-      }
     } catch (_) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -86,9 +89,53 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(title: Text(l.tr('screens_inventory_screen.001'))),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text('لا تملك صلاحية عرض المخزون', style: AppTheme.h3),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.tr('screens_inventory_screen.001'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_inventory_screen.001')),
+        actions: [
+          if (_canRequestCardPrinting)
+            IconButton(
+              tooltip: l.tr('screens_inventory_screen.003'),
+              onPressed: () => Navigator.pushNamed(context, '/card-print-requests'),
+              icon: const Icon(Icons.print_rounded),
+            ),
+          IconButton(
+            tooltip: context.loc.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+        ],
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -97,18 +144,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             child: Column(
               children: [
-                _buildHero(),
-                const SizedBox(height: 24),
                 _buildFilters(),
-                const SizedBox(height: 24),
-                if (_isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (_cards.isEmpty)
+                const SizedBox(height: 16),
+                if (_cards.isEmpty)
                   _buildEmptyState()
                 else ...[
                   _buildGrid(),
@@ -128,6 +166,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showHelpDialog() {
+    final l = context.loc;
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('screens_inventory_screen.001')),
+        content: Text(
+          context.loc.text(
+            'اختر الفلتر المناسب لعرض البطاقات فقط. بقية التفاصيل تظهر داخل العناصر نفسها.',
+            'Use the filter to show the cards you need. Extra details appear inside each item.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.loc.text('إغلاق', 'Close')),
+          ),
+        ],
       ),
     );
   }
@@ -171,13 +231,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                ShwakelButton(
-                  label: l.tr('screens_inventory_screen.003'),
-                  icon: Icons.print_rounded,
-                  isSecondary: true,
-                  onPressed: () =>
-                      Navigator.pushNamed(context, '/card-print-requests'),
-                ),
+                if (_canRequestCardPrinting)
+                  ShwakelButton(
+                    label: l.tr('screens_inventory_screen.003'),
+                    icon: Icons.print_rounded,
+                    isSecondary: true,
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/card-print-requests'),
+                  ),
               ],
             ),
           );

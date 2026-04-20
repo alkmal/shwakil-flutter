@@ -7,20 +7,56 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'screens/index.dart';
 import 'services/index.dart';
+import 'utils/app_permissions.dart';
 import 'utils/app_theme.dart';
 import 'widgets/shwakel_button.dart';
 import 'widgets/shwakel_logo.dart';
 
 final RouteObserver<ModalRoute<void>> appRouteObserver =
     RouteObserver<ModalRoute<void>>();
+
+final Map<String, WidgetBuilder> _appRoutes = {
+  '/app-shell': (context) => const _AppLifecycleShell(),
+  '/home': (context) => const HomeScreen(),
+  '/login': (context) => const LoginScreen(),
+  '/login-offline': (context) =>
+      const LoginScreen(redirectRoute: '/scan-card-offline', offlineMode: true),
+  '/register': (context) => const RegisterScreen(),
+  '/unlock': (context) => const DeviceUnlockScreen(),
+  '/balance': (context) => const BalanceScreen(),
+  '/create-card': (context) => const CreateCardScreen(),
+  '/quick-transfer': (context) => const QuickTransferScreen(),
+  '/card-print-requests': (context) => const CardPrintRequestsScreen(),
+  '/scan-card': (context) => const ScanCardScreen(),
+  '/scan-card-offline': (context) => const ScanCardScreen(offlineMode: true),
+  '/offline-center': (context) => const OfflineCenterScreen(),
+  '/inventory': (context) => const InventoryScreen(),
+  '/transactions': (context) => const TransactionsScreen(),
+  '/notifications': (context) => const NotificationsScreen(),
+  '/security-settings': (context) => const SecuritySettingsScreen(),
+  '/account-settings': (context) => const AccountSettingsScreen(),
+  '/admin-dashboard': (context) => const AdminDashboardScreen(),
+  '/admin-card-print-requests': (context) =>
+      const AdminCardPrintRequestsScreen(),
+  '/admin-customers': (context) => const AdminCustomersScreen(),
+  '/admin-device-requests': (context) => const AdminDeviceRequestsScreen(),
+  '/admin-locations': (context) => const AdminLocationsScreen(),
+  '/admin-system-settings': (context) => const AdminSystemSettingsScreen(),
+  '/admin-permissions': (context) => const AdminPermissionsScreen(),
+  '/withdrawal-requests': (context) => const WithdrawalRequestsScreen(),
+  '/topup-requests': (context) => const TopupRequestsScreen(),
+  '/usage-policy': (context) => const UsagePolicyScreen(),
+  '/contact-us': (context) => const ContactUsScreen(),
+  '/supported-locations': (context) => const SupportedLocationsScreen(),
+  '/forgot-password': (context) => const ForgotPasswordScreen(),
+  '/account-verification': (context) => const AccountVerificationScreen(),
+  '/sub-users': (context) => const SubUsersScreen(),
+};
+
 Future<void> main() async {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
-      await AppLocaleService.instance.init();
-      RealtimeNotificationService.registerBackgroundHandler();
-      await LocalNotificationService.initialize();
-      await LocalSecurityService.getOrCreateDeviceId();
       FlutterError.onError = (details) {
         FlutterError.presentError(details);
         unawaited(
@@ -40,6 +76,9 @@ Future<void> main() async {
         return true;
       };
       runApp(const MyApp());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_warmUpAppServices());
+      });
     },
     (error, stack) {
       unawaited(
@@ -50,6 +89,30 @@ Future<void> main() async {
       );
     },
   );
+}
+
+Future<void> _warmUpAppServices() async {
+  await _runStartupTask(AppLocaleService.instance.init, label: 'locale');
+  await _runStartupTask(
+    LocalNotificationService.initialize,
+    label: 'local_notifications',
+  );
+  await _runStartupTask(
+    LocalSecurityService.getOrCreateDeviceId,
+    label: 'device_id',
+  );
+}
+
+Future<void> _runStartupTask(
+  Future<dynamic> Function() task, {
+  required String label,
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  try {
+    await task().timeout(timeout);
+  } catch (_) {
+    // Startup should stay responsive even if an optional task is slow/fails.
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -96,44 +159,24 @@ class MyApp extends StatelessWidget {
             );
           },
           home: const _AppLifecycleShell(),
-          routes: {
-            '/app-shell': (context) => const _AppLifecycleShell(),
-            '/home': (context) => const HomeScreen(),
-            '/login': (context) => const LoginScreen(),
-            '/register': (context) => const RegisterScreen(),
-            '/unlock': (context) => const DeviceUnlockScreen(),
-            '/balance': (context) => const BalanceScreen(),
-            '/create-card': (context) => const CreateCardScreen(),
-            '/quick-transfer': (context) => const QuickTransferScreen(),
-            '/card-print-requests': (context) =>
-                const CardPrintRequestsScreen(),
-            '/scan-card': (context) => const ScanCardScreen(),
-            '/inventory': (context) => const InventoryScreen(),
-            '/transactions': (context) => const TransactionsScreen(),
-            '/notifications': (context) => const NotificationsScreen(),
-            '/security-settings': (context) => const SecuritySettingsScreen(),
-            '/account-settings': (context) => const AccountSettingsScreen(),
-            '/admin-dashboard': (context) => const AdminDashboardScreen(),
-            '/admin-card-print-requests': (context) =>
-                const AdminCardPrintRequestsScreen(),
-            '/admin-customers': (context) => const AdminCustomersScreen(),
-            '/admin-device-requests': (context) =>
-                const AdminDeviceRequestsScreen(),
-            '/admin-locations': (context) => const AdminLocationsScreen(),
-            '/admin-system-settings': (context) =>
-                const AdminSystemSettingsScreen(),
-            '/admin-permissions': (context) => const AdminPermissionsScreen(),
-            '/withdrawal-requests': (context) =>
-                const WithdrawalRequestsScreen(),
-            '/topup-requests': (context) => const TopupRequestsScreen(),
-            '/usage-policy': (context) => const UsagePolicyScreen(),
-            '/contact-us': (context) => const ContactUsScreen(),
-            '/supported-locations': (context) =>
-                const SupportedLocationsScreen(),
-            '/forgot-password': (context) => const ForgotPasswordScreen(),
-            '/account-verification': (context) =>
-                const AccountVerificationScreen(),
-            '/sub-users': (context) => const SubUsersScreen(),
+          routes: _appRoutes,
+          onGenerateInitialRoutes: (initialRouteName) {
+            final routeBuilder = _appRoutes[initialRouteName];
+            if (routeBuilder == null) {
+              return [
+                MaterialPageRoute<void>(
+                  settings: const RouteSettings(name: '/'),
+                  builder: (_) => const _AppLifecycleShell(),
+                ),
+              ];
+            }
+
+            return [
+              MaterialPageRoute<void>(
+                settings: RouteSettings(name: initialRouteName),
+                builder: routeBuilder,
+              ),
+            ];
           },
         );
       },
@@ -184,7 +227,15 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
   }
 }
 
-enum _LaunchState { onboarding, login, unlock, home, updateRequired }
+enum _LaunchState {
+  onboarding,
+  login,
+  unlock,
+  home,
+  loginOffline,
+  scanOffline,
+  updateRequired,
+}
 
 class _LaunchDecision {
   const _LaunchDecision({required this.state, this.updateRequirement});
@@ -201,12 +252,13 @@ class AppEntryPoint extends StatefulWidget {
 
 class _AppEntryPointState extends State<AppEntryPoint> {
   static const String _onboardingSeenKey = 'onboarding_seen_v1';
+  static const Duration _launchDecisionTimeout = Duration(seconds: 4);
   late Future<_LaunchDecision> _launchStateFuture;
   bool _localUnlockSatisfiedThisSession = false;
   @override
   void initState() {
     super.initState();
-    _launchStateFuture = _resolveLaunchState();
+    _launchStateFuture = _safeResolveLaunchState();
     LocalSecurityService.securityStateListenable.addListener(
       _refreshLaunchState,
     );
@@ -225,12 +277,23 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       return;
     }
     setState(() {
-      _launchStateFuture = _resolveLaunchState();
+      _launchStateFuture = _safeResolveLaunchState();
     });
   }
 
+  Future<_LaunchDecision> _safeResolveLaunchState() {
+    return _resolveLaunchState().timeout(
+      _launchDecisionTimeout,
+      onTimeout: () => _resolveCachedLaunchState().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => const _LaunchDecision(state: _LaunchState.login),
+      ),
+    );
+  }
+
   Future<_LaunchDecision> _resolveLaunchState() async {
-    final updateRequirement = await AppVersionService.fetchRequiredUpdate();
+    final updateRequirement = await AppVersionService.fetchRequiredUpdate()
+        .timeout(const Duration(seconds: 2), onTimeout: () => null);
     if (updateRequirement != null) {
       return _LaunchDecision(
         state: _LaunchState.updateRequired,
@@ -245,45 +308,112 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     }
 
     final authService = AuthService();
+    final cachedUser = await authService.currentUser();
     final isLoggedIn = await authService.isLoggedIn();
     if (!isLoggedIn) {
+      if (await _canOpenOfflineWorkspace(cachedUser)) {
+        _localUnlockSatisfiedThisSession = true;
+        unawaited(RealtimeNotificationService.stop());
+        return const _LaunchDecision(state: _LaunchState.loginOffline);
+      }
       _localUnlockSatisfiedThisSession = false;
-      await RealtimeNotificationService.stop();
+      unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
     final skipNextUnlock = await LocalSecurityService.consumeSkipNextUnlock();
     if (skipNextUnlock) {
       _localUnlockSatisfiedThisSession = true;
-      await RealtimeNotificationService.start();
+      unawaited(RealtimeNotificationService.start());
       return const _LaunchDecision(state: _LaunchState.home);
     }
     final relockRequired = LocalSecurityService.relockRequired;
-    final canUseTrustedUnlock =
-        await LocalSecurityService.canUseTrustedUnlock();
+    final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
+        .timeout(const Duration(seconds: 1), onTimeout: () => false);
     if (relockRequired || canUseTrustedUnlock) {
       if (!relockRequired && _localUnlockSatisfiedThisSession) {
-        await RealtimeNotificationService.start();
+        unawaited(RealtimeNotificationService.start());
         return const _LaunchDecision(state: _LaunchState.home);
       }
-      await RealtimeNotificationService.stop();
+      unawaited(RealtimeNotificationService.stop());
       if (canUseTrustedUnlock) {
         return const _LaunchDecision(state: _LaunchState.unlock);
+      }
+      if (await _canOpenOfflineWorkspace(cachedUser)) {
+        _localUnlockSatisfiedThisSession = true;
+        return const _LaunchDecision(state: _LaunchState.scanOffline);
       }
       _localUnlockSatisfiedThisSession = false;
       await authService.logout();
       return const _LaunchDecision(state: _LaunchState.login);
     }
     try {
-      await authService.refreshCurrentUser();
+      await authService.refreshCurrentUser().timeout(
+        const Duration(seconds: 2),
+      );
     } catch (_) {
+      if (cachedUser != null) {
+        _localUnlockSatisfiedThisSession = true;
+        if (await _canOpenOfflineWorkspace(cachedUser)) {
+          unawaited(RealtimeNotificationService.stop());
+          return const _LaunchDecision(state: _LaunchState.scanOffline);
+        }
+        unawaited(RealtimeNotificationService.start());
+        return const _LaunchDecision(state: _LaunchState.home);
+      }
       _localUnlockSatisfiedThisSession = false;
       await authService.logout();
-      await RealtimeNotificationService.stop();
+      unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
     _localUnlockSatisfiedThisSession = true;
-    await RealtimeNotificationService.start();
+    unawaited(RealtimeNotificationService.start());
     return const _LaunchDecision(state: _LaunchState.home);
+  }
+
+  Future<_LaunchDecision> _resolveCachedLaunchState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool(_onboardingSeenKey) ?? false;
+    if (!hasSeenOnboarding) {
+      return const _LaunchDecision(state: _LaunchState.onboarding);
+    }
+
+    final authService = AuthService();
+    final cachedUser = await authService.currentUser();
+    final isLoggedIn = await authService.isLoggedIn();
+
+    if (await _canOpenOfflineWorkspace(cachedUser)) {
+      _localUnlockSatisfiedThisSession = true;
+      unawaited(RealtimeNotificationService.stop());
+      return isLoggedIn
+          ? const _LaunchDecision(state: _LaunchState.scanOffline)
+          : const _LaunchDecision(state: _LaunchState.loginOffline);
+    }
+
+    if (!isLoggedIn || cachedUser == null) {
+      _localUnlockSatisfiedThisSession = false;
+      unawaited(RealtimeNotificationService.stop());
+      return const _LaunchDecision(state: _LaunchState.login);
+    }
+
+    final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
+        .timeout(const Duration(seconds: 1), onTimeout: () => false);
+    if (LocalSecurityService.relockRequired && canUseTrustedUnlock) {
+      return const _LaunchDecision(state: _LaunchState.unlock);
+    }
+
+    _localUnlockSatisfiedThisSession = true;
+    return const _LaunchDecision(state: _LaunchState.home);
+  }
+
+  Future<bool> _canOpenOfflineWorkspace(Map<String, dynamic>? user) async {
+    if (user == null || user['id'] == null) {
+      return false;
+    }
+    final permissions = AppPermissions.fromUser(user);
+    if (!permissions.canOfflineCardScan) {
+      return false;
+    }
+    return OfflineCardService().hasOfflineWorkspace(user['id'].toString());
   }
 
   Future<void> _finishOnboarding() async {
@@ -303,14 +433,28 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         final decision = snapshot.data!;
         switch (decision.state) {
           case _LaunchState.onboarding:
+            OfflineSessionService.setOfflineMode(false);
             return OnboardingScreen(onFinished: _finishOnboarding);
           case _LaunchState.unlock:
+            OfflineSessionService.setOfflineMode(false);
             return const DeviceUnlockScreen();
           case _LaunchState.home:
+            OfflineSessionService.setOfflineMode(false);
             return const HomeScreen();
+          case _LaunchState.loginOffline:
+            OfflineSessionService.setOfflineMode(true);
+            return const LoginScreen(
+              redirectRoute: '/scan-card-offline',
+              offlineMode: true,
+            );
+          case _LaunchState.scanOffline:
+            OfflineSessionService.setOfflineMode(true);
+            return const ScanCardScreen(offlineMode: true);
           case _LaunchState.login:
+            OfflineSessionService.setOfflineMode(false);
             return const LoginScreen();
           case _LaunchState.updateRequired:
+            OfflineSessionService.setOfflineMode(false);
             return _ForcedUpdateScreen(
               requirement: decision.updateRequirement!,
               onRetry: _refreshLaunchState,

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
-import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
@@ -28,6 +28,7 @@ class _AdminCardPrintRequestsScreenState
   List<Map<String, dynamic>> _requests = const [];
   Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
+  bool _isAuthorized = false;
   String _status = 'all';
   int _page = 1;
   int _lastPage = 1;
@@ -48,6 +49,18 @@ class _AdminCardPrintRequestsScreenState
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final currentUser = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(currentUser);
+      if (!permissions.canManageCardPrintRequests) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
       final payload = await _apiService.getCardPrintRequests(
         status: _status,
         query: _searchController.text,
@@ -60,6 +73,7 @@ class _AdminCardPrintRequestsScreenState
         return;
       }
       setState(() {
+        _isAuthorized = true;
         _requests = List<Map<String, dynamic>>.from(
           payload['requests'] as List? ?? const [],
         );
@@ -160,15 +174,15 @@ class _AdminCardPrintRequestsScreenState
       'owner_id': item['owner_id'] ?? item['ownerId'],
       'owner_username': item['owner_username'] ?? item['ownerUsername'],
       'issued_by_id': item['issued_by_id'] ?? item['issuedById'],
-      'issued_by_username': item['issued_by_username'] ?? item['issuedByUsername'],
+      'issued_by_username':
+          item['issued_by_username'] ?? item['issuedByUsername'],
       'redeemed_by_id': item['redeemed_by_id'] ?? item['redeemedById'],
       'allowed_user_ids':
           item['allowed_user_ids'] ?? item['allowedUserIds'] ?? const [],
       'allowed_usernames':
           item['allowed_usernames'] ?? item['allowedUsernames'] ?? const [],
       'customer_name': item['customer_name'] ?? item['customerName'],
-      'created_at':
-          item['created_at'] ?? item['issuedAt'] ?? item['createdAt'],
+      'created_at': item['created_at'] ?? item['issuedAt'] ?? item['createdAt'],
       'last_resold_at': item['last_resold_at'] ?? item['lastResoldAt'],
       'use_count': item['use_count'] ?? item['useCount'],
       'resale_count': item['resale_count'] ?? item['resaleCount'],
@@ -296,10 +310,51 @@ class _AdminCardPrintRequestsScreenState
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'لا تملك صلاحية إدارة طلبات طباعة البطاقات',
+                  style: AppTheme.h3,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
+        actions: [
+          IconButton(
+            tooltip: context.loc.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+        ],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -310,39 +365,14 @@ class _AdminCardPrintRequestsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShwakelCard(
-                  padding: const EdgeInsets.all(28),
-                  gradient: AppTheme.primaryGradient,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l.tr(
-                          'screens_admin_card_print_requests_screen.hero_title',
-                        ),
-                        style: AppTheme.h2.copyWith(color: Colors.white),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l.tr(
-                          'screens_admin_card_print_requests_screen.hero_subtitle',
-                        ),
-                        style: AppTheme.bodyAction.copyWith(
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
+                Text(
+                  context.loc.text(
+                    'المراجعة: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • المعتمد: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • المكتمل: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
+                    'Review: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • Approved: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • Completed: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
                   ),
+                  style: AppTheme.caption,
                 ),
-                const SizedBox(height: 24),
-                AdminSectionHeader(
-                  title: l.tr('screens_admin_card_print_requests_screen.002'),
-                  subtitle: l.tr(
-                    'screens_admin_card_print_requests_screen.section_subtitle',
-                  ),
-                  icon: Icons.print_rounded,
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final stacked = constraints.maxWidth < 760;
@@ -468,32 +498,13 @@ class _AdminCardPrintRequestsScreenState
                     );
                   },
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _summaryChip(
-                      l.tr('screens_admin_card_print_requests_screen.011'),
-                      (_summary['pendingReviewCount'] as num?)?.toInt() ?? 0,
-                    ),
-                    _summaryChip(
-                      l.tr('screens_admin_card_print_requests_screen.012'),
-                      (_summary['approvedCount'] as num?)?.toInt() ?? 0,
-                    ),
-                    _summaryChip(
-                      l.tr('screens_admin_card_print_requests_screen.013'),
-                      (_summary['printingCount'] as num?)?.toInt() ?? 0,
-                    ),
-                    _summaryChip(
-                      l.tr('screens_admin_card_print_requests_screen.014'),
-                      (_summary['readyCount'] as num?)?.toInt() ?? 0,
-                    ),
-                    _summaryChip(
-                      l.tr('screens_admin_card_print_requests_screen.030'),
-                      (_summary['completedCount'] as num?)?.toInt() ?? 0,
-                    ),
-                  ],
+                const SizedBox(height: 8),
+                Text(
+                  context.loc.text(
+                    'المراجعة: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • المعتمد: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • المكتمل: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
+                    'Review: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • Approved: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • Completed: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
+                  ),
+                  style: AppTheme.caption,
                 ),
                 const SizedBox(height: 16),
                 if (_isLoading)
@@ -700,20 +711,22 @@ class _AdminCardPrintRequestsScreenState
     );
   }
 
-  Widget _summaryChip(String label, int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.10)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTheme.caption),
-          const SizedBox(height: 4),
-          Text('$count', style: AppTheme.bodyBold),
+  Future<void> _showHelpDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.loc.text('مساعدة الطلبات', 'Requests help')),
+        content: Text(
+          context.loc.text(
+            'استخدم البحث والحالة للوصول السريع، ثم افتح الطلب لإدارة الخطوات المطلوبة.',
+            'Use search and status filters for quick access, then open a request to manage its steps.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.loc.text('إغلاق', 'Close')),
+          ),
         ],
       ),
     );

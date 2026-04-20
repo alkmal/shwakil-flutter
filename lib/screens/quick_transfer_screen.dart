@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -22,9 +22,6 @@ class QuickTransferScreen extends StatefulWidget {
 class _QuickTransferScreenState extends State<QuickTransferScreen> {
   final AuthService _auth = AuthService();
   final ApiService _api = ApiService();
-  final MobileScannerController _camC = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-  );
   final TextEditingController _phoneController = TextEditingController();
 
   Map<String, dynamic>? _user;
@@ -45,7 +42,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
 
   @override
   void dispose() {
-    _camC.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -54,9 +50,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     setState(() => _isLoading = true);
     try {
       final u = await _auth.currentUser();
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       final appPermissions = AppPermissions.fromUser(u);
       setState(() {
         _user = u;
@@ -65,9 +59,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         _isLoading = false;
       });
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
@@ -80,97 +72,21 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   });
 
   Future<void> _scan() async {
-    var torchEnabled = false;
-    await showDialog(
+    final scannedValue = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: ShwakelCard(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _t('screens_quick_transfer_screen.005'),
-                          style: AppTheme.h3,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  ClipRRect(
-                    borderRadius: AppTheme.radiusMd,
-                    child: SizedBox(
-                      height: 320,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          MobileScanner(
-                            controller: _camC,
-                            onDetect: (capture) {
-                              final rawValue =
-                                  capture.barcodes.first.rawValue ?? '';
-                              if (rawValue.isNotEmpty) {
-                                Navigator.pop(dialogContext, rawValue);
-                              }
-                            },
-                          ),
-                          Positioned(
-                            top: 14,
-                            left: 14,
-                            child: FilledButton.tonalIcon(
-                              onPressed: () async {
-                                await _camC.toggleTorch();
-                                setDialogState(() {
-                                  torchEnabled = !torchEnabled;
-                                });
-                              },
-                              icon: Icon(
-                                torchEnabled
-                                    ? Icons.flash_off_rounded
-                                    : Icons.flash_on_rounded,
-                              ),
-                              label: Text(
-                                context.loc.text(
-                                  torchEnabled
-                                      ? 'إطفاء الإضاءة'
-                                      : 'تشغيل الإضاءة',
-                                  torchEnabled ? 'Torch off' : 'Torch on',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  ShwakelButton(
-                    label: _t('screens_quick_transfer_screen.006'),
-                    isSecondary: true,
-                    onPressed: () => Navigator.pop(dialogContext),
-                  ),
-                ],
-              ),
-            ),
-          ),
+      builder: (_) => BarcodeScannerDialog(
+        title: _t('screens_quick_transfer_screen.005'),
+        description: context.loc.text(
+          'وجّه الكاميرا نحو رمز التحويل ليتم التقاطه مباشرة.',
+          'Point the camera at the transfer code to scan it.',
         ),
+        height: 320,
+        onCancelLabel: _t('screens_quick_transfer_screen.006'),
       ),
-    ).then((value) {
-      if (value != null && value is String) {
-        _startTransferFromQr(value);
-      }
-    });
+    );
+    if (scannedValue != null && scannedValue.isNotEmpty) {
+      await _startTransferFromQr(scannedValue);
+    }
   }
 
   Future<void> _startTransferFromQr(String raw) async {
@@ -193,9 +109,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       };
       await _startTransferToRecipient(recipient);
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       await AppAlertService.showError(
         context,
         message: ErrorMessageService.sanitize(error),
@@ -223,14 +137,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       final recipient = Map<String, dynamic>.from(
         response['user'] as Map? ?? const <String, dynamic>{},
       );
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _recipient = recipient);
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _recipient = null);
       await AppAlertService.showError(
         context,
@@ -265,9 +175,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (amount == null || amount <= 0) {
       return;
     }
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     final securityResult = await TransferSecurityService.confirmTransfer(
       context,
@@ -286,18 +194,14 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         location: location,
       );
       await _load();
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       await AppAlertService.showSuccess(
         context,
         title: _t('screens_quick_transfer_screen.012'),
         message: _t('screens_quick_transfer_screen.026'),
       );
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       await AppAlertService.showError(
         context,
         message: ErrorMessageService.sanitize(error),
@@ -359,7 +263,16 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (!_canViewQuickTransfer) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(_t('screens_quick_transfer_screen.016'))),
+        appBar: AppBar(
+          title: Text(_t('screens_quick_transfer_screen.016')),
+          actions: [
+            IconButton(
+              tooltip: context.loc.text('مساعدة', 'Help'),
+              onPressed: _showHelpDialog,
+              icon: const Icon(Icons.info_outline_rounded),
+            ),
+          ],
+        ),
         drawer: const AppSidebar(),
         body: Center(child: Text(_t('screens_quick_transfer_screen.028'))),
       );
@@ -367,236 +280,25 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(_t('screens_quick_transfer_screen.016'))),
+      appBar: AppBar(
+        title: Text(_t('screens_quick_transfer_screen.016')),
+        actions: [
+          IconButton(
+            tooltip: context.loc.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+        ],
+      ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          padding: AppTheme.pagePadding(context, top: 18),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ShwakelCard(
-                padding: const EdgeInsets.all(24),
-                shadowLevel: ShwakelShadowLevel.medium,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(
-                            Icons.phone_iphone_rounded,
-                            color: AppTheme.primary,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _t('screens_quick_transfer_screen.029'),
-                                style: AppTheme.h3,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _t('screens_quick_transfer_screen.030'),
-                                style: AppTheme.bodyAction,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isCompact = constraints.maxWidth < 520;
-                        final countryField =
-                            DropdownButtonFormField<CountryOption>(
-                              initialValue: _selectedCountry,
-                              decoration: InputDecoration(
-                                labelText: _t(
-                                  'screens_quick_transfer_screen.017',
-                                ),
-                              ),
-                              items: PhoneNumberService.countries
-                                  .map(
-                                    (country) =>
-                                        DropdownMenuItem<CountryOption>(
-                                          value: country,
-                                          child: Text('+${country.dialCode}'),
-                                        ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setState(() => _selectedCountry = value);
-                              },
-                            );
-                        final phoneField = TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: _t('screens_quick_transfer_screen.031'),
-                            prefixIcon: const Icon(Icons.phone_rounded),
-                          ),
-                          onSubmitted: (_) => _lookupRecipient(),
-                        );
-
-                        if (isCompact) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              countryField,
-                              const SizedBox(height: 12),
-                              phoneField,
-                            ],
-                          );
-                        }
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(width: 140, child: countryField),
-                            const SizedBox(width: 12),
-                            Expanded(child: phoneField),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    ShwakelButton(
-                      label: _t('screens_quick_transfer_screen.018'),
-                      icon: Icons.search_rounded,
-                      isLoading: _isLookingUpRecipient,
-                      onPressed: _canTransfer ? _lookupRecipient : null,
-                    ),
-                    if (!_canTransfer) ...[
-                      const SizedBox(height: 12),
-                      ShwakelCard(
-                        padding: const EdgeInsets.all(16),
-                        color: AppTheme.warning.withValues(alpha: 0.08),
-                        borderColor: AppTheme.warning.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.lock_outline_rounded,
-                              color: AppTheme.warning,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _t('screens_quick_transfer_screen.028'),
-                                style: AppTheme.bodyAction.copyWith(
-                                  color: AppTheme.warning,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    if (_recipient != null) ...[
-                      const SizedBox(height: 18),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceVariant,
-                          borderRadius: AppTheme.radiusMd,
-                          border: Border.all(color: AppTheme.border),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _t('screens_quick_transfer_screen.019'),
-                              style: AppTheme.bodyBold,
-                            ),
-                            const SizedBox(height: 14),
-                            _RecipientPreviewCard(recipient: _recipient!),
-                            const SizedBox(height: 14),
-                            Text(
-                              _t('screens_quick_transfer_screen.032'),
-                              style: AppTheme.caption.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ShwakelButton(
-                              label: _t('screens_quick_transfer_screen.033'),
-                              icon: Icons.send_rounded,
-                              onPressed: _canTransfer
-                                  ? () => _startTransferToRecipient(_recipient!)
-                                  : null,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              ShwakelCard(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: AppTheme.accent.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(
-                            Icons.qr_code_scanner_rounded,
-                            color: AppTheme.accent,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _t('screens_quick_transfer_screen.020'),
-                                style: AppTheme.h3,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _t('screens_quick_transfer_screen.034'),
-                                style: AppTheme.bodyAction,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    ShwakelButton(
-                      label: _t('screens_quick_transfer_screen.021'),
-                      icon: Icons.qr_code_scanner_rounded,
-                      onPressed: _canTransfer ? _scan : null,
-                      isSecondary: true,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              _buildTransferTools(),
+              const SizedBox(height: 18),
               _buildMyCode(),
             ],
           ),
@@ -605,22 +307,267 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     );
   }
 
+  Future<void> _showHelpDialog() async {
+    await AppAlertService.showInfo(
+      context,
+      title: context.loc.text('مساعدة سريعة', 'Quick help'),
+      message: context.loc.text(
+        'ابحث بالرقم أو امسح رمز التحويل ثم راجع بيانات المستلم قبل تنفيذ العملية.',
+        'Search by number or scan the transfer code, then review the recipient details before confirming.',
+      ),
+    );
+  }
+
+  Widget _buildTransferTools() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 960;
+        if (compact) {
+          return Column(
+            children: [
+              _buildLookupCard(compact: true),
+              const SizedBox(height: 18),
+              _buildScanCard(),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 3, child: _buildLookupCard(compact: false)),
+            const SizedBox(width: 18),
+            Expanded(flex: 2, child: _buildScanCard()),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLookupCard({required bool compact}) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(22),
+      shadowLevel: ShwakelShadowLevel.medium,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeading(
+            title: 'البحث عن المستلم',
+            subtitle: 'ابحث برقم الجوال ثم راجع بيانات المستخدم قبل التحويل.',
+            icon: Icons.phone_iphone_rounded,
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, innerConstraints) {
+              final stackFields = compact || innerConstraints.maxWidth < 520;
+              final countryField = DropdownButtonFormField<CountryOption>(
+                initialValue: _selectedCountry,
+                decoration: InputDecoration(
+                  labelText: _t('screens_quick_transfer_screen.017'),
+                ),
+                items: PhoneNumberService.countries
+                    .map(
+                      (country) => DropdownMenuItem<CountryOption>(
+                        value: country,
+                        child: Text('+${country.dialCode}'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _selectedCountry = value);
+                },
+              );
+              final phoneField = TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: _t('screens_quick_transfer_screen.031'),
+                  prefixIcon: const Icon(Icons.phone_rounded),
+                ),
+                onSubmitted: (_) => _lookupRecipient(),
+              );
+
+              if (stackFields) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    countryField,
+                    const SizedBox(height: 12),
+                    phoneField,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 150, child: countryField),
+                  const SizedBox(width: 12),
+                  Expanded(child: phoneField),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          ShwakelButton(
+            label: _t('screens_quick_transfer_screen.018'),
+            icon: Icons.search_rounded,
+            gradient: AppTheme.primaryGradient,
+            isLoading: _isLookingUpRecipient,
+            onPressed: _canTransfer ? _lookupRecipient : null,
+          ),
+          if (!_canTransfer) ...[
+            const SizedBox(height: 12),
+            ShwakelCard(
+              padding: const EdgeInsets.all(16),
+              color: AppTheme.warning.withValues(alpha: 0.08),
+              borderColor: AppTheme.warning.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(20),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppTheme.warning,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _t('screens_quick_transfer_screen.028'),
+                      style: AppTheme.bodyAction.copyWith(
+                        color: AppTheme.warning,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (_recipient != null) ...[
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: AppTheme.cardHighlightGradient,
+                borderRadius: AppTheme.radiusMd,
+                border: Border.all(color: AppTheme.borderLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _t('screens_quick_transfer_screen.019'),
+                    style: AppTheme.bodyBold,
+                  ),
+                  const SizedBox(height: 14),
+                  _RecipientPreviewCard(recipient: _recipient!),
+                  const SizedBox(height: 14),
+                  Text(
+                    _t('screens_quick_transfer_screen.032'),
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ShwakelButton(
+                    label: _t('screens_quick_transfer_screen.033'),
+                    icon: Icons.send_rounded,
+                    onPressed: _canTransfer
+                        ? () => _startTransferToRecipient(_recipient!)
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanCard() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeading(
+            title: _t('screens_quick_transfer_screen.020'),
+            subtitle: _t('screens_quick_transfer_screen.034'),
+            icon: Icons.qr_code_scanner_rounded,
+            accent: AppTheme.accent,
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppTheme.accentSoft,
+              borderRadius: AppTheme.radiusMd,
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 82,
+                  height: 82,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(
+                    Icons.qr_code_2_rounded,
+                    color: AppTheme.accent,
+                    size: 42,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'امسح رمز التحويل',
+                  style: AppTheme.h3.copyWith(fontSize: 17),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'اقرأ الرمز مباشرة لتحديد المستلم والانتقال بسرعة إلى تنفيذ العملية.',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.caption.copyWith(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          ShwakelButton(
+            label: _t('screens_quick_transfer_screen.021'),
+            icon: Icons.qr_code_scanner_rounded,
+            isSecondary: true,
+            onPressed: _canTransfer ? _scan : null,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMyCode() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.all(28),
       gradient: AppTheme.darkGradient,
+      shadowLevel: ShwakelShadowLevel.premium,
+      borderColor: Colors.white.withValues(alpha: 0.10),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             _t('screens_quick_transfer_screen.022'),
             style: AppTheme.h2.copyWith(color: Colors.white),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             _t('screens_quick_transfer_screen.035'),
             style: AppTheme.caption.copyWith(color: Colors.white70),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -629,17 +576,53 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             ),
             child: QrImageView(data: _payload(), size: 240),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Text(
             _user?['username']?.toString() ?? '',
             style: AppTheme.h1.copyWith(color: Colors.white),
+            textAlign: TextAlign.center,
           ),
-          Text(
-            _user?['whatsapp']?.toString() ?? '',
-            style: AppTheme.bodyBold.copyWith(color: Colors.white70),
-          ),
+          if ((_user?['whatsapp']?.toString() ?? '').isNotEmpty)
+            Text(
+              _user?['whatsapp']?.toString() ?? '',
+              style: AppTheme.bodyBold.copyWith(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionHeading({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    Color accent = AppTheme.primary,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Icon(icon, color: accent),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTheme.h3),
+              const SizedBox(height: 4),
+              Text(subtitle, style: AppTheme.caption.copyWith(fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

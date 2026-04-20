@@ -10,9 +10,12 @@
                 android:startColor="#0F766E" />
         </shape>
     </item>
-    <item>
+    <item
+        android:gravity="center"
+        android:width="72dp"
+        android:height="72dp">
         <bitmap
             android:gravity="center"
-            android:src="@drawable/launch_image" />
+            android:src="@drawable/ic_launcher_foreground" />
     </item>
 </layer-list>

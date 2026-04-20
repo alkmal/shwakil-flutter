@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
@@ -16,9 +17,11 @@ class AdminPermissionsScreen extends StatefulWidget {
 
 class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isAuthorized = false;
   List<Map<String, dynamic>> _roles = const [];
   Map<String, dynamic> _templates = const {};
 
@@ -36,7 +39,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     {
       'titleKey': 'admin_followup',
       'keys':
-          'canViewCustomers,canLookupMembers,canManageUsers,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canManageCardPrintRequests,canExportCustomerTransactions',
+          'canViewCustomers,canLookupMembers,canManageUsers,canViewSubUsers,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canManageCardPrintRequests,canExportCustomerTransactions',
     },
   ];
 
@@ -49,11 +52,24 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final currentUser = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(currentUser);
+      if (!permissions.canManageSystemSettings) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
       final payload = await _apiService.getPermissionTemplates();
       if (!mounted) {
         return;
       }
       setState(() {
+        _isAuthorized = true;
         _roles = List<Map<String, dynamic>>.from(
           payload['roles'] as List? ?? const [],
         );
@@ -114,6 +130,38 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(title: Text(l.tr('screens_admin_permissions_screen.003'))),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  context.loc.text(
+                    'لا تملك صلاحية إدارة قوالب الصلاحيات',
+                    'You do not have permission to manage permission templates.',
+                  ),
+                  style: AppTheme.h3,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return DefaultTabController(
@@ -254,6 +302,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),
       'canLookupMembers' => l.tr('screens_admin_permissions_screen.030'),
       'canManageUsers' => l.tr('screens_admin_permissions_screen.031'),
+      'canViewSubUsers' => context.loc.text(
+        'عرض المستخدمين التابعين',
+        'View sub users',
+      ),
       'canManageSubUsers' => l.tr('screens_admin_permissions_screen.043'),
       'canManageLocations' => l.tr('screens_admin_permissions_screen.032'),
       'canManageSystemSettings' => l.tr('screens_admin_permissions_screen.033'),

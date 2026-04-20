@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -50,7 +51,11 @@ class RealtimeNotificationService {
   }
 
   static Future<void> start() async {
-    await _ensureInitialized();
+    try {
+      await _ensureInitialized();
+    } catch (_) {
+      return;
+    }
     if (!_firebaseAvailable) {
       return;
     }
@@ -118,11 +123,15 @@ class RealtimeNotificationService {
   }
 
   static Future<void> _syncCurrentToken() async {
-    final token = await FirebaseMessaging.instance.getToken();
-    if (token == null || token.isEmpty) {
-      return;
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null || token.isEmpty) {
+        return;
+      }
+      await _registerToken(token);
+    } catch (_) {
+      // Push token sync is optional and should never break the app.
     }
-    await _registerToken(token);
   }
 
   static Future<void> _registerToken(String token) async {
@@ -141,16 +150,28 @@ class RealtimeNotificationService {
       'X-App-Build': packageInfo.buildNumber,
     };
 
-    await http.post(
-      AppConfig.apiUri('notifications/push-token'),
-      headers: headers,
-      body: jsonEncode({
-        'token': token,
-        'platform': defaultTargetPlatform.name,
-        'deviceId': deviceId,
-        'appVersion': '${packageInfo.version}+${packageInfo.buildNumber}',
-      }),
-    );
+    try {
+      await http
+          .post(
+            AppConfig.apiUri('notifications/push-token'),
+            headers: headers,
+            body: jsonEncode({
+              'token': token,
+              'platform': defaultTargetPlatform.name,
+              'deviceId': deviceId,
+              'appVersion': '${packageInfo.version}+${packageInfo.buildNumber}',
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+    } on SocketException {
+      // No internet / DNS issue: keep the app running and retry later.
+    } on http.ClientException {
+      // Network client errors should not surface to the user here.
+    } on TimeoutException {
+      // Slow networks should not block app startup or navigation.
+    } catch (_) {
+      // Token registration is best-effort only.
+    }
   }
 
   static void _handleForegroundMessage(RemoteMessage message) {

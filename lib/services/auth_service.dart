@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,6 +28,7 @@ class OtpRequestResult {
 class AuthService {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user_json';
+  static const Duration _requestTimeout = Duration(seconds: 10);
 
   static String _normalizeUsername(String? value) {
     return value?.trim().toLowerCase() ?? '';
@@ -67,24 +69,26 @@ class AuthService {
     bool termsAccepted = false,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
-    final response = await http.post(
-      AppConfig.apiUri('auth/request-otp'),
-      headers: await _jsonHeaders(),
-      body: jsonEncode({
-        'purpose': purpose,
-        'username': _normalizeIdentifier(username),
-        'identifier': _normalizeIdentifier(username),
-        'password': password,
-        'fullName': fullName?.trim(),
-        'whatsapp': whatsapp?.trim(),
-        'countryCode': countryCode?.trim(),
-        'nationalId': nationalId?.trim(),
-        'birthDate': birthDate?.trim(),
-        'referralPhone': referralPhone?.trim(),
-        'deviceId': deviceId,
-        'termsAccepted': termsAccepted,
-      }),
-    );
+    final response = await http
+        .post(
+          AppConfig.apiUri('auth/request-otp'),
+          headers: await _jsonHeaders(),
+          body: jsonEncode({
+            'purpose': purpose,
+            'username': _normalizeIdentifier(username),
+            'identifier': _normalizeIdentifier(username),
+            'password': password,
+            'fullName': fullName?.trim(),
+            'whatsapp': whatsapp?.trim(),
+            'countryCode': countryCode?.trim(),
+            'nationalId': nationalId?.trim(),
+            'birthDate': birthDate?.trim(),
+            'referralPhone': referralPhone?.trim(),
+            'deviceId': deviceId,
+            'termsAccepted': termsAccepted,
+          }),
+        )
+        .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
@@ -112,23 +116,25 @@ class AuthService {
     required bool termsAccepted,
     String? referralPhone,
   }) async {
-    final response = await http.post(
-      AppConfig.apiUri('auth/register/validate'),
-      headers: await _jsonHeaders(),
-      body: jsonEncode({
-        'fullName': fullName.trim(),
-        'username': _normalizeUsername(username),
-        'password': password,
-        'whatsapp': whatsapp.trim(),
-        'countryCode': countryCode.trim(),
-        'nationalId': nationalId?.trim(),
-        'birthDate': birthDate?.trim(),
-        'referralPhone': referralPhone?.trim().isEmpty ?? true
-            ? null
-            : referralPhone?.trim(),
-        'termsAccepted': termsAccepted,
-      }),
-    );
+    final response = await http
+        .post(
+          AppConfig.apiUri('auth/register/validate'),
+          headers: await _jsonHeaders(),
+          body: jsonEncode({
+            'fullName': fullName.trim(),
+            'username': _normalizeUsername(username),
+            'password': password,
+            'whatsapp': whatsapp.trim(),
+            'countryCode': countryCode.trim(),
+            'nationalId': nationalId?.trim(),
+            'birthDate': birthDate?.trim(),
+            'referralPhone': referralPhone?.trim().isEmpty ?? true
+                ? null
+                : referralPhone?.trim(),
+            'termsAccepted': termsAccepted,
+          }),
+        )
+        .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
@@ -145,23 +151,25 @@ class AuthService {
     required bool termsAccepted,
     String? referralPhone,
   }) async {
-    final response = await http.post(
-      AppConfig.apiUri('auth/register'),
-      headers: await _jsonHeaders(),
-      body: jsonEncode({
-        'fullName': fullName.trim(),
-        'username': _normalizeUsername(username),
-        'password': password,
-        'whatsapp': whatsapp.trim(),
-        'countryCode': countryCode.trim(),
-        'nationalId': nationalId?.trim(),
-        'birthDate': birthDate?.trim(),
-        'referralPhone': referralPhone?.trim().isEmpty ?? true
-            ? null
-            : referralPhone?.trim(),
-        'termsAccepted': termsAccepted,
-      }),
-    );
+    final response = await http
+        .post(
+          AppConfig.apiUri('auth/register'),
+          headers: await _jsonHeaders(),
+          body: jsonEncode({
+            'fullName': fullName.trim(),
+            'username': _normalizeUsername(username),
+            'password': password,
+            'whatsapp': whatsapp.trim(),
+            'countryCode': countryCode.trim(),
+            'nationalId': nationalId?.trim(),
+            'birthDate': birthDate?.trim(),
+            'referralPhone': referralPhone?.trim().isEmpty ?? true
+                ? null
+                : referralPhone?.trim(),
+            'termsAccepted': termsAccepted,
+          }),
+        )
+        .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
@@ -192,26 +200,28 @@ class AuthService {
     String? otpCode,
     String otpPurpose = 'register',
   }) async {
-    final response = await http.post(
-      AppConfig.apiUri('auth/register'),
-      headers: await _jsonHeaders(),
-      body: jsonEncode({
-        'fullName': fullName?.trim(),
-        'username': username == null ? null : _normalizeUsername(username),
-        'password': password,
-        'whatsapp': whatsapp?.trim(),
-        'countryCode': countryCode?.trim(),
-        'nationalId': nationalId?.trim(),
-        'birthDate': birthDate?.trim(),
-        'referralPhone': referralPhone?.trim().isEmpty ?? true
-            ? null
-            : referralPhone?.trim(),
-        'termsAccepted': termsAccepted,
-        'pendingRegistrationId': pendingRegistrationId?.trim(),
-        'otpCode': otpCode?.trim(),
-        'otpPurpose': otpPurpose,
-      }),
-    );
+    final response = await http
+        .post(
+          AppConfig.apiUri('auth/register'),
+          headers: await _jsonHeaders(),
+          body: jsonEncode({
+            'fullName': fullName?.trim(),
+            'username': username == null ? null : _normalizeUsername(username),
+            'password': password,
+            'whatsapp': whatsapp?.trim(),
+            'countryCode': countryCode?.trim(),
+            'nationalId': nationalId?.trim(),
+            'birthDate': birthDate?.trim(),
+            'referralPhone': referralPhone?.trim().isEmpty ?? true
+                ? null
+                : referralPhone?.trim(),
+            'termsAccepted': termsAccepted,
+            'pendingRegistrationId': pendingRegistrationId?.trim(),
+            'otpCode': otpCode?.trim(),
+            'otpPurpose': otpPurpose,
+          }),
+        )
+        .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
@@ -223,18 +233,20 @@ class AuthService {
     String? otpCode,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
-    final response = await http.post(
-      AppConfig.apiUri('auth/login'),
-      headers: await _jsonHeaders(),
-      body: jsonEncode({
-        'username': _normalizeIdentifier(username),
-        'identifier': _normalizeIdentifier(username),
-        'password': password,
-        'otpCode': (otpCode ?? '').trim(),
-        'otpPurpose': 'login',
-        'deviceId': deviceId,
-      }),
-    );
+    final response = await http
+        .post(
+          AppConfig.apiUri('auth/login'),
+          headers: await _jsonHeaders(),
+          body: jsonEncode({
+            'username': _normalizeIdentifier(username),
+            'identifier': _normalizeIdentifier(username),
+            'password': password,
+            'otpCode': (otpCode ?? '').trim(),
+            'otpPurpose': 'login',
+            'deviceId': deviceId,
+          }),
+        )
+        .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
@@ -293,10 +305,12 @@ class AuthService {
     if (authToken == null || authToken.isEmpty) {
       return;
     }
-    final response = await http.get(
-      AppConfig.apiUri('auth/me'),
-      headers: await _requestHeaders(token: authToken),
-    );
+    final response = await http
+        .get(
+          AppConfig.apiUri('auth/me'),
+          headers: await _requestHeaders(token: authToken),
+        )
+        .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }

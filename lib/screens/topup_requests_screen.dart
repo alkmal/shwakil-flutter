@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
@@ -28,7 +29,6 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _requests = const [];
-  Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
   bool _isAuthorized = false;
   String? _busyId;
@@ -56,9 +56,8 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     setState(() => _isLoading = true);
     try {
       final user = await _authService.currentUser();
-      final role = user?['role']?.toString() ?? '';
-      final isAdmin = role == 'admin' || user?['id']?.toString() == '1';
-      if (!isAdmin) {
+      final permissions = AppPermissions.fromUser(user);
+      if (!permissions.canReviewTopups) {
         if (!mounted) {
           return;
         }
@@ -89,11 +88,6 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       setState(() {
         _isAuthorized = true;
         _requests = requests;
-        _summary = {
-          'pending': requests
-              .where((item) => item['status']?.toString() == 'pending')
-              .length,
-        };
         _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
         _totalRequests =
             (pagination['total'] as num?)?.toInt() ?? _requests.length;
@@ -156,7 +150,16 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.tr('screens_topup_requests_screen.002'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_topup_requests_screen.002')),
+        actions: [
+          IconButton(
+            tooltip: l.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+        ],
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -165,10 +168,8 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             child: Column(
               children: [
-                _buildHero(),
-                const SizedBox(height: 24),
                 _buildFilterBar(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
                 if (_requests.isEmpty)
                   _buildEmptyState()
                 else ...[
@@ -193,78 +194,14 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     );
   }
 
-  Widget _buildHero() {
+  Future<void> _showHelpDialog() async {
     final l = context.loc;
-    final pending = (_summary['pending'] as num?)?.toInt() ?? 0;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      gradient: AppTheme.primaryGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 760;
-          final iconBox = Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Icon(
-              Icons.add_card_rounded,
-              color: Colors.white,
-              size: 34,
-            ),
-          );
-          final content = Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('screens_topup_requests_screen.026'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l.tr('screens_topup_requests_screen.027'),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white70,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          );
-          final badge = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              l.tr(
-                'screens_topup_requests_screen.003',
-                params: {'pending': '$pending'},
-              ),
-              style: AppTheme.bodyBold.copyWith(color: Colors.white),
-            ),
-          );
-
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [iconBox, const SizedBox(width: 16), badge]),
-                const SizedBox(height: 18),
-                content,
-              ],
-            );
-          }
-
-          return Row(
-            children: [iconBox, const SizedBox(width: 24), content, badge],
-          );
-        },
+    await AppAlertService.showInfo(
+      context,
+      title: l.text('مساعدة سريعة', 'Quick help'),
+      message: l.text(
+        'استخدم البحث والحالة للوصول إلى طلبات التعبئة بسرعة، ثم افتح الطلب المناسب لاعتماده أو رفضه.',
+        'Use search and status filters to quickly find top-up requests, then open the right request to approve or reject it.',
       ),
     );
   }
@@ -659,4 +596,3 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     return DateFormat('yyyy/MM/dd - hh:mm a').format(parsed.toLocal());
   }
 }
-

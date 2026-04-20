@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_location_card.dart';
-import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
-import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class AdminLocationsScreen extends StatefulWidget {
@@ -18,8 +17,10 @@ class AdminLocationsScreen extends StatefulWidget {
 
 class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
   List<Map<String, dynamic>> _locations = const [];
   bool _isLoading = true;
+  bool _isAuthorized = false;
 
   @override
   void initState() {
@@ -30,11 +31,24 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final currentUser = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(currentUser);
+      if (!permissions.canManageLocations) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
       final data = await _apiService.getAdminSupportedLocations();
       if (!mounted) {
         return;
       }
       setState(() {
+        _isAuthorized = true;
         _locations = data;
         _isLoading = false;
       });
@@ -52,6 +66,9 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   }
 
   Future<void> _showLocationDialog({Map<String, dynamic>? location}) async {
+    if (!_isAuthorized) {
+      return;
+    }
     final l = context.loc;
     final titleController = TextEditingController(
       text: location?['title']?.toString() ?? '',
@@ -275,9 +292,54 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(title: Text(l.tr('screens_admin_locations_screen.003'))),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  l.text(
+                    'لا تملك صلاحية إدارة المناطق',
+                    'You do not have permission to manage locations.',
+                  ),
+                  style: AppTheme.h3,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.tr('screens_admin_locations_screen.018'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_admin_locations_screen.018')),
+        actions: [
+          IconButton(
+            tooltip: l.text('إضافة', 'Add'),
+            onPressed: _showLocationDialog,
+            icon: const Icon(Icons.add_location_alt_rounded),
+          ),
+          IconButton(
+            tooltip: l.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+        ],
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -287,40 +349,14 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShwakelCard(
-                  padding: const EdgeInsets.all(28),
-                  gradient: AppTheme.primaryGradient,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l.tr('screens_admin_locations_screen.019'),
-                        style: AppTheme.h2.copyWith(color: Colors.white),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l.tr('screens_admin_locations_screen.hero_subtitle'),
-                        style: AppTheme.bodyAction.copyWith(
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
+                Text(
+                  l.text(
+                    'عدد النقاط المتاحة: ${_locations.length}',
+                    'Available locations: ${_locations.length}',
                   ),
+                  style: AppTheme.caption,
                 ),
-                const SizedBox(height: 24),
-                AdminSectionHeader(
-                  title: l.tr('screens_admin_locations_screen.020'),
-                  subtitle: l.tr(
-                    'screens_admin_locations_screen.section_subtitle',
-                  ),
-                  icon: Icons.map_rounded,
-                  trailing: ShwakelButton(
-                    label: l.tr('screens_admin_locations_screen.021'),
-                    icon: Icons.add_location_alt_rounded,
-                    onPressed: _showLocationDialog,
-                  ),
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final cols = constraints.maxWidth > 1100
@@ -352,6 +388,18 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showHelpDialog() async {
+    final l = context.loc;
+    await AppAlertService.showInfo(
+      context,
+      title: l.text('مساعدة سريعة', 'Quick help'),
+      message: l.text(
+        'تُعرض هنا نقاط الخدمة مباشرة. استخدم زر الإضافة من الأعلى، أو افتح البطاقة للتعديل والحذف.',
+        'Service locations appear here directly. Use the top add button, or open a card to edit and delete it.',
       ),
     );
   }

@@ -9,25 +9,23 @@ import '../models/index.dart';
 class OfflineCardService {
   static const _cardsKeyPrefix = 'offline_cards_cache_';
   static const _redeemKeyPrefix = 'offline_redeem_queue_';
+  static const _rejectedKeyPrefix = 'offline_redeem_rejected_';
+  static const _settingsKeyPrefix = 'offline_cards_settings_';
+  static const _scanAttemptsKeyPrefix = 'offline_scan_attempts_';
   static const _offlineKeyName = 'offline_cards_aes_key_v1';
+  static const double _defaultMaxPendingAmount = 500;
+  static const int _defaultMaxPendingCount = 50;
   static final AesGcm _cipher = AesGcm.with256bits();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   Future<void> cacheCards({
     required String userId,
     required List<VirtualCard> cards,
+    Map<String, dynamic> settings = const {},
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final key = '$_cardsKeyPrefix$userId';
-    final existing = await _decodeStoredList(prefs.getString(key));
     final byBarcode = <String, Map<String, dynamic>>{};
-
-    for (final item in existing) {
-      final barcode = item['barcode']?.toString() ?? '';
-      if (barcode.isNotEmpty) {
-        byBarcode[barcode] = item;
-      }
-    }
 
     for (final card in cards) {
       if (!card.isPrivate) {
@@ -45,6 +43,12 @@ class OfflineCardService {
       key,
       await _encodeStoredList(byBarcode.values.toList()),
     );
+    if (settings.isNotEmpty) {
+      await prefs.setString(
+        '$_settingsKeyPrefix$userId',
+        await _encodeStoredObject(settings),
+      );
+    }
   }
 
   Future<VirtualCard?> findCachedCard(String userId, String barcode) async {
@@ -98,6 +102,136 @@ class OfflineCardService {
     return _decodeStoredList(prefs.getString('$_redeemKeyPrefix$userId'));
   }
 
+  Future<List<Map<String, dynamic>>> getRejectedRedeems(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return _decodeStoredList(prefs.getString('$_rejectedKeyPrefix$userId'));
+  }
+
+  Future<void> replaceRejectedRedeems(
+    String userId,
+    List<Map<String, dynamic>> entries,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_rejectedKeyPrefix$userId';
+    if (entries.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, await _encodeStoredList(entries));
+  }
+
+  Future<Map<String, dynamic>> pendingRedeemSummary(String userId) async {
+    final queue = await getRedeemQueue(userId);
+    final rejected = await getRejectedRedeems(userId);
+    final amount = queue.fold<double>(
+      0,
+      (sum, item) => sum + ((item['value'] as num?)?.toDouble() ?? 0),
+    );
+    return {
+      'count': queue.length,
+      'amount': amount,
+      'rejectedCount': rejected.length,
+      'rejected': rejected,
+    };
+  }
+
+  Future<List<VirtualCard>> getCachedCards(String userId) async {
+    return _loadCards(userId);
+  }
+
+  Future<bool> hasOfflineWorkspace(String userId) async {
+    final cards = await getCachedCards(userId);
+    if (cards.isNotEmpty) {
+      return true;
+    }
+    final queue = await getRedeemQueue(userId);
+    if (queue.isNotEmpty) {
+      return true;
+    }
+    final rejected = await getRejectedRedeems(userId);
+    return rejected.isNotEmpty;
+  }
+
+  Future<Map<String, dynamic>> offlineOverview(String userId) async {
+    final cards = await getCachedCards(userId);
+    final summary = await pendingRedeemSummary(userId);
+    final settings = await offlineSettings(userId);
+    final availableCards = cards
+        .where((card) => card.status != CardStatus.used)
+        .length;
+    final usedCards = cards.length - availableCards;
+
+    return {
+      'cachedCount': cards.length,
+      'availableCount': availableCards,
+      'usedCount': usedCards,
+      'cards': cards,
+      'summary': summary,
+      'settings': settings,
+    };
+  }
+
+  Future<Map<String, dynamic>> offlineSettings(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final decoded = await _decodeStoredObject(
+      prefs.getString('$_settingsKeyPrefix$userId'),
+    );
+    return {
+      'maxPendingAmount':
+          (decoded['maxPendingAmount'] as num?)?.toDouble() ??
+          _defaultMaxPendingAmount,
+      'maxPendingCount':
+          (decoded['maxPendingCount'] as num?)?.toInt() ??
+          _defaultMaxPendingCount,
+      ...decoded,
+    };
+  }
+
+  Future<String?> validateCanQueueRedeem({
+    required String userId,
+    required double cardValue,
+  }) async {
+    final settings = await offlineSettings(userId);
+    final queue = await getRedeemQueue(userId);
+    final pendingAmount = queue.fold<double>(
+      0,
+      (sum, item) => sum + ((item['value'] as num?)?.toDouble() ?? 0),
+    );
+    final maxAmount =
+        (settings['maxPendingAmount'] as num?)?.toDouble() ??
+        _defaultMaxPendingAmount;
+    final maxCount =
+        (settings['maxPendingCount'] as num?)?.toInt() ??
+        _defaultMaxPendingCount;
+
+    if (queue.length >= maxCount) {
+      return 'وصلت إلى الحد الأعلى لعدد بطاقات الأوفلاين. اتصل بالإنترنت للمزامنة قبل المتابعة.';
+    }
+    if (pendingAmount + cardValue > maxAmount) {
+      return 'وصلت إلى سقف رصيد البطاقات المعلقة أوفلاين. اتصل بالإنترنت للمزامنة قبل فحص المزيد.';
+    }
+
+    return null;
+  }
+
+  Future<bool> recordUnknownOfflineScan(String userId, String barcode) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_scanAttemptsKeyPrefix$userId';
+    final now = DateTime.now();
+    final attempts = await _decodeStoredList(prefs.getString(key));
+    final recent = attempts.where((item) {
+      final at = DateTime.tryParse(item['at']?.toString() ?? '');
+      return at != null && now.difference(at).inMinutes < 3;
+    }).toList()..add({'barcode': barcode, 'at': now.toIso8601String()});
+    await prefs.setString(key, await _encodeStoredList(recent));
+    return recent.length >= 8;
+  }
+
+  Future<void> clearUnknownOfflineScans(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('$_scanAttemptsKeyPrefix$userId');
+  }
+
   Future<void> enqueueRedeem(String userId, Map<String, dynamic> entry) async {
     final prefs = await SharedPreferences.getInstance();
     final key = '$_redeemKeyPrefix$userId';
@@ -139,6 +273,14 @@ class OfflineCardService {
   }
 
   Future<String> _encodeStoredList(List<Map<String, dynamic>> payload) async {
+    return _encodeJsonPayload(payload);
+  }
+
+  Future<String> _encodeStoredObject(Map<String, dynamic> payload) async {
+    return _encodeJsonPayload(payload);
+  }
+
+  Future<String> _encodeJsonPayload(Object payload) async {
     final secretKey = await _getOrCreateSecretKey();
     final box = await _cipher.encrypt(
       utf8.encode(jsonEncode(payload)),
@@ -154,8 +296,18 @@ class OfflineCardService {
   }
 
   Future<List<Map<String, dynamic>>> _decodeStoredList(String? raw) async {
+    final decoded = await _decodeJsonPayload(raw);
+    return _coerceList(decoded);
+  }
+
+  Future<Map<String, dynamic>> _decodeStoredObject(String? raw) async {
+    final decoded = await _decodeJsonPayload(raw);
+    return decoded is Map ? Map<String, dynamic>.from(decoded) : {};
+  }
+
+  Future<dynamic> _decodeJsonPayload(String? raw) async {
     if (raw == null || raw.trim().isEmpty) {
-      return [];
+      return null;
     }
     try {
       final decoded = jsonDecode(raw);
@@ -169,11 +321,11 @@ class OfflineCardService {
           ),
           secretKey: secretKey,
         );
-        return _coerceList(jsonDecode(utf8.decode(clearBytes)));
+        return jsonDecode(utf8.decode(clearBytes));
       }
-      return _coerceList(decoded);
+      return decoded;
     } catch (_) {
-      return [];
+      return null;
     }
   }
 

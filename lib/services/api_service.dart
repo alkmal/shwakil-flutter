@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +11,7 @@ import 'error_message_service.dart';
 
 class ApiService {
   final AuthService _authService = AuthService();
+  static const Duration _publicRequestTimeout = Duration(seconds: 8);
 
   Future<Map<String, String>> _headers() async {
     final token = await _authService.token();
@@ -68,19 +70,23 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getContactInfo() async {
-    final response = await http.get(
-      AppConfig.apiUri('app/contact-info'),
-      headers: await _publicHeaders(),
-    );
+    final response = await http
+        .get(
+          AppConfig.apiUri('app/contact-info'),
+          headers: await _publicHeaders(),
+        )
+        .timeout(_publicRequestTimeout);
     final body = _decodeObject(response);
     return Map<String, dynamic>.from(body['contact'] as Map? ?? const {});
   }
 
   Future<Map<String, dynamic>> getAuthSettings() async {
-    final response = await http.get(
-      AppConfig.apiUri('app/auth-settings'),
-      headers: await _publicHeaders(),
-    );
+    final response = await http
+        .get(
+          AppConfig.apiUri('app/auth-settings'),
+          headers: await _publicHeaders(),
+        )
+        .timeout(_publicRequestTimeout);
     final body = _decodeObject(response);
     return Map<String, dynamic>.from(body['auth'] as Map? ?? const {});
   }
@@ -1387,6 +1393,24 @@ class ApiService {
           .toList(),
       'pagination': Map<String, dynamic>.from(
         body['pagination'] as Map? ?? const {},
+      ),
+    };
+  }
+
+  Future<Map<String, dynamic>> getOfflineCardCache() async {
+    final response = await http.get(
+      AppConfig.apiUri('cards/offline-cache'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    final cards = List<dynamic>.from(body['cards'] as List? ?? const []);
+    return {
+      ...body,
+      'cards': cards
+          .map((item) => _cardFromApi(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+      'settings': Map<String, dynamic>.from(
+        body['settings'] as Map? ?? const {},
       ),
     };
   }

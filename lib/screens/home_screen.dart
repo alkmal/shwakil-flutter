@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../main.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -23,9 +23,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final AuthService _authService = AuthService();
+  final OfflineCardService _offlineCardService = OfflineCardService();
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
+  bool _hasOfflineWorkspace = false;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
 
@@ -73,6 +75,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return AppPermissions.fromUser(_user).canReviewCards;
   }
 
+  bool get _canOpenCardTools {
+    return AppPermissions.fromUser(_user).canOpenCardTools;
+  }
+
   bool get _isVerifiedAccount =>
       _user?['transferVerificationStatus']?.toString() == 'approved';
 
@@ -81,15 +87,65 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     try {
       await _authService.refreshCurrentUser();
       final user = await _authService.currentUser();
+      final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       if (!mounted) return;
       setState(() {
         _user = user;
+        _hasOfflineWorkspace = hasOfflineWorkspace;
         _isLoading = false;
       });
     } catch (_) {
+      final user = await _authService.currentUser();
+      final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      setState(() {
+        _user = user;
+        _hasOfflineWorkspace = hasOfflineWorkspace;
+        _isLoading = false;
+      });
     }
+  }
+
+  Future<bool> _resolveOfflineWorkspace(Map<String, dynamic>? user) async {
+    final permissions = AppPermissions.fromUser(user);
+    if (user == null ||
+        user['id'] == null ||
+        !permissions.canOfflineCardScan) {
+      return false;
+    }
+    return _offlineCardService.hasOfflineWorkspace(user['id'].toString());
+  }
+
+  bool get _isRestrictedOfflineWorkspaceUser {
+    final permissions = AppPermissions.fromUser(_user);
+    return permissions.canOfflineCardScan && !permissions.canIssueCards;
+  }
+
+  String get _scanRoute =>
+      OfflineSessionService.isOfflineMode ? '/scan-card-offline' : '/scan-card';
+
+  void _openScanScreen() {
+    Navigator.pushNamed(context, _scanRoute);
+  }
+
+  Future<void> _showOfflineBlockedMessage() {
+    return AppAlertService.showInfo(
+      context,
+      title: 'هذه الشاشة غير متاحة دون إنترنت',
+      message:
+          'أنت الآن في وضع الأوفلاين. هذه الشاشة تحتاج اتصالًا بالإنترنت حتى تعمل.',
+    );
+  }
+
+  Future<void> _openOnlineOnlyRoute(String routeName) async {
+    if (OfflineSessionService.isOfflineMode) {
+      await _showOfflineBlockedMessage();
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName);
   }
 
   Future<void> _logout() async {
@@ -113,116 +169,27 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Future<void> _startHomeBarcodeScan() async {
-    if (!_canIssueCards) return;
+    if (!_canOpenCardTools && !_canReviewCards) return;
     final l = context.loc;
-
-    final controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      facing: CameraFacing.back,
-    );
-
-    var didScan = false;
-    var torchEnabled = false;
     final scannedValue = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            scrollable: true,
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 24,
-            ),
-            title: Text(
-              l.tr('screens_home_screen.014'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l.tr('screens_home_screen.013'),
-                  textAlign: TextAlign.center,
-                  style: AppTheme.bodyAction,
-                ),
-                const SizedBox(height: 14),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: SizedBox(
-                    height: 320,
-                    width: double.infinity,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        MobileScanner(
-                          controller: controller,
-                          onDetect: (capture) {
-                            if (didScan) return;
-                            final value = capture.barcodes
-                                .map(
-                                  (barcode) => barcode.rawValue?.trim() ?? '',
-                                )
-                                .firstWhere(
-                                  (candidate) => candidate.isNotEmpty,
-                                  orElse: () => '',
-                                );
-                            if (value.isEmpty) return;
-                            didScan = true;
-                            Navigator.of(context).pop(value);
-                          },
-                        ),
-                        Positioned(
-                          top: 12,
-                          left: 12,
-                          child: FilledButton.tonalIcon(
-                            onPressed: () async {
-                              await controller.toggleTorch();
-                              setDialogState(() {
-                                torchEnabled = !torchEnabled;
-                              });
-                            },
-                            icon: Icon(
-                              torchEnabled
-                                  ? Icons.flash_off_rounded
-                                  : Icons.flash_on_rounded,
-                            ),
-                            label: Text(
-                              context.loc.text(
-                                torchEnabled
-                                    ? 'إطفاء الإضاءة'
-                                    : 'تشغيل الإضاءة',
-                                torchEnabled ? 'Torch off' : 'Torch on',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              ShwakelButton(
-                label: l.tr('screens_home_screen.001'),
-                isSecondary: true,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (_) => BarcodeScannerDialog(
+        title: l.tr('screens_home_screen.014'),
+        description: l.tr('screens_home_screen.013'),
+        height: 320,
+        onCancelLabel: l.tr('screens_home_screen.001'),
+      ),
     );
-
-    await controller.dispose();
     if (!mounted || scannedValue == null || scannedValue.isEmpty) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ScanCardScreen(initialBarcode: scannedValue),
+        builder: (_) => ScanCardScreen(
+          initialBarcode: scannedValue,
+          offlineMode: OfflineSessionService.isOfflineMode,
+        ),
       ),
     );
   }
@@ -261,10 +228,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         final isTablet = width < 1100;
                         final showBarcodeCard =
                             _canIssueCards || _canReviewCards;
-                        final columns = width < 360
+                        final columns = width < 420
                             ? 1
                             : (isMobile ? 2 : (isTablet ? 2 : 3));
-                        final spacing = 18.0;
+                        final spacing = isMobile ? 16.0 : 18.0;
                         final itemWidth =
                             (width - (spacing * (columns - 1))) / columns;
 
@@ -275,15 +242,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               isMobile: isMobile,
                               showBarcodeCard: showBarcodeCard,
                             ),
-                            const SizedBox(height: 22),
-                            Text(
-                              l.tr('screens_home_screen.004'),
-                              style: AppTheme.h1,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              l.tr('screens_home_screen.005'),
-                              style: AppTheme.bodyAction,
+                            const SizedBox(height: 24),
+                            _buildSectionHeader(
+                              title: l.tr('screens_home_screen.004'),
+                              subtitle: l.tr('screens_home_screen.005'),
+                              actionLabel: '${services.length} خدمات',
                             ),
                             const SizedBox(height: 18),
                             Wrap(
@@ -328,6 +291,30 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final l = context.loc;
+    final canOpenOfflineCenter = _hasOfflineWorkspace || canScanCards;
+
+    if (OfflineSessionService.isOfflineMode || _isRestrictedOfflineWorkspaceUser) {
+      return [
+        if (canScanCards)
+          _HomeServiceItem(
+            title: l.tr('screens_home_screen.015'),
+            subtitle: l.tr('screens_home_screen.016'),
+            icon: Icons.qr_code_scanner_rounded,
+            color: AppTheme.success,
+            onTap: _openScanScreen,
+          ),
+        if (canOpenOfflineCenter)
+          _HomeServiceItem(
+            title: 'مركز الأوف لاين',
+            subtitle: OfflineSessionService.isOfflineMode
+                ? 'إظهار أدوات الأوف لاين فقط دون أي شاشات أونلاين.'
+                : 'إدارة مخزون الأوف لاين ومزامنة العمليات دون كشف البطاقات المحفوظة.',
+            icon: Icons.cloud_done_rounded,
+            color: AppTheme.warning,
+            onTap: () => Navigator.pushNamed(context, '/offline-center'),
+          ),
+      ];
+    }
 
     if (canReviewCards && !canIssueCards) {
       return [
@@ -336,8 +323,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.016'),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.success,
-          onTap: () => Navigator.pushNamed(context, '/scan-card'),
+          onTap: _openScanScreen,
         ),
+        if (canOpenOfflineCenter)
+          _HomeServiceItem(
+            title: 'مركز الأوف لاين',
+            subtitle: 'متابعة المزامنة المحلية بدون عرض أكواد البطاقات.',
+            icon: Icons.cloud_done_rounded,
+            color: AppTheme.warning,
+            onTap: () => Navigator.pushNamed(context, '/offline-center'),
+          ),
       ];
     }
 
@@ -348,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.016'),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.success,
-          onTap: () => Navigator.pushNamed(context, '/scan-card'),
+          onTap: _openScanScreen,
         ),
       if (canViewBalance)
         _HomeServiceItem(
@@ -356,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.018'),
           icon: Icons.account_balance_wallet_rounded,
           color: AppTheme.primary,
-          onTap: () => Navigator.pushNamed(context, '/balance'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/balance')),
         ),
       if (canIssueCards)
         _HomeServiceItem(
@@ -364,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.020'),
           icon: Icons.add_card_rounded,
           color: const Color(0xFF0B75B7),
-          onTap: () => Navigator.pushNamed(context, '/create-card'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/create-card')),
         ),
       if (canViewQuickTransfer && _canTransfer)
         _HomeServiceItem(
@@ -372,7 +367,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.022'),
           icon: Icons.send_to_mobile_rounded,
           color: AppTheme.accent,
-          onTap: () => Navigator.pushNamed(context, '/quick-transfer'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/quick-transfer')),
         ),
       if (canViewInventory && canIssueCards)
         _HomeServiceItem(
@@ -380,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.024'),
           icon: Icons.inventory_2_rounded,
           color: AppTheme.textSecondary,
-          onTap: () => Navigator.pushNamed(context, '/inventory'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/inventory')),
         ),
       if (canRequestCardPrinting)
         _HomeServiceItem(
@@ -388,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.026'),
           icon: Icons.print_rounded,
           color: AppTheme.secondary,
-          onTap: () => Navigator.pushNamed(context, '/card-print-requests'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/card-print-requests')),
         ),
       if (canViewTransactions)
         _HomeServiceItem(
@@ -396,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.028'),
           icon: Icons.receipt_long_rounded,
           color: AppTheme.warning,
-          onTap: () => Navigator.pushNamed(context, '/transactions'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/transactions')),
         ),
       if (canViewSecuritySettings)
         _HomeServiceItem(
@@ -404,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.030'),
           icon: Icons.security_rounded,
           color: AppTheme.secondary,
-          onTap: () => Navigator.pushNamed(context, '/security-settings'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/security-settings')),
         ),
     ];
   }
@@ -469,9 +464,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return ShwakelCard(
       padding: EdgeInsets.all(isMobile ? 20 : 24),
       gradient: const LinearGradient(
-        colors: [Color(0xFF25C4D9), Color(0xFF17A79A)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+        colors: [Color(0xFF0C4A6E), Color(0xFF0F766E), Color(0xFF22C1C3)],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
       ),
       shadowLevel: ShwakelShadowLevel.premium,
       withBorder: false,
@@ -486,6 +481,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'الواجهة الرئيسية',
+                      style: AppTheme.caption.copyWith(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     Text(
                       displayName.isEmpty
                           ? l.tr('screens_home_screen.006')
@@ -612,14 +615,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       const SizedBox(width: 18),
                       Expanded(
                         flex: 2,
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
+                        child: Column(
                           children: heroChips
                               .map(
-                                (chip) => _buildHeroChip(
-                                  icon: chip.icon,
-                                  label: chip.label,
+                                (chip) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _buildHeroChip(
+                                    icon: chip.icon,
+                                    label: chip.label,
+                                    expanded: true,
+                                  ),
                                 ),
                               )
                               .toList(),
@@ -647,41 +652,68 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       borderRadius: BorderRadius.circular(28),
       shadowLevel: ShwakelShadowLevel.medium,
       child: compact
-          ? Column(
+          ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(18),
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'خدمة',
+                          style: AppTheme.caption.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
-                      child: Icon(icon, color: color, size: 26),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      color: color,
-                      size: 24,
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.h3.copyWith(color: color, fontSize: 17),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodyAction.copyWith(
+                          height: 1.4,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  title,
-                  style: AppTheme.h3.copyWith(color: color, fontSize: 16),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyAction.copyWith(
-                    height: 1.4,
-                    fontSize: 13.5,
+                const SizedBox(width: 10),
+                Padding(
+                  padding: const EdgeInsets.only(top: 14),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: color,
+                    size: 24,
                   ),
                 ),
               ],
@@ -704,6 +736,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'خدمة',
+                          style: AppTheme.caption.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       Text(
                         title,
                         style: AppTheme.h3.copyWith(color: color, fontSize: 19),
@@ -723,8 +773,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Widget _buildHeroChip({required IconData icon, required String label}) {
+  Widget _buildHeroChip({
+    required IconData icon,
+    required String label,
+    bool expanded = false,
+  }) {
     return Container(
+      width: expanded ? double.infinity : null,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
@@ -745,6 +800,51 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required String subtitle,
+    String? actionLabel,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTheme.h1),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: AppTheme.bodyAction.copyWith(
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (actionLabel != null) ...[
+          const SizedBox(width: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              actionLabel,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 

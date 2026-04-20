@@ -22,30 +22,52 @@ class ShwakelLogo extends StatelessWidget {
   final Color frameBorderColor;
   @override
   Widget build(BuildContext context) {
-    final logo = ClipRRect(
-      borderRadius: BorderRadius.circular(size * 0.22),
-      child: Image.asset(
-        'assets/images/shwakel_app_icon.png',
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-      ),
+    final resolvedFramePadding = (framePadding ?? EdgeInsets.all(size * 0.12))
+        .resolve(Directionality.of(context));
+    final framedLogoWidth = (size - resolvedFramePadding.horizontal).clamp(
+      0.0,
+      size,
     );
+    final framedLogoHeight = (size - resolvedFramePadding.vertical).clamp(
+      0.0,
+      size,
+    );
+
+    Widget buildLogo(double width, double height) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.22),
+        child: Image.asset(
+          'assets/images/shwakel_app_icon.png',
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (framed)
-          Container(
-            padding: framePadding ?? EdgeInsets.all(size * 0.12),
-            decoration: BoxDecoration(
-              color: frameColor,
-              borderRadius: BorderRadius.circular(size * 0.32),
-              border: Border.all(color: frameBorderColor),
+          SizedBox(
+            width: size,
+            height: size,
+            child: Container(
+              padding: resolvedFramePadding,
+              decoration: BoxDecoration(
+                color: frameColor,
+                borderRadius: BorderRadius.circular(size * 0.32),
+                border: Border.all(color: frameBorderColor),
+              ),
+              child: SizedBox(
+                width: framedLogoWidth,
+                height: framedLogoHeight,
+                child: buildLogo(framedLogoWidth, framedLogoHeight),
+              ),
             ),
-            child: SizedBox(width: size, height: size, child: logo),
           )
         else
-          SizedBox(width: size, height: size, child: logo),
+          SizedBox(width: size, height: size, child: buildLogo(size, size)),
         if (showLabel) ...[
           const SizedBox(height: 10),
           Text(

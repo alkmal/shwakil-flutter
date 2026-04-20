@@ -665,7 +665,7 @@ class PDFService {
                       ),
                       pw.SizedBox(height: 0.3),
                       pw.Text(
-                        'wa.alkmal.com',
+                        'shwakil.alkmal.com',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.ltr,
                         style: _textStyle(
@@ -937,7 +937,7 @@ class PDFService {
                       ),
                       pw.SizedBox(height: 2),
                       pw.Text(
-                        'wa.alkmal.com',
+                        'shwakil.alkmal.com',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.ltr,
                         style: _textStyle(fontSize: 8, color: palette.primary),

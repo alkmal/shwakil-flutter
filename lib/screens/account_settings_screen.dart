@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -37,6 +38,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       TextEditingController();
 
   bool _isLoading = true;
+  bool _isAuthorized = false;
   bool _isSaving = false;
   bool _isUploadingLogo = false;
   bool _profileLocked = false;
@@ -69,11 +71,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<void> _load() async {
     final user = await _authService.currentUser();
-    if (user == null || !mounted) {
+    if (!mounted) {
+      return;
+    }
+    if (user == null) {
+      setState(() => _isLoading = false);
       return;
     }
 
     setState(() {
+      _isAuthorized = AppPermissions.fromUser(user).canViewAccountSettings;
       _user = user;
       _fullNameController.text = user['fullName']?.toString() ?? '';
       _usernameController.text = user['username']?.toString() ?? '';
@@ -280,12 +287,97 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_account_settings_screen.008')),
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text('لا تملك صلاحية عرض إعدادات الحساب', style: AppTheme.h3),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    if (_user == null) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_account_settings_screen.008')),
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ResponsiveScaffoldContainer(
+              child: ShwakelCard(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.lock_person_rounded,
+                      color: AppTheme.primary,
+                      size: 52,
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Sign in required',
+                      style: AppTheme.h2,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please sign in before opening account settings.',
+                      style: AppTheme.bodyAction.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ShwakelButton(
+                      label: 'Go to sign in',
+                      icon: Icons.login_rounded,
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil('/login', (route) => false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_account_settings_screen.008')),
+          actions: [
+            IconButton(
+              tooltip: l.text('مساعدة', 'Help'),
+              onPressed: _showHelpDialog,
+              icon: const Icon(Icons.info_outline_rounded),
+            ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(72),
             child: Padding(
@@ -331,16 +423,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildProfileHero(),
             if (_hasPendingProfileCompletion) ...[
-              const SizedBox(height: 16),
               _buildCompletionNotice(),
+              const SizedBox(height: 16),
             ],
             if (_profileLocked) ...[
-              const SizedBox(height: 16),
               _buildLockedNotice(),
+              const SizedBox(height: 16),
             ],
-            const SizedBox(height: 20),
             if (isMobile) ...[
               _buildBasicInfoCard(),
               const SizedBox(height: 16),
@@ -380,26 +470,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ShwakelCard(
-              padding: const EdgeInsets.all(28),
-              gradient: AppTheme.primaryGradient,
-              shadowLevel: ShwakelShadowLevel.premium,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l.tr('screens_account_settings_screen.012'),
-                    style: AppTheme.h2.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l.tr('screens_account_settings_screen.044'),
-                    style: AppTheme.bodyAction.copyWith(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
             ShwakelCard(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -471,86 +541,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
-  Widget _buildProfileHero() {
+  Future<void> _showHelpDialog() async {
     final l = context.loc;
-    final name = _fullNameController.text.trim().isEmpty
-        ? _usernameController.text.trim()
-        : _fullNameController.text.trim();
-    final verification =
-        _user?['transferVerificationStatus']?.toString() ?? 'unverified';
-    final isApproved = verification == 'approved';
-    final pendingFieldsCount = _editableProfileFields.length;
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(28),
-      gradient: AppTheme.primaryGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 34,
-            backgroundColor: Colors.white24,
-            child: Text(
-              name.isEmpty ? 'ش' : name.substring(0, 1).toUpperCase(),
-              style: AppTheme.h1.copyWith(color: Colors.white, fontSize: 28),
-            ),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: AppTheme.h2.copyWith(color: Colors.white)),
-                const SizedBox(height: 4),
-                Text(
-                  '@${_usernameController.text}',
-                  style: AppTheme.bodyAction.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    isApproved
-                        ? l.tr('screens_account_settings_screen.016')
-                        : l.tr('screens_account_settings_screen.017'),
-                    style: AppTheme.caption.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _buildHeroStatusChip(
-                      icon: Icons.phone_rounded,
-                      label: _whatsappController.text.trim().isEmpty
-                          ? l.tr('screens_account_settings_screen.018')
-                          : _whatsappController.text.trim(),
-                    ),
-                    if (_hasPendingProfileCompletion)
-                      _buildHeroStatusChip(
-                        icon: Icons.edit_note_rounded,
-                        label: l.tr(
-                          'screens_account_settings_screen.046',
-                          params: {'count': '$pendingFieldsCount'},
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+    await AppAlertService.showInfo(
+      context,
+      title: l.text('مساعدة سريعة', 'Quick help'),
+      message: l.text(
+        'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
+        'This section is for updating account details and password. Important notices appear above the form only when needed.',
       ),
     );
   }
@@ -793,30 +791,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   width: 160,
                 ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeroStatusChip({required IconData icon, required String label}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ],
       ),

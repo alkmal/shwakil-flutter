@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -26,6 +27,7 @@ class AppUpdateRequirement {
 
 class AppVersionService {
   AppVersionService._();
+  static const Duration _requestTimeout = Duration(seconds: 8);
 
   static PackageInfo? _cachedInfo;
 
@@ -53,10 +55,17 @@ class AppVersionService {
 
   static Future<AppUpdateRequirement?> fetchRequiredUpdate() async {
     final info = await _packageInfo();
-    final response = await http.get(
-      AppConfig.apiUri('app/auth-settings'),
-      headers: await publicHeaders(),
-    );
+    late final http.Response response;
+    try {
+      response = await http
+          .get(
+            AppConfig.apiUri('app/auth-settings'),
+            headers: await publicHeaders(),
+          )
+          .timeout(_requestTimeout);
+    } catch (_) {
+      return null;
+    }
     if (response.statusCode >= 400) {
       return null;
     }

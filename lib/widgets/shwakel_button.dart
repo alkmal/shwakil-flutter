@@ -67,7 +67,7 @@ class ShwakelButton extends StatelessWidget {
           )
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             children: [
               if (icon != null) ...[
                 if (!iconAtEnd) ...[
@@ -75,12 +75,18 @@ class ShwakelButton extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
               ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: fontSize ?? (isPhone ? 15 : 16),
-                  fontWeight: FontWeight.w900,
-                  fontFamily: 'NotoSansArabic',
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: fontSize ?? (isPhone ? 15 : 16),
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'NotoSansArabic',
+                  ),
                 ),
               ),
               if (icon != null && iconAtEnd) ...[

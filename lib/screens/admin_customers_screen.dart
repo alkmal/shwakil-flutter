@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_customer_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
@@ -22,6 +23,7 @@ class AdminCustomersScreen extends StatefulWidget {
 
 class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -29,6 +31,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
   bool _isLoadingCustomers = false;
+  bool _isAuthorized = false;
+  bool _canManageUsers = false;
   String? _resendBusyId;
   int _customerPage = 1;
   int _customerLastPage = 1;
@@ -55,6 +59,19 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     }
 
     try {
+      final currentUser = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(currentUser);
+      if (!permissions.canViewCustomers) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+          _isLoadingCustomers = false;
+        });
+        return;
+      }
       final payload = await _apiService.getAdminCustomers(
         query: _searchController.text.trim(),
         page: _customerPage,
@@ -69,6 +86,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       }
 
       setState(() {
+        _isAuthorized = true;
         _summary = Map<String, dynamic>.from(
           payload['summary'] as Map? ?? const {},
         );
@@ -76,6 +94,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
           payload['customers'] as List? ?? const [],
         );
         _customerLastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _canManageUsers = permissions.canManageUsers;
         _isLoading = false;
         _isLoadingCustomers = false;
       });
@@ -99,13 +118,18 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            AdminCustomerScreen(customer: customer, canManageUsers: true),
+        builder: (_) => AdminCustomerScreen(
+          customer: customer,
+          canManageUsers: _canManageUsers,
+        ),
       ),
     );
   }
 
   Future<void> _showCreateCustomerDialog() async {
+    if (!_canManageUsers) {
+      return;
+    }
     final l = context.loc;
     final usernameController = TextEditingController();
     final fullNameController = TextEditingController();
@@ -368,9 +392,55 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(title: Text(l.tr('screens_admin_customers_screen.017'))),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  l.text(
+                    'لا تملك صلاحية عرض العملاء',
+                    'You do not have permission to view customers.',
+                  ),
+                  style: AppTheme.h3,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(l.tr('screens_admin_customers_screen.017'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_admin_customers_screen.017')),
+        actions: [
+          if (_canManageUsers)
+            IconButton(
+              tooltip: l.tr('screens_admin_customers_screen.022'),
+              onPressed: _showCreateCustomerDialog,
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+            ),
+          IconButton(
+            tooltip: context.loc.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+        ],
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: () => _loadCustomers(reset: true),
@@ -380,57 +450,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShwakelCard(
-                  padding: const EdgeInsets.all(28),
-                  gradient: AppTheme.primaryGradient,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l.tr('screens_admin_customers_screen.018'),
-                        style: AppTheme.h2.copyWith(color: Colors.white),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l.tr('screens_admin_customers_screen.029'),
-                        style: AppTheme.bodyAction.copyWith(
-                          color: Colors.white70,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          _heroBadge(
-                            l.tr('screens_admin_customers_screen.019'),
-                            l.tr(
-                              'screens_admin_customers_screen.030',
-                              params: {'count': _customers.length.toString()},
-                            ),
-                          ),
-                          _heroBadge(
-                            l.tr('screens_admin_customers_screen.020'),
-                            l.tr(
-                              'screens_admin_customers_screen.031',
-                              params: {'count': totalCustomers.toString()},
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
                 AdminSectionHeader(
                   title: l.tr('screens_admin_customers_screen.021'),
-                  subtitle: l.tr('screens_admin_customers_screen.032'),
                   icon: Icons.people_alt_rounded,
-                  trailing: ShwakelButton(
-                    label: l.tr('screens_admin_customers_screen.022'),
-                    icon: Icons.person_add_alt_1_rounded,
-                    onPressed: _showCreateCustomerDialog,
-                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -451,6 +473,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                       },
                     );
                   },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  context.loc.text(
+                    'المعروض الآن: ${_customers.length} • الإجمالي: $totalCustomers',
+                    'Showing: ${_customers.length} • Total: $totalCustomers',
+                  ),
+                  style: AppTheme.caption,
                 ),
                 const SizedBox(height: 16),
                 if (_isLoadingCustomers)
@@ -502,16 +532,23 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     );
   }
 
-  Widget _heroBadge(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        '$label: $value',
-        style: AppTheme.bodyBold.copyWith(color: Colors.white),
+  Future<void> _showHelpDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.loc.text('مساعدة العملاء', 'Customers help')),
+        content: Text(
+          context.loc.text(
+            'استخدم البحث للوصول السريع، وافتح بطاقة العميل مباشرة لإدارة التفاصيل.',
+            'Use search for quick access, then open a customer card to manage details.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.loc.text('إغلاق', 'Close')),
+          ),
+        ],
       ),
     );
   }
