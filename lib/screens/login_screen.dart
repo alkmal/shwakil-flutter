@@ -11,7 +11,10 @@ import '../widgets/shwakel_logo.dart';
 import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.redirectRoute, this.offlineMode = false});
+
+  final String? redirectRoute;
+  final bool offlineMode;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -42,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    OfflineSessionService.setOfflineMode(widget.offlineMode);
     _loadAuthSettings();
   }
 
@@ -146,11 +150,22 @@ class _LoginScreenState extends State<LoginScreen> {
             fullName: '',
             username: username,
             password: password,
+            redirectRoute: widget.redirectRoute,
+            offlineMode: widget.offlineMode,
             initialDebugOtpCode: otpResult.debugOtpCode,
           ),
         ),
       );
     } catch (error) {
+      final cachedUser = await _authService.currentUser();
+      final isTrustedDevice = await _isTrustedDeviceForUsername(username);
+      if (isTrustedDevice &&
+          cachedUser != null &&
+          cachedUser['username']?.toString().toLowerCase() ==
+              username.toLowerCase()) {
+        await _finishLogin(username);
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -188,7 +203,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _finishLogin(String username) async {
     await LocalSecurityService.clearRelockRequirement();
     await LocalSecurityService.skipNextUnlock();
-    await RealtimeNotificationService.start();
+    if (!widget.offlineMode) {
+      await RealtimeNotificationService.start();
+    }
     final localSecurityReady = await _setupLocalSecurityIfNeeded(username);
     if (!mounted) {
       return;
@@ -215,6 +232,14 @@ class _LoginScreenState extends State<LoginScreen> {
         permissions.canManageLocations ||
         permissions.canManageSystemSettings;
     setState(() => _isLoading = false);
+    if (widget.redirectRoute?.trim().isNotEmpty == true) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        widget.redirectRoute!,
+        (route) => false,
+      );
+      return;
+    }
     Navigator.pushNamedAndRemoveUntil(
       context,
       openAdminDashboard ? '/admin-dashboard' : '/app-shell',
@@ -276,21 +301,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              const Color(0xFFF3FAF8),
-              AppTheme.primarySoft.withValues(alpha: 0.8),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+        decoration: BoxDecoration(gradient: AppTheme.pageBackgroundGradient),
         child: SafeArea(
           child: ResponsiveScaffoldContainer(
             maxWidth: 520,
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: AppTheme.pagePadding(context, top: 20),
             child: Center(
               child: SingleChildScrollView(
                 child: ConstrainedBox(
@@ -315,22 +330,26 @@ class _LoginScreenState extends State<LoginScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: ShwakelLogo(size: 82, framed: true)),
-          const SizedBox(height: 18),
-          Text(
-            l.tr('screens_login_screen.004'),
-            style: AppTheme.h2,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            l.tr('screens_login_screen.013'),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.6,
+          _buildLoginHero(context),
+          if (widget.offlineMode) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppTheme.warning.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Text(
+                'وضع العمل دون إنترنت مفعل. بعد تسجيل الدخول سيتم فتح شاشة الفحص مباشرة.',
+                style: AppTheme.bodyAction.copyWith(color: AppTheme.warning),
+                textAlign: TextAlign.center,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
+          ],
           const SizedBox(height: 22),
           TextField(
             focusNode: _usernameFocusNode,
@@ -427,6 +446,77 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginHero(BuildContext context) {
+    final l = context.loc;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppTheme.heroGradient,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        children: [
+          const ShwakelLogo(size: 82, framed: true),
+          const SizedBox(height: 18),
+          Text(
+            l.tr('screens_login_screen.004'),
+            style: AppTheme.h2.copyWith(color: Colors.white, fontSize: 24),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l.tr('screens_login_screen.013'),
+            style: AppTheme.bodyAction.copyWith(
+              color: Colors.white.withValues(alpha: 0.84),
+              height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              _heroPill(icon: Icons.security_rounded, label: 'تسجيل دخول آمن'),
+              _heroPill(icon: Icons.bolt_rounded, label: 'وصول سريع'),
+              _heroPill(
+                icon: Icons.phone_iphone_rounded,
+                label: 'متوافق مع الجوال',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroPill({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

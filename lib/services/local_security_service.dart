@@ -200,7 +200,7 @@ class LocalSecurityService {
     }
     try {
       final authenticated = await _localAuth.authenticate(
-        localizedReason: 'Authenticate with biometrics to continue in Shawakel',
+        localizedReason: 'Authenticate with biometrics to continue in shwakil',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,

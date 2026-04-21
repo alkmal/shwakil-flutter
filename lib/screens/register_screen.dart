@@ -23,7 +23,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:\|,.<>\/\?~`]',
   );
 
-  final PageController _pageController = PageController();
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
 
@@ -34,7 +33,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _whatsappC = TextEditingController();
   final _referralPhoneC = TextEditingController();
 
-  int _currentStep = 0;
   bool _isLoading = false;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
@@ -49,7 +47,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     _fullNameC.dispose();
     _usernameC.dispose();
     _passwordC.dispose();
@@ -71,51 +68,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _supportWhatsapp = ContactInfoService.supportWhatsapp(contact);
       });
     } catch (_) {}
-  }
-
-  Future<void> _next() async {
-    final l = context.loc;
-    final error = _validateStep(_currentStep);
-    if (error != null) {
-      await AppAlertService.showError(
-        context,
-        title: l.tr('screens_register_screen.001'),
-        message: error,
-      );
-      return;
-    }
-
-    if (_currentStep < 2) {
-      setState(() => _currentStep++);
-      await _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-      return;
-    }
-
-    await _register();
-  }
-
-  Future<void> _prev() async {
-    if (_currentStep <= 0) {
-      return;
-    }
-
-    setState(() => _currentStep--);
-    await _pageController.previousPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  String? _validateStep(int step) {
-    return switch (step) {
-      0 => _validatePersonalStep(),
-      1 => _validateContactStep(),
-      2 => _validateSecurityStep(),
-      _ => null,
-    };
   }
 
   String? _validatePersonalStep() {
@@ -297,31 +249,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _buildStepperHeader(),
-                      const SizedBox(height: 24),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final availableWidth = constraints.maxWidth;
-                          final pageWidth = availableWidth < 520
-                              ? availableWidth
-                              : 520.0;
-                          return SizedBox(
-                            height: 540,
-                            width: pageWidth,
-                            child: PageView(
-                              controller: _pageController,
-                              physics: const NeverScrollableScrollPhysics(),
-                              children: [
-                                _buildStepPersonal(),
-                                _buildStepContact(),
-                                _buildStepSecurity(),
-                              ],
-                            ),
-                          );
-                        },
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: _buildFormCard(),
                       ),
-                      const SizedBox(height: 24),
-                      _buildNavigationButtons(),
                       const SizedBox(height: 16),
                       TextButton(
                         onPressed: () =>
@@ -339,15 +270,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildStepPersonal() {
+  Widget _buildFormCard() {
     final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.tr('screens_register_screen.010'), style: AppTheme.h3),
-          const SizedBox(height: 24),
           _field(
             l.tr('screens_register_screen.011'),
             _fullNameC,
@@ -359,20 +288,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _usernameC,
             Icons.alternate_email_rounded,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepContact() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.tr('screens_register_screen.015'), style: AppTheme.h3),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           DropdownButtonFormField<CountryOption>(
             initialValue: _selectedCountry,
             decoration: InputDecoration(
@@ -403,26 +319,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 16),
           _field(
-            l.tr('screens_register_screen.018'),
-            _referralPhoneC,
-            Icons.link_rounded,
-            type: TextInputType.phone,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepSecurity() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.tr('screens_register_screen.019'), style: AppTheme.h3),
-          const SizedBox(height: 24),
-          _field(
             l.tr('screens_register_screen.020'),
             _passwordC,
             Icons.lock_rounded,
@@ -440,7 +336,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             l.tr('screens_register_screen.041'),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           CheckboxListTile(
             value: _termsAccepted,
             onChanged: (value) {
@@ -453,99 +349,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
             contentPadding: EdgeInsets.zero,
             activeColor: AppTheme.primary,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavigationButtons() {
-    final l = context.loc;
-    return SizedBox(
-      width: 500,
-      child: Row(
-        children: [
-          if (_currentStep > 0)
-            Expanded(
-              child: ShwakelButton(
-                label: l.tr('screens_register_screen.022'),
-                isSecondary: true,
-                onPressed: _prev,
-              ),
-            ),
-          if (_currentStep > 0) const SizedBox(width: 16),
-          Expanded(
-            child: ShwakelButton(
-              label: _currentStep == 2
-                  ? l.tr('screens_register_screen.023')
-                  : l.tr('screens_register_screen.024'),
-              onPressed: _next,
-              isLoading: _isLoading,
-              icon: _currentStep == 2
-                  ? Icons.sms_rounded
-                  : (l.isArabic
-                        ? Icons.arrow_back_rounded
-                        : Icons.arrow_forward_rounded),
-              iconAtEnd: true,
+          const SizedBox(height: 12),
+          ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            color: AppTheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(22),
+            shadowLevel: ShwakelShadowLevel.none,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('رقم الإحالة', style: AppTheme.bodyBold),
+                const SizedBox(height: 4),
+                Text(
+                  'اختياري: أدخله فقط إذا كان لديك رقم محيل.',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _field(
+                  l.tr('screens_register_screen.018'),
+                  _referralPhoneC,
+                  Icons.link_rounded,
+                  type: TextInputType.phone,
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 16),
+          ShwakelButton(
+            label: l.tr('screens_register_screen.023'),
+            onPressed: _register,
+            isLoading: _isLoading,
+            icon: Icons.sms_rounded,
+            iconAtEnd: true,
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStepperHeader() {
-    final l = context.loc;
-    final labels = [
-      l.tr('screens_register_screen.025'),
-      l.tr('screens_register_screen.026'),
-      l.tr('screens_register_screen.027'),
-    ];
-    return SizedBox(
-      width: 460,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(3, (index) {
-          final isDone = index < _currentStep;
-          final isCurrent = index == _currentStep;
-
-          return Row(
-            children: [
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: isCurrent
-                        ? AppTheme.primary
-                        : isDone
-                        ? AppTheme.success
-                        : AppTheme.border,
-                    child: isDone
-                        ? const Icon(Icons.check, size: 18, color: Colors.white)
-                        : Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              color: isCurrent
-                                  ? Colors.white
-                                  : AppTheme.textTertiary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(labels[index], style: AppTheme.caption),
-                ],
-              ),
-              if (index < 2)
-                Container(
-                  width: 56,
-                  height: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: isDone ? AppTheme.success : AppTheme.border,
-                ),
-            ],
-          );
-        }),
       ),
     );
   }

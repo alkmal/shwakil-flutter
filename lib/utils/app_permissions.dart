@@ -33,6 +33,7 @@ class AppPermissions {
   bool get canViewAccountSettings => _raw['canViewAccountSettings'] != false;
   bool get canRequestVerification => _isEnabled('canRequestVerification');
   bool get canIssueCards => _isEnabled('canIssueCards');
+  bool get canIssuePrivateCards => _isEnabled('canIssuePrivateCards');
   bool get canRequestCardPrinting => _isEnabled('canRequestCardPrinting');
   bool get canScanCards => _isEnabled('canScanCards');
   bool get canOfflineCardScan => _isEnabled('canOfflineCardScan');
@@ -42,6 +43,8 @@ class AppPermissions {
   bool get canResellCards => _isEnabled('canResellCards');
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
+  bool get canManageUsers => _isEnabled('canManageUsers');
+  bool get canManageDebtBook => _isEnabled('canManageDebtBook');
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
   bool get canManageSubUsers => _isEnabled('canManageSubUsers');

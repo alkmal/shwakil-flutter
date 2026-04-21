@@ -4,6 +4,7 @@ import '../localization/index.dart';
 import '../services/api_service.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -59,6 +60,7 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
         title: Text(
           _title.isEmpty ? l.tr('screens_usage_policy_screen.001') : _title,
         ),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: _isLoading

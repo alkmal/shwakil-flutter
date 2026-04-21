@@ -7,9 +7,11 @@ import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -29,6 +31,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _total = 0;
   static const int _perPage = 20;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+  bool _showFilters = false;
 
   String _text(String arabic, String english) =>
       context.loc.text(arabic, english);
@@ -134,6 +137,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             'Notifications',
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: _showFilters
+                ? _text(
+                    '\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u0641\u0644\u0627\u062a\u0631',
+                    'Hide filters',
+                  )
+                : _text(
+                    '\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0641\u0644\u0627\u062a\u0631',
+                    'Show filters',
+                  ),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -145,12 +168,61 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isCompact = constraints.maxWidth < 760;
+                final quickStats = _buildQuickStats();
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHero(isCompact),
                     const SizedBox(height: 18),
-                    _buildFilters(isCompact),
+                    _buildSectionHeader(
+                      title: 'ملخص الإشعارات',
+                      subtitle:
+                          'نظرة سريعة على عدد الرسائل وحالة القراءة وتوزيع المتابعة.',
+                    ),
+                    const SizedBox(height: 16),
+                    if (isCompact)
+                      Column(
+                        children: quickStats
+                            .map(
+                              (item) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _buildStatCard(item),
+                              ),
+                            )
+                            .toList(),
+                      )
+                    else
+                      Row(
+                        children: quickStats
+                            .map(
+                              (item) => Expanded(
+                                child: Padding(
+                                  padding: EdgeInsetsDirectional.only(
+                                    start: item == quickStats.first ? 0 : 12,
+                                  ),
+                                  child: _buildStatCard(item),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    const SizedBox(height: 18),
+                    _buildSectionHeader(
+                      title: 'التصفية والإجراءات',
+                      subtitle:
+                          'اختر نوع العرض وحدّث القائمة أو علّم الإشعارات كمقروءة.',
+                    ),
+                    const SizedBox(height: 16),
+                    if (_showFilters)
+                      _buildFilters(isCompact)
+                    else
+                      ToolToggleHint(
+                        message: _text(
+                          'يمكنك فتح الفلاتر والإجراءات من أيقونة التصفية بالأعلى عند الحاجة.',
+                          'Open filters and actions from the top filter icon when needed.',
+                        ),
+                        icon: Icons.filter_alt_rounded,
+                      ),
                     const SizedBox(height: 18),
                     if (_isLoading)
                       const Center(
@@ -194,7 +266,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildHero(bool isCompact) {
     return ShwakelCard(
-      gradient: AppTheme.heroGradient,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0C4A6E), Color(0xFF0F766E), Color(0xFF14B8A6)],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ),
       padding: EdgeInsets.all(isCompact ? 22 : 28),
       shadowLevel: ShwakelShadowLevel.premium,
       child: Flex(
@@ -222,6 +298,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  'لوحة التنبيهات',
+                  style: AppTheme.caption.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
                   _text(
                     '\u0645\u0631\u0643\u0632 \u0625\u0634\u0639\u0627\u0631\u0627\u062a\u0643',
                     'Your notification center',
@@ -246,6 +330,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    'لوحة التنبيهات',
+                    style: AppTheme.caption.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Text(
                     _text(
                       '\u0645\u0631\u0643\u0632 \u0625\u0634\u0639\u0627\u0631\u0627\u062a\u0643',
@@ -273,6 +365,100 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 18),
             _UnreadPill(count: _unreadCount),
           ],
+        ],
+      ),
+    );
+  }
+
+  List<_NotificationStat> _buildQuickStats() {
+    final financialCount = _notifications
+        .where((item) => item['category'] == 'financial')
+        .length;
+    final readCount = _notifications
+        .where((item) => item['isRead'] == true)
+        .length;
+    return [
+      _NotificationStat(
+        label: 'غير مقروء',
+        value: '$_unreadCount',
+        hint: 'إشعارات تحتاج متابعة',
+        icon: Icons.mark_email_unread_rounded,
+        color: AppTheme.error,
+      ),
+      _NotificationStat(
+        label: 'إشعارات مالية',
+        value: '$financialCount',
+        hint: 'حركات وتنبيهات الرصيد',
+        icon: Icons.account_balance_wallet_rounded,
+        color: AppTheme.primary,
+      ),
+      _NotificationStat(
+        label: 'مقروءة',
+        value: '$readCount',
+        hint: 'إشعارات تم الاطلاع عليها',
+        icon: Icons.done_all_rounded,
+        color: AppTheme.success,
+      ),
+    ];
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required String subtitle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTheme.h2),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: AppTheme.bodyAction.copyWith(
+            color: AppTheme.textSecondary,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(_NotificationStat item) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(26),
+      shadowLevel: ShwakelShadowLevel.medium,
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: item.color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(item.icon, color: item.color, size: 28),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.value,
+                  style: AppTheme.h3.copyWith(color: item.color),
+                ),
+                const SizedBox(height: 4),
+                Text(item.hint, style: AppTheme.caption),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -373,6 +559,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               style: AppTheme.bodyText,
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 18),
+            ShwakelButton(
+              label: _text('\u062a\u062d\u062f\u064a\u062b', 'Refresh'),
+              icon: Icons.refresh_rounded,
+              isSecondary: true,
+              onPressed: _loadNotifications,
+            ),
           ],
         ),
       ),
@@ -399,75 +592,99 @@ class _NotificationCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       color: isRead ? AppTheme.surface : AppTheme.tabSurface,
       shadowLevel: isRead ? ShwakelShadowLevel.soft : ShwakelShadowLevel.medium,
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _categoryColor(isFinancial).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(
-              isFinancial
-                  ? Icons.account_balance_wallet_rounded
-                  : Icons.notifications_rounded,
-              color: _categoryColor(isFinancial),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: _categoryColor(isFinancial).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  isFinancial
+                      ? Icons.account_balance_wallet_rounded
+                      : Icons.notifications_rounded,
+                  color: _categoryColor(isFinancial),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        item['title']?.toString() ?? '',
-                        style: AppTheme.bodyBold.copyWith(
-                          color: isRead
-                              ? AppTheme.textPrimary
-                              : AppTheme.primaryDark,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _categoryColor(
+                              isFinancial,
+                            ).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            isFinancial ? 'مالي' : 'عام',
+                            style: AppTheme.caption.copyWith(
+                              color: _categoryColor(isFinancial),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
+                        if (!isRead) const _UnreadDot(),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      item['title']?.toString() ?? '',
+                      style: AppTheme.bodyBold.copyWith(
+                        color: isRead
+                            ? AppTheme.textPrimary
+                            : AppTheme.primaryDark,
                       ),
                     ),
-                    if (!isRead) const _UnreadDot(),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  item['body']?.toString() ?? '',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyAction.copyWith(height: 1.45),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            item['body']?.toString() ?? '',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.bodyAction.copyWith(height: 1.5),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _InfoChip(
+                icon: Icons.schedule_rounded,
+                label: item['createdAt']?.toString() ?? '',
+              ),
+              if (amount != null)
+                _InfoChip(
+                  icon: Icons.payments_rounded,
+                  label: CurrencyFormatter.ils(amount),
                 ),
-                if (amount != null) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _InfoChip(
-                        icon: Icons.payments_rounded,
-                        label: CurrencyFormatter.ils(amount),
-                      ),
-                      if (fee != null && fee > 0)
-                        _InfoChip(
-                          icon: Icons.percent_rounded,
-                          label: CurrencyFormatter.ils(fee),
-                        ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Text(
-                  item['createdAt']?.toString() ?? '',
-                  style: AppTheme.caption,
+              if (fee != null && fee > 0)
+                _InfoChip(
+                  icon: Icons.percent_rounded,
+                  label: CurrencyFormatter.ils(fee),
                 ),
-              ],
-            ),
+            ],
           ),
         ],
       ),
@@ -617,4 +834,20 @@ class _InfoChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NotificationStat {
+  const _NotificationStat({
+    required this.label,
+    required this.value,
+    required this.hint,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final String hint;
+  final IconData icon;
+  final Color color;
 }

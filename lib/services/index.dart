@@ -15,4 +15,7 @@ export 'transfer_security_service.dart';
 export 'transaction_location_service.dart';
 export 'location_audit_service.dart';
 export 'offline_card_service.dart';
+export 'offline_session_service.dart';
+export 'connectivity_service.dart';
+export 'debt_book_service.dart';
 export '../localization/index.dart';

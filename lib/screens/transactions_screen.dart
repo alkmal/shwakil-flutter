@@ -8,9 +8,11 @@ import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -35,6 +37,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   int _lastPage = 1;
   int _totalTransactions = 0;
   Timer? _searchDebounce;
+  bool _showSearchAndFilters = false;
 
   String _t(String key, [String? english]) =>
       english == null ? context.loc.tr(key) : context.loc.text(key, english);
@@ -170,27 +173,65 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(_t('screens_transactions_screen.005'))),
+      appBar: AppBar(
+        title: Text(_t('screens_transactions_screen.005')),
+        actions: [
+          IconButton(
+            tooltip: _showSearchAndFilters
+                ? context.loc.text(
+                    'إخفاء البحث والفلاتر',
+                    'Hide search and filters',
+                  )
+                : context.loc.text(
+                    'إظهار البحث والفلاتر',
+                    'Show search and filters',
+                  ),
+            onPressed: () =>
+                setState(() => _showSearchAndFilters = !_showSearchAndFilters),
+            icon: Icon(
+              _showSearchAndFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
+            tooltip: context.loc.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _loadTransactions,
         child: SingleChildScrollView(
           child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: AppTheme.pagePadding(context, top: 18),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isCompact = constraints.maxWidth < 860;
-                final isPhone = constraints.maxWidth < 560;
-
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeroCard(isCompact: isCompact),
+                    if (_showSearchAndFilters) ...[
+                      _buildSearchAndFilters(isCompact: isCompact),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      ToolToggleHint(
+                        message: context.loc.text(
+                          'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+                          'Open search and filters from the top filter icon when needed.',
+                        ),
+                        icon: Icons.filter_alt_rounded,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildCompactSummary(),
                     const SizedBox(height: 20),
-                    _buildSummaryGrid(isCompact: isCompact, isPhone: isPhone),
-                    const SizedBox(height: 20),
-                    _buildSearchAndFilters(isCompact: isCompact),
-                    const SizedBox(height: 24),
+                    _buildResultsHeading(),
+                    const SizedBox(height: 14),
                     if (_isLoading)
                       const Center(
                         child: Padding(
@@ -228,149 +269,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildHeroCard({required bool isCompact}) {
-    return ShwakelCard(
-      padding: EdgeInsets.all(isCompact ? 22 : 28),
-      gradient: AppTheme.primaryGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 640;
-          final iconBox = Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Icon(
-              Icons.receipt_long_rounded,
-              color: Colors.white,
-              size: 38,
-            ),
-          );
-          final content = Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _t('screens_transactions_screen.006'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _t(
-                    'راجع الحركات وابحث فيها بسرعة مع فلاتر أوضح وملخص مالي مباشر.',
-                    'Review and search your transactions quickly with clearer filters and a direct financial summary.',
-                  ),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white70,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          );
-
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [iconBox, const SizedBox(height: 18), content],
-            );
-          }
-
-          return Row(children: [iconBox, const SizedBox(width: 18), content]);
-        },
+  Future<void> _showHelpDialog() async {
+    await AppAlertService.showInfo(
+      context,
+      title: context.loc.text('مساعدة سريعة', 'Quick help'),
+      message: context.loc.text(
+        'استخدم البحث والفلاتر لعرض الحركات المطلوبة، والملخص المختصر يوضح الرصيد والإجماليات بدون إزاحة المحتوى الأساسي.',
+        'Use search and filters to show the needed transactions, and the compact summary keeps key totals visible without pushing the main content down.',
       ),
     );
   }
 
-  Widget _buildSummaryGrid({required bool isCompact, required bool isPhone}) {
+  Widget _buildCompactSummary() {
     final net = _totalCredits - _totalDebits;
-    final cards = [
-      _buildSummaryCard(
-        _t('screens_transactions_screen.007'),
-        _currentBalance,
-        AppTheme.primary,
-        compact: isCompact,
+    return Text(
+      context.loc.text(
+        'الرصيد: ${CurrencyFormatter.ils(_currentBalance)} • الداخل: ${CurrencyFormatter.ils(_totalCredits)} • الخارج: ${CurrencyFormatter.ils(_totalDebits)} • الصافي: ${CurrencyFormatter.ils(net)}',
+        'Balance: ${CurrencyFormatter.ils(_currentBalance)} • In: ${CurrencyFormatter.ils(_totalCredits)} • Out: ${CurrencyFormatter.ils(_totalDebits)} • Net: ${CurrencyFormatter.ils(net)}',
       ),
-      _buildSummaryCard(
-        _t('screens_transactions_screen.008'),
-        _totalCredits,
-        AppTheme.success,
-        compact: isCompact,
-      ),
-      _buildSummaryCard(
-        _t('screens_transactions_screen.009'),
-        _totalDebits,
-        AppTheme.error,
-        compact: isCompact,
-      ),
-      _buildSummaryCard(
-        _t('screens_transactions_screen.010'),
-        net,
-        net >= 0 ? AppTheme.primary : AppTheme.error,
-        compact: isCompact,
-      ),
-    ];
-
-    if (isPhone) {
-      return Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: cards[0]),
-              const SizedBox(width: 12),
-              Expanded(child: cards[1]),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: cards[2]),
-              const SizedBox(width: 12),
-              Expanded(child: cards[3]),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: cards
-          .map((card) => SizedBox(width: isCompact ? 220 : 240, child: card))
-          .toList(),
-    );
-  }
-
-  Widget _buildSummaryCard(
-    String title,
-    double amount,
-    Color color, {
-    required bool compact,
-  }) {
-    return ShwakelCard(
-      padding: EdgeInsets.all(compact ? 16 : 20),
-      shadowLevel: ShwakelShadowLevel.soft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            CurrencyFormatter.ils(amount),
-            style: AppTheme.h3.copyWith(
-              color: color,
-              fontSize: compact ? 17 : 18,
-            ),
-          ),
-        ],
-      ),
+      style: AppTheme.caption,
     );
   }
 
@@ -404,13 +321,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       _t(
-                        'رتب الحركات كما تريد عبر البحث والفترة والموقع.',
+                        'نظّم حركاتك باستخدام البحث والنطاق الزمني وفلاتر الموقع.',
                         'Organize your transactions using search, date range, and location filters.',
                       ),
                       style: AppTheme.bodyAction.copyWith(height: 1.45),
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _filterHintPill(
+                icon: Icons.manage_search_rounded,
+                label: 'بحث سريع',
+              ),
+              _filterHintPill(
+                icon: Icons.calendar_today_rounded,
+                label: 'نطاق زمني',
+              ),
+              _filterHintPill(
+                icon: Icons.verified_user_outlined,
+                label: 'نوع العملية',
               ),
             ],
           ),
@@ -656,27 +592,107 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Widget _buildEmptyState() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(36),
       child: Center(
         child: Column(
           children: [
-            const Icon(
-              Icons.receipt_long_rounded,
-              size: 64,
-              color: AppTheme.textTertiary,
+            Container(
+              width: 86,
+              height: 86,
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                size: 42,
+                color: AppTheme.textTertiary,
+              ),
             ),
             const SizedBox(height: 24),
             Text(_t('screens_transactions_screen.035'), style: AppTheme.h3),
             const SizedBox(height: 8),
             Text(
               _t(
-                'جرّب تغيير البحث أو الفلاتر المختارة.',
+                'جرّب تغيير نص البحث أو الفلاتر المحددة.',
                 'Try changing the search text or selected filters.',
               ),
               style: AppTheme.bodyText,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: 220,
+              child: ShwakelButton(
+                label: _t('screens_transactions_screen.011'),
+                icon: Icons.refresh_rounded,
+                isSecondary: true,
+                onPressed: _loadTransactions,
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildResultsHeading() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('نتائج الحركات', style: AppTheme.h2.copyWith(fontSize: 20)),
+              const SizedBox(height: 4),
+              Text(
+                _isLoading
+                    ? 'جارٍ تحميل نتائج الحركات الحالية.'
+                    : 'إجمالي الحركات المطابقة: $_totalTransactions',
+                style: AppTheme.caption.copyWith(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        if (!_isLoading && _transactions.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.primarySoft,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '${_transactions.length} في هذه الصفحة',
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _filterHintPill({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.primarySoft.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

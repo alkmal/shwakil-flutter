@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -23,7 +25,18 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   List<Map<String, dynamic>> _requests = const [];
   Map<String, dynamic>? _user;
   bool _isLoading = true;
+  bool _isAuthorized = false;
   bool _isSubmitting = false;
+
+  Map<String, dynamic> get _subUserOperationalLimits =>
+      Map<String, dynamic>.from(
+        _user?['subUserOperationalLimits'] as Map? ?? const {},
+      );
+
+  bool get _isSubUser => _user?['isSubUser'] == true;
+
+  double? _limitAsDouble(String key) =>
+      (_subUserOperationalLimits[key] as num?)?.toDouble();
 
   @override
   void initState() {
@@ -42,9 +55,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       if (!mounted) {
         return;
       }
+      final user = results[1] as Map<String, dynamic>?;
+      final permissions = AppPermissions.fromUser(user);
       setState(() {
         _requests = List<Map<String, dynamic>>.from(results[0] as List);
-        _user = results[1] as Map<String, dynamic>?;
+        _user = user;
+        _isAuthorized = permissions.canRequestCardPrinting;
         _isLoading = false;
       });
     } catch (error) {
@@ -61,6 +77,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Future<void> _showCreateRequestDialog() async {
+    if (!_isAuthorized) {
+      return;
+    }
     final l = context.loc;
     final valueController = TextEditingController();
     final quantityController = TextEditingController(text: '10');
@@ -153,10 +172,33 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (_isSubUser) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primarySoft.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        child: Text(
+                          'حد الطباعة الحالي لهذا التابع: سقف ${CurrencyFormatter.ils(_limitAsDouble('printRequestMaxAmount') ?? 0)} للطلب الواحد، ودين مسموح حتى ${CurrencyFormatter.ils(_limitAsDouble('printingDebtLimit') ?? 0)}.',
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     DropdownButtonFormField<String>(
                       initialValue: cardType,
                       decoration: InputDecoration(
-                        labelText: l.tr('screens_card_print_requests_screen.008'),
+                        labelText: l.tr(
+                          'screens_card_print_requests_screen.008',
+                        ),
                       ),
                       items: [
                         DropdownMenuItem(
@@ -197,7 +239,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       controller: quantityController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: l.tr('screens_card_print_requests_screen.013'),
+                        labelText: l.tr(
+                          'screens_card_print_requests_screen.013',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -206,7 +250,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       minLines: 2,
                       maxLines: 4,
                       decoration: InputDecoration(
-                        labelText: l.tr('screens_card_print_requests_screen.014'),
+                        labelText: l.tr(
+                          'screens_card_print_requests_screen.014',
+                        ),
                       ),
                     ),
                   ],
@@ -278,6 +324,38 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_card_print_requests_screen.018')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text('لا تملك صلاحية طلب طباعة البطاقات', style: AppTheme.h3),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final availableBalance =
         (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
     final printFee = (_user?['customCardPrintRequestFeePercent'] as num?)
@@ -287,6 +365,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_card_print_requests_screen.018')),
+        actions: [
+          IconButton(
+            tooltip: l.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -297,49 +384,41 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShwakelCard(
-                  padding: const EdgeInsets.all(28),
-                  gradient: AppTheme.primaryGradient,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l.tr('screens_card_print_requests_screen.018'),
-                        style: AppTheme.h2.copyWith(color: Colors.white),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l.tr('screens_card_print_requests_screen.019'),
-                        style: AppTheme.bodyAction.copyWith(
-                          color: Colors.white70,
-                          height: 1.6,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l.text(
+                          'الرصيد المتاح للطباعة: ${CurrencyFormatter.ils(availableBalance)} • الرسوم: ${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
+                          'Available print balance: ${CurrencyFormatter.ils(availableBalance)} • Fee: ${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
                         ),
+                        style: AppTheme.caption,
                       ),
-                      const SizedBox(height: 18),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          _heroBadge(
-                            l.tr('screens_card_print_requests_screen.020'),
-                            CurrencyFormatter.ils(availableBalance),
-                          ),
-                          _heroBadge(
-                            l.tr('screens_card_print_requests_screen.021'),
-                            '${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      ShwakelButton(
-                        label: l.tr('screens_card_print_requests_screen.023'),
-                        icon: Icons.print_rounded,
-                        onPressed: _showCreateRequestDialog,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    ShwakelButton(
+                      label: l.tr('screens_card_print_requests_screen.023'),
+                      icon: Icons.print_rounded,
+                      onPressed: _showCreateRequestDialog,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
+                if (_isSubUser) ...[
+                  const SizedBox(height: 12),
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(16),
+                    color: AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Text(
+                      'أنت تعمل بحساب تابع. الطباعة هنا تخضع لسقف ${CurrencyFormatter.ils(_limitAsDouble('printRequestMaxAmount') ?? 0)} ودين تشغيلي حتى ${CurrencyFormatter.ils(_limitAsDouble('printingDebtLimit') ?? 0)}.',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
                 if (_isLoading)
                   const Center(
                     child: Padding(
@@ -363,6 +442,18 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showHelpDialog() async {
+    final l = context.loc;
+    await AppAlertService.showInfo(
+      context,
+      title: l.text('مساعدة سريعة', 'Quick help'),
+      message: l.text(
+        'استخدم هذا القسم لإرسال طلبات الطباعة ومتابعة حالتها، بينما يظهر الملخص السريع أعلى القائمة فقط.',
+        'Use this section to submit print requests and track their status, while the quick summary stays above the list only.',
       ),
     );
   }
@@ -460,24 +551,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _heroBadge(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTheme.caption.copyWith(color: Colors.white70)),
-          const SizedBox(height: 4),
-          Text(value, style: AppTheme.bodyBold.copyWith(color: Colors.white)),
-        ],
       ),
     );
   }

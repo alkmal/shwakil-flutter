@@ -37,8 +37,8 @@ class LocalNotificationService {
     await androidPlugin?.createNotificationChannel(
       const AndroidNotificationChannel(
         'balance_updates',
-        'ØªØ­Ø¯ÙŠØ«Ø§Øª Ø§Ù„Ø±ØµÙŠØ¯',
-        description: 'Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¥Ø¶Ø§ÙØ© ÙˆØ®ØµÙ… Ø§Ù„Ø±ØµÙŠØ¯',
+        '??????? ??????',
+        description: '??????? ????? ???? ??????',
         importance: Importance.max,
       ),
     );
@@ -77,8 +77,8 @@ class LocalNotificationService {
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'balance_updates',
-        'تحديثات الرصيد',
-        channelDescription: 'إشعارات إضافة وخصم الرصيد',
+        '??????? ??????',
+        channelDescription: '??????? ????? ???? ??????',
         importance: Importance.max,
         priority: Priority.high,
         color: isCredit ? const Color(0xFF16A34A) : const Color(0xFFDC2626),

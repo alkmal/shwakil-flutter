@@ -1,5 +1,5 @@
 const Map<String, String> appStringsEn = {
-  'main.001': 'Shawakel',
+  'main.001': 'shwakil',
   'screens_account_settings_screen.001': 'Saved',
   'screens_account_settings_screen.002': 'Could not save',
   'screens_account_settings_screen.003': 'Missing data',
@@ -95,8 +95,7 @@ const Map<String, String> appStringsEn = {
       'Please review your details and upload clearer files before resubmitting.',
   'screens_account_verification_screen.024': 'National ID',
   'screens_account_verification_screen.025': 'Birth date',
-  'screens_account_verification_screen.026':
-      'Please enter a valid birth date.',
+  'screens_account_verification_screen.026': 'Please enter a valid birth date.',
   'screens_admin_card_print_requests_screen.001': 'Card Print Requests',
   'screens_admin_card_print_requests_screen.002': 'Request tracking',
   'screens_admin_card_print_requests_screen.003': 'Status',
@@ -168,7 +167,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.003': 'Confirm send',
   'screens_admin_customer_screen.004': 'Sent',
   'screens_admin_customer_screen.005': 'Could not send',
-  'screens_admin_customer_screen.006': 'Shawakel customer',
+  'screens_admin_customer_screen.006': 'shwakil customer',
   'screens_admin_customer_screen.007': 'Overview',
   'screens_admin_customer_screen.008': 'Transactions',
   'screens_admin_customer_screen.009': 'Management & Fees',
@@ -330,8 +329,7 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.074': 'No matching users were found.',
   'screens_balance_screen.075': 'Enter a phone number to look up the account.',
   'screens_balance_screen.076': 'Account found and selected successfully.',
-  'screens_balance_screen.077':
-      'No account was found for this phone number.',
+  'screens_balance_screen.077': 'No account was found for this phone number.',
   'screens_balance_screen.078':
       'Search by username, or find the account directly by phone number.',
   'screens_balance_screen.079': 'Search for the user by username.',
@@ -530,7 +528,7 @@ const Map<String, String> appStringsEn = {
   'screens_forgot_password_screen.050':
       'Find the account, request the code, then set a new password through clear and quick steps.',
   'screens_home_screen.001': 'Cancel',
-  'screens_home_screen.002': 'Shawakel',
+  'screens_home_screen.002': 'shwakil',
   'screens_home_screen.003': 'Log Out',
   'screens_home_screen.004': 'All Services',
   'screens_home_screen.005': 'Choose your service.',
@@ -587,7 +585,7 @@ const Map<String, String> appStringsEn = {
   'screens_inventory_screen.007': 'Archived',
   'screens_inventory_screen.008': 'Print',
   'screens_inventory_screen.009': 'Delete and refund',
-  'screens_inventory_screen.010': 'Shawakel',
+  'screens_inventory_screen.010': 'shwakil',
   'screens_inventory_screen.011': 'Permanent deletion?',
   'screens_inventory_screen.012': 'Cancel',
   'screens_inventory_screen.013': 'Delete',
@@ -785,7 +783,7 @@ const Map<String, String> appStringsEn = {
   'screens_withdrawal_requests_screen.023': 'Cancel',
   'screens_withdrawal_requests_screen.024': 'Confirm rejection',
   'screens_withdrawal_requests_screen.025': 'The request has been rejected.',
-  'widgets_app_sidebar.001': 'Shawakel',
+  'widgets_app_sidebar.001': 'shwakil',
   'widgets_app_sidebar.002': 'Main',
   'widgets_app_sidebar.003': 'Home',
   'widgets_app_sidebar.004': 'Balance',
@@ -819,7 +817,7 @@ const Map<String, String> appStringsEn = {
   'widgets_app_sidebar.032': 'Card Print Requests',
   'widgets_app_sidebar.033': 'Permission Templates',
   'widgets_app_sidebar.034': 'Tap to switch between Arabic and English',
-  'widgets_shwakel_logo.001': 'Shawakel',
+  'widgets_shwakel_logo.001': 'shwakil',
   'widgets_admin_transaction_audit_card.001': 'Top-up',
   'widgets_admin_transaction_audit_card.002': 'Transfer sent',
   'widgets_admin_transaction_audit_card.003': 'Transfer received',
@@ -850,7 +848,8 @@ const Map<String, String> appStringsEn = {
   'widgets_admin_transaction_audit_card.025': 'Source: card resale fees',
   'widgets_admin_transaction_audit_card.026': 'Waiting for withdrawal review',
   'widgets_admin_transaction_audit_card.027': 'Withdrawal was rejected',
-  'widgets_admin_transaction_audit_card.028': 'Withdrawal delivered successfully',
+  'widgets_admin_transaction_audit_card.028':
+      'Withdrawal delivered successfully',
   'widgets_admin_transaction_audit_card.029': 'Rejected',
   'widgets_admin_transaction_audit_card.030': 'Near branch',
   'widgets_admin_transaction_audit_card.031': 'Outside branches',
@@ -937,10 +936,13 @@ const Map<String, String> appStringsEn = {
   'screens_device_unlock_screen.004': 'The PIN you entered is incorrect.',
   'screens_device_unlock_screen.005': 'Sign in with another account',
   'screens_device_unlock_screen.006': 'Unlock your secure device',
-  'screens_device_unlock_screen.007': 'Enter your PIN or use biometrics to continue.',
+  'screens_device_unlock_screen.007':
+      'Enter your PIN or use biometrics to continue.',
   'screens_device_unlock_screen.008': 'Use biometrics to continue to the app.',
-  'screens_device_unlock_screen.009': 'Welcome {username}, enter your PIN or use biometrics to continue.',
-  'screens_device_unlock_screen.010': 'Welcome {username}, use biometrics to continue to the app.',
+  'screens_device_unlock_screen.009':
+      'Welcome {username}, enter your PIN or use biometrics to continue.',
+  'screens_device_unlock_screen.010':
+      'Welcome {username}, use biometrics to continue to the app.',
   'screens_device_unlock_screen.011': 'PIN code',
   'screens_device_unlock_screen.012': 'Unlock with PIN',
   'screens_device_unlock_screen.013': 'Unlock with biometrics',
@@ -956,34 +958,44 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.010': 'Biometrics',
   'screens_security_settings_screen.011': 'PIN code',
   'screens_security_settings_screen.012': 'OTP',
-  'screens_security_settings_screen.013': 'Manage PIN, biometrics, trusted devices, and relock settings from one place.',
+  'screens_security_settings_screen.013':
+      'Manage PIN, biometrics, trusted devices, and relock settings from one place.',
   'screens_security_settings_screen.014': 'Security overview',
-  'screens_security_settings_screen.015': 'See verification status, device trust, and the latest sign-in method.',
+  'screens_security_settings_screen.015':
+      'See verification status, device trust, and the latest sign-in method.',
   'screens_security_settings_screen.016': 'Device trust',
   'screens_security_settings_screen.017': 'Trusted',
   'screens_security_settings_screen.018': 'Untrusted',
   'screens_security_settings_screen.019': 'Local PIN',
   'screens_security_settings_screen.020': 'Enabled',
   'screens_security_settings_screen.021': 'Disabled',
-  'screens_security_settings_screen.022': 'You can use biometrics or PIN, and biometrics work even without PIN.',
-  'screens_security_settings_screen.023': 'You can enable biometrics directly even if you have not set a PIN.',
-  'screens_security_settings_screen.024': 'This device does not support biometrics or it is not configured in the system.',
+  'screens_security_settings_screen.022':
+      'You can use biometrics or PIN, and biometrics work even without PIN.',
+  'screens_security_settings_screen.023':
+      'You can enable biometrics directly even if you have not set a PIN.',
+  'screens_security_settings_screen.024':
+      'This device does not support biometrics or it is not configured in the system.',
   'screens_security_settings_screen.025': 'Last verification method',
   'screens_security_settings_screen.026': 'Trusted account on this device',
   'screens_security_settings_screen.027': 'Local unlock methods',
-  'screens_security_settings_screen.028': 'Enable PIN, biometrics, or both to speed up app access and confirm sensitive actions.',
+  'screens_security_settings_screen.028':
+      'Enable PIN, biometrics, or both to speed up app access and confirm sensitive actions.',
   'screens_security_settings_screen.029': 'Change PIN',
   'screens_security_settings_screen.030': 'Set PIN',
-  'screens_security_settings_screen.031': 'Used to unlock the app and confirm sensitive operations.',
+  'screens_security_settings_screen.031':
+      'Used to unlock the app and confirm sensitive operations.',
   'screens_security_settings_screen.032': 'Update',
   'screens_security_settings_screen.033': 'Set up',
   'screens_security_settings_screen.034': 'Enable biometrics',
   'screens_security_settings_screen.035': 'Automatic relock',
-  'screens_security_settings_screen.036': 'Choose when the app should request local verification again after staying in the background.',
+  'screens_security_settings_screen.036':
+      'Choose when the app should request local verification again after staying in the background.',
   'screens_security_settings_screen.037': 'Relock the app after',
   'screens_security_settings_screen.038': 'Active devices',
-  'screens_security_settings_screen.039': 'You can remove any device and require it to verify again on the next sign-in.',
-  'screens_security_settings_screen.040': 'No active devices are currently visible.',
+  'screens_security_settings_screen.039':
+      'You can remove any device and require it to verify again on the next sign-in.',
+  'screens_security_settings_screen.040':
+      'No active devices are currently visible.',
   'screens_security_settings_screen.041': 'Unknown device',
   'screens_security_settings_screen.042': 'Device ID: {id}',
   'screens_security_settings_screen.043': 'Current device',
@@ -992,11 +1004,13 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.046': '{count} seconds',
   'screens_security_settings_screen.047': '{count} minutes',
   'screens_security_settings_screen.048': 'Delete device',
-  'screens_security_settings_screen.049': 'Do you want to remove this device from the active devices list?',
+  'screens_security_settings_screen.049':
+      'Do you want to remove this device from the active devices list?',
   'screens_security_settings_screen.050': 'Cancel',
   'screens_security_settings_screen.051': 'Delete',
   'screens_security_settings_screen.052': 'Deleted',
-  'screens_security_settings_screen.053': 'The device was removed from the account successfully.',
+  'screens_security_settings_screen.053':
+      'The device was removed from the account successfully.',
   'screens_security_settings_screen.054': 'Could not delete',
   'screens_security_settings_screen.055': 'Update PIN',
   'screens_security_settings_screen.056': 'New PIN',
@@ -1004,62 +1018,96 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.058': 'Confirm code',
   'screens_security_settings_screen.059': 'Save',
   'screens_security_settings_screen.060': 'Invalid code',
-  'screens_security_settings_screen.061': 'Make sure you entered 4 matching digits.',
+  'screens_security_settings_screen.061':
+      'Make sure you entered 4 matching digits.',
   'screens_security_settings_screen.062': 'Remove PIN',
-  'screens_security_settings_screen.063': 'Do you want to remove the local PIN from this device?',
+  'screens_security_settings_screen.063':
+      'Do you want to remove the local PIN from this device?',
   'screens_security_settings_screen.064': 'Remove',
   'screens_onboarding_screen.004': 'Your balance and services in one place',
   'screens_onboarding_screen.005': 'Faster card and transfer actions',
-  'screens_onboarding_screen.006': 'Trusted protection and a reliable experience',
-  'screens_onboarding_screen.007': 'Track your balance, create cards, and access daily operations from a clear and simple interface.',
-  'screens_onboarding_screen.008': 'The app is designed to reduce steps and speed up access to card creation, scanning, and transfers.',
-  'screens_onboarding_screen.009': 'Verification, account management, and sensitive actions are organized in a secure and user-friendly way.',
-  'screens_otp_verification_screen.015': 'Please enter the full verification code to continue.',
-  'screens_otp_verification_screen.016': 'Your account has been created successfully. You can log in now.',
-  'screens_otp_verification_screen.017': 'A new verification code has been sent to WhatsApp.',
-  'screens_otp_verification_screen.018': 'Enter the code sent to your WhatsApp to complete registration.',
-  'screens_otp_verification_screen.019': 'Enter the code sent to your WhatsApp to sign in securely.',
-  'screens_otp_verification_screen.020': 'You can resend the code in {count} seconds',
-  'screens_otp_verification_screen.021': 'Didn''t receive the code yet?',
+  'screens_onboarding_screen.006':
+      'Trusted protection and a reliable experience',
+  'screens_onboarding_screen.007':
+      'Track your balance, create cards, and access daily operations from a clear and simple interface.',
+  'screens_onboarding_screen.008':
+      'The app is designed to reduce steps and speed up access to card creation, scanning, and transfers.',
+  'screens_onboarding_screen.009':
+      'Verification, account management, and sensitive actions are organized in a secure and user-friendly way.',
+  'screens_otp_verification_screen.015':
+      'Please enter the full verification code to continue.',
+  'screens_otp_verification_screen.016':
+      'Your account has been created successfully. You can log in now.',
+  'screens_otp_verification_screen.017':
+      'A new verification code has been sent to WhatsApp.',
+  'screens_otp_verification_screen.018':
+      'Enter the code sent to your WhatsApp to complete registration.',
+  'screens_otp_verification_screen.019':
+      'Enter the code sent to your WhatsApp to sign in securely.',
+  'screens_otp_verification_screen.020':
+      'You can resend the code in {count} seconds',
+  'screens_otp_verification_screen.021':
+      'Didn'
+      't receive the code yet?',
 
-  'screens_admin_permissions_screen.041': 'From here you can define what this membership level can see and use across the app and admin panel.',
+  'screens_admin_permissions_screen.041':
+      'From here you can define what this membership level can see and use across the app and admin panel.',
 
-  'screens_inventory_screen.014': 'Review issued cards, reprint them, or delete unused cards whenever needed.',
+  'screens_inventory_screen.014':
+      'Review issued cards, reprint them, or delete unused cards whenever needed.',
 
   'screens_inventory_screen.015': 'There are no cards in this section',
 
   'screens_inventory_screen.016': 'The print request has been sent.',
 
-  'screens_inventory_screen.017': 'The card will be deleted and the balance will be refunded to your account immediately.',
+  'screens_inventory_screen.017':
+      'The card will be deleted and the balance will be refunded to your account immediately.',
 
-  'screens_inventory_screen.018': 'The card was deleted and the value was refunded.',
-  'screens_topup_requests_screen.025': 'This screen is available for administrators only.',
+  'screens_inventory_screen.018':
+      'The card was deleted and the value was refunded.',
+  'screens_topup_requests_screen.025':
+      'This screen is available for administrators only.',
   'screens_topup_requests_screen.026': 'Review top-up requests',
-  'screens_topup_requests_screen.027': 'Review transfer details and payment method before approving or rejecting the top-up request.',
-  'screens_topup_requests_screen.028': 'Search by username or reference number...',
-  'screens_topup_requests_screen.029': 'A proof image is required before approving the top-up request.',
+  'screens_topup_requests_screen.027':
+      'Review transfer details and payment method before approving or rejecting the top-up request.',
+  'screens_topup_requests_screen.028':
+      'Search by username or reference number...',
+  'screens_topup_requests_screen.029':
+      'A proof image is required before approving the top-up request.',
   'screens_topup_requests_screen.030': 'The top-up request has been approved.',
   'screens_topup_requests_screen.031': 'Write a short note for the user',
-  'screens_admin_system_settings_screen.035': 'Settings have been saved successfully.',
-  'screens_admin_system_settings_screen.036': 'Title and transfer number are required.',
+  'screens_admin_system_settings_screen.035':
+      'Settings have been saved successfully.',
+  'screens_admin_system_settings_screen.036':
+      'Title and transfer number are required.',
   'screens_admin_system_settings_screen.037': 'Account or wallet number',
-  'screens_admin_system_settings_screen.038': 'All administration settings were moved to a dedicated screen and load only when needed.',
+  'screens_admin_system_settings_screen.038':
+      'All administration settings were moved to a dedicated screen and load only when needed.',
   'screens_admin_system_settings_screen.039': 'Support and contact settings.',
-  'screens_admin_system_settings_screen.040': 'Registration & Transfer Settings',
-  'screens_admin_system_settings_screen.041': 'General policies and system limits.',
+  'screens_admin_system_settings_screen.040':
+      'Registration & Transfer Settings',
+  'screens_admin_system_settings_screen.041':
+      'General policies and system limits.',
   'screens_admin_system_settings_screen.042': 'Allow new registration',
-  'screens_admin_system_settings_screen.043': 'Transfer limit for unverified accounts',
+  'screens_admin_system_settings_screen.043':
+      'Transfer limit for unverified accounts',
   'screens_admin_system_settings_screen.044': 'Minimum supported version',
   'screens_admin_system_settings_screen.045': 'Latest available version',
-  'screens_admin_system_settings_screen.046': 'Enable the service and manage payment methods.',
+  'screens_admin_system_settings_screen.046':
+      'Enable the service and manage payment methods.',
   'screens_admin_system_settings_screen.047': 'Enable top-up requests',
-  'screens_admin_system_settings_screen.048': 'Top-up instructions for customer',
-  'screens_admin_system_settings_screen.049': 'No top-up methods have been added yet.',
-  'screens_admin_system_settings_screen.050': 'Update the policy text displayed inside the app.',
+  'screens_admin_system_settings_screen.048':
+      'Top-up instructions for customer',
+  'screens_admin_system_settings_screen.049':
+      'No top-up methods have been added yet.',
+  'screens_admin_system_settings_screen.050':
+      'Update the policy text displayed inside the app.',
   'screens_admin_system_settings_screen.051': 'Android URL',
   'screens_admin_system_settings_screen.052': 'iOS URL',
-  'screens_withdrawal_requests_screen.026': 'Review transfer requests to bank accounts or digital wallets before approval.',
-  'screens_withdrawal_requests_screen.027': 'A proof image is required before approving the withdrawal request.',
+  'screens_withdrawal_requests_screen.026':
+      'Review transfer requests to bank accounts or digital wallets before approval.',
+  'screens_withdrawal_requests_screen.027':
+      'A proof image is required before approving the withdrawal request.',
   'screens_withdrawal_requests_screen.028': 'Write a short note for the user',
   'widgets_support_contact_card.001': 'Support number copied',
   'widgets_support_contact_card.002': 'Could not open WhatsApp on this device',
@@ -1067,22 +1115,28 @@ const Map<String, String> appStringsEn = {
   'widgets_support_contact_card.004': 'Open WhatsApp',
   'widgets_support_contact_card.005': 'Copy number',
   'screens_usage_policy_screen.001': 'Usage Policy',
-  'screens_usage_policy_screen.002': 'We explain here the terms that govern the use of the app and services in a clear and direct way.',
+  'screens_usage_policy_screen.002':
+      'We explain here the terms that govern the use of the app and services in a clear and direct way.',
   'screens_usage_policy_screen.003': 'No usage policy is currently available.',
   'screens_usage_policy_screen.004': 'Legal charter and privacy',
-  'screens_usage_policy_screen.005': 'Our commitment to providing safe and well-organized services for all Shawakel users.',
+  'screens_usage_policy_screen.005':
+      'Our commitment to providing safe and well-organized services for all shwakil users.',
   'screens_supported_locations_screen.001': 'Branches & Service Centers',
-  'screens_supported_locations_screen.002': 'Shawakel interactive map',
-  'screens_supported_locations_screen.003': 'Find the nearest agent or approved top-up point in your area with automatic distance-based sorting.',
+  'screens_supported_locations_screen.002': 'shwakil interactive map',
+  'screens_supported_locations_screen.003':
+      'Find the nearest agent or approved top-up point in your area with automatic distance-based sorting.',
   'screens_supported_locations_screen.004': '{count} available locations',
   'screens_supported_locations_screen.005': 'Sorted by distance',
   'screens_supported_locations_screen.006': 'General order',
-  'screens_supported_locations_screen.007': 'Locations were automatically sorted by distance from your current location.',
-  'screens_supported_locations_screen.008': 'Shawakel branch',
+  'screens_supported_locations_screen.007':
+      'Locations were automatically sorted by distance from your current location.',
+  'screens_supported_locations_screen.008': 'shwakil branch',
   'screens_supported_locations_screen.009': 'Approved service point',
   'screens_supported_locations_screen.010': 'Open in maps',
-  'screens_supported_locations_screen.011': 'No locations are currently registered',
-  'screens_supported_locations_screen.012': 'You can come back later or pull to refresh the screen.',
+  'screens_supported_locations_screen.011':
+      'No locations are currently registered',
+  'screens_supported_locations_screen.012':
+      'You can come back later or pull to refresh the screen.',
   'screens_supported_locations_screen.013': '{count} m',
   'screens_supported_locations_screen.014': '{count} km',
   'screens_scan_card_screen.001': 'Scan barcode',
@@ -1092,7 +1146,8 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.005': 'Open camera',
   'screens_scan_card_screen.006': 'Search',
   'screens_scan_card_screen.007': 'Card details',
-  'screens_scan_card_screen.008': 'Search for a card or use the camera to display its details.',
+  'screens_scan_card_screen.008':
+      'Search for a card or use the camera to display its details.',
   'screens_scan_card_screen.009': 'Hide card details',
   'screens_scan_card_screen.010': 'Show card details',
   'screens_scan_card_screen.011': 'Reactivate card',
@@ -1101,12 +1156,15 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.014': 'Scan result',
   'screens_scan_card_screen.015': 'Card already used',
   'screens_scan_card_screen.016': 'Card is valid and ready',
-  'screens_scan_card_screen.017': 'This card has already been used and cannot be redeemed again.',
-  'screens_scan_card_screen.018': 'This card is valid and can be redeemed or reviewed.',
+  'screens_scan_card_screen.017':
+      'This card has already been used and cannot be redeemed again.',
+  'screens_scan_card_screen.018':
+      'This card is valid and can be redeemed or reviewed.',
   'screens_scan_card_screen.019': 'Status',
   'screens_scan_card_screen.020': 'Value',
   'screens_scan_card_screen.021': 'Redeem card and receive balance',
-  'screens_scan_card_screen.022': 'You can only scan the card. Receiving the balance requires account verification.',
+  'screens_scan_card_screen.022':
+      'You can only scan the card. Receiving the balance requires account verification.',
   'screens_scan_card_screen.023': 'Barcode',
   'screens_scan_card_screen.024': 'Card type',
   'screens_scan_card_screen.025': 'Visibility',
@@ -1125,18 +1183,24 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.038': 'Allowed users',
   'screens_scan_card_screen.039': 'Scan failed',
   'screens_scan_card_screen.040': 'The card could not be found.',
-  'screens_scan_card_screen.041': 'Point the camera at the card and the code will be captured automatically.',
-  'screens_scan_card_screen.042': 'If it is not captured automatically, move the card closer to the frame.',
+  'screens_scan_card_screen.041':
+      'Point the camera at the card and the code will be captured automatically.',
+  'screens_scan_card_screen.042':
+      'If it is not captured automatically, move the card closer to the frame.',
   'screens_scan_card_screen.043': 'Unavailable',
   'screens_scan_card_screen.044': 'Redeemed',
-  'screens_scan_card_screen.045': 'The card was redeemed and the balance was added successfully.',
+  'screens_scan_card_screen.045':
+      'The card was redeemed and the balance was added successfully.',
   'screens_scan_card_screen.046': 'Could not complete action',
-  'screens_scan_card_screen.047': 'You do not have permission to reactivate used cards.',
+  'screens_scan_card_screen.047':
+      'You do not have permission to reactivate used cards.',
   'screens_scan_card_screen.048': 'Confirm reactivation',
-  'screens_scan_card_screen.049': 'This card will be reactivated so it can be used again. Do you want to continue?',
+  'screens_scan_card_screen.049':
+      'This card will be reactivated so it can be used again. Do you want to continue?',
   'screens_scan_card_screen.050': 'Cancel',
   'screens_scan_card_screen.051': 'Card reactivated',
-  'screens_scan_card_screen.052': 'The card was reactivated successfully and is ready to use.',
+  'screens_scan_card_screen.052':
+      'The card was reactivated successfully and is ready to use.',
   'screens_scan_card_screen.053': 'Used',
   'screens_scan_card_screen.054': 'Archived',
   'screens_scan_card_screen.055': 'Available',
@@ -1210,8 +1274,7 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.013': 'Confirm card issuance',
   'screens_create_card_screen.014':
       'You are about to issue {quantity} cards.\nType: {type}\nVisibility: {visibility}\nValue: {value}\n{privateLine}',
-  'screens_create_card_screen.015':
-      'Selected beneficiaries: {count}',
+  'screens_create_card_screen.015': 'Selected beneficiaries: {count}',
   'screens_create_card_screen.016': 'Cancel',
   'screens_create_card_screen.017': 'Issue now',
   'screens_create_card_screen.018': 'Unable to issue cards',
@@ -1227,7 +1290,8 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.027': 'ID: {id}',
   'screens_create_card_screen.028': 'Confirm',
   'screens_create_card_screen.029': 'Issue new cards',
-  'screens_create_card_screen.030': 'Issue digital cards with a polished layout',
+  'screens_create_card_screen.030':
+      'Issue digital cards with a polished layout',
   'screens_create_card_screen.031':
       'Set the value, quantity, and card type, then customize the title, stamp, and logo before sending the batch to print.',
   'screens_create_card_screen.032': 'Issuance details',
@@ -1253,8 +1317,7 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.048': 'Show logo',
   'screens_create_card_screen.049':
       'The uploaded account logo will be used when enabled',
-  'screens_create_card_screen.050':
-      'The default app logo will be used',
+  'screens_create_card_screen.050': 'The default app logo will be used',
   'screens_create_card_screen.051': 'Use account logo',
   'screens_create_card_screen.052':
       'You can change the logo from account settings when needed',
@@ -1276,9 +1339,11 @@ const Map<String, String> appStringsEn = {
   'screens_contact_us_screen.002': 'Official email',
   'screens_contact_us_screen.003': 'Head office',
   'screens_contact_us_screen.004': 'Working hours: 9:00 AM - 9:00 PM',
-  'screens_contact_us_screen.005': 'We are ready to serve you throughout the week, except official holidays.',
+  'screens_contact_us_screen.005':
+      'We are ready to serve you throughout the week, except official holidays.',
   'screens_contact_us_screen.006': 'Shwakel Help Center',
-  'screens_contact_us_screen.007': 'Our team is ready to answer your questions and resolve technical issues as quickly as possible.',
+  'screens_contact_us_screen.007':
+      'Our team is ready to answer your questions and resolve technical issues as quickly as possible.',
   'widgets_admin_summary_widgets.001': 'Metric',
   'widgets_admin_summary_widgets.002': 'Total balances',
   'widgets_admin_summary_widgets.003': 'Customers',
@@ -1291,34 +1356,50 @@ const Map<String, String> appStringsEn = {
   'widgets_admin_withdrawal_request_card.005': 'Reject',
   'screens_admin_dashboard_screen.003': 'Administration',
   'screens_admin_dashboard_screen.004': 'Card print requests',
-  'screens_admin_dashboard_screen.005': 'Review the request, then start printing, preparation, and completion.',
+  'screens_admin_dashboard_screen.005':
+      'Review the request, then start printing, preparation, and completion.',
   'screens_admin_dashboard_screen.006': 'Customer management',
-  'screens_admin_dashboard_screen.007': 'Search customers, open their profiles, and add a new user.',
+  'screens_admin_dashboard_screen.007':
+      'Search customers, open their profiles, and add a new user.',
   'screens_admin_dashboard_screen.008': 'Device requests',
-  'screens_admin_dashboard_screen.009': 'Review newly linked device requests only.',
+  'screens_admin_dashboard_screen.009':
+      'Review newly linked device requests only.',
   'screens_admin_dashboard_screen.010': 'Withdrawal requests',
-  'screens_admin_dashboard_screen.011': 'Approve or reject withdrawal requests from a dedicated screen.',
+  'screens_admin_dashboard_screen.011':
+      'Approve or reject withdrawal requests from a dedicated screen.',
   'screens_admin_dashboard_screen.012': 'Top-up requests',
-  'screens_admin_dashboard_screen.013': 'Review top-up requests and approve or reject them quickly.',
+  'screens_admin_dashboard_screen.013':
+      'Review top-up requests and approve or reject them quickly.',
   'screens_admin_dashboard_screen.014': 'Branches and locations',
-  'screens_admin_dashboard_screen.015': 'Manage supported branches and locations without loading other data.',
+  'screens_admin_dashboard_screen.015':
+      'Manage supported branches and locations without loading other data.',
   'screens_admin_dashboard_screen.016': 'System settings',
-  'screens_admin_dashboard_screen.017': 'Registration, support, policies, and top-up methods.',
+  'screens_admin_dashboard_screen.017':
+      'Registration, support, policies, and top-up methods.',
   'screens_admin_dashboard_screen.018': 'Permission templates',
-  'screens_admin_dashboard_screen.019': 'Control what each membership level can view and use.',
-  'screens_quick_transfer_screen.023': 'Enter a phone number to find the recipient.',
+  'screens_admin_dashboard_screen.019':
+      'Control what each membership level can view and use.',
+  'screens_quick_transfer_screen.023':
+      'Enter a phone number to find the recipient.',
   'screens_quick_transfer_screen.024': 'Could not find the user',
-  'screens_quick_transfer_screen.025': 'Could not determine the recipient account.',
-  'screens_quick_transfer_screen.026': 'The balance was sent successfully to the recipient.',
+  'screens_quick_transfer_screen.025':
+      'Could not determine the recipient account.',
+  'screens_quick_transfer_screen.026':
+      'The balance was sent successfully to the recipient.',
   'screens_quick_transfer_screen.027': 'Amount to transfer (ILS)',
-  'screens_quick_transfer_screen.028': 'You do not have permission to use quick transfer.',
+  'screens_quick_transfer_screen.028':
+      'You do not have permission to use quick transfer.',
   'screens_quick_transfer_screen.029': 'Send balance by phone number',
-  'screens_quick_transfer_screen.030': 'Enter only the recipient phone number, then review basic details without showing any financial information.',
+  'screens_quick_transfer_screen.030':
+      'Enter only the recipient phone number, then review basic details without showing any financial information.',
   'screens_quick_transfer_screen.031': 'Recipient phone number',
-  'screens_quick_transfer_screen.032': 'For privacy reasons, the recipient balance is not displayed.',
+  'screens_quick_transfer_screen.032':
+      'For privacy reasons, the recipient balance is not displayed.',
   'screens_quick_transfer_screen.033': 'Send balance to this number',
-  'screens_quick_transfer_screen.034': 'You can also scan the recipient code to complete the transfer faster.',
-  'screens_quick_transfer_screen.035': 'Show this code to the sender so they can transfer balance to you directly.',
+  'screens_quick_transfer_screen.034':
+      'You can also scan the recipient code to complete the transfer faster.',
+  'screens_quick_transfer_screen.035':
+      'Show this code to the sender so they can transfer balance to you directly.',
   'screens_admin_card_print_requests_screen.029': 'Archive',
   'screens_admin_card_print_requests_screen.030': 'Completed',
   'screens_admin_card_print_requests_screen.031': 'Source',
@@ -1331,11 +1412,14 @@ const Map<String, String> appStringsEn = {
   'screens_admin_permissions_screen.043': 'Manage sub-users',
   'screens_admin_customer_screen.072': 'Offline card scan',
   'screens_scan_card_screen.061': 'Offline scan',
-  'screens_scan_card_screen.062': 'Loaded the card from local cache and will sync when connected.',
+  'screens_scan_card_screen.062':
+      'Loaded the card from local cache and will sync when connected.',
   'screens_scan_card_screen.063': 'Saved offline',
-  'screens_scan_card_screen.064': 'The scan will sync once internet is available.',
+  'screens_scan_card_screen.064':
+      'The scan will sync once internet is available.',
   'screens_card_print_requests_screen.041': 'Printing limit exceeded',
-  'screens_card_print_requests_screen.042': 'Available balance {available} is lower than total {total}. Printing fee {fee}%.\nTo print higher amounts, contact us at {phone}.',
+  'screens_card_print_requests_screen.042':
+      'Available balance {available} is lower than total {total}. Printing fee {fee}%.\nTo print higher amounts, contact us at {phone}.',
   'screens_card_print_requests_screen.043': 'OK',
   'screens_card_print_requests_screen.044': 'Source',
   'screens_card_print_requests_screen.045': 'Local',
@@ -1343,4 +1427,3 @@ const Map<String, String> appStringsEn = {
   'screens_card_print_requests_screen.047': 'Last printed',
   'screens_card_print_requests_screen.048': 'Not printed yet',
 };
-

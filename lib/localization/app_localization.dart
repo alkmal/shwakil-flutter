@@ -19,15 +19,22 @@ class AppLocaleService extends ChangeNotifier {
   bool get isArabic => (_locale?.languageCode ?? 'ar') == 'ar';
 
   Future<void> init() async {
+    final previousCode = _locale?.languageCode;
     final prefs = await SharedPreferences.getInstance();
     final storedCode = prefs.getString(_storageKey);
     if (storedCode == 'ar' || storedCode == 'en') {
       _locale = Locale(storedCode!);
+      if (previousCode != _locale?.languageCode) {
+        notifyListeners();
+      }
       return;
     }
 
     final systemCode = PlatformDispatcher.instance.locale.languageCode;
     _locale = Locale(systemCode == 'en' ? 'en' : 'ar');
+    if (previousCode != _locale?.languageCode) {
+      notifyListeners();
+    }
   }
 
   Future<void> setLocale(Locale locale) async {

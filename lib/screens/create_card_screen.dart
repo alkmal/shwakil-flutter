@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -27,6 +29,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   bool _isLoading = false;
   bool _isLoadingUser = true;
+  bool _isAuthorized = false;
   bool _showLogo = true;
   bool _showStamp = true;
   bool _useAccountLogo = true;
@@ -58,8 +61,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       if (!mounted) {
         return;
       }
+      final permissions = AppPermissions.fromUser(user);
       setState(() {
         _user = user;
+        _isAuthorized = permissions.canIssueCards;
         final accountName =
             user?['fullName']?.toString().trim().isNotEmpty == true
             ? user!['fullName'].toString().trim()
@@ -79,11 +84,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
   }
 
-  Map<String, dynamic> get _permissions =>
-      Map<String, dynamic>.from(_user?['permissions'] as Map? ?? const {});
+  AppPermissions get _appPermissions => AppPermissions.fromUser(_user);
 
-  bool get _canIssuePrivateCards =>
-      _permissions['canIssuePrivateCards'] == true;
+  bool get _canIssuePrivateCards => _appPermissions.canIssuePrivateCards;
+
+  bool get _canRequestCardPrinting => _appPermissions.canRequestCardPrinting;
 
   bool get _hasAccountLogo =>
       _user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
@@ -101,6 +106,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Future<void> _create() async {
     final l = context.loc;
+    if (!_isAuthorized) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_create_card_screen.004'),
+        message: 'لا تملك صلاحية إصدار البطاقات.',
+      );
+      return;
+    }
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
     final isStandard = _cardType == 'standard';
@@ -250,14 +263,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l.tr('screens_create_card_screen.022')),
           ),
-          ShwakelButton(
-            label: l.tr('screens_create_card_screen.023'),
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await _printCards(cards);
-            },
-            width: 150,
-          ),
+          if (_canRequestCardPrinting)
+            ShwakelButton(
+              label: l.tr('screens_create_card_screen.023'),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await _printCards(cards);
+              },
+              width: 150,
+            ),
         ],
       ),
     );
@@ -408,10 +422,39 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_create_card_screen.029')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text('لا تملك صلاحية إصدار البطاقات', style: AppTheme.h3),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_create_card_screen.029')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
@@ -953,4 +996,3 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 }
-

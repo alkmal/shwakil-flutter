@@ -4,16 +4,17 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
-import '../widgets/admin/admin_section_header.dart';
 import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/shwakel_logo.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class BalanceScreen extends StatefulWidget {
   const BalanceScreen({super.key});
@@ -35,17 +36,13 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   bool _topupRequestEnabled = true;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
+  bool _showHistoryFilters = false;
 
-  Map<String, dynamic> get _permissions =>
-      Map<String, dynamic>.from(_user?['permissions'] as Map? ?? const {});
+  AppPermissions get _appPermissions => AppPermissions.fromUser(_user);
 
-  bool get _canTransferAction => _permissions['canTransfer'] == true;
-  bool get _canWithdrawAction => _permissions['canWithdraw'] == true;
-  bool get _canManageUsersAction =>
-      _permissions['canManageUsers'] == true || _user?['id']?.toString() == '1';
-  bool get _canScanCardsAction =>
-      _permissions['canScanCards'] != false ||
-      _permissions['canOfflineCardScan'] == true;
+  bool get _canTransferAction => _appPermissions.canTransfer;
+  bool get _canWithdrawAction => _appPermissions.canWithdraw;
+  bool get _canManageUsersAction => _appPermissions.canManageUsers;
   bool get _isVerifiedAccount =>
       _user?['transferVerificationStatus']?.toString() == 'approved';
 
@@ -384,144 +381,214 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             }
 
             return AlertDialog(
-              title: Text(l.tr('screens_balance_screen.029')),
               content: SizedBox(
-                width: 520,
+                width: 560,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Text(
-                          topupRequest['instructions']?.toString() ??
-                              l.tr('screens_balance_screen.059'),
-                          style: AppTheme.bodyAction,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedMethodId,
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.060'),
-                          prefixIcon: const Icon(
-                            Icons.account_balance_wallet_rounded,
-                          ),
-                        ),
-                        items: methods
-                            .map(
-                              (method) => DropdownMenuItem(
-                                value: method['id']?.toString(),
-                                child: Text(method['title']?.toString() ?? '-'),
+                      ShwakelCard(
+                        padding: const EdgeInsets.all(18),
+                        color: AppTheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(24),
+                        shadowLevel: ShwakelShadowLevel.none,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                            )
-                            .toList(),
-                        onChanged: (value) =>
-                            setDialogState(() => selectedMethodId = value),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppTheme.border),
+                              child: const Icon(
+                                Icons.add_card_rounded,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l.tr('screens_balance_screen.029'),
+                                    style: AppTheme.h3,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    topupRequest['instructions']?.toString() ??
+                                        l.tr('screens_balance_screen.059'),
+                                    style: AppTheme.bodyAction.copyWith(
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: 18),
+                      ShwakelCard(
+                        padding: const EdgeInsets.all(18),
+                        color: AppTheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(24),
+                        shadowLevel: ShwakelShadowLevel.none,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              selectedMethod['title']?.toString() ?? '-',
+                              l.text('طريقة الشحن', 'Top-up method'),
                               style: AppTheme.bodyBold,
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              l.tr(
-                                'screens_balance_screen.061',
-                                params: {
-                                  'number':
-                                      selectedMethod['accountNumber']
-                                          ?.toString() ??
-                                      '-',
-                                },
-                              ),
-                              style: AppTheme.bodyAction,
-                            ),
-                            if ((selectedMethod['description']?.toString() ??
-                                    '')
-                                .trim()
-                                .isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                selectedMethod['description']?.toString() ?? '',
-                                style: AppTheme.bodyAction.copyWith(
-                                  color: AppTheme.textSecondary,
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              initialValue: selectedMethodId,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.060'),
+                                prefixIcon: const Icon(
+                                  Icons.account_balance_wallet_rounded,
                                 ),
                               ),
-                            ],
+                              items: methods
+                                  .map(
+                                    (method) => DropdownMenuItem(
+                                      value: method['id']?.toString(),
+                                      child: Text(
+                                        method['title']?.toString() ?? '-',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) => setDialogState(
+                                () => selectedMethodId = value,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surface,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppTheme.border),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    selectedMethod['title']?.toString() ?? '-',
+                                    style: AppTheme.bodyBold,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    l.tr(
+                                      'screens_balance_screen.061',
+                                      params: {
+                                        'number':
+                                            selectedMethod['accountNumber']
+                                                ?.toString() ??
+                                            '-',
+                                      },
+                                    ),
+                                    style: AppTheme.bodyAction,
+                                  ),
+                                  if ((selectedMethod['description']
+                                              ?.toString() ??
+                                          '')
+                                      .trim()
+                                      .isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      selectedMethod['description']
+                                              ?.toString() ??
+                                          '',
+                                      style: AppTheme.bodyAction.copyWith(
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: amountController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.062'),
-                          prefixIcon: const Icon(Icons.payments_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: senderNameController,
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.063'),
-                          prefixIcon: const Icon(Icons.person_outline_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: senderPhoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.064'),
-                          prefixIcon: const Icon(Icons.phone_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: transferReferenceController,
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.065'),
-                          prefixIcon: const Icon(Icons.tag_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: transferredAtController,
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.066'),
-                          helperText: l.tr('screens_balance_screen.067'),
-                          prefixIcon: const Icon(Icons.schedule_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: notesController,
-                        minLines: 2,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.068'),
-                          prefixIcon: const Icon(Icons.notes_rounded),
+                      const SizedBox(height: 18),
+                      ShwakelCard(
+                        padding: const EdgeInsets.all(18),
+                        color: AppTheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(24),
+                        shadowLevel: ShwakelShadowLevel.none,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l.text('بيانات الطلب', 'Request details'),
+                              style: AppTheme.bodyBold,
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: amountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.062'),
+                                prefixIcon: const Icon(Icons.payments_outlined),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: senderNameController,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.063'),
+                                prefixIcon: const Icon(
+                                  Icons.person_outline_rounded,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: senderPhoneController,
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.064'),
+                                prefixIcon: const Icon(Icons.phone_rounded),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: transferReferenceController,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.065'),
+                                prefixIcon: const Icon(Icons.tag_rounded),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: transferredAtController,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.066'),
+                                helperText: l.tr('screens_balance_screen.067'),
+                                prefixIcon: const Icon(Icons.schedule_rounded),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: notesController,
+                              minLines: 2,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.068'),
+                                prefixIcon: const Icon(Icons.notes_rounded),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       if (errorText != null) ...[
@@ -544,12 +611,14 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                       : () => Navigator.pop(dialogContext),
                   child: Text(l.tr('screens_balance_screen.069')),
                 ),
-                ElevatedButton(
-                  onPressed: isSubmitting ? null : submit,
-                  child: Text(
-                    isSubmitting
+                SizedBox(
+                  width: 170,
+                  child: ShwakelButton(
+                    label: isSubmitting
                         ? l.tr('screens_balance_screen.070')
                         : l.tr('screens_balance_screen.071'),
+                    isLoading: isSubmitting,
+                    onPressed: isSubmitting ? null : submit,
                   ),
                 ),
               ],
@@ -595,15 +664,39 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       );
     }
 
+    final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(context.loc.tr('screens_balance_screen.020'))),
+      appBar: AppBar(
+        title: Text(l.tr('screens_balance_screen.020')),
+        actions: [
+          IconButton(
+            tooltip: _showHistoryFilters
+                ? l.text('إخفاء فلاتر الحركات', 'Hide history filters')
+                : l.text('إظهار فلاتر الحركات', 'Show history filters'),
+            onPressed: () =>
+                setState(() => _showHistoryFilters = !_showHistoryFilters),
+            icon: Icon(
+              _showHistoryFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
+            tooltip: l.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
+      ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _loadBalance,
         child: SingleChildScrollView(
           child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: AppTheme.pagePadding(context, top: 18),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isCompact = constraints.maxWidth < 920;
@@ -611,10 +704,12 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTopSection(isCompact: isCompact, isPhone: isPhone),
-                    const SizedBox(height: 24),
+                    _buildActionsCard(isCompact: true, isPhone: isPhone),
+                    const SizedBox(height: 18),
                     _buildHistorySection(isCompact: isCompact),
                     const SizedBox(height: 24),
+                    _buildHistoryHeading(),
+                    const SizedBox(height: 14),
                     if (_transactions.isEmpty)
                       _buildEmptyState()
                     else ...[
@@ -635,10 +730,6 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         },
                       ),
                     ],
-                    if (isCompact) ...[
-                      const SizedBox(height: 24),
-                      _buildPermissionSummaryCard(compact: true),
-                    ],
                   ],
                 );
               },
@@ -649,200 +740,21 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     );
   }
 
-  Widget _buildTopSection({required bool isCompact, required bool isPhone}) {
-    if (isCompact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeroCard(isCompact: true),
-          const SizedBox(height: 16),
-          _buildActionsCard(isCompact: true, isPhone: isPhone),
-        ],
+  Widget _buildHistorySection({required bool isCompact}) {
+    if (!_showHistoryFilters) {
+      return ToolToggleHint(
+        message: context.loc.text(
+          'يمكنك فتح فلاتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
+          'Open history filters from the top filter icon when needed.',
+        ),
+        icon: Icons.filter_alt_rounded,
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: Column(
-            children: [
-              _buildHeroCard(isCompact: false),
-              const SizedBox(height: 18),
-              _buildActionsCard(isCompact: false, isPhone: false),
-            ],
-          ),
-        ),
-        const SizedBox(width: 24),
-        Expanded(flex: 2, child: _buildPermissionSummaryCard(compact: false)),
-      ],
-    );
-  }
-
-  Widget _buildHistorySection({required bool isCompact}) {
-    final l = context.loc;
     return ShwakelCard(
-      padding: EdgeInsets.all(isCompact ? 18 : 24),
+      padding: EdgeInsets.all(isCompact ? 16 : 20),
       shadowLevel: ShwakelShadowLevel.soft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AdminSectionHeader(
-            title: l.tr('screens_balance_screen.021'),
-            subtitle: l.tr('screens_balance_screen.022'),
-            icon: Icons.history_rounded,
-            iconColor: AppTheme.primary,
-          ),
-          const SizedBox(height: 16),
-          _buildAuditFilters(compact: isCompact),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeroCard({required bool isCompact}) {
-    final l = context.loc;
-    final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
-    final printingDebtLimit =
-        (_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0;
-    final availablePrinting =
-        (_user?['availablePrintingBalance'] as num?)?.toDouble() ??
-        (balance + printingDebtLimit);
-    final debt =
-        (_user?['outstandingDebt'] as num?)?.toDouble() ??
-        (balance < 0 ? -balance : 0);
-    final fullName =
-        _user?['fullName']?.toString().trim() ??
-        _user?['username']?.toString() ??
-        '';
-
-    return ShwakelCard(
-      padding: EdgeInsets.all(isCompact ? 22 : 30),
-      gradient: AppTheme.primaryGradient,
-      withBorder: false,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      fullName,
-                      style: AppTheme.h2.copyWith(
-                        color: Colors.white,
-                        fontSize: isCompact ? 20 : 22,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      l.tr('screens_balance_screen.020'),
-                      style: AppTheme.bodyAction.copyWith(
-                        color: Colors.white.withValues(alpha: 0.84),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              const ShwakelLogo(size: 44, framed: true),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(isCompact ? 16 : 20),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-            ),
-            child: Wrap(
-              spacing: 20,
-              runSpacing: 16,
-              children: [
-                _amountCol(
-                  l.tr('screens_balance_screen.023'),
-                  balance,
-                  isCompact: isCompact,
-                ),
-                _amountCol(
-                  l.tr('screens_balance_screen.024'),
-                  availablePrinting,
-                  isCompact: isCompact,
-                ),
-              ],
-            ),
-          ),
-          if (printingDebtLimit > 0) ...[
-            const SizedBox(height: 18),
-            _debtBar(debt, printingDebtLimit),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _amountCol(String label, double amount, {required bool isCompact}) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(minWidth: isCompact ? 132 : 180),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTheme.caption.copyWith(color: Colors.white70)),
-          const SizedBox(height: 4),
-          Text(
-            CurrencyFormatter.ils(amount),
-            style: AppTheme.h1.copyWith(
-              color: Colors.white,
-              fontSize: isCompact ? 24 : 32,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _debtBar(double debt, double limit) {
-    final l = context.loc;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 6,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white10,
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerRight,
-            widthFactor: (debt / limit).clamp(0.0, 1.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          l.tr(
-            'screens_balance_screen.025',
-            params: {
-              'debt': CurrencyFormatter.ils(debt),
-              'limit': CurrencyFormatter.ils(limit),
-            },
-          ),
-          style: AppTheme.caption.copyWith(color: Colors.white70),
-        ),
-      ],
+      child: _buildAuditFilters(compact: isCompact),
     );
   }
 
@@ -963,79 +875,6 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     );
   }
 
-  Widget _buildPermissionSummaryCard({required bool compact}) {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: EdgeInsets.all(compact ? 20 : 24),
-      color: AppTheme.primary.withValues(alpha: 0.05),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l.tr('screens_balance_screen.033'),
-            style: AppTheme.h3.copyWith(color: AppTheme.primary),
-          ),
-          const SizedBox(height: 14),
-          _permissionRow(
-            l.tr('screens_balance_screen.034'),
-            _user?['roleLabel']?.toString() ?? '-',
-          ),
-          _permissionRow(
-            l.tr('screens_balance_screen.035'),
-            _isVerifiedAccount
-                ? l.tr('screens_balance_screen.036')
-                : l.tr('screens_balance_screen.037'),
-          ),
-          _permissionRow(
-            l.tr('screens_balance_screen.038'),
-            _canTransferAction
-                ? l.tr('screens_balance_screen.039')
-                : l.tr('screens_balance_screen.040'),
-          ),
-          _permissionRow(
-            l.tr('screens_balance_screen.041'),
-            (_canWithdrawAction && _isVerifiedAccount)
-                ? l.tr('screens_balance_screen.039')
-                : l.tr('screens_balance_screen.040'),
-          ),
-          if (_canManageUsersAction)
-            _permissionRow(
-              l.tr('screens_balance_screen.042'),
-              l.tr('screens_balance_screen.039'),
-            ),
-          _permissionRow(
-            l.tr('screens_balance_screen.043'),
-            _canScanCardsAction
-                ? l.tr('screens_balance_screen.039')
-                : l.tr('screens_balance_screen.040'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _permissionRow(String label, String value) {
-    final l = context.loc;
-    final isAvailable =
-        value == l.tr('screens_balance_screen.039') ||
-        value == l.tr('screens_balance_screen.036');
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: AppTheme.bodyText)),
-          const SizedBox(width: 12),
-          Text(
-            value,
-            style: AppTheme.bodyBold.copyWith(
-              color: isAvailable ? AppTheme.success : AppTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAuditFilters({required bool compact}) {
     final l = context.loc;
     return Column(
@@ -1119,6 +958,54 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             Text(l.tr('screens_balance_screen.048'), style: AppTheme.h3),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryHeading() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('سجل العمليات', style: AppTheme.h2.copyWith(fontSize: 20)),
+              const SizedBox(height: 4),
+              Text(
+                _transactions.isEmpty
+                    ? 'لا توجد عمليات معروضة ضمن الفلاتر الحالية.'
+                    : 'عدد العناصر في هذه الصفحة: ${_transactions.length}',
+                style: AppTheme.caption.copyWith(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.primarySoft,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            'الصفحة $_page',
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showHelpDialog() async {
+    final l = context.loc;
+    await AppAlertService.showInfo(
+      context,
+      title: l.text('دليل سريع', 'Quick help'),
+      message: l.text(
+        'استخدم الأزرار السريعة لإدارة الرصيد، ثم صفِّ السجل حسب النوع أو الموقع عند الحاجة.',
+        'Use the quick actions to manage balance, then filter the history by type or location when needed.',
       ),
     );
   }
@@ -1223,7 +1110,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           isLookingUpPhone = false;
           if (response['exists'] == true && user != null) {
             selectedUser = user;
-            searchResults = [user];
+            searchResults = const [];
+            searchError = null;
             phoneLookupMessage = l.tr('screens_balance_screen.076');
           } else {
             selectedUser = null;
@@ -1247,20 +1135,58 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         builder: (context, setDialogState) => AlertDialog(
           title: Text(title),
           content: SizedBox(
-            width: 460,
+            width: 520,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    enablePhoneLookup
-                        ? l.tr('screens_balance_screen.078')
-                        : l.tr('screens_balance_screen.079'),
-                    style: AppTheme.bodyAction,
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(18),
+                    color: AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(24),
+                    shadowLevel: ShwakelShadowLevel.none,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title, style: AppTheme.h3),
+                              const SizedBox(height: 4),
+                              Text(
+                                enablePhoneLookup
+                                    ? l.text(
+                                        'ابحث عن المستلم عبر رقم الجوال أو اختره مباشرة ثم أدخل مبلغ التحويل.',
+                                        'Find the recipient by phone number, then enter the transfer amount.',
+                                      )
+                                    : l.tr('screens_balance_screen.079'),
+                                style: AppTheme.bodyAction.copyWith(
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   if (!enablePhoneLookup) ...[
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 18),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isCompact = constraints.maxWidth < 360;
@@ -1333,204 +1259,368 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     ],
                   ],
                   if (enablePhoneLookup) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l.tr('screens_balance_screen.083'),
-                      style: AppTheme.bodyBold,
-                    ),
-                    const SizedBox(height: 10),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isCompact = constraints.maxWidth < 360;
-                        if (isCompact) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                    const SizedBox(height: 18),
+                    ShwakelCard(
+                      padding: const EdgeInsets.all(18),
+                      borderRadius: BorderRadius.circular(24),
+                      shadowLevel: ShwakelShadowLevel.none,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              DropdownButtonFormField<String>(
-                                initialValue: countryCode,
-                                decoration: InputDecoration(
-                                  labelText: l.tr('screens_balance_screen.084'),
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accent.withValues(
+                                    alpha: 0.10,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
-                                items: PhoneNumberService.countries
-                                    .map(
-                                      (country) => DropdownMenuItem(
-                                        value: country.dialCode,
-                                        child: Text(
-                                          '${country.name} (+${country.dialCode})',
-                                        ),
+                                child: const Icon(
+                                  Icons.phone_rounded,
+                                  color: AppTheme.accent,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l.tr('screens_balance_screen.083'),
+                                      style: AppTheme.bodyBold,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l.text(
+                                        'أدخل رقم الجوال للعثور على المستلم بسرعة وبدون تكرار في النتائج.',
+                                        'Enter the mobile number to find the recipient quickly.',
                                       ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setDialogState(() => countryCode = value);
-                                },
-                              ),
-                              const SizedBox(height: 10),
-                              TextField(
-                                controller: phoneController,
-                                keyboardType: TextInputType.phone,
-                                decoration: InputDecoration(
-                                  labelText: l.tr('screens_balance_screen.085'),
-                                  prefixIcon: const Icon(Icons.phone_rounded),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              OutlinedButton.icon(
-                                onPressed: isLookingUpPhone
-                                    ? null
-                                    : () => performPhoneLookup(setDialogState),
-                                icon: const Icon(Icons.verified_user_outlined),
-                                label: Text(
-                                  isLookingUpPhone
-                                      ? l.tr('screens_balance_screen.086')
-                                      : l.tr('screens_balance_screen.087'),
+                                      style: AppTheme.caption.copyWith(
+                                        color: AppTheme.textSecondary,
+                                        height: 1.45,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
-                          );
-                        }
-
-                        return Row(
-                          children: [
-                            SizedBox(
-                              width: 150,
-                              child: DropdownButtonFormField<String>(
-                                initialValue: countryCode,
-                                decoration: InputDecoration(
-                                  labelText: l.tr('screens_balance_screen.084'),
-                                ),
-                                items: PhoneNumberService.countries
-                                    .map(
-                                      (country) => DropdownMenuItem(
-                                        value: country.dialCode,
-                                        child: Text('+${country.dialCode}'),
+                          ),
+                          const SizedBox(height: 14),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isCompact = constraints.maxWidth < 360;
+                              if (isCompact) {
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    DropdownButtonFormField<String>(
+                                      initialValue: countryCode,
+                                      decoration: InputDecoration(
+                                        labelText: l.tr(
+                                          'screens_balance_screen.084',
+                                        ),
                                       ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setDialogState(() => countryCode = value);
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: TextField(
-                                controller: phoneController,
-                                keyboardType: TextInputType.phone,
-                                decoration: InputDecoration(
-                                  labelText: l.tr('screens_balance_screen.085'),
-                                  prefixIcon: const Icon(Icons.phone_rounded),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            OutlinedButton(
-                              onPressed: isLookingUpPhone
-                                  ? null
-                                  : () => performPhoneLookup(setDialogState),
-                              child: Text(
-                                isLookingUpPhone
-                                    ? l.tr('screens_balance_screen.086')
-                                    : l.tr('screens_balance_screen.088'),
+                                      items: PhoneNumberService.countries
+                                          .map(
+                                            (country) => DropdownMenuItem(
+                                              value: country.dialCode,
+                                              child: Text(
+                                                '${country.name} (+${country.dialCode})',
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (value) {
+                                        if (value == null) return;
+                                        setDialogState(
+                                          () => countryCode = value,
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextField(
+                                      controller: phoneController,
+                                      keyboardType: TextInputType.phone,
+                                      decoration: InputDecoration(
+                                        labelText: l.tr(
+                                          'screens_balance_screen.085',
+                                        ),
+                                        prefixIcon: const Icon(
+                                          Icons.phone_rounded,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ShwakelButton(
+                                      label: isLookingUpPhone
+                                          ? l.tr('screens_balance_screen.086')
+                                          : l.tr('screens_balance_screen.087'),
+                                      icon: Icons.verified_user_outlined,
+                                      isSecondary: true,
+                                      isLoading: isLookingUpPhone,
+                                      onPressed: isLookingUpPhone
+                                          ? null
+                                          : () => performPhoneLookup(
+                                              setDialogState,
+                                            ),
+                                    ),
+                                  ],
+                                );
+                              }
+
+                              return Row(
+                                children: [
+                                  SizedBox(
+                                    width: 156,
+                                    child: DropdownButtonFormField<String>(
+                                      initialValue: countryCode,
+                                      decoration: InputDecoration(
+                                        labelText: l.tr(
+                                          'screens_balance_screen.084',
+                                        ),
+                                      ),
+                                      items: PhoneNumberService.countries
+                                          .map(
+                                            (country) => DropdownMenuItem(
+                                              value: country.dialCode,
+                                              child: Text(
+                                                '+${country.dialCode}',
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (value) {
+                                        if (value == null) return;
+                                        setDialogState(
+                                          () => countryCode = value,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: phoneController,
+                                      keyboardType: TextInputType.phone,
+                                      decoration: InputDecoration(
+                                        labelText: l.tr(
+                                          'screens_balance_screen.085',
+                                        ),
+                                        prefixIcon: const Icon(
+                                          Icons.phone_rounded,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  SizedBox(
+                                    width: 140,
+                                    child: ShwakelButton(
+                                      label: isLookingUpPhone
+                                          ? l.tr('screens_balance_screen.086')
+                                          : l.tr('screens_balance_screen.088'),
+                                      isSecondary: true,
+                                      isLoading: isLookingUpPhone,
+                                      onPressed: isLookingUpPhone
+                                          ? null
+                                          : () => performPhoneLookup(
+                                              setDialogState,
+                                            ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                          if (phoneLookupMessage != null) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              phoneLookupMessage!,
+                              style: AppTheme.caption.copyWith(
+                                color: selectedUser != null
+                                    ? AppTheme.success
+                                    : AppTheme.error,
                               ),
                             ),
                           ],
-                        );
-                      },
-                    ),
-                    if (phoneLookupMessage != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        phoneLookupMessage!,
-                        style: AppTheme.caption.copyWith(
-                          color: selectedUser != null
-                              ? AppTheme.success
-                              : AppTheme.error,
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                   if (searchResults.isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
+                    Text(
+                      l.text('نتائج البحث', 'Search results'),
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 10),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 220),
+                      constraints: const BoxConstraints(maxHeight: 240),
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: searchResults.length,
                         separatorBuilder: (_, index) =>
-                            const Divider(height: 1),
+                            const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final item = searchResults[index];
                           final isSelected =
                               selectedUser?['id']?.toString() ==
                               item['id']?.toString();
-                          return ListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            selected: isSelected,
-                            leading: Icon(
-                              isSelected
-                                  ? Icons.check_circle_rounded
-                                  : Icons.person_outline_rounded,
-                              color: isSelected
-                                  ? AppTheme.success
-                                  : AppTheme.textSecondary,
-                            ),
-                            title: Text(item['username']?.toString() ?? '-'),
-                            subtitle: Text(
-                              enablePhoneLookup
-                                  ? l.tr(
-                                      'screens_balance_screen.089',
-                                      params: {'id': '${item['id']}'},
-                                    )
-                                  : l.tr(
-                                      'screens_balance_screen.090',
-                                      params: {
-                                        'id': '${item['id']}',
-                                        'balance': CurrencyFormatter.ils(
-                                          (item['balance'] as num?)
-                                                  ?.toDouble() ??
-                                              0,
-                                        ),
-                                      },
-                                    ),
-                            ),
+                          return ShwakelCard(
+                            padding: const EdgeInsets.all(14),
+                            borderRadius: BorderRadius.circular(20),
+                            color: isSelected
+                                ? AppTheme.tabSurface
+                                : AppTheme.surface,
+                            borderColor: isSelected
+                                ? AppTheme.primary.withValues(alpha: 0.35)
+                                : AppTheme.border,
+                            shadowLevel: ShwakelShadowLevel.none,
                             onTap: () =>
                                 setDialogState(() => selectedUser = item),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppTheme.primary.withValues(
+                                            alpha: 0.12,
+                                          )
+                                        : AppTheme.surfaceVariant,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(
+                                    isSelected
+                                        ? Icons.check_circle_rounded
+                                        : Icons.person_outline_rounded,
+                                    color: isSelected
+                                        ? AppTheme.primary
+                                        : AppTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item['username']?.toString() ?? '-',
+                                        style: AppTheme.bodyBold,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        enablePhoneLookup
+                                            ? l.tr(
+                                                'screens_balance_screen.089',
+                                                params: {'id': '${item['id']}'},
+                                              )
+                                            : l.tr(
+                                                'screens_balance_screen.090',
+                                                params: {
+                                                  'id': '${item['id']}',
+                                                  'balance':
+                                                      CurrencyFormatter.ils(
+                                                        (item['balance']
+                                                                    as num?)
+                                                                ?.toDouble() ??
+                                                            0,
+                                                      ),
+                                                },
+                                              ),
+                                        style: AppTheme.caption.copyWith(
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       ),
                     ),
                   ],
                   if (selectedUser != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
+                    const SizedBox(height: 16),
+                    ShwakelCard(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      padding: const EdgeInsets.all(16),
+                      color: AppTheme.primary.withValues(alpha: 0.05),
+                      borderColor: AppTheme.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(22),
+                      shadowLevel: ShwakelShadowLevel.none,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            l.tr('screens_balance_screen.091'),
-                            style: AppTheme.caption.copyWith(
-                              color: AppTheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            selectedUser!['username']?.toString() ?? '-',
-                            style: AppTheme.bodyBold.copyWith(
-                              color: AppTheme.primary,
-                            ),
+                          Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  Icons.person_pin_circle_rounded,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l.tr('screens_balance_screen.091'),
+                                      style: AppTheme.caption.copyWith(
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      selectedUser!['username']?.toString() ??
+                                          '-',
+                                      style: AppTheme.bodyBold.copyWith(
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.success.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  l.text('تم الاختيار', 'Selected'),
+                                  style: AppTheme.caption.copyWith(
+                                    color: AppTheme.success,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           if (enablePhoneLookup) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 10),
                             Text(
                               l.tr('screens_balance_screen.092'),
                               style: AppTheme.caption.copyWith(
@@ -1540,7 +1630,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                           ],
                           if ((selectedUser!['whatsapp']?.toString() ?? '')
                               .isNotEmpty) ...[
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 6),
                             Text(
                               selectedUser!['whatsapp']?.toString() ?? '',
                               style: AppTheme.caption.copyWith(
@@ -1552,27 +1642,43 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: amountController,
-                    decoration: InputDecoration(
-                      labelText: l.tr('screens_balance_screen.093'),
-                      helperText: amountHelperText,
-                      prefixIcon: const Icon(Icons.payments_outlined),
+                  const SizedBox(height: 18),
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(18),
+                    borderRadius: BorderRadius.circular(24),
+                    shadowLevel: ShwakelShadowLevel.none,
+                    color: AppTheme.surfaceVariant,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l.text('بيانات التحويل', 'Transfer details'),
+                          style: AppTheme.bodyBold,
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: amountController,
+                          decoration: InputDecoration(
+                            labelText: l.tr('screens_balance_screen.093'),
+                            helperText: amountHelperText,
+                            prefixIcon: const Icon(Icons.payments_outlined),
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: notesController,
+                          decoration: InputDecoration(
+                            labelText: notesLabel,
+                            prefixIcon: const Icon(Icons.notes_rounded),
+                          ),
+                          minLines: 2,
+                          maxLines: 3,
+                        ),
+                      ],
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: notesController,
-                    decoration: InputDecoration(
-                      labelText: notesLabel,
-                      prefixIcon: const Icon(Icons.notes_rounded),
-                    ),
-                    minLines: 2,
-                    maxLines: 3,
                   ),
                   if (searchError != null && enablePhoneLookup) ...[
                     const SizedBox(height: 8),
@@ -1641,92 +1747,165 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
               : l.tr('screens_balance_screen.097');
 
           return AlertDialog(
-            title: Text(l.tr('screens_balance_screen.030')),
             content: SizedBox(
-              width: 460,
+              width: 520,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l.tr('screens_balance_screen.098'),
-                      style: AppTheme.bodyAction,
-                    ),
-                    const SizedBox(height: 14),
-                    DropdownButtonFormField<String>(
-                      initialValue: destinationType,
-                      decoration: InputDecoration(
-                        labelText: l.tr('screens_balance_screen.099'),
-                        prefixIcon: const Icon(
-                          Icons.account_balance_wallet_outlined,
-                        ),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: 'wallet',
-                          child: Text(l.tr('screens_balance_screen.100')),
-                        ),
-                        DropdownMenuItem(
-                          value: 'bank',
-                          child: Text(l.tr('screens_balance_screen.101')),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setDialogState(() => destinationType = value);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: amountController,
-                      decoration: InputDecoration(
-                        labelText: l.tr('screens_balance_screen.093'),
-                        helperText: l.tr('screens_balance_screen.102'),
-                        prefixIcon: const Icon(Icons.payments_outlined),
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: accountController,
-                      decoration: InputDecoration(
-                        labelText: accountLabel,
-                        prefixIcon: const Icon(Icons.numbers_rounded),
+                    ShwakelCard(
+                      padding: const EdgeInsets.all(18),
+                      color: AppTheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(24),
+                      shadowLevel: ShwakelShadowLevel.none,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppTheme.warning.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.outbox_rounded,
+                              color: AppTheme.warning,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l.tr('screens_balance_screen.030'),
+                                  style: AppTheme.h3,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  l.tr('screens_balance_screen.098'),
+                                  style: AppTheme.bodyAction.copyWith(
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: accountHolderController,
-                      decoration: InputDecoration(
-                        labelText: l.tr('screens_balance_screen.103'),
-                        prefixIcon: const Icon(Icons.person_outline_rounded),
+                    const SizedBox(height: 18),
+                    ShwakelCard(
+                      padding: const EdgeInsets.all(18),
+                      color: AppTheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(24),
+                      shadowLevel: ShwakelShadowLevel.none,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.text('نوع التحويل', 'Destination type'),
+                            style: AppTheme.bodyBold,
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: destinationType,
+                            decoration: InputDecoration(
+                              labelText: l.tr('screens_balance_screen.099'),
+                              prefixIcon: const Icon(
+                                Icons.account_balance_wallet_outlined,
+                              ),
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: 'wallet',
+                                child: Text(l.tr('screens_balance_screen.100')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'bank',
+                                child: Text(l.tr('screens_balance_screen.101')),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setDialogState(() => destinationType = value);
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    if (isBankTransfer) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: bankController,
-                        decoration: InputDecoration(
-                          labelText: l.tr('screens_balance_screen.104'),
-                          prefixIcon: const Icon(Icons.account_balance_rounded),
-                        ),
+                    const SizedBox(height: 18),
+                    ShwakelCard(
+                      padding: const EdgeInsets.all(18),
+                      color: AppTheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(24),
+                      shadowLevel: ShwakelShadowLevel.none,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.text('بيانات السحب', 'Withdrawal details'),
+                            style: AppTheme.bodyBold,
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: amountController,
+                            decoration: InputDecoration(
+                              labelText: l.tr('screens_balance_screen.093'),
+                              helperText: l.tr('screens_balance_screen.102'),
+                              prefixIcon: const Icon(Icons.payments_outlined),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: accountController,
+                            decoration: InputDecoration(
+                              labelText: accountLabel,
+                              prefixIcon: const Icon(Icons.numbers_rounded),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: accountHolderController,
+                            decoration: InputDecoration(
+                              labelText: l.tr('screens_balance_screen.103'),
+                              prefixIcon: const Icon(
+                                Icons.person_outline_rounded,
+                              ),
+                            ),
+                          ),
+                          if (isBankTransfer) ...[
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: bankController,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.104'),
+                                prefixIcon: const Icon(
+                                  Icons.account_balance_rounded,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: notesController,
+                            decoration: InputDecoration(
+                              labelText: l.tr('screens_balance_screen.068'),
+                              prefixIcon: const Icon(Icons.notes_rounded),
+                            ),
+                            minLines: 2,
+                            maxLines: 3,
+                          ),
+                        ],
                       ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: notesController,
-                      decoration: InputDecoration(
-                        labelText: l.tr('screens_balance_screen.068'),
-                        prefixIcon: const Icon(Icons.notes_rounded),
-                      ),
-                      minLines: 2,
-                      maxLines: 3,
                     ),
                     if (formError != null) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       Text(
                         formError!,
                         style: AppTheme.caption.copyWith(color: AppTheme.error),
@@ -1741,42 +1920,45 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                 onPressed: () => Navigator.pop(context),
                 child: Text(l.tr('screens_balance_screen.069')),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  final amount = double.tryParse(amountController.text) ?? 0;
-                  if (amount <= 0) {
-                    setDialogState(() {
-                      formError = l.tr('screens_balance_screen.105');
-                    });
-                    return;
-                  }
-                  if (accountController.text.trim().isEmpty ||
-                      accountHolderController.text.trim().isEmpty) {
-                    setDialogState(() {
-                      formError = l.tr('screens_balance_screen.106');
-                    });
-                    return;
-                  }
-                  if (isBankTransfer && bankController.text.trim().isEmpty) {
-                    setDialogState(() {
-                      formError = l.tr('screens_balance_screen.107');
-                    });
-                    return;
-                  }
+              SizedBox(
+                width: 170,
+                child: ShwakelButton(
+                  label: l.tr('screens_balance_screen.071'),
+                  onPressed: () {
+                    final amount = double.tryParse(amountController.text) ?? 0;
+                    if (amount <= 0) {
+                      setDialogState(() {
+                        formError = l.tr('screens_balance_screen.105');
+                      });
+                      return;
+                    }
+                    if (accountController.text.trim().isEmpty ||
+                        accountHolderController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        formError = l.tr('screens_balance_screen.106');
+                      });
+                      return;
+                    }
+                    if (isBankTransfer && bankController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        formError = l.tr('screens_balance_screen.107');
+                      });
+                      return;
+                    }
 
-                  Navigator.pop(
-                    context,
-                    _WithdrawalRequestResult(
-                      amount: amount,
-                      destinationType: destinationType,
-                      destinationAccount: accountController.text.trim(),
-                      accountHolderName: accountHolderController.text.trim(),
-                      bankName: bankController.text.trim(),
-                      notes: notesController.text.trim(),
-                    ),
-                  );
-                },
-                child: Text(l.tr('screens_balance_screen.071')),
+                    Navigator.pop(
+                      context,
+                      _WithdrawalRequestResult(
+                        amount: amount,
+                        destinationType: destinationType,
+                        destinationAccount: accountController.text.trim(),
+                        accountHolderName: accountHolderController.text.trim(),
+                        bankName: bankController.text.trim(),
+                        notes: notesController.text.trim(),
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           );

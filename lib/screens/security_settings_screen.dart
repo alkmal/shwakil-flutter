@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -132,6 +133,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_security_settings_screen.001')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
@@ -705,6 +707,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Future<void> _createOrChangePin() async {
+    if (_hasPin) {
+      final verified = await _confirmCurrentPinOrBiometric();
+      if (!verified) {
+        return;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
     final pin = await showDialog<String>(
       context: context,
       builder: (_) => _StyledPinDialog(isEdit: _hasPin),
@@ -736,6 +747,14 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       return;
     }
 
+    final verified = await _confirmCurrentPinOrBiometric();
+    if (!verified) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -760,6 +779,40 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
     await LocalSecurityService.removePin();
     await _load();
+  }
+
+  Future<bool> _confirmCurrentPinOrBiometric() async {
+    if (_biometricEnabled &&
+        await LocalSecurityService.authenticateWithBiometrics()) {
+      return true;
+    }
+    if (!mounted) {
+      return false;
+    }
+
+    final currentPin = await showDialog<String>(
+      context: context,
+      builder: (_) => const _VerifyCurrentPinDialog(),
+    );
+    if (currentPin == null) {
+      return false;
+    }
+
+    final isValid = await LocalSecurityService.verifyPin(currentPin);
+    if (isValid) {
+      await LocalSecurityService.setLastLocalAuthMethod('pin');
+      return true;
+    }
+    if (!mounted) {
+      return false;
+    }
+    final l = context.loc;
+    await AppAlertService.showError(
+      context,
+      title: l.tr('screens_security_settings_screen.060'),
+      message: 'رمز PIN الحالي غير صحيح.',
+    );
+    return false;
   }
 
   Future<void> _toggleBiometric(bool value) async {
@@ -1028,6 +1081,89 @@ class _StyledPinDialogState extends State<_StyledPinDialog> {
         title: l.tr('screens_security_settings_screen.060'),
         message: l.tr('screens_security_settings_screen.061'),
       );
+      return;
+    }
+    Navigator.pop(context, _pinController.text);
+  }
+}
+
+class _VerifyCurrentPinDialog extends StatefulWidget {
+  const _VerifyCurrentPinDialog();
+
+  @override
+  State<_VerifyCurrentPinDialog> createState() =>
+      _VerifyCurrentPinDialogState();
+}
+
+class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
+  final TextEditingController _pinController = TextEditingController();
+  bool _obscurePin = true;
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('تأكيد رمز PIN الحالي', style: AppTheme.h3),
+            const SizedBox(height: 10),
+            Text('أدخل رمز PIN الحالي للمتابعة.', style: AppTheme.bodyAction),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _pinController,
+              maxLength: 4,
+              obscureText: _obscurePin,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
+                labelText: 'رمز PIN الحالي',
+                prefixIcon: const Icon(Icons.password_rounded),
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() => _obscurePin = !_obscurePin);
+                  },
+                  icon: Icon(
+                    _obscurePin
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ShwakelButton(
+                    label: 'إلغاء',
+                    isSecondary: true,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ShwakelButton(label: 'تأكيد', onPressed: _submit),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _submit() {
+    if (_pinController.text.length != 4) {
       return;
     }
     Navigator.pop(context, _pinController.text);

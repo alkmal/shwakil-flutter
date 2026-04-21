@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -6,12 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class WithdrawalRequestsScreen extends StatefulWidget {
   const WithdrawalRequestsScreen({super.key});
@@ -25,11 +28,12 @@ enum _StatusFilter { all, pending, approved, rejected }
 
 class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _requests = const [];
-  Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
+  bool _isAuthorized = false;
   String? _busyId;
   _StatusFilter _filter = _StatusFilter.all;
   int _page = 1;
@@ -37,6 +41,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   int _lastPage = 1;
   int _totalRequests = 0;
   Timer? _searchDebounce;
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -54,6 +59,18 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final currentUser = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(currentUser);
+      if (!permissions.canReviewWithdrawals) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
       final payload = await _apiService.getWithdrawalRequests(
         status: _statusQueryValue,
         query: _searchController.text,
@@ -67,13 +84,11 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         return;
       }
       setState(() {
+        _isAuthorized = true;
         _requests = List<Map<String, dynamic>>.from(
           (payload['requests'] as List? ?? const []).map(
             (item) => Map<String, dynamic>.from(item as Map),
           ),
-        );
-        _summary = Map<String, dynamic>.from(
-          payload['summary'] as Map? ?? const {},
         );
         _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
         _totalRequests =
@@ -107,10 +122,64 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_withdrawal_requests_screen.001')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  l.text(
+                    'لا تملك صلاحية مراجعة طلبات السحب',
+                    'You do not have permission to review withdrawal requests.',
+                  ),
+                  style: AppTheme.h3,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_withdrawal_requests_screen.001')),
+        actions: [
+          IconButton(
+            tooltip: _showFilters
+                ? l.text('إخفاء البحث والفلاتر', 'Hide search and filters')
+                : l.text('إظهار البحث والفلاتر', 'Show search and filters'),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
+            tooltip: l.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -120,10 +189,19 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             child: Column(
               children: [
-                _buildHero(),
-                const SizedBox(height: 24),
-                _buildFilterBar(),
-                const SizedBox(height: 24),
+                if (_showFilters) ...[
+                  _buildFilterBar(),
+                  const SizedBox(height: 18),
+                ] else ...[
+                  ToolToggleHint(
+                    message: l.text(
+                      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+                      'Open search and filters from the top filter icon when needed.',
+                    ),
+                    icon: Icons.filter_alt_rounded,
+                  ),
+                  const SizedBox(height: 18),
+                ],
                 if (_requests.isEmpty)
                   _buildEmptyState()
                 else ...[
@@ -148,78 +226,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     );
   }
 
-  Widget _buildHero() {
+  Future<void> _showHelpDialog() async {
     final l = context.loc;
-    final pending = (_summary['pending'] as num?)?.toInt() ?? 0;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      gradient: AppTheme.primaryGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 760;
-          final iconBox = Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Icon(
-              Icons.account_balance_rounded,
-              color: Colors.white,
-              size: 34,
-            ),
-          );
-          final content = Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('screens_withdrawal_requests_screen.002'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l.tr('screens_withdrawal_requests_screen.026'),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white70,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          );
-          final badge = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              l.tr(
-                'screens_withdrawal_requests_screen.003',
-                params: {'pending': '$pending'},
-              ),
-              style: AppTheme.bodyBold.copyWith(color: Colors.white),
-            ),
-          );
-
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [iconBox, const SizedBox(width: 16), badge]),
-                const SizedBox(height: 18),
-                content,
-              ],
-            );
-          }
-
-          return Row(
-            children: [iconBox, const SizedBox(width: 24), content, badge],
-          );
-        },
+    await AppAlertService.showInfo(
+      context,
+      title: l.text('مساعدة سريعة', 'Quick help'),
+      message: l.text(
+        'استخدم البحث والفلاتر للوصول إلى الطلبات، ثم افتح الطلب المناسب واعتمد القرار عند الحاجة.',
+        'Use search and filters to find requests, then review the right request and make a decision when needed.',
       ),
     );
   }
@@ -606,4 +620,3 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     return DateFormat('yyyy/MM/dd - HH:mm').format(parsed.toLocal());
   }
 }
-

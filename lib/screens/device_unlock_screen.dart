@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -66,13 +67,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       _pinController.text.trim(),
     );
     if (isValid) {
-      await LocalSecurityService.clearRelockRequirement();
-      await LocalSecurityService.skipNextUnlock();
-      await RealtimeNotificationService.start();
-      if (!mounted) {
-        return;
-      }
-      Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
+      await _completeUnlock();
       return;
     }
 
@@ -91,13 +86,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     final authenticated =
         await LocalSecurityService.authenticateWithBiometrics();
     if (authenticated) {
-      await LocalSecurityService.clearRelockRequirement();
-      await LocalSecurityService.skipNextUnlock();
-      await RealtimeNotificationService.start();
-      if (!mounted) {
-        return;
-      }
-      Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
+      await _completeUnlock();
       return;
     }
 
@@ -113,6 +102,30 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       return;
     }
     Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  Future<void> _completeUnlock() async {
+    await LocalSecurityService.clearRelockRequirement();
+    await LocalSecurityService.skipNextUnlock();
+    await RealtimeNotificationService.start();
+    final currentUser = await _auth.currentUser();
+    if (!mounted) {
+      return;
+    }
+    final permissions = AppPermissions.fromUser(currentUser);
+    final openAdminDashboard =
+        permissions.canViewCustomers ||
+        permissions.canReviewWithdrawals ||
+        permissions.canReviewTopups ||
+        permissions.canManageCardPrintRequests ||
+        permissions.canReviewDevices ||
+        permissions.canManageLocations ||
+        permissions.canManageSystemSettings;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      openAdminDashboard ? '/admin-dashboard' : '/home',
+      (route) => false,
+    );
   }
 
   String _subtitle(AppLocalizer l) {

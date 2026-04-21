@@ -112,8 +112,8 @@ class AppAlertService {
         payload['username'] = currentUser['username']?.toString();
         payload['fullName'] = currentUser['fullName']?.toString();
         payload['whatsapp'] = currentUser['whatsapp']?.toString();
-        payload['role'] =
-            (currentUser['roleLabel'] ?? currentUser['role'])?.toString();
+        payload['role'] = (currentUser['roleLabel'] ?? currentUser['role'])
+            ?.toString();
         payload['balance'] = currentUser['balance']?.toString();
       }
 
@@ -152,6 +152,9 @@ class AppAlertService {
     final cleanTitle = ErrorMessageService.sanitize(title);
     final cleanMessage = ErrorMessageService.sanitize(message);
     final supportNumber = _extractWhatsAppNumber(cleanMessage);
+    final returnToHomeOnAcknowledge =
+        type == AppAlertType.error &&
+        _shouldReturnHomeOnAcknowledge(cleanMessage);
 
     return showDialog<void>(
       context: context,
@@ -239,7 +242,18 @@ class AppAlertService {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(dialogContext),
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    if (returnToHomeOnAcknowledge) {
+                      final navigator = navigatorKey.currentState;
+                      if (navigator != null) {
+                        navigator.pushNamedAndRemoveUntil(
+                          '/home',
+                          (route) => false,
+                        );
+                      }
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: style.color,
                     foregroundColor: Colors.white,
@@ -258,6 +272,10 @@ class AppAlertService {
         ),
       ),
     );
+  }
+
+  static bool _shouldReturnHomeOnAcknowledge(String message) {
+    return message.contains('تعذر الاتصال بالخادم');
   }
 
   static Future<void> _openWhatsApp(String phone) async {

@@ -1,9 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -18,6 +20,7 @@ class AdminSystemSettingsScreen extends StatefulWidget {
 
 class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
 
   final _contactTitleController = TextEditingController();
   final _contactWhatsappController = TextEditingController();
@@ -40,6 +43,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isAuthorized = false;
   bool _registrationEnabled = true;
   bool _topupRequestEnabled = true;
   List<Map<String, dynamic>> _topupPaymentMethods = const [];
@@ -76,6 +80,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final currentUser = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(currentUser);
+      if (!permissions.canManageSystemSettings) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
       final contactSettings = await _apiService.getContactInfo();
       final authSettings = await _apiService.getAuthSettings();
       final transferSettings = await _apiService.getTransferSettings();
@@ -127,6 +143,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _policyContentController.text = usagePolicy['content'] ?? '';
 
       setState(() {
+        _isAuthorized = true;
         _topupPaymentMethods = topupPaymentMethods;
         _isLoading = false;
       });
@@ -406,10 +423,39 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_system_settings_screen.016')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text('لا تملك صلاحية إدارة إعدادات النظام', style: AppTheme.h3),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_admin_system_settings_screen.016')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(

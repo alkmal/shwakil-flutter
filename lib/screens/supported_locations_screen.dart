@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -83,6 +84,15 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_supported_locations_screen.001')),
+        actions: [
+          IconButton(
+            tooltip: l.text('مساعدة', 'Help'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: _isLoading
@@ -94,12 +104,20 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                 child: ResponsiveScaffoldContainer(
                   child: Column(
                     children: [
-                      _buildMapHero(),
-                      const SizedBox(height: 24),
-                      if (_position != null) ...[
-                        _buildDistanceHint(),
-                        const SizedBox(height: 16),
-                      ],
+                      if (_position != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              l.tr('screens_supported_locations_screen.007'),
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.success,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
                       if (_locations.isEmpty)
                         _buildEmptyState()
                       else
@@ -112,104 +130,14 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
     );
   }
 
-  Widget _buildMapHero() {
+  Future<void> _showHelpDialog() async {
     final l = context.loc;
-    final hasDistanceSorting = _position != null;
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(30),
-      gradient: AppTheme.primaryGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 640;
-          final iconBox = Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Icon(Icons.map_rounded, color: Colors.white, size: 38),
-          );
-
-          final content = Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('screens_supported_locations_screen.002'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l.tr('screens_supported_locations_screen.003'),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white70,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _heroChip(
-                      icon: Icons.storefront_rounded,
-                      label: l.tr(
-                        'screens_supported_locations_screen.004',
-                        params: {'count': '${_locations.length}'},
-                      ),
-                    ),
-                    _heroChip(
-                      icon: Icons.my_location_rounded,
-                      label: hasDistanceSorting
-                          ? l.tr('screens_supported_locations_screen.005')
-                          : l.tr('screens_supported_locations_screen.006'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [iconBox, const SizedBox(height: 18), content],
-            );
-          }
-
-          return Row(children: [iconBox, const SizedBox(width: 20), content]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildDistanceHint() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(14),
-      color: AppTheme.success.withValues(alpha: 0.05),
-      borderColor: AppTheme.success.withValues(alpha: 0.20),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.my_location_rounded,
-            color: AppTheme.success,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              l.tr('screens_supported_locations_screen.007'),
-              style: AppTheme.caption.copyWith(
-                color: AppTheme.success,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
+    await AppAlertService.showInfo(
+      context,
+      title: l.text('مساعدة سريعة', 'Quick help'),
+      message: l.text(
+        'اعرض القائمة مباشرة، وإذا كانت خدمة الموقع متاحة فسيتم ترتيب النقاط الأقرب أولاً.',
+        'The list is shown directly, and when location is available the nearest points are sorted first.',
       ),
     );
   }
@@ -329,31 +257,6 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
         const SizedBox(width: 12),
         Expanded(child: Text(value, style: AppTheme.caption)),
       ],
-    );
-  }
-
-  Widget _heroChip({required IconData icon, required String label}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
