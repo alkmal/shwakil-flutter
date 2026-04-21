@@ -10,9 +10,11 @@ import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class BalanceScreen extends StatefulWidget {
   const BalanceScreen({super.key});
@@ -34,6 +36,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   bool _topupRequestEnabled = true;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
+  bool _showHistoryFilters = false;
 
   AppPermissions get _appPermissions => AppPermissions.fromUser(_user);
 
@@ -668,10 +671,24 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         title: Text(l.tr('screens_balance_screen.020')),
         actions: [
           IconButton(
+            tooltip: _showHistoryFilters
+                ? l.text('إخفاء فلاتر الحركات', 'Hide history filters')
+                : l.text('إظهار فلاتر الحركات', 'Show history filters'),
+            onPressed: () =>
+                setState(() => _showHistoryFilters = !_showHistoryFilters),
+            icon: Icon(
+              _showHistoryFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: l.text('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -724,6 +741,16 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Widget _buildHistorySection({required bool isCompact}) {
+    if (!_showHistoryFilters) {
+      return ToolToggleHint(
+        message: context.loc.text(
+          'يمكنك فتح فلاتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
+          'Open history filters from the top filter icon when needed.',
+        ),
+        icon: Icons.filter_alt_rounded,
+      );
+    }
+
     return ShwakelCard(
       padding: EdgeInsets.all(isCompact ? 16 : 20),
       shadowLevel: ShwakelShadowLevel.soft,

@@ -8,9 +8,11 @@ import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -35,6 +37,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   int _lastPage = 1;
   int _totalTransactions = 0;
   Timer? _searchDebounce;
+  bool _showSearchAndFilters = false;
 
   String _t(String key, [String? english]) =>
       english == null ? context.loc.tr(key) : context.loc.text(key, english);
@@ -174,10 +177,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         title: Text(_t('screens_transactions_screen.005')),
         actions: [
           IconButton(
+            tooltip: _showSearchAndFilters
+                ? context.loc.text(
+                    'إخفاء البحث والفلاتر',
+                    'Hide search and filters',
+                  )
+                : context.loc.text(
+                    'إظهار البحث والفلاتر',
+                    'Show search and filters',
+                  ),
+            onPressed: () =>
+                setState(() => _showSearchAndFilters = !_showSearchAndFilters),
+            icon: Icon(
+              _showSearchAndFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: context.loc.text('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -192,8 +215,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSearchAndFilters(isCompact: isCompact),
-                    const SizedBox(height: 16),
+                    if (_showSearchAndFilters) ...[
+                      _buildSearchAndFilters(isCompact: isCompact),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      ToolToggleHint(
+                        message: context.loc.text(
+                          'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+                          'Open search and filters from the top filter icon when needed.',
+                        ),
+                        icon: Icons.filter_alt_rounded,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     _buildCompactSummary(),
                     const SizedBox(height: 20),
                     _buildResultsHeading(),

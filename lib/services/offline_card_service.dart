@@ -10,6 +10,7 @@ class OfflineCardService {
   static const _cardsKeyPrefix = 'offline_cards_cache_';
   static const _redeemKeyPrefix = 'offline_redeem_queue_';
   static const _rejectedKeyPrefix = 'offline_redeem_rejected_';
+  static const _historyKeyPrefix = 'offline_redeem_history_';
   static const _settingsKeyPrefix = 'offline_cards_settings_';
   static const _scanAttemptsKeyPrefix = 'offline_scan_attempts_';
   static const _offlineKeyName = 'offline_cards_aes_key_v1';
@@ -107,6 +108,11 @@ class OfflineCardService {
     return _decodeStoredList(prefs.getString('$_rejectedKeyPrefix$userId'));
   }
 
+  Future<List<Map<String, dynamic>>> getSyncHistory(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return _decodeStoredList(prefs.getString('$_historyKeyPrefix$userId'));
+  }
+
   Future<void> replaceRejectedRedeems(
     String userId,
     List<Map<String, dynamic>> entries,
@@ -118,6 +124,24 @@ class OfflineCardService {
       return;
     }
     await prefs.setString(key, await _encodeStoredList(entries));
+  }
+
+  Future<void> appendSyncHistory(
+    String userId,
+    List<Map<String, dynamic>> entries, {
+    int maxEntries = 100,
+  }) async {
+    if (entries.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_historyKeyPrefix$userId';
+    final existing = await _decodeStoredList(prefs.getString(key));
+    final merged = [...entries, ...existing];
+    await prefs.setString(
+      key,
+      await _encodeStoredList(merged.take(maxEntries).toList()),
+    );
   }
 
   Future<Map<String, dynamic>> pendingRedeemSummary(String userId) async {
@@ -132,6 +156,7 @@ class OfflineCardService {
       'amount': amount,
       'rejectedCount': rejected.length,
       'rejected': rejected,
+      'items': queue,
     };
   }
 
@@ -156,6 +181,7 @@ class OfflineCardService {
     final cards = await getCachedCards(userId);
     final summary = await pendingRedeemSummary(userId);
     final settings = await offlineSettings(userId);
+    final history = await getSyncHistory(userId);
     final availableCards = cards
         .where((card) => card.status != CardStatus.used)
         .length;
@@ -168,6 +194,7 @@ class OfflineCardService {
       'cards': cards,
       'summary': summary,
       'settings': settings,
+      'history': history,
     };
   }
 

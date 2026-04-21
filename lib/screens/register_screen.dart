@@ -319,13 +319,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 16),
           _field(
-            l.tr('screens_register_screen.018'),
-            _referralPhoneC,
-            Icons.link_rounded,
-            type: TextInputType.phone,
-          ),
-          const SizedBox(height: 16),
-          _field(
             l.tr('screens_register_screen.020'),
             _passwordC,
             Icons.lock_rounded,
@@ -357,6 +350,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
             activeColor: AppTheme.primary,
           ),
           const SizedBox(height: 12),
+          ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            color: AppTheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(22),
+            shadowLevel: ShwakelShadowLevel.none,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('رقم الإحالة', style: AppTheme.bodyBold),
+                const SizedBox(height: 4),
+                Text(
+                  'اختياري: أدخله فقط إذا كان لديك رقم محيل.',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _field(
+                  l.tr('screens_register_screen.018'),
+                  _referralPhoneC,
+                  Icons.link_rounded,
+                  type: TextInputType.phone,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           ShwakelButton(
             label: l.tr('screens_register_screen.023'),
             onPressed: _register,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -132,6 +133,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_security_settings_screen.001')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
@@ -1089,7 +1091,8 @@ class _VerifyCurrentPinDialog extends StatefulWidget {
   const _VerifyCurrentPinDialog();
 
   @override
-  State<_VerifyCurrentPinDialog> createState() => _VerifyCurrentPinDialogState();
+  State<_VerifyCurrentPinDialog> createState() =>
+      _VerifyCurrentPinDialogState();
 }
 
 class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
@@ -1113,10 +1116,7 @@ class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
           children: [
             Text('تأكيد رمز PIN الحالي', style: AppTheme.h3),
             const SizedBox(height: 10),
-            Text(
-              'أدخل رمز PIN الحالي للمتابعة.',
-              style: AppTheme.bodyAction,
-            ),
+            Text('أدخل رمز PIN الحالي للمتابعة.', style: AppTheme.bodyAction),
             const SizedBox(height: 16),
             TextField(
               controller: _pinController,
@@ -1152,10 +1152,7 @@ class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: ShwakelButton(
-                    label: 'تأكيد',
-                    onPressed: _submit,
-                  ),
+                  child: ShwakelButton(label: 'تأكيد', onPressed: _submit),
                 ),
               ],
             ),

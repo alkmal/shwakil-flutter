@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -7,9 +7,11 @@ import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -31,6 +33,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   static const int _perPage = 12;
   int _lastPage = 1;
   int _totalCards = 0;
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -63,8 +66,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
         page: _page,
         perPage: _perPage,
       );
-      final cards =
-          List<VirtualCard>.from(payload['cards'] as List? ?? const []);
+      final cards = List<VirtualCard>.from(
+        payload['cards'] as List? ?? const [],
+      );
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
@@ -96,7 +100,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(l.tr('screens_inventory_screen.001'))),
+        appBar: AppBar(
+          title: Text(l.tr('screens_inventory_screen.001')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
@@ -126,14 +133,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
           if (_canRequestCardPrinting)
             IconButton(
               tooltip: l.tr('screens_inventory_screen.003'),
-              onPressed: () => Navigator.pushNamed(context, '/card-print-requests'),
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/card-print-requests'),
               icon: const Icon(Icons.print_rounded),
             ),
+          IconButton(
+            tooltip: _showFilters
+                ? context.loc.text('إخفاء الفلاتر', 'Hide filters')
+                : context.loc.text('إظهار الفلاتر', 'Show filters'),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
           IconButton(
             tooltip: context.loc.text('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -144,8 +165,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             child: Column(
               children: [
-                _buildFilters(),
-                const SizedBox(height: 16),
+                if (_showFilters) ...[
+                  _buildFilters(),
+                  const SizedBox(height: 16),
+                ] else ...[
+                  ToolToggleHint(
+                    message: context.loc.text(
+                      'يمكنك فتح الفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+                      'Open filters from the top filter icon when needed.',
+                    ),
+                    icon: Icons.filter_alt_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (_cards.isEmpty)
                   _buildEmptyState()
                 else ...[
@@ -192,6 +224,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildHero() {
     final l = context.loc;
     return ShwakelCard(
@@ -351,8 +384,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final categoryLabel = isLocationSpecific
         ? l.tr('screens_scan_card_screen.065')
         : (card.isPrivate
-            ? l.tr('screens_scan_card_screen.066')
-            : l.tr('screens_scan_card_screen.067'));
+              ? l.tr('screens_scan_card_screen.066')
+              : l.tr('screens_scan_card_screen.067'));
 
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
@@ -519,9 +552,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('screens_inventory_screen.011')),
-        content: Text(
-          l.tr('screens_inventory_screen.017'),
-        ),
+        content: Text(l.tr('screens_inventory_screen.017')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -558,4 +589,3 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 }
-

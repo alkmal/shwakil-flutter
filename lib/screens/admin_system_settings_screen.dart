@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -427,6 +428,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_admin_system_settings_screen.016')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
         body: Center(
@@ -453,6 +455,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_admin_system_settings_screen.016')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(

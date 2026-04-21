@@ -4,6 +4,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -29,14 +30,17 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   bool _isDisabled = false;
   bool _canViewSubUsers = false;
   bool _canManageSubUsers = false;
-  final Map<String, bool> _permissions = {
+  late final Map<String, bool> _permissions = _defaultPermissions();
+
+  static Map<String, bool> _defaultPermissions() => {
     'canViewQuickTransfer': false,
     'canTransfer': false,
-    'canScanCards': false,
-    'canOfflineCardScan': false,
-    'canRedeemCards': false,
+    'canScanCards': true,
+    'canOfflineCardScan': true,
+    'canRedeemCards': true,
     'canWithdraw': false,
     'canReviewCards': false,
+    'canRequestCardPrinting': true,
   };
 
   static const Map<String, String> _permissionLabels = {
@@ -45,6 +49,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canScanCards': 'فحص البطاقات',
     'canRedeemCards': 'اعتماد البطاقات وسحب رصيدها',
     'canOfflineCardScan': 'الفحص والمزامنة أوف لاين',
+    'canRequestCardPrinting': 'طلب طباعة البطاقات',
     'canReviewCards': 'مراجعة البطاقات',
   };
 
@@ -118,8 +123,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       _usernameController.clear();
       _passwordController.clear();
       _isDisabled = false;
+      final defaults = _defaultPermissions();
       for (final key in _permissions.keys) {
-        _permissions[key] = false;
+        _permissions[key] = defaults[key] ?? false;
       }
     });
   }
@@ -278,7 +284,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     if (_loading) {
       return Scaffold(
         drawer: const AppSidebar(),
-        appBar: AppBar(title: const Text('المستخدمون التابعون')),
+        appBar: AppBar(
+          title: const Text('المستخدمون التابعون'),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -286,7 +295,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     if (!_canViewSubUsers) {
       return Scaffold(
         drawer: const AppSidebar(),
-        appBar: AppBar(title: const Text('المستخدمون التابعون')),
+        appBar: AppBar(
+          title: const Text('المستخدمون التابعون'),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         body: ResponsiveScaffoldContainer(
           child: Center(
             child: ShwakelCard(
@@ -314,7 +326,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
 
     return Scaffold(
       drawer: const AppSidebar(),
-      appBar: AppBar(title: const Text('المستخدمون التابعون')),
+      appBar: AppBar(
+        title: const Text('المستخدمون التابعون'),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
+      ),
       body: ResponsiveScaffoldContainer(
         child: ListView(
           padding: AppTheme.pagePadding(context, top: 18),
@@ -671,6 +686,25 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
             ],
           ),
           const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primarySoft.withValues(alpha: 0.6),
+              borderRadius: AppTheme.radiusMd,
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.12),
+              ),
+            ),
+            child: Text(
+              'الافتراضي للتابع: اعتماد البطاقة حتى 50 شيكل وطباعة بدين 5 شيكل وسقف 50 شيكل. عند تفعيل الإرسال السريع يرتفع التشغيل إلى اعتماد حتى 200 شيكل وطباعة بدين 50 شيكل وسقف 200 شيكل.',
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
           ..._permissionLabels.entries.map(
             (entry) => _permissionTile(entry.value, entry.key),
           ),
@@ -759,6 +793,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
               _permissions['canScanCards'] =
                   value || (_permissions['canScanCards'] ?? false);
             }
+            if (key == 'canRequestCardPrinting' && value) {
+              _permissions['canScanCards'] =
+                  _permissions['canScanCards'] ?? true;
+            }
           });
         },
         title: Text(title, style: AppTheme.bodyBold.copyWith(fontSize: 15)),
@@ -770,7 +808,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   String _permissionHint(String key) {
     switch (key) {
       case 'canTransfer':
-        return 'إرسال الرصيد بسرعة من الحساب الرئيسي إلى التابع.';
+        return 'إرسال الرصيد بسرعة من الحساب الرئيسي إلى التابع مع رفع سقف التشغيل للحد الأعلى.';
       case 'canWithdraw':
         return 'استلام الرصيد أو سحبه من حساب التابع إلى الرئيسي.';
       case 'canScanCards':
@@ -781,6 +819,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         return 'السماح بالفحص والمزامنة في وضع أوف لاين عند توفره.';
       case 'canReviewCards':
         return 'استعراض البطاقات ونتائج المراجعة والمتابعة.';
+      case 'canRequestCardPrinting':
+        return 'إرسال طلبات طباعة البطاقات، مع تطبيق سقف التابع تلقائيًا حسب مستوى الصلاحية.';
       default:
         return 'صلاحية تشغيلية داخل التطبيق.';
     }
@@ -848,6 +888,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       if (permissions['canScanCards'] == true) 'فحص',
       if (permissions['canRedeemCards'] == true) 'اعتماد',
       if (permissions['canOfflineCardScan'] == true) 'أوف لاين',
+      if (permissions['canRequestCardPrinting'] == true) 'طباعة',
       if (permissions['canReviewCards'] == true) 'مراجعة',
     ];
     final fullName = user['fullName']?.toString().trim();

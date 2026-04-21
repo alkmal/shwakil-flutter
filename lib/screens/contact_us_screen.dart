@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -58,7 +59,10 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
+      ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(

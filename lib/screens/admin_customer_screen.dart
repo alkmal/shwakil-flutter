@@ -7,9 +7,11 @@ import '../widgets/admin/admin_enums.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/admin/admin_transaction_audit_card.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class AdminCustomerScreen extends StatefulWidget {
   const AdminCustomerScreen({
@@ -48,6 +50,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   int _txPage = 1;
   static const _perPage = 10;
   AdminTransactionAuditFilter _auditFilter = AdminTransactionAuditFilter.all;
+  bool _showTransactionFilters = false;
 
   @override
   void initState() {
@@ -250,6 +253,29 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(name),
+          actions: [
+            IconButton(
+              tooltip: _showTransactionFilters
+                  ? context.loc.text(
+                      'إخفاء فلتر الحركات',
+                      'Hide transaction filter',
+                    )
+                  : context.loc.text(
+                      'إظهار فلتر الحركات',
+                      'Show transaction filter',
+                    ),
+              onPressed: () => setState(
+                () => _showTransactionFilters = !_showTransactionFilters,
+              ),
+              icon: Icon(
+                _showTransactionFilters
+                    ? Icons.filter_alt_off_rounded
+                    : Icons.filter_alt_rounded,
+              ),
+            ),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(74),
             child: Padding(
@@ -474,30 +500,42 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 'Review financial transactions and activity related to this customer.',
               ),
               icon: Icons.history_rounded,
-              trailing: DropdownButton<AdminTransactionAuditFilter>(
-                value: _auditFilter,
-                onChanged: (v) {
-                  if (v != null) {
-                    setState(() => _auditFilter = v);
-                    _loadCustomer();
-                  }
-                },
-                items: [
-                  DropdownMenuItem(
-                    value: AdminTransactionAuditFilter.all,
-                    child: Text(_t('screens_admin_customer_screen.024')),
-                  ),
-                  DropdownMenuItem(
-                    value: AdminTransactionAuditFilter.nearBranch,
-                    child: Text(_t('screens_admin_customer_screen.025')),
-                  ),
-                  DropdownMenuItem(
-                    value: AdminTransactionAuditFilter.outsideBranches,
-                    child: Text(_t('screens_admin_customer_screen.026')),
-                  ),
-                ],
-              ),
+              trailing: _showTransactionFilters
+                  ? DropdownButton<AdminTransactionAuditFilter>(
+                      value: _auditFilter,
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() => _auditFilter = v);
+                          _loadCustomer();
+                        }
+                      },
+                      items: [
+                        DropdownMenuItem(
+                          value: AdminTransactionAuditFilter.all,
+                          child: Text(_t('screens_admin_customer_screen.024')),
+                        ),
+                        DropdownMenuItem(
+                          value: AdminTransactionAuditFilter.nearBranch,
+                          child: Text(_t('screens_admin_customer_screen.025')),
+                        ),
+                        DropdownMenuItem(
+                          value: AdminTransactionAuditFilter.outsideBranches,
+                          child: Text(_t('screens_admin_customer_screen.026')),
+                        ),
+                      ],
+                    )
+                  : null,
             ),
+            if (!_showTransactionFilters) ...[
+              const SizedBox(height: 8),
+              ToolToggleHint(
+                message: context.loc.text(
+                  'يمكنك فتح فلتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
+                  'Open the transaction filter from the top filter icon when needed.',
+                ),
+                icon: Icons.filter_alt_rounded,
+              ),
+            ],
             const SizedBox(height: 16),
             if (_busy)
               const Center(child: CircularProgressIndicator())
@@ -711,6 +749,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 'canOfflineCardScan',
                 perms,
               ),
+              _permItem(
+                'دفتر الديون',
+                'canManageDebtBook',
+                perms,
+              ),
               if (widget.canManageUsers)
                 _permItem(
                   _t('screens_admin_customer_screen.059'),
@@ -889,6 +932,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canRequestCardPrinting: p['canRequestCardPrinting'] == true,
         canManageCardPrintRequests: p['canManageCardPrintRequests'] == true,
         canOfflineCardScan: p['canOfflineCardScan'] == true,
+        canManageDebtBook: p['canManageDebtBook'] == true,
         canManageUsers: p['canManageUsers'] == true,
       );
       setState(() {

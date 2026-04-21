@@ -6,6 +6,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -87,8 +88,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   bool get _canIssuePrivateCards => _appPermissions.canIssuePrivateCards;
 
-  bool get _canRequestCardPrinting =>
-      _appPermissions.canRequestCardPrinting;
+  bool get _canRequestCardPrinting => _appPermissions.canRequestCardPrinting;
 
   bool get _hasAccountLogo =>
       _user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
@@ -427,6 +427,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_create_card_screen.029')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
         body: Center(
@@ -453,6 +454,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_create_card_screen.029')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: SingleChildScrollView(
@@ -994,4 +996,3 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 }
-

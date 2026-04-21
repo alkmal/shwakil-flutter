@@ -7,9 +7,11 @@ import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -29,6 +31,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _total = 0;
   static const int _perPage = 20;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+  bool _showFilters = false;
 
   String _text(String arabic, String english) =>
       context.loc.text(arabic, english);
@@ -134,6 +137,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             'Notifications',
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: _showFilters
+                ? _text(
+                    '\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u0641\u0644\u0627\u062a\u0631',
+                    'Hide filters',
+                  )
+                : _text(
+                    '\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0641\u0644\u0627\u062a\u0631',
+                    'Show filters',
+                  ),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -190,7 +213,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           'اختر نوع العرض وحدّث القائمة أو علّم الإشعارات كمقروءة.',
                     ),
                     const SizedBox(height: 16),
-                    _buildFilters(isCompact),
+                    if (_showFilters)
+                      _buildFilters(isCompact)
+                    else
+                      ToolToggleHint(
+                        message: _text(
+                          'يمكنك فتح الفلاتر والإجراءات من أيقونة التصفية بالأعلى عند الحاجة.',
+                          'Open filters and actions from the top filter icon when needed.',
+                        ),
+                        icon: Icons.filter_alt_rounded,
+                      ),
                     const SizedBox(height: 18),
                     if (_isLoading)
                       const Center(

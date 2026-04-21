@@ -44,6 +44,7 @@ class AppPermissions {
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageUsers => _isEnabled('canManageUsers');
+  bool get canManageDebtBook => _isEnabled('canManageDebtBook');
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
   bool get canManageSubUsers => _isEnabled('canManageSubUsers');

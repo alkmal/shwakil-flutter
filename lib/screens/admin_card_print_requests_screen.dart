@@ -7,8 +7,10 @@ import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class AdminCardPrintRequestsScreen extends StatefulWidget {
   const AdminCardPrintRequestsScreen({super.key});
@@ -33,6 +35,7 @@ class _AdminCardPrintRequestsScreenState
   int _page = 1;
   int _lastPage = 1;
   String? _busyId;
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -319,6 +322,7 @@ class _AdminCardPrintRequestsScreenState
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
         body: Center(
@@ -350,10 +354,29 @@ class _AdminCardPrintRequestsScreenState
         title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
         actions: [
           IconButton(
+            tooltip: _showFilters
+                ? context.loc.text(
+                    'إخفاء البحث والفلاتر',
+                    'Hide search and filters',
+                  )
+                : context.loc.text(
+                    'إظهار البحث والفلاتر',
+                    'Show search and filters',
+                  ),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: context.loc.text('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -372,140 +395,143 @@ class _AdminCardPrintRequestsScreenState
                   ),
                   style: AppTheme.caption,
                 ),
-                const SizedBox(height: 14),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final stacked = constraints.maxWidth < 760;
-                    final searchField = Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          labelText: l.tr(
-                            'screens_admin_card_print_requests_screen.search_label',
-                          ),
-                          prefixIcon: const Icon(Icons.search_rounded),
-                        ),
-                        onSubmitted: (_) {
-                          _page = 1;
-                          _load();
-                        },
-                      ),
-                    );
-                    final filterField = SizedBox(
-                      width: stacked ? double.infinity : 190,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _status,
-                        decoration: InputDecoration(
-                          labelText: l.tr(
-                            'screens_admin_card_print_requests_screen.003',
-                          ),
-                        ),
-                        items: [
-                          DropdownMenuItem(
-                            value: 'all',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.004',
-                              ),
+                if (_showFilters) ...[
+                  const SizedBox(height: 14),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final stacked = constraints.maxWidth < 760;
+                      final searchField = Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_admin_card_print_requests_screen.search_label',
                             ),
+                            prefixIcon: const Icon(Icons.search_rounded),
                           ),
-                          DropdownMenuItem(
-                            value: 'pending_review',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.005',
-                              ),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 'approved',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.006',
-                              ),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 'printing',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.007',
-                              ),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 'ready',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.008',
-                              ),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 'completed',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.009',
-                              ),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 'rejected',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.010',
-                              ),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 'archive',
-                            child: Text(
-                              l.tr(
-                                'screens_admin_card_print_requests_screen.029',
-                              ),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() {
-                            _status = value;
+                          onSubmitted: (_) {
                             _page = 1;
-                          });
-                          _load();
-                        },
-                      ),
-                    );
+                            _load();
+                          },
+                        ),
+                      );
+                      final filterField = SizedBox(
+                        width: stacked ? double.infinity : 190,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _status,
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_admin_card_print_requests_screen.003',
+                            ),
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'all',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.004',
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'pending_review',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.005',
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'approved',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.006',
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'printing',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.007',
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ready',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.008',
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'completed',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.009',
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'rejected',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.010',
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'archive',
+                              child: Text(
+                                l.tr(
+                                  'screens_admin_card_print_requests_screen.029',
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _status = value;
+                              _page = 1;
+                            });
+                            _load();
+                          },
+                        ),
+                      );
 
-                    if (stacked) {
-                      return Column(
+                      if (stacked) {
+                        return Column(
+                          children: [
+                            Row(children: [searchField]),
+                            const SizedBox(height: 12),
+                            filterField,
+                          ],
+                        );
+                      }
+
+                      return Row(
                         children: [
-                          Row(children: [searchField]),
-                          const SizedBox(height: 12),
+                          searchField,
+                          const SizedBox(width: 12),
                           filterField,
                         ],
                       );
-                    }
-
-                    return Row(
-                      children: [
-                        searchField,
-                        const SizedBox(width: 12),
-                        filterField,
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  context.loc.text(
-                    'المراجعة: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • المعتمد: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • المكتمل: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
-                    'Review: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • Approved: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • Completed: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
+                    },
                   ),
-                  style: AppTheme.caption,
-                ),
+                ] else ...[
+                  const SizedBox(height: 14),
+                  ToolToggleHint(
+                    message: context.loc.text(
+                      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+                      'Open search and filters from the top filter icon when needed.',
+                    ),
+                    icon: Icons.filter_alt_rounded,
+                  ),
+                ],
                 const SizedBox(height: 16),
                 if (_isLoading)
                   const Center(

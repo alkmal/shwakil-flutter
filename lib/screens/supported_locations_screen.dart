@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -89,6 +90,8 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),

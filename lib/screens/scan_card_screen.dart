@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -9,10 +9,12 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/barcode_scanner_dialog.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_logo.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class ScanCardScreen extends StatefulWidget {
   const ScanCardScreen({
@@ -38,28 +40,46 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Map<String, dynamic>? _user;
   bool _isSearching = false;
   bool _isSubmitting = false;
-  bool _isSyncingOfflineCards = false;
-  bool _isSyncingOfflineRedeems = false;
   bool _showDetails = false;
+  bool _showManualSearch = false;
   bool _routeSubscribed = false;
-  int _pendingOfflineCount = 0;
-  double _pendingOfflineAmount = 0;
-  int _rejectedOfflineCount = 0;
-  List<Map<String, dynamic>> _rejectedOfflineItems = const [];
-  Map<String, dynamic> _offlineSettings = const {};
+  bool _hasShownOfflineIntro = false;
+  bool _hasShownReconnectPrompt = false;
 
-  bool get _canOfflineScan => AppPermissions.fromUser(_user).canOfflineCardScan;
   bool get _canAccessScanScreen {
     final permissions = AppPermissions.fromUser(_user);
     return permissions.canOpenCardTools || permissions.canReviewCards;
   }
 
+  bool get _canRevealSensitiveCardData {
+    final permissions = AppPermissions.fromUser(_user);
+    return !widget.offlineMode &&
+        (permissions.canIssueCards ||
+            permissions.canManageUsers ||
+            _user?['id']?.toString() == '1');
+  }
+
+  Map<String, dynamic> get _subUserOperationalLimits =>
+      Map<String, dynamic>.from(
+        _user?['subUserOperationalLimits'] as Map? ?? const {},
+      );
+
+  bool get _isSubUser => _user?['isSubUser'] == true;
+
+  double? _subUserLimit(String key) =>
+      (_subUserOperationalLimits[key] as num?)?.toDouble();
+
   String _t(String ar, String en) => context.loc.text(ar, en);
+
+  bool get _isDeviceOffline => !ConnectivityService.instance.isOnline.value;
 
   @override
   void initState() {
     super.initState();
     OfflineSessionService.setOfflineMode(widget.offlineMode);
+    ConnectivityService.instance.isOnline.addListener(
+      _handleConnectivityChanged,
+    );
     _load();
     if (widget.initialBarcode?.isNotEmpty == true) {
       _bcC.text = widget.initialBarcode!;
@@ -82,6 +102,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (_routeSubscribed) {
       appRouteObserver.unsubscribe(this);
     }
+    ConnectivityService.instance.isOnline.removeListener(
+      _handleConnectivityChanged,
+    );
     _bcC.dispose();
     super.dispose();
   }
@@ -91,290 +114,320 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (mounted) {
       setState(() => _user = user);
     }
+    _maybeShowOfflineIntro();
+  }
+
+  void _handleConnectivityChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
     if (!widget.offlineMode) {
-      await _syncOfflineCards();
-      await _syncOfflineRedeems();
-    }
-    await _loadOfflineSummary();
-  }
-
-  Future<void> _syncOfflineCards() async {
-    final user = _user ?? await _auth.currentUser();
-    if (user == null || user['id'] == null) {
       return;
     }
-    final permissions = AppPermissions.fromUser(user);
-    if (!permissions.canOfflineCardScan) {
+    if (!ConnectivityService.instance.isOnline.value ||
+        _hasShownReconnectPrompt) {
       return;
     }
-
-    setState(() => _isSyncingOfflineCards = true);
-    try {
-      final payload = await _api.getOfflineCardCache();
-      final cards = List<VirtualCard>.from(
-        payload['cards'] as List? ?? const [],
-      );
-      final settings = Map<String, dynamic>.from(
-        payload['settings'] as Map? ?? const {},
-      );
-      await _offlineCardService.cacheCards(
-        userId: user['id'].toString(),
-        cards: cards,
-        settings: settings,
-      );
-    } catch (_) {
-      // Keep cached cards locally when there is no connection.
-    } finally {
-      if (mounted) {
-        setState(() => _isSyncingOfflineCards = false);
-      }
-    }
-  }
-
-  Future<void> _loadOfflineSummary() async {
-    final user = _user ?? await _auth.currentUser();
-    if (user == null || user['id'] == null) {
-      return;
-    }
-    final userId = user['id'].toString();
-    final permissions = AppPermissions.fromUser(user);
-    if (!permissions.canOfflineCardScan) {
-      if (!mounted) return;
-      setState(() {
-        _pendingOfflineCount = 0;
-        _pendingOfflineAmount = 0;
-        _rejectedOfflineCount = 0;
-        _rejectedOfflineItems = const [];
-        _offlineSettings = const {};
-      });
-      return;
-    }
-
-    final summary = await _offlineCardService.pendingRedeemSummary(userId);
-    final rejected = await _offlineCardService.getRejectedRedeems(userId);
-    final settings = await _offlineCardService.offlineSettings(userId);
-    if (!mounted) return;
-    setState(() {
-      _pendingOfflineCount = (summary['count'] as num?)?.toInt() ?? 0;
-      _pendingOfflineAmount = (summary['amount'] as num?)?.toDouble() ?? 0;
-      _rejectedOfflineCount = (summary['rejectedCount'] as num?)?.toInt() ?? 0;
-      _rejectedOfflineItems = rejected;
-      _offlineSettings = settings;
-    });
-  }
-
-  Future<void> _syncOfflineRedeems() async {
-    final user = _user ?? await _auth.currentUser();
-    if (user == null || user['id'] == null) {
-      return;
-    }
-    final permissions = AppPermissions.fromUser(user);
-    if (!permissions.canOfflineCardScan) {
-      return;
-    }
-    final queue = await _offlineCardService.getRedeemQueue(
-      user['id'].toString(),
-    );
-    if (queue.isEmpty) {
-      return;
-    }
-    if (mounted) {
-      setState(() => _isSyncingOfflineRedeems = true);
-    }
-    try {
-      final result = await _api.syncOfflineCardRedeems(items: queue);
-      final resultItems = List<Map<String, dynamic>>.from(
-        (result['results'] as List? ?? const []).map(
-          (item) => Map<String, dynamic>.from(item as Map),
-        ),
-      );
-      final rejectedBarcodes = <String>{
-        for (final item in resultItems)
-          if (item['ok'] != true) (item['barcode'] ?? '').toString(),
-      }..remove('');
-      final rejectedQueue = queue
-          .where(
-            (item) => rejectedBarcodes.contains(item['barcode']?.toString()),
-          )
-          .toList();
-      await _offlineCardService.replaceRedeemQueue(
-        user['id'].toString(),
-        rejectedQueue,
-      );
-      await _offlineCardService.replaceRejectedRedeems(
-        user['id'].toString(),
-        resultItems.where((item) => item['ok'] != true).toList(),
-      );
-      final acceptedCount = resultItems
-          .where((item) => item['ok'] == true)
-          .length;
-      final acceptedBarcodes = <String>{
-        for (final item in resultItems)
-          if (item['ok'] == true) (item['barcode'] ?? '').toString(),
-      }..remove('');
-      await _offlineCardService.removeCardsByBarcode(
-        userId: user['id'].toString(),
-        barcodes: acceptedBarcodes,
-      );
-      if (acceptedCount > 0 || rejectedBarcodes.isNotEmpty) {
-        await LocalNotificationService.showBalanceChange(
-          title: _t('نتيجة مزامنة البطاقات', 'Card sync result'),
-          body:
-              _t(
-                'تم اعتماد $acceptedCount بطاقة، وبقيت ${rejectedBarcodes.length} بطاقة للمراجعة.',
-                '$acceptedCount cards approved, ${rejectedBarcodes.length} still need review.',
-              ),
-          isCredit: rejectedBarcodes.isEmpty,
-        );
-      }
+    _hasShownReconnectPrompt = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
         return;
       }
-      final updatedBalance = (result['balance'] as num?)?.toDouble();
-      if (updatedBalance != null) {
-        setState(() {
-          _user = {...?_user, 'balance': updatedBalance};
-        });
+      final moveOnline = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('عاد الإنترنت'),
+          content: const Text(
+            'تم اكتشاف اتصال بالإنترنت. هل تريد الانتقال الآن إلى شاشة القراءة الأونلاين لمزامنة العمل ومتابعة التنفيذ؟',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('الاستمرار أوف لاين'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('الانتقال للأونلاين'),
+            ),
+          ],
+        ),
+      );
+      if (moveOnline == true && mounted) {
+        OfflineSessionService.setOfflineMode(false);
+        Navigator.pushReplacementNamed(context, '/scan-card');
       }
-      await _loadOfflineSummary();
-    } catch (_) {
-      // Keep queue for the next attempt when connection is available.
-    } finally {
-      if (mounted) {
-        setState(() => _isSyncingOfflineRedeems = false);
-      }
-    }
+    });
   }
 
-  Future<void> _refreshOfflineState() async {
-    await _syncOfflineCards();
-    await _syncOfflineRedeems();
-    await _loadOfflineSummary();
+  void _maybeShowOfflineIntro() {
+    if (!mounted ||
+        !widget.offlineMode ||
+        _hasShownOfflineIntro ||
+        !_isDeviceOffline) {
+      return;
+    }
+    _hasShownOfflineIntro = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showInfo(
+        context,
+        title: 'أنت داخل مساحة الأوف لاين',
+        message:
+            'استخدم هذه الشاشة لقراءة البطاقة فقط، ثم اعتمدها من نفس النتيجة. ستتم المزامنة لاحقًا عند عودة الإنترنت.',
+      );
+    });
+  }
+
+  Future<void> _switchScanMode() async {
+    if (widget.offlineMode) {
+      OfflineSessionService.setOfflineMode(false);
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/scan-card');
+      return;
+    }
+
+    OfflineSessionService.setOfflineMode(true);
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/scan-card-offline');
+  }
+
+  Future<bool> _promptMoveOnlineIfAvailable({
+    required String actionLabel,
+  }) async {
+    if (!widget.offlineMode || _isDeviceOffline) {
+      return false;
+    }
+
+    final moveOnline = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('الأون لاين متوفر'),
+        content: Text(
+          'أنت الآن في وضع الأوف لاين لكن الإنترنت متوفر. الأولوية في التطبيق للعمل أون لاين، والأوف لاين مخصص للطوارئ فقط. هل تريد الانتقال الآن إلى الأون لاين قبل $actionLabel؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('الاستمرار أوف لاين'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('الانتقال للأونلاين'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) {
+      return false;
+    }
+
+    if (moveOnline == true) {
+      OfflineSessionService.setOfflineMode(false);
+      Navigator.pushReplacementNamed(context, '/scan-card');
+      return true;
+    }
+
+    return false;
   }
 
   Future<void> _search() async {
-    final l = context.loc;
+    if (await _promptMoveOnlineIfAvailable(actionLabel: 'قراءة البطاقة')) {
+      return;
+    }
+
     final barcode = _bcC.text.trim();
     if (barcode.isEmpty) return;
 
     setState(() => _isSearching = true);
-    if (widget.offlineMode) {
-      await _searchOffline(barcode, l);
-      return;
-    }
-    try {
-      final result = await _api.getCardByBarcode(barcode);
-      if (!mounted) return;
-      setState(() {
-        _card = result;
-        _showDetails = false;
-        _isSearching = false;
-      });
-      if (result == null) {
-        AppAlertService.showError(
-          context,
-          title: l.tr('screens_scan_card_screen.039'),
-          message: l.tr('screens_scan_card_screen.040'),
-        );
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isSearching = false);
+    final result = await _lookupCard(barcode);
+    if (!mounted) return;
+    setState(() {
+      _card = result.card;
+      _showDetails = false;
+      _isSearching = false;
+    });
+    if (result.errorMessage != null) {
       AppAlertService.showError(
         context,
-        title: l.tr('screens_scan_card_screen.039'),
-        message: ErrorMessageService.sanitize(error),
+        title: context.loc.tr('screens_scan_card_screen.039'),
+        message: result.errorMessage!,
       );
     }
   }
 
-  Future<void> _searchOffline(String barcode, AppLocalizer l) async {
+  Future<_CardLookupResult> _lookupCard(String barcode) async {
+    final notFoundMessage = context.loc.tr('screens_scan_card_screen.040');
+    if (widget.offlineMode) {
+      return _lookupOfflineCard(barcode);
+    }
+    try {
+      final result = await _api.getCardByBarcode(barcode);
+      if (result == null) {
+        return _CardLookupResult.error(notFoundMessage);
+      }
+      return _CardLookupResult.success(result);
+    } catch (error) {
+      return _CardLookupResult.error(ErrorMessageService.sanitize(error));
+    }
+  }
+
+  Future<_CardLookupResult> _lookupOfflineCard(String barcode) async {
+    final l = context.loc;
     final user = _user;
     final permissions = AppPermissions.fromUser(user);
     if (!(permissions.canOfflineCardScan &&
         user != null &&
         user['id'] != null)) {
-      if (!mounted) return;
-      setState(() => _isSearching = false);
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_scan_card_screen.039'),
-        message: 'لا تتوفر صلاحية الفحص الأوف لاين على هذا الجهاز.',
+      return _CardLookupResult.error(
+        'لا تتوفر صلاحية الفحص الأوف لاين على هذا الجهاز.',
       );
-      return;
     }
 
     final userId = user['id'].toString();
     final cached = await _offlineCardService.findCachedCard(userId, barcode);
-    if (!mounted) return;
     if (cached != null) {
       await _offlineCardService.clearUnknownOfflineScans(userId);
-      if (!mounted) return;
-      setState(() {
-        _card = cached;
-        _showDetails = false;
-        _isSearching = false;
-      });
-      return;
+      return _CardLookupResult.success(cached);
     }
 
     final blocked = await _offlineCardService.recordUnknownOfflineScan(
       userId,
       barcode,
     );
-    if (!mounted) return;
-    setState(() => _isSearching = false);
-    AppAlertService.showError(
-      context,
-      title: l.tr('screens_scan_card_screen.039'),
-      message: blocked
+    return _CardLookupResult.error(
+      blocked
           ? 'تم إيقاف الفحص مؤقتًا بسبب محاولات كثيرة لبطاقات غير موجودة في ذاكرة الأوف لاين.'
           : l.tr('screens_scan_card_screen.040'),
     );
   }
 
   Future<void> _openScannerDialog() async {
-    final l = context.loc;
-    final scannedValue = await showDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      builder: (_) => BarcodeScannerDialog(
-        title: l.tr('screens_scan_card_screen.001'),
-        description: l.tr('screens_scan_card_screen.041'),
-        height: 360,
-        showFrame: true,
-        backgroundColor: Colors.transparent,
-      ),
-    );
-    if (!mounted || scannedValue == null || scannedValue.isEmpty) {
+    if (await _promptMoveOnlineIfAvailable(actionLabel: 'فتح الكاميرا')) {
+      return;
+    }
+    if (!mounted) {
       return;
     }
 
-    setState(() {
-      _bcC.text = scannedValue;
-    });
-    await _search();
-    if (!mounted) return;
+    final l = context.loc;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => BarcodeScannerDialog(
+        title: 'فحص الباركود',
+        description: l.tr('screens_scan_card_screen.041'),
+        resultTitle: 'نتائج الفحص',
+        height: 360,
+        showFrame: true,
+        backgroundColor: Colors.transparent,
+        onScanResolved: _resolveScannerDialogResult,
+      ),
+    );
   }
 
-  Future<void> _redeem() async {
-    final l = context.loc;
-    if (_card == null) return;
+  Future<BarcodeScannerDialogResult?> _resolveScannerDialogResult(
+    String scannedValue,
+  ) async {
+    final lookup = await _lookupCard(scannedValue);
+    if (!mounted) {
+      return null;
+    }
+    setState(() {
+      _bcC.text = scannedValue;
+      _card = lookup.card;
+      _showDetails = false;
+    });
+    if (lookup.card == null) {
+      return BarcodeScannerDialogResult.error(
+        headline: 'خطأ في الفحص',
+        message: lookup.errorMessage ?? 'تعذر العثور على بيانات هذه البطاقة.',
+        items: [
+          BarcodeScannerDialogResultItem(
+            label: 'الباركود',
+            value: scannedValue,
+            icon: Icons.qr_code_rounded,
+          ),
+          BarcodeScannerDialogResultItem(
+            label: 'الحالة',
+            value: 'فشل الفحص',
+            icon: Icons.error_outline_rounded,
+          ),
+        ],
+      );
+    }
 
+    final card = lookup.card!;
+    final isUsed = card.status == CardStatus.used;
+    final permissions = AppPermissions.fromUser(_user);
+    final canRedeemCards = permissions.canRedeemCards && !isUsed;
+
+    return BarcodeScannerDialogResult(
+      headline: isUsed ? 'البطاقة مستخدمة' : 'تم العثور على البطاقة',
+      description: isUsed
+          ? 'تم فحص البطاقة بنجاح، لكنها مستخدمة بالفعل ولا يمكن سحبها مرة أخرى من هنا.'
+          : 'تم فحص البطاقة بنجاح. راجع البيانات الأساسية ثم نفّذ السحب والاعتماد مباشرة.',
+      color: isUsed ? AppTheme.error : AppTheme.success,
+      icon: isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
+      items: [
+        BarcodeScannerDialogResultItem(
+          label: 'الباركود',
+          value: card.barcode,
+          icon: Icons.qr_code_2_rounded,
+        ),
+        BarcodeScannerDialogResultItem(
+          label: 'القيمة',
+          value: CurrencyFormatter.ils(card.value),
+          icon: Icons.payments_rounded,
+        ),
+        BarcodeScannerDialogResultItem(
+          label: 'النوع',
+          value: _cardTypeLabel(card),
+          icon: Icons.category_rounded,
+        ),
+        BarcodeScannerDialogResultItem(
+          label: 'الحالة',
+          value: _statusLabel(card),
+          icon: isUsed
+              ? Icons.cancel_schedule_send_rounded
+              : Icons.verified_rounded,
+        ),
+      ],
+      primaryActionLabel: canRedeemCards ? 'سحب واعتماد' : null,
+      primaryActionIcon: Icons.download_done_rounded,
+      onPrimaryAction: canRedeemCards
+          ? () async {
+              final success = await _redeemCard(card, showFeedback: false);
+              if (!success) {
+                return _resolveScannerDialogResult(card.barcode);
+              }
+              return _resolveScannerDialogResult(card.barcode);
+            }
+          : null,
+    );
+  }
+
+  Future<bool> _redeemCard(VirtualCard card, {bool showFeedback = true}) async {
+    final l = context.loc;
     final permissions = AppPermissions.fromUser(_user);
     if (!permissions.canRedeemCards) {
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_scan_card_screen.043'),
-        message: l.tr('screens_scan_card_screen.022'),
-      );
-      return;
+      if (showFeedback) {
+        AppAlertService.showError(
+          context,
+          title: l.tr('screens_scan_card_screen.043'),
+          message: l.tr('screens_scan_card_screen.022'),
+        );
+      }
+      return false;
     }
 
     setState(() => _isSubmitting = true);
     if (widget.offlineMode) {
       await _redeemOffline(l);
-      return;
+      return true;
     }
 
     Map<String, dynamic>? location;
@@ -385,7 +438,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         location = null;
       }
       final response = await _api.redeemCard(
-        cardId: _card!.id,
+        cardId: card.id,
         customerName:
             _user?['fullName'] ??
             _user?['username'] ??
@@ -393,28 +446,41 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         location: location,
       );
       final updatedBalance = (response['balance'] as num?)?.toDouble();
-      await _search();
-      if (!mounted) return;
-      if (updatedBalance != null) {
-        setState(() {
+      final refreshed = await _lookupCard(card.barcode);
+      if (!mounted) return false;
+      setState(() {
+        _card = refreshed.card;
+        _showDetails = false;
+        if (updatedBalance != null) {
           _user = {...?_user, 'balance': updatedBalance};
-        });
+        }
+      });
+      if (showFeedback) {
+        AppAlertService.showSuccess(
+          context,
+          title: l.tr('screens_scan_card_screen.044'),
+          message: l.tr('screens_scan_card_screen.045'),
+        );
       }
-      AppAlertService.showSuccess(
-        context,
-        title: l.tr('screens_scan_card_screen.044'),
-        message: l.tr('screens_scan_card_screen.045'),
-      );
+      return true;
     } catch (error) {
-      if (!mounted) return;
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_scan_card_screen.046'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      if (!mounted) return false;
+      if (showFeedback) {
+        AppAlertService.showError(
+          context,
+          title: l.tr('screens_scan_card_screen.046'),
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+      return false;
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _redeem() async {
+    if (_card == null) return;
+    await _redeemCard(_card!);
   }
 
   Future<void> _redeemOffline(AppLocalizer l) async {
@@ -441,6 +507,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
 
+    final savedName = await _promptOfflineCardOwnerName();
+    if (!mounted) return;
+    if (savedName == null) {
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
     final customerName =
         _user?['fullName'] ??
         _user?['username'] ??
@@ -454,7 +527,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       'sourceIssuedById': _card!.issuedById,
       'sourceIssuedByUsername': _card!.issuedByUsername,
       'customerName': customerName,
+      'offlineCardOwnerName': savedName,
       'queuedAt': DateTime.now().toIso8601String(),
+      'status': 'pending',
     });
     await _offlineCardService.markCardUsed(
       userId: userId,
@@ -469,13 +544,56 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         usedBy: _user?['username']?.toString(),
       );
     });
-    await _loadOfflineSummary();
     if (!mounted) return;
     AppAlertService.showSuccess(
       context,
       title: l.tr('screens_scan_card_screen.063'),
-      message: l.tr('screens_scan_card_screen.064'),
+      message:
+          '${l.tr('screens_scan_card_screen.064')}\nتم حفظ الاسم المرتبط بالبطاقة: $savedName',
     );
+  }
+
+  Future<String?> _promptOfflineCardOwnerName() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('اسم صاحب البطاقة'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'أدخل اسمًا لتعريف هذه البطاقة',
+            hintText: 'مثال: أحمد - بطاقة رقم 1',
+          ),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            final value = controller.text.trim();
+            if (value.isNotEmpty) {
+              Navigator.of(dialogContext).pop(value);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isEmpty) {
+                return;
+              }
+              Navigator.of(dialogContext).pop(value);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _resell() async {
@@ -608,7 +726,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (!_canAccessScanScreen && _user != null) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(l.tr('screens_scan_card_screen.001'))),
+        appBar: AppBar(
+          title: Text(l.tr('screens_scan_card_screen.001')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -641,10 +762,24 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         title: Text(l.tr('screens_scan_card_screen.001')),
         actions: [
           IconButton(
+            tooltip: _showManualSearch
+                ? _t('إخفاء البحث اليدوي', 'Hide manual search')
+                : _t('إظهار البحث اليدوي', 'Show manual search'),
+            onPressed: () =>
+                setState(() => _showManualSearch = !_showManualSearch),
+            icon: Icon(
+              _showManualSearch
+                  ? Icons.search_off_rounded
+                  : Icons.manage_search_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: _t('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       body: SingleChildScrollView(
@@ -652,13 +787,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           padding: AppTheme.pagePadding(context, top: 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildScannerPanel(),
-              if (_canOfflineScan) ...[
-                const SizedBox(height: 18),
-                _buildOfflinePanel(),
-              ],
-            ],
+            children: [_buildScannerPanel()],
           ),
         ),
       ),
@@ -700,54 +829,95 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(
-                  Icons.manage_search_rounded,
-                  color: AppTheme.primary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.tr('screens_scan_card_screen.002'),
-                      style: AppTheme.h3,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l.tr('screens_scan_card_screen.003'),
-                      style: AppTheme.bodyAction,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          TextField(
-            controller: _bcC,
-            decoration: InputDecoration(
-              labelText: l.tr('screens_scan_card_screen.004'),
-              prefixIcon: const Icon(Icons.qr_code_rounded),
-              suffixIcon: _isSearching
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : null,
+          if (widget.offlineMode && _isDeviceOffline) ...[
+            const Center(child: ShwakelLogo(size: 74, framed: true)),
+            const SizedBox(height: 14),
+            Text(
+              'قراءة البطاقة أوف لاين',
+              style: AppTheme.h2,
+              textAlign: TextAlign.center,
             ),
-            onSubmitted: (_) => _search(),
+            const SizedBox(height: 6),
+            Text(
+              'العمل أوف لاين. امسح الباركود أو أدخل الرقم يدويًا ثم اعتمد البطاقة مباشرة.',
+              style: AppTheme.bodyAction,
+              textAlign: TextAlign.center,
+            ),
+          ] else
+            Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.manage_search_rounded,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.tr('screens_scan_card_screen.002'),
+                        style: AppTheme.h3,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l.tr('screens_scan_card_screen.003'),
+                        style: AppTheme.bodyAction,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: _switchScanMode,
+            icon: Icon(
+              widget.offlineMode
+                  ? Icons.cloud_done_rounded
+                  : Icons.cloud_off_rounded,
+            ),
+            label: Text(
+              widget.offlineMode
+                  ? _t('الانتقال إلى الأون لاين', 'Switch to online')
+                  : _t('الانتقال إلى الأوف لاين', 'Switch to offline'),
+            ),
           ),
-          if (widget.offlineMode) ...[
+          if (_showManualSearch) ...[
+            const SizedBox(height: 18),
+            TextField(
+              controller: _bcC,
+              decoration: InputDecoration(
+                labelText: l.tr('screens_scan_card_screen.004'),
+                prefixIcon: const Icon(Icons.qr_code_rounded),
+                suffixIcon: _isSearching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+              ),
+              onSubmitted: (_) => _search(),
+            ),
+          ] else ...[
+            const SizedBox(height: 18),
+            ToolToggleHint(
+              message: _t(
+                'يمكنك فتح البحث اليدوي من أيقونة البحث بالأعلى عند الحاجة.',
+                'Open manual search from the top search icon when needed.',
+              ),
+              icon: Icons.manage_search_rounded,
+            ),
+          ],
+          if (widget.offlineMode && _isDeviceOffline) ...[
             const SizedBox(height: 14),
             Container(
               width: double.infinity,
@@ -766,11 +936,75 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   Expanded(
                     child: Text(
                       _t(
-                        'وضع الأوف لاين مفعل. سيتم الفحص من البيانات المحلية فقط.',
-                        'Offline mode is active. The check will use local data only.',
+                        'سيتم الفحص من البيانات المحلية فقط، وعند رجوع الإنترنت ستظهر لك رسالة للانتقال إلى الأونلاين.',
+                        'Local data only will be used. You will be prompted to move online when connectivity returns.',
                       ),
                       style: AppTheme.bodyAction.copyWith(
                         color: AppTheme.warning,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (widget.offlineMode) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.wifi_rounded, color: AppTheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _t(
+                        'الإنترنت متوفر الآن. يفضّل الانتقال إلى الأون لاين، وسيتم تذكيرك بذلك عند استخدام القراءة أو الكاميرا.',
+                        'Internet is available now. Online mode is preferred, and you will be reminded when using scan actions.',
+                      ),
+                      style: AppTheme.bodyAction.copyWith(
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppTheme.error.withValues(alpha: 0.16),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(Icons.gpp_maybe_rounded, color: AppTheme.error),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _t(
+                        'إخلاء طرف: التطبيق غير مسؤول عن حالات التعارض، أو البطاقات غير الموجودة في النظام، أو أي بطاقة تمت إضافتها واعتمادها أثناء وضع الأوف لاين ثم تعذر تأكيدها لاحقًا. المسؤولية تقع على من قام بإدخال البطاقة واعتمادها في وضع الأوف لاين.',
+                        'Disclaimer: the app is not responsible for conflicts, cards not found in the system, or any card added and approved in offline mode then not confirmed later. Responsibility remains with the user who entered and approved it offline.',
+                      ),
+                      style: AppTheme.bodyAction.copyWith(
+                        color: AppTheme.error,
+                        height: 1.55,
                       ),
                     ),
                   ),
@@ -786,27 +1020,21 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 return Column(
                   children: [
                     ShwakelButton(
-                      label: l.tr('screens_scan_card_screen.005'),
+                      label: widget.offlineMode
+                          ? 'فتح الكاميرا'
+                          : l.tr('screens_scan_card_screen.005'),
                       icon: Icons.camera_alt_rounded,
                       isSecondary: true,
                       onPressed: _openScannerDialog,
                     ),
                     const SizedBox(height: 12),
                     ShwakelButton(
-                      label: l.tr('screens_scan_card_screen.006'),
+                      label: widget.offlineMode
+                          ? 'قراءة البطاقة'
+                          : l.tr('screens_scan_card_screen.006'),
                       icon: Icons.search_rounded,
                       onPressed: _search,
                     ),
-                    if (_canOfflineScan) ...[
-                      const SizedBox(height: 12),
-                      ShwakelButton(
-                        label: _t('مركز الأوف لاين', 'Offline center'),
-                        icon: Icons.cloud_done_rounded,
-                        isSecondary: true,
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/offline-center'),
-                      ),
-                    ],
                   ],
                 );
               }
@@ -815,7 +1043,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 children: [
                   Expanded(
                     child: ShwakelButton(
-                      label: l.tr('screens_scan_card_screen.005'),
+                      label: widget.offlineMode
+                          ? 'فتح الكاميرا'
+                          : l.tr('screens_scan_card_screen.005'),
                       icon: Icons.camera_alt_rounded,
                       isSecondary: true,
                       onPressed: _openScannerDialog,
@@ -824,23 +1054,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ShwakelButton(
-                      label: l.tr('screens_scan_card_screen.006'),
+                      label: widget.offlineMode
+                          ? 'قراءة البطاقة'
+                          : l.tr('screens_scan_card_screen.006'),
                       icon: Icons.search_rounded,
                       onPressed: _search,
                     ),
                   ),
-                  if (_canOfflineScan) ...[
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ShwakelButton(
-                        label: _t('مركز الأوف لاين', 'Offline center'),
-                        icon: Icons.cloud_done_rounded,
-                        isSecondary: true,
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/offline-center'),
-                      ),
-                    ),
-                  ],
                 ],
               );
             },
@@ -880,7 +1100,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final accent = isUsed ? AppTheme.error : AppTheme.success;
     final appPermissions = AppPermissions.fromUser(_user);
     final canRedeemCards = appPermissions.canRedeemCards;
-    final canResellCards = appPermissions.canResellCards;
+    final canResellCards = !widget.offlineMode && appPermissions.canResellCards;
 
     return Container(
       key: ValueKey(card.barcode),
@@ -958,9 +1178,39 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ],
           ),
           const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  accent.withValues(alpha: 0.18),
+                  accent.withValues(alpha: 0.08),
+                ],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'قيمة البطاقة',
+                  style: AppTheme.caption.copyWith(color: accent),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  CurrencyFormatter.ils(card.value),
+                  style: AppTheme.h1.copyWith(color: accent, fontSize: 30),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
           if (!isUsed && canRedeemCards)
             ShwakelButton(
-              label: l.tr('screens_scan_card_screen.021'),
+              label: 'سحب واعتماد',
               icon: Icons.download_done_rounded,
               onPressed: _redeem,
               isLoading: _isSubmitting,
@@ -975,7 +1225,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           else
             Text(
               isUsed
-                  ? _t('هذه البطاقة مستعملة بالفعل.', 'This card is already used.')
+                  ? _t(
+                      'هذه البطاقة مستعملة بالفعل.',
+                      'This card is already used.',
+                    )
                   : _t(
                       'لا تملك صلاحية تنفيذ إجراء مباشر على هذه البطاقة.',
                       'You do not have permission to run a direct action on this card.',
@@ -984,109 +1237,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 color: AppTheme.textSecondary,
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOfflinePanel() {
-    if (!_canOfflineScan) {
-      return const SizedBox.shrink();
-    }
-
-    final maxPendingCount =
-        (_offlineSettings['maxPendingCount'] as num?)?.toInt() ?? 50;
-    final maxPendingAmount =
-        (_offlineSettings['maxPendingAmount'] as num?)?.toDouble() ?? 500;
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(24),
-      borderRadius: BorderRadius.circular(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F766E).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(
-                  Icons.cloud_sync_rounded,
-                  color: Color(0xFF0F766E),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_t('حالة الأوف لاين', 'Offline status'), style: AppTheme.h3),
-                  ],
-                ),
-              ),
-              IconButton.filledTonal(
-                tooltip: _t('تحديث الآن', 'Refresh now'),
-                onPressed: _isSyncingOfflineCards || _isSyncingOfflineRedeems
-                    ? null
-                    : _refreshOfflineState,
-                icon: (_isSyncingOfflineCards || _isSyncingOfflineRedeems)
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _statTile(
-                label: _t('عمليات معلقة', 'Pending items'),
-                value: '$_pendingOfflineCount / $maxPendingCount',
-                hint: CurrencyFormatter.ils(_pendingOfflineAmount),
-                color: AppTheme.primary,
-                icon: Icons.layers_rounded,
-              ),
-              _statTile(
-                label: _t('حد الأوف لاين', 'Offline limit'),
-                value: CurrencyFormatter.ils(maxPendingAmount),
-                hint: _t('الحد قبل طلب المزامنة', 'Threshold before sync is needed'),
-                color: AppTheme.warning,
-                icon: Icons.account_balance_wallet_rounded,
-              ),
-              _statTile(
-                label: _t('مرفوض للمراجعة', 'Rejected for review'),
-                value: '$_rejectedOfflineCount',
-                hint: _rejectedOfflineCount == 0
-                    ? _t('لا توجد عناصر مرفوضة', 'No rejected items')
-                    : _t(
-                        'تحتاج مراجعة بعد المزامنة',
-                        'Needs review after sync',
-                      ),
-                color: AppTheme.error,
-                icon: Icons.rule_folder_rounded,
-              ),
-            ],
-          ),
-          if (_rejectedOfflineItems.isNotEmpty) ...[
-            const SizedBox(height: 18),
-            Text(
-              _t('آخر العمليات المرفوضة', 'Latest rejected items'),
-              style: AppTheme.bodyBold,
-            ),
-            const SizedBox(height: 10),
-            ..._rejectedOfflineItems
-                .take(3)
-                .map((item) => _buildRejectedItem(item)),
-          ],
         ],
       ),
     );
@@ -1104,10 +1254,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final accent = isUsed ? AppTheme.error : AppTheme.success;
     final appPermissions = AppPermissions.fromUser(_user);
     final canRedeemCards = appPermissions.canRedeemCards;
-    final canResellCards = appPermissions.canResellCards;
-    final canReviewCards = appPermissions.canReviewCards;
-    final canViewCardDetails =
-        !widget.offlineMode && (canReviewCards || canResellCards);
+    final canResellCards = !widget.offlineMode && appPermissions.canResellCards;
+    final canViewCardDetails = _canRevealSensitiveCardData;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1371,14 +1519,36 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(26),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Text(_t('الإجراءات', 'Actions'), style: AppTheme.h3),
           const SizedBox(height: 16),
+          if (_isSubUser && !isUsed) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primarySoft.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.14),
+                ),
+              ),
+              child: Text(
+                canRedeemCards
+                    ? 'سقف اعتماد البطاقة لهذا التابع هو ${CurrencyFormatter.ils(_subUserLimit('redeemCardMaxValue') ?? 0)}. إذا تجاوزت البطاقة هذا الحد فلن يتم اعتمادها من هذا الحساب.'
+                    : 'هذا الحساب تابع، والاعتماد يحتاج صلاحية مفعلة. عند التفعيل سيطبّق عليه سقف ${CurrencyFormatter.ils(_subUserLimit('redeemCardMaxValue') ?? 0)} للبطاقة الواحدة.',
+                style: AppTheme.caption.copyWith(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (!isUsed && canRedeemCards) ...[
             ShwakelButton(
-              label: l.tr('screens_scan_card_screen.021'),
+              label: 'سحب واعتماد',
               icon: Icons.download_done_rounded,
               onPressed: _redeem,
               isLoading: _isSubmitting,
@@ -1565,105 +1735,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
-  Widget _statTile({
-    required String label,
-    required String value,
-    required String hint,
-    required Color color,
-    required IconData icon,
-  }) {
-    return SizedBox(
-      width: 190,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: color.withValues(alpha: 0.16)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 6),
-            Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
-            const SizedBox(height: 4),
-            Text(hint, style: AppTheme.caption),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRejectedItem(Map<String, dynamic> item) {
-    final barcode = item['barcode']?.toString().trim();
-    final message = item['message']?.toString().trim();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.error.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.error.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.error.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.error_outline_rounded,
-              color: AppTheme.error,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  barcode?.isNotEmpty == true
-                      ? barcode!
-                      : _t('بطاقة غير معروفة', 'Unknown card'),
-                  style: AppTheme.bodyBold,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message?.isNotEmpty == true
-                      ? message!
-                      : _t(
-                          'تم رفض البطاقة بعد المزامنة وتحتاج مراجعة.',
-                          'This card was rejected after sync and needs review.',
-                        ),
-                  style: AppTheme.bodyText,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _infoChip({required IconData icon, required String label}) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 280),
@@ -1696,4 +1767,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 }
 
+class _CardLookupResult {
+  const _CardLookupResult.success(this.card) : errorMessage = null;
 
+  const _CardLookupResult.error(this.errorMessage) : card = null;
+
+  final VirtualCard? card;
+  final String? errorMessage;
+}

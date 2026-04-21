@@ -8,6 +8,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -292,6 +293,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_account_settings_screen.008')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
         body: Center(
@@ -318,6 +320,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_account_settings_screen.008')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
         body: Center(
@@ -377,6 +380,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               onPressed: _showHelpDialog,
               icon: const Icon(Icons.info_outline_rounded),
             ),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(72),

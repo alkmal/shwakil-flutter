@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../models/index.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/barcode_scanner_dialog.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -23,17 +25,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final AuthService _authService = AuthService();
+  final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
   bool _hasOfflineWorkspace = false;
+  bool _isSyncingOfflineWorkspace = false;
+  bool _didSuggestOfflineWorkspace = false;
+  bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
+  int _pendingOfflineCount = 0;
+  double _pendingOfflineAmount = 0;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
 
   @override
   void initState() {
     super.initState();
+    ConnectivityService.instance.isOnline.addListener(
+      _handleConnectivityChanged,
+    );
     _loadUser();
     _balanceSubscription = RealtimeNotificationService.balanceUpdatesStream
         .listen((_) {
@@ -54,6 +65,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void dispose() {
     _balanceSubscription?.cancel();
+    ConnectivityService.instance.isOnline.removeListener(
+      _handleConnectivityChanged,
+    );
     if (_routeSubscribed) {
       appRouteObserver.unsubscribe(this);
     }
@@ -75,6 +89,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return AppPermissions.fromUser(_user).canReviewCards;
   }
 
+  bool get _canOfflineScan {
+    return AppPermissions.fromUser(_user).canOfflineCardScan;
+  }
+
   bool get _canOpenCardTools {
     return AppPermissions.fromUser(_user).canOpenCardTools;
   }
@@ -88,29 +106,249 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       await _authService.refreshCurrentUser();
       final user = await _authService.currentUser();
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
+      final pendingSummary = await _resolveOfflinePendingSummary(user);
       if (!mounted) return;
       setState(() {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
+        _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
+        _pendingOfflineAmount =
+            (pendingSummary['amount'] as num?)?.toDouble() ?? 0;
         _isLoading = false;
       });
+      _maybeSuggestOfflineWorkspace();
     } catch (_) {
       final user = await _authService.currentUser();
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
+      final pendingSummary = await _resolveOfflinePendingSummary(user);
       if (!mounted) return;
       setState(() {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
+        _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
+        _pendingOfflineAmount =
+            (pendingSummary['amount'] as num?)?.toDouble() ?? 0;
         _isLoading = false;
       });
+      _maybeSuggestOfflineWorkspace();
     }
+  }
+
+  Future<Map<String, dynamic>> _resolveOfflinePendingSummary(
+    Map<String, dynamic>? user,
+  ) async {
+    final permissions = AppPermissions.fromUser(user);
+    if (user == null || user['id'] == null || !permissions.canOfflineCardScan) {
+      return const {'count': 0, 'amount': 0.0};
+    }
+    return _offlineCardService.pendingRedeemSummary(user['id'].toString());
+  }
+
+  void _handleConnectivityChanged() {
+    if (!mounted) {
+      return;
+    }
+    final isOnline = ConnectivityService.instance.isOnline.value;
+    final regainedConnection = !_lastKnownDeviceOnline && isOnline;
+    _lastKnownDeviceOnline = isOnline;
+    if (regainedConnection) {
+      OfflineSessionService.setOfflineMode(false);
+      unawaited(_syncOfflineWorkspace(triggeredAutomatically: true));
+    }
+    setState(() {});
+  }
+
+  Future<void> _syncOfflineWorkspace({
+    bool triggeredAutomatically = false,
+  }) async {
+    if (_isSyncingOfflineWorkspace ||
+        !ConnectivityService.instance.isOnline.value) {
+      return;
+    }
+
+    final user = _user ?? await _authService.currentUser();
+    if (user == null || user['id'] == null) {
+      return;
+    }
+    final permissions = AppPermissions.fromUser(user);
+    if (!permissions.canOfflineCardScan) {
+      return;
+    }
+
+    final userId = user['id'].toString();
+    final queuedBeforeSync = await _offlineCardService.getRedeemQueue(userId);
+    final hadPendingItems = queuedBeforeSync.isNotEmpty;
+
+    if (mounted) {
+      setState(() => _isSyncingOfflineWorkspace = true);
+    }
+
+    try {
+      final payload = await _apiService.getOfflineCardCache();
+      await _offlineCardService.cacheCards(
+        userId: userId,
+        cards: List<VirtualCard>.from(payload['cards'] as List? ?? const []),
+        settings: Map<String, dynamic>.from(
+          payload['settings'] as Map? ?? const {},
+        ),
+      );
+
+      int acceptedCount = 0;
+      int rejectedCount = 0;
+      if (queuedBeforeSync.isNotEmpty) {
+        final result = await _apiService.syncOfflineCardRedeems(
+          items: queuedBeforeSync,
+        );
+        final resultItems = List<Map<String, dynamic>>.from(
+          (result['results'] as List? ?? const []).map(
+            (item) => Map<String, dynamic>.from(item as Map),
+          ),
+        );
+        final rejectedBarcodes = <String>{
+          for (final item in resultItems)
+            if (item['ok'] != true) (item['barcode'] ?? '').toString(),
+        }..remove('');
+        final acceptedBarcodes = <String>{
+          for (final item in resultItems)
+            if (item['ok'] == true) (item['barcode'] ?? '').toString(),
+        }..remove('');
+        final syncedAt = DateTime.now().toIso8601String();
+        final historyEntries = queuedBeforeSync.map((entry) {
+          final barcode = entry['barcode']?.toString() ?? '';
+          Map<String, dynamic>? matchedResult;
+          for (final item in resultItems) {
+            if (item['barcode']?.toString() == barcode) {
+              matchedResult = item;
+              break;
+            }
+          }
+          final ok = matchedResult?['ok'] == true;
+          return {
+            ...entry,
+            'status': ok ? 'confirmed' : 'rejected',
+            'message': matchedResult?['message']?.toString(),
+            'syncedAt': syncedAt,
+            'confirmedOffline': true,
+          };
+        }).toList();
+        final rejectedHistoryEntries = historyEntries
+            .where((item) => item['status'] == 'rejected')
+            .toList();
+
+        acceptedCount = acceptedBarcodes.length;
+        rejectedCount = rejectedBarcodes.length;
+
+        await _offlineCardService.replaceRedeemQueue(
+          userId,
+          queuedBeforeSync
+              .where(
+                (item) =>
+                    rejectedBarcodes.contains(item['barcode']?.toString()),
+              )
+              .toList(),
+        );
+        await _offlineCardService.replaceRejectedRedeems(
+          userId,
+          rejectedHistoryEntries,
+        );
+        await _offlineCardService.appendSyncHistory(
+          userId,
+          rejectedHistoryEntries,
+        );
+        await _offlineCardService.removeCardsByBarcode(
+          userId: userId,
+          barcodes: acceptedBarcodes,
+        );
+
+        final updatedBalance = (result['balance'] as num?)?.toDouble();
+        if (updatedBalance != null) {
+          await _authService.patchCurrentUser({'balance': updatedBalance});
+        }
+      }
+
+      try {
+        await _authService.refreshCurrentUser();
+      } catch (_) {
+        // Keep the cached user if refreshing the profile is temporarily unavailable.
+      }
+
+      await _loadUser();
+      if (!mounted) {
+        return;
+      }
+
+      if (hadPendingItems || triggeredAutomatically) {
+        AppAlertService.showSuccess(
+          context,
+          title: triggeredAutomatically
+              ? 'تمت مزامنة الأوف لاين'
+              : 'اكتملت مزامنة البطاقات',
+          message: hadPendingItems
+              ? 'تمت مزامنة $acceptedCount بطاقة معلقة، وبقي $rejectedCount للمراجعة، كما تم تنزيل أحدث بطاقات الأوف لاين.'
+              : 'تم تنزيل أحدث بطاقات الأوف لاين وتحديث مساحة العمل المحلية.',
+        );
+      }
+    } catch (error) {
+      if (!mounted || triggeredAutomatically) {
+        return;
+      }
+      AppAlertService.showError(
+        context,
+        title: 'تعذرت مزامنة الأوف لاين',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncingOfflineWorkspace = false);
+      }
+    }
+  }
+
+  void _maybeSuggestOfflineWorkspace() {
+    if (!mounted ||
+        _didSuggestOfflineWorkspace ||
+        OfflineSessionService.isOfflineMode ||
+        !_hasOfflineWorkspace ||
+        _isDeviceOnline) {
+      return;
+    }
+    final permissions = AppPermissions.fromUser(_user);
+    if (!permissions.canOfflineCardScan) {
+      return;
+    }
+    _didSuggestOfflineWorkspace = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+      final openOffline = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('مساحة الأوف لاين جاهزة'),
+          content: const Text(
+            'يوجد على هذا الجهاز مخزون أوف لاين جاهز. هل تريد الانتقال مباشرة إلى قراءة البطاقات الأوف لاين؟',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('لاحقًا'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('فتح الأوف لاين'),
+            ),
+          ],
+        ),
+      );
+      if (openOffline == true && mounted) {
+        Navigator.pushNamed(context, '/scan-card-offline');
+      }
+    });
   }
 
   Future<bool> _resolveOfflineWorkspace(Map<String, dynamic>? user) async {
     final permissions = AppPermissions.fromUser(user);
-    if (user == null ||
-        user['id'] == null ||
-        !permissions.canOfflineCardScan) {
+    if (user == null || user['id'] == null || !permissions.canOfflineCardScan) {
       return false;
     }
     return _offlineCardService.hasOfflineWorkspace(user['id'].toString());
@@ -120,6 +358,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final permissions = AppPermissions.fromUser(_user);
     return permissions.canOfflineCardScan && !permissions.canIssueCards;
   }
+
+  bool get _isDeviceOnline => ConnectivityService.instance.isOnline.value;
 
   String get _scanRoute =>
       OfflineSessionService.isOfflineMode ? '/scan-card-offline' : '/scan-card';
@@ -146,26 +386,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       return;
     }
     Navigator.pushNamed(context, routeName);
-  }
-
-  Future<void> _logout() async {
-    await RealtimeNotificationService.stop();
-    if (!mounted) return;
-
-    final canUseTrustedUnlock =
-        await LocalSecurityService.canUseTrustedUnlock();
-    if (!mounted) return;
-
-    if (!canUseTrustedUnlock) {
-      await _authService.logout();
-      await LocalSecurityService.clearTrustedState();
-      if (!mounted) return;
-    }
-
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      canUseTrustedUnlock ? '/unlock' : '/login',
-      (route) => false,
-    );
   }
 
   Future<void> _startHomeBarcodeScan() async {
@@ -203,13 +423,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_home_screen.002')),
-        actions: [
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: l.tr('screens_home_screen.003'),
-          ),
-        ],
+        actions: [const AppNotificationAction(), const QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: _isLoading
@@ -288,13 +502,31 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewTransactions = permissions.canViewTransactions;
     final canViewInventory = permissions.canViewInventory;
     final canViewQuickTransfer = permissions.canOpenQuickTransfer;
+    final canManageDebtBook = permissions.canManageDebtBook;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final l = context.loc;
     final canOpenOfflineCenter = _hasOfflineWorkspace || canScanCards;
+    final showOfflineSyncAction =
+        _canOfflineScan &&
+        _isDeviceOnline &&
+        (_pendingOfflineCount > 0 || _isSyncingOfflineWorkspace);
 
-    if (OfflineSessionService.isOfflineMode || _isRestrictedOfflineWorkspaceUser) {
+    if (OfflineSessionService.isOfflineMode ||
+        _isRestrictedOfflineWorkspaceUser) {
       return [
+        if (showOfflineSyncAction)
+          _HomeServiceItem(
+            title: _isSyncingOfflineWorkspace
+                ? 'جاري مزامنة الأوف لاين'
+                : 'مزامنة الأوف لاين',
+            subtitle: _pendingOfflineCount > 0
+                ? 'يوجد $_pendingOfflineCount بطاقة معلقة بقيمة ${_pendingOfflineAmount.toStringAsFixed(2)} شيكل وسيتم تحديث المخزون المحلي أيضًا.'
+                : 'تحديث البطاقات المحلية وتنزيل أي بطاقات جديدة متاحة لهذا الجهاز.',
+            icon: Icons.cloud_sync_rounded,
+            color: AppTheme.primary,
+            onTap: () => unawaited(_syncOfflineWorkspace()),
+          ),
         if (canScanCards)
           _HomeServiceItem(
             title: l.tr('screens_home_screen.015'),
@@ -313,11 +545,31 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             color: AppTheme.warning,
             onTap: () => Navigator.pushNamed(context, '/offline-center'),
           ),
+        if (canManageDebtBook)
+          _HomeServiceItem(
+            title: 'دفتر الديون',
+            subtitle: 'متاح للعمل المحلي مع رفع التعديلات عند عودة الإنترنت.',
+            icon: Icons.menu_book_rounded,
+            color: const Color(0xFF7C3AED),
+            onTap: () => Navigator.pushNamed(context, '/debt-book'),
+          ),
       ];
     }
 
     if (canReviewCards && !canIssueCards) {
       return [
+        if (showOfflineSyncAction)
+          _HomeServiceItem(
+            title: _isSyncingOfflineWorkspace
+                ? 'جاري مزامنة الأوف لاين'
+                : 'مزامنة الأوف لاين',
+            subtitle: _pendingOfflineCount > 0
+                ? 'يوجد $_pendingOfflineCount بطاقة معلقة للمزامنة، مع تحديث تلقائي لمخزون الأوف لاين.'
+                : 'تحديث مساحة الأوف لاين وتنزيل البطاقات الجديدة لهذا الجهاز.',
+            icon: Icons.cloud_sync_rounded,
+            color: AppTheme.primary,
+            onTap: () => unawaited(_syncOfflineWorkspace()),
+          ),
         _HomeServiceItem(
           title: l.tr('screens_home_screen.015'),
           subtitle: l.tr('screens_home_screen.016'),
@@ -333,10 +585,30 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             color: AppTheme.warning,
             onTap: () => Navigator.pushNamed(context, '/offline-center'),
           ),
+        if (canManageDebtBook)
+          _HomeServiceItem(
+            title: 'دفتر الديون',
+            subtitle: 'إدارة العملاء والمديونيات محليًا حتى أثناء انقطاع الإنترنت.',
+            icon: Icons.menu_book_rounded,
+            color: const Color(0xFF7C3AED),
+            onTap: () => Navigator.pushNamed(context, '/debt-book'),
+          ),
       ];
     }
 
     return [
+      if (showOfflineSyncAction)
+        _HomeServiceItem(
+          title: _isSyncingOfflineWorkspace
+              ? 'جاري مزامنة الأوف لاين'
+              : 'مزامنة الأوف لاين',
+          subtitle: _pendingOfflineCount > 0
+              ? 'لديك $_pendingOfflineCount بطاقة معلقة للمزامنة، وسيتم تنزيل بطاقات أوف لاين جديدة أيضًا.'
+              : 'تحديث مخزون الأوف لاين على الجهاز وتنزيل أي بطاقات جديدة.',
+          icon: Icons.cloud_sync_rounded,
+          color: AppTheme.primary,
+          onTap: () => unawaited(_syncOfflineWorkspace()),
+        ),
       if (canScanCards)
         _HomeServiceItem(
           title: l.tr('screens_home_screen.015'),
@@ -392,6 +664,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           icon: Icons.receipt_long_rounded,
           color: AppTheme.warning,
           onTap: () => unawaited(_openOnlineOnlyRoute('/transactions')),
+        ),
+      if (canManageDebtBook)
+        _HomeServiceItem(
+          title: 'دفتر الديون',
+          subtitle: 'إدارة العملاء والمديونيات والسداد أون لاين وأوف لاين.',
+          icon: Icons.menu_book_rounded,
+          color: const Color(0xFF7C3AED),
+          onTap: () => Navigator.pushNamed(context, '/debt-book'),
         ),
       if (canViewSecuritySettings)
         _HomeServiceItem(

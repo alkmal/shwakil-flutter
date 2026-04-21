@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_device_request_card.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -144,6 +145,8 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),

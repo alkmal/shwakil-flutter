@@ -5,9 +5,11 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/shwakel_logo.dart';
 
 class OfflineCenterScreen extends StatefulWidget {
   const OfflineCenterScreen({super.key});
@@ -22,8 +24,6 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
   final OfflineCardService _offlineCardService = OfflineCardService();
 
   Map<String, dynamic>? _user;
-  List<VirtualCard> _cachedCards = const [];
-  List<Map<String, dynamic>> _rejectedItems = const [];
   bool _isLoading = true;
   bool _isSyncingCards = false;
   bool _isSyncingQueue = false;
@@ -32,8 +32,9 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
   double _pendingAmount = 0;
   int _rejectedCount = 0;
   int _availableCount = 0;
-  int _usedCount = 0;
   Map<String, dynamic> _offlineSettings = const {};
+  List<Map<String, dynamic>> _pendingItems = const [];
+  List<Map<String, dynamic>> _historyItems = const [];
 
   bool get _canOfflineScan =>
       AppPermissions.fromUser(_user).canOfflineCardScan && _user?['id'] != null;
@@ -78,15 +79,18 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       return;
     }
     setState(() {
-      _cachedCards = const [];
       _availableCount = (overview['availableCount'] as num?)?.toInt() ?? 0;
-      _usedCount = (overview['usedCount'] as num?)?.toInt() ?? 0;
       _pendingCount = (summary['count'] as num?)?.toInt() ?? 0;
       _pendingAmount = (summary['amount'] as num?)?.toDouble() ?? 0;
       _rejectedCount = (summary['rejectedCount'] as num?)?.toInt() ?? 0;
-      _rejectedItems = const [];
+      _pendingItems = List<Map<String, dynamic>>.from(
+        summary['items'] as List? ?? const [],
+      );
       _offlineSettings = Map<String, dynamic>.from(
         overview['settings'] as Map? ?? const {},
+      );
+      _historyItems = List<Map<String, dynamic>>.from(
+        overview['history'] as List? ?? const [],
       );
       _isLoading = false;
     });
@@ -165,6 +169,28 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         for (final item in resultItems)
           if (item['ok'] == true) (item['barcode'] ?? '').toString(),
       }..remove('');
+      final syncedAt = DateTime.now().toIso8601String();
+      final historyEntries = queue.map((entry) {
+        final barcode = entry['barcode']?.toString() ?? '';
+        Map<String, dynamic>? matchedResult;
+        for (final item in resultItems) {
+          if (item['barcode']?.toString() == barcode) {
+            matchedResult = item;
+            break;
+          }
+        }
+        final ok = matchedResult?['ok'] == true;
+        return {
+          ...entry,
+          'status': ok ? 'confirmed' : 'rejected',
+          'message': matchedResult?['message']?.toString(),
+          'syncedAt': syncedAt,
+          'confirmedOffline': true,
+        };
+      }).toList();
+      final rejectedHistoryEntries = historyEntries
+          .where((item) => item['status'] == 'rejected')
+          .toList();
 
       await _offlineCardService.replaceRedeemQueue(
         userId,
@@ -176,7 +202,11 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       );
       await _offlineCardService.replaceRejectedRedeems(
         userId,
-        resultItems.where((item) => item['ok'] != true).toList(),
+        rejectedHistoryEntries,
+      );
+      await _offlineCardService.appendSyncHistory(
+        userId,
+        rejectedHistoryEntries,
       );
       await _offlineCardService.removeCardsByBarcode(
         userId: userId,
@@ -218,7 +248,10 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: const Text('مركز الأوفلاين')),
+        appBar: AppBar(
+          title: const Text('مركز الأوفلاين'),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         body: const Center(
           child: Padding(
             padding: EdgeInsets.all(48),
@@ -231,7 +264,10 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: const Text('مركز الأوفلاين')),
+        appBar: AppBar(
+          title: const Text('مركز الأوفلاين'),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -244,7 +280,10 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text('لا تملك صلاحية استخدام مركز الأوفلاين', style: AppTheme.h3),
+                Text(
+                  'لا تملك صلاحية استخدام مركز الأوفلاين',
+                  style: AppTheme.h3,
+                ),
               ],
             ),
           ),
@@ -259,99 +298,66 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('مركز الأوفلاين')),
+      appBar: AppBar(
+        title: const Text('مركز الأوفلاين'),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
+      ),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildHero(),
-                    const SizedBox(height: 18),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isCompact = constraints.maxWidth < 760;
-                        final children = [
-                          _statCard(
-                            label: 'بطاقات متاحة',
-                            value: '$_availableCount',
-                            hint: 'جاهزة للفحص والاستخدام محليًا',
-                            color: AppTheme.success,
-                            icon: Icons.credit_card_rounded,
-                          ),
-                          _statCard(
-                            label: 'عمليات معلقة',
-                            value: '$_pendingCount / $maxPendingCount',
-                            hint: CurrencyFormatter.ils(_pendingAmount),
-                            color: AppTheme.primary,
-                            icon: Icons.cloud_upload_rounded,
-                          ),
-                          _statCard(
-                            label: 'حد الأوفلاين',
-                            value: CurrencyFormatter.ils(maxPendingAmount),
-                            hint: 'السقف قبل الحاجة للمزامنة',
-                            color: AppTheme.warning,
-                            icon: Icons.account_balance_wallet_rounded,
-                          ),
-                          _statCard(
-                            label: 'مرفوض للمراجعة',
-                            value: '$_rejectedCount',
-                            hint: 'عمليات تحتاج مراجعة بعد الاتصال',
-                            color: AppTheme.error,
-                            icon: Icons.rule_folder_rounded,
-                          ),
-                        ];
-
-                        if (isCompact) {
-                          return Column(
-                            children: children
-                                .map(
-                                  (child) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: child,
-                                  ),
-                                )
-                                .toList(),
-                          );
-                        }
-
-                        return Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: children
-                              .map(
-                                (child) => SizedBox(
-                                  width: (constraints.maxWidth - 12) / 2,
-                                  child: child,
-                                ),
-                              )
-                              .toList(),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    _buildActionCard(),
-                    const SizedBox(height: 18),
-                    _buildCachedCardsCard(),
-                    if (_rejectedItems.isNotEmpty) ...[
-                      const SizedBox(height: 18),
-                      _buildRejectedCard(),
-                    ],
-                  ],
-                ),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHero(),
+              const SizedBox(height: 18),
+              _buildActionCard(),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _statCard(
+                    label: 'بطاقات جاهزة',
+                    value: '$_availableCount',
+                    hint: 'للقراءة فقط',
+                    color: AppTheme.success,
+                    icon: Icons.credit_card_rounded,
+                  ),
+                  _statCard(
+                    label: 'معلّق للمزامنة',
+                    value: '$_pendingCount / $maxPendingCount',
+                    hint: CurrencyFormatter.ils(_pendingAmount),
+                    color: AppTheme.primary,
+                    icon: Icons.cloud_upload_rounded,
+                  ),
+                  _statCard(
+                    label: 'حد الأوف لاين',
+                    value: CurrencyFormatter.ils(maxPendingAmount),
+                    hint: 'قبل طلب المزامنة',
+                    color: AppTheme.warning,
+                    icon: Icons.account_balance_wallet_rounded,
+                  ),
+                  _statCard(
+                    label: 'بحاجة مراجعة',
+                    value: '$_rejectedCount',
+                    hint: 'بعد عودة الإنترنت',
+                    color: AppTheme.error,
+                    icon: Icons.rule_folder_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _buildTrackingList(),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHero() {
-    final name = _user?['fullName']?.toString().trim().isNotEmpty == true
-        ? _user!['fullName'].toString().trim()
-        : (_user?['username']?.toString() ?? 'المستخدم');
-    final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
-
     return ShwakelCard(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       gradient: const LinearGradient(
         colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
         begin: Alignment.topRight,
@@ -360,31 +366,31 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       withBorder: false,
       shadowLevel: ShwakelShadowLevel.premium,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          const ShwakelLogo(size: 82, framed: true),
+          const SizedBox(height: 18),
           Text(
-            'الوضع الحالي: أوفلاين',
-            style: AppTheme.caption.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
+            'العمل أوف لاين',
+            style: AppTheme.h2.copyWith(color: Colors.white),
           ),
-          const SizedBox(height: 8),
-          Text(name, style: AppTheme.h2.copyWith(color: Colors.white)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
-            'يمكنك متابعة الفحص المحلي ومراجعة المعلّق حتى يعود الاتصال.',
+            'ابدأ بقراءة البطاقة محليًا، ثم مزامن العمليات عند عودة الإنترنت.',
             style: AppTheme.bodyAction.copyWith(
               color: Colors.white.withValues(alpha: 0.92),
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 14),
           Wrap(
+            alignment: WrapAlignment.center,
             spacing: 8,
             runSpacing: 8,
             children: [
-              _heroPill('الرصيد المخزن: ${CurrencyFormatter.ils(balance)}'),
-              _heroPill('بطاقات الكاش: $_availableCount'),
-              _heroPill('مستخدمة محليًا: $_usedCount'),
+              _heroPill('بطاقات جاهزة: $_availableCount'),
+              _heroPill('عمليات معلقة: $_pendingCount'),
+              _heroPill('مرفوض للمراجعة: $_rejectedCount'),
             ],
           ),
         ],
@@ -417,22 +423,21 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('إدارة الأوفلاين', style: AppTheme.h3),
+          Text('مساحة القراءة السريعة', style: AppTheme.h3),
           const SizedBox(height: 6),
           Text(
-            'افتح شاشة الفحص السريعة أو حدّث المخزون وعمليات المزامنة فور عودة الاتصال.',
+            'واجهة بسيطة لقراءة البطاقة ثم اعتمادها ومزامنتها لاحقًا.',
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 16),
           ShwakelButton(
-            label: 'فتح فحص البطاقات',
+            label: 'فتح القراءة للبطاقة',
             icon: Icons.qr_code_scanner_rounded,
-            onPressed: () =>
-                Navigator.pushNamed(context, '/scan-card-offline'),
+            onPressed: () => Navigator.pushNamed(context, '/scan-card-offline'),
           ),
           const SizedBox(height: 12),
           ShwakelButton(
-            label: 'تحديث مخزون الأوفلاين',
+            label: 'تحديث مخزون الأوف لاين',
             icon: Icons.download_rounded,
             isSecondary: true,
             isLoading: _isSyncingCards,
@@ -451,47 +456,168 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     );
   }
 
-  Widget _buildCachedCardsCard() {
+  Widget _buildTrackingList() {
+    final items = [
+      ..._pendingItems.map((item) => {...item, 'status': 'pending'}),
+      ..._historyItems.where((item) => item['status'] == 'rejected'),
+    ];
+
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(28),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('بطاقات الأوفلاين المحفوظة', style: AppTheme.h3),
+          Text('متابعة بطاقات الأوف لاين', style: AppTheme.h3),
           const SizedBox(height: 6),
           Text(
-            'هذه البطاقات متاحة محليًا حتى بدون اتصال، ويمكنك فحصها من شاشة الفحص مباشرة.',
+            'تظهر هنا البطاقات المعلقة حاليًا، وأي بطاقة فشلت مزامنتها بعد العودة إلى الأون لاين. اضغط على أي بطاقة لعرض التفاصيل.',
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 16),
-          if (_cachedCards.isEmpty)
-            Text(
-              'لا توجد بطاقات محفوظة حاليًا على هذا الجهاز.',
-              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          if (items.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Text('لا توجد بطاقات محفوظة للمراجعة حاليًا.'),
             )
           else
-            ..._cachedCards.take(8).map(_buildCardRow),
+            ...items.map(_buildTrackedItem),
         ],
       ),
     );
   }
 
-  Widget _buildRejectedCard() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(28),
+  Widget _buildTrackedItem(Map<String, dynamic> item) {
+    final status = item['status']?.toString() ?? 'pending';
+    final color = switch (status) {
+      'rejected' => AppTheme.error,
+      _ => AppTheme.warning,
+    };
+    final label = switch (status) {
+      'rejected' => 'لم يتم تأكيدها',
+      _ => 'معلقة للمزامنة',
+    };
+    final ownerName =
+        item['offlineCardOwnerName']?.toString().trim().isNotEmpty == true
+        ? item['offlineCardOwnerName'].toString().trim()
+        : 'بدون اسم';
+    final barcode = item['barcode']?.toString() ?? 'غير متوفر';
+
+    return InkWell(
+      onTap: () => _showTrackedItemDetails(item),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(Icons.credit_card_rounded, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(ownerName, style: AppTheme.bodyBold),
+                  const SizedBox(height: 4),
+                  Text(barcode, style: AppTheme.caption),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    style: AppTheme.caption.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTrackedItemDetails(Map<String, dynamic> item) async {
+    final syncedAt = item['syncedAt']?.toString();
+    final queuedAt = item['queuedAt']?.toString();
+    final usedAt = DateTime.tryParse(queuedAt ?? '');
+    final syncedDate = DateTime.tryParse(syncedAt ?? '');
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('تفاصيل البطاقة', style: AppTheme.h3),
+              const SizedBox(height: 16),
+              _detailRow(
+                'الاسم المضاف',
+                item['offlineCardOwnerName']?.toString() ?? '-',
+              ),
+              _detailRow('الباركود', item['barcode']?.toString() ?? '-'),
+              _detailRow(
+                'آخر استخدام',
+                usedAt == null
+                    ? '-'
+                    : '${usedAt.year}-${usedAt.month.toString().padLeft(2, '0')}-${usedAt.day.toString().padLeft(2, '0')} ${usedAt.hour.toString().padLeft(2, '0')}:${usedAt.minute.toString().padLeft(2, '0')}',
+              ),
+              _detailRow(
+                'اسم منفذ العملية',
+                item['customerName']?.toString() ?? '-',
+              ),
+              _detailRow('من استخدمها', item['usedBy']?.toString() ?? '-'),
+              _detailRow(
+                'من الذي أحضر البطاقة',
+                item['offlineCardOwnerName']?.toString() ?? '-',
+              ),
+              _detailRow(
+                'وقت المزامنة',
+                syncedDate == null
+                    ? '-'
+                    : '${syncedDate.year}-${syncedDate.month.toString().padLeft(2, '0')}-${syncedDate.day.toString().padLeft(2, '0')} ${syncedDate.hour.toString().padLeft(2, '0')}:${syncedDate.minute.toString().padLeft(2, '0')}',
+              ),
+              _detailRow('النتيجة', item['status']?.toString() ?? '-'),
+              _detailRow('ملاحظة', item['message']?.toString() ?? '-'),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('عناصر بحاجة إلى مراجعة', style: AppTheme.h3),
-          const SizedBox(height: 6),
-          Text(
-            'هذه العناصر لم تُعتمد بعد المزامنة وتحتاج متابعة عند العودة للأونلاين.',
-            style: AppTheme.bodyAction,
-          ),
-          const SizedBox(height: 16),
-          ..._rejectedItems.take(6).map(_buildRejectedRow),
+          Text(label, style: AppTheme.caption),
+          const SizedBox(height: 4),
+          Text(value, style: AppTheme.bodyBold),
         ],
       ),
     );
@@ -535,82 +661,6 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
                     color: AppTheme.textSecondary,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardRow(VirtualCard card) {
-    final isUsed = card.status == CardStatus.used;
-    final color = isUsed ? AppTheme.error : AppTheme.success;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isUsed ? Icons.check_circle_rounded : Icons.credit_card_rounded,
-            color: color,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(card.barcode, style: AppTheme.bodyBold),
-                const SizedBox(height: 4),
-                Text(
-                  '${CurrencyFormatter.ils(card.value)} - ${isUsed ? 'مستخدمة' : 'متاحة'}',
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRejectedRow(Map<String, dynamic> item) {
-    final barcode = item['barcode']?.toString().trim();
-    final reason = item['message']?.toString().trim();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline_rounded, color: AppTheme.error),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  barcode?.isNotEmpty == true ? barcode! : 'بطاقة غير معروفة',
-                  style: AppTheme.bodyBold,
-                ),
-                if (reason?.isNotEmpty == true) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    reason!,
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

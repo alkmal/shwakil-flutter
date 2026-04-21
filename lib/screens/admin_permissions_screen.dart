@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -135,7 +136,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(l.tr('screens_admin_permissions_screen.003'))),
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_permissions_screen.003')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
@@ -170,6 +174,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_admin_permissions_screen.003')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
           bottom: TabBar(
             isScrollable: true,
             tabs: _roles

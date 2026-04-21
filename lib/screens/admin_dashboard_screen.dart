@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -16,9 +22,14 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final AuthService _authService = AuthService();
+  final ApiService _apiService = ApiService();
+  final DebtBookService _debtBookService = DebtBookService();
   Map<String, dynamic>? _user;
+  Map<String, dynamic> _debtBookSnapshot = const {};
   bool _isLoading = true;
   bool _isAuthorized = false;
+  pw.Font? _pdfRegularFont;
+  pw.Font? _pdfBoldFont;
 
   @override
   void initState() {
@@ -40,11 +51,233 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (!mounted) {
       return;
     }
+    Map<String, dynamic> debtBookSnapshot = const {};
+    if (user != null &&
+        user['id'] != null &&
+        permissions.canManageDebtBook) {
+      final userId = user['id'].toString();
+      debtBookSnapshot = await _debtBookService.getSnapshot(userId);
+      if (ConnectivityService.instance.isOnline.value) {
+        try {
+          debtBookSnapshot = await _debtBookService.syncPending(
+            userId: userId,
+            api: _apiService,
+          );
+        } catch (_) {}
+      }
+    }
+
     setState(() {
       _user = user;
+      _debtBookSnapshot = debtBookSnapshot;
       _isAuthorized = isAuthorized;
       _isLoading = false;
     });
+  }
+
+  Future<void> _ensurePdfFonts() async {
+    _pdfRegularFont ??= pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSansArabic-Regular.ttf'),
+    );
+    _pdfBoldFont ??= pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSansArabic-Bold.ttf'),
+    );
+  }
+
+  List<Map<String, dynamic>> _sortedDebtCustomers() {
+    final customers = List<Map<String, dynamic>>.from(
+      (_debtBookSnapshot['customers'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+    customers.sort((a, b) {
+      final aBalance = (a['balance'] as num?)?.toDouble() ?? 0;
+      final bBalance = (b['balance'] as num?)?.toDouble() ?? 0;
+      return bBalance.compareTo(aBalance);
+    });
+    return customers;
+  }
+
+  String _buildDebtBookAdminReportText() {
+    final summary = Map<String, dynamic>.from(
+      _debtBookSnapshot['summary'] as Map? ?? const {},
+    );
+    final customers = _sortedDebtCustomers()
+        .where((customer) => ((customer['balance'] as num?)?.toDouble() ?? 0) > 0)
+        .toList();
+
+    final buffer = StringBuffer();
+    buffer.writeln('تقرير إداري - دفتر الديون');
+    buffer.writeln(
+      'عدد العملاء: ${(summary['customersCount'] as num?)?.toInt() ?? 0}',
+    );
+    buffer.writeln(
+      'عدد المديونين: ${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
+    );
+    buffer.writeln(
+      'إجمالي الديون: ${CurrencyFormatter.ils((summary['totalDebt'] as num?)?.toDouble() ?? 0)}',
+    );
+    buffer.writeln(
+      'إجمالي السداد: ${CurrencyFormatter.ils((summary['totalPaid'] as num?)?.toDouble() ?? 0)}',
+    );
+    buffer.writeln('');
+    buffer.writeln('العملاء المديونون:');
+    if (customers.isEmpty) {
+      buffer.writeln('- لا توجد ديون مفتوحة حاليًا');
+    } else {
+      for (final customer in customers) {
+        final phone = customer['phone']?.toString().trim() ?? '';
+        buffer.writeln(
+          '- ${customer['fullName'] ?? '-'} | ${phone.isNotEmpty ? phone : 'بدون رقم'} | ${CurrencyFormatter.ils((customer['balance'] as num?)?.toDouble() ?? 0)}',
+        );
+      }
+    }
+    return buffer.toString();
+  }
+
+  Future<pw.Document> _buildDebtBookAdminReportPdf() async {
+    await _ensurePdfFonts();
+    final summary = Map<String, dynamic>.from(
+      _debtBookSnapshot['summary'] as Map? ?? const {},
+    );
+    final customers = _sortedDebtCustomers()
+        .where((customer) => ((customer['balance'] as num?)?.toDouble() ?? 0) > 0)
+        .toList();
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(24),
+          theme: pw.ThemeData.withFont(
+            base: _pdfRegularFont!,
+            bold: _pdfBoldFont!,
+          ),
+        ),
+        textDirection: pw.TextDirection.rtl,
+        build: (context) => [
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'تقرير إداري - دفتر الديون',
+                  style: pw.TextStyle(font: _pdfBoldFont, fontSize: 18),
+                ),
+                pw.SizedBox(height: 12),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey200,
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'عدد العملاء: ${(summary['customersCount'] as num?)?.toInt() ?? 0}',
+                      ),
+                      pw.Text(
+                        'عدد المديونين: ${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
+                      ),
+                      pw.Text(
+                        'إجمالي الديون: ${CurrencyFormatter.ils((summary['totalDebt'] as num?)?.toDouble() ?? 0)}',
+                      ),
+                      pw.Text(
+                        'إجمالي السداد: ${CurrencyFormatter.ils((summary['totalPaid'] as num?)?.toDouble() ?? 0)}',
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  'العملاء المديونون',
+                  style: pw.TextStyle(font: _pdfBoldFont, fontSize: 14),
+                ),
+                pw.SizedBox(height: 8),
+                if (customers.isEmpty)
+                  pw.Text('لا توجد ديون مفتوحة حاليًا.')
+                else
+                  pw.TableHelper.fromTextArray(
+                    headerStyle: pw.TextStyle(font: _pdfBoldFont),
+                    headerDecoration: const pw.BoxDecoration(
+                      color: PdfColors.grey300,
+                    ),
+                    cellAlignment: pw.Alignment.centerRight,
+                    headers: const ['العميل', 'الجوال', 'المتبقي'],
+                    data: customers.map((customer) {
+                      final phone = customer['phone']?.toString().trim() ?? '';
+                      return [
+                        customer['fullName']?.toString() ?? '-',
+                        phone.isNotEmpty ? phone : 'بدون رقم',
+                        CurrencyFormatter.ils(
+                          (customer['balance'] as num?)?.toDouble() ?? 0,
+                        ),
+                      ];
+                    }).toList(),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return pdf;
+  }
+
+  Future<void> _copyDebtBookAdminReport() async {
+    await Clipboard.setData(
+      ClipboardData(text: _buildDebtBookAdminReportText()),
+    );
+    if (!mounted) {
+      return;
+    }
+    await AppAlertService.showSuccess(
+      context,
+      title: 'تم النسخ',
+      message: 'تم نسخ تقرير دفتر الديون إلى الحافظة.',
+    );
+  }
+
+  Future<void> _printDebtBookAdminReport() async {
+    try {
+      final pdf = await _buildDebtBookAdminReportPdf();
+      await Printing.layoutPdf(
+        onLayout: (format) async => pdf.save(),
+        name: 'admin_debt_book_report',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'فشل الطباعة',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _shareDebtBookAdminReportPdf() async {
+    try {
+      final pdf = await _buildDebtBookAdminReportPdf();
+      await Printing.sharePdf(
+        bytes: await pdf.save(),
+        filename: 'admin_debt_book_report.pdf',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'فشل التصدير',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
   }
 
   @override
@@ -57,7 +290,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(l.tr('screens_admin_dashboard_screen.001'))),
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_dashboard_screen.001')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
@@ -166,7 +402,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-permissions',
           badge: 'صلاحيات',
         ),
+      if (permissions.canManageDebtBook)
+        _AdminEntry(
+          title: 'أرشيف دفتر الديون',
+          subtitle: 'بحث وفلترة وتقارير إدارية مستقلة لدفتر الديون.',
+          icon: Icons.menu_book_rounded,
+          color: AppTheme.warning,
+          routeName: '/admin-debt-book',
+          badge: 'ديون',
+        ),
     ];
+    final debtSummary = Map<String, dynamic>.from(
+      _debtBookSnapshot['summary'] as Map? ?? const {},
+    );
+    final debtCustomers = _sortedDebtCustomers();
+    final topDebtors = debtCustomers
+        .where((customer) => ((customer['balance'] as num?)?.toDouble() ?? 0) > 0)
+        .take(3)
+        .toList();
     final quickStats = [
       _AdminStat(
         label: 'الوحدات المتاحة',
@@ -202,6 +455,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -251,6 +506,163 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
               const SizedBox(height: 28),
+              if (permissions.canManageDebtBook) ...[
+                _buildSectionHeader(
+                  title: 'دفتر الديون',
+                  subtitle:
+                      'ملخص سريع لأداء دفتر الديون الحالي مع أعلى العملاء مديونية.',
+                  actionLabel:
+                      '${(debtSummary['openCustomersCount'] as num?)?.toInt() ?? 0} مديون',
+                ),
+                const SizedBox(height: 16),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 900;
+                    final summaryCards = [
+                      _AdminStat(
+                        label: 'عملاء الدفتر',
+                        value:
+                            '${(debtSummary['customersCount'] as num?)?.toInt() ?? 0}',
+                        hint: 'إجمالي العملاء داخل دفتر الديون',
+                        icon: Icons.people_alt_rounded,
+                        color: AppTheme.primary,
+                      ),
+                      _AdminStat(
+                        label: 'إجمالي الديون',
+                        value: CurrencyFormatter.ils(
+                          (debtSummary['totalDebt'] as num?)?.toDouble() ?? 0,
+                        ),
+                        hint: 'مجموع قيود الدين المسجلة',
+                        icon: Icons.arrow_upward_rounded,
+                        color: AppTheme.error,
+                      ),
+                      _AdminStat(
+                        label: 'إجمالي السداد',
+                        value: CurrencyFormatter.ils(
+                          (debtSummary['totalPaid'] as num?)?.toDouble() ?? 0,
+                        ),
+                        hint: 'مجموع ما تم سداده حتى الآن',
+                        icon: Icons.arrow_downward_rounded,
+                        color: AppTheme.success,
+                      ),
+                    ];
+
+                    final debtSummaryWidget = compact
+                        ? Column(
+                            children: summaryCards
+                                .map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _buildStatCard(item),
+                                  ),
+                                )
+                                .toList(),
+                          )
+                        : Row(
+                            children: summaryCards
+                                .map(
+                                  (item) => Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsetsDirectional.only(
+                                        start: item == summaryCards.first ? 0 : 12,
+                                      ),
+                                      child: _buildStatCard(item),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          );
+
+                    return Column(
+                      children: [
+                        debtSummaryWidget,
+                        const SizedBox(height: 16),
+                        ShwakelCard(
+                          onTap: () => Navigator.pushNamed(context, '/debt-book'),
+                          padding: const EdgeInsets.all(22),
+                          borderRadius: BorderRadius.circular(26),
+                          shadowLevel: ShwakelShadowLevel.medium,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.warning.withValues(alpha: 0.10),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: const Icon(
+                                      Icons.trending_up_rounded,
+                                      color: AppTheme.warning,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('أعلى العملاء مديونية', style: AppTheme.h3),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          topDebtors.isEmpty
+                                              ? 'لا توجد ديون مفتوحة حاليًا.'
+                                              : 'افتح الدفتر مباشرة لمراجعة التفاصيل الكاملة.',
+                                          style: AppTheme.caption,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: [
+                                  _reportActionChip(
+                                    icon: Icons.copy_all_rounded,
+                                    label: 'نسخ التقرير',
+                                    onTap: _copyDebtBookAdminReport,
+                                  ),
+                                  _reportActionChip(
+                                    icon: Icons.print_rounded,
+                                    label: 'طباعة',
+                                    onTap: _printDebtBookAdminReport,
+                                  ),
+                                  _reportActionChip(
+                                    icon: Icons.picture_as_pdf_rounded,
+                                    label: 'تصدير PDF',
+                                    onTap: _shareDebtBookAdminReportPdf,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              if (topDebtors.isEmpty)
+                                Text(
+                                  'دفتر الديون لا يحتوي حاليًا على عملاء بمبالغ مستحقة.',
+                                  style: AppTheme.bodyAction.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                )
+                              else
+                                ...topDebtors.map(
+                                  (customer) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _debtCustomerRow(customer),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                      ],
+                    );
+                  },
+                ),
+              ],
               _buildSectionHeader(
                 title: 'الوحدات الإدارية',
                 subtitle:
@@ -652,6 +1064,85 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _debtCustomerRow(Map<String, dynamic> customer) {
+    final balance = (customer['balance'] as num?)?.toDouble() ?? 0;
+    final phone = customer['phone']?.toString().trim() ?? '';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.warning.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: AppTheme.warning.withValues(alpha: 0.14),
+            child: Text(
+              (customer['fullName']?.toString().trim().isNotEmpty ?? false)
+                  ? customer['fullName'].toString().trim().characters.first
+                  : 'ع',
+              style: AppTheme.bodyBold.copyWith(color: AppTheme.warning),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  customer['fullName']?.toString() ?? '-',
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  phone.isNotEmpty ? phone : 'بدون رقم جوال',
+                  style: AppTheme.caption,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            CurrencyFormatter.ils(balance),
+            style: AppTheme.bodyBold.copyWith(color: AppTheme.warning),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportActionChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: AppTheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

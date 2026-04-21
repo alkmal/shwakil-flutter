@@ -531,6 +531,7 @@ class ApiService {
     required bool canRequestCardPrinting,
     required bool canManageCardPrintRequests,
     required bool canOfflineCardScan,
+    required bool canManageDebtBook,
     required bool canManageUsers,
   }) async {
     final response = await http.put(
@@ -545,8 +546,28 @@ class ApiService {
         'canRequestCardPrinting': canRequestCardPrinting,
         'canManageCardPrintRequests': canManageCardPrintRequests,
         'canOfflineCardScan': canOfflineCardScan,
+        'canManageDebtBook': canManageDebtBook,
         'canManageUsers': canManageUsers,
       }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getDebtBookSnapshot() async {
+    final response = await http.get(
+      AppConfig.apiUri('debt-book/snapshot'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> syncDebtBook(
+    List<Map<String, dynamic>> operations,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('debt-book/sync'),
+      headers: await _headers(),
+      body: jsonEncode({'operations': operations}),
     );
     return _decodeObject(response);
   }

@@ -9,9 +9,11 @@ import '../widgets/admin/admin_customer_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 import 'admin_customer_screen.dart';
 
 class AdminCustomersScreen extends StatefulWidget {
@@ -36,6 +38,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   String? _resendBusyId;
   int _customerPage = 1;
   int _customerLastPage = 1;
+  bool _showSearch = false;
 
   @override
   void initState() {
@@ -395,7 +398,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(l.tr('screens_admin_customers_screen.017'))),
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_customers_screen.017')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
@@ -435,10 +441,23 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               icon: const Icon(Icons.person_add_alt_1_rounded),
             ),
           IconButton(
+            tooltip: _showSearch
+                ? context.loc.text('إخفاء البحث', 'Hide search')
+                : context.loc.text('إظهار البحث', 'Show search'),
+            onPressed: () => setState(() => _showSearch = !_showSearch),
+            icon: Icon(
+              _showSearch
+                  ? Icons.search_off_rounded
+                  : Icons.manage_search_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: context.loc.text('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -454,26 +473,37 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   title: l.tr('screens_admin_customers_screen.021'),
                   icon: Icons.people_alt_rounded,
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    labelText: l.tr('screens_admin_customers_screen.023'),
-                    prefixIcon: const Icon(Icons.search_rounded),
+                if (_showSearch) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      labelText: l.tr('screens_admin_customers_screen.023'),
+                      prefixIcon: const Icon(Icons.search_rounded),
+                    ),
+                    onChanged: (_) {
+                      _searchDebounce?.cancel();
+                      _searchDebounce = Timer(
+                        const Duration(milliseconds: 350),
+                        () {
+                          if (!mounted) {
+                            return;
+                          }
+                          _loadCustomers(reset: true);
+                        },
+                      );
+                    },
                   ),
-                  onChanged: (_) {
-                    _searchDebounce?.cancel();
-                    _searchDebounce = Timer(
-                      const Duration(milliseconds: 350),
-                      () {
-                        if (!mounted) {
-                          return;
-                        }
-                        _loadCustomers(reset: true);
-                      },
-                    );
-                  },
-                ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  ToolToggleHint(
+                    message: context.loc.text(
+                      'يمكنك فتح البحث من أيقونة البحث بالأعلى عند الحاجة.',
+                      'Open search from the top search icon when needed.',
+                    ),
+                    icon: Icons.manage_search_rounded,
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Text(
                   context.loc.text(

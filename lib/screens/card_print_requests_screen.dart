@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -26,6 +27,16 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   bool _isLoading = true;
   bool _isAuthorized = false;
   bool _isSubmitting = false;
+
+  Map<String, dynamic> get _subUserOperationalLimits =>
+      Map<String, dynamic>.from(
+        _user?['subUserOperationalLimits'] as Map? ?? const {},
+      );
+
+  bool get _isSubUser => _user?['isSubUser'] == true;
+
+  double? _limitAsDouble(String key) =>
+      (_subUserOperationalLimits[key] as num?)?.toDouble();
 
   @override
   void initState() {
@@ -161,6 +172,27 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (_isSubUser) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primarySoft.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        child: Text(
+                          'حد الطباعة الحالي لهذا التابع: سقف ${CurrencyFormatter.ils(_limitAsDouble('printRequestMaxAmount') ?? 0)} للطلب الواحد، ودين مسموح حتى ${CurrencyFormatter.ils(_limitAsDouble('printingDebtLimit') ?? 0)}.',
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     DropdownButtonFormField<String>(
                       initialValue: cardType,
                       decoration: InputDecoration(
@@ -301,6 +333,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_card_print_requests_screen.018')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
         body: Center(
@@ -338,6 +371,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -368,6 +403,21 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     ),
                   ],
                 ),
+                if (_isSubUser) ...[
+                  const SizedBox(height: 12),
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(16),
+                    color: AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Text(
+                      'أنت تعمل بحساب تابع. الطباعة هنا تخضع لسقف ${CurrencyFormatter.ils(_limitAsDouble('printRequestMaxAmount') ?? 0)} ودين تشغيلي حتى ${CurrencyFormatter.ils(_limitAsDouble('printingDebtLimit') ?? 0)}.',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 if (_isLoading)
                   const Center(

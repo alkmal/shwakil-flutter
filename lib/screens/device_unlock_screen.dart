@@ -123,7 +123,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
         permissions.canManageSystemSettings;
     Navigator.pushNamedAndRemoveUntil(
       context,
-      openAdminDashboard ? '/admin-dashboard' : '/app-shell',
+      openAdminDashboard ? '/admin-dashboard' : '/home',
       (route) => false,
     );
   }

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
@@ -16,24 +14,12 @@ class AppSidebar extends StatefulWidget {
 
 class _AppSidebarState extends State<AppSidebar> {
   final AuthService _authService = AuthService();
-  final ApiService _apiService = ApiService();
   Map<String, dynamic>? _user;
-  int _unreadNotifications = 0;
-  StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
-    _loadNotificationSummary();
-    _notificationSubscription = RealtimeNotificationService.notificationsStream
-        .listen((_) => _loadNotificationSummary());
-  }
-
-  @override
-  void dispose() {
-    _notificationSubscription?.cancel();
-    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -42,30 +28,6 @@ class _AppSidebarState extends State<AppSidebar> {
       return;
     }
     setState(() => _user = user);
-  }
-
-  Future<void> _loadNotificationSummary() async {
-    if (OfflineSessionService.isOfflineMode) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _unreadNotifications = 0);
-      return;
-    }
-    try {
-      final payload = await _apiService.getNotificationSummary();
-      final summary = Map<String, dynamic>.from(
-        payload['summary'] as Map? ?? const {},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _unreadNotifications = (summary['unreadCount'] as num?)?.toInt() ?? 0;
-      });
-    } catch (_) {
-      // The drawer should stay usable even if the notification endpoint is down.
-    }
   }
 
   Future<void> _showOfflineBlockedMessage() {
@@ -78,8 +40,8 @@ class _AppSidebarState extends State<AppSidebar> {
   }
 
   Future<void> _openRoute(String routeName) async {
-    final normalizedRoute = OfflineSessionService.isOfflineMode &&
-            routeName == '/scan-card'
+    final normalizedRoute =
+        OfflineSessionService.isOfflineMode && routeName == '/scan-card'
         ? '/scan-card-offline'
         : routeName;
     if (!OfflineSessionService.canOpenRoute(normalizedRoute)) {
@@ -112,6 +74,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canViewUsagePolicy = permissions.canViewUsagePolicy;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canViewSubUsers = permissions.canViewSubUsers;
+    final canManageDebtBook = permissions.canManageDebtBook;
     final canViewAccountSettings = permissions.canViewAccountSettings;
     final canRequestVerification = permissions.canRequestVerification;
     final canIssueCards = permissions.canIssueCards;
@@ -293,6 +256,13 @@ class _AppSidebarState extends State<AppSidebar> {
                       title: 'المستخدمون التابعون',
                       routeName: '/sub-users',
                     ),
+                  if (canManageDebtBook)
+                    _buildItem(
+                      context,
+                      icon: Icons.menu_book_rounded,
+                      title: 'دفتر الديون',
+                      routeName: '/debt-book',
+                    ),
                   if (!isRestrictedOfflineWorkspaceUser &&
                       (canViewCustomers ||
                           canReviewWithdrawals ||
@@ -430,96 +400,10 @@ class _AppSidebarState extends State<AppSidebar> {
                 ],
               ),
             ),
-            const Divider(height: 1),
-            ListTile(
-              leading: _notificationIcon(),
-              title: Text(
-                l.text(
-                  '\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a',
-                  'Notifications',
-                ),
-                style: AppTheme.bodyText.copyWith(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              subtitle: Text(
-                _unreadNotifications > 0
-                    ? l.text(
-                        '\u0644\u062f\u064a\u0643 $_unreadNotifications \u0625\u0634\u0639\u0627\u0631\u0627\u062a \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621\u0629',
-                        '$_unreadNotifications unread notifications',
-                      )
-                    : l.text(
-                        '\u0643\u0644 \u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a \u0645\u0642\u0631\u0648\u0621\u0629',
-                        'All notifications are read',
-                      ),
-                style: AppTheme.caption,
-              ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 15,
-                color: AppTheme.textTertiary,
-              ),
-              onTap: () {
-                if (OfflineSessionService.isOfflineMode) {
-                  _showOfflineBlockedMessage();
-                  return;
-                }
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/notifications').then((_) {
-                  if (mounted) {
-                    _loadNotificationSummary();
-                  }
-                });
-              },
-            ),
             const SizedBox(height: 8),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _notificationIcon() {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.notifications_active_rounded,
-            color: AppTheme.primary,
-          ),
-        ),
-        if (_unreadNotifications > 0)
-          Positioned(
-            top: -6,
-            right: -6,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppTheme.error,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Text(
-                _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 
@@ -610,7 +494,7 @@ class _AppSidebarState extends State<AppSidebar> {
           Navigator.pop(context);
           return;
         }
-        unawaited(_openRoute(routeName));
+        _openRoute(routeName);
       },
     );
   }

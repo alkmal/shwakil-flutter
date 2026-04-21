@@ -7,10 +7,12 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class QuickTransferScreen extends StatefulWidget {
   const QuickTransferScreen({super.key});
@@ -30,6 +32,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   bool _canTransfer = false;
   bool _canViewQuickTransfer = false;
   bool _isLookingUpRecipient = false;
+  int _activeTab = 0;
+  bool _showLookupTools = false;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
 
   String _t(String key) => context.loc.tr(key);
@@ -271,6 +275,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               onPressed: _showHelpDialog,
               icon: const Icon(Icons.info_outline_rounded),
             ),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
           ],
         ),
         drawer: const AppSidebar(),
@@ -284,10 +290,24 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         title: Text(_t('screens_quick_transfer_screen.016')),
         actions: [
           IconButton(
+            tooltip: _showLookupTools
+                ? context.loc.text('إخفاء البحث', 'Hide search')
+                : context.loc.text('إظهار البحث', 'Show search'),
+            onPressed: () =>
+                setState(() => _showLookupTools = !_showLookupTools),
+            icon: Icon(
+              _showLookupTools
+                  ? Icons.search_off_rounded
+                  : Icons.manage_search_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: context.loc.text('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -297,9 +317,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTransferTools(),
+              _buildTransferTabs(),
               const SizedBox(height: 18),
-              _buildMyCode(),
+              _buildActiveTransferView(),
             ],
           ),
         ),
@@ -318,29 +338,94 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     );
   }
 
-  Widget _buildTransferTools() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 960;
-        if (compact) {
-          return Column(
-            children: [
-              _buildLookupCard(compact: true),
-              const SizedBox(height: 18),
-              _buildScanCard(),
-            ],
-          );
-        }
+  Widget _buildTransferTabs() {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTabButton(
+              label: 'إرسال سريع',
+              icon: Icons.send_rounded,
+              index: 0,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildTabButton(
+              label: 'استقبال سريع',
+              icon: Icons.qr_code_2_rounded,
+              index: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTabButton({
+    required String label,
+    required IconData icon,
+    required int index,
+  }) {
+    final isActive = _activeTab == index;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => setState(() => _activeTab = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: isActive ? AppTheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(flex: 3, child: _buildLookupCard(compact: false)),
-            const SizedBox(width: 18),
-            Expanded(flex: 2, child: _buildScanCard()),
+            Icon(
+              icon,
+              size: 18,
+              color: isActive ? Colors.white : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AppTheme.bodyBold.copyWith(
+                color: isActive ? Colors.white : AppTheme.textSecondary,
+              ),
+            ),
           ],
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveTransferView() {
+    if (_activeTab == 1) {
+      return _buildMyCode();
+    }
+
+    return Column(
+      children: [
+        if (_showLookupTools) ...[
+          _buildLookupCard(compact: true),
+          const SizedBox(height: 18),
+        ] else ...[
+          ToolToggleHint(
+            message: context.loc.text(
+              'يمكنك فتح البحث من أيقونة البحث بالأعلى عند الحاجة.',
+              'Open search from the top search icon when needed.',
+            ),
+            icon: Icons.manage_search_rounded,
+          ),
+          const SizedBox(height: 18),
+        ],
+        _buildScanCard(),
+      ],
     );
   }
 

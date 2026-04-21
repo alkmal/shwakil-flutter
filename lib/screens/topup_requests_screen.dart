@@ -11,8 +11,10 @@ import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/tool_toggle_hint.dart';
 
 class TopupRequestsScreen extends StatefulWidget {
   const TopupRequestsScreen({super.key});
@@ -38,6 +40,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   int _lastPage = 1;
   int _totalRequests = 0;
   Timer? _searchDebounce;
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -123,7 +126,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: Text(l.tr('screens_topup_requests_screen.001'))),
+        appBar: AppBar(
+          title: Text(l.tr('screens_topup_requests_screen.001')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
@@ -154,10 +160,23 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         title: Text(l.tr('screens_topup_requests_screen.002')),
         actions: [
           IconButton(
+            tooltip: _showFilters
+                ? l.text('إخفاء البحث والفلاتر', 'Hide search and filters')
+                : l.text('إظهار البحث والفلاتر', 'Show search and filters'),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: l.text('مساعدة', 'Help'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
@@ -168,8 +187,19 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             child: Column(
               children: [
-                _buildFilterBar(),
-                const SizedBox(height: 18),
+                if (_showFilters) ...[
+                  _buildFilterBar(),
+                  const SizedBox(height: 18),
+                ] else ...[
+                  ToolToggleHint(
+                    message: l.text(
+                      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+                      'Open search and filters from the top filter icon when needed.',
+                    ),
+                    icon: Icons.filter_alt_rounded,
+                  ),
+                  const SizedBox(height: 18),
+                ],
                 if (_requests.isEmpty)
                   _buildEmptyState()
                 else ...[

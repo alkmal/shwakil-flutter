@@ -36,6 +36,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/security-settings': (context) => const SecuritySettingsScreen(),
   '/account-settings': (context) => const AccountSettingsScreen(),
   '/admin-dashboard': (context) => const AdminDashboardScreen(),
+  '/admin-debt-book': (context) => const AdminDebtBookScreen(),
   '/admin-card-print-requests': (context) =>
       const AdminCardPrintRequestsScreen(),
   '/admin-customers': (context) => const AdminCustomersScreen(),
@@ -51,6 +52,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/forgot-password': (context) => const ForgotPasswordScreen(),
   '/account-verification': (context) => const AccountVerificationScreen(),
   '/sub-users': (context) => const SubUsersScreen(),
+  '/debt-book': (context) => const DebtBookScreen(),
 };
 
 Future<void> main() async {
@@ -93,6 +95,10 @@ Future<void> main() async {
 
 Future<void> _warmUpAppServices() async {
   await _runStartupTask(AppLocaleService.instance.init, label: 'locale');
+  await _runStartupTask(
+    ConnectivityService.instance.startMonitoring,
+    label: 'connectivity',
+  );
   await _runStartupTask(
     LocalNotificationService.initialize,
     label: 'local_notifications',
@@ -158,7 +164,6 @@ class MyApp extends StatelessWidget {
               ),
             );
           },
-          home: const _AppLifecycleShell(),
           routes: _appRoutes,
           onGenerateInitialRoutes: (initialRouteName) {
             final routeBuilder = _appRoutes[initialRouteName];
