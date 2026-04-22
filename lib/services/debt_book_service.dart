@@ -20,12 +20,15 @@ class DebtBookService {
     final decoded = await _decodeStoredObject(
       prefs.getString('$_snapshotKeyPrefix$userId'),
     );
+    final customers = _normalizeCustomers(_coerceList(decoded['customers']));
     return {
-      'customers': _coerceList(decoded['customers']),
+      'customers': customers,
       'entries': _coerceList(decoded['entries']),
-      'summary': decoded['summary'] is Map
-          ? Map<String, dynamic>.from(decoded['summary'] as Map)
-          : const <String, dynamic>{},
+      'summary': _normalizeSummary(
+        decoded['summary'] is Map
+            ? Map<String, dynamic>.from(decoded['summary'] as Map)
+            : const <String, dynamic>{},
+      ),
       'syncedAt': decoded['syncedAt'],
     };
   }
@@ -116,7 +119,8 @@ class DebtBookService {
       'notes': notes.trim(),
       'totalDebt': (existing?['totalDebt'] as num?)?.toDouble() ?? 0,
       'totalPaid': (existing?['totalPaid'] as num?)?.toDouble() ?? 0,
-      'balance': (existing?['balance'] as num?)?.toDouble() ?? 0,
+      'balance': _remainingAmount(existing),
+      'remainingAmount': _remainingAmount(existing),
       'lastEntryAt': existing?['lastEntryAt']?.toString(),
       'createdAt': existing?['createdAt']?.toString() ?? now,
       'updatedAt': now,
@@ -133,7 +137,8 @@ class DebtBookService {
       'entity': 'customer',
       'type': 'upsert',
       'clientRef': clientRef,
-      if (serverId != null && !serverId.startsWith('local:')) 'serverId': serverId,
+      if (serverId != null && !serverId.startsWith('local:'))
+        'serverId': serverId,
       'fullName': fullName.trim(),
       'phone': phone.trim(),
       'notes': notes.trim(),
@@ -194,7 +199,8 @@ class DebtBookService {
       'entity': 'entry',
       'type': 'create',
       'clientRef': clientRef,
-      if (serverId != null && !serverId.startsWith('local:')) 'customerId': serverId,
+      if (serverId != null && !serverId.startsWith('local:'))
+        'customerId': serverId,
       if (customerClientRef != null && customerClientRef.isNotEmpty)
         'customerClientRef': customerClientRef,
       'entryType': entryType,
@@ -252,7 +258,8 @@ class DebtBookService {
       'entity': 'entry',
       'type': 'update',
       'clientRef': clientRef,
-      if (serverId != null && !serverId.startsWith('local:')) 'serverId': serverId,
+      if (serverId != null && !serverId.startsWith('local:'))
+        'serverId': serverId,
       'entryType': entryType,
       'amount': amount,
       'note': note.trim(),
@@ -333,7 +340,8 @@ class DebtBookService {
       'entity': 'entry',
       'type': 'delete',
       if (clientRef.isNotEmpty) 'clientRef': clientRef,
-      if (entryId.isNotEmpty && !entryId.startsWith('local:')) 'serverId': entryId,
+      if (entryId.isNotEmpty && !entryId.startsWith('local:'))
+        'serverId': entryId,
       if (customerId.isNotEmpty && !customerId.startsWith('local:'))
         'customerId': customerId,
     });
@@ -348,46 +356,51 @@ class DebtBookService {
     required List<Map<String, dynamic>> customers,
     required List<Map<String, dynamic>> entries,
   }) {
-    final updatedCustomers = customers.map((customer) {
-      final customerEntries = entries
-          .where((entry) => _entryBelongsToCustomer(entry, customer))
-          .toList();
-      final totalDebt = customerEntries
-          .where((entry) => entry['type'] == 'debt')
-          .fold<double>(
-            0,
-            (sum, item) => sum + ((item['amount'] as num?)?.toDouble() ?? 0),
+    final updatedCustomers =
+        customers.map((customer) {
+          final customerEntries = entries
+              .where((entry) => _entryBelongsToCustomer(entry, customer))
+              .toList();
+          final totalDebt = customerEntries
+              .where((entry) => entry['type'] == 'debt')
+              .fold<double>(
+                0,
+                (sum, item) =>
+                    sum + ((item['amount'] as num?)?.toDouble() ?? 0),
+              );
+          final totalPaid = customerEntries
+              .where((entry) => entry['type'] == 'payment')
+              .fold<double>(
+                0,
+                (sum, item) =>
+                    sum + ((item['amount'] as num?)?.toDouble() ?? 0),
+              );
+          final sortedEntries = [...customerEntries]
+            ..sort(
+              (a, b) => (b['occurredAt']?.toString() ?? '').compareTo(
+                a['occurredAt']?.toString() ?? '',
+              ),
+            );
+          return {
+            ...customer,
+            'totalDebt': totalDebt,
+            'totalPaid': totalPaid,
+            'balance': totalDebt - totalPaid,
+            'remainingAmount': totalDebt - totalPaid,
+            'lastEntryAt': sortedEntries.isNotEmpty
+                ? sortedEntries.first['occurredAt']
+                : customer['lastEntryAt'],
+            'updatedAt': DateTime.now().toIso8601String(),
+          };
+        }).toList()..sort((a, b) {
+          final aBalance = (a['balance'] as num?)?.toDouble() ?? 0;
+          final bBalance = (b['balance'] as num?)?.toDouble() ?? 0;
+          if (aBalance > 0 && bBalance <= 0) return -1;
+          if (aBalance <= 0 && bBalance > 0) return 1;
+          return (b['lastEntryAt']?.toString() ?? '').compareTo(
+            a['lastEntryAt']?.toString() ?? '',
           );
-      final totalPaid = customerEntries
-          .where((entry) => entry['type'] == 'payment')
-          .fold<double>(
-            0,
-            (sum, item) => sum + ((item['amount'] as num?)?.toDouble() ?? 0),
-          );
-      final sortedEntries = [...customerEntries]
-        ..sort((a, b) => (b['occurredAt']?.toString() ?? '').compareTo(
-              a['occurredAt']?.toString() ?? '',
-            ));
-      return {
-        ...customer,
-        'totalDebt': totalDebt,
-        'totalPaid': totalPaid,
-        'balance': totalDebt - totalPaid,
-        'lastEntryAt': sortedEntries.isNotEmpty
-            ? sortedEntries.first['occurredAt']
-            : customer['lastEntryAt'],
-        'updatedAt': DateTime.now().toIso8601String(),
-      };
-    }).toList()
-      ..sort((a, b) {
-        final aBalance = (a['balance'] as num?)?.toDouble() ?? 0;
-        final bBalance = (b['balance'] as num?)?.toDouble() ?? 0;
-        if (aBalance > 0 && bBalance <= 0) return -1;
-        if (aBalance <= 0 && bBalance > 0) return 1;
-        return (b['lastEntryAt']?.toString() ?? '').compareTo(
-          a['lastEntryAt']?.toString() ?? '',
-        );
-      });
+        });
 
     final totalDebt = updatedCustomers.fold<double>(
       0,
@@ -404,14 +417,42 @@ class DebtBookService {
       'summary': {
         'customersCount': updatedCustomers.length,
         'openCustomersCount': updatedCustomers
-            .where((item) => ((item['balance'] as num?)?.toDouble() ?? 0) > 0)
+            .where((item) => _remainingAmount(item) > 0)
             .length,
         'totalDebt': totalDebt,
         'totalPaid': totalPaid,
         'totalBalance': totalDebt - totalPaid,
+        'totalRemainingAmount': totalDebt - totalPaid,
       },
       'syncedAt': DateTime.now().toIso8601String(),
     };
+  }
+
+  List<Map<String, dynamic>> _normalizeCustomers(
+    List<Map<String, dynamic>> items,
+  ) {
+    return items
+        .map((item) => {...item, 'remainingAmount': _remainingAmount(item)})
+        .toList();
+  }
+
+  Map<String, dynamic> _normalizeSummary(Map<String, dynamic> summary) {
+    return {
+      ...summary,
+      'totalRemainingAmount':
+          (summary['totalRemainingAmount'] as num?)?.toDouble() ??
+          (summary['totalBalance'] as num?)?.toDouble() ??
+          0,
+    };
+  }
+
+  double _remainingAmount(Map<String, dynamic>? item) {
+    if (item == null) {
+      return 0;
+    }
+    return (item['remainingAmount'] as num?)?.toDouble() ??
+        (item['balance'] as num?)?.toDouble() ??
+        0;
   }
 
   bool _matchesCustomerRef(Map<String, dynamic> customer, String? customerRef) {

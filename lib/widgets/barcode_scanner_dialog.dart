@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../localization/app_localization.dart';
 import '../utils/app_theme.dart';
 import 'shwakel_button.dart';
 import 'shwakel_card.dart';
@@ -17,7 +18,7 @@ class BarcodeScannerDialog extends StatefulWidget {
     this.backgroundColor,
     this.borderRadius,
     this.onCancelLabel,
-    this.resultTitle = 'نتائج الفحص',
+    this.resultTitle,
     this.onScanResolved,
   });
 
@@ -28,7 +29,7 @@ class BarcodeScannerDialog extends StatefulWidget {
   final Color? backgroundColor;
   final BorderRadiusGeometry? borderRadius;
   final String? onCancelLabel;
-  final String resultTitle;
+  final String? resultTitle;
   final Future<BarcodeScannerDialogResult?> Function(String value)?
   onScanResolved;
 
@@ -147,8 +148,8 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
         _resolvedResult =
             result ??
             BarcodeScannerDialogResult.error(
-              headline: 'تعذر إظهار نتيجة الفحص',
-              message: 'لم تصل بيانات صالحة بعد قراءة الباركود.',
+              headline: context.loc.tr('widgets_barcode_scanner_dialog.002'),
+              message: context.loc.tr('widgets_barcode_scanner_dialog.003'),
             );
       });
     } catch (error) {
@@ -157,7 +158,7 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
       }
       setState(() {
         _resolvedResult = BarcodeScannerDialogResult.error(
-          headline: 'تعذر إظهار نتيجة الفحص',
+          headline: context.loc.tr('widgets_barcode_scanner_dialog.002'),
           message: error.toString(),
         );
       });
@@ -220,7 +221,11 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
   @override
   Widget build(BuildContext context) {
     final showingResult = _resolvedResult != null;
-    final title = showingResult ? widget.resultTitle : widget.title;
+    final title = showingResult
+        ? (widget.resultTitle?.trim().isNotEmpty == true
+              ? widget.resultTitle!
+              : context.loc.tr('widgets_barcode_scanner_dialog.001'))
+        : widget.title;
     final scanner = _buildBodyContent();
 
     return Dialog(
@@ -261,7 +266,9 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
                   children: [
                     Expanded(
                       child: ShwakelButton(
-                        label: 'فحص بطاقة أخرى',
+                        label: context.loc.tr(
+                          'widgets_barcode_scanner_dialog.004',
+                        ),
                         isSecondary: true,
                         icon: Icons.qr_code_scanner_rounded,
                         onPressed: _resetScanner,
@@ -346,7 +353,11 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
                       ? Icons.flash_off_rounded
                       : Icons.flash_on_rounded,
                 ),
-                label: Text(_torchEnabled ? 'إطفاء الإضاءة' : 'تشغيل الإضاءة'),
+                label: Text(
+                  _torchEnabled
+                      ? context.loc.tr('widgets_barcode_scanner_dialog.005')
+                      : context.loc.tr('widgets_barcode_scanner_dialog.006'),
+                ),
               ),
             ),
             if (widget.showFrame)
@@ -439,10 +450,13 @@ class _ScannerLoadingView extends StatelessWidget {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text('جارٍ تحليل الباركود', style: AppTheme.h3),
+            Text(
+              context.loc.tr('widgets_barcode_scanner_dialog.007'),
+              style: AppTheme.h3,
+            ),
             const SizedBox(height: 8),
             Text(
-              'نحضّر نتيجة الفحص لعرضها هنا مباشرة.',
+              context.loc.tr('widgets_barcode_scanner_dialog.008'),
               textAlign: TextAlign.center,
               style: AppTheme.bodyAction,
             ),
@@ -599,7 +613,7 @@ class _ScannerErrorView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'تعذر تشغيل الكاميرا',
+            context.loc.tr('widgets_barcode_scanner_dialog.009'),
             style: AppTheme.h3,
             textAlign: TextAlign.center,
           ),
@@ -607,7 +621,7 @@ class _ScannerErrorView extends StatelessWidget {
           Text(
             message?.trim().isNotEmpty == true
                 ? message!
-                : 'أغلق أي تطبيق آخر يستخدم الكاميرا ثم أعد المحاولة.',
+                : context.loc.tr('widgets_barcode_scanner_dialog.010'),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
             textAlign: TextAlign.center,
           ),

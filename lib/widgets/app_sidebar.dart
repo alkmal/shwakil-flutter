@@ -33,9 +33,8 @@ class _AppSidebarState extends State<AppSidebar> {
   Future<void> _showOfflineBlockedMessage() {
     return AppAlertService.showInfo(
       context,
-      title: 'هذه الشاشة غير متاحة دون إنترنت',
-      message:
-          'أنت الآن في وضع الأوفلاين. هذه الشاشة تحتاج اتصالًا بالإنترنت حتى تعمل.',
+      title: context.loc.tr('widgets_app_sidebar.035'),
+      message: context.loc.tr('widgets_app_sidebar.036'),
     );
   }
 
@@ -151,7 +150,7 @@ class _AppSidebarState extends State<AppSidebar> {
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                 children: [
                   if (isOfflineMode || isRestrictedOfflineWorkspaceUser) ...[
-                    _buildSectionLabel('مساحة الفحص'),
+                    _buildSectionLabel(l.tr('widgets_app_sidebar.037')),
                     if (canScanCards)
                       _buildItem(
                         context,
@@ -165,7 +164,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       _buildItem(
                         context,
                         icon: Icons.cloud_done_rounded,
-                        title: 'مركز الأوف لاين',
+                        title: l.tr('widgets_app_sidebar.038'),
                         routeName: '/offline-center',
                       ),
                     const Divider(indent: 8, endIndent: 8, height: 28),
@@ -253,14 +252,14 @@ class _AppSidebarState extends State<AppSidebar> {
                     _buildItem(
                       context,
                       icon: Icons.supervised_user_circle_rounded,
-                      title: 'المستخدمون التابعون',
+                      title: l.tr('widgets_app_sidebar.039'),
                       routeName: '/sub-users',
                     ),
                   if (canManageDebtBook)
                     _buildItem(
                       context,
                       icon: Icons.menu_book_rounded,
-                      title: 'دفتر الديون',
+                      title: l.tr('widgets_app_sidebar.040'),
                       routeName: '/debt-book',
                     ),
                   if (!isRestrictedOfflineWorkspaceUser &&

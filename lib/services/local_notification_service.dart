@@ -2,6 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../localization/app_localization.dart';
+import '../localization/app_strings_ar.dart';
+import '../localization/app_strings_en.dart';
+
 class LocalNotificationService {
   LocalNotificationService._();
 
@@ -27,18 +31,18 @@ class LocalNotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     await androidPlugin?.createNotificationChannel(
-      const AndroidNotificationChannel(
+      AndroidNotificationChannel(
         'account_updates',
-        'تحديثات الحساب',
-        description: 'إشعارات الحساب والطلبات والتنبيهات المهمة',
+        _tr('services_local_notification_service.001'),
+        description: _tr('services_local_notification_service.002'),
         importance: Importance.max,
       ),
     );
     await androidPlugin?.createNotificationChannel(
-      const AndroidNotificationChannel(
+      AndroidNotificationChannel(
         'balance_updates',
-        '??????? ??????',
-        description: '??????? ????? ???? ??????',
+        _tr('services_local_notification_service.003'),
+        description: _tr('services_local_notification_service.004'),
         importance: Importance.max,
       ),
     );
@@ -77,8 +81,8 @@ class LocalNotificationService {
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'balance_updates',
-        '??????? ??????',
-        channelDescription: '??????? ????? ???? ??????',
+        _tr('services_local_notification_service.003'),
+        channelDescription: _tr('services_local_notification_service.004'),
         importance: Importance.max,
         priority: Priority.high,
         color: isCredit ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
@@ -99,7 +103,7 @@ class LocalNotificationService {
     required String title,
     required String body,
     String channelId = 'account_updates',
-    String channelName = 'تحديثات الحساب',
+    String? channelName,
   }) async {
     if (kIsWeb) {
       return;
@@ -110,8 +114,8 @@ class LocalNotificationService {
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         channelId,
-        channelName,
-        channelDescription: 'إشعارات الحساب والطلبات والتنبيهات المهمة',
+        channelName ?? _tr('services_local_notification_service.001'),
+        channelDescription: _tr('services_local_notification_service.002'),
         importance: Importance.max,
         priority: Priority.high,
         color: const Color(0xFF0F766E),
@@ -126,5 +130,13 @@ class LocalNotificationService {
       body,
       details,
     );
+  }
+
+  static String _tr(String key) {
+    final current = AppLocaleService.instance.locale;
+    if ((current?.languageCode ?? 'ar') == 'en') {
+      return appStringsEn[key] ?? key;
+    }
+    return appStringsAr[key] ?? appStringsEn[key] ?? key;
   }
 }

@@ -107,7 +107,7 @@ class AuthService {
 
   Future<void> validateRegistration({
     required String fullName,
-    required String username,
+    String? username,
     required String password,
     required String whatsapp,
     required String countryCode,
@@ -122,7 +122,9 @@ class AuthService {
           headers: await _jsonHeaders(),
           body: jsonEncode({
             'fullName': fullName.trim(),
-            'username': _normalizeUsername(username),
+            'username': username == null || username.trim().isEmpty
+                ? null
+                : _normalizeUsername(username),
             'password': password,
             'whatsapp': whatsapp.trim(),
             'countryCode': countryCode.trim(),
@@ -142,7 +144,7 @@ class AuthService {
 
   Future<OtpRequestResult> startRegistration({
     required String fullName,
-    required String username,
+    String? username,
     required String password,
     required String whatsapp,
     required String countryCode,
@@ -157,7 +159,9 @@ class AuthService {
           headers: await _jsonHeaders(),
           body: jsonEncode({
             'fullName': fullName.trim(),
-            'username': _normalizeUsername(username),
+            'username': username == null || username.trim().isEmpty
+                ? null
+                : _normalizeUsername(username),
             'password': password,
             'whatsapp': whatsapp.trim(),
             'countryCode': countryCode.trim(),
@@ -320,6 +324,7 @@ class AuthService {
 
   Future<Map<String, dynamic>> updateProfile({
     required String fullName,
+    required String username,
     required String email,
     required String address,
     required String nationalId,
@@ -332,6 +337,7 @@ class AuthService {
       headers: await _jsonHeaders(token: authToken),
       body: jsonEncode({
         'fullName': fullName.trim(),
+        'username': _normalizeUsername(username),
         'email': email.trim(),
         'address': address.trim(),
         'nationalId': nationalId.trim(),
