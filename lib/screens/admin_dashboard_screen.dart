@@ -40,14 +40,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _loadUser() async {
     final user = await _authService.currentUser();
     final permissions = AppPermissions.fromUser(user);
-    final isAuthorized =
-        permissions.canViewCustomers ||
-        permissions.canReviewWithdrawals ||
-        permissions.canReviewTopups ||
-        permissions.canManageCardPrintRequests ||
-        permissions.canReviewDevices ||
-        permissions.canManageLocations ||
-        permissions.canManageSystemSettings;
+    final isAuthorized = permissions.hasAdminWorkspaceAccess;
     if (!mounted) {
       return;
     }

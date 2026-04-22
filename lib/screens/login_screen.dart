@@ -223,14 +223,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     final permissions = AppPermissions.fromUser(currentUser);
-    final openAdminDashboard =
-        permissions.canViewCustomers ||
-        permissions.canReviewWithdrawals ||
-        permissions.canReviewTopups ||
-        permissions.canManageCardPrintRequests ||
-        permissions.canReviewDevices ||
-        permissions.canManageLocations ||
-        permissions.canManageSystemSettings;
     final shouldOpenSecuritySettings =
         await _shouldPromptForLocalSecuritySetup();
     setState(() => _isLoading = false);
@@ -261,7 +253,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     Navigator.pushNamedAndRemoveUntil(
       context,
-      openAdminDashboard ? '/admin-dashboard' : '/app-shell',
+      permissions.hasAdminWorkspaceAccess ? '/admin-dashboard' : '/app-shell',
       (route) => false,
     );
   }

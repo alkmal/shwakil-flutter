@@ -140,17 +140,9 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       return;
     }
     final permissions = AppPermissions.fromUser(currentUser);
-    final openAdminDashboard =
-        permissions.canViewCustomers ||
-        permissions.canReviewWithdrawals ||
-        permissions.canReviewTopups ||
-        permissions.canManageCardPrintRequests ||
-        permissions.canReviewDevices ||
-        permissions.canManageLocations ||
-        permissions.canManageSystemSettings;
     Navigator.pushNamedAndRemoveUntil(
       context,
-      openAdminDashboard ? '/admin-dashboard' : '/home',
+      permissions.hasAdminWorkspaceAccess ? '/admin-dashboard' : '/home',
       (route) => false,
     );
   }

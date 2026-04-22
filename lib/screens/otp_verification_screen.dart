@@ -149,14 +149,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         return;
       }
       final permissions = AppPermissions.fromUser(currentUser);
-      final openAdminDashboard =
-          permissions.canViewCustomers ||
-          permissions.canReviewWithdrawals ||
-          permissions.canReviewTopups ||
-          permissions.canManageCardPrintRequests ||
-          permissions.canReviewDevices ||
-          permissions.canManageLocations ||
-          permissions.canManageSystemSettings;
       if (widget.redirectRoute?.trim().isNotEmpty == true) {
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -167,7 +159,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
       Navigator.pushNamedAndRemoveUntil(
         context,
-        openAdminDashboard ? '/admin-dashboard' : '/app-shell',
+        permissions.hasAdminWorkspaceAccess ? '/admin-dashboard' : '/app-shell',
         (route) => false,
       );
     } catch (error) {

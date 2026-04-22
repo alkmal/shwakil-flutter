@@ -79,6 +79,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canIssueCards = permissions.canIssueCards;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final canScanCards = permissions.canOpenCardTools;
+    final hasAdminWorkspaceAccess = permissions.hasAdminWorkspaceAccess;
     final canViewCustomers = permissions.canViewCustomers;
     final canManageLocations = permissions.canManageLocations;
     final canManageSystemSettings = permissions.canManageSystemSettings;
@@ -263,13 +264,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       routeName: '/debt-book',
                     ),
                   if (!isRestrictedOfflineWorkspaceUser &&
-                      (canViewCustomers ||
-                          canReviewWithdrawals ||
-                          canReviewTopups ||
-                          canHandleCardPrintRequests ||
-                          canReviewDevices ||
-                          canManageLocations ||
-                          canManageSystemSettings)) ...[
+                      hasAdminWorkspaceAccess) ...[
                     const Divider(indent: 8, endIndent: 8, height: 28),
                     _buildSectionLabel(l.tr('widgets_app_sidebar.014')),
                     _buildItem(

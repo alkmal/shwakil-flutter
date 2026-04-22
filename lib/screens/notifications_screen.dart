@@ -11,7 +11,6 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -31,7 +30,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _total = 0;
   static const int _perPage = 20;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
-  bool _showFilters = false;
 
   String _t(String key, {Map<String, String>? params}) =>
       context.loc.tr(key, params: params);
@@ -136,214 +134,156 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: _showFilters
-                ? context.loc.tr('screens_inventory_screen.016')
-                : context.loc.tr('screens_inventory_screen.017'),
-            onPressed: () => setState(() => _showFilters = !_showFilters),
-            icon: Icon(
-              _showFilters
-                  ? Icons.filter_alt_off_rounded
-                  : Icons.filter_alt_rounded,
-            ),
+            tooltip: context.loc.tr('screens_notifications_screen.036'),
+            onPressed: _showSummarySheet,
+            icon: const Icon(Icons.dashboard_customize_rounded),
+          ),
+          IconButton(
+            tooltip: context.loc.tr('screens_inventory_screen.017'),
+            onPressed: _showFiltersSheet,
+            icon: const Icon(Icons.filter_alt_rounded),
+          ),
+          IconButton(
+            tooltip: _t('screens_notifications_screen.042'),
+            onPressed: _unreadCount > 0 ? _markAllAsRead : null,
+            icon: const Icon(Icons.done_all_rounded),
           ),
           const QuickLogoutAction(),
         ],
       ),
       drawer: const AppSidebar(),
-      body: RefreshIndicator(
-        onRefresh: _loadNotifications,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 760;
-                final quickStats = _buildQuickStats();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHero(isCompact),
-                    const SizedBox(height: 18),
-                    _buildSectionHeader(
-                      title: context.loc.tr('screens_notifications_screen.034'),
-                      subtitle: context.loc.tr(
-                        'screens_notifications_screen.035',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (isCompact)
-                      Column(
-                        children: quickStats
-                            .map(
-                              (item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _buildStatCard(item),
-                              ),
-                            )
-                            .toList(),
-                      )
-                    else
-                      Row(
-                        children: quickStats
-                            .map(
-                              (item) => Expanded(
-                                child: Padding(
-                                  padding: EdgeInsetsDirectional.only(
-                                    start: item == quickStats.first ? 0 : 12,
-                                  ),
-                                  child: _buildStatCard(item),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    const SizedBox(height: 18),
-                    _buildSectionHeader(
-                      title: context.loc.tr('screens_notifications_screen.036'),
-                      subtitle: context.loc.tr(
-                        'screens_notifications_screen.037',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_showFilters)
-                      _buildFilters(isCompact)
-                    else
-                      ToolToggleHint(
-                        message: _t('screens_notifications_screen.038'),
-                        icon: Icons.filter_alt_rounded,
-                      ),
-                    const SizedBox(height: 18),
-                    if (_isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(48),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    else if (_notifications.isEmpty)
-                      _buildEmptyState()
-                    else ...[
-                      ..._notifications.map(
-                        (item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _NotificationCard(
-                            item: item,
-                            onTap: () => _openNotification(item),
-                          ),
-                        ),
-                      ),
-                      AdminPaginationFooter(
-                        currentPage: _page,
-                        lastPage: _lastPage,
-                        totalItems: _total,
-                        itemsPerPage: _perPage,
-                        onPageChanged: (page) {
-                          setState(() => _page = page);
-                          _loadNotifications();
-                        },
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
-          ),
+      body: ResponsiveScaffoldContainer(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: RefreshIndicator(
+          onRefresh: _loadNotifications,
+          child: _buildNotificationsList(),
         ),
       ),
     );
   }
 
-  Widget _buildHero(bool isCompact) {
-    return ShwakelCard(
-      gradient: const LinearGradient(
-        colors: [Color(0xFF0C4A6E), Color(0xFF0F766E), Color(0xFF14B8A6)],
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-      ),
-      padding: EdgeInsets.all(isCompact ? 22 : 28),
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: Flex(
-        direction: isCompact ? Axis.vertical : Axis.horizontal,
-        crossAxisAlignment: isCompact
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Icon(
-              Icons.notifications_active_rounded,
-              color: Colors.white,
-              size: 38,
+  Widget _buildNotificationsList() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(48),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_notifications.isEmpty)
+          _buildEmptyState()
+        else ...[
+          ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            borderRadius: BorderRadius.circular(24),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.notifications_active_rounded,
+                  color: AppTheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _t('screens_notifications_screen.037'),
+                    style: AppTheme.bodyAction,
+                  ),
+                ),
+                _UnreadPill(count: _unreadCount),
+              ],
             ),
           ),
-          SizedBox(width: isCompact ? 0 : 18, height: isCompact ? 18 : 0),
-          if (isCompact)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _t('screens_notifications_screen.039'),
-                  style: AppTheme.caption.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _t('screens_notifications_screen.040'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _t('screens_notifications_screen.041'),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white70,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            )
-          else
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _t('screens_notifications_screen.039'),
-                    style: AppTheme.caption.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _t('screens_notifications_screen.040'),
-                    style: AppTheme.h2.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _t('screens_notifications_screen.041'),
-                    style: AppTheme.bodyAction.copyWith(
-                      color: Colors.white70,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
+          const SizedBox(height: 16),
+          ..._notifications.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _NotificationCard(
+                item: item,
+                onTap: () => _openNotification(item),
               ),
             ),
-          if (!isCompact) const SizedBox(width: 16),
-          if (!isCompact) _UnreadPill(count: _unreadCount),
-          if (isCompact) ...[
-            const SizedBox(height: 18),
-            _UnreadPill(count: _unreadCount),
-          ],
+          ),
+          AdminPaginationFooter(
+            currentPage: _page,
+            lastPage: _lastPage,
+            totalItems: _total,
+            itemsPerPage: _perPage,
+            onPageChanged: (page) {
+              setState(() => _page = page);
+              _loadNotifications();
+            },
+          ),
         ],
+      ],
+    );
+  }
+
+  Future<void> _showSummarySheet() async {
+    final stats = _buildQuickStats();
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              _t('screens_notifications_screen.034'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _t('screens_notifications_screen.035'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...stats.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildStatCard(item),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFiltersSheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              _t('screens_notifications_screen.036'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _t('screens_notifications_screen.038'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildFilters(true),
+          ],
+        ),
       ),
     );
   }
@@ -378,26 +318,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         color: AppTheme.success,
       ),
     ];
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String subtitle,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: AppTheme.h2),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: AppTheme.bodyAction.copyWith(
-            color: AppTheme.textSecondary,
-            height: 1.5,
-          ),
-        ),
-      ],
-    );
   }
 
   Widget _buildStatCard(_NotificationStat item) {
@@ -491,6 +411,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _page = 1;
         });
         _loadNotifications();
+        Navigator.of(context).maybePop();
       },
       selectedColor: AppTheme.primary.withValues(alpha: 0.12),
       labelStyle: AppTheme.bodyAction.copyWith(

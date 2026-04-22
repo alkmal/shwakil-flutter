@@ -1279,6 +1279,21 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> prefetchTemporaryTransferCodes({
+    required String deviceId,
+    int count = 5,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('wallet/temporary-transfer-code/prefetch'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'deviceId': deviceId,
+        'count': count,
+      }),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> redeemTemporaryTransferCode({
     required String payload,
     Map<String, dynamic>? location,

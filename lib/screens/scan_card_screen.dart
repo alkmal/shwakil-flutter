@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'dart:convert';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -36,6 +37,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   final ApiService _api = ApiService();
   final AuthService _auth = AuthService();
   final OfflineCardService _offlineCardService = OfflineCardService();
+  final OfflineTransferCodeService _offlineTransferCodeService =
+      OfflineTransferCodeService();
 
   VirtualCard? _card;
   Map<String, dynamic>? _user;
@@ -44,6 +47,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _routeSubscribed = false;
   bool _hasShownOfflineIntro = false;
   bool _hasShownReconnectPrompt = false;
+  int _availableOfflineTransferSlots = 0;
 
   bool get _canAccessScanScreen {
     final permissions = AppPermissions.fromUser(_user);
@@ -114,6 +118,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (mounted) {
       setState(() => _user = user);
     }
+    await _loadOfflineTransferSlotCount();
+    await _ensureOfflineTemporaryTransferSlots();
     _maybeShowOfflineIntro();
   }
 
@@ -122,6 +128,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
     setState(() {});
+    if (ConnectivityService.instance.isOnline.value) {
+      unawaited(_ensureOfflineTemporaryTransferSlots());
+    }
     if (!widget.offlineMode) {
       return;
     }
@@ -176,6 +185,64 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         message: _t('screens_scan_card_screen.073'),
       );
     });
+  }
+
+  Future<void> _loadOfflineTransferSlotCount() async {
+    final userId = _user?['id']?.toString();
+    if (userId == null || userId.isEmpty) {
+      if (mounted) {
+        setState(() => _availableOfflineTransferSlots = 0);
+      }
+      return;
+    }
+    final count = await _offlineTransferCodeService.countAvailableSlots(userId);
+    if (!mounted) {
+      return;
+    }
+    setState(() => _availableOfflineTransferSlots = count);
+  }
+
+  Future<void> _ensureOfflineTemporaryTransferSlots() async {
+    final userId = _user?['id']?.toString();
+    if (userId == null || userId.isEmpty || _isDeviceOffline) {
+      return;
+    }
+    final permissions = AppPermissions.fromUser(_user);
+    if (!permissions.canTransfer ||
+        (_user?['transferVerificationStatus']?.toString() != 'approved')) {
+      return;
+    }
+    final existingCount = await _offlineTransferCodeService.countAvailableSlots(
+      userId,
+    );
+    if (existingCount >= 5) {
+      if (mounted && _availableOfflineTransferSlots != existingCount) {
+        setState(() => _availableOfflineTransferSlots = existingCount);
+      }
+      return;
+    }
+    try {
+      final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+      final response = await _api.prefetchTemporaryTransferCodes(
+        deviceId: deviceId,
+        count: 5 - existingCount,
+      );
+      final rawSlots = List<Map<String, dynamic>>.from(
+        (response['slots'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      final merged = await _offlineTransferCodeService.mergeSlots(
+        userId,
+        rawSlots,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _availableOfflineTransferSlots = merged.length);
+    } catch (_) {
+      await _loadOfflineTransferSlotCount();
+    }
   }
 
   Future<void> _switchScanMode() async {
@@ -313,9 +380,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool get _canCreateTemporaryTransferCode {
     final permissions = AppPermissions.fromUser(_user);
     return !widget.offlineMode &&
-        !_isDeviceOffline &&
         permissions.canTransfer &&
-        (_user?['transferVerificationStatus']?.toString() == 'approved');
+        (_user?['transferVerificationStatus']?.toString() == 'approved') &&
+        (!_isDeviceOffline || _availableOfflineTransferSlots > 0);
   }
 
   _TemporaryTransferPayload? _tryParseTemporaryTransferPayload(String raw) {
@@ -336,7 +403,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         context,
         title: 'رمز تحويل مؤقت',
         message: _isDeviceOffline
-            ? 'يلزم اتصال إنترنت لإنشاء الرمز المؤقت لأول مرة، ثم يبقى صالحًا حتى انتهاء الدقيقة.'
+            ? 'لا يوجد لديك رصيد محلي جاهز من الرموز المؤقتة. افتح الشاشة أثناء الاتصال لتجهيزها ثم يمكنك الإنشاء أوفلاين.'
             : 'هذه الميزة متاحة فقط للحسابات الموثقة والمصرح لها بالتحويل.',
       );
       return;
@@ -390,23 +457,45 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         return;
       }
 
-      final security = await TransferSecurityService.confirmTransfer(
-        context,
-        requireOtpAfterLocalAuth: true,
-      );
-      if (!mounted || !security.isVerified || (security.otpCode?.isEmpty ?? true)) {
-        return;
-      }
+      late final _TemporaryTransferPayload payload;
+      if (_isDeviceOffline) {
+        final security = await TransferSecurityService.confirmTransfer(
+          context,
+          requireOtpAfterLocalAuth: false,
+          allowOtpFallback: false,
+        );
+        if (!mounted || !security.isVerified) {
+          return;
+        }
 
-      final response = await _api.createTemporaryTransferCode(
-        amount: amount,
-        otpCode: security.otpCode!,
-      );
-      if (!mounted) {
-        return;
-      }
+        final offlinePayload = await _createOfflineTemporaryTransferPayload(
+          amount,
+        );
+        if (!mounted || offlinePayload == null) {
+          return;
+        }
+        payload = offlinePayload;
+      } else {
+        final security = await TransferSecurityService.confirmTransfer(
+          context,
+          requireOtpAfterLocalAuth: true,
+        );
+        if (!mounted ||
+            !security.isVerified ||
+            (security.otpCode?.isEmpty ?? true)) {
+          return;
+        }
 
-      final payload = _TemporaryTransferPayload.fromMap(response);
+        final response = await _api.createTemporaryTransferCode(
+          amount: amount,
+          otpCode: security.otpCode!,
+        );
+        if (!mounted) {
+          return;
+        }
+
+        payload = _TemporaryTransferPayload.fromMap(response);
+      }
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
@@ -424,6 +513,95 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     } finally {
       amountController.dispose();
     }
+  }
+
+  Future<_TemporaryTransferPayload?> _createOfflineTemporaryTransferPayload(
+    double amount,
+  ) async {
+    final userId = _user?['id']?.toString();
+    if (userId == null || userId.isEmpty) {
+      return null;
+    }
+    final slot = await _offlineTransferCodeService.takeNextSlot(userId);
+    if (slot == null) {
+      await _loadOfflineTransferSlotCount();
+      if (!mounted) {
+        return null;
+      }
+      await AppAlertService.showInfo(
+        context,
+        title: 'رمز تحويل مؤقت',
+        message:
+            'لا يوجد لديك رصيد محلي جاهز من الرموز المؤقتة. افتح الشاشة أثناء الاتصال لتجهيز دفعة جديدة.',
+      );
+      return null;
+    }
+
+    final expiresAt =
+        DateTime.tryParse(slot['expiresAt']?.toString() ?? '')?.toUtc();
+    final slotId = slot['id']?.toString() ?? '';
+    final token = slot['publicToken']?.toString() ?? '';
+    final signingSecret = slot['signingSecret']?.toString() ?? '';
+    if (expiresAt == null ||
+        !expiresAt.isAfter(DateTime.now().toUtc()) ||
+        slotId.isEmpty ||
+        token.isEmpty ||
+        signingSecret.isEmpty) {
+      await _loadOfflineTransferSlotCount();
+      return null;
+    }
+
+    final signedAt = DateTime.now().toUtc().toIso8601String();
+    final expiresAtIso = expiresAt.toIso8601String();
+    final signature = await _buildOfflineTemporaryTransferPayloadSignature(
+      slotId: slotId,
+      token: token,
+      amount: amount,
+      signedAt: signedAt,
+      expiresAt: expiresAtIso,
+      signingSecret: signingSecret,
+    );
+
+    await _loadOfflineTransferSlotCount();
+
+    final envelope = {
+      'type': 'shwakel_temp_transfer_offline',
+      'version': 2,
+      'slotId': slotId,
+      'token': token,
+      'amount': amount,
+      'signedAt': signedAt,
+      'expiresAt': expiresAtIso,
+      'signature': signature,
+      'senderId': _user?['id']?.toString(),
+      'senderUsername': _user?['username']?.toString() ?? '',
+    };
+
+    return _TemporaryTransferPayload.fromMap({
+      ...envelope,
+      'qrPayload': jsonEncode(envelope),
+      'feeAmount': 0,
+      'netAmount': amount,
+    });
+  }
+
+  Future<String> _buildOfflineTemporaryTransferPayloadSignature({
+    required String slotId,
+    required String token,
+    required double amount,
+    required String signedAt,
+    required String expiresAt,
+    required String signingSecret,
+  }) async {
+    final message =
+        '$slotId|$token|${amount.toStringAsFixed(2)}|$signedAt|$expiresAt';
+    final mac = await Hmac.sha256().calculateMac(
+      utf8.encode(message),
+      secretKey: SecretKey(utf8.encode(signingSecret)),
+    );
+    return mac.bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
   }
 
   Future<BarcodeScannerDialogResult?> _resolveTemporaryTransferDialogResult(
@@ -1014,8 +1192,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           if (!widget.offlineMode)
             IconButton(
               tooltip: _canCreateTemporaryTransferCode
-                  ? 'إنشاء رمز تحويل مؤقت'
-                  : 'يتطلب حسابًا موثقًا واتصال إنترنت',
+                  ? (_isDeviceOffline
+                      ? 'إنشاء رمز تحويل مؤقت أوفلاين من الرصيد المحلي الجاهز'
+                      : 'إنشاء رمز تحويل مؤقت')
+                  : 'يتطلب حسابًا موثقًا ورصيدًا محليًا جاهزًا عند انقطاع الإنترنت',
               onPressed: _showTemporaryTransferCreator,
               icon: Icon(
                 Icons.qr_code_2_rounded,

@@ -120,6 +120,17 @@ class AppPermissions {
   bool get canPrepareCardPrintRequests => canManageCardPrintRequests;
   bool get canFinalizeCardPrintRequests => canManageCardPrintRequests;
 
+  bool get hasAdminWorkspaceAccess =>
+      canViewCustomers ||
+      canManageUsers ||
+      canManageDebtBook ||
+      canReviewWithdrawals ||
+      canReviewTopups ||
+      canManageCardPrintRequests ||
+      canReviewDevices ||
+      canManageLocations ||
+      canManageSystemSettings;
+
   bool get canOpenCardTools =>
       canScanCards ||
       canOfflineCardScan ||
