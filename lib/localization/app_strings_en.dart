@@ -52,9 +52,9 @@ const Map<String, String> appStringsEn = {
   'screens_account_settings_screen.045': 'Confirm new password',
   'screens_account_settings_screen.046': '{count} fields need completion',
   'screens_account_settings_screen.047':
-      'Some fields are locked after verification. Contact support to edit them.',
+      'Once the account is verified, the entire profile becomes locked, including username and referral number.',
   'screens_account_settings_screen.048':
-      'You can complete only the missing fields. After saving, they will be locked automatically because the account is verified.',
+      'You can update the username, referral number, and other profile details only before verification.',
   'screens_account_settings_screen.049':
       'A logo shown on cards during printing.',
   'screens_account_settings_screen.050': 'The logo file could not be read.',
@@ -62,6 +62,10 @@ const Map<String, String> appStringsEn = {
       'The print logo was updated successfully.',
   'screens_account_settings_screen.052':
       'The print logo was deleted successfully.',
+  'screens_account_settings_screen.053': 'Log out',
+  'screens_account_settings_screen.054':
+      'You can end the current session here instead of using a quick action in the top bar.',
+  'screens_account_settings_screen.055': 'Sign out safely from this device',
   'screens_account_verification_screen.001': 'Missing attachments',
   'screens_account_verification_screen.002': 'Submitted successfully',
   'screens_account_verification_screen.003': 'Submission failed',
@@ -153,6 +157,8 @@ const Map<String, String> appStringsEn = {
       'The user has been created successfully.',
   'screens_admin_customers_screen.026':
       'A temporary password will be generated and sent automatically to the provided WhatsApp number.',
+  'screens_admin_customers_screen.047':
+      'Username must be 3-32 characters using English letters, numbers, and only . _ @ + - symbols.',
   'screens_admin_customers_screen.027': 'Unable to determine the user account.',
   'screens_admin_customers_screen.028':
       'A new password and account details will be sent over WhatsApp to the linked number.',
@@ -183,7 +189,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.019': 'Full name',
   'screens_admin_customer_screen.020': 'WhatsApp',
   'screens_admin_customer_screen.021': 'Join date',
-  'screens_admin_customer_screen.022': 'Basic customer',
+  'screens_admin_customer_screen.022': 'User',
   'screens_admin_customer_screen.023': 'Customer transactions',
   'screens_admin_customer_screen.024': 'All',
   'screens_admin_customer_screen.025': 'Near branches',
@@ -191,15 +197,15 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.027': 'No recent transactions.',
   'screens_admin_customer_screen.028': 'Account management & fees',
   'screens_admin_customer_screen.029': 'Verification status',
-  'screens_admin_customer_screen.030': 'Restricted member',
-  'screens_admin_customer_screen.031': 'Verified member',
-  'screens_admin_customer_screen.032': 'Advanced member',
+  'screens_admin_customer_screen.030': 'Restricted membership',
+  'screens_admin_customer_screen.031': 'Trader',
+  'screens_admin_customer_screen.032': 'Verified trader',
   'screens_admin_customer_screen.033': 'Unverified',
   'screens_admin_customer_screen.034': 'Pending',
   'screens_admin_customer_screen.035': 'Verified / active',
   'screens_admin_customer_screen.036': 'Rejected',
   'screens_admin_customer_screen.037': 'Account role',
-  'screens_admin_customer_screen.038': 'Basic user',
+  'screens_admin_customer_screen.038': 'User',
   'screens_admin_customer_screen.039': 'Support team',
   'screens_admin_customer_screen.040': 'Technical admin',
   'screens_admin_customer_screen.041': 'Printing debt limit (?)',
@@ -607,6 +613,13 @@ const Map<String, String> appStringsEn = {
   'screens_login_screen.015':
       'To create a new account, contact admin on WhatsApp: {whatsapp}',
   'screens_login_screen.016': 'To create a new account, contact admin.',
+  'screens_login_screen.017': 'Enable local protection',
+  'screens_login_screen.018':
+      'You can enable {method} to make sign-in easier the next time you use this device.',
+  'screens_login_screen.019': 'Later',
+  'screens_login_screen.020': 'Set up now',
+  'screens_login_screen.021': 'PIN or biometrics',
+  'screens_login_screen.022': 'PIN',
   'screens_onboarding_screen.001': 'Skip',
   'screens_onboarding_screen.002': 'Get Started',
   'screens_onboarding_screen.003': 'Next',
@@ -687,7 +700,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.038':
       'You must accept the terms and conditions to continue.',
   'screens_register_screen.039':
-      'Complete the required registration details and we will send a verification code to finish creating your account.',
+      'Complete only the basic registration details. A username will be generated automatically, and you can edit the username and referral number later from the profile before verification.',
   'screens_register_screen.040': 'Already have an account? Log in',
   'screens_register_screen.041':
       'Password must be at least 8 characters and include at least one letter and one symbol.',
@@ -946,6 +959,8 @@ const Map<String, String> appStringsEn = {
   'screens_device_unlock_screen.011': 'PIN code',
   'screens_device_unlock_screen.012': 'Unlock with PIN',
   'screens_device_unlock_screen.013': 'Unlock with biometrics',
+  'screens_device_unlock_screen.014':
+      'Too many incorrect attempts. Try again after {seconds} seconds.',
   'screens_security_settings_screen.001': 'Device Security',
   'screens_security_settings_screen.002': 'Remove trust from this device',
   'screens_security_settings_screen.003': 'Protection settings',
@@ -1104,6 +1119,82 @@ const Map<String, String> appStringsEn = {
       'Update the policy text displayed inside the app.',
   'screens_admin_system_settings_screen.051': 'Android URL',
   'screens_admin_system_settings_screen.052': 'iOS URL',
+  'screens_admin_system_settings_screen.053': 'Contact',
+  'screens_admin_system_settings_screen.054': 'App',
+  'screens_admin_system_settings_screen.055': 'Top-up',
+  'screens_admin_system_settings_screen.056': 'Policy',
+  'screens_admin_system_settings_screen.057': 'Fees',
+  'screens_admin_system_settings_screen.058':
+      'You do not have permission to manage system settings',
+  'screens_admin_system_settings_screen.059': 'Web or direct APK URL',
+  'screens_admin_system_settings_screen.060':
+      'Update and download links for each platform',
+  'screens_admin_system_settings_screen.061':
+      'Set the app title, support WhatsApp, email, and public address.',
+  'screens_admin_system_settings_screen.062':
+      'Enter valid store links and check version numbers before saving.',
+  'screens_admin_system_settings_screen.063':
+      'Manage top-up methods and request instructions from one place.',
+  'screens_admin_system_settings_screen.064':
+      'Review the policy text shown inside the app.',
+  'screens_admin_system_settings_screen.065':
+      'Adjust fee percentages for wallet and card operations.',
+  'screens_admin_customers_screen.038':
+      'You do not have permission to view customers.',
+  'screens_admin_customers_screen.039': 'Hide search',
+  'screens_admin_customers_screen.040': 'Show search',
+  'screens_admin_customers_screen.041': 'Help',
+  'screens_admin_customers_screen.042':
+      'Open search from the top search icon when needed.',
+  'screens_admin_customers_screen.043': 'Showing: {shown} • Total: {total}',
+  'screens_admin_customers_screen.044': 'Customers help',
+  'screens_admin_customers_screen.045':
+      'Use search for quick access, then open a customer card to manage details.',
+  'screens_admin_customers_screen.046': 'Close',
+  'screens_account_settings_screen.056': 'Delete account',
+  'screens_account_settings_screen.057':
+      'The account will be permanently deleted from the app and you will be signed out from this device. Do you want to continue?',
+  'screens_account_settings_screen.058': 'Cancel',
+  'screens_account_settings_screen.059': 'Could not delete account',
+  'screens_account_settings_screen.060':
+      'You do not have permission to view account settings',
+  'screens_account_settings_screen.061': 'Sign in required',
+  'screens_account_settings_screen.062':
+      'Please sign in before opening account settings.',
+  'screens_account_settings_screen.063': 'Go to sign in',
+  'screens_account_settings_screen.064': 'Help',
+  'screens_account_settings_screen.065':
+      'You can start deleting the account permanently from here.',
+  'screens_account_settings_screen.066': 'Quick help',
+  'screens_account_settings_screen.067':
+      'This section is for updating account details and password. Important notices appear above the form only when needed.',
+  'screens_admin_card_print_requests_screen.037':
+      'You do not have permission to manage card print requests',
+  'screens_admin_card_print_requests_screen.038': 'Hide search and filters',
+  'screens_admin_card_print_requests_screen.039': 'Show search and filters',
+  'screens_admin_card_print_requests_screen.040': 'Help',
+  'screens_admin_card_print_requests_screen.041':
+      'Review: {review} • Approved: {approved} • Completed: {completed}',
+  'screens_admin_card_print_requests_screen.042':
+      'Open search and filters from the top filter icon when needed.',
+  'screens_admin_card_print_requests_screen.043': 'Requests help',
+  'screens_admin_card_print_requests_screen.044':
+      'Use search and status filters for quick access, then open a request to manage its steps.',
+  'screens_admin_card_print_requests_screen.045': 'Close',
+  'screens_admin_device_requests_screen.010':
+      'You do not have permission to review device requests.',
+  'screens_admin_device_requests_screen.011': 'Help',
+  'screens_admin_device_requests_screen.012': 'Quick help',
+  'screens_admin_device_requests_screen.013':
+      'Only device access requests appear here. Review the relevant card, then approve or reject it as needed.',
+  'screens_admin_locations_screen.022':
+      'You do not have permission to manage locations.',
+  'screens_admin_locations_screen.023': 'Add',
+  'screens_admin_locations_screen.024': 'Help',
+  'screens_admin_locations_screen.025': 'Available locations: {count}',
+  'screens_admin_locations_screen.026': 'Quick help',
+  'screens_admin_locations_screen.027':
+      'Service locations appear here directly. Use the top add button, or open a card to edit and delete it.',
   'screens_withdrawal_requests_screen.026':
       'Review transfer requests to bank accounts or digital wallets before approval.',
   'screens_withdrawal_requests_screen.027':
@@ -1426,4 +1517,496 @@ const Map<String, String> appStringsEn = {
   'screens_card_print_requests_screen.046': 'From app',
   'screens_card_print_requests_screen.047': 'Last printed',
   'screens_card_print_requests_screen.048': 'Not printed yet',
+  'screens_scan_card_screen.068': 'Internet is back',
+  'screens_scan_card_screen.069':
+      'An internet connection was detected. Do you want to switch now to online scanning to sync work and continue?',
+  'screens_scan_card_screen.070': 'Stay offline',
+  'screens_scan_card_screen.071': 'Go online',
+  'screens_scan_card_screen.072': 'You are in the offline workspace',
+  'screens_scan_card_screen.073':
+      'Use this screen only to read the card, then approve it from the same result. It will sync later when the internet returns.',
+  'screens_scan_card_screen.074': 'Online is available',
+  'screens_scan_card_screen.075':
+      'You are currently in offline mode, but the internet is available. Online mode is the priority, and offline mode is only for emergencies. Do you want to switch online now before {action}?',
+  'screens_scan_card_screen.076': 'read the card',
+  'screens_scan_card_screen.077': 'open the camera',
+  'screens_scan_card_screen.078':
+      'Offline scanning permission is not available on this device.',
+  'screens_scan_card_screen.079':
+      'Scanning was temporarily paused because of too many attempts for cards that are not in the offline memory.',
+  'screens_scan_card_screen.080':
+      'The barcode was saved locally and will be checked automatically when the internet is available.',
+  'screens_scan_card_screen.081': 'Scan results',
+  'screens_scan_card_screen.082': 'Scan error',
+  'screens_scan_card_screen.083': 'Could not find the data for this card.',
+  'screens_scan_card_screen.084': 'Card found',
+  'screens_scan_card_screen.085':
+      'The card was checked successfully, but it is already used and cannot be withdrawn again from here.',
+  'screens_scan_card_screen.086':
+      'The card was checked successfully. Review the basic data, then withdraw and approve it directly.',
+  'screens_scan_card_screen.087': 'Withdraw and approve',
+  'screens_scan_card_screen.088':
+      'The name linked to the card was saved: {name}',
+  'screens_scan_card_screen.089': 'Card holder name',
+  'screens_scan_card_screen.090': 'Enter a name to identify this card',
+  'screens_scan_card_screen.091': 'Example: Ahmad - Card 1',
+  'screens_scan_card_screen.092': 'Save',
+  'screens_scan_card_screen.093': 'You do not have access to the card screen',
+  'screens_scan_card_screen.094': 'Hide manual search',
+  'screens_scan_card_screen.095': 'Show manual search',
+  'screens_scan_card_screen.096': 'Help',
+  'screens_scan_card_screen.097': 'How to use',
+  'screens_scan_card_screen.098':
+      'Enter or scan the code. The check will use local data only.',
+  'screens_scan_card_screen.099':
+      'Enter or scan the code to check the card directly. Extra details appear only when needed.',
+  'screens_scan_card_screen.100': 'Close',
+  'screens_scan_card_screen.101': 'Offline card reading',
+  'screens_scan_card_screen.102':
+      'Work offline. Scan the barcode or enter the number manually, then approve the card directly.',
+  'screens_scan_card_screen.103': 'Switch to online',
+  'screens_scan_card_screen.104': 'Switch to offline',
+  'screens_scan_card_screen.105':
+      'You can open manual search from the top search icon when needed.',
+  'screens_scan_card_screen.106':
+      'Local data only will be used. You will be prompted to move online when connectivity returns.',
+  'screens_scan_card_screen.107':
+      'Internet is available now. Online mode is preferred, and you will be reminded when using scan actions.',
+  'screens_scan_card_screen.108':
+      'Disclaimer: the app is not responsible for conflicts, cards not found in the system, or any card added and approved in offline mode then not confirmed later. Responsibility remains with the user who entered and approved it offline.',
+  'screens_scan_card_screen.109': 'Card value',
+  'screens_scan_card_screen.110': 'This card is already used.',
+  'screens_scan_card_screen.111':
+      'You do not have permission to run a direct action on this card.',
+  'screens_scan_card_screen.112': 'Actions',
+  'screens_scan_card_screen.113':
+      'The approval limit for this sub-user is {limit}. If the card exceeds this limit, it will not be approved from this account.',
+  'screens_scan_card_screen.114':
+      'This is a sub-user account, and approval requires an enabled permission. Once enabled, a limit of {limit} will apply per card.',
+  'screens_scan_card_screen.115':
+      'Start by scanning the code or entering it manually',
+  'screens_scan_card_screen.116': 'The result will appear here when available',
+  'screens_offline_center_screen.001': 'Offline data updated',
+  'screens_offline_center_screen.002':
+      'The latest card inventory is now available on this device.',
+  'screens_offline_center_screen.003': 'Could not update offline data',
+  'screens_offline_center_screen.004':
+      'The card has not been found in the system yet.',
+  'screens_offline_center_screen.005':
+      'Could not verify the card right now. It will be retried later.',
+  'screens_offline_center_screen.006': 'No pending operations',
+  'screens_offline_center_screen.007':
+      'All offline operations have already been synced.',
+  'screens_offline_center_screen.008': 'Sync completed',
+  'screens_offline_center_screen.009':
+      '{count} cards were synced, and {remaining} still need review.',
+  'screens_offline_center_screen.010': 'Could not sync operations',
+  'screens_offline_center_screen.011':
+      'You do not have access to the offline center',
+  'screens_offline_center_screen.012': 'Ready cards',
+  'screens_offline_center_screen.013': 'Read only',
+  'screens_offline_center_screen.014': 'Pending sync',
+  'screens_offline_center_screen.015': 'Offline limit',
+  'screens_offline_center_screen.016': 'Before sync is requested',
+  'screens_offline_center_screen.017': 'Needs review',
+  'screens_offline_center_screen.018': 'After internet returns',
+  'screens_offline_center_screen.019': 'Offline work',
+  'screens_offline_center_screen.020':
+      'Start by reading the card locally, then sync the operations when the internet returns.',
+  'screens_offline_center_screen.021': 'Ready cards: {count}',
+  'screens_offline_center_screen.022': 'Pending operations: {count}',
+  'screens_offline_center_screen.023': 'Rejected for review: {count}',
+  'screens_offline_center_screen.024': 'Quick reading area',
+  'screens_offline_center_screen.025':
+      'A simple interface to read the card, approve it, and sync it later.',
+  'screens_offline_center_screen.026': 'Open card reading',
+  'screens_offline_center_screen.027': 'Update offline inventory',
+  'screens_offline_center_screen.028': 'Sync pending operations',
+  'screens_offline_center_screen.029': 'Offline card tracking',
+  'screens_offline_center_screen.030':
+      'Current pending cards appear here, along with any card that failed to sync after going back online. Tap any card to see details.',
+  'screens_offline_center_screen.031':
+      'There are no saved cards for review right now.',
+  'screens_offline_center_screen.032': 'Not confirmed',
+  'screens_offline_center_screen.033': 'Waiting to fetch from system',
+  'screens_offline_center_screen.034': 'No name',
+  'screens_offline_center_screen.035': 'Unavailable',
+  'screens_offline_center_screen.036': 'Card details',
+  'screens_offline_center_screen.037': 'Added name',
+  'screens_offline_center_screen.038': 'Last use',
+  'screens_offline_center_screen.039': 'Operation executor',
+  'screens_offline_center_screen.040': 'Used by',
+  'screens_offline_center_screen.041': 'Brought by',
+  'screens_offline_center_screen.042': 'Sync time',
+  'screens_offline_center_screen.043': 'Result',
+  'screens_offline_center_screen.044': 'Note',
+  'screens_offline_center_screen.045': 'Pending sync',
+  'screens_offline_center_screen.046': 'Debt book synced',
+  'screens_offline_center_screen.047':
+      'Pending operations were uploaded and the local debt book data was refreshed.',
+  'screens_offline_center_screen.048': 'Could not sync debt book',
+  'screens_offline_center_screen.049': 'Debt book operations: {count}',
+  'screens_offline_center_screen.050': 'Sync debt book',
+  'screens_admin_dashboard_screen.020':
+      'You do not have access to the admin dashboard',
+  'screens_admin_dashboard_screen.021': 'Requests',
+  'screens_admin_dashboard_screen.022': 'Customers',
+  'screens_admin_dashboard_screen.023': 'Devices',
+  'screens_admin_dashboard_screen.024': 'Withdrawals',
+  'screens_admin_dashboard_screen.025': 'Top-ups',
+  'screens_admin_dashboard_screen.026': 'Locations',
+  'screens_admin_dashboard_screen.027': 'Settings',
+  'screens_admin_dashboard_screen.028': 'Permissions',
+  'screens_admin_dashboard_screen.029': 'Debt book archive',
+  'screens_admin_dashboard_screen.030':
+      'Search, filters, and independent admin reporting for the debt book.',
+  'screens_admin_dashboard_screen.031': 'Debts',
+  'screens_admin_dashboard_screen.032': 'Work summary',
+  'screens_admin_dashboard_screen.033':
+      'A quick view of your access level and the pages available to you.',
+  'screens_admin_dashboard_screen.034': 'Debt book',
+  'screens_admin_dashboard_screen.035':
+      'A quick summary of current debt book performance and top debtors.',
+  'screens_admin_dashboard_screen.036': '{count} debtors',
+  'screens_admin_dashboard_screen.037': 'Debt book customers',
+  'screens_admin_dashboard_screen.038': 'Total customers inside the debt book',
+  'screens_admin_dashboard_screen.039': 'Total debt',
+  'screens_admin_dashboard_screen.040': 'Sum of recorded debt entries',
+  'screens_admin_dashboard_screen.041': 'Total paid',
+  'screens_admin_dashboard_screen.042': 'Total amount paid so far',
+  'screens_admin_dashboard_screen.043': 'Top debtors',
+  'screens_admin_dashboard_screen.044': 'There are no open debts right now.',
+  'screens_admin_dashboard_screen.045':
+      'Open the debt book directly to review full details.',
+  'screens_admin_dashboard_screen.046': 'Copy report',
+  'screens_admin_dashboard_screen.047': 'Print',
+  'screens_admin_dashboard_screen.048': 'Export PDF',
+  'screens_admin_dashboard_screen.049':
+      'The debt book currently has no customers with outstanding balances.',
+  'screens_admin_dashboard_screen.050': 'Admin modules',
+  'screens_admin_dashboard_screen.051':
+      'Open the main operations directly from clear and organized cards.',
+  'screens_admin_dashboard_screen.052': '{count} sections',
+  'screens_admin_dashboard_screen.053': '{count} modules ready',
+  'screens_admin_dashboard_screen.054': 'Admin readiness',
+  'screens_admin_dashboard_screen.055':
+      'An organized dashboard to open core sections quickly and manage work from one place.',
+  'screens_admin_dashboard_screen.056': 'Help',
+  'screens_admin_dashboard_screen.057': 'Quick help',
+  'screens_admin_dashboard_screen.058':
+      'This page is for quick access to admin modules. Use the cards directly to open the section you need.',
+  'screens_admin_dashboard_screen.059': 'Available modules',
+  'screens_admin_dashboard_screen.060': 'Ready admin sections',
+  'screens_admin_dashboard_screen.061': 'Current user',
+  'screens_admin_dashboard_screen.062': 'Admin',
+  'screens_admin_dashboard_screen.063': 'Admin session identity',
+  'screens_admin_dashboard_screen.064': 'Operating mode',
+  'screens_admin_dashboard_screen.065': 'Full',
+  'screens_admin_dashboard_screen.066': 'Custom',
+  'screens_admin_dashboard_screen.067': 'Current access level',
+  'screens_admin_dashboard_screen.068': 'Copied',
+  'screens_admin_dashboard_screen.069':
+      'The debt book report was copied to the clipboard.',
+  'screens_admin_dashboard_screen.070': 'Print failed',
+  'screens_admin_dashboard_screen.071': 'Export failed',
+  'screens_admin_dashboard_screen.072': 'Admin report - Debt book',
+  'screens_admin_dashboard_screen.073': 'Customers: {count}',
+  'screens_admin_dashboard_screen.074': 'Debtors: {count}',
+  'screens_admin_dashboard_screen.075': 'Total debt: {amount}',
+  'screens_admin_dashboard_screen.076': 'Total paid: {amount}',
+  'screens_admin_dashboard_screen.077': 'Debtors:',
+  'screens_admin_dashboard_screen.078': '- There are no open debts right now',
+  'screens_admin_dashboard_screen.079': '- {name} | {phone} | {amount}',
+  'screens_admin_dashboard_screen.080': 'Customer',
+  'screens_admin_dashboard_screen.081': 'Phone',
+  'screens_admin_dashboard_screen.082': 'Remaining',
+  'screens_admin_dashboard_screen.083': 'No phone',
+  'screens_admin_dashboard_screen.084': 'Open section',
+  'screens_admin_dashboard_screen.085': 'A',
+  'screens_admin_dashboard_screen.086': 'No phone number',
+  'screens_home_screen.050': 'Offline sync completed',
+  'screens_home_screen.051': 'Card sync completed',
+  'screens_home_screen.052':
+      '{accepted} pending cards were synced, {rejected} remain for review, and the latest offline cards were also downloaded.',
+  'screens_home_screen.053':
+      'The latest offline cards were downloaded and the local workspace was updated.',
+  'screens_home_screen.054': 'Offline sync failed',
+  'screens_home_screen.055': 'The card has not been found in the system yet.',
+  'screens_home_screen.056':
+      'Could not verify the card right now. It will be retried later.',
+  'screens_home_screen.057': 'Offline workspace ready',
+  'screens_home_screen.058':
+      'This device already has an offline card inventory ready. Do you want to open offline card reading now?',
+  'screens_home_screen.059': 'Later',
+  'screens_home_screen.060': 'Open offline',
+  'screens_home_screen.061': 'This screen is unavailable without internet',
+  'screens_home_screen.062':
+      'You are currently offline. This screen requires an internet connection to work.',
+  'screens_home_screen.063': '{count} services',
+  'screens_home_screen.064': 'Offline sync in progress',
+  'screens_home_screen.065': 'Offline sync',
+  'screens_home_screen.066':
+      'There are {count} pending cards worth {amount} ILS, and the local inventory will also be updated.',
+  'screens_home_screen.067':
+      'Update local cards and download any new cards available for this device.',
+  'screens_home_screen.068': 'Offline center',
+  'screens_home_screen.069':
+      'Show offline tools only without any online screens.',
+  'screens_home_screen.070':
+      'Manage offline inventory and sync operations without exposing stored card codes.',
+  'screens_home_screen.071': 'Debt book',
+  'screens_home_screen.072':
+      'Available for local work and uploads changes when internet returns.',
+  'screens_home_screen.073':
+      'There are {count} pending cards to sync, with automatic refresh for offline inventory.',
+  'screens_home_screen.074':
+      'Update the offline workspace and download new cards for this device.',
+  'screens_home_screen.075': 'Follow local sync without showing card codes.',
+  'screens_home_screen.076':
+      'Manage customers and debts locally even while internet is unavailable.',
+  'screens_home_screen.077':
+      'You have {count} pending cards to sync, and new offline cards will also be downloaded.',
+  'screens_home_screen.078':
+      'Update offline inventory on this device and download any new cards.',
+  'screens_home_screen.079':
+      'Manage customers, debts, and repayments online and offline.',
+  'screens_home_screen.080': 'Home dashboard',
+  'screens_home_screen.081': 'Service',
+  'screens_admin_customer_screen.073': 'Hide transaction filter',
+  'screens_admin_customer_screen.074': 'Show transaction filter',
+  'screens_admin_customer_screen.075': 'Resend user details',
+  'screens_admin_customer_screen.076':
+      'Review financial transactions and activity related to this customer.',
+  'screens_admin_customer_screen.077':
+      'Open the transaction filter from the top filter icon when needed.',
+  'screens_admin_customer_screen.078': 'Debt book',
+  'screens_debt_book_screen.001': 'None',
+  'screens_debt_book_screen.002': 'Offline mode',
+  'screens_debt_book_screen.003':
+      'Changes will be saved locally until internet becomes available.',
+  'screens_debt_book_screen.004': 'Add new customer',
+  'screens_debt_book_screen.005': 'Edit customer details',
+  'screens_debt_book_screen.006': 'Customer name',
+  'screens_debt_book_screen.007': 'Phone number',
+  'screens_debt_book_screen.008': 'Notes',
+  'screens_debt_book_screen.009': 'Cancel',
+  'screens_debt_book_screen.010': 'Save',
+  'screens_debt_book_screen.011': 'Customer name is required.',
+  'screens_debt_book_screen.012': 'Saved locally',
+  'screens_debt_book_screen.013':
+      'The customer will be uploaded to the server when internet becomes available.',
+  'screens_debt_book_screen.014': 'Delete customer',
+  'screens_debt_book_screen.015':
+      'Customer "{name}" and all of its records will be deleted from the debt book.',
+  'screens_debt_book_screen.016': 'Delete',
+  'screens_debt_book_screen.017': 'Deleted locally',
+  'screens_debt_book_screen.018':
+      'The deletion will be sent to the server when internet becomes available.',
+  'screens_debt_book_screen.019': 'Refresh',
+  'screens_debt_book_screen.020': 'Sync',
+  'screens_debt_book_screen.021': 'Add customer',
+  'screens_debt_book_screen.022': 'You do not have access to the debt book.',
+  'screens_debt_book_screen.023': 'Customer debt book',
+  'screens_debt_book_screen.024':
+      'The screen is now online, and any change will also be saved locally for quick review.',
+  'screens_debt_book_screen.025':
+      'You are currently offline. You can continue locally and changes will be uploaded later.',
+  'screens_debt_book_screen.026': 'Customers count',
+  'screens_debt_book_screen.027': 'Current debtors',
+  'screens_debt_book_screen.028': 'Total debt',
+  'screens_debt_book_screen.029': 'Total paid',
+  'screens_debt_book_screen.030': 'Pending sync operations',
+  'screens_debt_book_screen.031': 'Status: Online',
+  'screens_debt_book_screen.032': 'Status: Offline',
+  'screens_debt_book_screen.033': 'Last sync: {date}',
+  'screens_debt_book_screen.034': 'Top debtors right now',
+  'screens_debt_book_screen.035': 'No phone number',
+  'screens_debt_book_screen.036': 'Search by name or phone number',
+  'screens_debt_book_screen.037': 'All',
+  'screens_debt_book_screen.038': 'Debtors only',
+  'screens_debt_book_screen.039': 'Settled or no debt',
+  'screens_debt_book_screen.040': 'No data in the debt book yet.',
+  'screens_debt_book_screen.041': 'A',
+  'screens_debt_book_screen.042': 'Edit customer',
+  'screens_debt_book_screen.043': 'Total debt',
+  'screens_debt_book_screen.044': 'Remaining',
+  'screens_debt_book_screen.045': 'Last entry: {date}',
+  'screens_debt_book_screen.046': 'Pending sync',
+  'screens_admin_debt_book_screen.001': 'None',
+  'screens_admin_debt_book_screen.002': 'Admin report - Debt book',
+  'screens_admin_debt_book_screen.003': 'Customers: {count}',
+  'screens_admin_debt_book_screen.004': 'Debtors: {count}',
+  'screens_admin_debt_book_screen.005': 'Total debt: {amount}',
+  'screens_admin_debt_book_screen.006': 'Total paid: {amount}',
+  'screens_admin_debt_book_screen.007': 'Last sync: {date}',
+  'screens_admin_debt_book_screen.008': 'Debtors:',
+  'screens_admin_debt_book_screen.009': '- No open debts right now',
+  'screens_admin_debt_book_screen.010': '- {name} | {phone} | {amount}',
+  'screens_admin_debt_book_screen.011': 'Admin archive - Debt book',
+  'screens_admin_debt_book_screen.012': 'Customer',
+  'screens_admin_debt_book_screen.013': 'Phone',
+  'screens_admin_debt_book_screen.014': 'Remaining',
+  'screens_admin_debt_book_screen.015': 'Last entry',
+  'screens_admin_debt_book_screen.016': 'No phone',
+  'screens_admin_debt_book_screen.017': 'Copied',
+  'screens_admin_debt_book_screen.018':
+      'The admin debt book report was copied.',
+  'screens_admin_debt_book_screen.019': 'Print failed',
+  'screens_admin_debt_book_screen.020': 'Export failed',
+  'screens_admin_debt_book_screen.021':
+      'You do not have access to the debt book archive.',
+  'screens_admin_debt_book_screen.022': 'Full admin debt book archive',
+  'screens_admin_debt_book_screen.023':
+      'Search, filter, and print a general report for debtors from one place.',
+  'screens_admin_debt_book_screen.024': 'Customers count',
+  'screens_admin_debt_book_screen.025': 'Debtors',
+  'screens_admin_debt_book_screen.026': 'Total debt',
+  'screens_admin_debt_book_screen.027': 'Total paid',
+  'screens_admin_debt_book_screen.028': 'Online',
+  'screens_admin_debt_book_screen.029': 'Offline',
+  'screens_admin_debt_book_screen.030': 'Copy report',
+  'screens_admin_debt_book_screen.031': 'Print',
+  'screens_admin_debt_book_screen.032': 'Export PDF',
+  'screens_admin_debt_book_screen.033': 'Search by name or phone number',
+  'screens_admin_debt_book_screen.034': 'All',
+  'screens_admin_debt_book_screen.035': 'Debtors only',
+  'screens_admin_debt_book_screen.036': 'Settled or no debt',
+  'screens_admin_debt_book_screen.037': 'No matching results.',
+  'screens_admin_debt_book_screen.038': 'A',
+  'screens_admin_debt_book_screen.039': 'No phone number',
+  'screens_admin_debt_book_screen.040': 'Total debt',
+  'screens_admin_debt_book_screen.041': 'Total paid',
+  'screens_debt_book_customer_screen.001': 'None',
+  'screens_debt_book_customer_screen.002': 'Debt book statement',
+  'screens_debt_book_customer_screen.003': 'Customer name: {name}',
+  'screens_debt_book_customer_screen.004': 'Phone number: {phone}',
+  'screens_debt_book_customer_screen.005': 'No phone',
+  'screens_debt_book_customer_screen.006': 'Last activity: {date}',
+  'screens_debt_book_customer_screen.007': 'Notes: {notes}',
+  'screens_debt_book_customer_screen.008': 'Total debt: {amount}',
+  'screens_debt_book_customer_screen.009': 'Total paid: {amount}',
+  'screens_debt_book_customer_screen.010': 'Remaining: {amount}',
+  'screens_debt_book_customer_screen.011': 'Entries:',
+  'screens_debt_book_customer_screen.012':
+      '- {type} | {amount} | {date} | {note}',
+  'screens_debt_book_customer_screen.013': 'Debt',
+  'screens_debt_book_customer_screen.014': 'Payment',
+  'screens_debt_book_customer_screen.015': 'No notes',
+  'screens_debt_book_customer_screen.016': 'Customer debt book statement',
+  'screens_debt_book_customer_screen.017': 'Entries',
+  'screens_debt_book_customer_screen.018':
+      'There are no entries recorded for this customer.',
+  'screens_debt_book_customer_screen.019': 'Type',
+  'screens_debt_book_customer_screen.020': 'Amount',
+  'screens_debt_book_customer_screen.021': 'Date',
+  'screens_debt_book_customer_screen.022': 'Description',
+  'screens_debt_book_customer_screen.023': 'Copied',
+  'screens_debt_book_customer_screen.024':
+      'The customer statement was copied to the clipboard.',
+  'screens_debt_book_customer_screen.025': 'Print failed',
+  'screens_debt_book_customer_screen.026': 'Export failed',
+  'screens_debt_book_customer_screen.027': 'Add debt',
+  'screens_debt_book_customer_screen.028': 'Add payment',
+  'screens_debt_book_customer_screen.029': 'Edit debt entry',
+  'screens_debt_book_customer_screen.030': 'Edit payment entry',
+  'screens_debt_book_customer_screen.031': 'Amount',
+  'screens_debt_book_customer_screen.032': 'Operation note',
+  'screens_debt_book_customer_screen.033': 'Cancel',
+  'screens_debt_book_customer_screen.034': 'Save',
+  'screens_debt_book_customer_screen.035':
+      'Enter a valid amount greater than zero.',
+  'screens_debt_book_customer_screen.036': 'Saved locally',
+  'screens_debt_book_customer_screen.037':
+      'The operation will be uploaded when internet becomes available.',
+  'screens_debt_book_customer_screen.038': 'Edit customer details',
+  'screens_debt_book_customer_screen.039': 'Customer name',
+  'screens_debt_book_customer_screen.040': 'Phone number',
+  'screens_debt_book_customer_screen.041': 'Notes',
+  'screens_debt_book_customer_screen.042': 'Delete customer',
+  'screens_debt_book_customer_screen.043':
+      'Customer "{name}" and all entries will be deleted from the debt book.',
+  'screens_debt_book_customer_screen.044': 'Delete',
+  'screens_debt_book_customer_screen.045': 'Delete entry',
+  'screens_debt_book_customer_screen.046':
+      'This entry will be deleted from the debt book.',
+  'screens_debt_book_customer_screen.047': 'Deleted locally',
+  'screens_debt_book_customer_screen.048':
+      'Entry deletion will be uploaded when internet becomes available.',
+  'screens_debt_book_customer_screen.049': 'Refresh',
+  'screens_debt_book_customer_screen.050': 'Sync',
+  'screens_debt_book_customer_screen.051': 'Could not find this customer data.',
+  'screens_debt_book_customer_screen.052': 'No phone number',
+  'screens_debt_book_customer_screen.053': 'Edit',
+  'screens_debt_book_customer_screen.054': 'Delete',
+  'screens_debt_book_customer_screen.055': 'Last recorded activity: {date}',
+  'screens_debt_book_customer_screen.056': 'Total debt',
+  'screens_debt_book_customer_screen.057': 'Total paid',
+  'screens_debt_book_customer_screen.058': 'Remaining',
+  'screens_debt_book_customer_screen.059': 'Copy statement',
+  'screens_debt_book_customer_screen.060': 'Print',
+  'screens_debt_book_customer_screen.061': 'Export PDF',
+  'screens_debt_book_customer_screen.062': 'Customer entries',
+  'screens_debt_book_customer_screen.063': 'Debt entry',
+  'screens_debt_book_customer_screen.064': 'Payment entry',
+  'screens_debt_book_customer_screen.065': 'Edit entry',
+  'screens_debt_book_customer_screen.066': 'Pending sync',
+  'services_app_alert_service.001': 'Success',
+  'services_app_alert_service.002': 'Error',
+  'services_app_alert_service.003': 'Info',
+  'services_app_alert_service.004': 'Shwakil',
+  'services_app_alert_service.005': 'Contact on WhatsApp',
+  'services_app_alert_service.006': 'OK',
+  'services_app_alert_service.007': 'Failed to reach the server',
+  'services_app_alert_service.008': 'WhatsApp',
+  'widgets_barcode_scanner_dialog.001': 'Scan results',
+  'widgets_barcode_scanner_dialog.002': 'Could not show the scan result',
+  'widgets_barcode_scanner_dialog.003':
+      'No valid data was received after reading the barcode.',
+  'widgets_barcode_scanner_dialog.004': 'Scan another card',
+  'widgets_barcode_scanner_dialog.005': 'Turn off light',
+  'widgets_barcode_scanner_dialog.006': 'Turn on light',
+  'widgets_barcode_scanner_dialog.007': 'Analyzing barcode',
+  'widgets_barcode_scanner_dialog.008':
+      'We are preparing the scan result to show it here directly.',
+  'widgets_barcode_scanner_dialog.009': 'Could not start the camera',
+  'widgets_barcode_scanner_dialog.010':
+      'Close any other app using the camera, then try again.',
+  'widgets_app_top_actions.001': 'This screen is unavailable without internet',
+  'widgets_app_top_actions.002':
+      'You are currently in offline mode. The notifications screen needs an internet connection to work.',
+  'widgets_app_top_actions.003': 'Unread notifications: {count}',
+  'widgets_app_top_actions.004': 'Notifications',
+  'widgets_app_top_actions.005': 'Quick logout',
+  'widgets_app_sidebar.035': 'This screen is unavailable without internet',
+  'widgets_app_sidebar.036':
+      'You are currently in offline mode. This screen needs an internet connection to work.',
+  'widgets_app_sidebar.037': 'Scan workspace',
+  'widgets_app_sidebar.038': 'Offline center',
+  'widgets_app_sidebar.039': 'Sub users',
+  'widgets_app_sidebar.040': 'Debt book',
+  'services_error_message_service.001':
+      'An unexpected error occurred. Please try again.',
+  'services_error_message_service.002':
+      'Please sign in with an account that has the required permission to continue.',
+  'services_error_message_service.003':
+      'Could not reach the server right now. Check your internet connection or try again shortly.',
+  'services_error_message_service.004':
+      'Could not reach the server. Check your internet connection or service availability, then try again.',
+  'services_error_message_service.005':
+      'Could not connect to the live server right now. You can continue and try again shortly.',
+  'services_error_message_service.006':
+      'Please verify all entered data and try again.',
+  'services_error_message_service.007':
+      'An error occurred while processing the request. Try again, or contact support if the issue continues.',
+  'services_error_message_service.008': 'Unauthorized',
+  'services_error_message_service.009': 'Not permitted',
+  'services_local_notification_service.001': 'Account updates',
+  'services_local_notification_service.002':
+      'Account, request, and important alert notifications',
+  'services_local_notification_service.003': 'Balance activity',
+  'services_local_notification_service.004':
+      'Top-up, deduction, transfer, and other financial activity alerts',
+  'services_contact_info_service.001': 'Contact',
+  'services_contact_info_service.002': 'Palestine',
+  'services_api_service.001': 'Please verify all entered data and try again.',
 };

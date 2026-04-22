@@ -40,5 +40,5 @@ php -S 127.0.0.1:8080
 ## Flutter Local Run
 
 ```powershell
-flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8080/api
+flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8080/api --dart-define=API_CLIENT_KEY=local-debug-key
 ```
