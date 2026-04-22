@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../main.dart';
 import '../models/index.dart';
@@ -14,7 +16,6 @@ import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_logo.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class ScanCardScreen extends StatefulWidget {
   const ScanCardScreen({
@@ -41,7 +42,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _isSearching = false;
   bool _isSubmitting = false;
   bool _showDetails = false;
-  bool _showManualSearch = false;
   bool _routeSubscribed = false;
   bool _hasShownOfflineIntro = false;
   bool _hasShownReconnectPrompt = false;
@@ -312,6 +312,239 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
+  bool get _canCreateTemporaryTransferCode {
+    final permissions = AppPermissions.fromUser(_user);
+    return !widget.offlineMode &&
+        !_isDeviceOffline &&
+        permissions.canTransfer &&
+        (_user?['transferVerificationStatus']?.toString() == 'approved');
+  }
+
+  _TemporaryTransferPayload? _tryParseTemporaryTransferPayload(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return null;
+      }
+      return _TemporaryTransferPayload.fromMap(Map<String, dynamic>.from(decoded));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _showTemporaryTransferCreator() async {
+    if (!_canCreateTemporaryTransferCode) {
+      await AppAlertService.showInfo(
+        context,
+        title: 'رمز تحويل مؤقت',
+        message: _isDeviceOffline
+            ? 'يلزم اتصال إنترنت لإنشاء الرمز المؤقت لأول مرة، ثم يبقى صالحًا حتى انتهاء الدقيقة.'
+            : 'هذه الميزة متاحة فقط للحسابات الموثقة والمصرح لها بالتحويل.',
+      );
+      return;
+    }
+
+    final amountController = TextEditingController();
+    try {
+      final amount = await showDialog<double>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إنشاء رمز تحويل مؤقت'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'أدخل قيمة المبلغ المطلوب استلامه. سيبقى الرمز صالحًا لمدة دقيقة واحدة فقط.',
+                style: AppTheme.bodyAction,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'المبلغ',
+                  hintText: 'مثال: 25',
+                  prefixIcon: Icon(Icons.payments_rounded),
+                ),
+                onSubmitted: (_) => Navigator.of(dialogContext).pop(
+                  double.tryParse(amountController.text.trim()),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(
+                double.tryParse(amountController.text.trim()),
+              ),
+              child: const Text('متابعة'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted || amount == null || amount <= 0) {
+        return;
+      }
+
+      final security = await TransferSecurityService.confirmTransfer(
+        context,
+        requireOtpAfterLocalAuth: true,
+      );
+      if (!mounted || !security.isVerified || (security.otpCode?.isEmpty ?? true)) {
+        return;
+      }
+
+      final response = await _api.createTemporaryTransferCode(
+        amount: amount,
+        otpCode: security.otpCode!,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final payload = _TemporaryTransferPayload.fromMap(response);
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _TemporaryTransferCodeDialog(payload: payload),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إنشاء الرمز المؤقت',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      amountController.dispose();
+    }
+  }
+
+  Future<BarcodeScannerDialogResult?> _resolveTemporaryTransferDialogResult(
+    _TemporaryTransferPayload payload,
+  ) async {
+    if (!mounted) {
+      return null;
+    }
+
+    final currentUserId = _user?['id']?.toString();
+    if (payload.senderId != null && payload.senderId == currentUserId) {
+      return const BarcodeScannerDialogResult.error(
+        headline: 'رمز غير صالح لهذا الحساب',
+        message: 'لا يمكنك استخدام رمز التحويل المؤقت على نفس الحساب الذي أنشأه.',
+      );
+    }
+
+    return BarcodeScannerDialogResult(
+      headline: 'رمز تحويل مؤقت',
+      description: 'تم العثور على رمز تحويل بمبلغ محدد. راجع البيانات ثم أكد الاستلام خلال مدة الصلاحية.',
+      color: AppTheme.primary,
+      icon: Icons.qr_code_2_rounded,
+      items: [
+        BarcodeScannerDialogResultItem(
+          label: 'المبلغ',
+          value: CurrencyFormatter.ils(payload.amount),
+          icon: Icons.payments_rounded,
+        ),
+        BarcodeScannerDialogResultItem(
+          label: 'صافي الاستلام',
+          value: CurrencyFormatter.ils(payload.netAmount),
+          icon: Icons.account_balance_wallet_rounded,
+        ),
+        BarcodeScannerDialogResultItem(
+          label: 'من الحساب',
+          value: payload.senderUsername.isNotEmpty ? payload.senderUsername : 'مستخدم',
+          icon: Icons.person_rounded,
+        ),
+        BarcodeScannerDialogResultItem(
+          label: 'ينتهي عند',
+          value: _formatDate(payload.expiresAt),
+          icon: Icons.timer_outlined,
+        ),
+      ],
+      primaryActionLabel: 'استلام الآن',
+      primaryActionIcon: Icons.download_done_rounded,
+      onPrimaryAction: () async => _redeemTemporaryTransferCodeFromScan(payload),
+    );
+  }
+
+  Future<BarcodeScannerDialogResult?> _redeemTemporaryTransferCodeFromScan(
+    _TemporaryTransferPayload payload,
+  ) async {
+    try {
+      Map<String, dynamic>? location;
+      try {
+        location = await TransactionLocationService.captureCurrentLocation();
+      } catch (_) {
+        location = null;
+      }
+      final response = await _api.redeemTemporaryTransferCode(
+        payload: payload.qrPayload,
+        location: location,
+      );
+      if (!mounted) {
+        return null;
+      }
+
+      final updatedBalance = (response['balance'] as num?)?.toDouble();
+      if (updatedBalance != null) {
+        await _auth.cacheCurrentUser({
+          ...?_user,
+          'balance': updatedBalance,
+        });
+        setState(() {
+          _user = {
+            ...?_user,
+            'balance': updatedBalance,
+          };
+        });
+      }
+
+      return BarcodeScannerDialogResult(
+        headline: 'تم الاستلام بنجاح',
+        description: 'تم خصم المبلغ من رصيد المُرسل وتحويله إلى حسابك عبر الرمز المؤقت.',
+        color: AppTheme.success,
+        icon: Icons.check_circle_rounded,
+        items: [
+          BarcodeScannerDialogResultItem(
+            label: 'المبلغ',
+            value: CurrencyFormatter.ils(
+              (response['grossAmount'] as num?)?.toDouble() ?? payload.amount,
+            ),
+            icon: Icons.payments_rounded,
+          ),
+          BarcodeScannerDialogResultItem(
+            label: 'المضاف إلى حسابك',
+            value: CurrencyFormatter.ils(
+              (response['creditedAmount'] as num?)?.toDouble() ?? payload.netAmount,
+            ),
+            icon: Icons.account_balance_wallet_rounded,
+          ),
+          BarcodeScannerDialogResultItem(
+            label: 'من الحساب',
+            value:
+                response['senderUsername']?.toString() ??
+                (payload.senderUsername.isNotEmpty ? payload.senderUsername : 'مستخدم'),
+            icon: Icons.person_rounded,
+          ),
+        ],
+      );
+    } catch (error) {
+      return BarcodeScannerDialogResult.error(
+        headline: 'تعذر استلام التحويل',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
   Future<void> _openScannerDialog() async {
     if (await _promptMoveOnlineIfAvailable(
       actionLabel: _t('screens_scan_card_screen.077'),
@@ -341,6 +574,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Future<BarcodeScannerDialogResult?> _resolveScannerDialogResult(
     String scannedValue,
   ) async {
+    final temporaryPayload = _tryParseTemporaryTransferPayload(scannedValue);
+    if (temporaryPayload != null) {
+      return _resolveTemporaryTransferDialogResult(temporaryPayload);
+    }
+
     final lookup = await _lookupCard(scannedValue);
     if (!mounted) {
       return null;
@@ -772,18 +1010,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         title: const SizedBox.shrink(),
         actions: [
           IconButton(
-            tooltip: _showManualSearch
-                ? _t('screens_scan_card_screen.094')
-                : _t('screens_scan_card_screen.095'),
-            onPressed: () =>
-                setState(() => _showManualSearch = !_showManualSearch),
-            icon: Icon(
-              _showManualSearch
-                  ? Icons.search_off_rounded
-                  : Icons.manage_search_rounded,
-            ),
-          ),
-          IconButton(
             tooltip: _t('screens_scan_card_screen.096'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
@@ -868,12 +1094,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.tr('screens_scan_card_screen.002'),
+                        'البحث عن بطاقة',
                         style: AppTheme.h3,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        l.tr('screens_scan_card_screen.003'),
+                        'أدخل رقم الباركود للوصول السريع إلى البطاقة.',
                         style: AppTheme.bodyAction,
                       ),
                     ],
@@ -882,44 +1108,112 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               ],
             ),
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: _switchScanMode,
-            icon: Icon(
-              widget.offlineMode
-                  ? Icons.cloud_done_rounded
-                  : Icons.cloud_off_rounded,
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: AppTheme.border),
             ),
-            label: Text(
-              widget.offlineMode
-                  ? _t('screens_scan_card_screen.103')
-                  : _t('screens_scan_card_screen.104'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _bcC,
+                    decoration: InputDecoration(
+                      labelText: 'رقم الباركود',
+                      hintText: 'اكتب الرقم ثم اضغط بحث',
+                      prefixIcon: const Icon(Icons.qr_code_rounded),
+                      suffixIcon: _isSearching
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                    ),
+                    onSubmitted: (_) => _search(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Tooltip(
+                  message: _canCreateTemporaryTransferCode
+                      ? 'إنشاء رمز تحويل مؤقت لمدة دقيقة'
+                      : 'يتطلب حسابًا موثقًا واتصال إنترنت لإنشاء الرمز المؤقت',
+                  child: Material(
+                    color: _canCreateTemporaryTransferCode
+                        ? AppTheme.success.withValues(alpha: 0.12)
+                        : AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: _canCreateTemporaryTransferCode
+                          ? _showTemporaryTransferCreator
+                          : null,
+                      child: SizedBox(
+                        width: 54,
+                        height: 54,
+                        child: Icon(
+                          Icons.qr_code_2_rounded,
+                          color: _canCreateTemporaryTransferCode
+                              ? AppTheme.success
+                              : AppTheme.textTertiary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Tooltip(
+                  message: widget.offlineMode
+                      ? _t('screens_scan_card_screen.103')
+                      : _t('screens_scan_card_screen.104'),
+                  child: Material(
+                    color: widget.offlineMode
+                        ? AppTheme.warning.withValues(alpha: 0.14)
+                        : AppTheme.primarySoft,
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: _switchScanMode,
+                      child: SizedBox(
+                        width: 54,
+                        height: 54,
+                        child: Icon(
+                          widget.offlineMode
+                              ? Icons.cloud_done_rounded
+                              : Icons.cloud_off_rounded,
+                          color: widget.offlineMode
+                              ? AppTheme.warning
+                              : AppTheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          if (_showManualSearch) ...[
-            const SizedBox(height: 18),
-            TextField(
-              controller: _bcC,
-              decoration: InputDecoration(
-                labelText: l.tr('screens_scan_card_screen.004'),
-                prefixIcon: const Icon(Icons.qr_code_rounded),
-                suffixIcon: _isSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : null,
-              ),
-              onSubmitted: (_) => _search(),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: widget.offlineMode
+                  ? AppTheme.warning.withValues(alpha: 0.08)
+                  : AppTheme.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(18),
             ),
-          ] else ...[
-            const SizedBox(height: 18),
-            ToolToggleHint(
-              message: _t(
-                'screens_scan_card_screen.105',
+            child: Text(
+              widget.offlineMode
+                  ? 'وضع الأوفلاين مفعل. يمكنك البحث ضمن البطاقات المحفوظة.'
+                  : 'ابحث عن بطاقة برقم الباركود أو استخدم الكاميرا للفحص السريع.',
+              style: AppTheme.bodyAction.copyWith(
+                color: widget.offlineMode
+                    ? AppTheme.warning
+                    : AppTheme.textSecondary,
               ),
-              icon: Icons.manage_search_rounded,
             ),
-          ],
+          ),
           if (widget.offlineMode && _isDeviceOffline) ...[
             const SizedBox(height: 14),
             Container(
@@ -1780,4 +2074,219 @@ class _CardLookupResult {
 
   final VirtualCard? card;
   final String? errorMessage;
+}
+
+class _TemporaryTransferPayload {
+  const _TemporaryTransferPayload({
+    required this.qrPayload,
+    required this.amount,
+    required this.feeAmount,
+    required this.netAmount,
+    required this.expiresAt,
+    required this.senderUsername,
+    this.senderId,
+  });
+
+  factory _TemporaryTransferPayload.fromMap(Map<String, dynamic> map) {
+    final expiresAt =
+        DateTime.tryParse(map['expiresAt']?.toString() ?? '')?.toLocal() ??
+        DateTime.now().toLocal().add(const Duration(minutes: 1));
+    return _TemporaryTransferPayload(
+      qrPayload:
+          map['qrPayload']?.toString() ??
+          jsonEncode(Map<String, dynamic>.from(map)),
+      amount: (map['amount'] as num?)?.toDouble() ?? 0,
+      feeAmount: (map['feeAmount'] as num?)?.toDouble() ?? 0,
+      netAmount: (map['netAmount'] as num?)?.toDouble() ?? 0,
+      expiresAt: expiresAt,
+      senderUsername: map['senderUsername']?.toString() ?? '',
+      senderId: map['senderId']?.toString(),
+    );
+  }
+
+  final String qrPayload;
+  final double amount;
+  final double feeAmount;
+  final double netAmount;
+  final DateTime expiresAt;
+  final String senderUsername;
+  final String? senderId;
+}
+
+class _TemporaryTransferCodeDialog extends StatefulWidget {
+  const _TemporaryTransferCodeDialog({required this.payload});
+
+  final _TemporaryTransferPayload payload;
+
+  @override
+  State<_TemporaryTransferCodeDialog> createState() =>
+      _TemporaryTransferCodeDialogState();
+}
+
+class _TemporaryTransferCodeDialogState
+    extends State<_TemporaryTransferCodeDialog> {
+  Timer? _timer;
+  late int _remainingSeconds;
+
+  @override
+  void initState() {
+    super.initState();
+    _remainingSeconds = _computeRemainingSeconds();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        return;
+      }
+      final next = _computeRemainingSeconds();
+      if (next <= 0) {
+        Navigator.of(context).pop();
+        return;
+      }
+      setState(() => _remainingSeconds = next);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  int _computeRemainingSeconds() {
+    final diff = widget.payload.expiresAt.difference(DateTime.now().toLocal());
+    return diff.inSeconds < 0 ? 0 : diff.inSeconds;
+  }
+
+  String _formatCountdown() {
+    final minutes = (_remainingSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  String _formatExpiry(DateTime value) {
+    final y = value.year.toString().padLeft(4, '0');
+    final m = value.month.toString().padLeft(2, '0');
+    final d = value.day.toString().padLeft(2, '0');
+    final hh = value.hour.toString().padLeft(2, '0');
+    final mm = value.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: ShwakelCard(
+          padding: const EdgeInsets.all(24),
+          borderRadius: BorderRadius.circular(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('رمز تحويل مؤقت', style: AppTheme.h3),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'اعرض هذا الرمز للطرف المستلم. تنتهي صلاحيته تلقائيًا بعد دقيقة واحدة من وقت إنشائه.',
+                textAlign: TextAlign.center,
+                style: AppTheme.bodyAction,
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: QrImageView(
+                  data: widget.payload.qrPayload,
+                  size: 220,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      CurrencyFormatter.ils(widget.payload.amount),
+                      style: AppTheme.h2.copyWith(color: AppTheme.success),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'العد التنازلي: ${_formatCountdown()}',
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ينتهي عند ${_formatExpiry(widget.payload.expiresAt)}',
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  _TempTransferInfoChip(
+                    icon: Icons.payments_rounded,
+                    label: 'الرسوم ${CurrencyFormatter.ils(widget.payload.feeAmount)}',
+                  ),
+                  _TempTransferInfoChip(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'الصافي ${CurrencyFormatter.ils(widget.payload.netAmount)}',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TempTransferInfoChip extends StatelessWidget {
+  const _TempTransferInfoChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 8),
+          Text(label, style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
 }

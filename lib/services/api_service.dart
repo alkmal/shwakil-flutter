@@ -1264,6 +1264,39 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> createTemporaryTransferCode({
+    required double amount,
+    required String otpCode,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('wallet/temporary-transfer-code'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'amount': amount,
+        'otpCode': otpCode.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> redeemTemporaryTransferCode({
+    required String payload,
+    Map<String, dynamic>? location,
+  }) async {
+    final requestPayload = <String, dynamic>{'payload': payload};
+    if (location != null) {
+      requestPayload['location'] = location;
+    }
+    final response = await http.post(
+      AppConfig.apiUri('wallet/temporary-transfer-code/redeem'),
+      headers: await _headers(),
+      body: jsonEncode(requestPayload),
+    );
+    final body = _decodeObject(response);
+    await _patchCachedBalanceFromPayload(body);
+    return body;
+  }
+
   Future<Map<String, dynamic>> requestWithdrawal({
     required double amount,
     required String destinationType,

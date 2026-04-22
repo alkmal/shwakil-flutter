@@ -287,6 +287,33 @@ class OfflineCardService {
     };
   }
 
+  Future<void> updateOfflineSettings(
+    String userId,
+    Map<String, dynamic> patch,
+  ) async {
+    if (patch.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_settingsKeyPrefix$userId';
+    final current = await offlineSettings(userId);
+    current.addAll(patch);
+    await prefs.setString(key, await _encodeStoredObject(current));
+  }
+
+  Future<void> recordLastSync(
+    String userId, {
+    DateTime? syncedAt,
+    String? source,
+  }) async {
+    final timestamp = (syncedAt ?? DateTime.now()).toIso8601String();
+    await updateOfflineSettings(userId, {
+      'lastSyncAt': timestamp,
+      if (source != null && source.trim().isNotEmpty)
+        'lastSyncSource': source.trim(),
+    });
+  }
+
   Future<String?> validateCanQueueRedeem({
     required String userId,
     required double cardValue,

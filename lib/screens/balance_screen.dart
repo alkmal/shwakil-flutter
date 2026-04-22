@@ -708,8 +708,6 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     const SizedBox(height: 18),
                     _buildHistorySection(isCompact: isCompact),
                     const SizedBox(height: 24),
-                    _buildHistoryHeading(),
-                    const SizedBox(height: 14),
                     if (_transactions.isEmpty)
                       _buildEmptyState()
                     else ...[
@@ -956,51 +954,6 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHistoryHeading() {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                context.loc.tr('screens_balance_screen.076'),
-                style: AppTheme.h2.copyWith(fontSize: 20),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _transactions.isEmpty
-                    ? context.loc.tr('screens_balance_screen.077')
-                    : context.loc.tr(
-                        'screens_balance_screen.078',
-                        params: {'count': '${_transactions.length}'},
-                      ),
-                style: AppTheme.caption.copyWith(fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.primarySoft,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            context.loc.tr(
-              'screens_balance_screen.079',
-              params: {'page': '$_page'},
-            ),
-            style: AppTheme.caption.copyWith(
-              color: AppTheme.primary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

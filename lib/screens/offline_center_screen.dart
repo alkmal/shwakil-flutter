@@ -35,6 +35,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
   int _availableCount = 0;
   int _debtPendingCount = 0;
   String? _debtLastSyncedAt;
+  String? _lastOfflineSyncAt;
   Map<String, dynamic> _offlineSettings = const {};
   List<Map<String, dynamic>> _pendingItems = const [];
   List<Map<String, dynamic>> _historyItems = const [];
@@ -100,6 +101,9 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       _rejectedCount = (summary['rejectedCount'] as num?)?.toInt() ?? 0;
       _debtPendingCount = debtPendingOperations.length;
       _debtLastSyncedAt = debtSnapshot['syncedAt']?.toString();
+      _lastOfflineSyncAt = overview['settings'] is Map
+          ? (overview['settings'] as Map)['lastSyncAt']?.toString()
+          : null;
       _pendingItems = List<Map<String, dynamic>>.from(
         summary['items'] as List? ?? const [],
       );
@@ -131,15 +135,14 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         ),
       );
       await _resolveUnknownLookups();
+      await _offlineCardService.recordLastSync(
+        _user!['id'].toString(),
+        source: 'inventory',
+      );
       await _loadOverview();
       if (!mounted) {
         return;
       }
-      AppAlertService.showSuccess(
-        context,
-        title: context.loc.tr('screens_offline_center_screen.001'),
-        message: context.loc.tr('screens_offline_center_screen.002'),
-      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -284,21 +287,11 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         await _authService.patchCurrentUser({'balance': updatedBalance});
         _user = await _authService.currentUser();
       }
+      await _offlineCardService.recordLastSync(userId, source: 'queue');
       await _loadOverview();
       if (!mounted) {
         return;
       }
-      AppAlertService.showSuccess(
-        context,
-        title: context.loc.tr('screens_offline_center_screen.008'),
-        message: context.loc.tr(
-          'screens_offline_center_screen.009',
-          params: {
-            'count': '${acceptedBarcodes.length}',
-            'remaining': '$_rejectedCount',
-          },
-        ),
-      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -337,15 +330,14 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         userId: _user!['id'].toString(),
         api: _apiService,
       );
+      await _offlineCardService.recordLastSync(
+        _user!['id'].toString(),
+        source: 'debt_book',
+      );
       await _loadOverview();
       if (!mounted) {
         return;
       }
-      AppAlertService.showSuccess(
-        context,
-        title: context.loc.tr('screens_offline_center_screen.046'),
-        message: context.loc.tr('screens_offline_center_screen.047'),
-      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -369,7 +361,11 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: const SizedBox.shrink(),
-          actions: const [AppNotificationAction(), QuickLogoutAction()],
+          actions: [
+            _buildSyncStatusAction(),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
+          ],
         ),
         body: const Center(
           child: Padding(
@@ -385,7 +381,11 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: const SizedBox.shrink(),
-          actions: const [AppNotificationAction(), QuickLogoutAction()],
+          actions: [
+            _buildSyncStatusAction(),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
+          ],
         ),
         body: Center(
           child: ShwakelCard(
@@ -419,7 +419,11 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const SizedBox.shrink(),
-        actions: const [AppNotificationAction(), QuickLogoutAction()],
+        actions: [
+          _buildSyncStatusAction(),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -806,6 +810,92 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildSyncStatusAction() {
+    final hasPending = _pendingCount > 0 || _debtPendingCount > 0;
+    final isSyncing =
+        _isSyncingCards || _isSyncingQueue || _isSyncingDebtBook;
+    final iconColor = isSyncing
+        ? AppTheme.warning
+        : hasPending
+        ? AppTheme.warning
+        : AppTheme.success;
+    final backgroundColor = isSyncing
+        ? AppTheme.warning.withValues(alpha: 0.16)
+        : hasPending
+        ? AppTheme.warning.withValues(alpha: 0.16)
+        : AppTheme.success.withValues(alpha: 0.14);
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 2),
+      child: IconButton(
+        tooltip: 'حالة المزامنة',
+        onPressed: _showSyncStatusSheet,
+        icon: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: isSyncing
+              ? Padding(
+                  padding: const EdgeInsets.all(9),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+                  ),
+                )
+              : Icon(
+                  Icons.check_rounded,
+                  color: iconColor,
+                  size: 20,
+                ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSyncStatusSheet() async {
+    final status = (_isSyncingCards || _isSyncingQueue || _isSyncingDebtBook)
+        ? 'جارٍ تنفيذ المزامنة'
+        : (_pendingCount > 0 || _debtPendingCount > 0)
+        ? 'توجد عمليات بانتظار المزامنة'
+        : 'المزامنة مكتملة';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('حالة المزامنة', style: AppTheme.h3),
+              const SizedBox(height: 14),
+              _detailRow('الحالة', status),
+              _detailRow('آخر مزامنة', _formatSyncTimestamp(_lastOfflineSyncAt)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatSyncTimestamp(String? raw) {
+    final date = raw == null ? null : DateTime.tryParse(raw);
+    if (date == null) {
+      return 'لم تتم مزامنة بعد';
+    }
+    final local = date.toLocal();
+    final y = local.year.toString().padLeft(4, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
   }
 
   Widget _statCard({

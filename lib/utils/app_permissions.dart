@@ -2,10 +2,68 @@ class AppPermissions {
   const AppPermissions._(this._raw);
 
   factory AppPermissions.fromUser(Map<String, dynamic>? user) {
-    return AppPermissions._(_coerceMap(user?['permissions']));
+    final rawPermissions = _coerceMap(user?['permissions']);
+    if (user == null) {
+      return AppPermissions._(rawPermissions);
+    }
+
+    final merged = <String, dynamic>{...rawPermissions};
+    for (final key in _knownBooleanKeys) {
+      if (!merged.containsKey(key) && user.containsKey(key)) {
+        merged[key] = user[key];
+      }
+    }
+
+    if (!merged.containsKey('role') && user['role'] != null) {
+      merged['role'] = user['role'];
+    }
+    if (!merged.containsKey('roleLabel') && user['roleLabel'] != null) {
+      merged['roleLabel'] = user['roleLabel'];
+    }
+
+    return AppPermissions._(merged);
   }
 
   final Map<String, dynamic> _raw;
+
+  static const List<String> _knownBooleanKeys = [
+    'canViewBalance',
+    'canViewTransactions',
+    'canViewInventory',
+    'canViewQuickTransfer',
+    'canViewContact',
+    'canViewLocations',
+    'canViewUsagePolicy',
+    'canViewSecuritySettings',
+    'canViewAccountSettings',
+    'canRequestVerification',
+    'canIssueCards',
+    'canIssuePrivateCards',
+    'canRequestCardPrinting',
+    'canScanCards',
+    'canOfflineCardScan',
+    'canTransfer',
+    'canWithdraw',
+    'canReviewCards',
+    'canResellCards',
+    'canRedeemCards',
+    'canViewCustomers',
+    'canManageUsers',
+    'canManageDebtBook',
+    'canManageLocations',
+    'canManageSystemSettings',
+    'canManageSubUsers',
+    'canViewSubUsers',
+    'canReviewWithdrawals',
+    'canReviewTopups',
+    'canReviewDevices',
+    'canManageCardPrintRequests',
+    'canReviewCardPrintRequests',
+    'canPrepareCardPrintRequests',
+    'canFinalizeCardPrintRequests',
+    'canOpenQuickTransfer',
+    'canOpenCardTools',
+  ];
 
   static Map<String, dynamic> _coerceMap(dynamic value) {
     if (value is Map) {

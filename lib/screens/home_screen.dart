@@ -8,13 +8,9 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
-import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
-import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/shwakel_logo.dart';
-import 'scan_card_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
   int _pendingOfflineCount = 0;
   double _pendingOfflineAmount = 0;
+  String? _lastOfflineSyncAt;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
 
@@ -78,10 +75,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void didPopNext() => _loadUser();
 
-  bool get _canIssueCards {
-    return AppPermissions.fromUser(_user).canIssueCards;
-  }
-
   bool get _canTransfer {
     return AppPermissions.fromUser(_user).canTransfer;
   }
@@ -98,11 +91,37 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return AppPermissions.fromUser(_user).canOpenCardTools;
   }
 
-  bool get _isVerifiedAccount =>
-      _user?['transferVerificationStatus']?.toString() == 'approved';
-
   String _t(String key, {Map<String, String>? params}) =>
       context.loc.tr(key, params: params);
+
+  String get _displayName {
+    final username = _user?['username']?.toString().trim() ?? '';
+    final fullName = _user?['fullName']?.toString().trim() ?? '';
+    return fullName.isNotEmpty ? fullName : username;
+  }
+
+  String get _roleLabel {
+    return _user?['roleLabel']?.toString().trim() ??
+        _user?['role']?.toString().trim() ??
+        '';
+  }
+
+  String get _userInitials {
+    final source = _displayName.trim();
+    if (source.isEmpty) {
+      return '؟';
+    }
+    final parts = source
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (parts.length >= 2) {
+      return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+          .toUpperCase();
+    }
+    final first = parts.first;
+    return first.substring(0, first.length >= 2 ? 2 : 1).toUpperCase();
+  }
 
   Future<void> _loadUser() async {
     setState(() => _isLoading = true);
@@ -111,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final user = await _authService.currentUser();
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       final pendingSummary = await _resolveOfflinePendingSummary(user);
+      final lastSyncAt = await _resolveLastOfflineSyncAt(user);
       if (!mounted) return;
       setState(() {
         _user = user;
@@ -118,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
         _pendingOfflineAmount =
             (pendingSummary['amount'] as num?)?.toDouble() ?? 0;
+        _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
       });
       _maybeSuggestOfflineWorkspace();
@@ -125,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final user = await _authService.currentUser();
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       final pendingSummary = await _resolveOfflinePendingSummary(user);
+      final lastSyncAt = await _resolveLastOfflineSyncAt(user);
       if (!mounted) return;
       setState(() {
         _user = user;
@@ -132,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
         _pendingOfflineAmount =
             (pendingSummary['amount'] as num?)?.toDouble() ?? 0;
+        _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
       });
       _maybeSuggestOfflineWorkspace();
@@ -146,6 +169,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       return const {'count': 0, 'amount': 0.0};
     }
     return _offlineCardService.pendingRedeemSummary(user['id'].toString());
+  }
+
+  Future<String?> _resolveLastOfflineSyncAt(Map<String, dynamic>? user) async {
+    final permissions = AppPermissions.fromUser(user);
+    if (user == null || user['id'] == null || !permissions.canOfflineCardScan) {
+      return null;
+    }
+    final settings = await _offlineCardService.offlineSettings(
+      user['id'].toString(),
+    );
+    return settings['lastSyncAt']?.toString();
   }
 
   void _handleConnectivityChanged() {
@@ -208,8 +242,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         await _debtBookService.syncPending(userId: userId, api: _apiService);
       }
 
-      int acceptedCount = 0;
-      int rejectedCount = 0;
       if (queuedBeforeSync.isNotEmpty) {
         final result = await _apiService.syncOfflineCardRedeems(
           items: queuedBeforeSync,
@@ -250,9 +282,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             .where((item) => item['status'] == 'rejected')
             .toList();
 
-        acceptedCount = acceptedBarcodes.length;
-        rejectedCount = rejectedBarcodes.length;
-
         await _offlineCardService.replaceRedeemQueue(
           userId,
           queuedBeforeSync
@@ -287,27 +316,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         // Keep the cached user if refreshing the profile is temporarily unavailable.
       }
 
+      await _offlineCardService.recordLastSync(
+        userId,
+        source: queuedBeforeSync.isNotEmpty ? 'queue' : 'inventory',
+      );
+
       await _loadUser();
       if (!mounted) {
         return;
-      }
-
-      if (hadPendingItems || triggeredAutomatically) {
-        AppAlertService.showSuccess(
-          context,
-          title: triggeredAutomatically
-              ? _t('screens_home_screen.050')
-              : _t('screens_home_screen.051'),
-          message: hadPendingItems
-              ? _t(
-                  'screens_home_screen.052',
-                  params: {
-                    'accepted': '$acceptedCount',
-                    'rejected': '$rejectedCount',
-                  },
-                )
-              : _t('screens_home_screen.053'),
-        );
       }
     } catch (error) {
       if (!mounted || triggeredAutomatically) {
@@ -447,39 +463,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     Navigator.pushNamed(context, routeName);
   }
 
-  Future<void> _startHomeBarcodeScan() async {
-    if (!_canOpenCardTools && !_canReviewCards) return;
-    final l = context.loc;
-    final scannedValue = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => BarcodeScannerDialog(
-        title: l.tr('screens_home_screen.014'),
-        description: l.tr('screens_home_screen.013'),
-        height: 320,
-        onCancelLabel: l.tr('screens_home_screen.001'),
-      ),
-    );
-    if (!mounted || scannedValue == null || scannedValue.isEmpty) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ScanCardScreen(
-          initialBarcode: scannedValue,
-          offlineMode: OfflineSessionService.isOfflineMode,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final services = _serviceItems(context);
+    final listServices = services
+        .where((item) => item.kind != _HomeServiceKind.scan)
+        .toList(growable: false);
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const SizedBox.shrink(),
-        actions: [const AppNotificationAction(), const QuickLogoutAction()],
+        actions: [
+          if (_canOfflineScan) _buildSyncStatusAction(),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: _isLoading
@@ -490,24 +489,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 padding: EdgeInsets.zero,
                 children: [
                   ResponsiveScaffoldContainer(
-                    padding: const EdgeInsets.fromLTRB(0, 16, 0, 28),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final width = constraints.maxWidth;
-                        final isMobile = width < 700;
-                        final showBarcodeCard =
-                            _canIssueCards || _canReviewCards;
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildTopSection(
-                              isMobile: isMobile,
-                              showBarcodeCard: showBarcodeCard,
-                            ),
-                          ],
-                        );
-                      },
+                    padding: const EdgeInsets.fromLTRB(0, 20, 0, 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildWelcomeCard(),
+                        const SizedBox(height: 18),
+                        _buildServicesSection(listServices),
+                      ],
                     ),
                   ),
                 ],
@@ -554,6 +543,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 : _t('screens_home_screen.067'),
             icon: Icons.cloud_sync_rounded,
             color: AppTheme.primary,
+            kind: _HomeServiceKind.sync,
             onTap: () => unawaited(_syncOfflineWorkspace()),
           ),
         if (canScanCards)
@@ -562,6 +552,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             subtitle: l.tr('screens_home_screen.016'),
             icon: Icons.qr_code_scanner_rounded,
             color: AppTheme.success,
+            kind: _HomeServiceKind.scan,
             onTap: _openScanScreen,
           ),
         if (canOpenOfflineCenter)
@@ -572,6 +563,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 : _t('screens_home_screen.070'),
             icon: Icons.cloud_done_rounded,
             color: AppTheme.warning,
+            kind: _HomeServiceKind.offlineCenter,
             onTap: () => Navigator.pushNamed(context, '/offline-center'),
           ),
         if (canManageDebtBook)
@@ -580,6 +572,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             subtitle: _t('screens_home_screen.072'),
             icon: Icons.menu_book_rounded,
             color: const Color(0xFF7C3AED),
+            kind: _HomeServiceKind.debtBook,
             onTap: () => Navigator.pushNamed(context, '/debt-book'),
           ),
       ];
@@ -600,6 +593,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 : _t('screens_home_screen.074'),
             icon: Icons.cloud_sync_rounded,
             color: AppTheme.primary,
+            kind: _HomeServiceKind.sync,
             onTap: () => unawaited(_syncOfflineWorkspace()),
           ),
         _HomeServiceItem(
@@ -607,6 +601,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.016'),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.success,
+          kind: _HomeServiceKind.scan,
           onTap: _openScanScreen,
         ),
         if (canOpenOfflineCenter)
@@ -615,6 +610,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             subtitle: _t('screens_home_screen.075'),
             icon: Icons.cloud_done_rounded,
             color: AppTheme.warning,
+            kind: _HomeServiceKind.offlineCenter,
             onTap: () => Navigator.pushNamed(context, '/offline-center'),
           ),
         if (canManageDebtBook)
@@ -623,6 +619,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             subtitle: _t('screens_home_screen.076'),
             icon: Icons.menu_book_rounded,
             color: const Color(0xFF7C3AED),
+            kind: _HomeServiceKind.debtBook,
             onTap: () => Navigator.pushNamed(context, '/debt-book'),
           ),
       ];
@@ -642,6 +639,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               : _t('screens_home_screen.078'),
           icon: Icons.cloud_sync_rounded,
           color: AppTheme.primary,
+          kind: _HomeServiceKind.sync,
           onTap: () => unawaited(_syncOfflineWorkspace()),
         ),
       if (canScanCards)
@@ -650,6 +648,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.016'),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.success,
+          kind: _HomeServiceKind.scan,
           onTap: _openScanScreen,
         ),
       if (canViewBalance)
@@ -658,6 +657,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.018'),
           icon: Icons.account_balance_wallet_rounded,
           color: AppTheme.primary,
+          kind: _HomeServiceKind.balance,
           onTap: () => unawaited(_openOnlineOnlyRoute('/balance')),
         ),
       if (canIssueCards)
@@ -666,6 +666,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.020'),
           icon: Icons.add_card_rounded,
           color: const Color(0xFF0B75B7),
+          kind: _HomeServiceKind.createCard,
           onTap: () => unawaited(_openOnlineOnlyRoute('/create-card')),
         ),
       if (canViewQuickTransfer && _canTransfer)
@@ -674,6 +675,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.022'),
           icon: Icons.send_to_mobile_rounded,
           color: AppTheme.accent,
+          kind: _HomeServiceKind.quickTransfer,
           onTap: () => unawaited(_openOnlineOnlyRoute('/quick-transfer')),
         ),
       if (canViewInventory && canIssueCards)
@@ -682,6 +684,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.024'),
           icon: Icons.inventory_2_rounded,
           color: AppTheme.textSecondary,
+          kind: _HomeServiceKind.inventory,
           onTap: () => unawaited(_openOnlineOnlyRoute('/inventory')),
         ),
       if (canRequestCardPrinting)
@@ -690,6 +693,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.026'),
           icon: Icons.print_rounded,
           color: AppTheme.secondary,
+          kind: _HomeServiceKind.printRequests,
           onTap: () => unawaited(_openOnlineOnlyRoute('/card-print-requests')),
         ),
       if (canViewTransactions)
@@ -698,6 +702,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.028'),
           icon: Icons.receipt_long_rounded,
           color: AppTheme.warning,
+          kind: _HomeServiceKind.transactions,
           onTap: () => unawaited(_openOnlineOnlyRoute('/transactions')),
         ),
       if (canManageDebtBook)
@@ -706,6 +711,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: _t('screens_home_screen.079'),
           icon: Icons.menu_book_rounded,
           color: const Color(0xFF7C3AED),
+          kind: _HomeServiceKind.debtBook,
           onTap: () => Navigator.pushNamed(context, '/debt-book'),
         ),
       if (canViewSecuritySettings)
@@ -714,376 +720,344 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           subtitle: l.tr('screens_home_screen.030'),
           icon: Icons.security_rounded,
           color: AppTheme.secondary,
+          kind: _HomeServiceKind.security,
           onTap: () => unawaited(_openOnlineOnlyRoute('/security-settings')),
         ),
     ];
   }
 
-  Widget _buildTopSection({
-    required bool isMobile,
-    required bool showBarcodeCard,
-  }) {
-    if (isMobile) {
-      return Column(
-        children: [
-          _buildHeroCard(isMobile: true),
-          if (showBarcodeCard) ...[
-            const SizedBox(height: 16),
-            _buildHomeBarcodeCard(isMobile: true),
-          ],
-        ],
-      );
-    }
+  Widget _buildWelcomeCard() {
+    final title = _displayName.isEmpty
+        ? 'مرحبًا'
+        : 'مرحبًا، $_displayName';
+    final subtitle = _roleLabel.isEmpty ? 'الخدمات المتاحة لحسابك' : _roleLabel;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: showBarcodeCard ? 3 : 1,
-          child: _buildHeroCard(isMobile: false),
-        ),
-        if (showBarcodeCard) ...[
-          const SizedBox(width: 18),
-          Expanded(flex: 2, child: _buildHomeBarcodeCard(isMobile: false)),
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(26),
+      shadowLevel: ShwakelShadowLevel.medium,
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _userInitials,
+              style: AppTheme.h2.copyWith(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTheme.h2.copyWith(fontSize: 18)),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: AppTheme.bodyAction,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
         ],
-      ],
+      ),
     );
   }
 
-  Widget _buildHeroCard({required bool isMobile}) {
-    final l = context.loc;
-    final username = _user?['username']?.toString() ?? '';
-    final fullName = _user?['fullName']?.toString().trim() ?? '';
-    final role =
-        _user?['roleLabel']?.toString() ?? _user?['role']?.toString() ?? '';
-    final displayName = fullName.isNotEmpty ? fullName : username;
-    final serviceCount = _serviceItems(context).length;
-    final heroChips = [
-      _HeroChipData(
-        icon: Icons.verified_user_rounded,
-        label: _isVerifiedAccount
-            ? l.tr('screens_home_screen.009')
-            : l.tr('screens_home_screen.010'),
-      ),
-      if (role.isNotEmpty)
-        _HeroChipData(icon: Icons.badge_rounded, label: role),
-      _HeroChipData(
-        icon: Icons.grid_view_rounded,
-        label: l.tr(
-          'screens_home_screen.034',
-          params: {'count': serviceCount.toString()},
+  Widget _buildSyncStatusAction() {
+    final hasPending = _pendingOfflineCount > 0;
+    final canOpenStatus = _hasOfflineWorkspace || _canOpenCardTools;
+    final backgroundColor = _isSyncingOfflineWorkspace
+        ? AppTheme.warning.withValues(alpha: 0.16)
+        : hasPending
+        ? AppTheme.warning.withValues(alpha: 0.16)
+        : AppTheme.success.withValues(alpha: 0.14);
+    final iconColor = _isSyncingOfflineWorkspace
+        ? AppTheme.warning
+        : hasPending
+        ? AppTheme.warning
+        : AppTheme.success;
+    final tooltip = _isSyncingOfflineWorkspace
+        ? _t('screens_home_screen.064')
+        : hasPending
+        ? _t(
+            'screens_home_screen.077',
+            params: {'count': '$_pendingOfflineCount'},
+          )
+        : _t('screens_home_screen.053');
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 2),
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: !canOpenStatus
+            ? null
+            : _showSyncStatusSheet,
+        icon: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: _isSyncingOfflineWorkspace
+                  ? Padding(
+                      padding: const EdgeInsets.all(9),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+                      ),
+                    )
+                  : Icon(
+                      Icons.check_rounded,
+                      color: iconColor,
+                      size: 20,
+                    ),
+            ),
+            if (hasPending && !_isSyncingOfflineWorkspace)
+              Positioned(
+                top: -5,
+                left: -5,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.error,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Text(
+                    _pendingOfflineCount > 9 ? '9+' : '$_pendingOfflineCount',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
-    ];
+    );
+  }
 
-    return ShwakelCard(
-      padding: EdgeInsets.all(isMobile ? 20 : 24),
-      gradient: const LinearGradient(
-        colors: [Color(0xFF0C4A6E), Color(0xFF0F766E), Color(0xFF22C1C3)],
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
+  Future<void> _showSyncStatusSheet() async {
+    final lastSync = _formatSyncTimestamp(_lastOfflineSyncAt);
+    final statusText = _isSyncingOfflineWorkspace
+        ? _t('screens_home_screen.064')
+        : _pendingOfflineCount > 0
+        ? _t(
+            'screens_home_screen.077',
+            params: {'count': '$_pendingOfflineCount'},
+          )
+        : _t('screens_home_screen.053');
+
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('حالة المزامنة', style: AppTheme.h3),
+              const SizedBox(height: 14),
+              _syncInfoRow('الحالة', statusText),
+              _syncInfoRow('آخر مزامنة', lastSync),
+            ],
+          ),
+        ),
       ),
-      shadowLevel: ShwakelShadowLevel.premium,
-      withBorder: false,
-      borderRadius: BorderRadius.circular(34),
+    );
+  }
+
+  String _formatSyncTimestamp(String? raw) {
+    final date = raw == null ? null : DateTime.tryParse(raw);
+    if (date == null) {
+      return 'لم تتم مزامنة بعد';
+    }
+    final local = date.toLocal();
+    final y = local.year.toString().padLeft(4, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
+  }
+
+  Widget _syncInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTheme.caption),
+          const SizedBox(height: 4),
+          Text(value, style: AppTheme.bodyBold),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServicesSection(List<_HomeServiceItem> services) {
+    final l = context.loc;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(28),
+      shadowLevel: ShwakelShadowLevel.medium,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primarySoft,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.dashboard_customize_rounded,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(l.tr('screens_home_screen.004'), style: AppTheme.h2),
+                    const SizedBox(height: 4),
                     Text(
-                      l.tr('screens_home_screen.080'),
-                      style: AppTheme.caption.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      displayName.isEmpty
-                          ? l.tr('screens_home_screen.006')
+                      services.isEmpty
+                          ? l.tr('screens_home_screen.005')
                           : l.tr(
-                              'screens_home_screen.031',
-                              params: {'name': displayName},
+                              'screens_home_screen.034',
+                              params: {'count': services.length.toString()},
                             ),
-                      style: AppTheme.h2.copyWith(
-                        color: Colors.white,
-                        fontSize: isMobile ? 18 : 22,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      role.isEmpty ? l.tr('screens_home_screen.007') : role,
-                      style: AppTheme.bodyBold.copyWith(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        fontSize: 15,
-                      ),
+                      style: AppTheme.bodyAction,
                     ),
                   ],
                 ),
-              ),
-              Container(
-                width: isMobile ? 62 : 70,
-                height: isMobile ? 62 : 70,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.20),
-                  ),
-                ),
-                child: const ShwakelLogo(size: 38, framed: true),
               ),
             ],
           ),
           const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(isMobile ? 18 : 22),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-            ),
-            child: isMobile
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l.tr('screens_home_screen.008'),
-                        style: AppTheme.bodyBold.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        l.tr('screens_home_screen.032'),
-                        style: AppTheme.h1.copyWith(
-                          color: Colors.white,
-                          fontSize: 20,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        l.tr('screens_home_screen.033'),
-                        style: AppTheme.bodyAction.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: heroChips
-                            .map(
-                              (chip) => _buildHeroChip(
-                                icon: chip.icon,
-                                label: chip.label,
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l.tr('screens_home_screen.008'),
-                              style: AppTheme.bodyBold.copyWith(
-                                color: Colors.white.withValues(alpha: 0.92),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              l.tr('screens_home_screen.032'),
-                              style: AppTheme.h1.copyWith(
-                                color: Colors.white,
-                                fontSize: 28,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              l.tr('screens_home_screen.033'),
-                              style: AppTheme.bodyAction.copyWith(
-                                color: Colors.white.withValues(alpha: 0.92),
-                                height: 1.45,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          children: heroChips
-                              .map(
-                                (chip) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _buildHeroChip(
-                                    icon: chip.icon,
-                                    label: chip.label,
-                                    expanded: true,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeroChip({
-    required IconData icon,
-    required String label,
-    bool expanded = false,
-  }) {
-    return Container(
-      width: expanded ? double.infinity : null,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHomeBarcodeCard({required bool isMobile}) {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: EdgeInsets.all(isMobile ? 18 : 24),
-      borderRadius: BorderRadius.circular(30),
-      shadowLevel: ShwakelShadowLevel.medium,
-      child: isMobile
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 62,
-                      height: 62,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(
-                        Icons.qr_code_scanner_rounded,
-                        color: AppTheme.primary,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l.tr('screens_home_screen.011'),
-                            style: AppTheme.h2.copyWith(fontSize: 17),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            l.tr('screens_home_screen.035'),
-                            style: AppTheme.bodyAction.copyWith(height: 1.4),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ShwakelButton(
-                  label: l.tr('screens_home_screen.012'),
-                  icon: Icons.camera_alt_rounded,
-                  onPressed: _startHomeBarcodeScan,
-                ),
-              ],
+          if (services.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Text(
+                l.tr('screens_home_screen.005'),
+                style: AppTheme.bodyAction,
+              ),
             )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          else
+            ...services.asMap().entries.map(
+              (entry) => Padding(
+                padding: EdgeInsets.only(
+                  bottom: entry.key == services.length - 1 ? 0 : 12,
+                ),
+                child: _buildServiceListItem(entry.value),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceListItem(_HomeServiceItem item) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: item.onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppTheme.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: item.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(item.icon, color: item.color, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l.tr('screens_home_screen.011'),
-                            style: AppTheme.h2.copyWith(fontSize: 18),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l.tr('screens_home_screen.035'),
-                            style: AppTheme.bodyAction.copyWith(height: 1.45),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: const Icon(
-                        Icons.qr_code_scanner_rounded,
-                        color: AppTheme.primary,
-                        size: 36,
-                      ),
+                    Text(item.title, style: AppTheme.bodyBold),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.subtitle,
+                      style: AppTheme.bodyAction.copyWith(height: 1.35),
                     ),
                   ],
                 ),
-                const SizedBox(height: 22),
-                ShwakelButton(
-                  label: l.tr('screens_home_screen.012'),
-                  icon: Icons.camera_alt_rounded,
-                  onPressed: _startHomeBarcodeScan,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 18,
+                color: AppTheme.textSecondary.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
+
 }
 
 class _HomeServiceItem {
@@ -1092,6 +1066,7 @@ class _HomeServiceItem {
     required this.subtitle,
     required this.icon,
     required this.color,
+    required this.kind,
     required this.onTap,
   });
 
@@ -1099,12 +1074,20 @@ class _HomeServiceItem {
   final String subtitle;
   final IconData icon;
   final Color color;
+  final _HomeServiceKind kind;
   final VoidCallback onTap;
 }
 
-class _HeroChipData {
-  const _HeroChipData({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
+enum _HomeServiceKind {
+  scan,
+  sync,
+  balance,
+  createCard,
+  quickTransfer,
+  inventory,
+  printRequests,
+  transactions,
+  debtBook,
+  security,
+  offlineCenter,
 }
