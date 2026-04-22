@@ -1899,44 +1899,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       ),
     );
   }
-}
-
-class _CardLookupResult {
-  const _CardLookupResult.success(this.card) : errorMessage = null;
-
-  const _CardLookupResult.error(this.errorMessage) : card = null;
-
-  final VirtualCard? card;
-  final String? errorMessage;
-}
-
-class _TemporaryTransferPayload {
-  const _TemporaryTransferPayload({
-    required this.qrPayload,
-    required this.amount,
-    required this.feeAmount,
-    required this.netAmount,
-    required this.expiresAt,
-    required this.senderUsername,
-    this.senderId,
-  });
-
-  factory _TemporaryTransferPayload.fromMap(Map<String, dynamic> map) {
-    final expiresAt =
-        DateTime.tryParse(map['expiresAt']?.toString() ?? '')?.toLocal() ??
-        DateTime.now().toLocal().add(const Duration(minutes: 1));
-    return _TemporaryTransferPayload(
-      qrPayload:
-          map['qrPayload']?.toString() ??
-          jsonEncode(Map<String, dynamic>.from(map)),
-      amount: (map['amount'] as num?)?.toDouble() ?? 0,
-      feeAmount: (map['feeAmount'] as num?)?.toDouble() ?? 0,
-      netAmount: (map['netAmount'] as num?)?.toDouble() ?? 0,
-      expiresAt: expiresAt,
-      senderUsername: map['senderUsername']?.toString() ?? '',
-      senderId: map['senderId']?.toString(),
-    );
-  }
 
   Future<void> _showCardDetailsSheet(VirtualCard card) async {
     final l = context.loc;
@@ -1991,7 +1953,7 @@ class _TemporaryTransferPayload {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final isCompact = constraints.maxWidth < 620;
-                    final items = [
+                    final items = <Widget>[
                       _detailTile(
                         l.tr('screens_scan_card_screen.023'),
                         card.barcode,
@@ -2074,7 +2036,7 @@ class _TemporaryTransferPayload {
                                 child: item,
                               ),
                             )
-                            .toList(),
+                            .toList(growable: false),
                       );
                     }
 
@@ -2086,6 +2048,44 @@ class _TemporaryTransferPayload {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CardLookupResult {
+  const _CardLookupResult.success(this.card) : errorMessage = null;
+
+  const _CardLookupResult.error(this.errorMessage) : card = null;
+
+  final VirtualCard? card;
+  final String? errorMessage;
+}
+
+class _TemporaryTransferPayload {
+  const _TemporaryTransferPayload({
+    required this.qrPayload,
+    required this.amount,
+    required this.feeAmount,
+    required this.netAmount,
+    required this.expiresAt,
+    required this.senderUsername,
+    this.senderId,
+  });
+
+  factory _TemporaryTransferPayload.fromMap(Map<String, dynamic> map) {
+    final expiresAt =
+        DateTime.tryParse(map['expiresAt']?.toString() ?? '')?.toLocal() ??
+        DateTime.now().toLocal().add(const Duration(minutes: 1));
+    return _TemporaryTransferPayload(
+      qrPayload:
+          map['qrPayload']?.toString() ??
+          jsonEncode(Map<String, dynamic>.from(map)),
+      amount: (map['amount'] as num?)?.toDouble() ?? 0,
+      feeAmount: (map['feeAmount'] as num?)?.toDouble() ?? 0,
+      netAmount: (map['netAmount'] as num?)?.toDouble() ?? 0,
+      expiresAt: expiresAt,
+      senderUsername: map['senderUsername']?.toString() ?? '',
+      senderId: map['senderId']?.toString(),
     );
   }
 
@@ -2248,6 +2248,7 @@ class _TemporaryTransferCodeDialogState
       ),
     );
   }
+
 }
 
 class _TempTransferInfoChip extends StatelessWidget {

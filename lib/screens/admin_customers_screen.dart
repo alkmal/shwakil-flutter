@@ -259,16 +259,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                             },
                           ),
                         );
-                        final phoneField = Expanded(
-                          child: TextField(
-                            controller: whatsappController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              labelText: l.tr(
-                                'screens_admin_customers_screen.009',
-                              ),
-                              prefixIcon: const Icon(Icons.phone_rounded),
+                        final phoneField = TextField(
+                          controller: whatsappController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_admin_customers_screen.009',
                             ),
+                            prefixIcon: const Icon(Icons.phone_rounded),
                           ),
                         );
 
@@ -289,7 +287,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                           children: [
                             countryField,
                             const SizedBox(width: 12),
-                            phoneField,
+                            Expanded(child: phoneField),
                           ],
                         );
                       },
