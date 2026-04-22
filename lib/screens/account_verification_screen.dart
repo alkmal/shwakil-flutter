@@ -265,6 +265,10 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     String title;
     String text;
     IconData icon;
+    final latestRequest = Map<String, dynamic>.from(
+      _verification?['latestRequest'] as Map? ?? const <String, dynamic>{},
+    );
+    final reviewNotes = latestRequest['reviewNotes']?.toString().trim() ?? '';
 
     switch (status) {
       case 'pending':
@@ -308,6 +312,35 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                     height: 1.6,
                   ),
                 ),
+                if (status == 'rejected' && reviewNotes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: color.withValues(alpha: 0.18)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'سبب الرفض',
+                          style: AppTheme.bodyBold.copyWith(color: color),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          reviewNotes,
+                          style: AppTheme.bodyAction.copyWith(
+                            color: AppTheme.textPrimary,
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

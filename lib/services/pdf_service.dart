@@ -84,7 +84,7 @@ class PDFService {
   pw.Font? _regularFont;
   pw.Font? _boldFont;
   pw.MemoryImage? _defaultLogoImage;
-  pw.MemoryImage? _logoImage;
+  pw.MemoryImage? _accountLogoImage;
   String? _loadedLogoSource;
   Future<void> _ensureFontsLoaded() async {
     _regularFont ??= pw.Font.ttf(
@@ -105,12 +105,11 @@ class PDFService {
     final logoUrl = designSettings.logoUrl?.trim() ?? '';
     if (logoUrl.isNotEmpty &&
         _loadedLogoSource == logoUrl &&
-        _logoImage != null) {
+        _accountLogoImage != null) {
       return;
     }
     if (logoUrl.isEmpty &&
-        _loadedLogoSource == 'default' &&
-        _logoImage != null) {
+        _loadedLogoSource == 'none') {
       return;
     }
 
@@ -118,15 +117,17 @@ class PDFService {
       try {
         final response = await http.get(Uri.parse(logoUrl));
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          _logoImage = pw.MemoryImage(Uint8List.fromList(response.bodyBytes));
+          _accountLogoImage = pw.MemoryImage(
+            Uint8List.fromList(response.bodyBytes),
+          );
           _loadedLogoSource = logoUrl;
           return;
         }
       } catch (_) {}
     }
 
-    _logoImage = _defaultLogoImage;
-    _loadedLogoSource = 'default';
+    _accountLogoImage = null;
+    _loadedLogoSource = 'none';
   }
 
   pw.TextStyle _textStyle({
@@ -297,7 +298,8 @@ class PDFService {
     required bool compact,
     required VirtualCard card,
   }) {
-    final logoSize = compact ? 24.0 : 52.0;
+    final shwakelLogoSize = compact ? 24.0 : 58.0;
+    final accountLogoSize = compact ? 24.0 : 54.0;
     final titleSize = compact ? 7.2 : 16.5;
     final badgeFont = compact ? 4.8 : 8.8;
     return pw.Row(
@@ -340,20 +342,45 @@ class PDFService {
               ),
             ),
             pw.SizedBox(height: compact ? 1.8 : 4),
-            if (_logoImage != null)
-              pw.Container(
-                width: logoSize,
-                height: logoSize,
-                padding: pw.EdgeInsets.all(compact ? 1.8 : 3.0),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
-                  borderRadius: pw.BorderRadius.circular(compact ? 3 : 7),
-                ),
-                child: pw.Image(_logoImage!, fit: pw.BoxFit.contain),
-              ),
+            pw.Row(
+              mainAxisSize: pw.MainAxisSize.min,
+              children: [
+                if (_accountLogoImage != null) ...[
+                  _buildHeaderLogoBox(
+                    _accountLogoImage!,
+                    size: accountLogoSize,
+                    compact: compact,
+                  ),
+                  pw.SizedBox(width: compact ? 4 : 8),
+                ],
+                if (_defaultLogoImage != null)
+                  _buildHeaderLogoBox(
+                    _defaultLogoImage!,
+                    size: shwakelLogoSize,
+                    compact: compact,
+                  ),
+              ],
+            ),
           ],
         ),
       ],
+    );
+  }
+
+  pw.Widget _buildHeaderLogoBox(
+    pw.MemoryImage image, {
+    required double size,
+    required bool compact,
+  }) {
+    return pw.Container(
+      width: size,
+      height: size,
+      padding: pw.EdgeInsets.all(compact ? 1.8 : 3.0),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(compact ? 3 : 8),
+      ),
+      child: pw.Image(image, fit: pw.BoxFit.contain),
     );
   }
 

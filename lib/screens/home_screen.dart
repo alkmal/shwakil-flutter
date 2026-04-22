@@ -466,6 +466,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   Widget build(BuildContext context) {
     final services = _serviceItems(context);
+    _HomeServiceItem? scanShortcut;
+    for (final item in services) {
+      if (item.kind == _HomeServiceKind.scan) {
+        scanShortcut = item;
+        break;
+      }
+    }
     final listServices = services
         .where((item) => item.kind != _HomeServiceKind.scan)
         .toList(growable: false);
@@ -494,6 +501,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildWelcomeCard(),
+                        if (scanShortcut != null) ...[
+                          const SizedBox(height: 14),
+                          _buildScanShortcut(scanShortcut),
+                        ],
                         const SizedBox(height: 18),
                         _buildServicesSection(listServices),
                       ],
@@ -731,32 +742,49 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ? 'مرحبًا'
         : 'مرحبًا، $_displayName';
     final subtitle = _roleLabel.isEmpty ? 'الخدمات المتاحة لحسابك' : _roleLabel;
+    final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
 
     return ShwakelCard(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(26),
       shadowLevel: ShwakelShadowLevel.medium,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ),
       child: Row(
         children: [
           Container(
-            width: 58,
-            height: 58,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
+              color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white24),
             ),
             alignment: Alignment.center,
-            child: Text(
-              _userInitials,
-              style: AppTheme.h2.copyWith(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-              ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: userLogoUrl.isNotEmpty
+                  ? Image.network(
+                      userLogoUrl,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/images/shwakel_app_icon.png',
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.contain,
+                      ),
+                    )
+                  : Image.asset(
+                      'assets/images/shwakel_app_icon.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
+                    ),
             ),
           ),
           const SizedBox(width: 14),
@@ -764,13 +792,101 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTheme.h2.copyWith(fontSize: 18)),
+                Text(
+                  title,
+                  style: AppTheme.h2.copyWith(
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: AppTheme.bodyAction,
+                  style: AppTheme.bodyAction.copyWith(
+                    color: Colors.white.withValues(alpha: 0.88),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _userInitials,
+                    style: AppTheme.caption.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanShortcut(_HomeServiceItem item) {
+    return ShwakelCard(
+      onTap: item.onTap,
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(24),
+      shadowLevel: ShwakelShadowLevel.medium,
+      borderColor: item.color.withValues(alpha: 0.16),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: item.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(item.icon, color: item.color, size: 28),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'قراءة الباركود',
+                  style: AppTheme.bodyBold.copyWith(fontSize: 16),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'افتح الكاميرا مباشرة وابدأ الفحص بسرعة.',
+                  style: AppTheme.bodyAction.copyWith(height: 1.35),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: item.color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.camera_alt_rounded, size: 18, color: item.color),
+                const SizedBox(width: 6),
+                Text(
+                  'فتح الكاميرا',
+                  style: AppTheme.caption.copyWith(
+                    color: item.color,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),

@@ -393,7 +393,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         onRefresh: _load,
         child: SingleChildScrollView(
           child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spacingLg,
+              8,
+              AppTheme.spacingLg,
+              AppTheme.spacingLg,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -484,96 +489,236 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
   Widget _buildRequestCard(Map<String, dynamic> request) {
     final l = context.loc;
+    final status = request['status']?.toString() ?? 'pending_review';
+    final cardType = request['cardType'] == 'single_use'
+        ? l.tr('screens_card_print_requests_screen.027')
+        : l.tr('screens_card_print_requests_screen.028');
+    final quantityLabel = l.tr(
+      'screens_card_print_requests_screen.030',
+      params: {'count': '${request['quantity'] ?? 0}'},
+    );
+    final totalAmount = CurrencyFormatter.ils(
+      (request['totalAmount'] as num?)?.toDouble() ?? 0,
+    );
+    final createdAt = _formatDateTime(
+      request['createdAt']?.toString(),
+      request['created_at']?.toString() ?? '-',
+    );
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 12),
       child: ShwakelCard(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+        onTap: () => _showRequestDetails(request),
+        padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(22),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    request['statusLabel']?.toString() ??
-                        l.tr('screens_card_print_requests_screen.025'),
-                    style: AppTheme.h3,
-                  ),
-                ),
-                _statusChip(request['status']?.toString() ?? 'pending_review'),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _metaItem(
-                  l.tr('screens_card_print_requests_screen.026'),
-                  request['cardType'] == 'single_use'
-                      ? l.tr('screens_card_print_requests_screen.027')
-                      : l.tr('screens_card_print_requests_screen.028'),
-                ),
-                _metaItem(
-                  l.tr('screens_card_print_requests_screen.029'),
-                  l.tr(
-                    'screens_card_print_requests_screen.030',
-                    params: {'count': '${request['quantity'] ?? 0}'},
-                  ),
-                ),
-                _metaItem(
-                  l.tr('screens_card_print_requests_screen.031'),
-                  CurrencyFormatter.ils(
-                    (request['cardValue'] as num?)?.toDouble() ?? 0,
-                  ),
-                ),
-                _metaItem(
-                  l.tr('screens_card_print_requests_screen.032'),
-                  CurrencyFormatter.ils(
-                    (request['totalAmount'] as num?)?.toDouble() ?? 0,
-                  ),
-                ),
-                _metaItem(
-                  l.tr('screens_card_print_requests_screen.044'),
-                  request['sourceType'] == 'local'
-                      ? l.tr('screens_card_print_requests_screen.045')
-                      : l.tr('screens_card_print_requests_screen.046'),
-                ),
-                _metaItem(
-                  l.tr('screens_card_print_requests_screen.047'),
-                  _formatDateTime(
-                    request['lastPrintedAt']?.toString(),
-                    l.tr('screens_card_print_requests_screen.048'),
-                  ),
-                ),
-              ],
-            ),
-            if ((request['customerNotes']?.toString().trim().isNotEmpty ??
-                false))
-              Padding(
-                padding: const EdgeInsets.only(top: 14),
-                child: Text(
-                  l.tr(
-                    'screens_card_print_requests_screen.033',
-                    params: {'notes': '${request['customerNotes']}'},
-                  ),
-                  style: AppTheme.bodyAction,
-                ),
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: _statusColor(status).withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(16),
               ),
-            if ((request['adminNotes']?.toString().trim().isNotEmpty ?? false))
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  l.tr(
-                    'screens_card_print_requests_screen.034',
-                    params: {'notes': '${request['adminNotes']}'},
-                  ),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
+              child: Icon(
+                Icons.print_rounded,
+                color: _statusColor(status),
+                size: 22,
               ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          request['statusLabel']?.toString() ??
+                              l.tr('screens_card_print_requests_screen.025'),
+                          style: AppTheme.bodyBold.copyWith(fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _statusChip(status),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _miniMetaChip(
+                        label: l.tr('screens_card_print_requests_screen.026'),
+                        value: cardType,
+                      ),
+                      _miniMetaChip(
+                        label: l.tr('screens_card_print_requests_screen.029'),
+                        value: quantityLabel,
+                      ),
+                      _miniMetaChip(
+                        label: l.tr('screens_card_print_requests_screen.032'),
+                        value: totalAmount,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    createdAt,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_left_rounded,
+              color: AppTheme.textTertiary,
+              size: 22,
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showRequestDetails(Map<String, dynamic> request) async {
+    final l = context.loc;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.72,
+        minChildSize: 0.5,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.border,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'تفاصيل طلب الطباعة',
+                        style: AppTheme.h3,
+                      ),
+                    ),
+                    _statusChip(
+                      request['status']?.toString() ?? 'pending_review',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _metaItem(
+                      l.tr('screens_card_print_requests_screen.026'),
+                      request['cardType'] == 'single_use'
+                          ? l.tr('screens_card_print_requests_screen.027')
+                          : l.tr('screens_card_print_requests_screen.028'),
+                    ),
+                    _metaItem(
+                      l.tr('screens_card_print_requests_screen.029'),
+                      l.tr(
+                        'screens_card_print_requests_screen.030',
+                        params: {'count': '${request['quantity'] ?? 0}'},
+                      ),
+                    ),
+                    _metaItem(
+                      l.tr('screens_card_print_requests_screen.031'),
+                      CurrencyFormatter.ils(
+                        (request['cardValue'] as num?)?.toDouble() ?? 0,
+                      ),
+                    ),
+                    _metaItem(
+                      l.tr('screens_card_print_requests_screen.032'),
+                      CurrencyFormatter.ils(
+                        (request['totalAmount'] as num?)?.toDouble() ?? 0,
+                      ),
+                    ),
+                    _metaItem(
+                      l.tr('screens_card_print_requests_screen.044'),
+                      request['sourceType'] == 'local'
+                          ? l.tr('screens_card_print_requests_screen.045')
+                          : l.tr('screens_card_print_requests_screen.046'),
+                    ),
+                    _metaItem(
+                      l.tr('screens_card_print_requests_screen.047'),
+                      _formatDateTime(
+                        request['lastPrintedAt']?.toString(),
+                        l.tr('screens_card_print_requests_screen.048'),
+                      ),
+                    ),
+                  ],
+                ),
+                if ((request['customerNotes']?.toString().trim().isNotEmpty ??
+                    false))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: ShwakelCard(
+                      padding: const EdgeInsets.all(14),
+                      color: AppTheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(18),
+                      shadowLevel: ShwakelShadowLevel.none,
+                      child: Text(
+                        l.tr(
+                          'screens_card_print_requests_screen.033',
+                          params: {'notes': '${request['customerNotes']}'},
+                        ),
+                        style: AppTheme.bodyAction,
+                      ),
+                    ),
+                  ),
+                if ((request['adminNotes']?.toString().trim().isNotEmpty ??
+                    false))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: ShwakelCard(
+                      padding: const EdgeInsets.all(14),
+                      color: AppTheme.surfaceMuted,
+                      borderRadius: BorderRadius.circular(18),
+                      shadowLevel: ShwakelShadowLevel.none,
+                      child: Text(
+                        l.tr(
+                          'screens_card_print_requests_screen.034',
+                          params: {'notes': '${request['adminNotes']}'},
+                        ),
+                        style: AppTheme.bodyAction.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -597,9 +742,33 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     );
   }
 
-  Widget _statusChip(String status) {
-    final l = context.loc;
-    final color = switch (status) {
+  Widget _miniMetaChip({required String label, required String value}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceMuted,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          children: [
+            TextSpan(text: '$label: '),
+            TextSpan(
+              text: value,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(String status) {
+    return switch (status) {
       'approved' => AppTheme.primary,
       'printing' => AppTheme.warning,
       'ready' => AppTheme.success,
@@ -607,6 +776,11 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       'rejected' => AppTheme.error,
       _ => AppTheme.textSecondary,
     };
+  }
+
+  Widget _statusChip(String status) {
+    final l = context.loc;
+    final color = _statusColor(status);
     final label = switch (status) {
       'pending_review' => l.tr('screens_card_print_requests_screen.035'),
       'approved' => l.tr('screens_card_print_requests_screen.036'),

@@ -8,13 +8,11 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
-import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class BalanceScreen extends StatefulWidget {
   const BalanceScreen({super.key});
@@ -705,16 +703,18 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildActionsCard(isCompact: true, isPhone: isPhone),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     _buildHistorySection(isCompact: isCompact),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
                     if (_transactions.isEmpty)
                       _buildEmptyState()
                     else ...[
+                      _buildHistoryResultsHeader(),
+                      const SizedBox(height: 10),
                       ..._transactions.map(
                         (tx) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: AdminTransactionAuditCard(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _buildBalanceHistoryCard(
                             transaction: Map<String, dynamic>.from(tx),
                           ),
                         ),
@@ -739,17 +739,62 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Widget _buildHistorySection({required bool isCompact}) {
-    if (!_showHistoryFilters) {
-      return ToolToggleHint(
-        message: context.loc.tr('screens_balance_screen.075'),
-        icon: Icons.filter_alt_rounded,
-      );
-    }
-
     return ShwakelCard(
-      padding: EdgeInsets.all(isCompact ? 16 : 20),
+      padding: EdgeInsets.all(isCompact ? 14 : 18),
+      borderRadius: BorderRadius.circular(24),
       shadowLevel: ShwakelShadowLevel.soft,
-      child: _buildAuditFilters(compact: isCompact),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'سجل الحركات',
+                      style: AppTheme.bodyBold.copyWith(
+                        color: AppTheme.primary,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'تابع أحدث العمليات على الرصيد مع فلترة سريعة حسب المكان.',
+                      style: AppTheme.caption.copyWith(height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () =>
+                    setState(() => _showHistoryFilters = !_showHistoryFilters),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Icon(
+                    _showHistoryFilters
+                        ? Icons.filter_alt_off_rounded
+                        : Icons.filter_alt_rounded,
+                    color: AppTheme.primary,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_showHistoryFilters) ...[
+            const SizedBox(height: 12),
+            _buildAuditFilters(compact: isCompact),
+          ],
+        ],
+      ),
     );
   }
 
@@ -872,42 +917,40 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
 
   Widget _buildAuditFilters({required bool compact}) {
     final l = context.loc;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l.tr('screens_balance_screen.026'),
-          style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _filterChip(
+            l.tr('screens_balance_screen.044'),
+            _BalanceAuditFilter.all,
+            compact: compact,
+          ),
+          _filterChip(
+            l.tr('screens_balance_screen.045'),
+            _BalanceAuditFilter.nearBranch,
+            compact: compact,
+          ),
+          _filterChip(
+            l.tr('screens_balance_screen.046'),
+            _BalanceAuditFilter.outsideBranches,
+            compact: compact,
+          ),
+          if (((_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0) > 0)
             _filterChip(
-              l.tr('screens_balance_screen.044'),
-              _BalanceAuditFilter.all,
+              l.tr('screens_balance_screen.047'),
+              _BalanceAuditFilter.printingDebt,
               compact: compact,
             ),
-            _filterChip(
-              l.tr('screens_balance_screen.045'),
-              _BalanceAuditFilter.nearBranch,
-              compact: compact,
-            ),
-            _filterChip(
-              l.tr('screens_balance_screen.046'),
-              _BalanceAuditFilter.outsideBranches,
-              compact: compact,
-            ),
-            if (((_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0) > 0)
-              _filterChip(
-                l.tr('screens_balance_screen.047'),
-                _BalanceAuditFilter.printingDebt,
-                compact: compact,
-              ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -955,6 +998,344 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         ),
       ),
     );
+  }
+
+  Widget _buildHistoryResultsHeader() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'آخر الحركات',
+                style: AppTheme.h3.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'عرض مرتب ومختصر لعمليات الرصيد الأخيرة.',
+                style: AppTheme.caption,
+              ),
+            ],
+          ),
+        ),
+        if (_showHistoryFilters)
+          TextButton.icon(
+            onPressed: () => setState(() => _showHistoryFilters = false),
+            icon: const Icon(Icons.expand_less_rounded, size: 18),
+            label: const Text('إخفاء الفلاتر'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBalanceHistoryCard({
+    required Map<String, dynamic> transaction,
+  }) {
+    final type = transaction['type']?.toString() ?? '';
+    final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
+    final createdAt = transaction['createdAt']?.toString() ?? '';
+    final status = transaction['status']?.toString() ?? 'completed';
+    final metadata = Map<String, dynamic>.from(
+      transaction['metadata'] as Map? ?? const {},
+    );
+    final audit = metadata['locationAudit'];
+    final isNearBranch = audit is Map && audit['isNearSupportedBranch'] == true;
+    final isRejected = status == 'rejected' || type == 'withdrawal_rejected';
+    final accentColor = _historyAccentColor(
+      type: type,
+      amount: amount,
+      isRejected: isRejected,
+    );
+    final actorLine = _historyActorLine(type: type, metadata: metadata);
+
+    return ShwakelCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      borderRadius: BorderRadius.circular(22),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              _historyIcon(type: type, amount: amount, isRejected: isRejected),
+              color: accentColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _historyTypeLabel(type: type, metadata: metadata),
+                        style: AppTheme.bodyBold.copyWith(fontSize: 15),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        CurrencyFormatter.ils(amount),
+                        style: AppTheme.bodyBold.copyWith(
+                          color: accentColor,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    Text(
+                      createdAt,
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    if (isRejected)
+                      Text(
+                        'مرفوضة',
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.error,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                  ],
+                ),
+                if (actorLine != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    actorLine,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      isNearBranch
+                          ? Icons.place_rounded
+                          : Icons.location_off_outlined,
+                      size: 14,
+                      color: isNearBranch ? AppTheme.primary : AppTheme.warning,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        isNearBranch ? 'بالقرب من فرع' : 'خارج نطاق الفرع',
+                        style: AppTheme.caption.copyWith(
+                          color: isNearBranch
+                              ? AppTheme.primary
+                              : AppTheme.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _historyTypeLabel({
+    required String type,
+    required Map<String, dynamic> metadata,
+  }) {
+    final l = context.loc;
+    switch (type) {
+      case 'topup':
+        return l.tr('widgets_admin_transaction_audit_card.001');
+      case 'transfer_out':
+        return l.tr('widgets_admin_transaction_audit_card.002');
+      case 'transfer_in':
+        return l.tr('widgets_admin_transaction_audit_card.003');
+      case 'redeem_card':
+        return l.tr('widgets_admin_transaction_audit_card.004');
+      case 'resell_card':
+        return l.tr('widgets_admin_transaction_audit_card.005');
+      case 'issue_cards':
+        return l.tr('widgets_admin_transaction_audit_card.006');
+      case 'withdrawal_request':
+        return l.tr('widgets_admin_transaction_audit_card.007');
+      case 'withdrawal_rejected':
+        return l.tr('widgets_admin_transaction_audit_card.008');
+      case 'withdrawal_completed':
+        return l.tr('widgets_admin_transaction_audit_card.009');
+      case 'balance_credit':
+        return (metadata['sourceType']?.toString() ?? '') ==
+                'printing_debt_settlement'
+            ? l.tr('widgets_admin_transaction_audit_card.010')
+            : l.tr('widgets_admin_transaction_audit_card.011');
+      case 'app_fee_credit':
+        return l.tr('widgets_admin_transaction_audit_card.012');
+      default:
+        return type.trim().isEmpty
+            ? l.tr('widgets_admin_transaction_audit_card.013')
+            : type;
+    }
+  }
+
+  String? _historyActorLine({
+    required String type,
+    required Map<String, dynamic> metadata,
+  }) {
+    final l = context.loc;
+    final byUsername = metadata['byUsername']?.toString().trim();
+    final senderUsername = metadata['senderUsername']?.toString().trim();
+    final recipientUsername = metadata['recipientUsername']?.toString().trim();
+    final customerName = metadata['customerName']?.toString().trim();
+    final targetUsername = metadata['targetUsername']?.toString().trim();
+    final sourceUsername = metadata['sourceUsername']?.toString().trim();
+    final sourceType = metadata['sourceType']?.toString().trim();
+
+    switch (type) {
+      case 'topup':
+      case 'redeem_card':
+      case 'resell_card':
+      case 'balance_credit':
+        if (byUsername != null && byUsername.isNotEmpty) {
+          return l.tr(
+            'widgets_admin_transaction_audit_card.014',
+            params: {'username': byUsername},
+          );
+        }
+        if (customerName != null && customerName.isNotEmpty) {
+          return l.tr(
+            'widgets_admin_transaction_audit_card.017',
+            params: {'name': customerName},
+          );
+        }
+        break;
+      case 'transfer_out':
+        if (recipientUsername != null && recipientUsername.isNotEmpty) {
+          return l.tr(
+            'widgets_admin_transaction_audit_card.015',
+            params: {'username': recipientUsername},
+          );
+        }
+        break;
+      case 'transfer_in':
+        if (senderUsername != null && senderUsername.isNotEmpty) {
+          return l.tr(
+            'widgets_admin_transaction_audit_card.016',
+            params: {'username': senderUsername},
+          );
+        }
+        break;
+      case 'issue_cards':
+        if (byUsername != null && byUsername.isNotEmpty) {
+          return l.tr(
+            'widgets_admin_transaction_audit_card.018',
+            params: {'username': byUsername},
+          );
+        }
+        break;
+      case 'app_fee_credit':
+        if (targetUsername != null && targetUsername.isNotEmpty) {
+          return l.tr(
+            'widgets_admin_transaction_audit_card.020',
+            params: {'username': targetUsername},
+          );
+        }
+        if (sourceUsername != null && sourceUsername.isNotEmpty) {
+          return l.tr(
+            'widgets_admin_transaction_audit_card.021',
+            params: {'username': sourceUsername},
+          );
+        }
+        if (sourceType != null && sourceType.isNotEmpty) {
+          switch (sourceType) {
+            case 'topup':
+              return l.tr('widgets_admin_transaction_audit_card.022');
+            case 'transfer':
+              return l.tr('widgets_admin_transaction_audit_card.023');
+            case 'card_redeem':
+              return l.tr('widgets_admin_transaction_audit_card.024');
+            case 'card_resell':
+              return l.tr('widgets_admin_transaction_audit_card.025');
+          }
+        }
+        break;
+      case 'withdrawal_request':
+        return l.tr('widgets_admin_transaction_audit_card.026');
+      case 'withdrawal_rejected':
+        return l.tr('widgets_admin_transaction_audit_card.027');
+      case 'withdrawal_completed':
+        return l.tr('widgets_admin_transaction_audit_card.028');
+    }
+
+    return null;
+  }
+
+  IconData _historyIcon({
+    required String type,
+    required double amount,
+    required bool isRejected,
+  }) {
+    if (isRejected) return Icons.block_rounded;
+    switch (type) {
+      case 'transfer_out':
+      case 'withdrawal_request':
+      case 'resell_card':
+        return Icons.north_east_rounded;
+      case 'transfer_in':
+      case 'topup':
+      case 'balance_credit':
+      case 'redeem_card':
+        return Icons.south_west_rounded;
+      case 'issue_cards':
+        return Icons.add_card_rounded;
+      default:
+        return amount >= 0
+            ? Icons.add_circle_rounded
+            : Icons.remove_circle_rounded;
+    }
+  }
+
+  Color _historyAccentColor({
+    required String type,
+    required double amount,
+    required bool isRejected,
+  }) {
+    if (isRejected) return AppTheme.error;
+    switch (type) {
+      case 'transfer_out':
+      case 'withdrawal_request':
+      case 'resell_card':
+        return AppTheme.warning;
+      case 'issue_cards':
+        return AppTheme.accent;
+      default:
+        return amount >= 0 ? AppTheme.primary : AppTheme.warning;
+    }
   }
 
   Future<void> _showHelpDialog() async {

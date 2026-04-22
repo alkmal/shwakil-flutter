@@ -1462,6 +1462,55 @@ class ApiService {
     };
   }
 
+  Future<Map<String, dynamic>> getAdminCards({
+    String? status,
+    String creator = '',
+    double? valueMin,
+    double? valueMax,
+    String issuedFrom = '',
+    String issuedTo = '',
+    int page = 1,
+    int perPage = 24,
+  }) async {
+    final query = <String, String>{
+      'page': page.toString(),
+      'perPage': perPage.toString(),
+    };
+    if (status != null && status.trim().isNotEmpty && status.trim() != 'all') {
+      query['status'] = status.trim();
+    }
+    if (creator.trim().isNotEmpty) {
+      query['creator'] = creator.trim();
+    }
+    if (valueMin != null) {
+      query['valueMin'] = valueMin.toString();
+    }
+    if (valueMax != null) {
+      query['valueMax'] = valueMax.toString();
+    }
+    if (issuedFrom.trim().isNotEmpty) {
+      query['issuedFrom'] = issuedFrom.trim();
+    }
+    if (issuedTo.trim().isNotEmpty) {
+      query['issuedTo'] = issuedTo.trim();
+    }
+    final response = await http.get(
+      AppConfig.apiUri('admin/cards', query),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    final rawCards = List<dynamic>.from(body['cards'] as List? ?? const []);
+    return {
+      'cards': rawCards
+          .map((item) => _cardFromApi(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+      'pagination': Map<String, dynamic>.from(
+        body['pagination'] as Map? ?? const {},
+      ),
+      'filters': Map<String, dynamic>.from(body['filters'] as Map? ?? const {}),
+    };
+  }
+
   Future<Map<String, dynamic>> getOfflineCardCache() async {
     final response = await http.get(
       AppConfig.apiUri('cards/offline-cache'),

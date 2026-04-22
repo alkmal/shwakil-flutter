@@ -12,7 +12,6 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -203,22 +202,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (_showSearchAndFilters) ...[
-                      _buildSearchAndFilters(isCompact: isCompact),
-                      const SizedBox(height: 16),
-                    ] else ...[
-                      ToolToggleHint(
-                        message: context.loc.tr(
-                          'screens_transactions_screen.038',
-                        ),
-                        icon: Icons.filter_alt_rounded,
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    _buildCompactSummary(),
-                    const SizedBox(height: 20),
-                    _buildResultsHeading(),
+                    _buildHeaderCard(isCompact: isCompact),
                     const SizedBox(height: 14),
+                    _buildSearchAndFilters(isCompact: isCompact),
+                    const SizedBox(height: 14),
+                    _buildResultsHeading(isCompact: isCompact),
+                    const SizedBox(height: 12),
                     if (_isLoading)
                       const Center(
                         child: Padding(
@@ -264,104 +253,145 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildCompactSummary() {
+  Widget _buildHeaderCard({required bool isCompact}) {
     final net = _totalCredits - _totalDebits;
-    return Text(
-      context.loc.tr(
-        'screens_transactions_screen.041',
-        params: {
-          'balance': CurrencyFormatter.ils(_currentBalance),
-          'in': CurrencyFormatter.ils(_totalCredits),
-          'out': CurrencyFormatter.ils(_totalDebits),
-          'net': CurrencyFormatter.ils(net),
-        },
+    final summaryItems = [
+      (
+        label: 'الرصيد الحالي',
+        value: CurrencyFormatter.ils(_currentBalance),
+        icon: Icons.account_balance_wallet_rounded,
+        color: AppTheme.primary,
       ),
-      style: AppTheme.caption,
+      (
+        label: 'الإجمالي الداخل',
+        value: CurrencyFormatter.ils(_totalCredits),
+        icon: Icons.south_west_rounded,
+        color: AppTheme.success,
+      ),
+      (
+        label: 'الإجمالي الخارج',
+        value: CurrencyFormatter.ils(_totalDebits),
+        icon: Icons.north_east_rounded,
+        color: const Color(0xFFB45309),
+      ),
+      (
+        label: 'الصافي',
+        value: CurrencyFormatter.ils(net),
+        icon: Icons.analytics_rounded,
+        color: const Color(0xFF7C3AED),
+      ),
+    ];
+
+    return ShwakelCard(
+      padding: EdgeInsets.all(isCompact ? 16 : 20),
+      borderRadius: BorderRadius.circular(24),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _t('screens_transactions_screen.005'),
+            style: AppTheme.h2.copyWith(fontSize: isCompact ? 24 : 28),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _t('screens_transactions_screen.050'),
+            style: AppTheme.bodyAction.copyWith(height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Text(
+              context.loc.tr(
+                'screens_transactions_screen.041',
+                params: {
+                  'balance': CurrencyFormatter.ils(_currentBalance),
+                  'in': CurrencyFormatter.ils(_totalCredits),
+                  'out': CurrencyFormatter.ils(_totalDebits),
+                  'net': CurrencyFormatter.ils(net),
+                },
+              ),
+              style: AppTheme.caption.copyWith(height: 1.45),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: summaryItems
+                .map(
+                  (item) => _buildStatChip(
+                    label: item.label,
+                    value: item.value,
+                    icon: item.icon,
+                    color: item.color,
+                    compact: isCompact,
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSearchAndFilters({required bool isCompact}) {
     return ShwakelCard(
-      padding: EdgeInsets.all(isCompact ? 18 : 24),
+      padding: EdgeInsets.all(isCompact ? 14 : 18),
+      borderRadius: BorderRadius.circular(24),
       shadowLevel: ShwakelShadowLevel.soft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.tune_rounded, color: AppTheme.primary),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _t('screens_transactions_screen.013'),
-                      style: AppTheme.h3,
+                      'البحث والتصفية',
+                      style: AppTheme.bodyBold.copyWith(
+                        color: AppTheme.primary,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _t('screens_transactions_screen.050'),
-                      style: AppTheme.bodyAction.copyWith(height: 1.45),
+                      'ابحث بسرعة ثم ضيّق النتائج حسب الوقت أو نوع الحركة.',
+                      style: AppTheme.caption.copyWith(height: 1.35),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _filterHintPill(
-                icon: Icons.manage_search_rounded,
-                label: context.loc.tr('screens_transactions_screen.042'),
-              ),
-              _filterHintPill(
-                icon: Icons.calendar_today_rounded,
-                label: context.loc.tr('screens_transactions_screen.043'),
-              ),
-              _filterHintPill(
-                icon: Icons.verified_user_outlined,
-                label: context.loc.tr('screens_transactions_screen.044'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              SizedBox(
-                width: isCompact ? double.infinity : 180,
-                child: ShwakelButton(
-                  label: _t('screens_transactions_screen.011'),
-                  icon: Icons.refresh_rounded,
-                  isSecondary: true,
-                  onPressed: _loadTransactions,
-                ),
-              ),
-              SizedBox(
-                width: isCompact ? double.infinity : 180,
-                child: ShwakelButton(
-                  label: _t('screens_transactions_screen.012'),
-                  icon: Icons.download_rounded,
-                  isSecondary: true,
-                  onPressed: _exportTransactions,
+              const SizedBox(width: 10),
+              InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () =>
+                    setState(() => _showSearchAndFilters = !_showSearchAndFilters),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Icon(
+                    _showSearchAndFilters
+                        ? Icons.tune_rounded
+                        : Icons.filter_alt_off_rounded,
+                    color: AppTheme.primary,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           TextField(
             controller: _searchController,
             onChanged: (_) {
@@ -378,118 +408,145 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               prefixIcon: const Icon(Icons.search_rounded),
             ),
           ),
-          const SizedBox(height: 18),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final filtersCompact = constraints.maxWidth < 860;
-              if (filtersCompact) {
-                return Column(
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              SizedBox(
+                width: isCompact ? double.infinity : 150,
+                child: ShwakelButton(
+                  label: _t('screens_transactions_screen.011'),
+                  icon: Icons.refresh_rounded,
+                  isSecondary: true,
+                  onPressed: _loadTransactions,
+                ),
+              ),
+              SizedBox(
+                width: isCompact ? double.infinity : 150,
+                child: ShwakelButton(
+                  label: _t('screens_transactions_screen.012'),
+                  icon: Icons.download_rounded,
+                  isSecondary: true,
+                  onPressed: _exportTransactions,
+                ),
+              ),
+            ],
+          ),
+          if (_showSearchAndFilters) ...[
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final filtersCompact = constraints.maxWidth < 860;
+                if (filtersCompact) {
+                  return Column(
+                    children: [
+                      _buildFilterPanel(
+                        title: 'الفترة',
+                        icon: Icons.calendar_month_rounded,
+                        chips: [
+                          _buildDateChip(
+                            _t('screens_transactions_screen.016'),
+                            _TransactionDateFilter.all,
+                          ),
+                          _buildDateChip(
+                            _t('screens_transactions_screen.017'),
+                            _TransactionDateFilter.today,
+                          ),
+                          _buildDateChip(
+                            _t('screens_transactions_screen.018'),
+                            _TransactionDateFilter.last7Days,
+                          ),
+                          _buildDateChip(
+                            _t('screens_transactions_screen.019'),
+                            _TransactionDateFilter.thisMonth,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      _buildFilterPanel(
+                        title: 'نوع الحركات',
+                        icon: Icons.filter_alt_rounded,
+                        chips: [
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.021'),
+                            _TransactionAuditFilter.all,
+                          ),
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.022'),
+                            _TransactionAuditFilter.nearBranch,
+                          ),
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.023'),
+                            _TransactionAuditFilter.outsideBranches,
+                          ),
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.024'),
+                            _TransactionAuditFilter.printingDebt,
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFilterPanel(
-                      title: _t('screens_transactions_screen.015'),
-                      icon: Icons.calendar_month_rounded,
-                      chips: [
-                        _buildDateChip(
-                          _t('screens_transactions_screen.016'),
-                          _TransactionDateFilter.all,
-                        ),
-                        _buildDateChip(
-                          _t('screens_transactions_screen.017'),
-                          _TransactionDateFilter.today,
-                        ),
-                        _buildDateChip(
-                          _t('screens_transactions_screen.018'),
-                          _TransactionDateFilter.last7Days,
-                        ),
-                        _buildDateChip(
-                          _t('screens_transactions_screen.019'),
-                          _TransactionDateFilter.thisMonth,
-                        ),
-                      ],
+                    Expanded(
+                      child: _buildFilterPanel(
+                        title: 'الفترة',
+                        icon: Icons.calendar_month_rounded,
+                        chips: [
+                          _buildDateChip(
+                            _t('screens_transactions_screen.026'),
+                            _TransactionDateFilter.all,
+                          ),
+                          _buildDateChip(
+                            _t('screens_transactions_screen.027'),
+                            _TransactionDateFilter.today,
+                          ),
+                          _buildDateChip(
+                            _t('screens_transactions_screen.028'),
+                            _TransactionDateFilter.last7Days,
+                          ),
+                          _buildDateChip(
+                            _t('screens_transactions_screen.029'),
+                            _TransactionDateFilter.thisMonth,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 14),
-                    _buildFilterPanel(
-                      title: _t('screens_transactions_screen.020'),
-                      icon: Icons.filter_alt_rounded,
-                      chips: [
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.021'),
-                          _TransactionAuditFilter.all,
-                        ),
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.022'),
-                          _TransactionAuditFilter.nearBranch,
-                        ),
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.023'),
-                          _TransactionAuditFilter.outsideBranches,
-                        ),
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.024'),
-                          _TransactionAuditFilter.printingDebt,
-                        ),
-                      ],
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _buildFilterPanel(
+                        title: 'نوع الحركات',
+                        icon: Icons.filter_alt_rounded,
+                        chips: [
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.031'),
+                            _TransactionAuditFilter.all,
+                          ),
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.032'),
+                            _TransactionAuditFilter.nearBranch,
+                          ),
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.033'),
+                            _TransactionAuditFilter.outsideBranches,
+                          ),
+                          _buildAuditChip(
+                            _t('screens_transactions_screen.034'),
+                            _TransactionAuditFilter.printingDebt,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildFilterPanel(
-                      title: _t('screens_transactions_screen.025'),
-                      icon: Icons.calendar_month_rounded,
-                      chips: [
-                        _buildDateChip(
-                          _t('screens_transactions_screen.026'),
-                          _TransactionDateFilter.all,
-                        ),
-                        _buildDateChip(
-                          _t('screens_transactions_screen.027'),
-                          _TransactionDateFilter.today,
-                        ),
-                        _buildDateChip(
-                          _t('screens_transactions_screen.028'),
-                          _TransactionDateFilter.last7Days,
-                        ),
-                        _buildDateChip(
-                          _t('screens_transactions_screen.029'),
-                          _TransactionDateFilter.thisMonth,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _buildFilterPanel(
-                      title: _t('screens_transactions_screen.030'),
-                      icon: Icons.filter_alt_rounded,
-                      chips: [
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.031'),
-                          _TransactionAuditFilter.all,
-                        ),
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.032'),
-                          _TransactionAuditFilter.nearBranch,
-                        ),
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.033'),
-                          _TransactionAuditFilter.outsideBranches,
-                        ),
-                        _buildAuditChip(
-                          _t('screens_transactions_screen.034'),
-                          _TransactionAuditFilter.printingDebt,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -500,13 +557,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     required IconData icon,
     required List<Widget> chips,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(22),
-      ),
+    return ShwakelCard(
+      padding: const EdgeInsets.all(14),
+      borderRadius: BorderRadius.circular(20),
+      color: AppTheme.surfaceVariant,
+      shadowLevel: ShwakelShadowLevel.none,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -516,11 +571,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                style: AppTheme.bodyBold.copyWith(
+                  color: AppTheme.primary,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: chips),
         ],
       ),
@@ -575,7 +633,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Widget _buildEmptyState() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(36),
+      padding: const EdgeInsets.all(28),
+      borderRadius: BorderRadius.circular(24),
       child: Center(
         child: Column(
           children: [
@@ -616,7 +675,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildResultsHeading() {
+  Widget _buildResultsHeading({required bool isCompact}) {
     return Row(
       children: [
         Expanded(
@@ -624,8 +683,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                context.loc.tr('screens_transactions_screen.045'),
-                style: AppTheme.h2.copyWith(fontSize: 20),
+                'نتائج الحركات',
+                style: AppTheme.h2.copyWith(fontSize: isCompact ? 18 : 20),
               ),
               const SizedBox(height: 4),
               Text(
@@ -635,51 +694,69 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         'screens_transactions_screen.047',
                         params: {'count': '$_totalTransactions'},
                       ),
-                style: AppTheme.caption.copyWith(fontSize: 14),
+                style: AppTheme.caption.copyWith(fontSize: 13),
               ),
             ],
           ),
         ),
-        if (!_isLoading && _transactions.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.primarySoft,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              context.loc.tr(
-                'screens_balance_screen.078',
-                params: {'count': '${_transactions.length}'},
-              ),
-              style: AppTheme.caption.copyWith(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+        if (_showSearchAndFilters)
+          TextButton.icon(
+            onPressed: () => setState(() => _showSearchAndFilters = false),
+            icon: const Icon(Icons.expand_less_rounded, size: 18),
+            label: const Text('إخفاء الفلاتر'),
+          )
+        else
+          TextButton.icon(
+            onPressed: () => setState(() => _showSearchAndFilters = true),
+            icon: const Icon(Icons.tune_rounded, size: 18),
+            label: const Text('إظهار الفلاتر'),
           ),
       ],
     );
   }
 
-  Widget _filterHintPill({required IconData icon, required String label}) {
+  Widget _buildStatChip({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required bool compact,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: BoxConstraints(minWidth: compact ? 145 : 170),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.primarySoft.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(999),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppTheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: AppTheme.primary,
-              fontWeight: FontWeight.w800,
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: AppTheme.caption.copyWith(fontSize: 11),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: AppTheme.bodyBold.copyWith(fontSize: 13, color: color),
+              ),
+            ],
           ),
         ],
       ),

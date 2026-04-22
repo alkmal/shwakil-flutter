@@ -24,16 +24,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final PDFService _pdfService = PDFService();
+  final TextEditingController _creatorController = TextEditingController();
+  final TextEditingController _valueMinController = TextEditingController();
+  final TextEditingController _valueMaxController = TextEditingController();
   List<VirtualCard> _cards = const [];
   CardStatus _filter = CardStatus.unused;
   bool _isLoading = true;
   bool _isAuthorized = false;
   bool _canRequestCardPrinting = false;
+  bool _canUseAdminInventory = false;
   int _page = 1;
   static const int _perPage = 12;
+  static const int _adminPerPage = 24;
   int _lastPage = 1;
   int _totalCards = 0;
   bool _showFilters = false;
+  DateTime? _issuedFrom;
+  DateTime? _issuedTo;
 
   @override
   void initState() {
@@ -41,12 +48,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _creatorController.dispose();
+    _valueMinController.dispose();
+    _valueMaxController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
       final user = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(user);
-      if (!permissions.canViewInventory) {
+      final canUseAdminInventory =
+          permissions.canManageUsers || permissions.canManageCardPrintRequests;
+      if (!permissions.canViewInventory && !canUseAdminInventory) {
         if (!mounted) {
           return;
         }
@@ -61,11 +78,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
         CardStatus.archived: 'archived',
         CardStatus.unused: 'unused',
       };
-      final payload = await _apiService.getMyCards(
-        status: statusMap[_filter] ?? 'unused',
-        page: _page,
-        perPage: _perPage,
-      );
+      final payload = canUseAdminInventory
+          ? await _apiService.getAdminCards(
+              status: statusMap[_filter] ?? 'unused',
+              creator: _creatorController.text,
+              valueMin: _parseDouble(_valueMinController.text),
+              valueMax: _parseDouble(_valueMaxController.text),
+              issuedFrom: _formatDate(_issuedFrom),
+              issuedTo: _formatDate(_issuedTo),
+              page: _page,
+              perPage: _adminPerPage,
+            )
+          : await _apiService.getMyCards(
+              status: statusMap[_filter] ?? 'unused',
+              page: _page,
+              perPage: _perPage,
+            );
       final cards = List<VirtualCard>.from(
         payload['cards'] as List? ?? const [],
       );
@@ -78,6 +106,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       setState(() {
         _isAuthorized = true;
         _canRequestCardPrinting = permissions.canRequestCardPrinting;
+        _canUseAdminInventory = canUseAdminInventory;
         _cards = cards;
         _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
         _totalCards = (pagination['total'] as num?)?.toInt() ?? _cards.length;
@@ -178,6 +207,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
+                if (_canUseAdminInventory && _cards.isNotEmpty) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ShwakelButton(
+                      label: 'إعادة طباعة النتائج',
+                      icon: Icons.print_rounded,
+                      onPressed: _reprintFilteredCards,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (_cards.isEmpty)
                   _buildEmptyState()
                 else ...[
@@ -187,7 +227,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     currentPage: _page,
                     lastPage: _lastPage,
                     totalItems: _totalCards,
-                    itemsPerPage: _perPage,
+                    itemsPerPage: _canUseAdminInventory
+                        ? _adminPerPage
+                        : _perPage,
                     onPageChanged: (page) {
                       setState(() => _page = page);
                       _load();
@@ -308,7 +350,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Widget _buildFilters() {
     final l = context.loc;
-    return SingleChildScrollView(
+    final statusChips = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: CardStatus.values.map((status) {
@@ -342,6 +384,145 @@ class _InventoryScreenState extends State<InventoryScreen> {
           );
         }).toList(),
       ),
+    );
+
+    if (!_canUseAdminInventory) {
+      return statusChips;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        statusChips,
+        const SizedBox(height: 16),
+        ShwakelCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('فلاتر الإدارة', style: AppTheme.bodyBold),
+              const SizedBox(height: 8),
+              Text(
+                'اعرض البطاقات حسب المنشأ والقيمة والفترة، ثم أعد طباعة النتائج المطابقة.',
+                style: AppTheme.caption,
+              ),
+              const SizedBox(height: 14),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 780;
+                  final fields = <Widget>[
+                    _adminFilterField(
+                      controller: _creatorController,
+                      label: 'منشأ البطاقة',
+                      hint: 'اسم المنشئ أو المالك',
+                      icon: Icons.person_search_rounded,
+                    ),
+                    _adminFilterField(
+                      controller: _valueMinController,
+                      label: 'أقل قيمة',
+                      hint: '0.00',
+                      icon: Icons.south_rounded,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                    _adminFilterField(
+                      controller: _valueMaxController,
+                      label: 'أعلى قيمة',
+                      hint: '500.00',
+                      icon: Icons.north_rounded,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                    _adminDateField(
+                      label: 'من تاريخ',
+                      value: _issuedFrom,
+                      onTap: () => _pickDate(true),
+                    ),
+                    _adminDateField(
+                      label: 'إلى تاريخ',
+                      value: _issuedTo,
+                      onTap: () => _pickDate(false),
+                    ),
+                  ];
+
+                  if (isCompact) {
+                    return Column(
+                      children: [
+                        ...fields.map(
+                          (field) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: field,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ShwakelButton(
+                                label: 'تطبيق الفلاتر',
+                                icon: Icons.filter_alt_rounded,
+                                onPressed: _applyAdminFilters,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ShwakelButton(
+                                label: 'مسح',
+                                icon: Icons.refresh_rounded,
+                                isSecondary: true,
+                                onPressed: _clearAdminFilters,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+
+                  final itemWidth = constraints.maxWidth > 1120
+                      ? (constraints.maxWidth - 24) / 3
+                      : (constraints.maxWidth - 12) / 2;
+
+                  return Column(
+                    children: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: fields
+                            .map(
+                              (field) => SizedBox(
+                                width: itemWidth,
+                                child: field,
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          ShwakelButton(
+                            label: 'تطبيق الفلاتر',
+                            icon: Icons.filter_alt_rounded,
+                            onPressed: _applyAdminFilters,
+                          ),
+                          const SizedBox(width: 10),
+                          ShwakelButton(
+                            label: 'مسح',
+                            icon: Icons.refresh_rounded,
+                            isSecondary: true,
+                            onPressed: _clearAdminFilters,
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -584,5 +765,147 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
       }
     }
+  }
+
+  Future<void> _reprintFilteredCards() async {
+    if (_cards.isEmpty) {
+      return;
+    }
+    var cardsToPrint = _cards;
+    if (_canUseAdminInventory && _totalCards > _cards.length) {
+      final statusMap = {
+        CardStatus.used: 'used',
+        CardStatus.archived: 'archived',
+        CardStatus.unused: 'unused',
+      };
+      final payload = await _apiService.getAdminCards(
+        status: statusMap[_filter] ?? 'unused',
+        creator: _creatorController.text,
+        valueMin: _parseDouble(_valueMinController.text),
+        valueMax: _parseDouble(_valueMaxController.text),
+        issuedFrom: _formatDate(_issuedFrom),
+        issuedTo: _formatDate(_issuedTo),
+        page: 1,
+        perPage: _totalCards > 250 ? 250 : _totalCards,
+      );
+      cardsToPrint = List<VirtualCard>.from(
+        payload['cards'] as List? ?? cardsToPrint,
+      );
+    }
+    final user = await _authService.currentUser();
+    await _pdfService.printCards(
+      cardsToPrint,
+      printedBy:
+          user?['username']?.toString() ?? context.loc.tr('screens_inventory_screen.010'),
+    );
+    if (!mounted) {
+      return;
+    }
+    AppAlertService.showSuccess(
+      context,
+      message: 'تم تجهيز نتائج الفلتر للطباعة.',
+    );
+  }
+
+  Widget _adminFilterField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      onSubmitted: (_) => _applyAdminFilters(),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon),
+      ),
+    );
+  }
+
+  Widget _adminDateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.calendar_today_rounded),
+        ),
+        child: Text(
+          value == null ? 'اختر التاريخ' : _formatDate(value),
+          style: value == null
+              ? AppTheme.bodyAction.copyWith(color: AppTheme.textTertiary)
+              : AppTheme.bodyAction,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDate(bool isFrom) async {
+    final initialDate = isFrom
+        ? (_issuedFrom ?? DateTime.now())
+        : (_issuedTo ?? _issuedFrom ?? DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) {
+      return;
+    }
+    setState(() {
+      if (isFrom) {
+        _issuedFrom = picked;
+        if (_issuedTo != null && _issuedTo!.isBefore(picked)) {
+          _issuedTo = picked;
+        }
+      } else {
+        _issuedTo = picked;
+      }
+    });
+  }
+
+  void _applyAdminFilters() {
+    setState(() => _page = 1);
+    _load();
+  }
+
+  void _clearAdminFilters() {
+    _creatorController.clear();
+    _valueMinController.clear();
+    _valueMaxController.clear();
+    setState(() {
+      _issuedFrom = null;
+      _issuedTo = null;
+      _page = 1;
+    });
+    _load();
+  }
+
+  String _formatDate(DateTime? value) {
+    if (value == null) {
+      return '';
+    }
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  double? _parseDouble(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return double.tryParse(normalized);
   }
 }
