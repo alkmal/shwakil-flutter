@@ -184,7 +184,17 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           ),
                         ),
                         child: Text(
-                          'حد الطباعة الحالي لهذا التابع: سقف ${CurrencyFormatter.ils(_limitAsDouble('printRequestMaxAmount') ?? 0)} للطلب الواحد، ودين مسموح حتى ${CurrencyFormatter.ils(_limitAsDouble('printingDebtLimit') ?? 0)}.',
+                          l.tr(
+                            'screens_card_print_requests_screen.049',
+                            params: {
+                              'limit': CurrencyFormatter.ils(
+                                _limitAsDouble('printRequestMaxAmount') ?? 0,
+                              ),
+                              'debtLimit': CurrencyFormatter.ils(
+                                _limitAsDouble('printingDebtLimit') ?? 0,
+                              ),
+                            },
+                          ),
                           style: AppTheme.caption.copyWith(
                             color: AppTheme.textPrimary,
                             fontWeight: FontWeight.w700,

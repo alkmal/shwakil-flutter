@@ -12,6 +12,7 @@ import 'app_config.dart';
 import 'app_version_service.dart';
 import 'auth_service.dart';
 import 'error_message_service.dart';
+import 'phone_number_service.dart';
 
 class ApiService {
   final AuthService _authService = AuthService();

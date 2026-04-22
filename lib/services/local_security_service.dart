@@ -24,7 +24,7 @@ class LocalSecurityService {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const Uuid _uuid = Uuid();
   static final ValueNotifier<int> _securityStateVersion = ValueNotifier<int>(0);
-  static const Sha256 _sha256 = Sha256();
+  static final Sha256 _sha256 = Sha256();
 
   static bool _relockRequired = false;
   static bool _skipNextUnlock = false;
@@ -77,15 +77,15 @@ class LocalSecurityService {
 
   static Future<String> currentDeviceLabel() async {
     if (kIsWeb) {
-      return 'Web Browser';
+      return 'متصفح ويب';
     }
     return switch (defaultTargetPlatform) {
-      TargetPlatform.android => 'Android Device',
-      TargetPlatform.iOS => 'iPhone / iPad',
-      TargetPlatform.windows => 'Windows Device',
-      TargetPlatform.macOS => 'macOS Device',
-      TargetPlatform.linux => 'Linux Device',
-      TargetPlatform.fuchsia => 'Fuchsia Device',
+      TargetPlatform.android => 'جهاز أندرويد',
+      TargetPlatform.iOS => 'جهاز آيفون / آيباد',
+      TargetPlatform.windows => 'جهاز ويندوز',
+      TargetPlatform.macOS => 'جهاز ماك',
+      TargetPlatform.linux => 'جهاز لينكس',
+      TargetPlatform.fuchsia => 'جهاز فوشيا',
     };
   }
 

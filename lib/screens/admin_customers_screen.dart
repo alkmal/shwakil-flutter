@@ -633,7 +633,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             withBorder: true,
             borderColor: AppTheme.borderLight,
             child: Text(
-              'ملخص سريع وواضح للعملاء بدون إزاحة القائمة الرئيسية. استخدم تبويب القائمة للوصول إلى الحسابات، وافتح البحث من الأيقونة عند الحاجة.',
+              context.loc.tr('screens_admin_customers_screen.050'),
               style: AppTheme.bodyAction,
             ),
           ),
@@ -643,25 +643,25 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               final compact = constraints.maxWidth < 760;
               final cards = [
                 _summaryCard(
-                  'إجمالي العملاء',
+                  context.loc.tr('screens_admin_customers_screen.051'),
                   '$totalCustomers',
                   Icons.people_alt_rounded,
                   AppTheme.primary,
                 ),
                 _summaryCard(
-                  'إجمالي الأرصدة',
+                  context.loc.tr('screens_admin_customers_screen.052'),
                   totalBalances.toStringAsFixed(2),
                   Icons.account_balance_wallet_rounded,
                   AppTheme.success,
                 ),
                 _summaryCard(
-                  'مديونية الطباعة',
+                  context.loc.tr('screens_admin_customers_screen.053'),
                   totalPrintingDebt.toStringAsFixed(2),
                   Icons.print_rounded,
                   AppTheme.warning,
                 ),
                 _summaryCard(
-                  'حسابات عليها دين',
+                  context.loc.tr('screens_admin_customers_screen.054'),
                   '$printingDebtUsers',
                   Icons.warning_amber_rounded,
                   AppTheme.error,

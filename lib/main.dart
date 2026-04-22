@@ -64,7 +64,7 @@ Future<void> main() async {
         unawaited(
           AppAlertService.showGlobalError(
             title: 'خطأ في التطبيق',
-            message: 'حدث خطأ غير متوقع. يمكنك المتابعة أو إعادة المحاولة.',
+            message: 'حدث خطأ غير متوقع. يمكنك المتابعة أو المحاولة مرة أخرى.',
           ),
         );
       };
@@ -517,7 +517,7 @@ class _SplashScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'نظام بطاقات رقمية ورصيد داخلي لإدارة الاستخدام',
+                'بطاقات رقمية ورصيد داخلي لإدارة الاستخدام اليومي',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.92),
                   fontSize: 15,
@@ -585,7 +585,7 @@ class _ForcedUpdateScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'يجب تحديث التطبيق للمتابعة بأمان.',
+                        'يجب تحديث التطبيق للمتابعة بشكل آمن.',
                         style: AppTheme.bodyAction.copyWith(height: 1.5),
                         textAlign: TextAlign.center,
                       ),

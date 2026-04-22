@@ -599,12 +599,12 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'امسح رمز التحويل',
+                  context.loc.tr('screens_quick_transfer_screen.045'),
                   style: AppTheme.h3.copyWith(fontSize: 17),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'اقرأ الرمز مباشرة لتحديد المستلم والانتقال بسرعة إلى تنفيذ العملية.',
+                  context.loc.tr('screens_quick_transfer_screen.046'),
                   textAlign: TextAlign.center,
                   style: AppTheme.caption.copyWith(fontSize: 14),
                 ),

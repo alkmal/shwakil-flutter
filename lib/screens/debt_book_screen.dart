@@ -402,6 +402,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final permissions = AppPermissions.fromUser(_user);
     final summary = Map<String, dynamic>.from(
       _snapshot['summary'] as Map? ?? const {},
@@ -781,7 +782,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
         children: [
           _buildOverviewStrip(
             lastSyncedAt: lastSyncedAt,
-            description: 'ملخص سريع ومباشر لدفتر الديون بدون تعقيد في العرض.',
+            description: _t('screens_debt_book_screen.049'),
           ),
           const SizedBox(height: 16),
           Wrap(

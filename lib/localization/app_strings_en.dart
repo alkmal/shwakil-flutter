@@ -208,7 +208,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.038': 'User',
   'screens_admin_customer_screen.039': 'Support team',
   'screens_admin_customer_screen.040': 'Technical admin',
-  'screens_admin_customer_screen.041': 'Printing debt limit (?)',
+  'screens_admin_customer_screen.041': 'Printing debt limit',
   'screens_admin_customer_screen.042': 'Custom fees for this customer (%)',
   'screens_admin_customer_screen.043': 'Save changes',
   'screens_admin_customer_screen.044': 'Top-up',
@@ -1390,7 +1390,7 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.033':
       'Choose the type, quantity, and value, then define the card visibility scope.',
   'screens_create_card_screen.034': 'Card type',
-  'screens_create_card_screen.035': 'Card value (?)',
+  'screens_create_card_screen.035': 'Card value',
   'screens_create_card_screen.036':
       'A single-use card does not need a monetary value, and its type will appear clearly in print.',
   'screens_create_card_screen.037': 'Number of cards',
@@ -2053,6 +2053,18 @@ const Map<String, String> appStringsEn = {
   'screens_notifications_screen.036': 'Filters and actions',
   'screens_notifications_screen.037':
       'Choose the view type, refresh the list, or mark notifications as read.',
+  'screens_notifications_screen.038':
+      'Open filters and actions from the top filter icon when needed.',
+  'screens_notifications_screen.039': 'Notifications dashboard',
+  'screens_notifications_screen.040': 'Your notification center',
+  'screens_notifications_screen.041':
+      'Track financial movements and app notifications in one organized place.',
+  'screens_notifications_screen.042': 'Mark all read',
+  'screens_notifications_screen.043': 'No notifications yet',
+  'screens_notifications_screen.044':
+      'Financial movements and custom alerts will appear here.',
+  'screens_notifications_screen.045': 'Financial',
+  'screens_notifications_screen.046': 'General',
   'screens_transactions_screen.042': 'Quick search',
   'screens_transactions_screen.043': 'Time range',
   'screens_transactions_screen.044': 'Transaction type',
@@ -2060,12 +2072,27 @@ const Map<String, String> appStringsEn = {
   'screens_transactions_screen.046':
       'Loading the current transaction results.',
   'screens_transactions_screen.047': 'Total matching transactions: {count}',
+  'screens_transactions_screen.048':
+      'There are no transactions available for export right now.',
+  'screens_transactions_screen.049':
+      'Transaction history exported successfully.',
+  'screens_transactions_screen.050':
+      'Organize your transactions using search, date range, and location filters.',
+  'screens_transactions_screen.051':
+      'Search by description, card, or transaction type',
+  'screens_transactions_screen.052':
+      'Try changing the search text or selected filters.',
   'screens_security_settings_screen.068': 'Confirm current PIN',
   'screens_security_settings_screen.069':
       'Enter the current PIN to continue.',
+  'screens_security_settings_screen.070': 'The current PIN is incorrect.',
+  'screens_security_settings_screen.071': 'Current PIN',
   'screens_quick_transfer_screen.038': 'Find recipient',
   'screens_quick_transfer_screen.039':
       'Search by phone number, then review the user details before transferring.',
+  'screens_quick_transfer_screen.045': 'Scan the transfer code',
+  'screens_quick_transfer_screen.046':
+      'Read the code directly to identify the recipient and move quickly to execution.',
   'screens_sub_users_screen.052': 'Back to add mode',
   'screens_sub_users_screen.053': 'Saving...',
   'screens_sub_users_screen.054': 'Save changes',
@@ -2163,19 +2190,10 @@ const Map<String, String> appStringsEn = {
   'screens_sub_users_screen.124':
       'Default sub-user policy: redeem cards up to 50 ILS, printing debt up to 5 ILS, and a 50 ILS cap. When quick send is enabled, operation increases to redeem up to 200 ILS, printing debt up to 50 ILS, and a 200 ILS cap.',
   'screens_sub_users_screen.125': 'Edit',
-  'screens_inventory_screen.015': 'You do not have permission to view inventory',
-  'screens_inventory_screen.016': 'Hide filters',
-  'screens_inventory_screen.017': 'Show filters',
-  'screens_inventory_screen.018':
-      'Open filters from the top filter icon when needed.',
-  'screens_inventory_screen.019':
-      'Use the filter to show the cards you need. Extra details appear inside each item.',
-  'screens_card_print_requests_screen.046':
-      'Available print balance: {balance} • Fee: {fee}',
-  'screens_card_print_requests_screen.047':
-      'You are using a sub-user account. Printing here is limited to {limit} with operational debt up to {debtLimit}.',
-  'screens_card_print_requests_screen.048':
-      'Use this section to submit print requests and track their status, while the quick summary stays above the list only.',
+  'screens_sub_users_screen.126':
+      'This screen is in view-only mode. You can review sub-user accounts without creating, editing, or transferring balances.',
+  'screens_sub_users_screen.127': 'Disabled',
+  'screens_sub_users_screen.128': 'Active',
   'screens_quick_transfer_screen.040': 'Hide search',
   'screens_quick_transfer_screen.041': 'Show search',
   'screens_quick_transfer_screen.042':
@@ -2194,33 +2212,45 @@ const Map<String, String> appStringsEn = {
       'Open search and filters from the top filter icon when needed.',
   'screens_withdrawal_requests_screen.032':
       'Use search and filters to find requests, then review the right request and make a decision when needed.',
-  'screens_supported_locations_screen.013':
-      'The list is shown directly, and when location is available the nearest points are sorted first.',
-  'screens_create_card_screen.050':
-      'You do not have permission to issue cards',
-  'screens_quick_transfer_screen.044':
-      'Point the camera at the transfer code to scan it.',
-  'screens_balance_screen.071': 'Top-up method',
-  'screens_balance_screen.072': 'Request details',
-  'screens_balance_screen.073': 'Hide history filters',
-  'screens_balance_screen.074': 'Show history filters',
-  'screens_balance_screen.075':
-      'Open history filters from the top filter icon when needed.',
-  'screens_balance_screen.076': 'Activity log',
-  'screens_balance_screen.077':
-      'No operations are shown under the current filters.',
-  'screens_balance_screen.078': 'Items on this page: {count}',
-  'screens_balance_screen.079': 'Page {page}',
-  'screens_balance_screen.080':
-      'Use the quick actions to manage balance, then filter the history by type or location when needed.',
-  'screens_admin_system_settings_screen.066': 'Could not load settings',
-  'screens_balance_screen.104':
-      'Find the recipient by phone number, then enter the transfer amount.',
-  'screens_balance_screen.105':
-      'Enter the mobile number to find the recipient quickly.',
-  'screens_balance_screen.106': 'Search results',
-  'screens_balance_screen.107': 'Selected',
-  'screens_balance_screen.108': 'Transfer details',
-  'screens_balance_screen.109': 'Destination type',
-  'screens_balance_screen.110': 'Withdrawal details',
+  'screens_admin_debt_book_screen.042': 'Customers list',
+  'screens_admin_debt_book_screen.043': 'Summary and report',
+  'screens_admin_debt_book_screen.044':
+      'Open search and filters from the top filter icon when needed.',
+  'screens_admin_customers_screen.050':
+      'A quick and clear customer summary without pushing the main list away. Use the list tab to reach accounts, and open search from the icon when needed.',
+  'screens_admin_customers_screen.051': 'Total customers',
+  'screens_admin_customers_screen.052': 'Total balances',
+  'screens_admin_customers_screen.053': 'Printing debt',
+  'screens_admin_customers_screen.054': 'Accounts with debt',
+  'screens_card_print_requests_screen.049':
+      'Current printing policy for this sub-user: a limit of {limit} per request, with operational debt allowed up to {debtLimit}.',
+  'screens_login_screen.026':
+      'Offline work mode is enabled. After sign-in, the scan screen will open directly.',
+  'screens_debt_book_screen.049':
+      'A quick and direct debt book summary without unnecessary visual complexity.',
+  'services_transfer_security_service.001':
+      'Biometric verification succeeded. Enter the OTP sent to the account WhatsApp to continue.',
+  'services_transfer_security_service.002':
+      'PIN verification succeeded. Enter the OTP sent to the account WhatsApp to continue.',
+  'services_transfer_security_service.003': 'Confirm action',
+  'services_transfer_security_service.004':
+      'Biometric verification was attempted first. You can continue with PIN if you prefer.',
+  'services_transfer_security_service.005': 'Enter your PIN to continue.',
+  'services_transfer_security_service.006': 'PIN',
+  'services_transfer_security_service.007': 'Cancel',
+  'services_transfer_security_service.008': 'Biometrics',
+  'services_transfer_security_service.009': 'Confirm',
+  'services_transfer_security_service.010':
+      'This device does not have biometrics or a saved PIN, so OTP will be used through the account WhatsApp.',
+  'services_transfer_security_service.011':
+      'The code was sent to the account WhatsApp. Enter it to continue.',
+  'services_transfer_security_service.012':
+      'The code was sent to the account WhatsApp. Debug OTP: {code}',
+  'services_transfer_security_service.013': 'OTP verification',
+  'services_transfer_security_service.014': 'Verification code',
+  'services_transfer_security_service.015': 'Sending...',
+  'services_transfer_security_service.016': 'Resend code',
+  'services_transfer_security_service.017': 'Send code',
+  'services_transfer_security_service.018':
+      'You can resend after {seconds} seconds',
 };

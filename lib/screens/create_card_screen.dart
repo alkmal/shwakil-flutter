@@ -110,7 +110,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
-        message: 'لا تملك صلاحية إصدار البطاقات.',
+        message: l.tr('screens_create_card_screen.050'),
       );
       return;
     }

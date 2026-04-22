@@ -64,7 +64,7 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
                     children: [
                       Text(_displayName(), style: AppTheme.bodyBold),
                       const SizedBox(height: 2),
-                      Text('$method • $details', style: AppTheme.caption),
+                      Text('$method - $details', style: AppTheme.caption),
                     ],
                   ),
                 ),

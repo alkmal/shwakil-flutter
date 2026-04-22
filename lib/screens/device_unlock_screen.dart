@@ -88,23 +88,24 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       return;
     }
 
-    if (mounted) {
-      final retryAfterSeconds =
-          await LocalSecurityService.pinRetryAfterSeconds();
-      setState(() => _isUnlocking = false);
-      _pinController.clear();
-      setState(() => _pinRetryAfterSeconds = retryAfterSeconds);
-      await AppAlertService.showError(
-        context,
-        title: l.tr('screens_device_unlock_screen.003'),
-        message: retryAfterSeconds > 0
-            ? l.tr(
-                'screens_device_unlock_screen.014',
-                params: {'seconds': '$retryAfterSeconds'},
-              )
-            : l.tr('screens_device_unlock_screen.004'),
-      );
+    final retryAfterSeconds = await LocalSecurityService.pinRetryAfterSeconds();
+    if (!mounted) {
+      return;
     }
+
+    setState(() => _isUnlocking = false);
+    _pinController.clear();
+    setState(() => _pinRetryAfterSeconds = retryAfterSeconds);
+    await AppAlertService.showError(
+      context,
+      title: l.tr('screens_device_unlock_screen.003'),
+      message: retryAfterSeconds > 0
+          ? l.tr(
+              'screens_device_unlock_screen.014',
+              params: {'seconds': '$retryAfterSeconds'},
+            )
+          : l.tr('screens_device_unlock_screen.004'),
+    );
   }
 
   Future<void> _unlockBiometric() async {

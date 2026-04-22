@@ -45,10 +45,7 @@ class TransferSecurityService {
         if (requireOtpAfterLocalAuth) {
           return _confirmWithOtp(
             context,
-            introText: context.loc.text(
-              'تم التحقق المحلي بالبصمة بنجاح. أكمل الآن بإدخال رمز OTP المرسل إلى واتساب الحساب.',
-              'Biometric verification succeeded. Enter the OTP sent to the account WhatsApp to continue.',
-            ),
+            introText: context.loc.tr('services_transfer_security_service.001'),
           );
         }
         return const TransferSecurityResult(
@@ -73,10 +70,7 @@ class TransferSecurityService {
       if (pinResult.isVerified && requireOtpAfterLocalAuth) {
         return _confirmWithOtp(
           context,
-          introText: context.loc.text(
-            'تم التحقق المحلي عبر PIN بنجاح. أدخل الآن رمز OTP المرسل إلى واتساب الحساب لإكمال العملية.',
-            'PIN verification succeeded. Enter the OTP sent to the account WhatsApp to continue.',
-          ),
+          introText: context.loc.tr('services_transfer_security_service.002'),
         );
       }
       return pinResult;
@@ -147,20 +141,14 @@ class TransferSecurityService {
           }
 
           return AlertDialog(
-            title: Text(context.loc.text('تأكيد العملية', 'Confirm action')),
+            title: Text(context.loc.tr('services_transfer_security_service.003')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   canUseBiometrics
-                      ? context.loc.text(
-                          'تمت محاولة التحقق بالبصمة أولًا. يمكنك الآن المتابعة باستخدام PIN إذا رغبت.',
-                          'Biometric verification was attempted first. You can continue with PIN if you prefer.',
-                        )
-                      : context.loc.text(
-                          'أدخل رمز PIN لإتمام العملية.',
-                          'Enter your PIN to continue.',
-                        ),
+                      ? context.loc.tr('services_transfer_security_service.004')
+                      : context.loc.tr('services_transfer_security_service.005'),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -169,7 +157,7 @@ class TransferSecurityService {
                   maxLength: 4,
                   obscureText: true,
                   decoration: InputDecoration(
-                    labelText: l.text('PIN', 'PIN'),
+                    labelText: l.tr('services_transfer_security_service.006'),
                     prefixIcon: const Icon(Icons.pin_outlined),
                   ),
                   onSubmitted: (_) => submitPin(),
@@ -184,17 +172,17 @@ class TransferSecurityService {
                           dialogContext,
                           const TransferSecurityResult(isVerified: false),
                         ),
-                child: Text(context.loc.text('إلغاء', 'Cancel')),
+                child: Text(context.loc.tr('services_transfer_security_service.007')),
               ),
               if (canUseBiometrics)
                 OutlinedButton.icon(
                   onPressed: isChecking ? null : submitBiometric,
                   icon: const Icon(Icons.fingerprint_rounded),
-                  label: Text(context.loc.text('البصمة', 'Biometrics')),
+                  label: Text(context.loc.tr('services_transfer_security_service.008')),
                 ),
               ElevatedButton(
                 onPressed: isChecking ? null : submitPin,
-                child: Text(context.loc.text('تأكيد', 'Confirm')),
+                child: Text(context.loc.tr('services_transfer_security_service.009')),
               ),
             ],
           );
@@ -213,10 +201,7 @@ class TransferSecurityService {
     final apiService = ApiService();
     final codeController = TextEditingController();
     var infoText = introText ??
-        context.loc.text(
-          'هذا الجهاز لا يملك بصمة مفعلة ولا PIN محفوظ، لذلك سنستخدم OTP على واتساب الحساب.',
-          'This device does not have biometrics or a saved PIN, so OTP will be used through the account WhatsApp.',
-        );
+        context.loc.tr('services_transfer_security_service.010');
     var isSending = false;
     var hasSentOtp = false;
     var resendCooldown = 0;
@@ -254,13 +239,10 @@ class TransferSecurityService {
               setState(() {
                 hasSentOtp = true;
                 infoText = otpResult.debugOtpCode == null
-                    ? context.loc.text(
-                        'تم إرسال الرمز إلى واتساب الحساب. أدخله لإتمام العملية.',
-                        'The code was sent to the account WhatsApp. Enter it to continue.',
-                      )
-                    : context.loc.text(
-                        'تم إرسال الرمز إلى واتساب الحساب. رمز الديبق: ${otpResult.debugOtpCode}',
-                        'The code was sent to the account WhatsApp. Debug OTP: ${otpResult.debugOtpCode}',
+                    ? context.loc.tr('services_transfer_security_service.011')
+                    : context.loc.tr(
+                        'services_transfer_security_service.012',
+                        params: {'code': otpResult.debugOtpCode ?? ''},
                       );
                 isSending = false;
               });
@@ -277,7 +259,7 @@ class TransferSecurityService {
           }
 
           return AlertDialog(
-            title: Text(context.loc.text('تحقق عبر OTP', 'OTP verification')),
+            title: Text(context.loc.tr('services_transfer_security_service.013')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -287,7 +269,7 @@ class TransferSecurityService {
                   controller: codeController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: context.loc.text('رمز التحقق', 'Verification code'),
+                    labelText: context.loc.tr('services_transfer_security_service.014'),
                     prefixIcon: const Icon(Icons.sms_rounded),
                   ),
                 ),
@@ -301,29 +283,30 @@ class TransferSecurityService {
                           dialogContext,
                           const TransferSecurityResult(isVerified: false),
                         ),
-                child: Text(context.loc.text('إلغاء', 'Cancel')),
+                child: Text(context.loc.tr('services_transfer_security_service.007')),
               ),
               if (!hasSentOtp || resendCooldown == 0)
                 OutlinedButton(
                   onPressed: isSending ? null : sendOtp,
                   child: Text(
                     isSending
-                        ? context.loc.text('جارٍ الإرسال...', 'Sending...')
+                        ? context.loc.tr('services_transfer_security_service.015')
                         : hasSentOtp
-                            ? context.loc.text(
-                                'إعادة إرسال الرمز',
-                                'Resend code',
+                            ? context.loc.tr(
+                                'services_transfer_security_service.016',
                               )
-                            : context.loc.text('إرسال الرمز', 'Send code'),
+                            : context.loc.tr(
+                                'services_transfer_security_service.017',
+                              ),
                   ),
                 )
               else
                 Padding(
                   padding: const EdgeInsetsDirectional.only(end: 8),
                   child: Text(
-                    context.loc.text(
-                      'يمكنك إعادة الإرسال بعد $resendCooldown ثانية',
-                      'You can resend after $resendCooldown seconds',
+                    context.loc.tr(
+                      'services_transfer_security_service.018',
+                      params: {'seconds': '$resendCooldown'},
                     ),
                     style: const TextStyle(
                       color: Color(0xFF64748B),
@@ -346,7 +329,7 @@ class TransferSecurityService {
                     ),
                   );
                 },
-                child: Text(context.loc.text('تأكيد', 'Confirm')),
+                child: Text(context.loc.tr('services_transfer_security_service.009')),
               ),
             ],
           );

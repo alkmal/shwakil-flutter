@@ -249,12 +249,12 @@ class PDFService {
 
   String _printedByLabel(String? printedBy) {
     final name = (printedBy ?? '').trim();
-    return name.isEmpty ? 'الطباعة: غير محدد' : 'الطباعة بواسطة: $name';
+    return name.isEmpty ? 'الجهة الطابعة: غير محددة' : 'الجهة الطابعة: $name';
   }
 
   String _originLabel(String? printedBy) {
     final origin = (printedBy ?? '').trim();
-    return origin.isEmpty ? 'غير محدد' : origin;
+    return origin.isEmpty ? 'غير محددة' : origin;
   }
 
   bool _isLocationSpecific(VirtualCard card) {
@@ -268,7 +268,7 @@ class PDFService {
 
   String _cardTypeLabel(VirtualCard card) {
     if (_isLocationSpecific(card)) {
-      return 'لاستخدام في مكان محدد';
+      return 'مخصصة لمكان محدد';
     }
     return card.isPrivate ? 'مالية خاصة' : 'مالية عامة';
   }
@@ -282,13 +282,13 @@ class PDFService {
 
   String _cardTitle(VirtualCard card) {
     return card.isSingleUse
-        ? 'بطاقة دخول أو استلام'
+        ? 'بطاقة دخول أو تسليم'
         : '${card.value.toStringAsFixed(2)} شيكل';
   }
 
   String _cardSubtitle(VirtualCard card) {
     return card.isSingleUse
-        ? 'مخصصة للدخول أو الاستلام داخل النظام'
+        ? 'مخصصة للدخول أو التسليم داخل النظام'
         : _valueInArabicWords(card.value);
   }
 
@@ -643,19 +643,19 @@ class PDFService {
                       ),
                       pw.SizedBox(height: 0.4),
                       pw.Text(
-                        'تاريخ الإصدار / Issue: ${DateFormat('dd/MM/yyyy').format(card.createdAt)}',
+                        'تاريخ الإصدار: ${DateFormat('dd/MM/yyyy').format(card.createdAt)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 4.1, color: _mutedColor),
                       ),
                       pw.Text(
-                        'منشأ البطاقة / Origin: ${_originLabel(printedBy)}',
+                        'منشأ البطاقة: ${_originLabel(printedBy)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 4.1, color: _mutedColor),
                       ),
                       pw.Text(
-                        'نوع البطاقة / Type: ${_cardTypeLabel(card)}',
+                        'نوع البطاقة: ${_cardTypeLabel(card)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(
@@ -836,7 +836,7 @@ class PDFService {
                       pw.SizedBox(height: 4),
                       pw.Text(
                         card.isSingleUse
-                            ? 'صالح للدخول أو الاستلام داخل النظام'
+                            ? 'صالحة للدخول أو التسليم داخل النظام'
                             : 'قيمة داخلية صالحة للاستخدام داخل النظام',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.rtl,
@@ -914,7 +914,7 @@ class PDFService {
                         ),
                       ),
                       pw.Text(
-                        'نوع البطاقة / Type: ${_cardTypeLabel(card)}',
+                        'نوع البطاقة: ${_cardTypeLabel(card)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(
@@ -924,13 +924,13 @@ class PDFService {
                       ),
                       pw.SizedBox(height: 2),
                       pw.Text(
-                        'تاريخ الإصدار / Issue: ${DateFormat('yyyy-MM-dd').format(card.createdAt)}',
+                        'تاريخ الإصدار: ${DateFormat('yyyy-MM-dd').format(card.createdAt)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 7.8, color: _mutedColor),
                       ),
                       pw.Text(
-                        'منشأ البطاقة / Origin: ${_originLabel(printedBy)}',
+                        'منشأ البطاقة: ${_originLabel(printedBy)}',
                         textAlign: pw.TextAlign.right,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 7.8, color: _mutedColor),

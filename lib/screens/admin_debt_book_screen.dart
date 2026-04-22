@@ -488,8 +488,8 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
           actions: [
             IconButton(
               tooltip: _showFilters
-                  ? 'إخفاء البحث والفلاتر'
-                  : 'إظهار البحث والفلاتر',
+                  ? _t('screens_topup_requests_screen.032')
+                  : _t('screens_topup_requests_screen.033'),
               onPressed: () => setState(() => _showFilters = !_showFilters),
               icon: Icon(
                 _showFilters
@@ -529,18 +529,18 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
                   color: Colors.white.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const TabBar(
+                child: TabBar(
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: EdgeInsets.all(6),
                   labelPadding: EdgeInsets.symmetric(horizontal: 8),
                   tabs: [
                     Tab(
-                      text: 'قائمة العملاء',
+                      text: _t('screens_admin_debt_book_screen.042'),
                       icon: Icon(Icons.people_alt_rounded),
                     ),
                     Tab(
-                      text: 'الملخص والتقرير',
+                      text: _t('screens_admin_debt_book_screen.043'),
                       icon: Icon(Icons.analytics_rounded),
                     ),
                   ],
@@ -640,9 +640,8 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
               ),
             )
           else
-            const ToolToggleHint(
-              message:
-                  'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+            ToolToggleHint(
+              message: _t('screens_admin_debt_book_screen.044'),
               icon: Icons.filter_alt_rounded,
             ),
           const SizedBox(height: 16),

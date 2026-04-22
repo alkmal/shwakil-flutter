@@ -33,6 +33,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
   bool _showFilters = false;
 
+  String _t(String key, {Map<String, String>? params}) =>
+      context.loc.tr(key, params: params);
+
   @override
   void initState() {
     super.initState();
@@ -207,10 +210,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       _buildFilters(isCompact)
                     else
                       ToolToggleHint(
-                        message: _text(
-                          'يمكنك فتح الفلاتر والإجراءات من أيقونة التصفية بالأعلى عند الحاجة.',
-                          'Open filters and actions from the top filter icon when needed.',
-                        ),
+                        message: _t('screens_notifications_screen.038'),
                         icon: Icons.filter_alt_rounded,
                       ),
                     const SizedBox(height: 18),
@@ -288,7 +288,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'لوحة التنبيهات',
+                  _t('screens_notifications_screen.039'),
                   style: AppTheme.caption.copyWith(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w800,
@@ -296,18 +296,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _text(
-                    '\u0645\u0631\u0643\u0632 \u0625\u0634\u0639\u0627\u0631\u0627\u062a\u0643',
-                    'Your notification center',
-                  ),
+                  _t('screens_notifications_screen.040'),
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _text(
-                    '\u0647\u0646\u0627 \u062a\u062a\u0627\u0628\u0639 \u0643\u0644 \u0627\u0644\u062d\u0631\u0643\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0648\u0623\u064a \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u062e\u0627\u0635\u0629 \u0628\u0627\u0644\u062a\u0637\u0628\u064a\u0642 \u0628\u0634\u0643\u0644 \u0645\u0631\u062a\u0628.',
-                    'Track financial movements and app notifications in one organized place.',
-                  ),
+                  _t('screens_notifications_screen.041'),
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -321,7 +315,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'لوحة التنبيهات',
+                    _t('screens_notifications_screen.039'),
                     style: AppTheme.caption.copyWith(
                       color: Colors.white.withValues(alpha: 0.85),
                       fontWeight: FontWeight.w800,
@@ -329,18 +323,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _text(
-                      '\u0645\u0631\u0643\u0632 \u0625\u0634\u0639\u0627\u0631\u0627\u062a\u0643',
-                      'Your notification center',
-                    ),
+                    _t('screens_notifications_screen.040'),
                     style: AppTheme.h2.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _text(
-                      '\u0647\u0646\u0627 \u062a\u062a\u0627\u0628\u0639 \u0643\u0644 \u0627\u0644\u062d\u0631\u0643\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0648\u0623\u064a \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u062e\u0627\u0635\u0629 \u0628\u0627\u0644\u062a\u0637\u0628\u064a\u0642 \u0628\u0634\u0643\u0644 \u0645\u0631\u062a\u0628.',
-                      'Track financial movements and app notifications in one organized place.',
-                    ),
+                    _t('screens_notifications_screen.041'),
                     style: AppTheme.bodyAction.copyWith(
                       color: Colors.white70,
                       height: 1.6,
@@ -456,15 +444,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildFilters(bool isCompact) {
     final chips = [
-      _filterChip(_text('\u0627\u0644\u0643\u0644', 'All'), 'all'),
-      _filterChip(
-        _text('\u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621', 'Unread'),
-        'unread',
-      ),
-      _filterChip(
-        _text('\u0645\u0627\u0644\u064a\u0629', 'Financial'),
-        'financial',
-      ),
+      _filterChip(_t('screens_transactions_screen.016'), 'all'),
+      _filterChip(_t('screens_notifications_screen.027'), 'unread'),
+      _filterChip(_t('screens_notifications_screen.029'), 'financial'),
     ];
 
     return ShwakelCard(
@@ -478,7 +460,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           SizedBox(
             width: isCompact ? double.infinity : 180,
             child: ShwakelButton(
-              label: _text('\u062a\u062d\u062f\u064a\u062b', 'Refresh'),
+              label: _t('screens_transactions_screen.011'),
               icon: Icons.refresh_rounded,
               isSecondary: true,
               onPressed: _loadNotifications,
@@ -487,10 +469,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           SizedBox(
             width: isCompact ? double.infinity : 190,
             child: ShwakelButton(
-              label: _text(
-                '\u062a\u0639\u0644\u064a\u0645 \u0627\u0644\u0643\u0644 \u0643\u0645\u0642\u0631\u0648\u0621',
-                'Mark all read',
-              ),
+              label: _t('screens_notifications_screen.042'),
               icon: Icons.done_all_rounded,
               isSecondary: true,
               onPressed: _unreadCount > 0 ? _markAllAsRead : null,
@@ -534,24 +513,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 18),
             Text(
-              _text(
-                '\u0644\u0627 \u062a\u0648\u062c\u062f \u0625\u0634\u0639\u0627\u0631\u0627\u062a \u062d\u0627\u0644\u064a\u0627\u064b',
-                'No notifications yet',
-              ),
+              _t('screens_notifications_screen.043'),
               style: AppTheme.h3,
             ),
             const SizedBox(height: 6),
             Text(
-              _text(
-                '\u0633\u062a\u0638\u0647\u0631 \u0647\u0646\u0627 \u0627\u0644\u062d\u0631\u0643\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0648\u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0627\u0644\u062e\u0627\u0635\u0629 \u0641\u0648\u0631 \u0648\u0635\u0648\u0644\u0647\u0627.',
-                'Financial movements and custom alerts will appear here.',
-              ),
+              _t('screens_notifications_screen.044'),
               style: AppTheme.bodyText,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 18),
             ShwakelButton(
-              label: _text('\u062a\u062d\u062f\u064a\u062b', 'Refresh'),
+              label: _t('screens_transactions_screen.011'),
               icon: Icons.refresh_rounded,
               isSecondary: true,
               onPressed: _loadNotifications,
@@ -624,7 +597,13 @@ class _NotificationCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            isFinancial ? 'مالي' : 'عام',
+                            isFinancial
+                                ? context.loc.tr(
+                                    'screens_notifications_screen.045',
+                                  )
+                                : context.loc.tr(
+                                    'screens_notifications_screen.046',
+                                  ),
                             style: AppTheme.caption.copyWith(
                               color: _categoryColor(isFinancial),
                               fontWeight: FontWeight.w800,

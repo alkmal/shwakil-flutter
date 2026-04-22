@@ -808,7 +808,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     await AppAlertService.showError(
       context,
       title: l.tr('screens_security_settings_screen.060'),
-      message: 'رمز PIN الحالي غير صحيح.',
+      message: l.tr('screens_security_settings_screen.070'),
     );
     return false;
   }
@@ -1105,6 +1105,7 @@ class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Dialog(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1130,7 +1131,7 @@ class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
-                labelText: 'رمز PIN الحالي',
+                labelText: l.tr('screens_security_settings_screen.071'),
                 prefixIcon: const Icon(Icons.password_rounded),
                 suffixIcon: IconButton(
                   onPressed: () {

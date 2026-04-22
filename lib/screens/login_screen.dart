@@ -406,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               child: Text(
-                'وضع العمل دون إنترنت مفعل. بعد تسجيل الدخول سيتم فتح شاشة الفحص مباشرة.',
+                l.tr('screens_login_screen.026'),
                 style: AppTheme.bodyAction.copyWith(color: AppTheme.warning),
                 textAlign: TextAlign.center,
               ),

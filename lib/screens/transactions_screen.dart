@@ -39,7 +39,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Timer? _searchDebounce;
   bool _showSearchAndFilters = false;
 
-  String _t(String key) => context.loc.tr(key);
+  String _t(String key, {Map<String, String>? params}) =>
+      context.loc.tr(key, params: params);
 
   @override
   void initState() {
@@ -120,10 +121,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Future<void> _exportTransactions() async {
     if (_transactions.isEmpty) {
       await _showMessage(
-        _t(
-          'لا توجد حركات متاحة للتصدير حاليًا.',
-          'There are no transactions available for export right now.',
-        ),
+        _t('screens_transactions_screen.048'),
         isError: true,
       );
       return;
@@ -134,10 +132,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return;
       }
       await _showMessage(
-        _t(
-          'تم تصدير سجل الحركات بنجاح.',
-          'Transaction history exported successfully.',
-        ),
+        _t('screens_transactions_screen.049'),
       );
     } catch (error) {
       if (!mounted) {
@@ -314,10 +309,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _t(
-                        'نظّم حركاتك باستخدام البحث والنطاق الزمني وفلاتر الموقع.',
-                        'Organize your transactions using search, date range, and location filters.',
-                      ),
+                      _t('screens_transactions_screen.050'),
                       style: AppTheme.bodyAction.copyWith(height: 1.45),
                     ),
                   ],
@@ -382,10 +374,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             },
             decoration: InputDecoration(
               labelText: _t('screens_transactions_screen.014'),
-              hintText: _t(
-                'ابحث بالوصف أو البطاقة أو نوع الحركة',
-                'Search by description, card, or transaction type',
-              ),
+              hintText: _t('screens_transactions_screen.051'),
               prefixIcon: const Icon(Icons.search_rounded),
             ),
           ),
@@ -607,10 +596,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             Text(_t('screens_transactions_screen.035'), style: AppTheme.h3),
             const SizedBox(height: 8),
             Text(
-              _t(
-                'جرّب تغيير نص البحث أو الفلاتر المحددة.',
-                'Try changing the search text or selected filters.',
-              ),
+              _t('screens_transactions_screen.052'),
               style: AppTheme.bodyText,
               textAlign: TextAlign.center,
             ),
@@ -662,7 +648,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              '${_transactions.length} في هذه الصفحة',
+              context.loc.tr(
+                'screens_balance_screen.078',
+                params: {'count': '${_transactions.length}'},
+              ),
               style: AppTheme.caption.copyWith(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.w800,

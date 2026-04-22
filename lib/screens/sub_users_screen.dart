@@ -395,7 +395,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           ShwakelCard(
             padding: const EdgeInsets.all(18),
             child: Text(
-              'هذه الشاشة في وضع العرض فقط. يمكنك مراجعة الحسابات التابعة دون إنشاء أو تعديل أو تحويل أرصدة.',
+              context.loc.tr('screens_sub_users_screen.126'),
               style: AppTheme.bodyAction,
             ),
           ),
@@ -1254,7 +1254,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           ),
           const SizedBox(width: 6),
           Text(
-            isDisabled ? 'معطل' : 'نشط',
+            isDisabled
+                ? context.loc.tr('screens_sub_users_screen.127')
+                : context.loc.tr('screens_sub_users_screen.128'),
             style: AppTheme.caption.copyWith(
               color: color,
               fontWeight: FontWeight.w800,
