@@ -57,6 +57,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
+    final requestedPage = _page;
     try {
       final user = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(user);
@@ -74,7 +75,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       final payload = await _apiService.getTopupRequests(
         status: _statusQueryValue,
         query: _searchController.text,
-        page: _page,
+        page: requestedPage,
         perPage: _perPage,
       );
       final pagination = Map<String, dynamic>.from(
@@ -88,10 +89,23 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
           (item) => Map<String, dynamic>.from(item as Map),
         ),
       );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+
+      if (requestedPage > lastPage && lastPage > 0) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _page = lastPage);
+        await _load();
+        return;
+      }
       setState(() {
         _isAuthorized = true;
         _requests = requests;
-        _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _page = normalizedPage;
+        _lastPage = lastPage;
         _totalRequests =
             (pagination['total'] as num?)?.toInt() ?? _requests.length;
         _isLoading = false;

@@ -464,47 +464,79 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         drawer: const AppSidebar(),
         body: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHero(fullName: fullName, sectionCount: adminCards.length),
-              const SizedBox(height: 24),
-              ShwakelCard(
-                padding: const EdgeInsets.all(10),
-                borderRadius: BorderRadius.circular(24),
-                shadowLevel: ShwakelShadowLevel.soft,
-                child: TabBar(
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.all(4),
-                  tabs: [
-                    Tab(
-                      icon: const Icon(Icons.dashboard_customize_rounded),
-                      text: l.tr('screens_admin_dashboard_screen.050'),
+          child: NestedScrollView(
+            physics: const ClampingScrollPhysics(),
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHero(
+                      fullName: fullName,
+                      sectionCount: adminCards.length,
                     ),
-                    if (showDebtTab)
-                      Tab(
-                        icon: const Icon(Icons.menu_book_rounded),
-                        text: l.tr('screens_admin_dashboard_screen.034'),
-                      ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _buildAdminUnitsTab(adminCards: adminCards, adminWidgets: adminWidgets),
-                    if (showDebtTab)
-                      _buildDebtBookTab(
-                        debtSummary: debtSummary,
-                        topDebtors: topDebtors,
-                      ),
-                  ],
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _AdminDashboardTabBarDelegate(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildDashboardTabBar(
+                      showDebtTab: showDebtTab,
+                      context: context,
+                    ),
+                  ),
                 ),
               ),
             ],
+            body: TabBarView(
+              children: [
+                _buildAdminUnitsTab(
+                  adminCards: adminCards,
+                  adminWidgets: adminWidgets,
+                ),
+                if (showDebtTab)
+                  _buildDebtBookTab(
+                    debtSummary: debtSummary,
+                    topDebtors: topDebtors,
+                  ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardTabBar({
+    required bool showDebtTab,
+    required BuildContext context,
+  }) {
+    final l = context.loc;
+    return Material(
+      color: Colors.transparent,
+      child: ShwakelCard(
+        padding: const EdgeInsets.all(10),
+        borderRadius: BorderRadius.circular(24),
+        shadowLevel: ShwakelShadowLevel.soft,
+        child: TabBar(
+          dividerColor: Colors.transparent,
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorPadding: const EdgeInsets.all(4),
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.dashboard_customize_rounded),
+              text: l.tr('screens_admin_dashboard_screen.050'),
+            ),
+            if (showDebtTab)
+              Tab(
+                icon: const Icon(Icons.menu_book_rounded),
+                text: l.tr('screens_admin_dashboard_screen.034'),
+              ),
+          ],
         ),
       ),
     );
@@ -676,8 +708,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required List<_AdminEntry> adminCards,
     required List<Widget> adminWidgets,
   }) {
-    return SingleChildScrollView(
-      child: Column(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
+      children: [
+        Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
@@ -713,7 +747,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             },
           ),
         ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -721,8 +756,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required Map<String, dynamic> debtSummary,
     required List<Map<String, dynamic>> topDebtors,
   }) {
-    return SingleChildScrollView(
-      child: Column(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
+      children: [
+        Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
@@ -821,7 +858,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
         ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1005,4 +1043,34 @@ class _AdminEntry {
   final Color color;
   final String routeName;
   final String badge;
+}
+
+class _AdminDashboardTabBarDelegate extends SliverPersistentHeaderDelegate {
+  const _AdminDashboardTabBarDelegate({required this.child});
+
+  final Widget child;
+
+  @override
+  double get minExtent => 86;
+
+  @override
+  double get maxExtent => 86;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: AppTheme.background,
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _AdminDashboardTabBarDelegate oldDelegate) {
+    return oldDelegate.child != child;
+  }
 }

@@ -58,6 +58,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
+    final requestedPage = _page;
     try {
       final user = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(user);
@@ -86,12 +87,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
               valueMax: _parseDouble(_valueMaxController.text),
               issuedFrom: _formatDate(_issuedFrom),
               issuedTo: _formatDate(_issuedTo),
-              page: _page,
+              page: requestedPage,
               perPage: _adminPerPage,
             )
           : await _apiService.getMyCards(
               status: statusMap[_filter] ?? 'unused',
-              page: _page,
+              page: requestedPage,
               perPage: _perPage,
             );
       final cards = List<VirtualCard>.from(
@@ -100,6 +101,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      if (requestedPage > lastPage && lastPage > 0) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _page = lastPage);
+        await _load();
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -108,7 +120,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _canRequestCardPrinting = permissions.canRequestCardPrinting;
         _canUseAdminInventory = canUseAdminInventory;
         _cards = cards;
-        _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _page = normalizedPage;
+        _lastPage = lastPage;
         _totalCards = (pagination['total'] as num?)?.toInt() ?? _cards.length;
         _isLoading = false;
       });

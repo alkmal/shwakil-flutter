@@ -58,6 +58,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
+    final requestedPage = _page;
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
@@ -74,7 +75,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       final payload = await _apiService.getWithdrawalRequests(
         status: _statusQueryValue,
         query: _searchController.text,
-        page: _page,
+        page: requestedPage,
         perPage: _perPage,
       );
       final pagination = Map<String, dynamic>.from(
@@ -83,14 +84,25 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       if (!mounted) {
         return;
       }
+      final requests = List<Map<String, dynamic>>.from(
+        (payload['requests'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+
+      if (requestedPage > lastPage && lastPage > 0) {
+        setState(() => _page = lastPage);
+        await _load();
+        return;
+      }
       setState(() {
         _isAuthorized = true;
-        _requests = List<Map<String, dynamic>>.from(
-          (payload['requests'] as List? ?? const []).map(
-            (item) => Map<String, dynamic>.from(item as Map),
-          ),
-        );
-        _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _requests = requests;
+        _page = normalizedPage;
+        _lastPage = lastPage;
         _totalRequests =
             (pagination['total'] as num?)?.toInt() ?? _requests.length;
         _isLoading = false;

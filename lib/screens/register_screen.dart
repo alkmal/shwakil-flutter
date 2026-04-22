@@ -33,6 +33,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
   String? _supportWhatsapp;
 
@@ -285,14 +287,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
             l.tr('screens_register_screen.020'),
             _passwordC,
             Icons.lock_rounded,
-            obscure: true,
+            obscure: _obscurePassword,
+            suffixIcon: IconButton(
+              onPressed: () {
+                setState(() => _obscurePassword = !_obscurePassword);
+              },
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           _field(
             l.tr('screens_register_screen.021'),
             _confirmPassC,
             Icons.lock_reset_rounded,
-            obscure: true,
+            obscure: _obscureConfirmPassword,
+            suffixIcon: IconButton(
+              onPressed: () {
+                setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                );
+              },
+              icon: Icon(
+                _obscureConfirmPassword
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -424,6 +448,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool readOnly = false,
     VoidCallback? onTap,
     String? prefix,
+    Widget? suffixIcon,
   }) {
     return TextField(
       controller: controller,
@@ -435,6 +460,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         labelText: label,
         prefixIcon: Icon(icon, size: 20),
         prefixText: prefix,
+        suffixIcon: suffixIcon,
       ),
     );
   }

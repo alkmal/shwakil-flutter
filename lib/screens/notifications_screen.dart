@@ -53,10 +53,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() => _isLoading = true);
     }
 
+    final requestedPage = _page;
     try {
       final payload = await _apiService.getAppNotifications(
         filter: _filter,
-        page: _page,
+        page: requestedPage,
         perPage: _perPage,
       );
       final summary = Map<String, dynamic>.from(
@@ -70,13 +71,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           (item) => Map<String, dynamic>.from(item as Map),
         ),
       );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+
+      if (requestedPage > lastPage && lastPage > 0) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _page = lastPage);
+        await _loadNotifications(silent: silent);
+        return;
+      }
+
       if (!mounted) {
         return;
       }
       setState(() {
         _notifications = notifications;
         _unreadCount = (summary['unreadCount'] as num?)?.toInt() ?? 0;
-        _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _page = normalizedPage;
+        _lastPage = lastPage;
         _total = (pagination['total'] as num?)?.toInt() ?? notifications.length;
         _isLoading = false;
       });

@@ -56,13 +56,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _loadTransactions() async {
     setState(() => _isLoading = true);
+    final requestedPage = _page;
     try {
       final payload = await _apiService.getMyTransactions(
         locationFilter: _apiLocationFilterValue,
         query: _searchController.text,
         dateFilter: _apiDateFilterValue,
         printingDebtOnly: _auditFilter == _TransactionAuditFilter.printingDebt,
-        page: _page,
+        page: requestedPage,
         perPage: _perPage,
       );
       final summary = Map<String, dynamic>.from(
@@ -76,6 +77,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           (item) => Map<String, dynamic>.from(item as Map),
         ),
       );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+
+      if (requestedPage > lastPage && lastPage > 0) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _page = lastPage);
+        await _loadTransactions();
+        return;
+      }
 
       if (!mounted) {
         return;
@@ -86,7 +99,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _currentBalance = (summary['currentBalance'] as num?)?.toDouble() ?? 0;
         _totalCredits = (summary['totalCredits'] as num?)?.toDouble() ?? 0;
         _totalDebits = (summary['totalDebits'] as num?)?.toDouble() ?? 0;
-        _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _page = normalizedPage;
+        _lastPage = lastPage;
         _totalTransactions =
             (pagination['total'] as num?)?.toInt() ?? _transactions.length;
         _isLoading = false;

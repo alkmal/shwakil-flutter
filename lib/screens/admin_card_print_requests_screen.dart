@@ -51,6 +51,7 @@ class _AdminCardPrintRequestsScreenState
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
+    final requestedPage = _page;
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
@@ -67,23 +68,36 @@ class _AdminCardPrintRequestsScreenState
       final payload = await _apiService.getCardPrintRequests(
         status: _status,
         query: _searchController.text,
-        page: _page,
+        page: requestedPage,
       );
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
+      final requests = List<Map<String, dynamic>>.from(
+        payload['requests'] as List? ?? const [],
+      );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      if (requestedPage > lastPage && lastPage > 0) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _page = lastPage);
+        await _load();
+        return;
+      }
       if (!mounted) {
         return;
       }
       setState(() {
         _isAuthorized = true;
-        _requests = List<Map<String, dynamic>>.from(
-          payload['requests'] as List? ?? const [],
-        );
+        _requests = requests;
         _summary = Map<String, dynamic>.from(
           payload['summary'] as Map? ?? const {},
         );
-        _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _page = normalizedPage;
+        _lastPage = lastPage;
         _isLoading = false;
       });
     } catch (error) {

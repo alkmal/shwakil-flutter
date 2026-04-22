@@ -103,12 +103,14 @@ class RealtimeNotificationService {
       registerBackgroundHandler();
 
       final messaging = FirebaseMessaging.instance;
+      await messaging.setAutoInitEnabled(true);
       await messaging.requestPermission(alert: true, badge: true, sound: true);
       await messaging.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
         sound: true,
       );
+      await _waitForApplePushToken(messaging);
 
       _foregroundSubscription ??= FirebaseMessaging.onMessage.listen(
         _handleForegroundMessage,
@@ -128,6 +130,7 @@ class RealtimeNotificationService {
 
   static Future<void> _syncCurrentToken() async {
     try {
+      await _waitForApplePushToken(FirebaseMessaging.instance);
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) {
         return;
@@ -205,6 +208,20 @@ class RealtimeNotificationService {
     if (payload.isNotEmpty) {
       notifyBalanceUpdated(payload);
       notifyNotificationsUpdated(payload);
+    }
+  }
+
+  static Future<void> _waitForApplePushToken(FirebaseMessaging messaging) async {
+    if (kIsWeb || !Platform.isIOS) {
+      return;
+    }
+
+    for (var attempt = 0; attempt < 8; attempt++) {
+      final apnsToken = await messaging.getAPNSToken();
+      if (apnsToken != null && apnsToken.isNotEmpty) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     }
   }
 

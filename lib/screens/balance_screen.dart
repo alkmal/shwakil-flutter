@@ -78,10 +78,11 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
 
   Future<void> _loadBalance() async {
     setState(() => _isLoading = true);
+    final requestedPage = _page;
     try {
       final data = await _apiService.getMyBalance(
         locationFilter: _apiLocationFilterValue,
-        page: _page,
+        page: requestedPage,
         perPage: _perPage,
         printingDebtOnly: _auditFilter == _BalanceAuditFilter.printingDebt,
       );
@@ -89,6 +90,15 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       final pagination = Map<String, dynamic>.from(
         data['pagination'] as Map? ?? const {},
       );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      if (requestedPage > lastPage && lastPage > 0) {
+        if (!mounted) return;
+        setState(() => _page = lastPage);
+        await _loadBalance();
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _user = Map<String, dynamic>.from(
@@ -98,7 +108,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           data['transactions'] as List? ?? const [],
         );
         _topupRequestEnabled = topupSettings['enabled'] == true;
-        _lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _page = normalizedPage;
+        _lastPage = lastPage;
         _isLoading = false;
       });
     } catch (error) {
