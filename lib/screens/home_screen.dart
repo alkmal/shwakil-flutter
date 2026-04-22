@@ -716,6 +716,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           kind: _HomeServiceKind.transactions,
           onTap: () => unawaited(_openOnlineOnlyRoute('/transactions')),
         ),
+      _HomeServiceItem(
+        title: 'التسويق بالعمولة',
+        subtitle: 'تابع إحالاتك وعمولاتك وشارك بيانات الإحالة الخاصة بك.',
+        icon: Icons.campaign_rounded,
+        color: const Color(0xFF0F766E),
+        kind: _HomeServiceKind.affiliate,
+        onTap: () => unawaited(_openOnlineOnlyRoute('/affiliate-center')),
+      ),
       if (canManageDebtBook)
         _HomeServiceItem(
           title: _t('screens_home_screen.071'),
@@ -1203,6 +1211,7 @@ enum _HomeServiceKind {
   inventory,
   printRequests,
   transactions,
+  affiliate,
   debtBook,
   security,
   offlineCenter,

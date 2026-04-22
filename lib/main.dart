@@ -35,6 +35,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/notifications': (context) => const NotificationsScreen(),
   '/security-settings': (context) => const SecuritySettingsScreen(),
   '/account-settings': (context) => const AccountSettingsScreen(),
+  '/affiliate-center': (context) => const AffiliateCenterScreen(),
   '/admin-dashboard': (context) => const AdminDashboardScreen(),
   '/admin-debt-book': (context) => const AdminDebtBookScreen(),
   '/admin-card-print-requests': (context) =>

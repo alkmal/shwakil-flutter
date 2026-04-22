@@ -250,6 +250,13 @@ class _AppSidebarState extends State<AppSidebar> {
                       title: l.tr('widgets_app_sidebar.013'),
                       routeName: '/security-settings',
                     ),
+                  if (!isRestrictedOfflineWorkspaceUser)
+                    _buildItem(
+                      context,
+                      icon: Icons.campaign_rounded,
+                      title: 'التسويق بالعمولة',
+                      routeName: '/affiliate-center',
+                    ),
                   if (!isRestrictedOfflineWorkspaceUser && canViewSubUsers)
                     _buildItem(
                       context,

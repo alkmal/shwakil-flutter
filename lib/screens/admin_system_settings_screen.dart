@@ -40,12 +40,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardRedeemFeeController = TextEditingController();
   final _cardResellFeeController = TextEditingController();
   final _cardPrintRequestFeeController = TextEditingController();
+  final _affiliateRewardAmountController = TextEditingController();
+  final _affiliateFirstTopupMinAmountController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isAuthorized = false;
   bool _registrationEnabled = true;
   bool _topupRequestEnabled = true;
+  bool _affiliateEnabled = true;
   List<Map<String, dynamic>> _topupPaymentMethods = const [];
 
   @override
@@ -74,6 +77,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardRedeemFeeController.dispose();
     _cardResellFeeController.dispose();
     _cardPrintRequestFeeController.dispose();
+    _affiliateRewardAmountController.dispose();
+    _affiliateFirstTopupMinAmountController.dispose();
     super.dispose();
   }
 
@@ -98,6 +103,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       final feeSettings = await _apiService.getFeeSettings();
       final topupRequestSettings = await _apiService
           .getAdminTopupRequestSettings();
+      final affiliateSettings = await _apiService.getAdminAffiliateSettings();
       final topupPaymentMethods = await _apiService
           .getAdminTopupPaymentMethods();
       final usagePolicy = await _apiService.getUsagePolicy();
@@ -139,6 +145,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _topupRequestEnabled = topupRequestSettings['enabled'] == true;
       _topupRequestInstructionsController.text =
           topupRequestSettings['instructions']?.toString() ?? '';
+      _affiliateEnabled = affiliateSettings['enabled'] == true;
+      _affiliateRewardAmountController.text =
+          (affiliateSettings['rewardAmount'] as num?)?.toString() ?? '5';
+      _affiliateFirstTopupMinAmountController.text =
+          (affiliateSettings['firstTopupMinAmount'] as num?)?.toString() ??
+          '100';
       _policyTitleController.text = usagePolicy['title'] ?? '';
       _policyContentController.text = usagePolicy['content'] ?? '';
 
@@ -198,6 +210,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _apiService.updateAdminTopupRequestSettings(
           enabled: _topupRequestEnabled,
           instructions: _topupRequestInstructionsController.text,
+        ),
+        _apiService.updateAffiliateSettings(
+          enabled: _affiliateEnabled,
+          rewardAmount:
+              double.tryParse(_affiliateRewardAmountController.text) ?? 5,
+          firstTopupMinAmount:
+              double.tryParse(_affiliateFirstTopupMinAmountController.text) ??
+              100,
         ),
         _apiService.updateUsagePolicy(
           title: _policyTitleController.text,
@@ -452,7 +472,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -508,6 +528,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       icon: const Icon(Icons.add_card_rounded),
                       text: l.tr('screens_admin_system_settings_screen.055'),
                     ),
+                    const Tab(
+                      icon: Icon(Icons.campaign_rounded),
+                      text: 'التسويق بالعمولة',
+                    ),
                     Tab(
                       icon: const Icon(Icons.policy_rounded),
                       text: l.tr('screens_admin_system_settings_screen.056'),
@@ -526,6 +550,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     _buildContactTab(),
                     _buildAppTab(),
                     _buildTopupTab(),
+                    _buildAffiliateTab(),
                     _buildPolicyTab(),
                     _buildFeesTab(),
                   ],
@@ -801,6 +826,61 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   maxLines: 6,
                   decoration: InputDecoration(
                     labelText: l.tr('screens_admin_system_settings_screen.028'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAffiliateTab() {
+    return _tabScroll(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AdminSectionHeader(
+            title: 'إعدادات التسويق بالعمولة',
+            subtitle:
+                'التحكم في تفعيل نظام الإحالة، قيمة العمولة، والحد الأدنى لأول شحن مؤهل.',
+            icon: Icons.campaign_rounded,
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Column(
+              children: [
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _affiliateEnabled,
+                  onChanged: (value) =>
+                      setState(() => _affiliateEnabled = value),
+                  title: const Text('تفعيل التسويق بالعمولة'),
+                  subtitle: const Text(
+                    'عند التفعيل تُمنح عمولة لأول شحن مؤهل للمستخدم المحال.',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _affiliateRewardAmountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'قيمة العمولة',
+                    suffixText: '₪',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _affiliateFirstTopupMinAmountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'الحد الأدنى لأول شحن مؤهل',
+                    suffixText: '₪',
                   ),
                 ),
               ],

@@ -15,6 +15,7 @@ export 'transactions_screen.dart';
 export 'notifications_screen.dart';
 export 'security_settings_screen.dart';
 export 'account_settings_screen.dart';
+export 'affiliate_center_screen.dart';
 export 'admin_dashboard_screen.dart';
 export 'admin_debt_book_screen.dart';
 export 'admin_card_print_requests_screen.dart';

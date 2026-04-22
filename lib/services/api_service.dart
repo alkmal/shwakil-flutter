@@ -105,6 +105,15 @@ class ApiService {
     return Map<String, dynamic>.from(body['topupRequest'] as Map? ?? const {});
   }
 
+  Future<Map<String, dynamic>> getAdminAffiliateSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/affiliate'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(body['affiliate'] as Map? ?? const {});
+  }
+
   Future<Map<String, dynamic>> getTransferSettings() async {
     final response = await http.get(
       AppConfig.apiUri('admin/settings/transfer'),
@@ -896,6 +905,23 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> updateAdminAffiliateSettings({
+    required bool enabled,
+    required double rewardAmount,
+    required double firstTopupMinAmount,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/affiliate'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'enabled': enabled,
+        'rewardAmount': rewardAmount,
+        'firstTopupMinAmount': firstTopupMinAmount,
+      }),
+    );
+    return _decodeObject(response);
+  }
+
   Future<List<Map<String, dynamic>>> getAdminTopupPaymentMethods() async {
     final response = await http.get(
       AppConfig.apiUri('admin/topup-payment-methods'),
@@ -1050,6 +1076,18 @@ class ApiService {
     required String content,
   }) {
     return updateAdminUsagePolicy(title: title, content: content);
+  }
+
+  Future<Map<String, dynamic>> updateAffiliateSettings({
+    required bool enabled,
+    required double rewardAmount,
+    required double firstTopupMinAmount,
+  }) {
+    return updateAdminAffiliateSettings(
+      enabled: enabled,
+      rewardAmount: rewardAmount,
+      firstTopupMinAmount: firstTopupMinAmount,
+    );
   }
 
   Future<Map<String, dynamic>> reviewDeviceAccessRequest(
@@ -1382,6 +1420,14 @@ class ApiService {
   Future<Map<String, dynamic>> getTopupRequestOptions() async {
     final response = await http.get(
       AppConfig.apiUri('wallet/topup-request/options'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAffiliateDashboard() async {
+    final response = await http.get(
+      AppConfig.apiUri('affiliate/dashboard'),
       headers: await _headers(),
     );
     return _decodeObject(response);
