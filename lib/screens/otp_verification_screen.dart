@@ -98,7 +98,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _isLoading = true);
     try {
       if (_isRegisterFlow) {
-        await _authService.register(
+        final response = await _authService.register(
           fullName: widget.fullName,
           username: widget.username,
           password: widget.password,
@@ -118,7 +118,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         await AppAlertService.showSuccess(
           context,
           title: l.tr('screens_otp_verification_screen.002'),
-          message: l.tr('screens_otp_verification_screen.016'),
+          message:
+              response['message']?.toString() ??
+              l.tr('screens_otp_verification_screen.016'),
         );
         if (!mounted) {
           return;
@@ -196,6 +198,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         nationalId: widget.nationalId,
         birthDate: widget.birthDate,
         referralPhone: widget.referralPhone,
+        pendingRegistrationId: widget.pendingRegistrationId,
         termsAccepted: widget.termsAccepted,
       );
       if (!mounted) {

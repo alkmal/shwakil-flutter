@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/index.dart';
@@ -35,7 +37,10 @@ class _AdminCardPrintRequestsScreenState
   int _page = 1;
   int _lastPage = 1;
   String? _busyId;
-  bool _showFilters = false;
+  bool _isRefreshing = false;
+  Timer? _searchDebounce;
+  int _loadRequestId = 0;
+  String _lastSubmittedQuery = '';
 
   @override
   void initState() {
@@ -45,12 +50,21 @@ class _AdminCardPrintRequestsScreenState
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _isLoading = true);
+  Future<void> _load({bool preserveContent = false}) async {
+    final requestId = ++_loadRequestId;
+    final shouldKeepVisible = preserveContent && _requests.isNotEmpty;
+    setState(() {
+      if (shouldKeepVisible) {
+        _isRefreshing = true;
+      } else {
+        _isLoading = true;
+      }
+    });
     final requestedPage = _page;
     try {
       final currentUser = await _authService.currentUser();
@@ -67,7 +81,7 @@ class _AdminCardPrintRequestsScreenState
       }
       final payload = await _apiService.getCardPrintRequests(
         status: _status,
-        query: _searchController.text,
+        query: _searchController.text.trim(),
         page: requestedPage,
       );
       final pagination = Map<String, dynamic>.from(
@@ -87,7 +101,7 @@ class _AdminCardPrintRequestsScreenState
         await _load();
         return;
       }
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
       setState(() {
@@ -99,12 +113,16 @@ class _AdminCardPrintRequestsScreenState
         _page = normalizedPage;
         _lastPage = lastPage;
         _isLoading = false;
+        _isRefreshing = false;
       });
     } catch (error) {
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isRefreshing = false;
+      });
       await AppAlertService.showError(
         context,
         title: context.loc.tr(
@@ -368,15 +386,14 @@ class _AdminCardPrintRequestsScreenState
         title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
         actions: [
           IconButton(
-            tooltip: _showFilters
-                ? context.loc.tr('screens_admin_card_print_requests_screen.038')
-                : context.loc.tr('screens_admin_card_print_requests_screen.039'),
-            onPressed: () => setState(() => _showFilters = !_showFilters),
-            icon: Icon(
-              _showFilters
-                  ? Icons.filter_alt_off_rounded
-                  : Icons.filter_alt_rounded,
-            ),
+            tooltip: context.loc.tr('screens_admin_card_print_requests_screen.040'),
+            onPressed: _showSummarySheet,
+            icon: const Icon(Icons.dashboard_customize_rounded),
+          ),
+          IconButton(
+            tooltip: context.loc.tr('screens_admin_card_print_requests_screen.039'),
+            onPressed: _showFiltersSheet,
+            icon: const Icon(Icons.filter_alt_rounded),
           ),
           IconButton(
             tooltip: context.loc.tr('screens_admin_card_print_requests_screen.040'),
@@ -390,197 +407,283 @@ class _AdminCardPrintRequestsScreenState
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: SingleChildScrollView(
-          child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.loc.tr(
-                    'screens_admin_card_print_requests_screen.041',
-                    params: {
-                      'review':
-                          '${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0}',
-                      'approved':
-                          '${(_summary['approvedCount'] as num?)?.toInt() ?? 0}',
-                      'completed':
-                          '${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
-                    },
-                  ),
-                  style: AppTheme.caption,
+        child: ResponsiveScaffoldContainer(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_isRefreshing)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: LinearProgressIndicator(minHeight: 3),
                 ),
-                if (_showFilters) ...[
-                  const SizedBox(height: 14),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final stacked = constraints.maxWidth < 760;
-                      final searchField = Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            labelText: l.tr(
-                              'screens_admin_card_print_requests_screen.search_label',
-                            ),
-                            prefixIcon: const Icon(Icons.search_rounded),
-                          ),
-                          onSubmitted: (_) {
-                            _page = 1;
-                            _load();
-                          },
-                        ),
-                      );
-                      final filterField = SizedBox(
-                        width: stacked ? double.infinity : 190,
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _status,
-                          decoration: InputDecoration(
-                            labelText: l.tr(
-                              'screens_admin_card_print_requests_screen.003',
-                            ),
-                          ),
-                          items: [
-                            DropdownMenuItem(
-                              value: 'all',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.004',
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'pending_review',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.005',
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'approved',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.006',
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'printing',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.007',
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'ready',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.008',
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'completed',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.009',
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'rejected',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.010',
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'archive',
-                              child: Text(
-                                l.tr(
-                                  'screens_admin_card_print_requests_screen.029',
-                                ),
-                              ),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() {
-                              _status = value;
-                              _page = 1;
-                            });
-                            _load();
-                          },
-                        ),
-                      );
-
-                      if (stacked) {
-                        return Column(
-                          children: [
-                            Row(children: [searchField]),
-                            const SizedBox(height: 12),
-                            filterField,
-                          ],
-                        );
-                      }
-
-                      return Row(
-                        children: [
-                          searchField,
-                          const SizedBox(width: 12),
-                          filterField,
-                        ],
-                      );
-                    },
+              if (_isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: CircularProgressIndicator(),
                   ),
-                ] else ...[
-                  const SizedBox(height: 14),
-                  ToolToggleHint(
-                    message: context.loc.tr(
-                      'screens_admin_card_print_requests_screen.042',
-                    ),
-                    icon: Icons.filter_alt_rounded,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (_requests.isEmpty)
-                  ShwakelCard(
-                    padding: const EdgeInsets.all(28),
-                    child: Center(
-                      child: Text(
-                        l.tr(
-                          'screens_admin_card_print_requests_screen.empty_state',
-                        ),
-                        style: AppTheme.bodyAction,
+                )
+              else if (_requests.isEmpty)
+                ShwakelCard(
+                  padding: const EdgeInsets.all(28),
+                  child: Center(
+                    child: Text(
+                      l.tr(
+                        'screens_admin_card_print_requests_screen.empty_state',
                       ),
+                      style: AppTheme.bodyAction,
                     ),
-                  )
-                else ...[
-                  ..._requests.map(_buildRequestCard),
-                  const SizedBox(height: 24),
-                  AdminPaginationFooter(
-                    currentPage: _page,
-                    lastPage: _lastPage,
-                    onPageChanged: (page) {
-                      setState(() => _page = page);
-                      _load();
-                    },
                   ),
-                ],
+                )
+              else ...[
+                ..._requests.map(_buildRequestCard),
+                const SizedBox(height: 24),
+                AdminPaginationFooter(
+                  currentPage: _page,
+                  lastPage: _lastPage,
+                  onPageChanged: (page) {
+                    setState(() => _page = page);
+                    _load();
+                  },
+                ),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewCard() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.print_rounded, color: AppTheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  context.loc.tr('screens_admin_card_print_requests_screen.001'),
+                  style: AppTheme.bodyBold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${_requests.length}',
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.loc.tr(
+              'screens_admin_card_print_requests_screen.041',
+              params: {
+                'review':
+                    '${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0}',
+                'approved':
+                    '${(_summary['approvedCount'] as num?)?.toInt() ?? 0}',
+                'completed':
+                    '${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
+              },
+            ),
+            style: AppTheme.bodyAction.copyWith(
+              color: AppTheme.textSecondary,
             ),
           ),
+          const SizedBox(height: 12),
+          ToolToggleHint(
+            message: context.loc.tr(
+              'screens_admin_card_print_requests_screen.042',
+            ),
+            icon: Icons.filter_alt_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSummarySheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              context.loc.tr('screens_admin_card_print_requests_screen.040'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            _buildOverviewCard(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFiltersSheet() async {
+    if (!mounted) {
+      return;
+    }
+    final l = context.loc;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              context.loc.tr('screens_admin_card_print_requests_screen.039'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.tr('screens_admin_card_print_requests_screen.042'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stacked = constraints.maxWidth < 760;
+                final searchField = TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: l.tr(
+                      'screens_admin_card_print_requests_screen.search_label',
+                    ),
+                    prefixIcon: const Icon(Icons.search_rounded),
+                  ),
+                  onChanged: (_) {
+                    _searchDebounce?.cancel();
+                    _searchDebounce = Timer(
+                      const Duration(milliseconds: 550),
+                      () {
+                        if (!mounted) {
+                          return;
+                        }
+                        _submitSearch();
+                      },
+                    );
+                  },
+                  onSubmitted: (_) {
+                    _page = 1;
+                    _submitSearch(force: true);
+                  },
+                );
+                final filterField = DropdownButtonFormField<String>(
+                  initialValue: _status,
+                  decoration: InputDecoration(
+                    labelText: l.tr(
+                      'screens_admin_card_print_requests_screen.003',
+                    ),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.004'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'pending_review',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.005'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'approved',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.006'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'printing',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.007'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'ready',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.008'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'completed',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.009'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'rejected',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.010'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'archive',
+                      child: Text(
+                        l.tr('screens_admin_card_print_requests_screen.029'),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _status = value;
+                      _page = 1;
+                    });
+                    _load(preserveContent: true);
+                  },
+                );
+
+                if (stacked) {
+                  return Column(
+                    children: [
+                      searchField,
+                      const SizedBox(height: 12),
+                      filterField,
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: [
+                    searchField,
+                    const SizedBox(height: 12),
+                    filterField,
+                  ],
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -841,5 +944,15 @@ class _AdminCardPrintRequestsScreenState
         ),
       ),
     );
+  }
+
+  void _submitSearch({bool force = false}) {
+    final query = _searchController.text.trim();
+    if (!force && query == _lastSubmittedQuery) {
+      return;
+    }
+    _lastSubmittedQuery = query;
+    setState(() => _page = 1);
+    _load(preserveContent: true);
   }
 }

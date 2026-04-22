@@ -280,6 +280,13 @@ class _AppSidebarState extends State<AppSidebar> {
                         title: l.tr('widgets_app_sidebar.030'),
                         routeName: '/admin-customers',
                       ),
+                    if (canManageUsers)
+                      _buildItem(
+                        context,
+                        icon: Icons.person_add_alt_1_rounded,
+                        title: 'طلبات التسجيل',
+                        routeName: '/admin-pending-registrations',
+                      ),
                     if (canReviewDevices)
                       _buildItem(
                         context,

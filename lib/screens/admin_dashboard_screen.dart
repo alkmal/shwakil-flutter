@@ -370,6 +370,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-customers',
           badge: l.tr('screens_admin_dashboard_screen.022'),
         ),
+      if (permissions.canManageUsers)
+        const _AdminEntry(
+          title: 'طلبات التسجيل',
+          subtitle: 'قبول أو رفض طلبات التسجيل المعلقة بعد تأكيد الواتساب.',
+          icon: Icons.person_add_alt_1_rounded,
+          color: AppTheme.secondary,
+          routeName: '/admin-pending-registrations',
+          badge: 'معلّق',
+        ),
       if (permissions.canReviewDevices)
         _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.008'),

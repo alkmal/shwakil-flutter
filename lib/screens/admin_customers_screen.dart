@@ -7,13 +7,11 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_customer_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
-import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 import 'admin_customer_screen.dart';
 
 class AdminCustomersScreen extends StatefulWidget {
@@ -38,7 +36,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   String? _resendBusyId;
   int _customerPage = 1;
   int _customerLastPage = 1;
-  bool _showSearch = false;
+  int _loadRequestId = 0;
+  String _lastSubmittedQuery = '';
 
   @override
   void initState() {
@@ -54,9 +53,16 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   }
 
   Future<void> _loadCustomers({bool reset = false}) async {
+    final requestId = ++_loadRequestId;
     if (reset) {
       _customerPage = 1;
-      setState(() => _isLoading = true);
+      setState(() {
+        if (_customers.isEmpty) {
+          _isLoading = true;
+        } else {
+          _isLoadingCustomers = true;
+        }
+      });
     } else {
       setState(() => _isLoadingCustomers = true);
     }
@@ -83,8 +89,20 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
+      final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+      final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+      final normalizedPage = currentPage.clamp(1, lastPage) as int;
 
-      if (!mounted) {
+      if (_customerPage > lastPage && lastPage > 0) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _customerPage = lastPage);
+        await _loadCustomers();
+        return;
+      }
+
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
 
@@ -96,13 +114,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         _customers = List<Map<String, dynamic>>.from(
           payload['customers'] as List? ?? const [],
         );
-        _customerLastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _customerPage = normalizedPage;
+        _customerLastPage = lastPage;
         _canManageUsers = permissions.canManageUsers;
         _isLoading = false;
         _isLoadingCustomers = false;
       });
     } catch (error) {
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
       setState(() {
@@ -438,127 +457,166 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       );
     }
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          title: Text(l.tr('screens_admin_customers_screen.017')),
-          actions: [
-            if (_canManageUsers)
-              IconButton(
-                tooltip: l.tr('screens_admin_customers_screen.022'),
-                onPressed: _showCreateCustomerDialog,
-                icon: const Icon(Icons.person_add_alt_1_rounded),
-              ),
-            IconButton(
-              tooltip: _showSearch
-                  ? context.loc.tr('screens_admin_customers_screen.039')
-                  : context.loc.tr('screens_admin_customers_screen.040'),
-              onPressed: () => setState(() => _showSearch = !_showSearch),
-              icon: Icon(
-                _showSearch
-                    ? Icons.search_off_rounded
-                    : Icons.manage_search_rounded,
-              ),
-            ),
-            IconButton(
-              tooltip: context.loc.tr('screens_admin_customers_screen.041'),
-              onPressed: _showHelpDialog,
-              icon: const Icon(Icons.info_outline_rounded),
-            ),
-            const AppNotificationAction(),
-            const QuickLogoutAction(),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(76),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: TabBar(
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.all(6),
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  tabs: [
-                    Tab(
-                      text: l.tr('screens_admin_customers_screen.048'),
-                      icon: const Icon(Icons.people_alt_rounded),
-                    ),
-                    Tab(
-                      text: l.tr('screens_admin_customers_screen.049'),
-                      icon: const Icon(Icons.analytics_rounded),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: Text(l.tr('screens_admin_customers_screen.017')),
+        actions: [
+          IconButton(
+            tooltip: l.tr('screens_admin_customers_screen.049'),
+            onPressed: () => _showSummarySheet(totalCustomers),
+            icon: const Icon(Icons.analytics_rounded),
           ),
-        ),
-        drawer: const AppSidebar(),
-        body: RefreshIndicator(
-          onRefresh: () => _loadCustomers(reset: true),
-          child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: TabBarView(
-              children: [
-                _buildCustomersTab(totalCustomers),
-                _buildSummaryTab(totalCustomers),
-              ],
+          IconButton(
+            tooltip: l.tr('screens_admin_customers_screen.040'),
+            onPressed: _showSearchSheet,
+            icon: const Icon(Icons.manage_search_rounded),
+          ),
+          if (_canManageUsers)
+            IconButton(
+              tooltip: l.tr('screens_admin_customers_screen.022'),
+              onPressed: _showCreateCustomerDialog,
+              icon: const Icon(Icons.person_add_alt_1_rounded),
             ),
+          IconButton(
+            tooltip: l.tr('screens_admin_customers_screen.041'),
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
+      ),
+      drawer: const AppSidebar(),
+      body: RefreshIndicator(
+        onRefresh: () => _loadCustomers(reset: true),
+        child: ResponsiveScaffoldContainer(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_isLoadingCustomers)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: LinearProgressIndicator(minHeight: 3),
+                ),
+              if (_customers.isEmpty)
+                ShwakelCard(
+                  padding: const EdgeInsets.all(28),
+                  child: Center(
+                    child: Text(
+                      l.tr('screens_admin_customers_screen.038'),
+                      style: AppTheme.bodyAction,
+                    ),
+                  ),
+                )
+              else ...[
+                ..._customers.map(
+                  (customer) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: AdminCustomerCard(
+                      customer: customer,
+                      onTap: () => _openCustomerDetails(customer),
+                      onResendCredentials: () =>
+                          _resendCustomerCredentials(customer),
+                    ),
+                  ),
+                ),
+                AdminPaginationFooter(
+                  currentPage: _customerPage,
+                  lastPage: _customerLastPage,
+                  onPageChanged: (page) {
+                    setState(() => _customerPage = page);
+                    _loadCustomers();
+                  },
+                ),
+              ],
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCustomersTab(int totalCustomers) {
-    return SingleChildScrollView(
+  Widget _buildOverviewCard(int totalCustomers) {
+    final totalBalances = (_summary['totalBalances'] as num?)?.toDouble() ?? 0;
+    final totalPrintingDebt =
+        (_summary['totalPrintingDebt'] as num?)?.toDouble() ?? 0;
+    final printingDebtUsers =
+        (_summary['printingDebtUsersCount'] as num?)?.toInt() ?? 0;
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AdminSectionHeader(
-            title: context.loc.tr('screens_admin_customers_screen.021'),
-            icon: Icons.people_alt_rounded,
-          ),
-          const SizedBox(height: 16),
-          if (_showSearch)
-            ShwakelCard(
-              padding: const EdgeInsets.all(18),
-              withBorder: true,
-              borderColor: AppTheme.borderLight,
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: context.loc.tr(
-                    'screens_admin_customers_screen.023',
-                  ),
-                  prefixIcon: const Icon(Icons.search_rounded),
+          Row(
+            children: [
+              const Icon(Icons.people_alt_rounded, color: AppTheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  context.loc.tr('screens_admin_customers_screen.021'),
+                  style: AppTheme.bodyBold,
                 ),
-                onChanged: (_) {
-                  _searchDebounce?.cancel();
-                  _searchDebounce = Timer(
-                    const Duration(milliseconds: 350),
-                    () {
-                      if (!mounted) {
-                        return;
-                      }
-                      _loadCustomers(reset: true);
-                    },
-                  );
-                },
               ),
-            )
-          else
-            ToolToggleHint(
-              message: context.loc.tr('screens_admin_customers_screen.042'),
-              icon: Icons.manage_search_rounded,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$totalCustomers',
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.loc.tr('screens_admin_customers_screen.050'),
+            style: AppTheme.bodyAction.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.4,
             ),
-          const SizedBox(height: 12),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _summaryCard(
+                context.loc.tr('screens_admin_customers_screen.051'),
+                '$totalCustomers',
+                Icons.people_alt_rounded,
+                AppTheme.primary,
+              ),
+              _summaryCard(
+                context.loc.tr('screens_admin_customers_screen.052'),
+                totalBalances.toStringAsFixed(2),
+                Icons.account_balance_wallet_rounded,
+                AppTheme.success,
+              ),
+              _summaryCard(
+                context.loc.tr('screens_admin_customers_screen.053'),
+                totalPrintingDebt.toStringAsFixed(2),
+                Icons.print_rounded,
+                AppTheme.warning,
+              ),
+              _summaryCard(
+                context.loc.tr('screens_admin_customers_screen.054'),
+                '$printingDebtUsers',
+                Icons.warning_amber_rounded,
+                AppTheme.error,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Text(
             context.loc.tr(
               'screens_admin_customers_screen.043',
@@ -569,115 +627,6 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             ),
             style: AppTheme.caption,
           ),
-          const SizedBox(height: 16),
-          if (_isLoadingCustomers) const LinearProgressIndicator(minHeight: 3),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = constraints.maxWidth > 1080
-                  ? 3
-                  : constraints.maxWidth > 720
-                  ? 2
-                  : 1;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  mainAxisExtent: 210,
-                ),
-                itemCount: _customers.length,
-                itemBuilder: (context, index) {
-                  final customer = _customers[index];
-                  return AdminCustomerCard(
-                    customer: customer,
-                    onTap: () => _openCustomerDetails(customer),
-                    onResendCredentials: () =>
-                        _resendCustomerCredentials(customer),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          AdminPaginationFooter(
-            currentPage: _customerPage,
-            lastPage: _customerLastPage,
-            onPageChanged: (page) {
-              setState(() => _customerPage = page);
-              _loadCustomers();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryTab(int totalCustomers) {
-    final totalBalances = (_summary['totalBalances'] as num?)?.toDouble() ?? 0;
-    final totalPrintingDebt =
-        (_summary['totalPrintingDebt'] as num?)?.toDouble() ?? 0;
-    final printingDebtUsers =
-        (_summary['printingDebtUsersCount'] as num?)?.toInt() ?? 0;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ShwakelCard(
-            padding: const EdgeInsets.all(18),
-            withBorder: true,
-            borderColor: AppTheme.borderLight,
-            child: Text(
-              context.loc.tr('screens_admin_customers_screen.050'),
-              style: AppTheme.bodyAction,
-            ),
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 760;
-              final cards = [
-                _summaryCard(
-                  context.loc.tr('screens_admin_customers_screen.051'),
-                  '$totalCustomers',
-                  Icons.people_alt_rounded,
-                  AppTheme.primary,
-                ),
-                _summaryCard(
-                  context.loc.tr('screens_admin_customers_screen.052'),
-                  totalBalances.toStringAsFixed(2),
-                  Icons.account_balance_wallet_rounded,
-                  AppTheme.success,
-                ),
-                _summaryCard(
-                  context.loc.tr('screens_admin_customers_screen.053'),
-                  totalPrintingDebt.toStringAsFixed(2),
-                  Icons.print_rounded,
-                  AppTheme.warning,
-                ),
-                _summaryCard(
-                  context.loc.tr('screens_admin_customers_screen.054'),
-                  '$printingDebtUsers',
-                  Icons.warning_amber_rounded,
-                  AppTheme.error,
-                ),
-              ];
-              if (compact) {
-                return Column(
-                  children: [
-                    for (var i = 0; i < cards.length; i++) ...[
-                      cards[i],
-                      if (i != cards.length - 1) const SizedBox(height: 12),
-                    ],
-                  ],
-                );
-              }
-              return Wrap(spacing: 12, runSpacing: 12, children: cards);
-            },
-          ),
         ],
       ),
     );
@@ -685,7 +634,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
   Widget _summaryCard(String title, String value, IconData icon, Color color) {
     return SizedBox(
-      width: 240,
+      width: 170,
       child: ShwakelCard(
         padding: const EdgeInsets.all(18),
         withBorder: true,
@@ -718,6 +667,89 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     );
   }
 
+  Future<void> _showSummarySheet(int totalCustomers) async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              context.loc.tr('screens_admin_customers_screen.049'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.tr('screens_admin_customers_screen.050'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildOverviewCard(totalCustomers),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSearchSheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              context.loc.tr('screens_admin_customers_screen.040'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.tr('screens_admin_customers_screen.042'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(18),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: context.loc.tr(
+                    'screens_admin_customers_screen.023',
+                  ),
+                  prefixIcon: const Icon(Icons.search_rounded),
+                ),
+                onChanged: (_) {
+                  _searchDebounce?.cancel();
+                  _searchDebounce = Timer(const Duration(milliseconds: 550), () {
+                    if (!mounted) {
+                      return;
+                    }
+                    _submitSearch();
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _showHelpDialog() {
     return showDialog<void>(
       context: context,
@@ -732,5 +764,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         ],
       ),
     );
+  }
+
+  void _submitSearch() {
+    final query = _searchController.text.trim();
+    if (query == _lastSubmittedQuery) {
+      return;
+    }
+    _lastSubmittedQuery = query;
+    _loadCustomers(reset: true);
   }
 }

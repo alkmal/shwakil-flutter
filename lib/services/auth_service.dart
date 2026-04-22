@@ -66,6 +66,7 @@ class AuthService {
     String? nationalId,
     String? birthDate,
     String? referralPhone,
+    String? pendingRegistrationId,
     bool termsAccepted = false,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
@@ -84,6 +85,7 @@ class AuthService {
             'nationalId': nationalId?.trim(),
             'birthDate': birthDate?.trim(),
             'referralPhone': referralPhone?.trim(),
+            'pendingRegistrationId': pendingRegistrationId?.trim(),
             'deviceId': deviceId,
             'termsAccepted': termsAccepted,
           }),
@@ -190,7 +192,7 @@ class AuthService {
     );
   }
 
-  Future<void> register({
+  Future<Map<String, dynamic>> register({
     String? fullName,
     String? username,
     String? password,
@@ -229,6 +231,9 @@ class AuthService {
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
+    return Map<String, dynamic>.from(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   Future<void> login({

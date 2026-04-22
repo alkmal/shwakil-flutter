@@ -33,6 +33,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
 
   List<Map<String, dynamic>> _requests = const [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
   bool _isAuthorized = false;
   String? _busyId;
   _StatusFilter _filter = _StatusFilter.all;
@@ -41,7 +42,8 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   int _lastPage = 1;
   int _totalRequests = 0;
   Timer? _searchDebounce;
-  bool _showFilters = false;
+  int _loadRequestId = 0;
+  String _lastSubmittedQuery = '';
 
   @override
   void initState() {
@@ -56,8 +58,16 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _isLoading = true);
+  Future<void> _load({bool preserveContent = false}) async {
+    final requestId = ++_loadRequestId;
+    final shouldKeepVisible = preserveContent && _requests.isNotEmpty;
+    setState(() {
+      if (shouldKeepVisible) {
+        _isRefreshing = true;
+      } else {
+        _isLoading = true;
+      }
+    });
     final requestedPage = _page;
     try {
       final currentUser = await _authService.currentUser();
@@ -74,14 +84,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       }
       final payload = await _apiService.getWithdrawalRequests(
         status: _statusQueryValue,
-        query: _searchController.text,
+        query: _searchController.text.trim(),
         page: requestedPage,
         perPage: _perPage,
       );
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
       final requests = List<Map<String, dynamic>>.from(
@@ -106,10 +116,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         _totalRequests =
             (pagination['total'] as num?)?.toInt() ?? _requests.length;
         _isLoading = false;
+        _isRefreshing = false;
       });
     } catch (error) {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (mounted && requestId == _loadRequestId) {
+        setState(() {
+          _isLoading = false;
+          _isRefreshing = false;
+        });
       }
       AppAlertService.showError(
         context,
@@ -171,15 +185,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         title: Text(l.tr('screens_withdrawal_requests_screen.001')),
         actions: [
           IconButton(
-            tooltip: _showFilters
-                ? l.tr('screens_withdrawal_requests_screen.029')
-                : l.tr('screens_withdrawal_requests_screen.030'),
-            onPressed: () => setState(() => _showFilters = !_showFilters),
-            icon: Icon(
-              _showFilters
-                  ? Icons.filter_alt_off_rounded
-                  : Icons.filter_alt_rounded,
-            ),
+            tooltip: l.tr('screens_transactions_screen.039'),
+            onPressed: _showSummarySheet,
+            icon: const Icon(Icons.dashboard_customize_rounded),
+          ),
+          IconButton(
+            tooltip: l.tr('screens_withdrawal_requests_screen.030'),
+            onPressed: _showFiltersSheet,
+            icon: const Icon(Icons.filter_alt_rounded),
           ),
           IconButton(
             tooltip: l.tr('screens_admin_customers_screen.041'),
@@ -193,39 +206,33 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: SingleChildScrollView(
-          child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: Column(
-              children: [
-                if (_showFilters) ...[
-                  _buildFilterBar(),
-                  const SizedBox(height: 18),
-                ] else ...[
-                  ToolToggleHint(
-                    message: l.tr('screens_withdrawal_requests_screen.031'),
-                    icon: Icons.filter_alt_rounded,
-                  ),
-                  const SizedBox(height: 18),
-                ],
-                if (_requests.isEmpty)
-                  _buildEmptyState()
-                else ...[
-                  ..._requests.map(_buildRequestTile),
-                  const SizedBox(height: 24),
-                  AdminPaginationFooter(
-                    currentPage: _page,
-                    lastPage: _lastPage,
-                    totalItems: _totalRequests,
-                    itemsPerPage: _perPage,
-                    onPageChanged: (page) {
-                      setState(() => _page = page);
-                      _load();
-                    },
-                  ),
-                ],
+        child: ResponsiveScaffoldContainer(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_isRefreshing)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: LinearProgressIndicator(minHeight: 3),
+                ),
+              if (_requests.isEmpty)
+                _buildEmptyState()
+              else ...[
+                ..._requests.map(_buildRequestTile),
+                const SizedBox(height: 24),
+                AdminPaginationFooter(
+                  currentPage: _page,
+                  lastPage: _lastPage,
+                  totalItems: _totalRequests,
+                  itemsPerPage: _perPage,
+                  onPageChanged: (page) {
+                    setState(() => _page = page);
+                    _load();
+                  },
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -241,6 +248,139 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     );
   }
 
+  Widget _buildOverviewCard() {
+    final pendingCount = _requests
+        .where((item) => item['status']?.toString() == 'pending')
+        .length;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.outbox_rounded, color: AppTheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  context.loc.tr('screens_withdrawal_requests_screen.001'),
+                  style: AppTheme.bodyBold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$_totalRequests',
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.loc.tr('screens_withdrawal_requests_screen.031'),
+            style: AppTheme.bodyAction.copyWith(
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildOverviewChip('إجمالي المعروض', '$_totalRequests'),
+              _buildOverviewChip('قيد الانتظار', '$pendingCount'),
+              _buildOverviewChip('صفحة', '$_page / $_lastPage'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ToolToggleHint(
+            message: context.loc.tr('screens_withdrawal_requests_screen.031'),
+            icon: Icons.filter_alt_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label: $value',
+        style: AppTheme.caption.copyWith(fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
+  Future<void> _showSummarySheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              context.loc.tr('screens_transactions_screen.039'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            _buildOverviewCard(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFiltersSheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              context.loc.tr('screens_withdrawal_requests_screen.030'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.tr('screens_withdrawal_requests_screen.031'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildFilterBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilterBar() {
     final l = context.loc;
     return Column(
@@ -253,12 +393,11 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
           ),
           onChanged: (_) {
             _searchDebounce?.cancel();
-            _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+            _searchDebounce = Timer(const Duration(milliseconds: 550), () {
               if (!mounted) {
                 return;
               }
-              setState(() => _page = 1);
-              _load();
+              _submitSearch();
             });
           },
         ),
@@ -295,7 +434,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                       _filter = filter;
                       _page = 1;
                     });
-                    _load();
+                    _load(preserveContent: true);
                   },
                   selectedColor: AppTheme.primary,
                   labelStyle: TextStyle(
@@ -621,5 +760,15 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       return '-';
     }
     return DateFormat('yyyy/MM/dd - HH:mm').format(parsed.toLocal());
+  }
+
+  void _submitSearch() {
+    final query = _searchController.text.trim();
+    if (query == _lastSubmittedQuery) {
+      return;
+    }
+    _lastSubmittedQuery = query;
+    setState(() => _page = 1);
+    _load(preserveContent: true);
   }
 }

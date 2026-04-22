@@ -366,6 +366,19 @@ class ApiService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getPendingRegistrationRequests() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/registrations/pending'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['requests'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getPendingWithdrawalRequests() async {
     final response = await http.get(
       AppConfig.apiUri('admin/withdrawals/pending'),
@@ -1275,6 +1288,26 @@ class ApiService {
         'amount': amount,
         'otpCode': otpCode.trim(),
       }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> approvePendingRegistrationRequest(
+    String requestId,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/registrations/$requestId/approve'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> rejectPendingRegistrationRequest(
+    String requestId,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/registrations/$requestId/reject'),
+      headers: await _headers(),
     );
     return _decodeObject(response);
   }

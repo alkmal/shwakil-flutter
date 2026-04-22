@@ -38,7 +38,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   static const int _adminPerPage = 24;
   int _lastPage = 1;
   int _totalCards = 0;
-  bool _showFilters = false;
   DateTime? _issuedFrom;
   DateTime? _issuedTo;
 
@@ -175,6 +174,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       appBar: AppBar(
         title: Text(l.tr('screens_inventory_screen.001')),
         actions: [
+          IconButton(
+            tooltip: 'ملخص البطاقات',
+            onPressed: _showSummarySheet,
+            icon: const Icon(Icons.dashboard_customize_rounded),
+          ),
           if (_canRequestCardPrinting)
             IconButton(
               tooltip: l.tr('screens_inventory_screen.003'),
@@ -183,15 +187,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               icon: const Icon(Icons.print_rounded),
             ),
           IconButton(
-            tooltip: _showFilters
-                ? l.tr('screens_inventory_screen.016')
-                : l.tr('screens_inventory_screen.017'),
-            onPressed: () => setState(() => _showFilters = !_showFilters),
-            icon: Icon(
-              _showFilters
-                  ? Icons.filter_alt_off_rounded
-                  : Icons.filter_alt_rounded,
-            ),
+            tooltip: l.tr('screens_inventory_screen.017'),
+            onPressed: _showFiltersSheet,
+            icon: const Icon(Icons.filter_alt_rounded),
           ),
           IconButton(
             tooltip: l.tr('screens_admin_customers_screen.041'),
@@ -205,23 +203,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: SingleChildScrollView(
-          child: ResponsiveScaffoldContainer(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: Column(
-              children: [
-                if (_showFilters) ...[
-                  _buildFilters(),
-                  const SizedBox(height: 16),
-                ] else ...[
-                  ToolToggleHint(
-                    message: l.tr('screens_inventory_screen.018'),
-                    icon: Icons.filter_alt_rounded,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                if (_canUseAdminInventory && _cards.isNotEmpty) ...[
-                  Align(
+        child: ResponsiveScaffoldContainer(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_canUseAdminInventory && _cards.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Align(
                     alignment: Alignment.centerRight,
                     child: ShwakelButton(
                       label: 'إعادة طباعة النتائج',
@@ -229,28 +219,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       onPressed: _reprintFilteredCards,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
-                if (_cards.isEmpty)
-                  _buildEmptyState()
-                else ...[
-                  _buildGrid(),
-                  const SizedBox(height: 32),
-                  AdminPaginationFooter(
-                    currentPage: _page,
-                    lastPage: _lastPage,
-                    totalItems: _totalCards,
-                    itemsPerPage: _canUseAdminInventory
-                        ? _adminPerPage
-                        : _perPage,
-                    onPageChanged: (page) {
-                      setState(() => _page = page);
-                      _load();
-                    },
+                ),
+              if (_cards.isEmpty)
+                _buildEmptyState()
+              else ...[
+                ..._cards.map(
+                  (card) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildCardTile(card),
                   ),
-                ],
+                ),
+                AdminPaginationFooter(
+                  currentPage: _page,
+                  lastPage: _lastPage,
+                  totalItems: _totalCards,
+                  itemsPerPage: _canUseAdminInventory
+                      ? _adminPerPage
+                      : _perPage,
+                  onPageChanged: (page) {
+                    setState(() => _page = page);
+                    _load();
+                  },
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -276,87 +268,71 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // ignore: unused_element
-  Widget _buildHero() {
+  Widget _buildOverviewCard() {
     final l = context.loc;
+    final unusedCount = _cards
+        .where((card) => card.status == CardStatus.unused)
+        .length;
+    final usedCount = _cards.where((card) => card.status == CardStatus.used).length;
+    final archivedCount = _cards
+        .where((card) => card.status == CardStatus.archived)
+        .length;
     return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      gradient: AppTheme.darkGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 760;
-          final iconBox = Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Icon(
-              Icons.inventory_2_rounded,
-              color: Colors.white,
-              size: 34,
-            ),
-          );
-          final content = Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.inventory_2_rounded, color: AppTheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
                   l.tr('screens_inventory_screen.002'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
+                  style: AppTheme.bodyBold,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  l.tr('screens_inventory_screen.014'),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white70,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                if (_canRequestCardPrinting)
-                  ShwakelButton(
-                    label: l.tr('screens_inventory_screen.003'),
-                    icon: Icons.print_rounded,
-                    isSecondary: true,
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/card-print-requests'),
-                  ),
-              ],
-            ),
-          );
-          final badge = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white12,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              l.tr(
-                'screens_inventory_screen.004',
-                params: {'totalCards': '$_totalCards'},
               ),
-              style: AppTheme.bodyBold.copyWith(color: Colors.white),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$_totalCards',
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l.tr('screens_inventory_screen.014'),
+            style: AppTheme.bodyAction.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.4,
             ),
-          );
-
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [iconBox, const SizedBox(width: 16), badge]),
-                const SizedBox(height: 18),
-                content,
-              ],
-            );
-          }
-
-          return Row(
-            children: [iconBox, const SizedBox(width: 24), content, badge],
-          );
-        },
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildOverviewChip('نشطة', '$unusedCount', AppTheme.success),
+              _buildOverviewChip('مستخدمة', '$usedCount', AppTheme.warning),
+              _buildOverviewChip('مؤرشفة', '$archivedCount', AppTheme.error),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ToolToggleHint(
+            message: l.tr('screens_inventory_screen.018'),
+            icon: Icons.filter_alt_rounded,
+          ),
+        ],
       ),
     );
   }
@@ -539,25 +515,27 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildGrid() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth > 1000
-            ? 3
-            : (constraints.maxWidth > 600 ? 2 : 1);
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            mainAxisExtent: 180,
+  Widget _buildOverviewChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, size: 10, color: color),
+          const SizedBox(width: 8),
+          Text(
+            '$label: $value',
+            style: AppTheme.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          itemCount: _cards.length,
-          itemBuilder: (context, index) => _buildCardTile(_cards[index]),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -579,16 +557,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
               : l.tr('screens_scan_card_screen.067'));
 
     return ShwakelCard(
+      borderRadius: BorderRadius.circular(22),
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
-                  borderRadius: AppTheme.radiusMd,
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   isUnused
@@ -626,6 +608,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ),
                       ),
                     ),
+                    if (card.ownerUsername?.trim().isNotEmpty == true) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'المالك: ${card.ownerUsername}',
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -635,28 +626,97 @@ class _InventoryScreenState extends State<InventoryScreen> {
           const Spacer(),
           const Divider(),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Text(
+              _buildInfoChip(
+                Icons.schedule_rounded,
                 '${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}',
-                style: AppTheme.caption,
               ),
-              if (card.usedBy != null)
-                Expanded(
-                  child: Text(
-                    card.usedBy!,
-                    style: AppTheme.bodyBold.copyWith(
-                      fontSize: 10,
-                      color: AppTheme.textTertiary,
-                    ),
-                    textAlign: TextAlign.left,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              if (card.usedBy != null && card.usedBy!.trim().isNotEmpty)
+                _buildInfoChip(Icons.person_rounded, card.usedBy!),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceMuted,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(label, style: AppTheme.caption),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSummarySheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text('ملخص البطاقات', style: AppTheme.h2),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.tr('screens_inventory_screen.014'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildOverviewCard(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFiltersSheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(
+              context.loc.tr('screens_inventory_screen.017'),
+              style: AppTheme.h2,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.tr('screens_inventory_screen.018'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildFilters(),
+          ],
+        ),
       ),
     );
   }

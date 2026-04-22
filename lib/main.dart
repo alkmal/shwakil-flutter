@@ -40,6 +40,8 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/admin-card-print-requests': (context) =>
       const AdminCardPrintRequestsScreen(),
   '/admin-customers': (context) => const AdminCustomersScreen(),
+  '/admin-pending-registrations': (context) =>
+      const AdminPendingRegistrationsScreen(),
   '/admin-device-requests': (context) => const AdminDeviceRequestsScreen(),
   '/admin-locations': (context) => const AdminLocationsScreen(),
   '/admin-system-settings': (context) => const AdminSystemSettingsScreen(),

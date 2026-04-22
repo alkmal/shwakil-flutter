@@ -29,6 +29,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   double _totalCredits = 0;
   double _totalDebits = 0;
   bool _isLoading = true;
+  bool _isRefreshing = false;
   _TransactionAuditFilter _auditFilter = _TransactionAuditFilter.all;
   _TransactionDateFilter _dateFilter = _TransactionDateFilter.all;
   int _page = 1;
@@ -36,7 +37,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   int _lastPage = 1;
   int _totalTransactions = 0;
   Timer? _searchDebounce;
-  bool _showSearchAndFilters = false;
+  int _loadRequestId = 0;
+  String _lastSubmittedQuery = '';
 
   String _t(String key, {Map<String, String>? params}) =>
       context.loc.tr(key, params: params);
@@ -54,13 +56,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     super.dispose();
   }
 
-  Future<void> _loadTransactions() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadTransactions({bool preserveContent = false}) async {
+    final requestId = ++_loadRequestId;
+    final shouldKeepVisible = preserveContent && _transactions.isNotEmpty;
+    setState(() {
+      if (shouldKeepVisible) {
+        _isRefreshing = true;
+      } else {
+        _isLoading = true;
+      }
+    });
     final requestedPage = _page;
     try {
       final payload = await _apiService.getMyTransactions(
         locationFilter: _apiLocationFilterValue,
-        query: _searchController.text,
+        query: _searchController.text.trim(),
         dateFilter: _apiDateFilterValue,
         printingDebtOnly: _auditFilter == _TransactionAuditFilter.printingDebt,
         page: requestedPage,
@@ -90,7 +100,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return;
       }
 
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
 
@@ -104,12 +114,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _totalTransactions =
             (pagination['total'] as num?)?.toInt() ?? _transactions.length;
         _isLoading = false;
+        _isRefreshing = false;
       });
     } catch (error) {
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isRefreshing = false;
+      });
       await _showMessage(
         '${_t('screens_transactions_screen.001')}: ${ErrorMessageService.sanitize(error)}',
         isError: true,
@@ -184,16 +198,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         title: Text(_t('screens_transactions_screen.005')),
         actions: [
           IconButton(
-            tooltip: _showSearchAndFilters
-                ? context.loc.tr('screens_transactions_screen.036')
-                : context.loc.tr('screens_transactions_screen.037'),
-            onPressed: () =>
-                setState(() => _showSearchAndFilters = !_showSearchAndFilters),
-            icon: Icon(
-              _showSearchAndFilters
-                  ? Icons.filter_alt_off_rounded
-                  : Icons.filter_alt_rounded,
-            ),
+            tooltip: context.loc.tr('screens_transactions_screen.039'),
+            onPressed: _showSummarySheet,
+            icon: const Icon(Icons.dashboard_customize_rounded),
+          ),
+          IconButton(
+            tooltip: context.loc.tr('screens_transactions_screen.037'),
+            onPressed: _showFiltersSheet,
+            icon: const Icon(Icons.filter_alt_rounded),
+          ),
+          IconButton(
+            tooltip: _t('screens_transactions_screen.012'),
+            onPressed: _exportTransactions,
+            icon: const Icon(Icons.download_rounded),
           ),
           IconButton(
             tooltip: context.loc.tr('screens_admin_customers_screen.041'),
@@ -207,52 +224,51 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: _loadTransactions,
-        child: SingleChildScrollView(
-          child: ResponsiveScaffoldContainer(
-            padding: AppTheme.pagePadding(context, top: 18),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 860;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeaderCard(isCompact: isCompact),
-                    const SizedBox(height: 14),
-                    _buildSearchAndFilters(isCompact: isCompact),
-                    const SizedBox(height: 14),
-                    _buildResultsHeading(isCompact: isCompact),
-                    const SizedBox(height: 12),
-                    if (_isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    else if (_transactions.isEmpty)
-                      _buildEmptyState()
-                    else ...[
-                      ..._transactions.map(
-                        (tx) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: AdminTransactionAuditCard(transaction: tx),
-                        ),
+        child: ResponsiveScaffoldContainer(
+          padding: AppTheme.pagePadding(context, top: 18),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 860;
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  _buildResultsHeading(isCompact: isCompact),
+                  const SizedBox(height: 12),
+                  if (_isRefreshing)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: LinearProgressIndicator(minHeight: 3),
+                    ),
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: CircularProgressIndicator(),
                       ),
-                      AdminPaginationFooter(
-                        currentPage: _page,
-                        lastPage: _lastPage,
-                        totalItems: _totalTransactions,
-                        itemsPerPage: _perPage,
-                        onPageChanged: (page) {
-                          setState(() => _page = page);
-                          _loadTransactions();
-                        },
+                    )
+                  else if (_transactions.isEmpty)
+                    _buildEmptyState()
+                  else ...[
+                    ..._transactions.map(
+                      (tx) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: AdminTransactionAuditCard(transaction: tx),
                       ),
-                    ],
+                    ),
+                    AdminPaginationFooter(
+                      currentPage: _page,
+                      lastPage: _lastPage,
+                      totalItems: _totalTransactions,
+                      itemsPerPage: _perPage,
+                      onPageChanged: (page) {
+                        setState(() => _page = page);
+                        _loadTransactions();
+                      },
+                    ),
                   ],
-                );
-              },
-            ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -264,6 +280,63 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       context,
       title: context.loc.tr('screens_transactions_screen.039'),
       message: context.loc.tr('screens_transactions_screen.040'),
+    );
+  }
+
+  Future<void> _showSummarySheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(_t('screens_transactions_screen.039'), style: AppTheme.h2),
+            const SizedBox(height: 8),
+            Text(
+              _t('screens_transactions_screen.050'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildHeaderCard(isCompact: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFiltersSheet() async {
+    if (!mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          children: [
+            Text(_t('screens_transactions_screen.037'), style: AppTheme.h2),
+            const SizedBox(height: 8),
+            Text(
+              'ابحث بسرعة ثم ضيّق النتائج حسب الوقت أو نوع الحركة.',
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildSearchAndFilters(isCompact: true),
+          ],
+        ),
+      ),
     );
   }
 
@@ -362,58 +435,26 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'البحث والتصفية',
-                      style: AppTheme.bodyBold.copyWith(
-                        color: AppTheme.primary,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'ابحث بسرعة ثم ضيّق النتائج حسب الوقت أو نوع الحركة.',
-                      style: AppTheme.caption.copyWith(height: 1.35),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () =>
-                    setState(() => _showSearchAndFilters = !_showSearchAndFilters),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceVariant,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Icon(
-                    _showSearchAndFilters
-                        ? Icons.tune_rounded
-                        : Icons.filter_alt_off_rounded,
-                    color: AppTheme.primary,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'البحث والتصفية',
+            style: AppTheme.bodyBold.copyWith(
+              color: AppTheme.primary,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'ابحث بسرعة ثم ضيّق النتائج حسب الوقت أو نوع الحركة.',
+            style: AppTheme.caption.copyWith(height: 1.35),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _searchController,
             onChanged: (_) {
               _searchDebounce?.cancel();
-              _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+              _searchDebounce = Timer(const Duration(milliseconds: 550), () {
                 if (!mounted) return;
-                setState(() => _page = 1);
-                _loadTransactions();
+                _submitSearch();
               });
             },
             decoration: InputDecoration(
@@ -447,123 +488,131 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
             ],
           ),
-          if (_showSearchAndFilters) ...[
-            const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final filtersCompact = constraints.maxWidth < 860;
-                if (filtersCompact) {
-                  return Column(
-                    children: [
-                      _buildFilterPanel(
-                        title: 'الفترة',
-                        icon: Icons.calendar_month_rounded,
-                        chips: [
-                          _buildDateChip(
-                            _t('screens_transactions_screen.016'),
-                            _TransactionDateFilter.all,
-                          ),
-                          _buildDateChip(
-                            _t('screens_transactions_screen.017'),
-                            _TransactionDateFilter.today,
-                          ),
-                          _buildDateChip(
-                            _t('screens_transactions_screen.018'),
-                            _TransactionDateFilter.last7Days,
-                          ),
-                          _buildDateChip(
-                            _t('screens_transactions_screen.019'),
-                            _TransactionDateFilter.thisMonth,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _buildFilterPanel(
-                        title: 'نوع الحركات',
-                        icon: Icons.filter_alt_rounded,
-                        chips: [
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.021'),
-                            _TransactionAuditFilter.all,
-                          ),
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.022'),
-                            _TransactionAuditFilter.nearBranch,
-                          ),
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.023'),
-                            _TransactionAuditFilter.outsideBranches,
-                          ),
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.024'),
-                            _TransactionAuditFilter.printingDebt,
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                }
-
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final filtersCompact = constraints.maxWidth < 860;
+              if (filtersCompact) {
+                return Column(
                   children: [
-                    Expanded(
-                      child: _buildFilterPanel(
-                        title: 'الفترة',
-                        icon: Icons.calendar_month_rounded,
-                        chips: [
-                          _buildDateChip(
-                            _t('screens_transactions_screen.026'),
-                            _TransactionDateFilter.all,
-                          ),
-                          _buildDateChip(
-                            _t('screens_transactions_screen.027'),
-                            _TransactionDateFilter.today,
-                          ),
-                          _buildDateChip(
-                            _t('screens_transactions_screen.028'),
-                            _TransactionDateFilter.last7Days,
-                          ),
-                          _buildDateChip(
-                            _t('screens_transactions_screen.029'),
-                            _TransactionDateFilter.thisMonth,
-                          ),
-                        ],
-                      ),
+                    _buildFilterPanel(
+                      title: 'الفترة',
+                      icon: Icons.calendar_month_rounded,
+                      chips: [
+                        _buildDateChip(
+                          _t('screens_transactions_screen.016'),
+                          _TransactionDateFilter.all,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.017'),
+                          _TransactionDateFilter.today,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.018'),
+                          _TransactionDateFilter.last7Days,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.019'),
+                          _TransactionDateFilter.thisMonth,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _buildFilterPanel(
-                        title: 'نوع الحركات',
-                        icon: Icons.filter_alt_rounded,
-                        chips: [
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.031'),
-                            _TransactionAuditFilter.all,
-                          ),
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.032'),
-                            _TransactionAuditFilter.nearBranch,
-                          ),
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.033'),
-                            _TransactionAuditFilter.outsideBranches,
-                          ),
-                          _buildAuditChip(
-                            _t('screens_transactions_screen.034'),
-                            _TransactionAuditFilter.printingDebt,
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 10),
+                    _buildFilterPanel(
+                      title: 'نوع الحركات',
+                      icon: Icons.filter_alt_rounded,
+                      chips: [
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.021'),
+                          _TransactionAuditFilter.all,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.022'),
+                          _TransactionAuditFilter.nearBranch,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.023'),
+                          _TransactionAuditFilter.outsideBranches,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.024'),
+                          _TransactionAuditFilter.printingDebt,
+                        ),
+                      ],
                     ),
                   ],
                 );
-              },
-            ),
-          ],
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildFilterPanel(
+                      title: 'الفترة',
+                      icon: Icons.calendar_month_rounded,
+                      chips: [
+                        _buildDateChip(
+                          _t('screens_transactions_screen.026'),
+                          _TransactionDateFilter.all,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.027'),
+                          _TransactionDateFilter.today,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.028'),
+                          _TransactionDateFilter.last7Days,
+                        ),
+                        _buildDateChip(
+                          _t('screens_transactions_screen.029'),
+                          _TransactionDateFilter.thisMonth,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _buildFilterPanel(
+                      title: 'نوع الحركات',
+                      icon: Icons.filter_alt_rounded,
+                      chips: [
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.031'),
+                          _TransactionAuditFilter.all,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.032'),
+                          _TransactionAuditFilter.nearBranch,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.033'),
+                          _TransactionAuditFilter.outsideBranches,
+                        ),
+                        _buildAuditChip(
+                          _t('screens_transactions_screen.034'),
+                          _TransactionAuditFilter.printingDebt,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
+  }
+
+  void _submitSearch() {
+    final query = _searchController.text.trim();
+    if (query == _lastSubmittedQuery) {
+      return;
+    }
+    _lastSubmittedQuery = query;
+    setState(() => _page = 1);
+    _loadTransactions(preserveContent: true);
   }
 
   Widget _buildFilterPanel({
@@ -607,7 +656,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _dateFilter = selected;
         _page = 1;
       });
-      _loadTransactions();
+      _loadTransactions(preserveContent: true);
     });
   }
 
@@ -621,7 +670,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           _auditFilter = selected;
           _page = 1;
         });
-        _loadTransactions();
+        _loadTransactions(preserveContent: true);
       },
     );
   }
@@ -697,7 +746,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'نتائج الحركات',
+                _t('screens_transactions_screen.005'),
                 style: AppTheme.h2.copyWith(fontSize: isCompact ? 18 : 20),
               ),
               const SizedBox(height: 4),
@@ -713,18 +762,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ],
           ),
         ),
-        if (_showSearchAndFilters)
-          TextButton.icon(
-            onPressed: () => setState(() => _showSearchAndFilters = false),
-            icon: const Icon(Icons.expand_less_rounded, size: 18),
-            label: const Text('إخفاء الفلاتر'),
-          )
-        else
-          TextButton.icon(
-            onPressed: () => setState(() => _showSearchAndFilters = true),
-            icon: const Icon(Icons.tune_rounded, size: 18),
-            label: const Text('إظهار الفلاتر'),
-          ),
+        TextButton.icon(
+          onPressed: _showFiltersSheet,
+          icon: const Icon(Icons.tune_rounded, size: 18),
+          label: const Text('الفلاتر'),
+        ),
       ],
     );
   }
