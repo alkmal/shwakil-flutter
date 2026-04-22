@@ -81,6 +81,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canScanCards = permissions.canOpenCardTools;
     final hasAdminWorkspaceAccess = permissions.hasAdminWorkspaceAccess;
     final canViewCustomers = permissions.canViewCustomers;
+    final canManageUsers = permissions.canManageUsers;
     final canManageLocations = permissions.canManageLocations;
     final canManageSystemSettings = permissions.canManageSystemSettings;
     final canReviewWithdrawals = permissions.canReviewWithdrawals;
