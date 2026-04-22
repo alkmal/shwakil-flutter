@@ -1168,6 +1168,7 @@ const Map<String, String> appStringsEn = {
   'screens_account_settings_screen.066': 'Quick help',
   'screens_account_settings_screen.067':
       'This section is for updating account details and password. Important notices appear above the form only when needed.',
+  'screens_account_settings_screen.068': 'Account',
   'screens_admin_card_print_requests_screen.037':
       'You do not have permission to manage card print requests',
   'screens_admin_card_print_requests_screen.038': 'Hide search and filters',

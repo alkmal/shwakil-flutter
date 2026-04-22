@@ -373,7 +373,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -410,6 +410,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       text: l.tr('screens_account_settings_screen.010'),
                       icon: Icon(Icons.lock_rounded, size: 20),
                     ),
+                    Tab(
+                      text: l.tr('screens_account_settings_screen.068'),
+                      icon: Icon(Icons.manage_accounts_rounded, size: 20),
+                    ),
                   ],
                 ),
               ),
@@ -417,7 +421,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
         ),
         drawer: const AppSidebar(),
-        body: TabBarView(children: [_buildProfileTab(), _buildPasswordTab()]),
+        body: TabBarView(
+          children: [
+            _buildProfileTab(),
+            _buildPasswordTab(),
+            _buildAccountActionsTab(),
+          ],
+        ),
       ),
     );
   }
@@ -465,36 +475,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               onPressed: _profileLocked ? null : _save,
               isLoading: _isSaving,
             ),
-            const SizedBox(height: 16),
-            ShwakelCard(
-              padding: const EdgeInsets.all(24),
-              borderColor: AppTheme.textPrimary.withValues(alpha: 0.08),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l.tr('screens_account_settings_screen.053'),
-                    style: AppTheme.h3,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l.tr('screens_account_settings_screen.054'),
-                    style: AppTheme.bodyAction.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ShwakelButton(
-                    label: l.tr('screens_account_settings_screen.055'),
-                    icon: Icons.logout_rounded,
-                    isSecondary: true,
-                    onPressed: _isSaving
-                        ? null
-                        : () => QuickLogoutAction.logout(context),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -540,6 +520,49 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     icon: Icons.security_rounded,
                     onPressed: _changePassword,
                     isLoading: _isSaving,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountActionsTab() {
+    final l = context.loc;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      child: ResponsiveScaffoldContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              borderColor: AppTheme.textPrimary.withValues(alpha: 0.08),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.tr('screens_account_settings_screen.053'),
+                    style: AppTheme.h3,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l.tr('screens_account_settings_screen.054'),
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ShwakelButton(
+                    label: l.tr('screens_account_settings_screen.055'),
+                    icon: Icons.logout_rounded,
+                    isSecondary: true,
+                    onPressed: _isSaving
+                        ? null
+                        : () => QuickLogoutAction.logout(context),
                   ),
                 ],
               ),

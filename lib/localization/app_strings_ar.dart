@@ -1006,6 +1006,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.066': 'مساعدة سريعة',
   'screens_account_settings_screen.067':
       'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
+  'screens_account_settings_screen.068': 'الحساب',
   'screens_admin_card_print_requests_screen.037':
       'لا تملك صلاحية إدارة طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.038': 'إخفاء البحث والفلاتر',
