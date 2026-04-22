@@ -161,8 +161,8 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         actions: [
           IconButton(
             tooltip: _showFilters
-                ? l.text('إخفاء البحث والفلاتر', 'Hide search and filters')
-                : l.text('إظهار البحث والفلاتر', 'Show search and filters'),
+                ? l.tr('screens_topup_requests_screen.032')
+                : l.tr('screens_topup_requests_screen.033'),
             onPressed: () => setState(() => _showFilters = !_showFilters),
             icon: Icon(
               _showFilters
@@ -171,7 +171,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             ),
           ),
           IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -192,10 +192,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                   const SizedBox(height: 18),
                 ] else ...[
                   ToolToggleHint(
-                    message: l.text(
-                      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
-                      'Open search and filters from the top filter icon when needed.',
-                    ),
+                    message: l.tr('screens_topup_requests_screen.034'),
                     icon: Icons.filter_alt_rounded,
                   ),
                   const SizedBox(height: 18),
@@ -228,11 +225,8 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'استخدم البحث والحالة للوصول إلى طلبات التعبئة بسرعة، ثم افتح الطلب المناسب لاعتماده أو رفضه.',
-        'Use search and status filters to quickly find top-up requests, then open the right request to approve or reject it.',
-      ),
+      title: l.tr('screens_transactions_screen.039'),
+      message: l.tr('screens_topup_requests_screen.035'),
     );
   }
 

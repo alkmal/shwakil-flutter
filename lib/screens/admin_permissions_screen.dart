@@ -86,10 +86,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: context.loc.text(
-          'تعذر تحميل الصلاحيات',
-          'Could not load permissions',
-        ),
+        title: context.loc.tr('screens_admin_permissions_screen.044'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -105,10 +102,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       await AppAlertService.showSuccess(
         context,
         title: context.loc.tr('screens_admin_permissions_screen.001'),
-        message: context.loc.text(
-          'تم تحديث قوالب الصلاحيات بنجاح.',
-          'Permission templates have been updated successfully.',
-        ),
+        message: context.loc.tr('screens_admin_permissions_screen.045'),
       );
     } catch (error) {
       if (!mounted) {
@@ -154,10 +148,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  context.loc.text(
-                    'لا تملك صلاحية إدارة قوالب الصلاحيات',
-                    'You do not have permission to manage permission templates.',
-                  ),
+                  context.loc.tr('screens_admin_permissions_screen.046'),
                   style: AppTheme.h3,
                   textAlign: TextAlign.center,
                 ),
@@ -307,10 +298,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),
       'canLookupMembers' => l.tr('screens_admin_permissions_screen.030'),
       'canManageUsers' => l.tr('screens_admin_permissions_screen.031'),
-      'canViewSubUsers' => context.loc.text(
-        'عرض المستخدمين التابعين',
-        'View sub users',
-      ),
+      'canViewSubUsers' => l.tr('screens_admin_permissions_screen.047'),
       'canManageSubUsers' => l.tr('screens_admin_permissions_screen.043'),
       'canManageLocations' => l.tr('screens_admin_permissions_screen.032'),
       'canManageSystemSettings' => l.tr('screens_admin_permissions_screen.033'),

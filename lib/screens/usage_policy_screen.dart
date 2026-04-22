@@ -219,11 +219,8 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
         ),
         _highlightCard(
           icon: Icons.visibility_rounded,
-          title: context.loc.text('عرض واضح', 'Clear display'),
-          subtitle: context.loc.text(
-            'تنسيق مبسط يسهل قراءة البنود بسرعة.',
-            'A simpler layout that makes policy points easier to read.',
-          ),
+          title: context.loc.tr('screens_usage_policy_screen.006'),
+          subtitle: context.loc.tr('screens_usage_policy_screen.007'),
           color: AppTheme.accent,
         ),
       ],

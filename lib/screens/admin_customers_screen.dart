@@ -481,17 +481,20 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   color: Colors.white.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const TabBar(
+                child: TabBar(
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: EdgeInsets.all(6),
-                  labelPadding: EdgeInsets.symmetric(horizontal: 8),
+                  indicatorPadding: const EdgeInsets.all(6),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                   tabs: [
                     Tab(
-                      text: 'قائمة العملاء',
-                      icon: Icon(Icons.people_alt_rounded),
+                      text: l.tr('screens_admin_customers_screen.048'),
+                      icon: const Icon(Icons.people_alt_rounded),
                     ),
-                    Tab(text: 'ملخص سريع', icon: Icon(Icons.analytics_rounded)),
+                    Tab(
+                      text: l.tr('screens_admin_customers_screen.049'),
+                      icon: const Icon(Icons.analytics_rounded),
+                    ),
                   ],
                 ),
               ),

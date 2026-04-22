@@ -143,10 +143,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  l.text(
-                    'لا تملك صلاحية مراجعة طلبات السحب',
-                    'You do not have permission to review withdrawal requests.',
-                  ),
+                  l.tr('screens_admin_device_requests_screen.010'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -163,8 +160,8 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         actions: [
           IconButton(
             tooltip: _showFilters
-                ? l.text('إخفاء البحث والفلاتر', 'Hide search and filters')
-                : l.text('إظهار البحث والفلاتر', 'Show search and filters'),
+                ? l.tr('screens_withdrawal_requests_screen.029')
+                : l.tr('screens_withdrawal_requests_screen.030'),
             onPressed: () => setState(() => _showFilters = !_showFilters),
             icon: Icon(
               _showFilters
@@ -173,7 +170,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
             ),
           ),
           IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -194,10 +191,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                   const SizedBox(height: 18),
                 ] else ...[
                   ToolToggleHint(
-                    message: l.text(
-                      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
-                      'Open search and filters from the top filter icon when needed.',
-                    ),
+                    message: l.tr('screens_withdrawal_requests_screen.031'),
                     icon: Icons.filter_alt_rounded,
                   ),
                   const SizedBox(height: 18),
@@ -230,11 +224,8 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'استخدم البحث والفلاتر للوصول إلى الطلبات، ثم افتح الطلب المناسب واعتمد القرار عند الحاجة.',
-        'Use search and filters to find requests, then review the right request and make a decision when needed.',
-      ),
+      title: l.tr('screens_transactions_screen.039'),
+      message: l.tr('screens_withdrawal_requests_screen.032'),
     );
   }
 

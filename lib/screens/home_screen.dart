@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
+  final DebtBookService _debtBookService = DebtBookService();
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
@@ -99,6 +100,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   bool get _isVerifiedAccount =>
       _user?['transferVerificationStatus']?.toString() == 'approved';
+
+  String _t(String key, {Map<String, String>? params}) =>
+      context.loc.tr(key, params: params);
 
   Future<void> _loadUser() async {
     setState(() => _isLoading = true);
@@ -177,6 +181,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
     final userId = user['id'].toString();
     final queuedBeforeSync = await _offlineCardService.getRedeemQueue(userId);
+    final unknownLookups = await _offlineCardService.getUnknownCardLookups(
+      userId,
+    );
     final hadPendingItems = queuedBeforeSync.isNotEmpty;
 
     if (mounted) {
@@ -192,6 +199,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           payload['settings'] as Map? ?? const {},
         ),
       );
+
+      if (unknownLookups.isNotEmpty) {
+        await _resolveUnknownOfflineLookups(userId, unknownLookups);
+      }
+
+      if (permissions.canManageDebtBook) {
+        await _debtBookService.syncPending(userId: userId, api: _apiService);
+      }
 
       int acceptedCount = 0;
       int rejectedCount = 0;
@@ -281,11 +296,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         AppAlertService.showSuccess(
           context,
           title: triggeredAutomatically
-              ? 'تمت مزامنة الأوف لاين'
-              : 'اكتملت مزامنة البطاقات',
+              ? _t('screens_home_screen.050')
+              : _t('screens_home_screen.051'),
           message: hadPendingItems
-              ? 'تمت مزامنة $acceptedCount بطاقة معلقة، وبقي $rejectedCount للمراجعة، كما تم تنزيل أحدث بطاقات الأوف لاين.'
-              : 'تم تنزيل أحدث بطاقات الأوف لاين وتحديث مساحة العمل المحلية.',
+              ? _t(
+                  'screens_home_screen.052',
+                  params: {
+                    'accepted': '$acceptedCount',
+                    'rejected': '$rejectedCount',
+                  },
+                )
+              : _t('screens_home_screen.053'),
         );
       }
     } catch (error) {
@@ -294,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذرت مزامنة الأوف لاين',
+        title: _t('screens_home_screen.054'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -302,6 +323,47 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         setState(() => _isSyncingOfflineWorkspace = false);
       }
     }
+  }
+
+  Future<void> _resolveUnknownOfflineLookups(
+    String userId,
+    List<Map<String, dynamic>> lookups,
+  ) async {
+    final foundCards = <VirtualCard>[];
+    final unresolved = <Map<String, dynamic>>[];
+    final l = context.loc;
+
+    for (final item in lookups) {
+      final barcode = item['barcode']?.toString().trim() ?? '';
+      if (barcode.isEmpty) {
+        continue;
+      }
+      try {
+        final card = await _apiService.getCardByBarcode(barcode);
+        if (card == null) {
+          unresolved.add({
+            ...item,
+            'status': 'pending_lookup',
+            'message': l.tr('screens_home_screen.055'),
+            'lastCheckedAt': DateTime.now().toIso8601String(),
+          });
+          continue;
+        }
+        foundCards.add(card);
+      } catch (_) {
+        unresolved.add({
+          ...item,
+          'status': 'pending_lookup',
+          'message': l.tr('screens_home_screen.056'),
+          'lastCheckedAt': DateTime.now().toIso8601String(),
+        });
+      }
+    }
+
+    if (foundCards.isNotEmpty) {
+      await _offlineCardService.cacheCards(userId: userId, cards: foundCards);
+    }
+    await _offlineCardService.replaceUnknownCardLookups(userId, unresolved);
   }
 
   void _maybeSuggestOfflineWorkspace() {
@@ -324,18 +386,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final openOffline = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('مساحة الأوف لاين جاهزة'),
-          content: const Text(
-            'يوجد على هذا الجهاز مخزون أوف لاين جاهز. هل تريد الانتقال مباشرة إلى قراءة البطاقات الأوف لاين؟',
-          ),
+          title: Text(_t('screens_home_screen.057')),
+          content: Text(_t('screens_home_screen.058')),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('لاحقًا'),
+              child: Text(_t('screens_home_screen.059')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('فتح الأوف لاين'),
+              child: Text(_t('screens_home_screen.060')),
             ),
           ],
         ),
@@ -371,9 +431,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   Future<void> _showOfflineBlockedMessage() {
     return AppAlertService.showInfo(
       context,
-      title: 'هذه الشاشة غير متاحة دون إنترنت',
-      message:
-          'أنت الآن في وضع الأوفلاين. هذه الشاشة تحتاج اتصالًا بالإنترنت حتى تعمل.',
+      title: _t('screens_home_screen.061'),
+      message: _t('screens_home_screen.062'),
     );
   }
 
@@ -416,13 +475,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final l = context.loc;
-    final services = _serviceItems(context);
-
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(l.tr('screens_home_screen.002')),
+        title: const SizedBox.shrink(),
         actions: [const AppNotificationAction(), const QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
@@ -439,15 +495,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       builder: (context, constraints) {
                         final width = constraints.maxWidth;
                         final isMobile = width < 700;
-                        final isTablet = width < 1100;
                         final showBarcodeCard =
                             _canIssueCards || _canReviewCards;
-                        final columns = width < 420
-                            ? 1
-                            : (isMobile ? 2 : (isTablet ? 2 : 3));
-                        final spacing = isMobile ? 16.0 : 18.0;
-                        final itemWidth =
-                            (width - (spacing * (columns - 1))) / columns;
 
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,32 +504,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             _buildTopSection(
                               isMobile: isMobile,
                               showBarcodeCard: showBarcodeCard,
-                            ),
-                            const SizedBox(height: 24),
-                            _buildSectionHeader(
-                              title: l.tr('screens_home_screen.004'),
-                              subtitle: l.tr('screens_home_screen.005'),
-                              actionLabel: '${services.length} خدمات',
-                            ),
-                            const SizedBox(height: 18),
-                            Wrap(
-                              spacing: spacing,
-                              runSpacing: spacing,
-                              children: services
-                                  .map(
-                                    (service) => SizedBox(
-                                      width: itemWidth,
-                                      child: _buildServiceCard(
-                                        title: service.title,
-                                        subtitle: service.subtitle,
-                                        icon: service.icon,
-                                        color: service.color,
-                                        onTap: service.onTap,
-                                        compact: isMobile,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
                             ),
                           ],
                         );
@@ -518,11 +541,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         if (showOfflineSyncAction)
           _HomeServiceItem(
             title: _isSyncingOfflineWorkspace
-                ? 'جاري مزامنة الأوف لاين'
-                : 'مزامنة الأوف لاين',
+                ? _t('screens_home_screen.064')
+                : _t('screens_home_screen.065'),
             subtitle: _pendingOfflineCount > 0
-                ? 'يوجد $_pendingOfflineCount بطاقة معلقة بقيمة ${_pendingOfflineAmount.toStringAsFixed(2)} شيكل وسيتم تحديث المخزون المحلي أيضًا.'
-                : 'تحديث البطاقات المحلية وتنزيل أي بطاقات جديدة متاحة لهذا الجهاز.',
+                ? _t(
+                    'screens_home_screen.066',
+                    params: {
+                      'count': '$_pendingOfflineCount',
+                      'amount': _pendingOfflineAmount.toStringAsFixed(2),
+                    },
+                  )
+                : _t('screens_home_screen.067'),
             icon: Icons.cloud_sync_rounded,
             color: AppTheme.primary,
             onTap: () => unawaited(_syncOfflineWorkspace()),
@@ -537,18 +566,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canOpenOfflineCenter)
           _HomeServiceItem(
-            title: 'مركز الأوف لاين',
+            title: _t('screens_home_screen.068'),
             subtitle: OfflineSessionService.isOfflineMode
-                ? 'إظهار أدوات الأوف لاين فقط دون أي شاشات أونلاين.'
-                : 'إدارة مخزون الأوف لاين ومزامنة العمليات دون كشف البطاقات المحفوظة.',
+                ? _t('screens_home_screen.069')
+                : _t('screens_home_screen.070'),
             icon: Icons.cloud_done_rounded,
             color: AppTheme.warning,
             onTap: () => Navigator.pushNamed(context, '/offline-center'),
           ),
         if (canManageDebtBook)
           _HomeServiceItem(
-            title: 'دفتر الديون',
-            subtitle: 'متاح للعمل المحلي مع رفع التعديلات عند عودة الإنترنت.',
+            title: _t('screens_home_screen.071'),
+            subtitle: _t('screens_home_screen.072'),
             icon: Icons.menu_book_rounded,
             color: const Color(0xFF7C3AED),
             onTap: () => Navigator.pushNamed(context, '/debt-book'),
@@ -561,11 +590,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         if (showOfflineSyncAction)
           _HomeServiceItem(
             title: _isSyncingOfflineWorkspace
-                ? 'جاري مزامنة الأوف لاين'
-                : 'مزامنة الأوف لاين',
+                ? _t('screens_home_screen.064')
+                : _t('screens_home_screen.065'),
             subtitle: _pendingOfflineCount > 0
-                ? 'يوجد $_pendingOfflineCount بطاقة معلقة للمزامنة، مع تحديث تلقائي لمخزون الأوف لاين.'
-                : 'تحديث مساحة الأوف لاين وتنزيل البطاقات الجديدة لهذا الجهاز.',
+                ? _t(
+                    'screens_home_screen.073',
+                    params: {'count': '$_pendingOfflineCount'},
+                  )
+                : _t('screens_home_screen.074'),
             icon: Icons.cloud_sync_rounded,
             color: AppTheme.primary,
             onTap: () => unawaited(_syncOfflineWorkspace()),
@@ -579,16 +611,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
         if (canOpenOfflineCenter)
           _HomeServiceItem(
-            title: 'مركز الأوف لاين',
-            subtitle: 'متابعة المزامنة المحلية بدون عرض أكواد البطاقات.',
+            title: _t('screens_home_screen.068'),
+            subtitle: _t('screens_home_screen.075'),
             icon: Icons.cloud_done_rounded,
             color: AppTheme.warning,
             onTap: () => Navigator.pushNamed(context, '/offline-center'),
           ),
         if (canManageDebtBook)
           _HomeServiceItem(
-            title: 'دفتر الديون',
-            subtitle: 'إدارة العملاء والمديونيات محليًا حتى أثناء انقطاع الإنترنت.',
+            title: _t('screens_home_screen.071'),
+            subtitle: _t('screens_home_screen.076'),
             icon: Icons.menu_book_rounded,
             color: const Color(0xFF7C3AED),
             onTap: () => Navigator.pushNamed(context, '/debt-book'),
@@ -600,11 +632,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       if (showOfflineSyncAction)
         _HomeServiceItem(
           title: _isSyncingOfflineWorkspace
-              ? 'جاري مزامنة الأوف لاين'
-              : 'مزامنة الأوف لاين',
+              ? _t('screens_home_screen.064')
+              : _t('screens_home_screen.065'),
           subtitle: _pendingOfflineCount > 0
-              ? 'لديك $_pendingOfflineCount بطاقة معلقة للمزامنة، وسيتم تنزيل بطاقات أوف لاين جديدة أيضًا.'
-              : 'تحديث مخزون الأوف لاين على الجهاز وتنزيل أي بطاقات جديدة.',
+              ? _t(
+                  'screens_home_screen.077',
+                  params: {'count': '$_pendingOfflineCount'},
+                )
+              : _t('screens_home_screen.078'),
           icon: Icons.cloud_sync_rounded,
           color: AppTheme.primary,
           onTap: () => unawaited(_syncOfflineWorkspace()),
@@ -667,8 +702,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canManageDebtBook)
         _HomeServiceItem(
-          title: 'دفتر الديون',
-          subtitle: 'إدارة العملاء والمديونيات والسداد أون لاين وأوف لاين.',
+          title: _t('screens_home_screen.071'),
+          subtitle: _t('screens_home_screen.079'),
           icon: Icons.menu_book_rounded,
           color: const Color(0xFF7C3AED),
           onTap: () => Navigator.pushNamed(context, '/debt-book'),
@@ -762,7 +797,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'الواجهة الرئيسية',
+                      l.tr('screens_home_screen.080'),
                       style: AppTheme.caption.copyWith(
                         color: Colors.white.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w800,
@@ -918,141 +953,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Widget _buildServiceCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    required bool compact,
-  }) {
-    return ShwakelCard(
-      onTap: onTap,
-      padding: EdgeInsets.all(compact ? 18 : 22),
-      borderRadius: BorderRadius.circular(28),
-      shadowLevel: ShwakelShadowLevel.medium,
-      child: compact
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Icon(icon, color: color, size: 28),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          'خدمة',
-                          style: AppTheme.caption.copyWith(
-                            color: color,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.h3.copyWith(color: color, fontSize: 17),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.bodyAction.copyWith(
-                          height: 1.4,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: Icon(
-                    Icons.arrow_forward_rounded,
-                    color: color,
-                    size: 24,
-                  ),
-                ),
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 66,
-                  height: 66,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(icon, color: color, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          'خدمة',
-                          style: AppTheme.caption.copyWith(
-                            color: color,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        title,
-                        style: AppTheme.h3.copyWith(color: color, fontSize: 19),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        style: AppTheme.bodyAction.copyWith(height: 1.45),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Icon(Icons.arrow_forward_rounded, color: color, size: 26),
-              ],
-            ),
-    );
-  }
-
   Widget _buildHeroChip({
     required IconData icon,
     required String label,
@@ -1080,51 +980,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String subtitle,
-    String? actionLabel,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: AppTheme.h1),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: AppTheme.bodyAction.copyWith(
-                  color: AppTheme.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (actionLabel != null) ...[
-          const SizedBox(width: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              actionLabel,
-              style: AppTheme.caption.copyWith(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ],
     );
   }
 

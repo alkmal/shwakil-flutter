@@ -17,7 +17,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  static final RegExp _usernamePattern = RegExp(r'^[a-zA-Z0-9._@+-]{3,32}$');
   static final RegExp _passwordLetterPattern = RegExp(r'[A-Za-z\u0600-\u06FF]');
   static final RegExp _passwordSymbolPattern = RegExp(
     r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:\|,.<>\/\?~`]',
@@ -27,11 +26,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final ApiService _apiService = ApiService();
 
   final _fullNameC = TextEditingController();
-  final _usernameC = TextEditingController();
   final _passwordC = TextEditingController();
   final _confirmPassC = TextEditingController();
   final _whatsappC = TextEditingController();
-  final _referralPhoneC = TextEditingController();
 
   bool _isLoading = false;
   bool _registrationEnabled = true;
@@ -48,11 +45,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _fullNameC.dispose();
-    _usernameC.dispose();
     _passwordC.dispose();
     _confirmPassC.dispose();
     _whatsappC.dispose();
-    _referralPhoneC.dispose();
     super.dispose();
   }
 
@@ -73,15 +68,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validatePersonalStep() {
     final l = context.loc;
     final fullName = _fullNameC.text.trim();
-    final username = _usernameC.text.trim();
     if (fullName.isEmpty || fullName.length < 4) {
       return l.tr('screens_register_screen.029');
-    }
-    if (username.isEmpty) {
-      return l.tr('screens_register_screen.002');
-    }
-    if (!_usernamePattern.hasMatch(username)) {
-      return l.tr('screens_register_screen.030');
     }
     return null;
   }
@@ -95,16 +83,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (whatsapp.isEmpty ||
         whatsapp.length < _selectedCountry.dialCode.length + 8) {
       return l.tr('screens_register_screen.031');
-    }
-
-    if (_referralPhoneC.text.trim().isNotEmpty) {
-      final referral = PhoneNumberService.normalize(
-        input: _referralPhoneC.text,
-        defaultDialCode: _selectedCountry.dialCode,
-      );
-      if (referral.length < _selectedCountry.dialCode.length + 8) {
-        return l.tr('screens_register_screen.032');
-      }
     }
 
     return null;
@@ -161,20 +139,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         input: _whatsappC.text,
         defaultDialCode: _selectedCountry.dialCode,
       );
-      final referralPhone = _referralPhoneC.text.trim().isEmpty
-          ? null
-          : PhoneNumberService.normalize(
-              input: _referralPhoneC.text,
-              defaultDialCode: _selectedCountry.dialCode,
-            );
       final otp = await _authService.startRegistration(
         fullName: _fullNameC.text.trim(),
-        username: _usernameC.text.trim(),
         password: _passwordC.text,
         whatsapp: whatsapp,
         countryCode: _selectedCountry.dialCode,
         termsAccepted: true,
-        referralPhone: referralPhone,
       );
 
       if (!mounted) {
@@ -186,12 +156,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         MaterialPageRoute(
           builder: (_) => OtpVerificationScreen(
             fullName: _fullNameC.text.trim(),
-            username: _usernameC.text.trim(),
+            username: '',
             password: _passwordC.text,
             whatsapp: whatsapp,
             countryCode: _selectedCountry.dialCode,
             termsAccepted: true,
-            referralPhone: referralPhone,
             pendingRegistrationId: otp.pendingRegistrationId,
             purpose: 'register',
             initialDebugOtpCode: otp.debugOtpCode,
@@ -283,12 +252,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Icons.badge_rounded,
           ),
           const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.012'),
-            _usernameC,
-            Icons.alternate_email_rounded,
-          ),
-          const SizedBox(height: 16),
           DropdownButtonFormField<CountryOption>(
             initialValue: _selectedCountry,
             decoration: InputDecoration(
@@ -348,33 +311,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             contentPadding: EdgeInsets.zero,
             activeColor: AppTheme.primary,
-          ),
-          const SizedBox(height: 12),
-          ShwakelCard(
-            padding: const EdgeInsets.all(18),
-            color: AppTheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(22),
-            shadowLevel: ShwakelShadowLevel.none,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('رقم الإحالة', style: AppTheme.bodyBold),
-                const SizedBox(height: 4),
-                Text(
-                  'اختياري: أدخله فقط إذا كان لديك رقم محيل.',
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _field(
-                  l.tr('screens_register_screen.018'),
-                  _referralPhoneC,
-                  Icons.link_rounded,
-                  type: TextInputType.phone,
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 16),
           ShwakelButton(

@@ -73,8 +73,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     super.dispose();
   }
 
-  String _t(String key, [String? english]) =>
-      english == null ? context.loc.tr(key) : context.loc.text(key, english);
+  String _t(String key) => context.loc.tr(key);
 
   void _syncFields() {
     _role = _customer['role']?.toString() ?? 'restricted';
@@ -243,27 +242,17 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     if (_firstLoad) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final name =
-        _customer['fullName'] ??
-        _customer['username'] ??
-        _t('screens_admin_customer_screen.006');
     return DefaultTabController(
       length: 5,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: Text(name),
+          title: const SizedBox.shrink(),
           actions: [
             IconButton(
               tooltip: _showTransactionFilters
-                  ? context.loc.text(
-                      'إخفاء فلتر الحركات',
-                      'Hide transaction filter',
-                    )
-                  : context.loc.text(
-                      'إظهار فلتر الحركات',
-                      'Show transaction filter',
-                    ),
+                  ? _t('screens_admin_customer_screen.073')
+                  : _t('screens_admin_customer_screen.074'),
               onPressed: () => setState(
                 () => _showTransactionFilters = !_showTransactionFilters,
               ),
@@ -357,8 +346,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     const SizedBox(height: 16),
                     ShwakelButton(
                       label: _t(
-                        'إعادة إرسال بيانات المستخدم',
-                        'Resend user details',
+                        'screens_admin_customer_screen.075',
                       ),
                       icon: Icons.mark_chat_unread_rounded,
                       onPressed: _busy ? null : _resendAccountDetails,
@@ -496,8 +484,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             AdminSectionHeader(
               title: _t('screens_admin_customer_screen.023'),
               subtitle: _t(
-                'استعرض الحركات المالية والعمليات المرتبطة بهذا العميل.',
-                'Review financial transactions and activity related to this customer.',
+                'screens_admin_customer_screen.076',
               ),
               icon: Icons.history_rounded,
               trailing: _showTransactionFilters
@@ -529,10 +516,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             if (!_showTransactionFilters) ...[
               const SizedBox(height: 8),
               ToolToggleHint(
-                message: context.loc.text(
-                  'يمكنك فتح فلتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
-                  'Open the transaction filter from the top filter icon when needed.',
-                ),
+                message: _t('screens_admin_customer_screen.077'),
                 icon: Icons.filter_alt_rounded,
               ),
             ],
@@ -627,6 +611,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       DropdownMenuItem(
                         value: 'basic',
                         child: Text(_t('screens_admin_customer_screen.038')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'verified_member',
+                        child: Text(_t('screens_admin_customer_screen.031')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'advanced_member',
+                        child: Text(_t('screens_admin_customer_screen.032')),
                       ),
                       DropdownMenuItem(
                         value: 'support',
@@ -750,7 +742,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 perms,
               ),
               _permItem(
-                'دفتر الديون',
+                _t('screens_admin_customer_screen.078'),
                 'canManageDebtBook',
                 perms,
               ),

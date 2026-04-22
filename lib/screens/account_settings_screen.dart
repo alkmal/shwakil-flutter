@@ -116,6 +116,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     try {
       final response = await _authService.updateProfile(
         fullName: _fullNameController.text,
+        username: _usernameController.text,
         email: _emailController.text,
         address: _addressController.text,
         nationalId: _nationalIdController.text,
@@ -224,19 +225,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('حذف الحساب'),
-        content: const Text(
-          'سيتم حذف الحساب نهائيًا من داخل التطبيق وتسجيل خروجك من هذا الجهاز. هل تريد المتابعة؟',
+        title: Text(context.loc.tr('screens_account_settings_screen.056')),
+        content: Text(
+          context.loc.tr('screens_account_settings_screen.057'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('إلغاء'),
+            child: Text(context.loc.tr('screens_account_settings_screen.058')),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(
-              'حذف الحساب',
+            child: Text(
+              context.loc.tr('screens_account_settings_screen.056'),
               style: TextStyle(color: AppTheme.error),
             ),
           ),
@@ -265,7 +266,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر حذف الحساب',
+        title: context.loc.tr('screens_account_settings_screen.059'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -308,7 +309,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text('لا تملك صلاحية عرض إعدادات الحساب', style: AppTheme.h3),
+                Text(
+                  l.tr('screens_account_settings_screen.060'),
+                  style: AppTheme.h3,
+                ),
               ],
             ),
           ),
@@ -339,13 +343,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      'Sign in required',
+                      l.tr('screens_account_settings_screen.061'),
                       style: AppTheme.h2,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Please sign in before opening account settings.',
+                      l.tr('screens_account_settings_screen.062'),
                       style: AppTheme.bodyAction.copyWith(
                         color: AppTheme.textSecondary,
                       ),
@@ -353,7 +357,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     ),
                     const SizedBox(height: 24),
                     ShwakelButton(
-                      label: 'Go to sign in',
+                      label: l.tr('screens_account_settings_screen.063'),
                       icon: Icons.login_rounded,
                       onPressed: () => Navigator.of(
                         context,
@@ -376,7 +380,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           title: Text(l.tr('screens_account_settings_screen.008')),
           actions: [
             IconButton(
-              tooltip: l.text('مساعدة', 'Help'),
+              tooltip: l.tr('screens_account_settings_screen.064'),
               onPressed: _showHelpDialog,
               icon: const Icon(Icons.info_outline_rounded),
             ),
@@ -461,6 +465,36 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               onPressed: _profileLocked ? null : _save,
               isLoading: _isSaving,
             ),
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              borderColor: AppTheme.textPrimary.withValues(alpha: 0.08),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.tr('screens_account_settings_screen.053'),
+                    style: AppTheme.h3,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l.tr('screens_account_settings_screen.054'),
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ShwakelButton(
+                    label: l.tr('screens_account_settings_screen.055'),
+                    icon: Icons.logout_rounded,
+                    isSecondary: true,
+                    onPressed: _isSaving
+                        ? null
+                        : () => QuickLogoutAction.logout(context),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -519,19 +553,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'حذف الحساب',
+                    l.tr('screens_account_settings_screen.056'),
                     style: AppTheme.h3.copyWith(color: AppTheme.error),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'يمكنك بدء حذف الحساب نهائيًا من هنا مباشرة.',
+                    l.tr('screens_account_settings_screen.065'),
                     style: AppTheme.bodyAction.copyWith(
                       color: AppTheme.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 20),
                   ShwakelButton(
-                    label: 'حذف الحساب',
+                    label: l.tr('screens_account_settings_screen.056'),
                     icon: Icons.delete_forever_rounded,
                     isDanger: true,
                     onPressed: _isSaving ? null : _deleteAccount,
@@ -550,11 +584,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
-        'This section is for updating account details and password. Important notices appear above the form only when needed.',
-      ),
+      title: l.tr('screens_account_settings_screen.066'),
+      message: l.tr('screens_account_settings_screen.067'),
     );
   }
 
@@ -590,7 +621,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             l.tr('screens_account_settings_screen.021'),
             _usernameController,
             Icons.alternate_email_rounded,
-            enabled: false,
+            enabled: _canEditField('username'),
           ),
           const SizedBox(height: 16),
           _field(

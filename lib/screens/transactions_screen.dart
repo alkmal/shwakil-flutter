@@ -39,8 +39,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Timer? _searchDebounce;
   bool _showSearchAndFilters = false;
 
-  String _t(String key, [String? english]) =>
-      english == null ? context.loc.tr(key) : context.loc.text(key, english);
+  String _t(String key) => context.loc.tr(key);
 
   @override
   void initState() {
@@ -178,14 +177,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         actions: [
           IconButton(
             tooltip: _showSearchAndFilters
-                ? context.loc.text(
-                    'إخفاء البحث والفلاتر',
-                    'Hide search and filters',
-                  )
-                : context.loc.text(
-                    'إظهار البحث والفلاتر',
-                    'Show search and filters',
-                  ),
+                ? context.loc.tr('screens_transactions_screen.036')
+                : context.loc.tr('screens_transactions_screen.037'),
             onPressed: () =>
                 setState(() => _showSearchAndFilters = !_showSearchAndFilters),
             icon: Icon(
@@ -195,7 +188,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ),
           IconButton(
-            tooltip: context.loc.text('مساعدة', 'Help'),
+            tooltip: context.loc.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -220,9 +213,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       const SizedBox(height: 16),
                     ] else ...[
                       ToolToggleHint(
-                        message: context.loc.text(
-                          'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
-                          'Open search and filters from the top filter icon when needed.',
+                        message: context.loc.tr(
+                          'screens_transactions_screen.038',
                         ),
                         icon: Icons.filter_alt_rounded,
                       ),
@@ -272,20 +264,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Future<void> _showHelpDialog() async {
     await AppAlertService.showInfo(
       context,
-      title: context.loc.text('مساعدة سريعة', 'Quick help'),
-      message: context.loc.text(
-        'استخدم البحث والفلاتر لعرض الحركات المطلوبة، والملخص المختصر يوضح الرصيد والإجماليات بدون إزاحة المحتوى الأساسي.',
-        'Use search and filters to show the needed transactions, and the compact summary keeps key totals visible without pushing the main content down.',
-      ),
+      title: context.loc.tr('screens_transactions_screen.039'),
+      message: context.loc.tr('screens_transactions_screen.040'),
     );
   }
 
   Widget _buildCompactSummary() {
     final net = _totalCredits - _totalDebits;
     return Text(
-      context.loc.text(
-        'الرصيد: ${CurrencyFormatter.ils(_currentBalance)} • الداخل: ${CurrencyFormatter.ils(_totalCredits)} • الخارج: ${CurrencyFormatter.ils(_totalDebits)} • الصافي: ${CurrencyFormatter.ils(net)}',
-        'Balance: ${CurrencyFormatter.ils(_currentBalance)} • In: ${CurrencyFormatter.ils(_totalCredits)} • Out: ${CurrencyFormatter.ils(_totalDebits)} • Net: ${CurrencyFormatter.ils(net)}',
+      context.loc.tr(
+        'screens_transactions_screen.041',
+        params: {
+          'balance': CurrencyFormatter.ils(_currentBalance),
+          'in': CurrencyFormatter.ils(_totalCredits),
+          'out': CurrencyFormatter.ils(_totalDebits),
+          'net': CurrencyFormatter.ils(net),
+        },
       ),
       style: AppTheme.caption,
     );
@@ -338,15 +332,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             children: [
               _filterHintPill(
                 icon: Icons.manage_search_rounded,
-                label: 'بحث سريع',
+                label: context.loc.tr('screens_transactions_screen.042'),
               ),
               _filterHintPill(
                 icon: Icons.calendar_today_rounded,
-                label: 'نطاق زمني',
+                label: context.loc.tr('screens_transactions_screen.043'),
               ),
               _filterHintPill(
                 icon: Icons.verified_user_outlined,
-                label: 'نوع العملية',
+                label: context.loc.tr('screens_transactions_screen.044'),
               ),
             ],
           ),
@@ -643,12 +637,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('نتائج الحركات', style: AppTheme.h2.copyWith(fontSize: 20)),
+              Text(
+                context.loc.tr('screens_transactions_screen.045'),
+                style: AppTheme.h2.copyWith(fontSize: 20),
+              ),
               const SizedBox(height: 4),
               Text(
                 _isLoading
-                    ? 'جارٍ تحميل نتائج الحركات الحالية.'
-                    : 'إجمالي الحركات المطابقة: $_totalTransactions',
+                    ? context.loc.tr('screens_transactions_screen.046')
+                    : context.loc.tr(
+                        'screens_transactions_screen.047',
+                        params: {'count': '$_totalTransactions'},
+                      ),
                 style: AppTheme.caption.copyWith(fontSize: 14),
               ),
             ],

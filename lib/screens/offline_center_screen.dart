@@ -9,7 +9,6 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/shwakel_logo.dart';
 
 class OfflineCenterScreen extends StatefulWidget {
   const OfflineCenterScreen({super.key});
@@ -22,22 +21,32 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
+  final DebtBookService _debtBookService = DebtBookService();
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
   bool _isSyncingCards = false;
   bool _isSyncingQueue = false;
+  bool _isSyncingDebtBook = false;
   bool _isAuthorized = false;
   int _pendingCount = 0;
   double _pendingAmount = 0;
   int _rejectedCount = 0;
   int _availableCount = 0;
+  int _debtPendingCount = 0;
+  String? _debtLastSyncedAt;
   Map<String, dynamic> _offlineSettings = const {};
   List<Map<String, dynamic>> _pendingItems = const [];
   List<Map<String, dynamic>> _historyItems = const [];
+  List<Map<String, dynamic>> _unknownItems = const [];
 
   bool get _canOfflineScan =>
       AppPermissions.fromUser(_user).canOfflineCardScan && _user?['id'] != null;
+
+  bool get _canManageDebtBook =>
+      AppPermissions.fromUser(_user).canManageDebtBook && _user?['id'] != null;
+
+  bool get _isOnline => ConnectivityService.instance.isOnline.value;
 
   @override
   void initState() {
@@ -72,6 +81,12 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     final overview = await _offlineCardService.offlineOverview(
       user['id'].toString(),
     );
+    final debtPendingOperations = _canManageDebtBook
+        ? await _debtBookService.getPendingOperations(user['id'].toString())
+        : const <Map<String, dynamic>>[];
+    final debtSnapshot = _canManageDebtBook
+        ? await _debtBookService.getSnapshot(user['id'].toString())
+        : const <String, dynamic>{};
     final summary = Map<String, dynamic>.from(
       overview['summary'] as Map? ?? const {},
     );
@@ -83,6 +98,8 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       _pendingCount = (summary['count'] as num?)?.toInt() ?? 0;
       _pendingAmount = (summary['amount'] as num?)?.toDouble() ?? 0;
       _rejectedCount = (summary['rejectedCount'] as num?)?.toInt() ?? 0;
+      _debtPendingCount = debtPendingOperations.length;
+      _debtLastSyncedAt = debtSnapshot['syncedAt']?.toString();
       _pendingItems = List<Map<String, dynamic>>.from(
         summary['items'] as List? ?? const [],
       );
@@ -91,6 +108,9 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       );
       _historyItems = List<Map<String, dynamic>>.from(
         overview['history'] as List? ?? const [],
+      );
+      _unknownItems = List<Map<String, dynamic>>.from(
+        overview['unknownLookups'] as List? ?? const [],
       );
       _isLoading = false;
     });
@@ -110,14 +130,15 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
           payload['settings'] as Map? ?? const {},
         ),
       );
+      await _resolveUnknownLookups();
       await _loadOverview();
       if (!mounted) {
         return;
       }
       AppAlertService.showSuccess(
         context,
-        title: 'تم تحديث بيانات الأوفلاين',
-        message: 'أصبح أحدث مخزون البطاقات متاحًا على هذا الجهاز.',
+        title: context.loc.tr('screens_offline_center_screen.001'),
+        message: context.loc.tr('screens_offline_center_screen.002'),
       );
     } catch (error) {
       if (!mounted) {
@@ -125,7 +146,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر تحديث بيانات الأوفلاين',
+        title: context.loc.tr('screens_offline_center_screen.003'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -133,6 +154,52 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
         setState(() => _isSyncingCards = false);
       }
     }
+  }
+
+  Future<void> _resolveUnknownLookups() async {
+    final l = context.loc;
+    final userId = _user?['id']?.toString();
+    if (userId == null) {
+      return;
+    }
+    final lookups = await _offlineCardService.getUnknownCardLookups(userId);
+    if (lookups.isEmpty) {
+      return;
+    }
+
+    final foundCards = <VirtualCard>[];
+    final unresolved = <Map<String, dynamic>>[];
+    for (final item in lookups) {
+      final barcode = item['barcode']?.toString().trim() ?? '';
+      if (barcode.isEmpty) {
+        continue;
+      }
+      try {
+        final card = await _apiService.getCardByBarcode(barcode);
+        if (card == null) {
+          unresolved.add({
+            ...item,
+            'status': 'pending_lookup',
+            'message': l.tr('screens_offline_center_screen.004'),
+            'lastCheckedAt': DateTime.now().toIso8601String(),
+          });
+          continue;
+        }
+        foundCards.add(card);
+      } catch (_) {
+        unresolved.add({
+          ...item,
+          'status': 'pending_lookup',
+          'message': l.tr('screens_offline_center_screen.005'),
+          'lastCheckedAt': DateTime.now().toIso8601String(),
+        });
+      }
+    }
+
+    if (foundCards.isNotEmpty) {
+      await _offlineCardService.cacheCards(userId: userId, cards: foundCards);
+    }
+    await _offlineCardService.replaceUnknownCardLookups(userId, unresolved);
   }
 
   Future<void> _syncQueue() async {
@@ -147,8 +214,8 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       }
       AppAlertService.showInfo(
         context,
-        title: 'لا توجد عمليات معلقة',
-        message: 'كل عمليات الأوفلاين تمت مزامنتها بالفعل.',
+        title: context.loc.tr('screens_offline_center_screen.006'),
+        message: context.loc.tr('screens_offline_center_screen.007'),
       );
       return;
     }
@@ -223,9 +290,14 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       }
       AppAlertService.showSuccess(
         context,
-        title: 'اكتملت المزامنة',
-        message:
-            'تمت مزامنة ${acceptedBarcodes.length} بطاقة، والمتبقي للمراجعة $_rejectedCount.',
+        title: context.loc.tr('screens_offline_center_screen.008'),
+        message: context.loc.tr(
+          'screens_offline_center_screen.009',
+          params: {
+            'count': '${acceptedBarcodes.length}',
+            'remaining': '$_rejectedCount',
+          },
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -233,12 +305,59 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       }
       AppAlertService.showError(
         context,
-        title: 'تعذر مزامنة العمليات',
+        title: context.loc.tr('screens_offline_center_screen.010'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
       if (mounted) {
         setState(() => _isSyncingQueue = false);
+      }
+    }
+  }
+
+  Future<void> _syncDebtBook() async {
+    if (!_canManageDebtBook) {
+      return;
+    }
+    if (!_isOnline) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showInfo(
+        context,
+        title: context.loc.tr('screens_debt_book_screen.002'),
+        message: context.loc.tr('screens_debt_book_screen.003'),
+      );
+      return;
+    }
+
+    setState(() => _isSyncingDebtBook = true);
+    try {
+      await _debtBookService.syncPending(
+        userId: _user!['id'].toString(),
+        api: _apiService,
+      );
+      await _loadOverview();
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showSuccess(
+        context,
+        title: context.loc.tr('screens_offline_center_screen.046'),
+        message: context.loc.tr('screens_offline_center_screen.047'),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showError(
+        context,
+        title: context.loc.tr('screens_offline_center_screen.048'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncingDebtBook = false);
       }
     }
   }
@@ -249,7 +368,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('مركز الأوفلاين'),
+          title: const SizedBox.shrink(),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         body: const Center(
@@ -265,7 +384,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('مركز الأوفلاين'),
+          title: const SizedBox.shrink(),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         body: Center(
@@ -281,7 +400,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'لا تملك صلاحية استخدام مركز الأوفلاين',
+                  context.loc.tr('screens_offline_center_screen.011'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -299,7 +418,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('مركز الأوفلاين'),
+        title: const SizedBox.shrink(),
         actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       body: SingleChildScrollView(
@@ -308,7 +427,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildHero(),
+              _buildOverviewCard(),
               const SizedBox(height: 18),
               _buildActionCard(),
               const SizedBox(height: 18),
@@ -317,33 +436,46 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
                 runSpacing: 12,
                 children: [
                   _statCard(
-                    label: 'بطاقات جاهزة',
+                    label: context.loc.tr('screens_offline_center_screen.012'),
                     value: '$_availableCount',
-                    hint: 'للقراءة فقط',
+                    hint: context.loc.tr('screens_offline_center_screen.013'),
                     color: AppTheme.success,
                     icon: Icons.credit_card_rounded,
                   ),
                   _statCard(
-                    label: 'معلّق للمزامنة',
+                    label: context.loc.tr('screens_offline_center_screen.014'),
                     value: '$_pendingCount / $maxPendingCount',
                     hint: CurrencyFormatter.ils(_pendingAmount),
                     color: AppTheme.primary,
                     icon: Icons.cloud_upload_rounded,
                   ),
                   _statCard(
-                    label: 'حد الأوف لاين',
+                    label: context.loc.tr('screens_offline_center_screen.015'),
                     value: CurrencyFormatter.ils(maxPendingAmount),
-                    hint: 'قبل طلب المزامنة',
+                    hint: context.loc.tr('screens_offline_center_screen.016'),
                     color: AppTheme.warning,
                     icon: Icons.account_balance_wallet_rounded,
                   ),
                   _statCard(
-                    label: 'بحاجة مراجعة',
+                    label: context.loc.tr('screens_offline_center_screen.017'),
                     value: '$_rejectedCount',
-                    hint: 'بعد عودة الإنترنت',
+                    hint: context.loc.tr('screens_offline_center_screen.018'),
                     color: AppTheme.error,
                     icon: Icons.rule_folder_rounded,
                   ),
+                  if (_canManageDebtBook)
+                    _statCard(
+                      label: context.loc.tr('screens_debt_book_screen.030'),
+                      value: '$_debtPendingCount',
+                      hint: _debtLastSyncedAt == null
+                          ? context.loc.tr('screens_debt_book_screen.001')
+                          : context.loc.tr(
+                              'screens_debt_book_screen.033',
+                              params: {'date': _debtLastSyncedAt!},
+                            ),
+                      color: const Color(0xFF7C3AED),
+                      icon: Icons.menu_book_rounded,
+                    ),
                 ],
               ),
               const SizedBox(height: 18),
@@ -355,42 +487,52 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     );
   }
 
-  Widget _buildHero() {
+  Widget _buildOverviewCard() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(28),
-      gradient: const LinearGradient(
-        colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-      ),
-      withBorder: false,
-      shadowLevel: ShwakelShadowLevel.premium,
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(28),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ShwakelLogo(size: 82, framed: true),
-          const SizedBox(height: 18),
           Text(
-            'العمل أوف لاين',
-            style: AppTheme.h2.copyWith(color: Colors.white),
+            context.loc.tr('screens_offline_center_screen.019'),
+            style: AppTheme.h3,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Text(
-            'ابدأ بقراءة البطاقة محليًا، ثم مزامن العمليات عند عودة الإنترنت.',
-            style: AppTheme.bodyAction.copyWith(
-              color: Colors.white.withValues(alpha: 0.92),
-            ),
-            textAlign: TextAlign.center,
+            context.loc.tr('screens_offline_center_screen.020'),
+            style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 14),
           Wrap(
-            alignment: WrapAlignment.center,
             spacing: 8,
             runSpacing: 8,
             children: [
-              _heroPill('بطاقات جاهزة: $_availableCount'),
-              _heroPill('عمليات معلقة: $_pendingCount'),
-              _heroPill('مرفوض للمراجعة: $_rejectedCount'),
+              _overviewPill(
+                context.loc.tr(
+                  'screens_offline_center_screen.021',
+                  params: {'count': '$_availableCount'},
+                ),
+              ),
+              _overviewPill(
+                context.loc.tr(
+                  'screens_offline_center_screen.022',
+                  params: {'count': '$_pendingCount'},
+                ),
+              ),
+              _overviewPill(
+                context.loc.tr(
+                  'screens_offline_center_screen.023',
+                  params: {'count': '$_rejectedCount'},
+                ),
+              ),
+              if (_canManageDebtBook)
+                _overviewPill(
+                  context.loc.tr(
+                    'screens_offline_center_screen.049',
+                    params: {'count': '$_debtPendingCount'},
+                  ),
+                ),
             ],
           ),
         ],
@@ -398,20 +540,16 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     );
   }
 
-  Widget _heroPill(String label) {
+  Widget _overviewPill(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white24),
       ),
       child: Text(
         label,
-        style: AppTheme.caption.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-        ),
+        style: AppTheme.caption.copyWith(fontWeight: FontWeight.w800),
       ),
     );
   }
@@ -423,21 +561,24 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('مساحة القراءة السريعة', style: AppTheme.h3),
+          Text(
+            context.loc.tr('screens_offline_center_screen.024'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 6),
           Text(
-            'واجهة بسيطة لقراءة البطاقة ثم اعتمادها ومزامنتها لاحقًا.',
+            context.loc.tr('screens_offline_center_screen.025'),
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 16),
           ShwakelButton(
-            label: 'فتح القراءة للبطاقة',
+            label: context.loc.tr('screens_offline_center_screen.026'),
             icon: Icons.qr_code_scanner_rounded,
             onPressed: () => Navigator.pushNamed(context, '/scan-card-offline'),
           ),
           const SizedBox(height: 12),
           ShwakelButton(
-            label: 'تحديث مخزون الأوف لاين',
+            label: context.loc.tr('screens_offline_center_screen.027'),
             icon: Icons.download_rounded,
             isSecondary: true,
             isLoading: _isSyncingCards,
@@ -445,12 +586,33 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
           ),
           const SizedBox(height: 12),
           ShwakelButton(
-            label: 'مزامنة العمليات المعلقة',
+            label: context.loc.tr('screens_offline_center_screen.028'),
             icon: Icons.cloud_upload_rounded,
             isSecondary: true,
             isLoading: _isSyncingQueue,
-            onPressed: _isSyncingCards ? null : _syncQueue,
+            onPressed: _isSyncingCards || _isSyncingDebtBook
+                ? null
+                : _syncQueue,
           ),
+          if (_canManageDebtBook) ...[
+            const SizedBox(height: 12),
+            ShwakelButton(
+              label: context.loc.tr('screens_home_screen.071'),
+              icon: Icons.menu_book_rounded,
+              isSecondary: true,
+              onPressed: () => Navigator.pushNamed(context, '/debt-book'),
+            ),
+            const SizedBox(height: 12),
+            ShwakelButton(
+              label: context.loc.tr('screens_offline_center_screen.050'),
+              icon: _isOnline ? Icons.sync_rounded : Icons.cloud_off_rounded,
+              isSecondary: true,
+              isLoading: _isSyncingDebtBook,
+              onPressed: _isSyncingCards || _isSyncingQueue
+                  ? null
+                  : _syncDebtBook,
+            ),
+          ],
         ],
       ),
     );
@@ -459,6 +621,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
   Widget _buildTrackingList() {
     final items = [
       ..._pendingItems.map((item) => {...item, 'status': 'pending'}),
+      ..._unknownItems.map((item) => {...item, 'status': 'pending_lookup'}),
       ..._historyItems.where((item) => item['status'] == 'rejected'),
     ];
 
@@ -468,10 +631,13 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('متابعة بطاقات الأوف لاين', style: AppTheme.h3),
+          Text(
+            context.loc.tr('screens_offline_center_screen.029'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 6),
           Text(
-            'تظهر هنا البطاقات المعلقة حاليًا، وأي بطاقة فشلت مزامنتها بعد العودة إلى الأون لاين. اضغط على أي بطاقة لعرض التفاصيل.',
+            context.loc.tr('screens_offline_center_screen.030'),
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 16),
@@ -482,7 +648,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
                 color: AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: const Text('لا توجد بطاقات محفوظة للمراجعة حاليًا.'),
+              child: Text(context.loc.tr('screens_offline_center_screen.031')),
             )
           else
             ...items.map(_buildTrackedItem),
@@ -495,17 +661,21 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     final status = item['status']?.toString() ?? 'pending';
     final color = switch (status) {
       'rejected' => AppTheme.error,
+      'pending_lookup' => AppTheme.primary,
       _ => AppTheme.warning,
     };
     final label = switch (status) {
-      'rejected' => 'لم يتم تأكيدها',
-      _ => 'معلقة للمزامنة',
+      'rejected' => context.loc.tr('screens_offline_center_screen.032'),
+      'pending_lookup' => context.loc.tr('screens_offline_center_screen.033'),
+      _ => context.loc.tr('screens_offline_center_screen.045'),
     };
     final ownerName =
         item['offlineCardOwnerName']?.toString().trim().isNotEmpty == true
         ? item['offlineCardOwnerName'].toString().trim()
-        : 'بدون اسم';
-    final barcode = item['barcode']?.toString() ?? 'غير متوفر';
+        : context.loc.tr('screens_offline_center_screen.034');
+    final barcode =
+        item['barcode']?.toString() ??
+        context.loc.tr('screens_offline_center_screen.035');
 
     return InkWell(
       onTap: () => _showTrackedItemDetails(item),
@@ -571,36 +741,51 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('تفاصيل البطاقة', style: AppTheme.h3),
+              Text(
+                context.loc.tr('screens_offline_center_screen.036'),
+                style: AppTheme.h3,
+              ),
               const SizedBox(height: 16),
               _detailRow(
-                'الاسم المضاف',
+                context.loc.tr('screens_offline_center_screen.037'),
                 item['offlineCardOwnerName']?.toString() ?? '-',
               ),
-              _detailRow('الباركود', item['barcode']?.toString() ?? '-'),
               _detailRow(
-                'آخر استخدام',
+                context.loc.tr('screens_scan_card_screen.023'),
+                item['barcode']?.toString() ?? '-',
+              ),
+              _detailRow(
+                context.loc.tr('screens_offline_center_screen.038'),
                 usedAt == null
                     ? '-'
                     : '${usedAt.year}-${usedAt.month.toString().padLeft(2, '0')}-${usedAt.day.toString().padLeft(2, '0')} ${usedAt.hour.toString().padLeft(2, '0')}:${usedAt.minute.toString().padLeft(2, '0')}',
               ),
               _detailRow(
-                'اسم منفذ العملية',
+                context.loc.tr('screens_offline_center_screen.039'),
                 item['customerName']?.toString() ?? '-',
               ),
-              _detailRow('من استخدمها', item['usedBy']?.toString() ?? '-'),
               _detailRow(
-                'من الذي أحضر البطاقة',
+                context.loc.tr('screens_offline_center_screen.040'),
+                item['usedBy']?.toString() ?? '-',
+              ),
+              _detailRow(
+                context.loc.tr('screens_offline_center_screen.041'),
                 item['offlineCardOwnerName']?.toString() ?? '-',
               ),
               _detailRow(
-                'وقت المزامنة',
+                context.loc.tr('screens_offline_center_screen.042'),
                 syncedDate == null
                     ? '-'
                     : '${syncedDate.year}-${syncedDate.month.toString().padLeft(2, '0')}-${syncedDate.day.toString().padLeft(2, '0')} ${syncedDate.hour.toString().padLeft(2, '0')}:${syncedDate.minute.toString().padLeft(2, '0')}',
               ),
-              _detailRow('النتيجة', item['status']?.toString() ?? '-'),
-              _detailRow('ملاحظة', item['message']?.toString() ?? '-'),
+              _detailRow(
+                context.loc.tr('screens_offline_center_screen.043'),
+                item['status']?.toString() ?? '-',
+              ),
+              _detailRow(
+                context.loc.tr('screens_offline_center_screen.044'),
+                item['message']?.toString() ?? '-',
+              ),
               const SizedBox(height: 12),
             ],
           ),

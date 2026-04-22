@@ -348,7 +348,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text('لا تملك صلاحية طلب طباعة البطاقات', style: AppTheme.h3),
+                Text(
+                  l.tr('screens_card_print_requests_screen.037'),
+                  style: AppTheme.h3,
+                ),
               ],
             ),
           ),
@@ -367,7 +370,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         title: Text(l.tr('screens_card_print_requests_screen.018')),
         actions: [
           IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -388,9 +391,13 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        l.text(
-                          'الرصيد المتاح للطباعة: ${CurrencyFormatter.ils(availableBalance)} • الرسوم: ${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
-                          'Available print balance: ${CurrencyFormatter.ils(availableBalance)} • Fee: ${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
+                        l.tr(
+                          'screens_card_print_requests_screen.046',
+                          params: {
+                            'balance': CurrencyFormatter.ils(availableBalance),
+                            'fee':
+                                '${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
+                          },
                         ),
                         style: AppTheme.caption,
                       ),
@@ -410,7 +417,17 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     color: AppTheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(20),
                     child: Text(
-                      'أنت تعمل بحساب تابع. الطباعة هنا تخضع لسقف ${CurrencyFormatter.ils(_limitAsDouble('printRequestMaxAmount') ?? 0)} ودين تشغيلي حتى ${CurrencyFormatter.ils(_limitAsDouble('printingDebtLimit') ?? 0)}.',
+                      l.tr(
+                        'screens_card_print_requests_screen.047',
+                        params: {
+                          'limit': CurrencyFormatter.ils(
+                            _limitAsDouble('printRequestMaxAmount') ?? 0,
+                          ),
+                          'debtLimit': CurrencyFormatter.ils(
+                            _limitAsDouble('printingDebtLimit') ?? 0,
+                          ),
+                        },
+                      ),
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textPrimary,
                         fontWeight: FontWeight.w700,
@@ -450,11 +467,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'استخدم هذا القسم لإرسال طلبات الطباعة ومتابعة حالتها، بينما يظهر الملخص السريع أعلى القائمة فقط.',
-        'Use this section to submit print requests and track their status, while the quick summary stays above the list only.',
-      ),
+      title: l.tr('screens_admin_dashboard_screen.057'),
+      message: l.tr('screens_card_print_requests_screen.048'),
     );
   }
 

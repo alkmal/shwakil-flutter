@@ -69,7 +69,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   double? _subUserLimit(String key) =>
       (_subUserOperationalLimits[key] as num?)?.toDouble();
 
-  String _t(String ar, String en) => context.loc.text(ar, en);
+  String _t(String key, [Map<String, String>? params]) =>
+      context.loc.tr(key, params: params);
 
   bool get _isDeviceOffline => !ConnectivityService.instance.isOnline.value;
 
@@ -137,18 +138,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final moveOnline = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('عاد الإنترنت'),
-          content: const Text(
-            'تم اكتشاف اتصال بالإنترنت. هل تريد الانتقال الآن إلى شاشة القراءة الأونلاين لمزامنة العمل ومتابعة التنفيذ؟',
-          ),
+          title: Text(_t('screens_scan_card_screen.068')),
+          content: Text(_t('screens_scan_card_screen.069')),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('الاستمرار أوف لاين'),
+              child: Text(_t('screens_scan_card_screen.070')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('الانتقال للأونلاين'),
+              child: Text(_t('screens_scan_card_screen.071')),
             ),
           ],
         ),
@@ -174,9 +173,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
       AppAlertService.showInfo(
         context,
-        title: 'أنت داخل مساحة الأوف لاين',
-        message:
-            'استخدم هذه الشاشة لقراءة البطاقة فقط، ثم اعتمدها من نفس النتيجة. ستتم المزامنة لاحقًا عند عودة الإنترنت.',
+        title: _t('screens_scan_card_screen.072'),
+        message: _t('screens_scan_card_screen.073'),
       );
     });
   }
@@ -204,18 +202,21 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final moveOnline = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('الأون لاين متوفر'),
+        title: Text(_t('screens_scan_card_screen.074')),
         content: Text(
-          'أنت الآن في وضع الأوف لاين لكن الإنترنت متوفر. الأولوية في التطبيق للعمل أون لاين، والأوف لاين مخصص للطوارئ فقط. هل تريد الانتقال الآن إلى الأون لاين قبل $actionLabel؟',
+          context.loc.tr(
+            'screens_scan_card_screen.075',
+            params: {'action': actionLabel},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('الاستمرار أوف لاين'),
+            child: Text(_t('screens_scan_card_screen.070')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('الانتقال للأونلاين'),
+            child: Text(_t('screens_scan_card_screen.071')),
           ),
         ],
       ),
@@ -235,7 +236,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Future<void> _search() async {
-    if (await _promptMoveOnlineIfAvailable(actionLabel: 'قراءة البطاقة')) {
+    if (await _promptMoveOnlineIfAvailable(
+      actionLabel: _t('screens_scan_card_screen.076'),
+    )) {
       return;
     }
 
@@ -283,7 +286,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         user != null &&
         user['id'] != null)) {
       return _CardLookupResult.error(
-        'لا تتوفر صلاحية الفحص الأوف لاين على هذا الجهاز.',
+        l.tr('screens_scan_card_screen.078'),
       );
     }
 
@@ -298,15 +301,21 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       userId,
       barcode,
     );
+    await _offlineCardService.enqueueUnknownCardLookup(
+      userId,
+      barcode: barcode,
+    );
     return _CardLookupResult.error(
       blocked
-          ? 'تم إيقاف الفحص مؤقتًا بسبب محاولات كثيرة لبطاقات غير موجودة في ذاكرة الأوف لاين.'
-          : l.tr('screens_scan_card_screen.040'),
+          ? l.tr('screens_scan_card_screen.079')
+          : '${l.tr('screens_scan_card_screen.040')}\n${l.tr('screens_scan_card_screen.080')}',
     );
   }
 
   Future<void> _openScannerDialog() async {
-    if (await _promptMoveOnlineIfAvailable(actionLabel: 'فتح الكاميرا')) {
+    if (await _promptMoveOnlineIfAvailable(
+      actionLabel: _t('screens_scan_card_screen.077'),
+    )) {
       return;
     }
     if (!mounted) {
@@ -318,9 +327,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       context: context,
       barrierDismissible: true,
       builder: (_) => BarcodeScannerDialog(
-        title: 'فحص الباركود',
+        title: l.tr('screens_scan_card_screen.001'),
         description: l.tr('screens_scan_card_screen.041'),
-        resultTitle: 'نتائج الفحص',
+        resultTitle: l.tr('screens_scan_card_screen.081'),
         height: 360,
         showFrame: true,
         backgroundColor: Colors.transparent,
@@ -343,17 +352,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     });
     if (lookup.card == null) {
       return BarcodeScannerDialogResult.error(
-        headline: 'خطأ في الفحص',
-        message: lookup.errorMessage ?? 'تعذر العثور على بيانات هذه البطاقة.',
+        headline: _t('screens_scan_card_screen.082'),
+        message:
+            lookup.errorMessage ?? _t('screens_scan_card_screen.083'),
         items: [
           BarcodeScannerDialogResultItem(
-            label: 'الباركود',
+            label: _t('screens_scan_card_screen.023'),
             value: scannedValue,
             icon: Icons.qr_code_rounded,
           ),
           BarcodeScannerDialogResultItem(
-            label: 'الحالة',
-            value: 'فشل الفحص',
+            label: _t('screens_scan_card_screen.019'),
+            value: _t('screens_scan_card_screen.039'),
             icon: Icons.error_outline_rounded,
           ),
         ],
@@ -366,37 +376,41 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final canRedeemCards = permissions.canRedeemCards && !isUsed;
 
     return BarcodeScannerDialogResult(
-      headline: isUsed ? 'البطاقة مستخدمة' : 'تم العثور على البطاقة',
+      headline: isUsed
+          ? _t('screens_scan_card_screen.015')
+          : _t('screens_scan_card_screen.084'),
       description: isUsed
-          ? 'تم فحص البطاقة بنجاح، لكنها مستخدمة بالفعل ولا يمكن سحبها مرة أخرى من هنا.'
-          : 'تم فحص البطاقة بنجاح. راجع البيانات الأساسية ثم نفّذ السحب والاعتماد مباشرة.',
+          ? _t('screens_scan_card_screen.085')
+          : _t('screens_scan_card_screen.086'),
       color: isUsed ? AppTheme.error : AppTheme.success,
       icon: isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
       items: [
         BarcodeScannerDialogResultItem(
-          label: 'الباركود',
+          label: _t('screens_scan_card_screen.023'),
           value: card.barcode,
           icon: Icons.qr_code_2_rounded,
         ),
         BarcodeScannerDialogResultItem(
-          label: 'القيمة',
+          label: _t('screens_scan_card_screen.020'),
           value: CurrencyFormatter.ils(card.value),
           icon: Icons.payments_rounded,
         ),
         BarcodeScannerDialogResultItem(
-          label: 'النوع',
+          label: _t('screens_scan_card_screen.024'),
           value: _cardTypeLabel(card),
           icon: Icons.category_rounded,
         ),
         BarcodeScannerDialogResultItem(
-          label: 'الحالة',
+          label: _t('screens_scan_card_screen.019'),
           value: _statusLabel(card),
           icon: isUsed
               ? Icons.cancel_schedule_send_rounded
               : Icons.verified_rounded,
         ),
       ],
-      primaryActionLabel: canRedeemCards ? 'سحب واعتماد' : null,
+      primaryActionLabel: canRedeemCards
+          ? _t('screens_scan_card_screen.087')
+          : null,
       primaryActionIcon: Icons.download_done_rounded,
       onPrimaryAction: canRedeemCards
           ? () async {
@@ -549,7 +563,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       context,
       title: l.tr('screens_scan_card_screen.063'),
       message:
-          '${l.tr('screens_scan_card_screen.064')}\nتم حفظ الاسم المرتبط بالبطاقة: $savedName',
+          '${l.tr('screens_scan_card_screen.064')}\n${l.tr('screens_scan_card_screen.088', params: {'name': savedName})}',
     );
   }
 
@@ -558,13 +572,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('اسم صاحب البطاقة'),
+        title: Text(_t('screens_scan_card_screen.089')),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'أدخل اسمًا لتعريف هذه البطاقة',
-            hintText: 'مثال: أحمد - بطاقة رقم 1',
+          decoration: InputDecoration(
+            labelText: _t('screens_scan_card_screen.090'),
+            hintText: _t('screens_scan_card_screen.091'),
           ),
           textInputAction: TextInputAction.done,
           onSubmitted: (_) {
@@ -577,7 +591,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('إلغاء'),
+            child: Text(_t('screens_scan_card_screen.050')),
           ),
           FilledButton(
             onPressed: () {
@@ -587,7 +601,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               }
               Navigator.of(dialogContext).pop(value);
             },
-            child: const Text('حفظ'),
+            child: Text(_t('screens_scan_card_screen.092')),
           ),
         ],
       ),
@@ -722,12 +736,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final l = context.loc;
     if (!_canAccessScanScreen && _user != null) {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: Text(l.tr('screens_scan_card_screen.001')),
+          title: const SizedBox.shrink(),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         body: Center(
@@ -743,10 +756,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  _t(
-                    'لا تملك صلاحية استخدام شاشة البطاقات',
-                    'You do not have access to the card screen',
-                  ),
+                  _t('screens_scan_card_screen.093'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -759,12 +769,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(l.tr('screens_scan_card_screen.001')),
+        title: const SizedBox.shrink(),
         actions: [
           IconButton(
             tooltip: _showManualSearch
-                ? _t('إخفاء البحث اليدوي', 'Hide manual search')
-                : _t('إظهار البحث اليدوي', 'Show manual search'),
+                ? _t('screens_scan_card_screen.094')
+                : _t('screens_scan_card_screen.095'),
             onPressed: () =>
                 setState(() => _showManualSearch = !_showManualSearch),
             icon: Icon(
@@ -774,7 +784,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ),
           ),
           IconButton(
-            tooltip: _t('مساعدة', 'Help'),
+            tooltip: _t('screens_scan_card_screen.096'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -798,22 +808,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(_t('طريقة الاستخدام', 'How to use')),
+        title: Text(_t('screens_scan_card_screen.097')),
         content: Text(
           widget.offlineMode
-              ? _t(
-                  'أدخل الكود أو امسحه، وسيتم الفحص من البيانات المحلية فقط.',
-                  'Enter or scan the code. The check will use local data only.',
-                )
-              : _t(
-                  'أدخل الكود أو امسحه لفحص البطاقة مباشرة. تفاصيل إضافية تظهر فقط عند الحاجة.',
-                  'Enter or scan the code to check the card. Extra details appear only when needed.',
-                ),
+              ? _t('screens_scan_card_screen.098')
+              : _t('screens_scan_card_screen.099'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(_t('إغلاق', 'Close')),
+            child: Text(_t('screens_scan_card_screen.100')),
           ),
         ],
       ),
@@ -833,13 +837,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             const Center(child: ShwakelLogo(size: 74, framed: true)),
             const SizedBox(height: 14),
             Text(
-              'قراءة البطاقة أوف لاين',
+              _t('screens_scan_card_screen.101'),
               style: AppTheme.h2,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
-              'العمل أوف لاين. امسح الباركود أو أدخل الرقم يدويًا ثم اعتمد البطاقة مباشرة.',
+              _t('screens_scan_card_screen.102'),
               style: AppTheme.bodyAction,
               textAlign: TextAlign.center,
             ),
@@ -887,8 +891,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ),
             label: Text(
               widget.offlineMode
-                  ? _t('الانتقال إلى الأون لاين', 'Switch to online')
-                  : _t('الانتقال إلى الأوف لاين', 'Switch to offline'),
+                  ? _t('screens_scan_card_screen.103')
+                  : _t('screens_scan_card_screen.104'),
             ),
           ),
           if (_showManualSearch) ...[
@@ -911,8 +915,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             const SizedBox(height: 18),
             ToolToggleHint(
               message: _t(
-                'يمكنك فتح البحث اليدوي من أيقونة البحث بالأعلى عند الحاجة.',
-                'Open manual search from the top search icon when needed.',
+                'screens_scan_card_screen.105',
               ),
               icon: Icons.manage_search_rounded,
             ),
@@ -936,8 +939,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   Expanded(
                     child: Text(
                       _t(
-                        'سيتم الفحص من البيانات المحلية فقط، وعند رجوع الإنترنت ستظهر لك رسالة للانتقال إلى الأونلاين.',
-                        'Local data only will be used. You will be prompted to move online when connectivity returns.',
+                        'screens_scan_card_screen.106',
                       ),
                       style: AppTheme.bodyAction.copyWith(
                         color: AppTheme.warning,
@@ -966,8 +968,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   Expanded(
                     child: Text(
                       _t(
-                        'الإنترنت متوفر الآن. يفضّل الانتقال إلى الأون لاين، وسيتم تذكيرك بذلك عند استخدام القراءة أو الكاميرا.',
-                        'Internet is available now. Online mode is preferred, and you will be reminded when using scan actions.',
+                        'screens_scan_card_screen.107',
                       ),
                       style: AppTheme.bodyAction.copyWith(
                         color: AppTheme.primary,
@@ -999,8 +1000,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   Expanded(
                     child: Text(
                       _t(
-                        'إخلاء طرف: التطبيق غير مسؤول عن حالات التعارض، أو البطاقات غير الموجودة في النظام، أو أي بطاقة تمت إضافتها واعتمادها أثناء وضع الأوف لاين ثم تعذر تأكيدها لاحقًا. المسؤولية تقع على من قام بإدخال البطاقة واعتمادها في وضع الأوف لاين.',
-                        'Disclaimer: the app is not responsible for conflicts, cards not found in the system, or any card added and approved in offline mode then not confirmed later. Responsibility remains with the user who entered and approved it offline.',
+                        'screens_scan_card_screen.108',
                       ),
                       style: AppTheme.bodyAction.copyWith(
                         color: AppTheme.error,
@@ -1021,7 +1021,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   children: [
                     ShwakelButton(
                       label: widget.offlineMode
-                          ? 'فتح الكاميرا'
+                          ? _t('screens_scan_card_screen.077')
                           : l.tr('screens_scan_card_screen.005'),
                       icon: Icons.camera_alt_rounded,
                       isSecondary: true,
@@ -1030,7 +1030,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     const SizedBox(height: 12),
                     ShwakelButton(
                       label: widget.offlineMode
-                          ? 'قراءة البطاقة'
+                          ? _t('screens_scan_card_screen.076')
                           : l.tr('screens_scan_card_screen.006'),
                       icon: Icons.search_rounded,
                       onPressed: _search,
@@ -1044,7 +1044,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   Expanded(
                     child: ShwakelButton(
                       label: widget.offlineMode
-                          ? 'فتح الكاميرا'
+                          ? _t('screens_scan_card_screen.077')
                           : l.tr('screens_scan_card_screen.005'),
                       icon: Icons.camera_alt_rounded,
                       isSecondary: true,
@@ -1055,7 +1055,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   Expanded(
                     child: ShwakelButton(
                       label: widget.offlineMode
-                          ? 'قراءة البطاقة'
+                          ? _t('screens_scan_card_screen.076')
                           : l.tr('screens_scan_card_screen.006'),
                       icon: Icons.search_rounded,
                       onPressed: _search,
@@ -1089,7 +1089,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_t('نتيجة الفحص', 'Scan result'), style: AppTheme.h3),
+            Text(l.tr('screens_scan_card_screen.014'), style: AppTheme.h3),
           ],
         ),
       );
@@ -1136,8 +1136,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   children: [
                     Text(
                       isUsed
-                          ? _t('البطاقة مستخدمة', 'Card used')
-                          : _t('البطاقة صالحة', 'Card valid'),
+                          ? l.tr('screens_scan_card_screen.015')
+                          : l.tr('screens_scan_card_screen.016'),
                       style: AppTheme.h3.copyWith(color: accent),
                     ),
                     const SizedBox(height: 4),
@@ -1196,7 +1196,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'قيمة البطاقة',
+                  l.tr('screens_scan_card_screen.109'),
                   style: AppTheme.caption.copyWith(color: accent),
                 ),
                 const SizedBox(height: 6),
@@ -1210,7 +1210,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           const SizedBox(height: 14),
           if (!isUsed && canRedeemCards)
             ShwakelButton(
-              label: 'سحب واعتماد',
+              label: l.tr('screens_scan_card_screen.087'),
               icon: Icons.download_done_rounded,
               onPressed: _redeem,
               isLoading: _isSubmitting,
@@ -1225,14 +1225,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           else
             Text(
               isUsed
-                  ? _t(
-                      'هذه البطاقة مستعملة بالفعل.',
-                      'This card is already used.',
-                    )
-                  : _t(
-                      'لا تملك صلاحية تنفيذ إجراء مباشر على هذه البطاقة.',
-                      'You do not have permission to run a direct action on this card.',
-                    ),
+                  ? l.tr('screens_scan_card_screen.110')
+                  : l.tr('screens_scan_card_screen.111'),
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
@@ -1522,7 +1516,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(_t('الإجراءات', 'Actions'), style: AppTheme.h3),
+          Text(l.tr('screens_scan_card_screen.112'), style: AppTheme.h3),
           const SizedBox(height: 16),
           if (_isSubUser && !isUsed) ...[
             Container(
@@ -1536,8 +1530,22 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               ),
               child: Text(
                 canRedeemCards
-                    ? 'سقف اعتماد البطاقة لهذا التابع هو ${CurrencyFormatter.ils(_subUserLimit('redeemCardMaxValue') ?? 0)}. إذا تجاوزت البطاقة هذا الحد فلن يتم اعتمادها من هذا الحساب.'
-                    : 'هذا الحساب تابع، والاعتماد يحتاج صلاحية مفعلة. عند التفعيل سيطبّق عليه سقف ${CurrencyFormatter.ils(_subUserLimit('redeemCardMaxValue') ?? 0)} للبطاقة الواحدة.',
+                    ? l.tr(
+                        'screens_scan_card_screen.113',
+                        params: {
+                          'limit': CurrencyFormatter.ils(
+                            _subUserLimit('redeemCardMaxValue') ?? 0,
+                          ),
+                        },
+                      )
+                    : l.tr(
+                        'screens_scan_card_screen.114',
+                        params: {
+                          'limit': CurrencyFormatter.ils(
+                            _subUserLimit('redeemCardMaxValue') ?? 0,
+                          ),
+                        },
+                      ),
                 style: AppTheme.caption.copyWith(
                   color: AppTheme.textPrimary,
                   fontWeight: FontWeight.w700,
@@ -1548,7 +1556,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           ],
           if (!isUsed && canRedeemCards) ...[
             ShwakelButton(
-              label: 'سحب واعتماد',
+              label: l.tr('screens_scan_card_screen.087'),
               icon: Icons.download_done_rounded,
               onPressed: _redeem,
               isLoading: _isSubmitting,
@@ -1717,15 +1725,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               _infoChip(
                 icon: Icons.qr_code_scanner_rounded,
                 label: _t(
-                  'ابدأ بمسح الكود أو إدخال الرقم يدويًا',
-                  'Start by scanning the code or entering it manually',
+                  'screens_scan_card_screen.115',
                 ),
               ),
               _infoChip(
                 icon: Icons.receipt_long_rounded,
                 label: _t(
-                  'ستظهر هنا نتيجة الفحص فقط عند توفرها',
-                  'The result will appear here when available',
+                  'screens_scan_card_screen.116',
                 ),
               ),
             ],

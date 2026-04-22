@@ -546,11 +546,17 @@ class _LoginScreenState extends State<LoginScreen> {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              _heroPill(icon: Icons.security_rounded, label: 'تسجيل دخول آمن'),
-              _heroPill(icon: Icons.bolt_rounded, label: 'وصول سريع'),
+              _heroPill(
+                icon: Icons.security_rounded,
+                label: l.tr('screens_login_screen.023'),
+              ),
+              _heroPill(
+                icon: Icons.bolt_rounded,
+                label: l.tr('screens_login_screen.024'),
+              ),
               _heroPill(
                 icon: Icons.phone_iphone_rounded,
-                label: 'متوافق مع الجوال',
+                label: l.tr('screens_login_screen.025'),
               ),
             ],
           ),

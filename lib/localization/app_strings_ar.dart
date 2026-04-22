@@ -1934,4 +1934,211 @@ const Map<String, String> appStringsAr = {
   'services_contact_info_service.001': 'التواصل',
   'services_contact_info_service.002': 'فلسطين',
   'services_api_service.001': 'تأكد من جميع البيانات وحاول مرة أخرى.',
+  'screens_login_screen.023': 'تسجيل دخول آمن',
+  'screens_login_screen.024': 'وصول سريع',
+  'screens_login_screen.025': 'متوافق مع الجوال',
+  'screens_transactions_screen.036': 'إخفاء البحث والفلاتر',
+  'screens_transactions_screen.037': 'إظهار البحث والفلاتر',
+  'screens_transactions_screen.038':
+      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_transactions_screen.039': 'مساعدة سريعة',
+  'screens_transactions_screen.040':
+      'استخدم البحث والفلاتر لعرض الحركات المطلوبة، والملخص المختصر يوضح الرصيد والإجماليات بدون إزاحة المحتوى الأساسي.',
+  'screens_transactions_screen.041':
+      'الرصيد: {balance} • الداخل: {in} • الخارج: {out} • الصافي: {net}',
+  'screens_security_settings_screen.065': 'الحالة العامة',
+  'screens_security_settings_screen.066': 'القفل المحلي',
+  'screens_security_settings_screen.067': 'الأجهزة',
+  'screens_admin_permissions_screen.044': 'تعذر تحميل الصلاحيات',
+  'screens_admin_permissions_screen.045':
+      'تم تحديث قوالب الصلاحيات بنجاح.',
+  'screens_admin_permissions_screen.046':
+      'لا تملك صلاحية إدارة قوالب الصلاحيات.',
+  'screens_admin_permissions_screen.047': 'عرض المستخدمين التابعين',
+  'screens_admin_customers_screen.048': 'قائمة العملاء',
+  'screens_admin_customers_screen.049': 'ملخص سريع',
+  'screens_usage_policy_screen.006': 'عرض واضح',
+  'screens_usage_policy_screen.007':
+      'تنسيق مبسط يسهل قراءة البنود بسرعة.',
+  'screens_quick_transfer_screen.036': 'إرسال سريع',
+  'screens_quick_transfer_screen.037': 'استقبال سريع',
+  'screens_debt_book_screen.047': 'العملاء',
+  'screens_debt_book_screen.048': 'الملخص',
+  'screens_notifications_screen.027': 'غير مقروء',
+  'screens_notifications_screen.028': 'إشعارات تحتاج متابعة',
+  'screens_notifications_screen.029': 'إشعارات مالية',
+  'screens_notifications_screen.030': 'حركات وتنبيهات الرصيد',
+  'screens_notifications_screen.031': 'مقروءة',
+  'screens_notifications_screen.032': 'إشعارات تم الاطلاع عليها',
+  'screens_notifications_screen.033': 'غير مقروء: {count}',
+  'screens_notifications_screen.034': 'ملخص الإشعارات',
+  'screens_notifications_screen.035':
+      'نظرة سريعة على عدد الرسائل وحالة القراءة وتوزيع المتابعة.',
+  'screens_notifications_screen.036': 'التصفية والإجراءات',
+  'screens_notifications_screen.037':
+      'اختر نوع العرض وحدّث القائمة أو علّم الإشعارات كمقروءة.',
+  'screens_transactions_screen.042': 'بحث سريع',
+  'screens_transactions_screen.043': 'نطاق زمني',
+  'screens_transactions_screen.044': 'نوع العملية',
+  'screens_transactions_screen.045': 'نتائج الحركات',
+  'screens_transactions_screen.046': 'جارٍ تحميل نتائج الحركات الحالية.',
+  'screens_transactions_screen.047': 'إجمالي الحركات المطابقة: {count}',
+  'screens_security_settings_screen.068': 'تأكيد رمز PIN الحالي',
+  'screens_security_settings_screen.069': 'أدخل رمز PIN الحالي للمتابعة.',
+  'screens_quick_transfer_screen.038': 'البحث عن المستلم',
+  'screens_quick_transfer_screen.039':
+      'ابحث برقم الجوال ثم راجع بيانات المستخدم قبل التحويل.',
+  'screens_sub_users_screen.052': 'العودة إلى وضع الإضافة',
+  'screens_sub_users_screen.053': 'جارٍ الحفظ...',
+  'screens_sub_users_screen.054': 'حفظ التعديلات',
+  'screens_sub_users_screen.055': 'إلغاء التعديل',
+  'screens_sub_users_screen.056':
+      'إرسال الرصيد بسرعة من الحساب الرئيسي إلى التابع مع رفع سقف التشغيل للحد الأعلى.',
+  'screens_sub_users_screen.057':
+      'استلام الرصيد أو سحبه من حساب التابع إلى الرئيسي.',
+  'screens_sub_users_screen.058':
+      'الوصول إلى شاشة فحص البطاقات وقراءة نتائجها.',
+  'screens_sub_users_screen.059':
+      'اعتماد البطاقة وتنفيذ حركة السحب مباشرة.',
+  'screens_sub_users_screen.060':
+      'السماح بالفحص والمزامنة في وضع أوف لاين عند توفره.',
+  'screens_sub_users_screen.061':
+      'استعراض البطاقات ونتائج المراجعة والمتابعة.',
+  'screens_sub_users_screen.062':
+      'إرسال طلبات طباعة البطاقات، مع تطبيق سقف التابع تلقائيًا حسب مستوى الصلاحية.',
+  'screens_sub_users_screen.063': 'صلاحية تشغيلية داخل التطبيق.',
+  'screens_sub_users_screen.064': 'لا يوجد مستخدمون تابعون حاليًا',
+  'screens_sub_users_screen.065':
+      'ابدأ بإنشاء أول مستخدم تابع لتوزيع المهام والصلاحيات داخل النظام.',
+  'screens_sub_users_screen.066': 'استقبال سريع',
+  'screens_sub_users_screen.067': 'فحص',
+  'screens_sub_users_screen.068': 'اعتماد',
+  'screens_sub_users_screen.069': 'أوف لاين',
+  'screens_sub_users_screen.070': 'طباعة',
+  'screens_sub_users_screen.071': 'مراجعة',
+  'screens_sub_users_screen.072': 'بدون صلاحيات',
+  'screens_sub_users_screen.073': 'الإرسال السريع',
+  'screens_sub_users_screen.074': 'الاستلام السريع',
+  'screens_sub_users_screen.075': 'فحص البطاقات',
+  'screens_sub_users_screen.076': 'اعتماد البطاقات وسحب رصيدها',
+  'screens_sub_users_screen.077': 'الفحص والمزامنة أوف لاين',
+  'screens_sub_users_screen.078': 'طلب طباعة البطاقات',
+  'screens_sub_users_screen.079': 'مراجعة البطاقات',
+  'screens_sub_users_screen.080': 'تعذر تحميل المستخدمين التابعين',
+  'screens_sub_users_screen.081':
+      'اسم المستخدم وكلمة المرور مطلوبان عند إنشاء مستخدم تابع جديد.',
+  'screens_sub_users_screen.082': 'تم تحديث المستخدمين التابعين بنجاح.',
+  'screens_sub_users_screen.083': 'تحويل رصيد إلى التابع',
+  'screens_sub_users_screen.084': 'سحب رصيد من التابع',
+  'screens_sub_users_screen.085': 'المبلغ',
+  'screens_sub_users_screen.086': 'ملاحظات',
+  'screens_sub_users_screen.087': 'تنفيذ',
+  'screens_sub_users_screen.088': 'مبلغ غير صالح',
+  'screens_sub_users_screen.089': 'أدخل مبلغًا أكبر من صفر.',
+  'screens_sub_users_screen.090': 'تم التحويل',
+  'screens_sub_users_screen.091': 'تم تنفيذ حركة الرصيد بنجاح.',
+  'screens_sub_users_screen.092': 'تعذر التحويل',
+  'screens_sub_users_screen.093': 'المستخدمون التابعون',
+  'screens_sub_users_screen.094': 'لا تملك صلاحية عرض المستخدمين التابعين',
+  'screens_sub_users_screen.095': 'إضافة وتعديل',
+  'screens_sub_users_screen.096': 'قائمة التابعين',
+  'screens_sub_users_screen.097': 'القائمة هي الواجهة الأساسية',
+  'screens_sub_users_screen.098':
+      'ابدأ بمراجعة التابعين من هنا، وعند الحاجة إلى إضافة تابع جديد أو تعديل حساب موجود افتح تبويب الإضافة والتعديل من الأعلى.',
+  'screens_sub_users_screen.099': 'وضع تعديل التابع',
+  'screens_sub_users_screen.100': 'وضع إضافة تابع جديد',
+  'screens_sub_users_screen.101':
+      'يتم الآن تعديل بيانات الحساب المحدد. يمكنك تحديث الاسم أو كلمة المرور أو الصلاحيات أو حالة التعطيل.',
+  'screens_sub_users_screen.102':
+      'رتبنا الإضافة على خطوتين واضحتين: البيانات الأساسية أولاً، ثم الصلاحيات التشغيلية، ثم الحفظ.',
+  'screens_sub_users_screen.103': 'لا يوجد مستخدمون تابعون حتى الآن.',
+  'screens_sub_users_screen.104':
+      'القائمة مرتبة لعرض الحالة والصلاحيات وإجراءات الإدارة لكل تابع بشكل مباشر.',
+  'screens_sub_users_screen.105': 'نموذج الإضافة',
+  'screens_sub_users_screen.106': 'نموذج التعديل',
+  'screens_sub_users_screen.107':
+      'أدخل بيانات التابع ثم فعّل الصلاحيات التي يحتاجها فقط.',
+  'screens_sub_users_screen.108':
+      'حدّث بيانات الحساب الحالي ثم احفظ التغييرات من أسفل النموذج.',
+  'screens_sub_users_screen.109': 'إجمالي التابعين',
+  'screens_sub_users_screen.110': 'الحسابات الفرعية المسجلة',
+  'screens_sub_users_screen.111': 'النشطون',
+  'screens_sub_users_screen.112': 'جاهزون للعمل حاليًا',
+  'screens_sub_users_screen.113': 'المعطلون',
+  'screens_sub_users_screen.114': 'بحاجة إلى إعادة تفعيل',
+  'screens_sub_users_screen.115': 'البيانات الأساسية',
+  'screens_sub_users_screen.116':
+      'هيكل واضح لاسم التابع وبيانات الدخول الخاصة به.',
+  'screens_sub_users_screen.117': 'كلمة مرور جديدة - اختياري',
+  'screens_sub_users_screen.118': 'تعطيل الحساب',
+  'screens_sub_users_screen.119':
+      'الحساب موقوف مؤقتًا ولن يتمكن من تنفيذ العمليات.',
+  'screens_sub_users_screen.120':
+      'الحساب نشط ويمكنه استخدام الصلاحيات الممنوحة.',
+  'screens_sub_users_screen.121': 'الصلاحيات التشغيلية',
+  'screens_sub_users_screen.122':
+      'حدد ما يستطيع التابع الوصول إليه داخل التطبيق.',
+  'screens_sub_users_screen.123': '{count} مفعل',
+  'screens_sub_users_screen.124':
+      'الافتراضي للتابع: اعتماد البطاقة حتى 50 شيكل وطباعة بدين 5 شيكل وسقف 50 شيكل. عند تفعيل الإرسال السريع يرتفع التشغيل إلى اعتماد حتى 200 شيكل وطباعة بدين 50 شيكل وسقف 200 شيكل.',
+  'screens_sub_users_screen.125': 'تعديل',
+  'screens_inventory_screen.015': 'لا تملك صلاحية عرض المخزون',
+  'screens_inventory_screen.016': 'إخفاء الفلاتر',
+  'screens_inventory_screen.017': 'إظهار الفلاتر',
+  'screens_inventory_screen.018':
+      'يمكنك فتح الفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_inventory_screen.019':
+      'اختر الفلتر المناسب لعرض البطاقات فقط. بقية التفاصيل تظهر داخل العناصر نفسها.',
+  'screens_card_print_requests_screen.046':
+      'الرصيد المتاح للطباعة: {balance} • الرسوم: {fee}',
+  'screens_card_print_requests_screen.047':
+      'أنت تعمل بحساب تابع. الطباعة هنا تخضع لسقف {limit} ودين تشغيلي حتى {debtLimit}.',
+  'screens_card_print_requests_screen.048':
+      'استخدم هذا القسم لإرسال طلبات الطباعة ومتابعة حالتها، بينما يظهر الملخص السريع أعلى القائمة فقط.',
+  'screens_quick_transfer_screen.040': 'إخفاء البحث',
+  'screens_quick_transfer_screen.041': 'إظهار البحث',
+  'screens_quick_transfer_screen.042':
+      'ابحث بالرقم أو امسح رمز التحويل ثم راجع بيانات المستلم قبل تنفيذ العملية.',
+  'screens_quick_transfer_screen.043':
+      'يمكنك فتح البحث من أيقونة البحث بالأعلى عند الحاجة.',
+  'screens_topup_requests_screen.032': 'إخفاء البحث والفلاتر',
+  'screens_topup_requests_screen.033': 'إظهار البحث والفلاتر',
+  'screens_topup_requests_screen.034':
+      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_topup_requests_screen.035':
+      'استخدم البحث والحالة للوصول إلى طلبات التعبئة بسرعة، ثم افتح الطلب المناسب لاعتماده أو رفضه.',
+  'screens_withdrawal_requests_screen.029': 'إخفاء البحث والفلاتر',
+  'screens_withdrawal_requests_screen.030': 'إظهار البحث والفلاتر',
+  'screens_withdrawal_requests_screen.031':
+      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_withdrawal_requests_screen.032':
+      'استخدم البحث والفلاتر للوصول إلى الطلبات، ثم افتح الطلب المناسب واعتمد القرار عند الحاجة.',
+  'screens_supported_locations_screen.013':
+      'اعرض القائمة مباشرة، وإذا كانت خدمة الموقع متاحة فسيتم ترتيب النقاط الأقرب أولاً.',
+  'screens_create_card_screen.050': 'لا تملك صلاحية إصدار البطاقات',
+  'screens_quick_transfer_screen.044':
+      'وجّه الكاميرا نحو رمز التحويل ليتم التقاطه مباشرة.',
+  'screens_balance_screen.071': 'طريقة الشحن',
+  'screens_balance_screen.072': 'بيانات الطلب',
+  'screens_balance_screen.073': 'إخفاء فلاتر الحركات',
+  'screens_balance_screen.074': 'إظهار فلاتر الحركات',
+  'screens_balance_screen.075':
+      'يمكنك فتح فلاتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_balance_screen.076': 'سجل العمليات',
+  'screens_balance_screen.077':
+      'لا توجد عمليات معروضة ضمن الفلاتر الحالية.',
+  'screens_balance_screen.078': 'عدد العناصر في هذه الصفحة: {count}',
+  'screens_balance_screen.079': 'الصفحة {page}',
+  'screens_balance_screen.080':
+      'استخدم الأزرار السريعة لإدارة الرصيد، ثم صفِّ السجل حسب النوع أو الموقع عند الحاجة.',
+  'screens_admin_system_settings_screen.066': 'تعذر تحميل الإعدادات',
+  'screens_balance_screen.104':
+      'ابحث عن المستلم عبر رقم الجوال أو اختره مباشرة ثم أدخل مبلغ التحويل.',
+  'screens_balance_screen.105':
+      'أدخل رقم الجوال للعثور على المستلم بسرعة وبدون تكرار في النتائج.',
+  'screens_balance_screen.106': 'نتائج البحث',
+  'screens_balance_screen.107': 'تم الاختيار',
+  'screens_balance_screen.108': 'بيانات التحويل',
+  'screens_balance_screen.109': 'نوع التحويل',
+  'screens_balance_screen.110': 'بيانات السحب',
 };

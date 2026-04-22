@@ -33,9 +33,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
   bool _showFilters = false;
 
-  String _text(String arabic, String english) =>
-      context.loc.text(arabic, english);
-
   @override
   void initState() {
     super.initState();
@@ -89,7 +86,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: _text('\u062e\u0637\u0623', 'Error'),
+        title: context.loc.tr('screens_login_screen.002'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -104,7 +101,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: _text('\u062e\u0637\u0623', 'Error'),
+        title: context.loc.tr('screens_login_screen.002'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -132,22 +129,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(
-          _text(
-            '\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a',
-            'Notifications',
-          ),
+          context.loc.tr('widgets_app_top_actions.004'),
         ),
         actions: [
           IconButton(
             tooltip: _showFilters
-                ? _text(
-                    '\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u0641\u0644\u0627\u062a\u0631',
-                    'Hide filters',
-                  )
-                : _text(
-                    '\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0641\u0644\u0627\u062a\u0631',
-                    'Show filters',
-                  ),
+                ? context.loc.tr('screens_inventory_screen.016')
+                : context.loc.tr('screens_inventory_screen.017'),
             onPressed: () => setState(() => _showFilters = !_showFilters),
             icon: Icon(
               _showFilters
@@ -175,9 +163,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     _buildHero(isCompact),
                     const SizedBox(height: 18),
                     _buildSectionHeader(
-                      title: 'ملخص الإشعارات',
-                      subtitle:
-                          'نظرة سريعة على عدد الرسائل وحالة القراءة وتوزيع المتابعة.',
+                      title: context.loc.tr('screens_notifications_screen.034'),
+                      subtitle: context.loc.tr(
+                        'screens_notifications_screen.035',
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (isCompact)
@@ -208,9 +197,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                     const SizedBox(height: 18),
                     _buildSectionHeader(
-                      title: 'التصفية والإجراءات',
-                      subtitle:
-                          'اختر نوع العرض وحدّث القائمة أو علّم الإشعارات كمقروءة.',
+                      title: context.loc.tr('screens_notifications_screen.036'),
+                      subtitle: context.loc.tr(
+                        'screens_notifications_screen.037',
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (_showFilters)
@@ -379,23 +369,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .length;
     return [
       _NotificationStat(
-        label: 'غير مقروء',
+        label: context.loc.tr('screens_notifications_screen.027'),
         value: '$_unreadCount',
-        hint: 'إشعارات تحتاج متابعة',
+        hint: context.loc.tr('screens_notifications_screen.028'),
         icon: Icons.mark_email_unread_rounded,
         color: AppTheme.error,
       ),
       _NotificationStat(
-        label: 'إشعارات مالية',
+        label: context.loc.tr('screens_notifications_screen.029'),
         value: '$financialCount',
-        hint: 'حركات وتنبيهات الرصيد',
+        hint: context.loc.tr('screens_notifications_screen.030'),
         icon: Icons.account_balance_wallet_rounded,
         color: AppTheme.primary,
       ),
       _NotificationStat(
-        label: 'مقروءة',
+        label: context.loc.tr('screens_notifications_screen.031'),
         value: '$readCount',
-        hint: 'إشعارات تم الاطلاع عليها',
+        hint: context.loc.tr('screens_notifications_screen.032'),
         icon: Icons.done_all_rounded,
         color: AppTheme.success,
       ),
@@ -754,9 +744,7 @@ class _NotificationDetailsSheet extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  context.loc.text('\u0625\u063a\u0644\u0627\u0642', 'Close'),
-                ),
+                child: Text(context.loc.tr('screens_admin_customers_screen.046')),
               ),
             ),
           ],
@@ -781,9 +769,9 @@ class _UnreadPill extends StatelessWidget {
         border: Border.all(color: Colors.white24),
       ),
       child: Text(
-        context.loc.text(
-          '\u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621: $count',
-          'Unread: $count',
+        context.loc.tr(
+          'screens_notifications_screen.033',
+          params: {'count': '$count'},
         ),
         style: AppTheme.bodyBold.copyWith(color: Colors.white),
       ),

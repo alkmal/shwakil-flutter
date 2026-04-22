@@ -44,13 +44,13 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   };
 
   static const Map<String, String> _permissionLabels = {
-    'canTransfer': 'الإرسال السريع',
-    'canWithdraw': 'الاستلام السريع',
-    'canScanCards': 'فحص البطاقات',
-    'canRedeemCards': 'اعتماد البطاقات وسحب رصيدها',
-    'canOfflineCardScan': 'الفحص والمزامنة أوف لاين',
-    'canRequestCardPrinting': 'طلب طباعة البطاقات',
-    'canReviewCards': 'مراجعة البطاقات',
+    'canTransfer': 'screens_sub_users_screen.073',
+    'canWithdraw': 'screens_sub_users_screen.074',
+    'canScanCards': 'screens_sub_users_screen.075',
+    'canRedeemCards': 'screens_sub_users_screen.076',
+    'canOfflineCardScan': 'screens_sub_users_screen.077',
+    'canRequestCardPrinting': 'screens_sub_users_screen.078',
+    'canReviewCards': 'screens_sub_users_screen.079',
   };
 
   @override
@@ -94,7 +94,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       setState(() => _loading = false);
       AppAlertService.showError(
         context,
-        title: 'تعذر تحميل المستخدمين التابعين',
+        title: context.loc.tr('screens_sub_users_screen.080'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -138,9 +138,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         (_editing == null && _passwordController.text.trim().isEmpty)) {
       AppAlertService.showError(
         context,
-        title: 'بيانات ناقصة',
-        message:
-            'اسم المستخدم وكلمة المرور مطلوبان عند إنشاء مستخدم تابع جديد.',
+        title: context.loc.tr('screens_admin_customers_screen.002'),
+        message: context.loc.tr('screens_sub_users_screen.081'),
       );
       return;
     }
@@ -169,15 +168,15 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       _resetForm();
       AppAlertService.showSuccess(
         context,
-        title: 'تم الحفظ',
-        message: 'تم تحديث المستخدمين التابعين بنجاح.',
+        title: context.loc.tr('screens_admin_permissions_screen.001'),
+        message: context.loc.tr('screens_sub_users_screen.082'),
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
       AppAlertService.showError(
         context,
-        title: 'تعذر الحفظ',
+        title: context.loc.tr('screens_admin_permissions_screen.002'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -193,8 +192,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
     final title = direction == 'to_sub'
-        ? 'تحويل رصيد إلى التابع'
-        : 'سحب رصيد من التابع';
+        ? context.loc.tr('screens_sub_users_screen.083')
+        : context.loc.tr('screens_sub_users_screen.084');
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -208,23 +207,27 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'المبلغ'),
+              decoration: InputDecoration(
+                labelText: context.loc.tr('screens_sub_users_screen.085'),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: notesController,
-              decoration: const InputDecoration(labelText: 'ملاحظات'),
+              decoration: InputDecoration(
+                labelText: context.loc.tr('screens_sub_users_screen.086'),
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(context.loc.tr('screens_security_settings_screen.050')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('تنفيذ'),
+            child: Text(context.loc.tr('screens_sub_users_screen.087')),
           ),
         ],
       ),
@@ -241,8 +244,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       if (!mounted) return;
       AppAlertService.showError(
         context,
-        title: 'مبلغ غير صالح',
-        message: 'أدخل مبلغًا أكبر من صفر.',
+        title: context.loc.tr('screens_sub_users_screen.088'),
+        message: context.loc.tr('screens_sub_users_screen.089'),
       );
       return;
     }
@@ -262,15 +265,15 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       });
       AppAlertService.showSuccess(
         context,
-        title: 'تم التحويل',
-        message: 'تم تنفيذ حركة الرصيد بنجاح.',
+        title: context.loc.tr('screens_sub_users_screen.090'),
+        message: context.loc.tr('screens_sub_users_screen.091'),
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
       AppAlertService.showError(
         context,
-        title: 'تعذر التحويل',
+        title: context.loc.tr('screens_sub_users_screen.092'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -285,7 +288,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       return Scaffold(
         drawer: const AppSidebar(),
         appBar: AppBar(
-          title: const Text('المستخدمون التابعون'),
+          title: Text(context.loc.tr('screens_sub_users_screen.093')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -296,7 +299,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       return Scaffold(
         drawer: const AppSidebar(),
         appBar: AppBar(
-          title: const Text('المستخدمون التابعون'),
+          title: Text(context.loc.tr('screens_sub_users_screen.093')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         body: ResponsiveScaffoldContainer(
@@ -313,7 +316,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'لا تملك صلاحية عرض المستخدمين التابعين',
+                    context.loc.tr('screens_sub_users_screen.094'),
                     style: AppTheme.h3,
                   ),
                 ],
@@ -324,88 +327,273 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       );
     }
 
-    return Scaffold(
-      drawer: const AppSidebar(),
-      appBar: AppBar(
-        title: const Text('المستخدمون التابعون'),
-        actions: const [AppNotificationAction(), QuickLogoutAction()],
-      ),
-      body: ResponsiveScaffoldContainer(
-        child: ListView(
-          padding: AppTheme.pagePadding(context, top: 18),
-          children: [
-            _buildHero(),
-            const SizedBox(height: 18),
-            _buildStatsRow(),
-            const SizedBox(height: 18),
-            if (_canManageSubUsers) ...[
-              _buildForm(),
-              const SizedBox(height: 18),
-            ] else ...[
-              ShwakelCard(
-                padding: const EdgeInsets.all(18),
-                child: Text(
-                  'هذه الشاشة في وضع العرض فقط. يمكنك مراجعة الحسابات التابعة دون إنشاء أو تعديل أو تحويل أرصدة.',
-                  style: AppTheme.bodyAction,
+    final tabCount = _canManageSubUsers ? 2 : 1;
+
+    return DefaultTabController(
+      length: tabCount,
+      initialIndex: 0,
+      child: Scaffold(
+        drawer: const AppSidebar(),
+        appBar: AppBar(
+          title: Text(context.loc.tr('screens_sub_users_screen.093')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(76),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.all(6),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  tabs: [
+                    Tab(
+                      text: context.loc.tr('screens_sub_users_screen.096'),
+                      icon: const Icon(Icons.groups_rounded),
+                    ),
+                    if (_canManageSubUsers)
+                      Tab(
+                        text: context.loc.tr('screens_sub_users_screen.095'),
+                        icon: const Icon(Icons.person_add_alt_1_rounded),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 18),
-            ],
-            _buildUsersSection(),
-          ],
+            ),
+          ),
+        ),
+        body: ResponsiveScaffoldContainer(
+          child: Padding(
+            padding: AppTheme.pagePadding(context, top: 18),
+            child: TabBarView(
+              children: [
+                _buildUsersTab(),
+                if (_canManageSubUsers) _buildManageTab(),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHero() {
-    final isEditing = _editing != null;
-    final subtitle = isEditing
-        ? 'قم بتعديل بيانات التابع وصلاحياته وإدارة حالته من نفس الشاشة.'
-        : 'أنشئ مستخدمين تابعين بصلاحيات دقيقة، ووزع العمل المالي والتشغيلي بوضوح.';
+  Widget _buildUsersTab() {
+    return ListView(
+      children: [
+        _buildStatsRow(),
+        const SizedBox(height: 18),
+        if (_canManageSubUsers) ...[
+          _buildInlineGuideCard(),
+          const SizedBox(height: 18),
+        ],
+        if (!_canManageSubUsers) ...[
+          ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            child: Text(
+              'هذه الشاشة في وضع العرض فقط. يمكنك مراجعة الحسابات التابعة دون إنشاء أو تعديل أو تحويل أرصدة.',
+              style: AppTheme.bodyAction,
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
+        _buildUsersSection(),
+      ],
+    );
+  }
 
+  Widget _buildManageTab() {
+    return ListView(
+      children: [
+        _buildManageWorkspace(),
+        const SizedBox(height: 18),
+        _buildForm(),
+      ],
+    );
+  }
+
+  Widget _buildInlineGuideCard() {
     return ShwakelCard(
-      gradient: AppTheme.heroGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      borderColor: Colors.white.withValues(alpha: 0.18),
-      padding: const EdgeInsets.all(24),
-      child: Column(
+      padding: const EdgeInsets.all(18),
+      color: AppTheme.surface,
+      withBorder: true,
+      borderColor: AppTheme.borderLight,
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+              color: AppTheme.primarySoft,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Text(
-              isEditing ? 'وضع التعديل' : 'إدارة الفريق',
-              style: AppTheme.caption.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+            child: const Icon(
+              Icons.view_compact_alt_rounded,
+              color: AppTheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.loc.tr('screens_sub_users_screen.097'),
+                  style: AppTheme.h3,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.loc.tr('screens_sub_users_screen.098'),
+                  style: AppTheme.bodyAction,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManageWorkspace() {
+    final isEditing = _editing != null;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      color: AppTheme.surface,
+      withBorder: true,
+      borderColor: AppTheme.borderLight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: isEditing
+                      ? LinearGradient(
+                          colors: [
+                            AppTheme.accent.withValues(alpha: 0.92),
+                            AppTheme.highlight,
+                          ],
+                        )
+                      : AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  isEditing
+                      ? Icons.edit_rounded
+                      : Icons.person_add_alt_1_rounded,
+                  color: Colors.white,
+                ),
               ),
-            ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEditing
+                          ? context.loc.tr('screens_sub_users_screen.099')
+                          : context.loc.tr('screens_sub_users_screen.100'),
+                      style: AppTheme.h3,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isEditing
+                          ? context.loc.tr('screens_sub_users_screen.101')
+                          : context.loc.tr('screens_sub_users_screen.102'),
+                      style: AppTheme.bodyAction,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            isEditing
-                ? 'تحديث التابع الحالي'
-                : 'نظّم المستخدمين التابعين باحترافية',
-            style: AppTheme.h1.copyWith(
-              color: Colors.white,
-              fontSize: 26,
-              height: 1.25,
+          if (isEditing) ...[
+            const SizedBox(height: 16),
+            ShwakelButton(
+              label: context.loc.tr('screens_sub_users_screen.052'),
+              icon: Icons.refresh_rounded,
+              isSecondary: true,
+              onPressed: _resetForm,
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsersSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeading(
+          title: context.loc.tr('screens_sub_users_screen.096'),
+          subtitle: _subUsers.isEmpty
+              ? context.loc.tr('screens_sub_users_screen.103')
+              : context.loc.tr('screens_sub_users_screen.104'),
+          icon: Icons.manage_accounts_rounded,
+        ),
+        const SizedBox(height: 14),
+        if (_subUsers.isEmpty)
+          _buildEmptyState()
+        else
+          ..._subUsers.map(_buildSubUserCard),
+      ],
+    );
+  }
+
+  Widget _buildForm() {
+    return ShwakelCard(
+      shadowLevel: ShwakelShadowLevel.medium,
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeading(
+            title: _editing == null
+                ? context.loc.tr('screens_sub_users_screen.105')
+                : context.loc.tr('screens_sub_users_screen.106'),
+            subtitle: _editing == null
+                ? context.loc.tr('screens_sub_users_screen.107')
+                : context.loc.tr('screens_sub_users_screen.108'),
+            icon: _editing == null
+                ? Icons.person_add_alt_1_rounded
+                : Icons.edit_rounded,
           ),
-          const SizedBox(height: 10),
-          Text(
-            subtitle,
-            style: AppTheme.bodyText.copyWith(
-              color: AppTheme.textMutedOnDark,
-              fontWeight: FontWeight.w600,
-            ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 900;
+              if (wide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 5, child: _buildIdentityPanel()),
+                    const SizedBox(width: 16),
+                    Expanded(flex: 6, child: _buildPermissionsPanel()),
+                  ],
+                );
+              }
+
+              return Column(
+                children: [
+                  _buildIdentityPanel(),
+                  const SizedBox(height: 16),
+                  _buildPermissionsPanel(),
+                ],
+              );
+            },
           ),
+          const SizedBox(height: 18),
+          _buildActionsRow(),
         ],
       ),
     );
@@ -422,25 +610,25 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         final compact = constraints.maxWidth < 760;
         final children = [
           _buildStatCard(
-            title: 'إجمالي التابعين',
+            title: context.loc.tr('screens_sub_users_screen.109'),
             value: _subUsers.length.toString(),
-            hint: 'الحسابات الفرعية المسجلة',
+            hint: context.loc.tr('screens_sub_users_screen.110'),
             icon: Icons.groups_rounded,
             accent: AppTheme.primary,
             background: AppTheme.surface,
           ),
           _buildStatCard(
-            title: 'النشطون',
+            title: context.loc.tr('screens_sub_users_screen.111'),
             value: activeUsers.toString(),
-            hint: 'جاهزون للعمل حالياً',
+            hint: context.loc.tr('screens_sub_users_screen.112'),
             icon: Icons.verified_user_rounded,
             accent: AppTheme.success,
             background: AppTheme.successLight,
           ),
           _buildStatCard(
-            title: 'المعطلون',
+            title: context.loc.tr('screens_sub_users_screen.113'),
             value: disabledUsers.toString(),
-            hint: 'بحاجة إلى إعادة تفعيل',
+            hint: context.loc.tr('screens_sub_users_screen.114'),
             icon: Icons.pause_circle_outline_rounded,
             accent: AppTheme.warning,
             background: AppTheme.warningLight,
@@ -518,53 +706,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     );
   }
 
-  Widget _buildForm() {
-    return ShwakelCard(
-      shadowLevel: ShwakelShadowLevel.medium,
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeading(
-            title: _editing == null ? 'إضافة تابع جديد' : 'تعديل بيانات التابع',
-            subtitle: _editing == null
-                ? 'أدخل البيانات الأساسية وحدد الصلاحيات التي يحتاجها هذا الحساب.'
-                : 'يمكنك تعديل الاسم أو كلمة المرور أو الصلاحيات أو تعطيل الحساب.',
-            icon: _editing == null
-                ? Icons.person_add_alt_1_rounded
-                : Icons.edit_rounded,
-          ),
-          const SizedBox(height: 18),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 900;
-              if (wide) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 5, child: _buildIdentityPanel()),
-                    const SizedBox(width: 16),
-                    Expanded(flex: 6, child: _buildPermissionsPanel()),
-                  ],
-                );
-              }
-
-              return Column(
-                children: [
-                  _buildIdentityPanel(),
-                  const SizedBox(height: 16),
-                  _buildPermissionsPanel(),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 18),
-          _buildActionsRow(),
-        ],
-      ),
-    );
-  }
-
   Widget _buildIdentityPanel() {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -576,19 +717,19 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('البيانات الأساسية', style: AppTheme.h3),
+          Text(context.loc.tr('screens_sub_users_screen.115'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'هيكل واضح لاسم التابع وبيانات الدخول الخاصة به.',
+            context.loc.tr('screens_sub_users_screen.116'),
             style: AppTheme.caption,
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _fullNameController,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'الاسم الكامل',
-              prefixIcon: Icon(Icons.badge_outlined),
+            decoration: InputDecoration(
+              labelText: context.loc.tr('screens_admin_customers_screen.007'),
+              prefixIcon: const Icon(Icons.badge_outlined),
             ),
           ),
           const SizedBox(height: 12),
@@ -596,9 +737,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
             controller: _usernameController,
             enabled: _editing == null,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'اسم المستخدم',
-              prefixIcon: Icon(Icons.alternate_email_rounded),
+            decoration: InputDecoration(
+              labelText: context.loc.tr('screens_admin_customers_screen.006'),
+              prefixIcon: const Icon(Icons.alternate_email_rounded),
             ),
           ),
           const SizedBox(height: 12),
@@ -607,8 +748,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
             obscureText: true,
             decoration: InputDecoration(
               labelText: _editing == null
-                  ? 'كلمة المرور'
-                  : 'كلمة مرور جديدة - اختياري',
+                  ? context.loc.tr('screens_login_screen.006')
+                  : context.loc.tr('screens_sub_users_screen.117'),
               prefixIcon: const Icon(Icons.lock_outline_rounded),
             ),
           ),
@@ -626,11 +767,11 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
               child: SwitchListTile(
                 value: _isDisabled,
                 onChanged: (value) => setState(() => _isDisabled = value),
-                title: const Text('تعطيل الحساب'),
+                title: Text(context.loc.tr('screens_sub_users_screen.118')),
                 subtitle: Text(
                   _isDisabled
-                      ? 'الحساب موقوف مؤقتًا ولن يتمكن من تنفيذ العمليات.'
-                      : 'الحساب نشط ويمكنه استخدام الصلاحيات الممنوحة.',
+                      ? context.loc.tr('screens_sub_users_screen.119')
+                      : context.loc.tr('screens_sub_users_screen.120'),
                 ),
               ),
             ),
@@ -657,10 +798,13 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('الصلاحيات التشغيلية', style: AppTheme.h3),
+                    Text(
+                      context.loc.tr('screens_sub_users_screen.121'),
+                      style: AppTheme.h3,
+                    ),
                     const SizedBox(height: 6),
                     Text(
-                      'حدد ما يستطيع التابع الوصول إليه داخل التطبيق.',
+                      context.loc.tr('screens_sub_users_screen.122'),
                       style: AppTheme.caption,
                     ),
                   ],
@@ -676,7 +820,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  '$_enabledPermissionsCount مفعل',
+                  context.loc.tr(
+                    'screens_sub_users_screen.123',
+                    params: {'count': '$_enabledPermissionsCount'},
+                  ),
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.primary,
                     fontWeight: FontWeight.w800,
@@ -697,7 +844,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
               ),
             ),
             child: Text(
-              'الافتراضي للتابع: اعتماد البطاقة حتى 50 شيكل وطباعة بدين 5 شيكل وسقف 50 شيكل. عند تفعيل الإرسال السريع يرتفع التشغيل إلى اعتماد حتى 200 شيكل وطباعة بدين 50 شيكل وسقف 200 شيكل.',
+              context.loc.tr('screens_sub_users_screen.124'),
               style: AppTheme.caption.copyWith(
                 color: AppTheme.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -706,7 +853,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           ),
           const SizedBox(height: 14),
           ..._permissionLabels.entries.map(
-            (entry) => _permissionTile(entry.value, entry.key),
+            (entry) => _permissionTile(context.loc.tr(entry.value), entry.key),
           ),
         ],
       ),
@@ -720,7 +867,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       return Column(
         children: [
           ShwakelButton(
-            label: _saving ? 'جارٍ الحفظ...' : 'حفظ التعديلات',
+            label: _saving
+                ? context.loc.tr('screens_sub_users_screen.053')
+                : context.loc.tr('screens_sub_users_screen.054'),
             icon: Icons.save_outlined,
             gradient: AppTheme.primaryGradient,
             isLoading: _saving,
@@ -729,7 +878,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           if (_editing != null) ...[
             const SizedBox(height: 10),
             ShwakelButton(
-              label: 'إلغاء التعديل',
+              label: context.loc.tr('screens_sub_users_screen.055'),
               icon: Icons.close_rounded,
               isSecondary: true,
               onPressed: _resetForm,
@@ -743,7 +892,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       children: [
         Expanded(
           child: ShwakelButton(
-            label: _saving ? 'جارٍ الحفظ...' : 'حفظ التعديلات',
+            label: _saving
+                ? context.loc.tr('screens_sub_users_screen.053')
+                : context.loc.tr('screens_sub_users_screen.054'),
             icon: Icons.save_outlined,
             gradient: AppTheme.primaryGradient,
             isLoading: _saving,
@@ -754,7 +905,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: ShwakelButton(
-              label: 'إلغاء التعديل',
+              label: context.loc.tr('screens_sub_users_screen.055'),
               icon: Icons.close_rounded,
               isSecondary: true,
               onPressed: _resetForm,
@@ -808,42 +959,22 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   String _permissionHint(String key) {
     switch (key) {
       case 'canTransfer':
-        return 'إرسال الرصيد بسرعة من الحساب الرئيسي إلى التابع مع رفع سقف التشغيل للحد الأعلى.';
+        return context.loc.tr('screens_sub_users_screen.056');
       case 'canWithdraw':
-        return 'استلام الرصيد أو سحبه من حساب التابع إلى الرئيسي.';
+        return context.loc.tr('screens_sub_users_screen.057');
       case 'canScanCards':
-        return 'الوصول إلى شاشة فحص البطاقات وقراءة نتائجها.';
+        return context.loc.tr('screens_sub_users_screen.058');
       case 'canRedeemCards':
-        return 'اعتماد البطاقة وتنفيذ حركة السحب مباشرة.';
+        return context.loc.tr('screens_sub_users_screen.059');
       case 'canOfflineCardScan':
-        return 'السماح بالفحص والمزامنة في وضع أوف لاين عند توفره.';
+        return context.loc.tr('screens_sub_users_screen.060');
       case 'canReviewCards':
-        return 'استعراض البطاقات ونتائج المراجعة والمتابعة.';
+        return context.loc.tr('screens_sub_users_screen.061');
       case 'canRequestCardPrinting':
-        return 'إرسال طلبات طباعة البطاقات، مع تطبيق سقف التابع تلقائيًا حسب مستوى الصلاحية.';
+        return context.loc.tr('screens_sub_users_screen.062');
       default:
-        return 'صلاحية تشغيلية داخل التطبيق.';
+        return context.loc.tr('screens_sub_users_screen.063');
     }
-  }
-
-  Widget _buildUsersSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeading(
-          title: 'قائمة التابعين',
-          subtitle: _subUsers.isEmpty
-              ? 'لا يوجد مستخدمون تابعون حتى الآن.'
-              : 'يمكنك مراجعة الصلاحيات، تعديل الحساب، أو تنفيذ حركة رصيد مباشرة.',
-          icon: Icons.manage_accounts_rounded,
-        ),
-        const SizedBox(height: 14),
-        if (_subUsers.isEmpty)
-          _buildEmptyState()
-        else
-          ..._subUsers.map(_buildSubUserCard),
-      ],
-    );
   }
 
   Widget _buildEmptyState() {
@@ -866,10 +997,13 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('لا يوجد مستخدمون تابعون حالياً', style: AppTheme.h3),
+          Text(
+            context.loc.tr('screens_sub_users_screen.064'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 8),
           Text(
-            'ابدأ بإنشاء أول مستخدم تابع لتوزيع المهام والصلاحيات داخل النظام.',
+            context.loc.tr('screens_sub_users_screen.065'),
             textAlign: TextAlign.center,
             style: AppTheme.caption.copyWith(fontSize: 14),
           ),
@@ -883,13 +1017,20 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       user['permissions'] as Map? ?? const {},
     );
     final enabledLabels = <String>[
-      if (permissions['canTransfer'] == true) 'إرسال سريع',
-      if (permissions['canWithdraw'] == true) 'استلام سريع',
-      if (permissions['canScanCards'] == true) 'فحص',
-      if (permissions['canRedeemCards'] == true) 'اعتماد',
-      if (permissions['canOfflineCardScan'] == true) 'أوف لاين',
-      if (permissions['canRequestCardPrinting'] == true) 'طباعة',
-      if (permissions['canReviewCards'] == true) 'مراجعة',
+      if (permissions['canTransfer'] == true)
+        context.loc.tr('screens_quick_transfer_screen.036'),
+      if (permissions['canWithdraw'] == true)
+        context.loc.tr('screens_sub_users_screen.066'),
+      if (permissions['canScanCards'] == true)
+        context.loc.tr('screens_sub_users_screen.067'),
+      if (permissions['canRedeemCards'] == true)
+        context.loc.tr('screens_sub_users_screen.068'),
+      if (permissions['canOfflineCardScan'] == true)
+        context.loc.tr('screens_sub_users_screen.069'),
+      if (permissions['canRequestCardPrinting'] == true)
+        context.loc.tr('screens_sub_users_screen.070'),
+      if (permissions['canReviewCards'] == true)
+        context.loc.tr('screens_sub_users_screen.071'),
     ];
     final fullName = user['fullName']?.toString().trim();
     final displayName = (fullName?.isNotEmpty ?? false)
@@ -957,7 +1098,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                               children: enabledLabels.isEmpty
                                   ? [
                                       _buildPermissionChip(
-                                        label: 'بدون صلاحيات',
+                                        label: context.loc.tr(
+                                          'screens_sub_users_screen.072',
+                                        ),
                                         background: AppTheme.surfaceVariant,
                                         foreground: AppTheme.textSecondary,
                                       ),
@@ -995,9 +1138,12 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                       Align(
                         alignment: AlignmentDirectional.centerStart,
                         child: IconButton.filledTonal(
-                          tooltip: 'تعديل',
+                          tooltip: context.loc.tr('screens_sub_users_screen.125'),
                           onPressed: _canManageSubUsers
-                              ? () => _edit(user)
+                              ? () {
+                                  _edit(user);
+                                  DefaultTabController.of(context).animateTo(1);
+                                }
                               : null,
                           icon: const Icon(Icons.edit_rounded),
                         ),
@@ -1017,9 +1163,12 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                         statusChip,
                         const SizedBox(height: 10),
                         IconButton.filledTonal(
-                          tooltip: 'تعديل',
+                          tooltip: context.loc.tr('screens_sub_users_screen.125'),
                           onPressed: _canManageSubUsers
-                              ? () => _edit(user)
+                              ? () {
+                                  _edit(user);
+                                  DefaultTabController.of(context).animateTo(1);
+                                }
                               : null,
                           icon: const Icon(Icons.edit_rounded),
                         ),
@@ -1047,7 +1196,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                       ),
                     ),
                     icon: const Icon(Icons.call_made_rounded),
-                    label: const Text('إرسال رصيد'),
+                    label: Text(
+                      context.loc.tr('screens_quick_transfer_screen.036'),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1066,7 +1217,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                       ),
                     ),
                     icon: const Icon(Icons.call_received_rounded),
-                    label: const Text('استلام رصيد'),
+                    label: Text(
+                      context.loc.tr('screens_sub_users_screen.066'),
+                    ),
                   ),
                 ),
               ],

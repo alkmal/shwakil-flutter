@@ -2009,4 +2009,217 @@ const Map<String, String> appStringsEn = {
   'services_contact_info_service.001': 'Contact',
   'services_contact_info_service.002': 'Palestine',
   'services_api_service.001': 'Please verify all entered data and try again.',
+  'screens_login_screen.023': 'Secure sign in',
+  'screens_login_screen.024': 'Fast access',
+  'screens_login_screen.025': 'Mobile friendly',
+  'screens_transactions_screen.036': 'Hide search and filters',
+  'screens_transactions_screen.037': 'Show search and filters',
+  'screens_transactions_screen.038':
+      'Open search and filters from the top filter icon when needed.',
+  'screens_transactions_screen.039': 'Quick help',
+  'screens_transactions_screen.040':
+      'Use search and filters to show the needed transactions, and the compact summary keeps key totals visible without pushing the main content down.',
+  'screens_transactions_screen.041':
+      'Balance: {balance} • In: {in} • Out: {out} • Net: {net}',
+  'screens_security_settings_screen.065': 'Overview',
+  'screens_security_settings_screen.066': 'Local unlock',
+  'screens_security_settings_screen.067': 'Devices',
+  'screens_admin_permissions_screen.044': 'Could not load permissions',
+  'screens_admin_permissions_screen.045':
+      'Permission templates have been updated successfully.',
+  'screens_admin_permissions_screen.046':
+      'You do not have permission to manage permission templates.',
+  'screens_admin_permissions_screen.047': 'View sub users',
+  'screens_admin_customers_screen.048': 'Customers list',
+  'screens_admin_customers_screen.049': 'Quick summary',
+  'screens_usage_policy_screen.006': 'Clear display',
+  'screens_usage_policy_screen.007':
+      'A simpler layout that makes policy points easier to read.',
+  'screens_quick_transfer_screen.036': 'Quick send',
+  'screens_quick_transfer_screen.037': 'Quick receive',
+  'screens_debt_book_screen.047': 'Customers',
+  'screens_debt_book_screen.048': 'Summary',
+  'screens_notifications_screen.027': 'Unread',
+  'screens_notifications_screen.028': 'Notifications that need follow-up',
+  'screens_notifications_screen.029': 'Financial notifications',
+  'screens_notifications_screen.030': 'Balance movements and alerts',
+  'screens_notifications_screen.031': 'Read',
+  'screens_notifications_screen.032': 'Notifications already reviewed',
+  'screens_notifications_screen.033': 'Unread: {count}',
+  'screens_notifications_screen.034': 'Notifications summary',
+  'screens_notifications_screen.035':
+      'A quick view of message counts, read status, and follow-up distribution.',
+  'screens_notifications_screen.036': 'Filters and actions',
+  'screens_notifications_screen.037':
+      'Choose the view type, refresh the list, or mark notifications as read.',
+  'screens_transactions_screen.042': 'Quick search',
+  'screens_transactions_screen.043': 'Time range',
+  'screens_transactions_screen.044': 'Transaction type',
+  'screens_transactions_screen.045': 'Transaction results',
+  'screens_transactions_screen.046':
+      'Loading the current transaction results.',
+  'screens_transactions_screen.047': 'Total matching transactions: {count}',
+  'screens_security_settings_screen.068': 'Confirm current PIN',
+  'screens_security_settings_screen.069':
+      'Enter the current PIN to continue.',
+  'screens_quick_transfer_screen.038': 'Find recipient',
+  'screens_quick_transfer_screen.039':
+      'Search by phone number, then review the user details before transferring.',
+  'screens_sub_users_screen.052': 'Back to add mode',
+  'screens_sub_users_screen.053': 'Saving...',
+  'screens_sub_users_screen.054': 'Save changes',
+  'screens_sub_users_screen.055': 'Cancel editing',
+  'screens_sub_users_screen.056':
+      'Send balance quickly from the main account to the sub user with the highest operating limit.',
+  'screens_sub_users_screen.057':
+      'Receive or withdraw balance from the sub user back to the main account.',
+  'screens_sub_users_screen.058':
+      'Access the card scan screen and read card results.',
+  'screens_sub_users_screen.059':
+      'Redeem the card and complete the withdrawal action directly.',
+  'screens_sub_users_screen.060':
+      'Allow scanning and syncing while offline when that mode is available.',
+  'screens_sub_users_screen.061':
+      'Review cards, results, and follow-up actions.',
+  'screens_sub_users_screen.062':
+      'Submit card print requests while applying the sub-user limit automatically based on the permission level.',
+  'screens_sub_users_screen.063': 'Operational permission inside the app.',
+  'screens_sub_users_screen.064': 'There are no sub users yet',
+  'screens_sub_users_screen.065':
+      'Start by creating your first sub user to distribute tasks and permissions inside the system.',
+  'screens_sub_users_screen.066': 'Quick receive',
+  'screens_sub_users_screen.067': 'Scan',
+  'screens_sub_users_screen.068': 'Redeem',
+  'screens_sub_users_screen.069': 'Offline',
+  'screens_sub_users_screen.070': 'Printing',
+  'screens_sub_users_screen.071': 'Review',
+  'screens_sub_users_screen.072': 'No permissions',
+  'screens_sub_users_screen.073': 'Quick send',
+  'screens_sub_users_screen.074': 'Quick receive',
+  'screens_sub_users_screen.075': 'Card scanning',
+  'screens_sub_users_screen.076': 'Redeem cards and withdraw balance',
+  'screens_sub_users_screen.077': 'Offline scan and sync',
+  'screens_sub_users_screen.078': 'Request card printing',
+  'screens_sub_users_screen.079': 'Review cards',
+  'screens_sub_users_screen.080': 'Could not load sub users',
+  'screens_sub_users_screen.081':
+      'Username and password are required when creating a new sub user.',
+  'screens_sub_users_screen.082':
+      'Sub users have been updated successfully.',
+  'screens_sub_users_screen.083': 'Transfer balance to sub user',
+  'screens_sub_users_screen.084': 'Withdraw balance from sub user',
+  'screens_sub_users_screen.085': 'Amount',
+  'screens_sub_users_screen.086': 'Notes',
+  'screens_sub_users_screen.087': 'Execute',
+  'screens_sub_users_screen.088': 'Invalid amount',
+  'screens_sub_users_screen.089': 'Enter an amount greater than zero.',
+  'screens_sub_users_screen.090': 'Transfer completed',
+  'screens_sub_users_screen.091':
+      'The balance action was completed successfully.',
+  'screens_sub_users_screen.092': 'Transfer failed',
+  'screens_sub_users_screen.093': 'Sub users',
+  'screens_sub_users_screen.094':
+      'You do not have permission to view sub users.',
+  'screens_sub_users_screen.095': 'Add and edit',
+  'screens_sub_users_screen.096': 'Sub users list',
+  'screens_sub_users_screen.097': 'The list is the primary workspace',
+  'screens_sub_users_screen.098':
+      'Start by reviewing sub users here. When you need to add a new sub user or edit an existing account, open the add and edit tab above.',
+  'screens_sub_users_screen.099': 'Edit sub user mode',
+  'screens_sub_users_screen.100': 'Add new sub user mode',
+  'screens_sub_users_screen.101':
+      'You are now editing the selected account. You can update the name, password, permissions, or disabled state.',
+  'screens_sub_users_screen.102':
+      'We organized creation into two clear steps: basic details first, then operational permissions, then save.',
+  'screens_sub_users_screen.103': 'There are no sub users yet.',
+  'screens_sub_users_screen.104':
+      'The list is arranged to show status, permissions, and management actions for each sub user directly.',
+  'screens_sub_users_screen.105': 'Add form',
+  'screens_sub_users_screen.106': 'Edit form',
+  'screens_sub_users_screen.107':
+      'Enter the sub user details, then enable only the permissions they need.',
+  'screens_sub_users_screen.108':
+      'Update the current account details, then save the changes from the bottom of the form.',
+  'screens_sub_users_screen.109': 'Total sub users',
+  'screens_sub_users_screen.110': 'Registered secondary accounts',
+  'screens_sub_users_screen.111': 'Active',
+  'screens_sub_users_screen.112': 'Ready to work now',
+  'screens_sub_users_screen.113': 'Disabled',
+  'screens_sub_users_screen.114': 'Need reactivation',
+  'screens_sub_users_screen.115': 'Basic details',
+  'screens_sub_users_screen.116':
+      'A clear structure for the sub user name and sign-in details.',
+  'screens_sub_users_screen.117': 'New password - optional',
+  'screens_sub_users_screen.118': 'Disable account',
+  'screens_sub_users_screen.119':
+      'The account is temporarily suspended and will not be able to perform actions.',
+  'screens_sub_users_screen.120':
+      'The account is active and can use the granted permissions.',
+  'screens_sub_users_screen.121': 'Operational permissions',
+  'screens_sub_users_screen.122':
+      'Choose what the sub user can access inside the app.',
+  'screens_sub_users_screen.123': '{count} enabled',
+  'screens_sub_users_screen.124':
+      'Default sub-user policy: redeem cards up to 50 ILS, printing debt up to 5 ILS, and a 50 ILS cap. When quick send is enabled, operation increases to redeem up to 200 ILS, printing debt up to 50 ILS, and a 200 ILS cap.',
+  'screens_sub_users_screen.125': 'Edit',
+  'screens_inventory_screen.015': 'You do not have permission to view inventory',
+  'screens_inventory_screen.016': 'Hide filters',
+  'screens_inventory_screen.017': 'Show filters',
+  'screens_inventory_screen.018':
+      'Open filters from the top filter icon when needed.',
+  'screens_inventory_screen.019':
+      'Use the filter to show the cards you need. Extra details appear inside each item.',
+  'screens_card_print_requests_screen.046':
+      'Available print balance: {balance} • Fee: {fee}',
+  'screens_card_print_requests_screen.047':
+      'You are using a sub-user account. Printing here is limited to {limit} with operational debt up to {debtLimit}.',
+  'screens_card_print_requests_screen.048':
+      'Use this section to submit print requests and track their status, while the quick summary stays above the list only.',
+  'screens_quick_transfer_screen.040': 'Hide search',
+  'screens_quick_transfer_screen.041': 'Show search',
+  'screens_quick_transfer_screen.042':
+      'Search by number or scan the transfer code, then review the recipient details before confirming.',
+  'screens_quick_transfer_screen.043':
+      'Open search from the top search icon when needed.',
+  'screens_topup_requests_screen.032': 'Hide search and filters',
+  'screens_topup_requests_screen.033': 'Show search and filters',
+  'screens_topup_requests_screen.034':
+      'Open search and filters from the top filter icon when needed.',
+  'screens_topup_requests_screen.035':
+      'Use search and status filters to quickly find top-up requests, then open the right request to approve or reject it.',
+  'screens_withdrawal_requests_screen.029': 'Hide search and filters',
+  'screens_withdrawal_requests_screen.030': 'Show search and filters',
+  'screens_withdrawal_requests_screen.031':
+      'Open search and filters from the top filter icon when needed.',
+  'screens_withdrawal_requests_screen.032':
+      'Use search and filters to find requests, then review the right request and make a decision when needed.',
+  'screens_supported_locations_screen.013':
+      'The list is shown directly, and when location is available the nearest points are sorted first.',
+  'screens_create_card_screen.050':
+      'You do not have permission to issue cards',
+  'screens_quick_transfer_screen.044':
+      'Point the camera at the transfer code to scan it.',
+  'screens_balance_screen.071': 'Top-up method',
+  'screens_balance_screen.072': 'Request details',
+  'screens_balance_screen.073': 'Hide history filters',
+  'screens_balance_screen.074': 'Show history filters',
+  'screens_balance_screen.075':
+      'Open history filters from the top filter icon when needed.',
+  'screens_balance_screen.076': 'Activity log',
+  'screens_balance_screen.077':
+      'No operations are shown under the current filters.',
+  'screens_balance_screen.078': 'Items on this page: {count}',
+  'screens_balance_screen.079': 'Page {page}',
+  'screens_balance_screen.080':
+      'Use the quick actions to manage balance, then filter the history by type or location when needed.',
+  'screens_admin_system_settings_screen.066': 'Could not load settings',
+  'screens_balance_screen.104':
+      'Find the recipient by phone number, then enter the transfer amount.',
+  'screens_balance_screen.105':
+      'Enter the mobile number to find the recipient quickly.',
+  'screens_balance_screen.106': 'Search results',
+  'screens_balance_screen.107': 'Selected',
+  'screens_balance_screen.108': 'Transfer details',
+  'screens_balance_screen.109': 'Destination type',
+  'screens_balance_screen.110': 'Withdrawal details',
 };

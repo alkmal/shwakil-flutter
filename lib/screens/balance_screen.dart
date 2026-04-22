@@ -441,7 +441,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              l.text('طريقة الشحن', 'Top-up method'),
+                              l.tr('screens_balance_screen.071'),
                               style: AppTheme.bodyBold,
                             ),
                             const SizedBox(height: 12),
@@ -527,7 +527,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              l.text('بيانات الطلب', 'Request details'),
+                              l.tr('screens_balance_screen.072'),
                               style: AppTheme.bodyBold,
                             ),
                             const SizedBox(height: 12),
@@ -672,8 +672,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
         actions: [
           IconButton(
             tooltip: _showHistoryFilters
-                ? l.text('إخفاء فلاتر الحركات', 'Hide history filters')
-                : l.text('إظهار فلاتر الحركات', 'Show history filters'),
+                ? l.tr('screens_balance_screen.073')
+                : l.tr('screens_balance_screen.074'),
             onPressed: () =>
                 setState(() => _showHistoryFilters = !_showHistoryFilters),
             icon: Icon(
@@ -683,7 +683,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             ),
           ),
           IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -743,10 +743,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   Widget _buildHistorySection({required bool isCompact}) {
     if (!_showHistoryFilters) {
       return ToolToggleHint(
-        message: context.loc.text(
-          'يمكنك فتح فلاتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
-          'Open history filters from the top filter icon when needed.',
-        ),
+        message: context.loc.tr('screens_balance_screen.075'),
         icon: Icons.filter_alt_rounded,
       );
     }
@@ -969,12 +966,18 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('سجل العمليات', style: AppTheme.h2.copyWith(fontSize: 20)),
+              Text(
+                context.loc.tr('screens_balance_screen.076'),
+                style: AppTheme.h2.copyWith(fontSize: 20),
+              ),
               const SizedBox(height: 4),
               Text(
                 _transactions.isEmpty
-                    ? 'لا توجد عمليات معروضة ضمن الفلاتر الحالية.'
-                    : 'عدد العناصر في هذه الصفحة: ${_transactions.length}',
+                    ? context.loc.tr('screens_balance_screen.077')
+                    : context.loc.tr(
+                        'screens_balance_screen.078',
+                        params: {'count': '${_transactions.length}'},
+                      ),
                 style: AppTheme.caption.copyWith(fontSize: 14),
               ),
             ],
@@ -987,7 +990,10 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            'الصفحة $_page',
+            context.loc.tr(
+              'screens_balance_screen.079',
+              params: {'page': '$_page'},
+            ),
             style: AppTheme.caption.copyWith(
               color: AppTheme.primary,
               fontWeight: FontWeight.w800,
@@ -1002,11 +1008,8 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('دليل سريع', 'Quick help'),
-      message: l.text(
-        'استخدم الأزرار السريعة لإدارة الرصيد، ثم صفِّ السجل حسب النوع أو الموقع عند الحاجة.',
-        'Use the quick actions to manage balance, then filter the history by type or location when needed.',
-      ),
+      title: l.tr('screens_transactions_screen.039'),
+      message: l.tr('screens_balance_screen.080'),
     );
   }
 
@@ -1168,12 +1171,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                             children: [
                               Text(title, style: AppTheme.h3),
                               const SizedBox(height: 4),
-                              Text(
-                                enablePhoneLookup
-                                    ? l.text(
-                                        'ابحث عن المستلم عبر رقم الجوال أو اختره مباشرة ثم أدخل مبلغ التحويل.',
-                                        'Find the recipient by phone number, then enter the transfer amount.',
-                                      )
+                                Text(
+                                  enablePhoneLookup
+                                    ? l.tr('screens_balance_screen.104')
                                     : l.tr('screens_balance_screen.079'),
                                 style: AppTheme.bodyAction.copyWith(
                                   height: 1.45,
@@ -1294,10 +1294,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      l.text(
-                                        'أدخل رقم الجوال للعثور على المستلم بسرعة وبدون تكرار في النتائج.',
-                                        'Enter the mobile number to find the recipient quickly.',
-                                      ),
+                                      l.tr('screens_balance_screen.105'),
                                       style: AppTheme.caption.copyWith(
                                         color: AppTheme.textSecondary,
                                         height: 1.45,
@@ -1454,7 +1451,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                   if (searchResults.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(
-                      l.text('نتائج البحث', 'Search results'),
+                      l.tr('screens_balance_screen.106'),
                       style: AppTheme.bodyBold,
                     ),
                     const SizedBox(height: 10),
@@ -1610,7 +1607,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
-                                  l.text('تم الاختيار', 'Selected'),
+                                  l.tr('screens_balance_screen.107'),
                                   style: AppTheme.caption.copyWith(
                                     color: AppTheme.success,
                                     fontWeight: FontWeight.w800,
@@ -1652,7 +1649,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l.text('بيانات التحويل', 'Transfer details'),
+                          l.tr('screens_balance_screen.108'),
                           style: AppTheme.bodyBold,
                         ),
                         const SizedBox(height: 12),
@@ -1806,7 +1803,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            l.text('نوع التحويل', 'Destination type'),
+                            l.tr('screens_balance_screen.109'),
                             style: AppTheme.bodyBold,
                           ),
                           const SizedBox(height: 12),
@@ -1846,7 +1843,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            l.text('بيانات السحب', 'Withdrawal details'),
+                            l.tr('screens_balance_screen.110'),
                             style: AppTheme.bodyBold,
                           ),
                           const SizedBox(height: 12),
