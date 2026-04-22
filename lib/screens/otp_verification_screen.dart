@@ -50,6 +50,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final TextEditingController _otpController = TextEditingController();
   final AuthService _authService = AuthService();
 
+  String? _pendingRegistrationId;
   bool _isLoading = false;
   bool _isResending = false;
   String? _debugCode;
@@ -61,6 +62,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    _pendingRegistrationId = widget.pendingRegistrationId;
     _debugCode = widget.initialDebugOtpCode;
     _startTimer();
   }
@@ -108,7 +110,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           birthDate: widget.birthDate,
           termsAccepted: widget.termsAccepted,
           referralPhone: widget.referralPhone,
-          pendingRegistrationId: widget.pendingRegistrationId ?? '',
+          pendingRegistrationId: _pendingRegistrationId ?? '',
           otpCode: _otpController.text.trim(),
           otpPurpose: 'register',
         );
@@ -204,12 +206,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _debugCode = response.debugOtpCode);
+      setState(() {
+        _debugCode = response.debugOtpCode;
+        if ((response.pendingRegistrationId ?? '').trim().isNotEmpty) {
+          _pendingRegistrationId = response.pendingRegistrationId!.trim();
+        }
+      });
       _startTimer();
       await AppAlertService.showSuccess(
         context,
         title: l.tr('screens_otp_verification_screen.004'),
-        message: l.tr('screens_otp_verification_screen.017'),
+        message:
+            response.message?.toString().trim().isNotEmpty == true
+            ? response.message!.trim()
+            : l.tr('screens_otp_verification_screen.017'),
       );
     } catch (error) {
       if (!mounted) {
