@@ -11,6 +11,7 @@ class OfflineCardService {
   static const _redeemKeyPrefix = 'offline_redeem_queue_';
   static const _rejectedKeyPrefix = 'offline_redeem_rejected_';
   static const _historyKeyPrefix = 'offline_redeem_history_';
+  static const _unknownCardsKeyPrefix = 'offline_unknown_cards_';
   static const _settingsKeyPrefix = 'offline_cards_settings_';
   static const _scanAttemptsKeyPrefix = 'offline_scan_attempts_';
   static const _offlineKeyName = 'offline_cards_aes_key_v1';
@@ -26,18 +27,49 @@ class OfflineCardService {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final key = '$_cardsKeyPrefix$userId';
+    final existingCards = await _loadCards(userId);
+    final existingByBarcode = <String, VirtualCard>{
+      for (final card in existingCards) card.barcode: card,
+    };
+    final pendingQueue = await getRedeemQueue(userId);
+    final pendingBarcodes = {
+      for (final item in pendingQueue) (item['barcode']?.toString() ?? ''),
+    }..remove('');
     final byBarcode = <String, Map<String, dynamic>>{};
 
     for (final card in cards) {
-      if (!card.isPrivate) {
-        continue;
-      }
       final isOwner = (card.ownerId ?? '') == userId;
       final isAllowed = card.allowedUserIds.contains(userId);
       if (!isOwner && !isAllowed) {
         continue;
       }
-      byBarcode[card.barcode] = card.toMap();
+      final localCard = existingByBarcode[card.barcode];
+      final shouldPreserveLocalUsedState =
+          localCard != null &&
+          (localCard.status == CardStatus.used ||
+              pendingBarcodes.contains(card.barcode));
+      byBarcode[card.barcode] = shouldPreserveLocalUsedState
+          ? localCard.copyWith(
+              ownerId: card.ownerId,
+              ownerUsername: card.ownerUsername,
+              issuedById: card.issuedById,
+              issuedByUsername: card.issuedByUsername,
+              allowedUserIds: card.allowedUserIds,
+              allowedUsernames: card.allowedUsernames,
+              value: card.value,
+              issueCost: card.issueCost,
+              visibilityScope: card.visibilityScope,
+              cardType: card.cardType,
+            ).toMap()
+          : card.toMap();
+    }
+
+    for (final localCard in existingCards) {
+      if (!byBarcode.containsKey(localCard.barcode) &&
+          (localCard.status == CardStatus.used ||
+              pendingBarcodes.contains(localCard.barcode))) {
+        byBarcode[localCard.barcode] = localCard.toMap();
+      }
     }
 
     await prefs.setString(
@@ -113,6 +145,41 @@ class OfflineCardService {
     return _decodeStoredList(prefs.getString('$_historyKeyPrefix$userId'));
   }
 
+  Future<List<Map<String, dynamic>>> getUnknownCardLookups(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return _decodeStoredList(prefs.getString('$_unknownCardsKeyPrefix$userId'));
+  }
+
+  Future<void> replaceUnknownCardLookups(
+    String userId,
+    List<Map<String, dynamic>> entries,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_unknownCardsKeyPrefix$userId';
+    if (entries.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, await _encodeStoredList(entries));
+  }
+
+  Future<void> enqueueUnknownCardLookup(
+    String userId, {
+    required String barcode,
+  }) async {
+    final existing = await getUnknownCardLookups(userId);
+    if (existing.any((item) => item['barcode']?.toString() == barcode)) {
+      return;
+    }
+    existing.add({
+      'barcode': barcode,
+      'status': 'pending_lookup',
+      'queuedAt': DateTime.now().toIso8601String(),
+      'message': 'بانتظار التحقق عند توفر الإنترنت.',
+    });
+    await replaceUnknownCardLookups(userId, existing);
+  }
+
   Future<void> replaceRejectedRedeems(
     String userId,
     List<Map<String, dynamic>> entries,
@@ -174,7 +241,11 @@ class OfflineCardService {
       return true;
     }
     final rejected = await getRejectedRedeems(userId);
-    return rejected.isNotEmpty;
+    if (rejected.isNotEmpty) {
+      return true;
+    }
+    final unknown = await getUnknownCardLookups(userId);
+    return unknown.isNotEmpty;
   }
 
   Future<Map<String, dynamic>> offlineOverview(String userId) async {
@@ -182,6 +253,7 @@ class OfflineCardService {
     final summary = await pendingRedeemSummary(userId);
     final settings = await offlineSettings(userId);
     final history = await getSyncHistory(userId);
+    final unknownLookups = await getUnknownCardLookups(userId);
     final availableCards = cards
         .where((card) => card.status != CardStatus.used)
         .length;
@@ -195,6 +267,7 @@ class OfflineCardService {
       'summary': summary,
       'settings': settings,
       'history': history,
+      'unknownLookups': unknownLookups,
     };
   }
 

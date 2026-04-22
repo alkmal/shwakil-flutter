@@ -1,12 +1,16 @@
 import 'dart:convert';
 
+import '../localization/app_localization.dart';
+import '../localization/app_strings_ar.dart';
+import '../localization/app_strings_en.dart';
+
 class ErrorMessageService {
   ErrorMessageService._();
 
   static String sanitize(Object? error) {
     final text = (error?.toString() ?? '').trim();
     if (text.isEmpty) {
-      return 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+      return _tr('services_error_message_service.001');
     }
 
     final lower = text.toLowerCase();
@@ -16,15 +20,15 @@ class ErrorMessageService {
         lower.contains('forbidden') ||
         lower.contains('not authorized') ||
         lower.contains('not permitted') ||
-        lower.contains('غير مصرح') ||
-        lower.contains('غير مخول')) {
-      return 'يرجى تسجيل الدخول بحساب يملك الصلاحية المطلوبة للمتابعة.';
+        lower.contains(_tr('services_error_message_service.008').toLowerCase()) ||
+        lower.contains(_tr('services_error_message_service.009').toLowerCase())) {
+      return _tr('services_error_message_service.002');
     }
 
     if (lower.contains('timed out') ||
         lower.contains('timeout') ||
         lower.contains('err_connection_timed_out')) {
-      return 'تعذر الاتصال بالخادم في الوقت الحالي. تحقق من الإنترنت أو أعد المحاولة بعد قليل.';
+      return _tr('services_error_message_service.003');
     }
 
     if (lower.contains('failed host lookup') ||
@@ -36,11 +40,11 @@ class ErrorMessageService {
         lower.contains('net::err_') ||
         lower.contains('socketexception') ||
         lower.contains('failed to fetch')) {
-      return 'تعذر الاتصال بالخادم. تحقق من الإنترنت أو من توفر الخدمة ثم أعد المحاولة.';
+      return _tr('services_error_message_service.004');
     }
 
     if (lower.contains('websocket') || lower.contains('socket.io')) {
-      return 'تعذر الاتصال الفوري بالخادم حالياً. يمكنك المتابعة وإعادة المحاولة بعد قليل.';
+      return _tr('services_error_message_service.005');
     }
 
     final withoutUrls = text.replaceAll(RegExp(r'https?://\S+'), '').trim();
@@ -55,13 +59,13 @@ class ErrorMessageService {
     if (cleaned.isEmpty ||
         cleaned.startsWith('<!DOCTYPE html') ||
         cleaned.startsWith('<html')) {
-      return 'تأكد من جميع البيانات وحاول مرة أخرى. Please verify all entered data and try again.';
+      return _tr('services_error_message_service.006');
     }
 
     if (cleaned.toLowerCase().contains('typeerror') ||
         cleaned.toLowerCase().contains('stack') ||
         cleaned.toLowerCase().contains('payload')) {
-      return 'حدث خطأ أثناء تنفيذ الطلب. حاول مرة أخرى أو تواصل مع الدعم إذا استمرت المشكلة.';
+      return _tr('services_error_message_service.007');
     }
 
     return cleaned;
@@ -79,5 +83,13 @@ class ErrorMessageService {
     } catch (_) {}
 
     return sanitize(body);
+  }
+
+  static String _tr(String key) {
+    final current = AppLocaleService.instance.locale;
+    if ((current?.languageCode ?? 'ar') == 'en') {
+      return appStringsEn[key] ?? key;
+    }
+    return appStringsAr[key] ?? appStringsEn[key] ?? key;
   }
 }

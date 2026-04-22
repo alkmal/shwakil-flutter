@@ -8,8 +8,12 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../localization/app_localization.dart';
+import '../localization/app_strings_ar.dart';
+import '../localization/app_strings_en.dart';
 import 'app_config.dart';
 import 'auth_service.dart';
+import 'app_version_service.dart';
 import 'local_notification_service.dart';
 import 'local_security_service.dart';
 
@@ -143,11 +147,8 @@ class RealtimeNotificationService {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
     final packageInfo = await PackageInfo.fromPlatform();
     final headers = <String, String>{
+      ...await AppVersionService.publicHeaders(includeJsonContentType: true),
       'Authorization': 'Bearer $authToken',
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-App-Version': packageInfo.version,
-      'X-App-Build': packageInfo.buildNumber,
     };
 
     try {
@@ -192,7 +193,7 @@ class RealtimeNotificationService {
     if (title.isNotEmpty || body.isNotEmpty) {
       unawaited(
         LocalNotificationService.showPushNotification(
-          title: title.isEmpty ? 'شواكل' : title,
+          title: title.isEmpty ? _tr('services_app_alert_service.004') : title,
           body: body,
         ),
       );
@@ -205,5 +206,12 @@ class RealtimeNotificationService {
       notifyBalanceUpdated(payload);
       notifyNotificationsUpdated(payload);
     }
+  }
+
+  static String _tr(String key) {
+    if ((AppLocaleService.instance.locale?.languageCode ?? 'ar') == 'en') {
+      return appStringsEn[key] ?? key;
+    }
+    return appStringsAr[key] ?? appStringsEn[key] ?? key;
   }
 }

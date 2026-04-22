@@ -1,4 +1,7 @@
 import 'api_service.dart';
+import '../localization/app_localization.dart';
+import '../localization/app_strings_ar.dart';
+import '../localization/app_strings_en.dart';
 
 class ContactInfoService {
   ContactInfoService._();
@@ -6,10 +9,10 @@ class ContactInfoService {
   static Map<String, dynamic>? _cachedContact;
   static Map<String, dynamic> fallbackContact() {
     return <String, dynamic>{
-      'title': 'التواصل',
+      'title': _tr('services_contact_info_service.001'),
       'supportWhatsapp': '0599883621',
       'supportEmail': 'support@alkmal.com',
-      'address': 'فلسطين',
+      'address': _tr('services_contact_info_service.002'),
     };
   }
 
@@ -57,9 +60,17 @@ class ContactInfoService {
   static String title(Map<String, dynamic> contact) =>
       contact['title']?.toString().trim().isNotEmpty == true
       ? contact['title'].toString().trim()
-      : 'التواصل';
+      : _tr('services_contact_info_service.001');
   static String address(Map<String, dynamic> contact) =>
       contact['address']?.toString().trim().isNotEmpty == true
       ? contact['address'].toString().trim()
-      : 'فلسطين';
+      : _tr('services_contact_info_service.002');
+
+  static String _tr(String key) {
+    final current = AppLocaleService.instance.locale;
+    if ((current?.languageCode ?? 'ar') == 'en') {
+      return appStringsEn[key] ?? key;
+    }
+    return appStringsAr[key] ?? appStringsEn[key] ?? key;
+  }
 }

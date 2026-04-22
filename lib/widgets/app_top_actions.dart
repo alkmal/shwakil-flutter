@@ -58,9 +58,8 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
     if (OfflineSessionService.isOfflineMode) {
       await AppAlertService.showInfo(
         context,
-        title: 'هذه الشاشة غير متاحة دون إنترنت',
-        message:
-            'أنت الآن في وضع الأوفلاين. شاشة الإشعارات تحتاج اتصالًا بالإنترنت حتى تعمل.',
+        title: context.loc.tr('widgets_app_top_actions.001'),
+        message: context.loc.tr('widgets_app_top_actions.002'),
       );
       return;
     }
@@ -82,11 +81,11 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
       padding: const EdgeInsetsDirectional.only(end: 2),
       child: IconButton(
         tooltip: _unreadNotifications > 0
-            ? l.text(
-                'الإشعارات غير المقروءة: $_unreadNotifications',
-                'Unread notifications: $_unreadNotifications',
+            ? l.tr(
+                'widgets_app_top_actions.003',
+                params: {'count': '$_unreadNotifications'},
               )
-            : l.text('الإشعارات', 'Notifications'),
+            : l.tr('widgets_app_top_actions.004'),
         onPressed: _openNotifications,
         icon: Stack(
           clipBehavior: Clip.none,
@@ -143,7 +142,7 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
 class QuickLogoutAction extends StatelessWidget {
   const QuickLogoutAction({super.key});
 
-  Future<void> _logout(BuildContext context) async {
+  static Future<void> logout(BuildContext context) async {
     final authService = AuthService();
     await RealtimeNotificationService.stop();
     if (!context.mounted) {
@@ -172,27 +171,6 @@ class QuickLogoutAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = context.loc;
-
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(end: 6),
-      child: IconButton(
-        tooltip: l.text('خروج سريع', 'Quick logout'),
-        onPressed: () => _logout(context),
-        icon: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: AppTheme.error.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Icon(
-            Icons.logout_rounded,
-            color: AppTheme.error,
-            size: 20,
-          ),
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   }
 }
