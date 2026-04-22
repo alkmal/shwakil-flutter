@@ -80,10 +80,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       context: context,
       builder: (_) => BarcodeScannerDialog(
         title: _t('screens_quick_transfer_screen.005'),
-        description: context.loc.text(
-          'وجّه الكاميرا نحو رمز التحويل ليتم التقاطه مباشرة.',
-          'Point the camera at the transfer code to scan it.',
-        ),
+        description: context.loc.tr('screens_quick_transfer_screen.044'),
         height: 320,
         onCancelLabel: _t('screens_quick_transfer_screen.006'),
       ),
@@ -270,8 +267,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         appBar: AppBar(
           title: Text(_t('screens_quick_transfer_screen.016')),
           actions: [
-            IconButton(
-              tooltip: context.loc.text('مساعدة', 'Help'),
+          IconButton(
+              tooltip: context.loc.tr('screens_admin_customers_screen.041'),
               onPressed: _showHelpDialog,
               icon: const Icon(Icons.info_outline_rounded),
             ),
@@ -291,8 +288,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         actions: [
           IconButton(
             tooltip: _showLookupTools
-                ? context.loc.text('إخفاء البحث', 'Hide search')
-                : context.loc.text('إظهار البحث', 'Show search'),
+                ? context.loc.tr('screens_quick_transfer_screen.040')
+                : context.loc.tr('screens_quick_transfer_screen.041'),
             onPressed: () =>
                 setState(() => _showLookupTools = !_showLookupTools),
             icon: Icon(
@@ -302,7 +299,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             ),
           ),
           IconButton(
-            tooltip: context.loc.text('مساعدة', 'Help'),
+            tooltip: context.loc.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -330,11 +327,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   Future<void> _showHelpDialog() async {
     await AppAlertService.showInfo(
       context,
-      title: context.loc.text('مساعدة سريعة', 'Quick help'),
-      message: context.loc.text(
-        'ابحث بالرقم أو امسح رمز التحويل ثم راجع بيانات المستلم قبل تنفيذ العملية.',
-        'Search by number or scan the transfer code, then review the recipient details before confirming.',
-      ),
+      title: context.loc.tr('screens_transactions_screen.039'),
+      message: context.loc.tr('screens_quick_transfer_screen.042'),
     );
   }
 
@@ -349,7 +343,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         children: [
           Expanded(
             child: _buildTabButton(
-              label: 'إرسال سريع',
+              label: context.loc.tr('screens_quick_transfer_screen.036'),
               icon: Icons.send_rounded,
               index: 0,
             ),
@@ -357,7 +351,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: _buildTabButton(
-              label: 'استقبال سريع',
+              label: context.loc.tr('screens_quick_transfer_screen.037'),
               icon: Icons.qr_code_2_rounded,
               index: 1,
             ),
@@ -416,10 +410,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           const SizedBox(height: 18),
         ] else ...[
           ToolToggleHint(
-            message: context.loc.text(
-              'يمكنك فتح البحث من أيقونة البحث بالأعلى عند الحاجة.',
-              'Open search from the top search icon when needed.',
-            ),
+            message: context.loc.tr('screens_quick_transfer_screen.043'),
             icon: Icons.manage_search_rounded,
           ),
           const SizedBox(height: 18),
@@ -437,8 +428,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeading(
-            title: 'البحث عن المستلم',
-            subtitle: 'ابحث برقم الجوال ثم راجع بيانات المستخدم قبل التحويل.',
+            title: context.loc.tr('screens_quick_transfer_screen.038'),
+            subtitle: context.loc.tr('screens_quick_transfer_screen.039'),
             icon: Icons.phone_iphone_rounded,
           ),
           const SizedBox(height: 18),

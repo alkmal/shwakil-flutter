@@ -99,6 +99,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   String _buildDebtBookAdminReportText() {
+    final l = context.loc;
     final summary = Map<String, dynamic>.from(
       _debtBookSnapshot['summary'] as Map? ?? const {},
     );
@@ -107,29 +108,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         .toList();
 
     final buffer = StringBuffer();
-    buffer.writeln('تقرير إداري - دفتر الديون');
-    buffer.writeln(
-      'عدد العملاء: ${(summary['customersCount'] as num?)?.toInt() ?? 0}',
-    );
-    buffer.writeln(
-      'عدد المديونين: ${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
-    );
-    buffer.writeln(
-      'إجمالي الديون: ${CurrencyFormatter.ils((summary['totalDebt'] as num?)?.toDouble() ?? 0)}',
-    );
-    buffer.writeln(
-      'إجمالي السداد: ${CurrencyFormatter.ils((summary['totalPaid'] as num?)?.toDouble() ?? 0)}',
-    );
+    buffer.writeln(l.tr('screens_admin_dashboard_screen.072'));
+    buffer.writeln(l.tr('screens_admin_dashboard_screen.073', params: {
+      'count': '${(summary['customersCount'] as num?)?.toInt() ?? 0}',
+    }));
+    buffer.writeln(l.tr('screens_admin_dashboard_screen.074', params: {
+      'count': '${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
+    }));
+    buffer.writeln(l.tr('screens_admin_dashboard_screen.075', params: {
+      'amount': CurrencyFormatter.ils(
+        (summary['totalDebt'] as num?)?.toDouble() ?? 0,
+      ),
+    }));
+    buffer.writeln(l.tr('screens_admin_dashboard_screen.076', params: {
+      'amount': CurrencyFormatter.ils(
+        (summary['totalPaid'] as num?)?.toDouble() ?? 0,
+      ),
+    }));
     buffer.writeln('');
-    buffer.writeln('العملاء المديونون:');
+    buffer.writeln(l.tr('screens_admin_dashboard_screen.077'));
     if (customers.isEmpty) {
-      buffer.writeln('- لا توجد ديون مفتوحة حاليًا');
+      buffer.writeln(l.tr('screens_admin_dashboard_screen.078'));
     } else {
       for (final customer in customers) {
         final phone = customer['phone']?.toString().trim() ?? '';
-        buffer.writeln(
-          '- ${customer['fullName'] ?? '-'} | ${phone.isNotEmpty ? phone : 'بدون رقم'} | ${CurrencyFormatter.ils((customer['balance'] as num?)?.toDouble() ?? 0)}',
-        );
+        buffer.writeln(l.tr('screens_admin_dashboard_screen.079', params: {
+          'name': customer['fullName']?.toString() ?? '-',
+          'phone': phone.isNotEmpty
+              ? phone
+              : l.tr('screens_admin_dashboard_screen.083'),
+          'amount': CurrencyFormatter.ils(
+            (customer['balance'] as num?)?.toDouble() ?? 0,
+          ),
+        }));
       }
     }
     return buffer.toString();
@@ -137,6 +148,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<pw.Document> _buildDebtBookAdminReportPdf() async {
     await _ensurePdfFonts();
+    if (!mounted) {
+      return pw.Document();
+    }
+    final l = context.loc;
     final summary = Map<String, dynamic>.from(
       _debtBookSnapshot['summary'] as Map? ?? const {},
     );
@@ -156,14 +171,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ),
         textDirection: pw.TextDirection.rtl,
-        build: (context) => [
+        build: (_) => [
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
-                  'تقرير إداري - دفتر الديون',
+                  l.tr('screens_admin_dashboard_screen.072'),
                   style: pw.TextStyle(font: _pdfBoldFont, fontSize: 18),
                 ),
                 pw.SizedBox(height: 12),
@@ -177,28 +192,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
-                        'عدد العملاء: ${(summary['customersCount'] as num?)?.toInt() ?? 0}',
+                        l.tr('screens_admin_dashboard_screen.073', params: {
+                          'count': '${(summary['customersCount'] as num?)?.toInt() ?? 0}',
+                        }),
                       ),
                       pw.Text(
-                        'عدد المديونين: ${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
+                        l.tr('screens_admin_dashboard_screen.074', params: {
+                          'count': '${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
+                        }),
                       ),
                       pw.Text(
-                        'إجمالي الديون: ${CurrencyFormatter.ils((summary['totalDebt'] as num?)?.toDouble() ?? 0)}',
+                        l.tr('screens_admin_dashboard_screen.075', params: {
+                          'amount': CurrencyFormatter.ils((summary['totalDebt'] as num?)?.toDouble() ?? 0),
+                        }),
                       ),
                       pw.Text(
-                        'إجمالي السداد: ${CurrencyFormatter.ils((summary['totalPaid'] as num?)?.toDouble() ?? 0)}',
+                        l.tr('screens_admin_dashboard_screen.076', params: {
+                          'amount': CurrencyFormatter.ils((summary['totalPaid'] as num?)?.toDouble() ?? 0),
+                        }),
                       ),
                     ],
                   ),
                 ),
                 pw.SizedBox(height: 16),
                 pw.Text(
-                  'العملاء المديونون',
+                  l.tr('screens_admin_dashboard_screen.077'),
                   style: pw.TextStyle(font: _pdfBoldFont, fontSize: 14),
                 ),
                 pw.SizedBox(height: 8),
                 if (customers.isEmpty)
-                  pw.Text('لا توجد ديون مفتوحة حاليًا.')
+                  pw.Text(l.tr('screens_admin_dashboard_screen.044'))
                 else
                   pw.TableHelper.fromTextArray(
                     headerStyle: pw.TextStyle(font: _pdfBoldFont),
@@ -206,12 +229,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       color: PdfColors.grey300,
                     ),
                     cellAlignment: pw.Alignment.centerRight,
-                    headers: const ['العميل', 'الجوال', 'المتبقي'],
+                    headers: [
+                      l.tr('screens_admin_dashboard_screen.080'),
+                      l.tr('screens_admin_dashboard_screen.081'),
+                      l.tr('screens_admin_dashboard_screen.082'),
+                    ],
                     data: customers.map((customer) {
                       final phone = customer['phone']?.toString().trim() ?? '';
                       return [
                         customer['fullName']?.toString() ?? '-',
-                        phone.isNotEmpty ? phone : 'بدون رقم',
+                        phone.isNotEmpty
+                            ? phone
+                            : l.tr('screens_admin_dashboard_screen.083'),
                         CurrencyFormatter.ils(
                           (customer['balance'] as num?)?.toDouble() ?? 0,
                         ),
@@ -237,8 +266,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
     await AppAlertService.showSuccess(
       context,
-      title: 'تم النسخ',
-      message: 'تم نسخ تقرير دفتر الديون إلى الحافظة.',
+      title: context.loc.tr('screens_admin_dashboard_screen.068'),
+      message: context.loc.tr('screens_admin_dashboard_screen.069'),
     );
   }
 
@@ -255,7 +284,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'فشل الطباعة',
+        title: context.loc.tr('screens_admin_dashboard_screen.070'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -274,7 +303,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'فشل التصدير',
+        title: context.loc.tr('screens_admin_dashboard_screen.071'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -291,7 +320,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: Text(l.tr('screens_admin_dashboard_screen.001')),
+          title: const SizedBox.shrink(),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
@@ -308,7 +337,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'لا تملك صلاحية الوصول إلى لوحة الإدارة',
+                  l.tr('screens_admin_dashboard_screen.020'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -337,7 +366,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icons.print_rounded,
           color: AppTheme.primary,
           routeName: '/admin-card-print-requests',
-          badge: 'طلبات',
+          badge: l.tr('screens_admin_dashboard_screen.021'),
         ),
       if (permissions.canViewCustomers)
         _AdminEntry(
@@ -346,7 +375,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icons.people_alt_rounded,
           color: AppTheme.primary,
           routeName: '/admin-customers',
-          badge: 'عملاء',
+          badge: l.tr('screens_admin_dashboard_screen.022'),
         ),
       if (permissions.canReviewDevices)
         _AdminEntry(
@@ -355,7 +384,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icons.devices_other_rounded,
           color: AppTheme.warning,
           routeName: '/admin-device-requests',
-          badge: 'أجهزة',
+          badge: l.tr('screens_admin_dashboard_screen.023'),
         ),
       if (permissions.canReviewWithdrawals)
         _AdminEntry(
@@ -364,7 +393,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icons.outbox_rounded,
           color: AppTheme.secondary,
           routeName: '/withdrawal-requests',
-          badge: 'سحب',
+          badge: l.tr('screens_admin_dashboard_screen.024'),
         ),
       if (permissions.canReviewTopups)
         _AdminEntry(
@@ -373,16 +402,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icons.add_card_rounded,
           color: AppTheme.accent,
           routeName: '/topup-requests',
-          badge: 'شحن',
+          badge: l.tr('screens_admin_dashboard_screen.025'),
         ),
       if (permissions.canManageLocations)
         _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.014'),
           subtitle: l.tr('screens_admin_dashboard_screen.015'),
           icon: Icons.map_rounded,
-          color: AppTheme.success,
+          color: AppTheme.secondary,
           routeName: '/admin-locations',
-          badge: 'مناطق',
+          badge: l.tr('screens_admin_dashboard_screen.026'),
         ),
       if (permissions.canManageSystemSettings)
         _AdminEntry(
@@ -391,7 +420,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icons.settings_applications_rounded,
           color: AppTheme.textPrimary,
           routeName: '/admin-system-settings',
-          badge: 'إعدادات',
+          badge: l.tr('screens_admin_dashboard_screen.027'),
         ),
       if (permissions.canManageSystemSettings)
         _AdminEntry(
@@ -400,16 +429,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icons.rule_folder_rounded,
           color: AppTheme.secondary,
           routeName: '/admin-permissions',
-          badge: 'صلاحيات',
+          badge: l.tr('screens_admin_dashboard_screen.028'),
         ),
       if (permissions.canManageDebtBook)
         _AdminEntry(
-          title: 'أرشيف دفتر الديون',
-          subtitle: 'بحث وفلترة وتقارير إدارية مستقلة لدفتر الديون.',
+          title: l.tr('screens_admin_dashboard_screen.029'),
+          subtitle: l.tr('screens_admin_dashboard_screen.030'),
           icon: Icons.menu_book_rounded,
           color: AppTheme.warning,
           routeName: '/admin-debt-book',
-          badge: 'ديون',
+          badge: l.tr('screens_admin_dashboard_screen.031'),
         ),
     ];
     final debtSummary = Map<String, dynamic>.from(
@@ -420,278 +449,66 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         .where((customer) => ((customer['balance'] as num?)?.toDouble() ?? 0) > 0)
         .take(3)
         .toList();
-    final quickStats = [
-      _AdminStat(
-        label: 'الوحدات المتاحة',
-        value: '${adminCards.length}',
-        hint: 'أقسام الإدارة الجاهزة',
-        icon: Icons.dashboard_customize_rounded,
-        color: AppTheme.primary,
-      ),
-      _AdminStat(
-        label: 'المستخدم الحالي',
-        value: usernameValue.isNotEmpty ? usernameValue : 'مدير',
-        hint: 'هوية جلسة الإدارة',
-        icon: Icons.verified_user_rounded,
-        color: AppTheme.success,
-      ),
-      _AdminStat(
-        label: 'وضع التشغيل',
-        value: permissions.canManageSystemSettings ? 'كامل' : 'مخصص',
-        hint: 'مستوى الوصول الحالي',
-        icon: Icons.tune_rounded,
-        color: AppTheme.secondary,
-      ),
-    ];
     final adminWidgets = adminCards.map((item) => _navCard(item)).toList();
+    final showDebtTab = permissions.canManageDebtBook;
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: Text(l.tr('screens_admin_dashboard_screen.001')),
-        actions: [
-          IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
-      ),
-      drawer: const AppSidebar(),
-      body: SingleChildScrollView(
-        child: ResponsiveScaffoldContainer(
+    return DefaultTabController(
+      length: showDebtTab ? 2 : 1,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: const SizedBox.shrink(),
+          actions: [
+            IconButton(
+              tooltip: l.tr('screens_admin_dashboard_screen.056'),
+              onPressed: _showHelpDialog,
+              icon: const Icon(Icons.info_outline_rounded),
+            ),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
+          ],
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHero(fullName: fullName, stats: quickStats),
+              _buildHero(fullName: fullName, sectionCount: adminCards.length),
               const SizedBox(height: 24),
-              _buildSectionHeader(
-                title: 'ملخص العمل',
-                subtitle: 'نظرة سريعة على مستوى الوصول والصفحات المتاحة لك.',
+              ShwakelCard(
+                padding: const EdgeInsets.all(10),
+                borderRadius: BorderRadius.circular(24),
+                shadowLevel: ShwakelShadowLevel.soft,
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.all(4),
+                  tabs: [
+                    Tab(
+                      icon: const Icon(Icons.dashboard_customize_rounded),
+                      text: l.tr('screens_admin_dashboard_screen.050'),
+                    ),
+                    if (showDebtTab)
+                      Tab(
+                        icon: const Icon(Icons.menu_book_rounded),
+                        text: l.tr('screens_admin_dashboard_screen.034'),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 760;
-                  if (compact) {
-                    return Column(
-                      children: quickStats
-                          .map(
-                            (item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _buildStatCard(item),
-                            ),
-                          )
-                          .toList(),
-                    );
-                  }
-
-                  return Row(
-                    children: quickStats
-                        .map(
-                          (item) => Expanded(
-                            child: Padding(
-                              padding: EdgeInsetsDirectional.only(
-                                start: item == quickStats.first ? 0 : 12,
-                              ),
-                              child: _buildStatCard(item),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  );
-                },
-              ),
-              const SizedBox(height: 28),
-              if (permissions.canManageDebtBook) ...[
-                _buildSectionHeader(
-                  title: 'دفتر الديون',
-                  subtitle:
-                      'ملخص سريع لأداء دفتر الديون الحالي مع أعلى العملاء مديونية.',
-                  actionLabel:
-                      '${(debtSummary['openCustomersCount'] as num?)?.toInt() ?? 0} مديون',
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildAdminUnitsTab(adminCards: adminCards, adminWidgets: adminWidgets),
+                    if (showDebtTab)
+                      _buildDebtBookTab(
+                        debtSummary: debtSummary,
+                        topDebtors: topDebtors,
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 900;
-                    final summaryCards = [
-                      _AdminStat(
-                        label: 'عملاء الدفتر',
-                        value:
-                            '${(debtSummary['customersCount'] as num?)?.toInt() ?? 0}',
-                        hint: 'إجمالي العملاء داخل دفتر الديون',
-                        icon: Icons.people_alt_rounded,
-                        color: AppTheme.primary,
-                      ),
-                      _AdminStat(
-                        label: 'إجمالي الديون',
-                        value: CurrencyFormatter.ils(
-                          (debtSummary['totalDebt'] as num?)?.toDouble() ?? 0,
-                        ),
-                        hint: 'مجموع قيود الدين المسجلة',
-                        icon: Icons.arrow_upward_rounded,
-                        color: AppTheme.error,
-                      ),
-                      _AdminStat(
-                        label: 'إجمالي السداد',
-                        value: CurrencyFormatter.ils(
-                          (debtSummary['totalPaid'] as num?)?.toDouble() ?? 0,
-                        ),
-                        hint: 'مجموع ما تم سداده حتى الآن',
-                        icon: Icons.arrow_downward_rounded,
-                        color: AppTheme.success,
-                      ),
-                    ];
-
-                    final debtSummaryWidget = compact
-                        ? Column(
-                            children: summaryCards
-                                .map(
-                                  (item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _buildStatCard(item),
-                                  ),
-                                )
-                                .toList(),
-                          )
-                        : Row(
-                            children: summaryCards
-                                .map(
-                                  (item) => Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsetsDirectional.only(
-                                        start: item == summaryCards.first ? 0 : 12,
-                                      ),
-                                      child: _buildStatCard(item),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          );
-
-                    return Column(
-                      children: [
-                        debtSummaryWidget,
-                        const SizedBox(height: 16),
-                        ShwakelCard(
-                          onTap: () => Navigator.pushNamed(context, '/debt-book'),
-                          padding: const EdgeInsets.all(22),
-                          borderRadius: BorderRadius.circular(26),
-                          shadowLevel: ShwakelShadowLevel.medium,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.warning.withValues(alpha: 0.10),
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    child: const Icon(
-                                      Icons.trending_up_rounded,
-                                      color: AppTheme.warning,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('أعلى العملاء مديونية', style: AppTheme.h3),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          topDebtors.isEmpty
-                                              ? 'لا توجد ديون مفتوحة حاليًا.'
-                                              : 'افتح الدفتر مباشرة لمراجعة التفاصيل الكاملة.',
-                                          style: AppTheme.caption,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                children: [
-                                  _reportActionChip(
-                                    icon: Icons.copy_all_rounded,
-                                    label: 'نسخ التقرير',
-                                    onTap: _copyDebtBookAdminReport,
-                                  ),
-                                  _reportActionChip(
-                                    icon: Icons.print_rounded,
-                                    label: 'طباعة',
-                                    onTap: _printDebtBookAdminReport,
-                                  ),
-                                  _reportActionChip(
-                                    icon: Icons.picture_as_pdf_rounded,
-                                    label: 'تصدير PDF',
-                                    onTap: _shareDebtBookAdminReportPdf,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              if (topDebtors.isEmpty)
-                                Text(
-                                  'دفتر الديون لا يحتوي حاليًا على عملاء بمبالغ مستحقة.',
-                                  style: AppTheme.bodyAction.copyWith(
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                )
-                              else
-                                ...topDebtors.map(
-                                  (customer) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _debtCustomerRow(customer),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                      ],
-                    );
-                  },
-                ),
-              ],
-              _buildSectionHeader(
-                title: 'الوحدات الإدارية',
-                subtitle:
-                    'ادخل مباشرة إلى العمليات الأساسية من بطاقات مرتبة وواضحة.',
-                actionLabel: '${adminCards.length} أقسام',
-              ),
-              const SizedBox(height: 16),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 1120
-                      ? 3
-                      : constraints.maxWidth > 740
-                      ? 2
-                      : 1;
-                  final childAspectRatio = constraints.maxWidth > 1120
-                      ? 1.45
-                      : constraints.maxWidth > 740
-                      ? 1.18
-                      : 1.32;
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: crossAxisCount,
-                    mainAxisSpacing: 18,
-                    crossAxisSpacing: 18,
-                    childAspectRatio: childAspectRatio,
-                    children: adminWidgets,
-                  );
-                },
               ),
             ],
           ),
@@ -702,7 +519,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildHero({
     required String fullName,
-    required List<_AdminStat> stats,
+    required int sectionCount,
   }) {
     return ShwakelCard(
       padding: const EdgeInsets.all(28),
@@ -711,7 +528,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       borderColor: Colors.white.withValues(alpha: 0.18),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxWidth < 820;
           final identityBlock = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -756,64 +572,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   _heroChip(
                     icon: Icons.grid_view_rounded,
-                    label: '${stats.first.value} وحدات جاهزة',
+                    label: context.loc.tr(
+                      'screens_admin_dashboard_screen.053',
+                      params: {'count': '$sectionCount'},
+                    ),
                   ),
                 ],
               ),
             ],
           );
-
-          final spotlight = Container(
-            width: compact ? double.infinity : 290,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'جاهزية الإدارة',
-                  style: AppTheme.h3.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'لوحة مرتبة لفتح الأقسام الأساسية بسرعة ومتابعة العمل من نقطة واحدة.',
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white.withValues(alpha: 0.86),
-                    height: 1.55,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                ...stats
-                    .take(2)
-                    .map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _heroMetric(item),
-                      ),
-                    ),
-              ],
-            ),
-          );
-
-          if (compact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [identityBlock, const SizedBox(height: 18), spotlight],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: identityBlock),
-              const SizedBox(width: 22),
-              spotlight,
-            ],
-          );
+          return identityBlock;
         },
       ),
     );
@@ -823,11 +591,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'هذه الصفحة للوصول السريع إلى الوحدات الإدارية. استخدم البطاقات مباشرة لفتح القسم المطلوب.',
-        'This page is for quick access to admin modules. Use the cards directly to open the section you need.',
-      ),
+      title: l.tr('screens_admin_dashboard_screen.057'),
+      message: l.tr('screens_admin_dashboard_screen.058'),
     );
   }
 
@@ -889,51 +654,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(_AdminStat item) {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(26),
-      shadowLevel: ShwakelShadowLevel.medium,
-      borderColor: item.color.withValues(alpha: 0.12),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(item.icon, color: item.color, size: 28),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.label,
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.h3.copyWith(color: item.color),
-                ),
-                const SizedBox(height: 4),
-                Text(item.hint, style: AppTheme.caption),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _heroChip({required IconData icon, required String label}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -959,27 +679,153 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _heroMetric(_AdminStat item) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
+  Widget _buildAdminUnitsTab({
+    required List<_AdminEntry> adminCards,
+    required List<Widget> adminWidgets,
+  }) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(item.icon, color: Colors.white, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              item.label,
-              style: AppTheme.caption.copyWith(color: Colors.white70),
+          _buildSectionHeader(
+            title: context.loc.tr('screens_admin_dashboard_screen.050'),
+            subtitle: context.loc.tr('screens_admin_dashboard_screen.051'),
+            actionLabel: context.loc.tr(
+              'screens_admin_dashboard_screen.052',
+              params: {'count': '${adminCards.length}'},
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            item.value,
-            style: AppTheme.bodyBold.copyWith(color: Colors.white),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth > 1120
+                  ? 3
+                  : constraints.maxWidth > 740
+                  ? 2
+                  : 1;
+              final childAspectRatio = constraints.maxWidth > 1120
+                  ? 1.45
+                  : constraints.maxWidth > 740
+                  ? 1.18
+                  : 1.32;
+              return GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: crossAxisCount,
+                mainAxisSpacing: 18,
+                crossAxisSpacing: 18,
+                childAspectRatio: childAspectRatio,
+                children: adminWidgets,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebtBookTab({
+    required Map<String, dynamic> debtSummary,
+    required List<Map<String, dynamic>> topDebtors,
+  }) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            title: context.loc.tr('screens_admin_dashboard_screen.034'),
+            subtitle: context.loc.tr('screens_admin_dashboard_screen.035'),
+            actionLabel: context.loc.tr(
+              'screens_admin_dashboard_screen.036',
+              params: {
+                'count':
+                    '${(debtSummary['openCustomersCount'] as num?)?.toInt() ?? 0}',
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          ShwakelCard(
+            onTap: () => Navigator.pushNamed(context, '/admin-debt-book'),
+            padding: const EdgeInsets.all(22),
+            borderRadius: BorderRadius.circular(26),
+            shadowLevel: ShwakelShadowLevel.medium,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.trending_up_rounded,
+                        color: AppTheme.warning,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.loc.tr('screens_admin_dashboard_screen.043'),
+                            style: AppTheme.h3,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            topDebtors.isEmpty
+                                ? context.loc.tr('screens_admin_dashboard_screen.044')
+                                : context.loc.tr('screens_admin_dashboard_screen.045'),
+                            style: AppTheme.caption,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _reportActionChip(
+                      icon: Icons.copy_all_rounded,
+                      label: context.loc.tr('screens_admin_dashboard_screen.046'),
+                      onTap: _copyDebtBookAdminReport,
+                    ),
+                    _reportActionChip(
+                      icon: Icons.print_rounded,
+                      label: context.loc.tr('screens_admin_dashboard_screen.047'),
+                      onTap: _printDebtBookAdminReport,
+                    ),
+                    _reportActionChip(
+                      icon: Icons.picture_as_pdf_rounded,
+                      label: context.loc.tr('screens_admin_dashboard_screen.048'),
+                      onTap: _shareDebtBookAdminReportPdf,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (topDebtors.isEmpty)
+                  Text(
+                    context.loc.tr('screens_admin_dashboard_screen.049'),
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  )
+                else
+                  ...topDebtors.map(
+                    (customer) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _debtCustomerRow(customer),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1056,7 +902,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Row(
             children: [
               Text(
-                'فتح القسم',
+                context.loc.tr('screens_admin_dashboard_screen.084'),
                 style: AppTheme.bodyBold.copyWith(color: item.color),
               ),
               const Spacer(),
@@ -1084,7 +930,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: Text(
               (customer['fullName']?.toString().trim().isNotEmpty ?? false)
                   ? customer['fullName'].toString().trim().characters.first
-                  : 'ع',
+                  : context.loc.tr('screens_admin_dashboard_screen.085'),
               style: AppTheme.bodyBold.copyWith(color: AppTheme.warning),
             ),
           ),
@@ -1099,7 +945,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  phone.isNotEmpty ? phone : 'بدون رقم جوال',
+                  phone.isNotEmpty
+                      ? phone
+                      : context.loc.tr('screens_admin_dashboard_screen.086'),
                   style: AppTheme.caption,
                 ),
               ],
@@ -1164,20 +1012,4 @@ class _AdminEntry {
   final Color color;
   final String routeName;
   final String badge;
-}
-
-class _AdminStat {
-  const _AdminStat({
-    required this.label,
-    required this.value,
-    required this.hint,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final String hint;
-  final IconData icon;
-  final Color color;
 }

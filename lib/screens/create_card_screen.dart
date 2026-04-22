@@ -442,7 +442,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text('لا تملك صلاحية إصدار البطاقات', style: AppTheme.h3),
+                Text(
+                  l.tr('screens_create_card_screen.050'),
+                  style: AppTheme.h3,
+                ),
               ],
             ),
           ),

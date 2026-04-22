@@ -6,9 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../localization/app_localization.dart';
+import '../localization/app_strings_ar.dart';
+import '../localization/app_strings_en.dart';
 import '../utils/app_theme.dart';
 import 'app_config.dart';
 import 'auth_service.dart';
+import 'app_version_service.dart';
 import 'error_message_service.dart';
 
 enum AppAlertType { success, error, info }
@@ -21,27 +25,27 @@ class AppAlertService {
 
   static Future<void> showSuccess(
     BuildContext context, {
-    String title = 'نجاح',
+    String? title,
     required String message,
   }) {
     return _show(
       context,
       type: AppAlertType.success,
-      title: title,
+      title: title ?? context.loc.tr('services_app_alert_service.001'),
       message: message,
     );
   }
 
   static Future<void> showError(
     BuildContext context, {
-    String title = 'خطأ',
+    String? title,
     required String message,
     Map<String, dynamic>? extraContext,
   }) {
     return _show(
       context,
       type: AppAlertType.error,
-      title: title,
+      title: title ?? context.loc.tr('services_app_alert_service.002'),
       message: message,
       extraContext: extraContext,
     );
@@ -49,13 +53,13 @@ class AppAlertService {
 
   static Future<void> showInfo(
     BuildContext context, {
-    String title = 'معلومة',
+    String? title,
     required String message,
   }) {
     return _show(
       context,
       type: AppAlertType.info,
-      title: title,
+      title: title ?? context.loc.tr('services_app_alert_service.003'),
       message: message,
     );
   }
@@ -95,7 +99,11 @@ class AppAlertService {
       final payload = <String, dynamic>{
         'title': ErrorMessageService.sanitize(title),
         'message': ErrorMessageService.sanitize(message),
-        'appName': 'شواكل',
+        'appName':
+            navigatorKey.currentContext?.loc.tr(
+              'services_app_alert_service.004',
+            ) ??
+            'Shwakil',
         'platform': defaultTargetPlatform.name,
         'route': route ?? '',
       };
@@ -131,10 +139,8 @@ class AppAlertService {
       await http.post(
         AppConfig.apiUri('app/report-crash'),
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          if (token != null && token.isNotEmpty)
-            'Authorization': 'Bearer $token',
+          ...await AppVersionService.publicHeaders(includeJsonContentType: true),
+          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(payload),
       );
@@ -220,8 +226,8 @@ class AppAlertService {
                   child: OutlinedButton.icon(
                     onPressed: () => _openWhatsApp(supportNumber),
                     icon: const Icon(Icons.chat_rounded),
-                    label: const Text(
-                      'تواصل عبر واتساب',
+                    label: Text(
+                      context.loc.tr('services_app_alert_service.005'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -261,8 +267,8 @@ class AppAlertService {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    'موافق',
+                  child: Text(
+                    context.loc.tr('services_app_alert_service.006'),
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -275,7 +281,7 @@ class AppAlertService {
   }
 
   static bool _shouldReturnHomeOnAcknowledge(String message) {
-    return message.contains('تعذر الاتصال بالخادم');
+    return _messageContainsAny(message, 'services_app_alert_service.007');
   }
 
   static Future<void> _openWhatsApp(String phone) async {
@@ -285,7 +291,7 @@ class AppAlertService {
   }
 
   static String? _extractWhatsAppNumber(String message) {
-    if (!message.contains('واتس')) {
+    if (!_messageContainsAny(message, 'services_app_alert_service.008')) {
       return null;
     }
     final match = RegExp(r'(\+?\d[\d\s-]{7,}\d)').firstMatch(message);
@@ -294,6 +300,15 @@ class AppAlertService {
     }
     final digits = match.group(0)?.replaceAll(RegExp(r'\D'), '') ?? '';
     return digits.length >= 8 ? digits : null;
+  }
+
+  static bool _messageContainsAny(String message, String key) {
+    final current = navigatorKey.currentContext?.loc.tr(key);
+    final arabic = appStringsAr[key];
+    final english = appStringsEn[key];
+    return [current, arabic, english].any(
+      (candidate) => candidate != null && candidate.isNotEmpty && message.contains(candidate),
+    );
   }
 
   static _AlertStyle _styleFor(AppAlertType type) {

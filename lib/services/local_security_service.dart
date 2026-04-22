@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -7,22 +9,29 @@ class LocalSecurityService {
   LocalSecurityService._();
 
   static const _deviceIdKey = 'device_id';
-  static const _pinKey = 'device_pin';
+  static const _legacyPinKey = 'device_pin';
+  static const _pinHashKey = 'device_pin_hash';
   static const _biometricEnabledKey = 'biometric_enabled';
   static const _trustedUsernameKey = 'trusted_username';
   static const _deviceTrustedKey = 'device_trusted';
   static const _lastAuthMethodKey = 'last_local_auth_method';
   static const _backgroundedAtKey = 'app_backgrounded_at';
   static const _relockTimeoutSecondsKey = 'relock_timeout_seconds';
+  static const _pinFailedAttemptsKey = 'pin_failed_attempts';
+  static const _pinLockoutUntilKey = 'pin_lockout_until';
 
   static final LocalAuthentication _localAuth = LocalAuthentication();
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const Uuid _uuid = Uuid();
   static final ValueNotifier<int> _securityStateVersion = ValueNotifier<int>(0);
+  static const Sha256 _sha256 = Sha256();
 
   static bool _relockRequired = false;
   static bool _skipNextUnlock = false;
 
   static const List<int> relockTimeoutOptionsInSeconds = [0, 30, 60, 300];
+  static const int _pinMaxFailedAttempts = 5;
+  static const int _pinLockoutSeconds = 60;
 
   static const Map<String, String> _digitMap = {
     '٠': '0',
@@ -95,11 +104,14 @@ class LocalSecurityService {
 
   static Future<void> clearTrustedState() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_pinKey);
+    await prefs.remove(_legacyPinKey);
     await prefs.remove(_biometricEnabledKey);
     await prefs.remove(_trustedUsernameKey);
     await prefs.remove(_deviceTrustedKey);
     await prefs.remove(_backgroundedAtKey);
+    await prefs.remove(_pinFailedAttemptsKey);
+    await prefs.remove(_pinLockoutUntilKey);
+    await _secureStorage.delete(key: _pinHashKey);
     _relockRequired = false;
     _skipNextUnlock = false;
     _notifySecurityStateChanged();
@@ -137,26 +149,71 @@ class LocalSecurityService {
   }
 
   static Future<void> savePin(String pin) async {
+    final normalizedPin = _normalizePin(pin);
+    if (normalizedPin.length != 4) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_pinKey, _normalizePin(pin));
+    await _secureStorage.write(
+      key: _pinHashKey,
+      value: await _hashPin(normalizedPin),
+    );
+    await prefs.remove(_legacyPinKey);
+    await prefs.remove(_pinFailedAttemptsKey);
+    await prefs.remove(_pinLockoutUntilKey);
     _notifySecurityStateChanged();
   }
 
   static Future<void> removePin() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_pinKey);
+    await prefs.remove(_legacyPinKey);
+    await prefs.remove(_pinFailedAttemptsKey);
+    await prefs.remove(_pinLockoutUntilKey);
+    await _secureStorage.delete(key: _pinHashKey);
     _notifySecurityStateChanged();
   }
 
   static Future<bool> hasPin() async {
-    final prefs = await SharedPreferences.getInstance();
-    return (prefs.getString(_pinKey) ?? '').isNotEmpty;
+    await _migrateLegacyPinIfNeeded();
+    final storedHash = await _secureStorage.read(key: _pinHashKey);
+    return (storedHash ?? '').isNotEmpty;
   }
 
   static Future<bool> verifyPin(String pin) async {
+    await _migrateLegacyPinIfNeeded();
     final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_pinKey) ?? '';
-    return stored.isNotEmpty && stored == _normalizePin(pin);
+    final lockoutUntil = prefs.getInt(_pinLockoutUntilKey) ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (lockoutUntil > now) {
+      return false;
+    }
+
+    final normalizedPin = _normalizePin(pin);
+    final storedHash = await _secureStorage.read(key: _pinHashKey);
+    final isValid =
+        normalizedPin.length == 4 &&
+        (storedHash ?? '').isNotEmpty &&
+        storedHash == await _hashPin(normalizedPin);
+
+    if (isValid) {
+      await prefs.remove(_pinFailedAttemptsKey);
+      await prefs.remove(_pinLockoutUntilKey);
+      await setLastLocalAuthMethod('pin');
+      return true;
+    }
+
+    final failedAttempts = (prefs.getInt(_pinFailedAttemptsKey) ?? 0) + 1;
+    await prefs.setInt(_pinFailedAttemptsKey, failedAttempts);
+    if (failedAttempts >= _pinMaxFailedAttempts) {
+      await prefs.setInt(
+        _pinLockoutUntilKey,
+        now + Duration(seconds: _pinLockoutSeconds).inMilliseconds,
+      );
+      await prefs.setInt(_pinFailedAttemptsKey, 0);
+    }
+
+    _notifySecurityStateChanged();
+    return false;
   }
 
   static Future<void> setBiometricEnabled(bool value) async {
@@ -173,7 +230,7 @@ class LocalSecurityService {
   static Future<bool> canUseTrustedUnlock() async {
     final prefs = await SharedPreferences.getInstance();
     final isTrusted = prefs.getBool(_deviceTrustedKey) ?? false;
-    final hasPin = (prefs.getString(_pinKey) ?? '').isNotEmpty;
+    final hasPin = await LocalSecurityService.hasPin();
     final biometricEnabled = prefs.getBool(_biometricEnabledKey) ?? false;
     final biometricAvailable = biometricEnabled
         ? await canUseBiometrics()
@@ -257,6 +314,41 @@ class LocalSecurityService {
     await prefs.remove(_backgroundedAtKey);
     _relockRequired = false;
     _notifySecurityStateChanged();
+  }
+
+  static Future<int> pinRetryAfterSeconds() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lockoutUntil = prefs.getInt(_pinLockoutUntilKey) ?? 0;
+    final remainingMs = lockoutUntil - DateTime.now().millisecondsSinceEpoch;
+    if (remainingMs <= 0) {
+      return 0;
+    }
+
+    return (remainingMs / 1000).ceil();
+  }
+
+  static Future<void> _migrateLegacyPinIfNeeded() async {
+    final legacyPrefs = await SharedPreferences.getInstance();
+    final existingHash = await _secureStorage.read(key: _pinHashKey);
+    if ((existingHash ?? '').isNotEmpty) {
+      return;
+    }
+
+    final legacyPin = _normalizePin(legacyPrefs.getString(_legacyPinKey) ?? '');
+    if (legacyPin.length != 4) {
+      return;
+    }
+
+    await _secureStorage.write(
+      key: _pinHashKey,
+      value: await _hashPin(legacyPin),
+    );
+    await legacyPrefs.remove(_legacyPinKey);
+  }
+
+  static Future<String> _hashPin(String pin) async {
+    final digest = await _sha256.hash(pin.codeUnits);
+    return digest.bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
   }
 
   static String _normalizePin(String pin) {

@@ -338,7 +338,7 @@ class _AdminCardPrintRequestsScreenState
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'لا تملك صلاحية إدارة طلبات طباعة البطاقات',
+                  l.tr('screens_admin_card_print_requests_screen.037'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -355,14 +355,8 @@ class _AdminCardPrintRequestsScreenState
         actions: [
           IconButton(
             tooltip: _showFilters
-                ? context.loc.text(
-                    'إخفاء البحث والفلاتر',
-                    'Hide search and filters',
-                  )
-                : context.loc.text(
-                    'إظهار البحث والفلاتر',
-                    'Show search and filters',
-                  ),
+                ? context.loc.tr('screens_admin_card_print_requests_screen.038')
+                : context.loc.tr('screens_admin_card_print_requests_screen.039'),
             onPressed: () => setState(() => _showFilters = !_showFilters),
             icon: Icon(
               _showFilters
@@ -371,7 +365,7 @@ class _AdminCardPrintRequestsScreenState
             ),
           ),
           IconButton(
-            tooltip: context.loc.text('مساعدة', 'Help'),
+            tooltip: context.loc.tr('screens_admin_card_print_requests_screen.040'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -389,9 +383,16 @@ class _AdminCardPrintRequestsScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  context.loc.text(
-                    'المراجعة: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • المعتمد: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • المكتمل: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
-                    'Review: ${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0} • Approved: ${(_summary['approvedCount'] as num?)?.toInt() ?? 0} • Completed: ${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
+                  context.loc.tr(
+                    'screens_admin_card_print_requests_screen.041',
+                    params: {
+                      'review':
+                          '${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0}',
+                      'approved':
+                          '${(_summary['approvedCount'] as num?)?.toInt() ?? 0}',
+                      'completed':
+                          '${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
+                    },
                   ),
                   style: AppTheme.caption,
                 ),
@@ -525,9 +526,8 @@ class _AdminCardPrintRequestsScreenState
                 ] else ...[
                   const SizedBox(height: 14),
                   ToolToggleHint(
-                    message: context.loc.text(
-                      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
-                      'Open search and filters from the top filter icon when needed.',
+                    message: context.loc.tr(
+                      'screens_admin_card_print_requests_screen.042',
                     ),
                     icon: Icons.filter_alt_rounded,
                   ),
@@ -741,17 +741,18 @@ class _AdminCardPrintRequestsScreenState
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(context.loc.text('مساعدة الطلبات', 'Requests help')),
+        title: Text(
+          context.loc.tr('screens_admin_card_print_requests_screen.043'),
+        ),
         content: Text(
-          context.loc.text(
-            'استخدم البحث والحالة للوصول السريع، ثم افتح الطلب لإدارة الخطوات المطلوبة.',
-            'Use search and status filters for quick access, then open a request to manage its steps.',
-          ),
+          context.loc.tr('screens_admin_card_print_requests_screen.044'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.loc.text('إغلاق', 'Close')),
+            child: Text(
+              context.loc.tr('screens_admin_card_print_requests_screen.045'),
+            ),
           ),
         ],
       ),

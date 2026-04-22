@@ -23,6 +23,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   bool _biometricEnabled = false;
   bool _isLoading = true;
   bool _isUnlocking = false;
+  int _pinRetryAfterSeconds = 0;
 
   @override
   void initState() {
@@ -41,11 +42,14 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     final hasPin = await LocalSecurityService.hasPin();
     final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
     final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
+    final pinRetryAfterSeconds =
+        await LocalSecurityService.pinRetryAfterSeconds();
     if (mounted) {
       setState(() {
         _username = trustedUsername;
         _hasPin = hasPin;
         _biometricEnabled = biometricEnabled && canUseBiometrics;
+        _pinRetryAfterSeconds = pinRetryAfterSeconds;
         _isLoading = false;
       });
     }
@@ -53,6 +57,18 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
 
   Future<void> _unlockPin() async {
     final l = context.loc;
+    if (_pinRetryAfterSeconds > 0) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_device_unlock_screen.003'),
+        message: l.tr(
+          'screens_device_unlock_screen.014',
+          params: {'seconds': '$_pinRetryAfterSeconds'},
+        ),
+      );
+      return;
+    }
+
     if (_pinController.text.trim().length != 4) {
       await AppAlertService.showError(
         context,
@@ -67,16 +83,26 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       _pinController.text.trim(),
     );
     if (isValid) {
+      _pinController.clear();
       await _completeUnlock();
       return;
     }
 
     if (mounted) {
+      final retryAfterSeconds =
+          await LocalSecurityService.pinRetryAfterSeconds();
       setState(() => _isUnlocking = false);
+      _pinController.clear();
+      setState(() => _pinRetryAfterSeconds = retryAfterSeconds);
       await AppAlertService.showError(
         context,
         title: l.tr('screens_device_unlock_screen.003'),
-        message: l.tr('screens_device_unlock_screen.004'),
+        message: retryAfterSeconds > 0
+            ? l.tr(
+                'screens_device_unlock_screen.014',
+                params: {'seconds': '$retryAfterSeconds'},
+              )
+            : l.tr('screens_device_unlock_screen.004'),
       );
     }
   }
@@ -247,9 +273,20 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
             ShwakelButton(
               label: l.tr('screens_device_unlock_screen.012'),
               icon: Icons.lock_open_rounded,
-              onPressed: _unlockPin,
+              onPressed: _pinRetryAfterSeconds > 0 ? null : _unlockPin,
               isLoading: _isUnlocking,
             ),
+            if (_pinRetryAfterSeconds > 0) ...[
+              const SizedBox(height: 12),
+              Text(
+                l.tr(
+                  'screens_device_unlock_screen.014',
+                  params: {'seconds': '$_pinRetryAfterSeconds'},
+                ),
+                textAlign: TextAlign.center,
+                style: AppTheme.caption.copyWith(color: AppTheme.error),
+              ),
+            ],
           ],
           if (_biometricEnabled) ...[
             SizedBox(height: _hasPin ? 14 : 24),

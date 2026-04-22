@@ -146,8 +146,13 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
           Future<void> submit() async {
-            if (usernameController.text.trim().isEmpty ||
-                whatsappController.text.trim().isEmpty) {
+            final username = usernameController.text.trim().toLowerCase();
+            final whatsapp = PhoneNumberService.normalize(
+              input: whatsappController.text.trim(),
+              defaultDialCode: countryCode,
+            );
+
+            if (username.isEmpty || whatsapp.isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
                 title: l.tr('screens_admin_customers_screen.002'),
@@ -156,12 +161,21 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               return;
             }
 
+            if (!RegExp(r'^[a-z0-9._@+-]{3,32}$').hasMatch(username)) {
+              await AppAlertService.showError(
+                dialogContext,
+                title: l.tr('screens_admin_customers_screen.002'),
+                message: l.tr('screens_admin_customers_screen.047'),
+              );
+              return;
+            }
+
             setDialogState(() => isSaving = true);
             try {
               final response = await _apiService.createAdminUser(
-                username: usernameController.text,
+                username: username,
                 fullName: fullNameController.text,
-                whatsapp: whatsappController.text,
+                whatsapp: whatsapp,
                 password: '',
                 countryCode: countryCode,
               );
@@ -416,10 +430,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  l.text(
-                    'لا تملك صلاحية عرض العملاء',
-                    'You do not have permission to view customers.',
-                  ),
+                  l.tr('screens_admin_customers_screen.038'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -429,134 +440,281 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: Text(l.tr('screens_admin_customers_screen.017')),
-        actions: [
-          if (_canManageUsers)
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_customers_screen.017')),
+          actions: [
+            if (_canManageUsers)
+              IconButton(
+                tooltip: l.tr('screens_admin_customers_screen.022'),
+                onPressed: _showCreateCustomerDialog,
+                icon: const Icon(Icons.person_add_alt_1_rounded),
+              ),
             IconButton(
-              tooltip: l.tr('screens_admin_customers_screen.022'),
-              onPressed: _showCreateCustomerDialog,
-              icon: const Icon(Icons.person_add_alt_1_rounded),
+              tooltip: _showSearch
+                  ? context.loc.tr('screens_admin_customers_screen.039')
+                  : context.loc.tr('screens_admin_customers_screen.040'),
+              onPressed: () => setState(() => _showSearch = !_showSearch),
+              icon: Icon(
+                _showSearch
+                    ? Icons.search_off_rounded
+                    : Icons.manage_search_rounded,
+              ),
             ),
-          IconButton(
-            tooltip: _showSearch
-                ? context.loc.text('إخفاء البحث', 'Hide search')
-                : context.loc.text('إظهار البحث', 'Show search'),
-            onPressed: () => setState(() => _showSearch = !_showSearch),
-            icon: Icon(
-              _showSearch
-                  ? Icons.search_off_rounded
-                  : Icons.manage_search_rounded,
+            IconButton(
+              tooltip: context.loc.tr('screens_admin_customers_screen.041'),
+              onPressed: _showHelpDialog,
+              icon: const Icon(Icons.info_outline_rounded),
+            ),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(76),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.all(6),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  tabs: [
+                    Tab(
+                      text: l.tr('screens_admin_customers_screen.048'),
+                      icon: const Icon(Icons.people_alt_rounded),
+                    ),
+                    Tab(
+                      text: l.tr('screens_admin_customers_screen.049'),
+                      icon: const Icon(Icons.analytics_rounded),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          IconButton(
-            tooltip: context.loc.text('مساعدة', 'Help'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
-      ),
-      drawer: const AppSidebar(),
-      body: RefreshIndicator(
-        onRefresh: () => _loadCustomers(reset: true),
-        child: SingleChildScrollView(
+        ),
+        drawer: const AppSidebar(),
+        body: RefreshIndicator(
+          onRefresh: () => _loadCustomers(reset: true),
           child: ResponsiveScaffoldContainer(
             padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: TabBarView(
               children: [
-                AdminSectionHeader(
-                  title: l.tr('screens_admin_customers_screen.021'),
-                  icon: Icons.people_alt_rounded,
-                ),
-                if (_showSearch) ...[
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      labelText: l.tr('screens_admin_customers_screen.023'),
-                      prefixIcon: const Icon(Icons.search_rounded),
-                    ),
-                    onChanged: (_) {
-                      _searchDebounce?.cancel();
-                      _searchDebounce = Timer(
-                        const Duration(milliseconds: 350),
-                        () {
-                          if (!mounted) {
-                            return;
-                          }
-                          _loadCustomers(reset: true);
-                        },
-                      );
-                    },
-                  ),
-                ] else ...[
-                  const SizedBox(height: 16),
-                  ToolToggleHint(
-                    message: context.loc.text(
-                      'يمكنك فتح البحث من أيقونة البحث بالأعلى عند الحاجة.',
-                      'Open search from the top search icon when needed.',
-                    ),
-                    icon: Icons.manage_search_rounded,
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Text(
-                  context.loc.text(
-                    'المعروض الآن: ${_customers.length} • الإجمالي: $totalCustomers',
-                    'Showing: ${_customers.length} • Total: $totalCustomers',
-                  ),
-                  style: AppTheme.caption,
-                ),
-                const SizedBox(height: 16),
-                if (_isLoadingCustomers)
-                  const LinearProgressIndicator(minHeight: 3),
-                const SizedBox(height: 16),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final columns = constraints.maxWidth > 1080
-                        ? 3
-                        : constraints.maxWidth > 720
-                        ? 2
-                        : 1;
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: columns,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        mainAxisExtent: 210,
-                      ),
-                      itemCount: _customers.length,
-                      itemBuilder: (context, index) {
-                        final customer = _customers[index];
-                        return AdminCustomerCard(
-                          customer: customer,
-                          onTap: () => _openCustomerDetails(customer),
-                          onResendCredentials: () =>
-                              _resendCustomerCredentials(customer),
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                AdminPaginationFooter(
-                  currentPage: _customerPage,
-                  lastPage: _customerLastPage,
-                  onPageChanged: (page) {
-                    setState(() => _customerPage = page);
-                    _loadCustomers();
-                  },
-                ),
+                _buildCustomersTab(totalCustomers),
+                _buildSummaryTab(totalCustomers),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomersTab(int totalCustomers) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AdminSectionHeader(
+            title: context.loc.tr('screens_admin_customers_screen.021'),
+            icon: Icons.people_alt_rounded,
+          ),
+          const SizedBox(height: 16),
+          if (_showSearch)
+            ShwakelCard(
+              padding: const EdgeInsets.all(18),
+              withBorder: true,
+              borderColor: AppTheme.borderLight,
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: context.loc.tr(
+                    'screens_admin_customers_screen.023',
+                  ),
+                  prefixIcon: const Icon(Icons.search_rounded),
+                ),
+                onChanged: (_) {
+                  _searchDebounce?.cancel();
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 350),
+                    () {
+                      if (!mounted) {
+                        return;
+                      }
+                      _loadCustomers(reset: true);
+                    },
+                  );
+                },
+              ),
+            )
+          else
+            ToolToggleHint(
+              message: context.loc.tr('screens_admin_customers_screen.042'),
+              icon: Icons.manage_search_rounded,
+            ),
+          const SizedBox(height: 12),
+          Text(
+            context.loc.tr(
+              'screens_admin_customers_screen.043',
+              params: {
+                'shown': '${_customers.length}',
+                'total': '$totalCustomers',
+              },
+            ),
+            style: AppTheme.caption,
+          ),
+          const SizedBox(height: 16),
+          if (_isLoadingCustomers) const LinearProgressIndicator(minHeight: 3),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth > 1080
+                  ? 3
+                  : constraints.maxWidth > 720
+                  ? 2
+                  : 1;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  mainAxisExtent: 210,
+                ),
+                itemCount: _customers.length,
+                itemBuilder: (context, index) {
+                  final customer = _customers[index];
+                  return AdminCustomerCard(
+                    customer: customer,
+                    onTap: () => _openCustomerDetails(customer),
+                    onResendCredentials: () =>
+                        _resendCustomerCredentials(customer),
+                  );
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          AdminPaginationFooter(
+            currentPage: _customerPage,
+            lastPage: _customerLastPage,
+            onPageChanged: (page) {
+              setState(() => _customerPage = page);
+              _loadCustomers();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryTab(int totalCustomers) {
+    final totalBalances = (_summary['totalBalances'] as num?)?.toDouble() ?? 0;
+    final totalPrintingDebt =
+        (_summary['totalPrintingDebt'] as num?)?.toDouble() ?? 0;
+    final printingDebtUsers =
+        (_summary['printingDebtUsersCount'] as num?)?.toInt() ?? 0;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            withBorder: true,
+            borderColor: AppTheme.borderLight,
+            child: Text(
+              'ملخص سريع وواضح للعملاء بدون إزاحة القائمة الرئيسية. استخدم تبويب القائمة للوصول إلى الحسابات، وافتح البحث من الأيقونة عند الحاجة.',
+              style: AppTheme.bodyAction,
+            ),
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 760;
+              final cards = [
+                _summaryCard(
+                  'إجمالي العملاء',
+                  '$totalCustomers',
+                  Icons.people_alt_rounded,
+                  AppTheme.primary,
+                ),
+                _summaryCard(
+                  'إجمالي الأرصدة',
+                  totalBalances.toStringAsFixed(2),
+                  Icons.account_balance_wallet_rounded,
+                  AppTheme.success,
+                ),
+                _summaryCard(
+                  'مديونية الطباعة',
+                  totalPrintingDebt.toStringAsFixed(2),
+                  Icons.print_rounded,
+                  AppTheme.warning,
+                ),
+                _summaryCard(
+                  'حسابات عليها دين',
+                  '$printingDebtUsers',
+                  Icons.warning_amber_rounded,
+                  AppTheme.error,
+                ),
+              ];
+              if (compact) {
+                return Column(
+                  children: [
+                    for (var i = 0; i < cards.length; i++) ...[
+                      cards[i],
+                      if (i != cards.length - 1) const SizedBox(height: 12),
+                    ],
+                  ],
+                );
+              }
+              return Wrap(spacing: 12, runSpacing: 12, children: cards);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryCard(String title, String value, IconData icon, Color color) {
+    return SizedBox(
+      width: 240,
+      child: ShwakelCard(
+        padding: const EdgeInsets.all(18),
+        withBorder: true,
+        borderColor: AppTheme.borderLight,
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTheme.caption),
+                  const SizedBox(height: 4),
+                  Text(value, style: AppTheme.bodyBold),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -566,17 +724,12 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(context.loc.text('مساعدة العملاء', 'Customers help')),
-        content: Text(
-          context.loc.text(
-            'استخدم البحث للوصول السريع، وافتح بطاقة العميل مباشرة لإدارة التفاصيل.',
-            'Use search for quick access, then open a customer card to manage details.',
-          ),
-        ),
+        title: Text(context.loc.tr('screens_admin_customers_screen.044')),
+        content: Text(context.loc.tr('screens_admin_customers_screen.045')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.loc.text('إغلاق', 'Close')),
+            child: Text(context.loc.tr('screens_admin_customers_screen.046')),
           ),
         ],
       ),

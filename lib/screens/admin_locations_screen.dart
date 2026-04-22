@@ -314,10 +314,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  l.text(
-                    'لا تملك صلاحية إدارة المناطق',
-                    'You do not have permission to manage locations.',
-                  ),
+                  l.tr('screens_admin_locations_screen.022'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -333,12 +330,12 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
         title: Text(l.tr('screens_admin_locations_screen.018')),
         actions: [
           IconButton(
-            tooltip: l.text('إضافة', 'Add'),
+            tooltip: l.tr('screens_admin_locations_screen.023'),
             onPressed: _showLocationDialog,
             icon: const Icon(Icons.add_location_alt_rounded),
           ),
           IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_locations_screen.024'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -356,9 +353,9 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.text(
-                    'عدد النقاط المتاحة: ${_locations.length}',
-                    'Available locations: ${_locations.length}',
+                  l.tr(
+                    'screens_admin_locations_screen.025',
+                    params: {'count': '${_locations.length}'},
                   ),
                   style: AppTheme.caption,
                 ),
@@ -402,11 +399,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'تُعرض هنا نقاط الخدمة مباشرة. استخدم زر الإضافة من الأعلى، أو افتح البطاقة للتعديل والحذف.',
-        'Service locations appear here directly. Use the top add button, or open a card to edit and delete it.',
-      ),
+      title: l.tr('screens_admin_locations_screen.026'),
+      message: l.tr('screens_admin_locations_screen.027'),
     );
   }
 }

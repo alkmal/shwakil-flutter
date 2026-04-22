@@ -231,7 +231,26 @@ class _LoginScreenState extends State<LoginScreen> {
         permissions.canReviewDevices ||
         permissions.canManageLocations ||
         permissions.canManageSystemSettings;
+    final shouldOpenSecuritySettings =
+        await _shouldPromptForLocalSecuritySetup();
     setState(() => _isLoading = false);
+    if (!mounted) {
+      return;
+    }
+    if (shouldOpenSecuritySettings) {
+      final wantsSetupNow = await _promptForLocalSecuritySetup();
+      if (!mounted) {
+        return;
+      }
+      if (wantsSetupNow == true) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/security-settings',
+          (route) => false,
+        );
+        return;
+      }
+    }
     if (widget.redirectRoute?.trim().isNotEmpty == true) {
       Navigator.pushNamedAndRemoveUntil(
         context,
@@ -266,6 +285,49 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     await LocalSecurityService.markDeviceTrusted(username.trim().toLowerCase());
     return true;
+  }
+
+  Future<bool> _shouldPromptForLocalSecuritySetup() async {
+    final hasPin = await LocalSecurityService.hasPin();
+    final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
+    return !hasPin && !biometricEnabled;
+  }
+
+  Future<bool?> _promptForLocalSecuritySetup() async {
+    final l = context.loc;
+    final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
+    final methodLabel = l.tr(
+      canUseBiometrics
+          ? 'screens_login_screen.021'
+          : 'screens_login_screen.022',
+    );
+
+    if (!mounted) {
+      return false;
+    }
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('screens_login_screen.017')),
+        content: Text(
+          l.tr(
+            'screens_login_screen.018',
+            params: {'method': methodLabel},
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.tr('screens_login_screen.019')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.tr('screens_login_screen.020')),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showMessage(
@@ -484,11 +546,17 @@ class _LoginScreenState extends State<LoginScreen> {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              _heroPill(icon: Icons.security_rounded, label: 'تسجيل دخول آمن'),
-              _heroPill(icon: Icons.bolt_rounded, label: 'وصول سريع'),
+              _heroPill(
+                icon: Icons.security_rounded,
+                label: l.tr('screens_login_screen.023'),
+              ),
+              _heroPill(
+                icon: Icons.bolt_rounded,
+                label: l.tr('screens_login_screen.024'),
+              ),
               _heroPill(
                 icon: Icons.phone_iphone_rounded,
-                label: 'متوافق مع الجوال',
+                label: l.tr('screens_login_screen.025'),
               ),
             ],
           ),

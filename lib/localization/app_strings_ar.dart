@@ -38,10 +38,11 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.036': 'تعذر الرفع',
   'screens_account_settings_screen.037': 'تم الحذف',
   'screens_account_settings_screen.038': 'تعذر الحذف',
-  'screens_account_settings_screen.039': 'يرجى إدخال كلمة المرور الحالية والجديدة.',
+  'screens_account_settings_screen.039': 'تم تحديث بيانات الملف الشخصي بنجاح.',
   'screens_account_settings_screen.040':
-      'يرجى إدخال معلومات الحساب الأساسية المطلوبة.',
-  'screens_account_settings_screen.041': 'كلمتا المرور الجديدتان غير متطابقتين.',
+      'أدخل كلمة المرور الحالية والجديدة وتأكيد كلمة المرور الجديدة.',
+  'screens_account_settings_screen.041':
+      'كلمتا المرور الجديدتان غير متطابقتين.',
   'screens_account_settings_screen.042':
       'يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل.',
   'screens_account_settings_screen.043': 'تم تغيير كلمة المرور بنجاح.',
@@ -49,13 +50,18 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.045': 'تأكيد كلمة المرور الجديدة',
   'screens_account_settings_screen.046': '{count} حقول تحتاج إلى إكمال',
   'screens_account_settings_screen.047':
-      'أكمل البيانات الناقصة لرفع جاهزية الحساب. الحقول المطلوبة فقط.',
+      'بعد توثيق الحساب يتم إغلاق تعديل الملف الشخصي بالكامل، بما في ذلك اسم المستخدم ورقم الإحالة.',
   'screens_account_settings_screen.048':
-      'يمكنك رفع شعار للطباعة المخصصة فقط. هذا الشعار يظهر في المخرجات المدعومة عند توفرها.',
-  'screens_account_settings_screen.049': 'اضغط هنا لإدارة شعار الطباعة.',
+      'يمكنك تعديل اسم المستخدم ورقم الإحالة وبقية البيانات قبل توثيق الحساب فقط.',
+  'screens_account_settings_screen.049':
+      'هذا الشعار يظهر على البطاقات والمخرجات المدعومة عند الطباعة.',
   'screens_account_settings_screen.050': 'تعذر قراءة ملف الشعار.',
   'screens_account_settings_screen.051': 'لا يمكن رفع ملف الشعار.',
   'screens_account_settings_screen.052': 'لا يمكن حذف ملف الشعار.',
+  'screens_account_settings_screen.053': 'تسجيل الخروج',
+  'screens_account_settings_screen.054':
+      'يمكنك إنهاء الجلسة الحالية من هنا بدل زر الخروج السريع في أعلى الشاشة.',
+  'screens_account_settings_screen.055': 'خروج آمن من هذا الجهاز',
   'screens_account_verification_screen.001': 'مرفقات ناقصة',
   'screens_account_verification_screen.002': 'تم الإرسال بنجاح',
   'screens_account_verification_screen.003': 'فشل الإرسال',
@@ -81,8 +87,7 @@ const Map<String, String> appStringsAr = {
       'طلب التوثيق قيد المراجعة الآن. سنشعرك عند تحديث الحالة.',
   'screens_account_verification_screen.020':
       'تم طلب إعادة إرسال المستندات. يرجى مراجعة الملاحظات ثم رفع الملفات مرة أخرى.',
-  'screens_account_verification_screen.021':
-      'لم يتم توثيق الحساب بعد.',
+  'screens_account_verification_screen.021': 'لم يتم توثيق الحساب بعد.',
   'screens_account_verification_screen.022':
       'أرسل الملفات المطلوبة بشكل واضح وكامل لتسريع عملية المراجعة.',
   'screens_account_verification_screen.023':
@@ -146,6 +151,8 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.025': 'تم إنشاء المستخدم بنجاح.',
   'screens_admin_customers_screen.026':
       'سيتم إنشاء كلمة مرور مؤقتة وإرسالها تلقائيًا إلى رقم واتساب المدخل.',
+  'screens_admin_customers_screen.047':
+      'اسم المستخدم يجب أن يكون بين 3 و32 حرفًا وبالأحرف الإنجليزية والأرقام والرموز . _ @ + - فقط.',
   'screens_admin_customers_screen.027': 'تعذر تحديد حساب المستخدم.',
   'screens_admin_customers_screen.028':
       'سيتم إرسال كلمة مرور جديدة وبيانات الحساب عبر واتساب إلى الرقم المرتبط.',
@@ -176,7 +183,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customer_screen.019': 'الاسم الكامل',
   'screens_admin_customer_screen.020': 'واتساب',
   'screens_admin_customer_screen.021': 'تاريخ الانضمام',
-  'screens_admin_customer_screen.022': 'عميل أساسي',
+  'screens_admin_customer_screen.022': 'مستخدم',
   'screens_admin_customer_screen.023': 'حركات العميل',
   'screens_admin_customer_screen.024': 'الكل',
   'screens_admin_customer_screen.025': 'بالقرب من الفروع',
@@ -184,15 +191,15 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customer_screen.027': 'لا توجد حركات حديثة.',
   'screens_admin_customer_screen.028': 'إدارة الحساب والرسوم',
   'screens_admin_customer_screen.029': 'حالة التوثيق',
-  'screens_admin_customer_screen.030': 'عضو مقيّد',
-  'screens_admin_customer_screen.031': 'عضو موثّق',
-  'screens_admin_customer_screen.032': 'عضو متقدم',
+  'screens_admin_customer_screen.030': 'عضوية مقيّدة',
+  'screens_admin_customer_screen.031': 'تاجر',
+  'screens_admin_customer_screen.032': 'تاجر موثق',
   'screens_admin_customer_screen.033': 'غير موثّق',
   'screens_admin_customer_screen.034': 'قيد المراجعة',
   'screens_admin_customer_screen.035': 'موثّق / نشط',
   'screens_admin_customer_screen.036': 'مرفوض',
   'screens_admin_customer_screen.037': 'دور الحساب',
-  'screens_admin_customer_screen.038': 'مستخدم أساسي',
+  'screens_admin_customer_screen.038': 'مستخدم',
   'screens_admin_customer_screen.039': 'فريق الدعم',
   'screens_admin_customer_screen.040': 'مشرف تقني',
   'screens_admin_customer_screen.041': 'حد مديونية الطباعة (?)',
@@ -459,15 +466,18 @@ const Map<String, String> appStringsAr = {
   'screens_login_screen.007': 'دخول',
   'screens_login_screen.008': 'إنشاء حساب جديد',
   'screens_login_screen.009': 'يرجى إدخال اسم المستخدم وكلمة المرور.',
-  'screens_login_screen.010':
-      'يجب أن يكون اسم المستخدم بين 3 و64 حرفًا.',
-  'screens_login_screen.011':
-      'يحتوي اسم المستخدم على أحرف غير مدعومة.',
-  'screens_login_screen.013':
-      'أدخل بياناتك وانتقل مباشرة إلى التحقق.',
+  'screens_login_screen.010': 'يجب أن يكون اسم المستخدم بين 3 و64 حرفًا.',
+  'screens_login_screen.011': 'يحتوي اسم المستخدم على أحرف غير مدعومة.',
+  'screens_login_screen.013': 'أدخل بياناتك وانتقل مباشرة إلى التحقق.',
   'screens_login_screen.014': 'التسجيل معطل حاليًا',
-  'screens_login_screen.016':
-      'لإنشاء حساب جديد، تواصل مع الإدارة.',
+  'screens_login_screen.016': 'لإنشاء حساب جديد، تواصل مع الإدارة.',
+  'screens_login_screen.017': 'فعّل الحماية المحلية',
+  'screens_login_screen.018':
+      'يمكنك تفعيل {method} لتسهيل تسجيل الدخول في المرات القادمة على هذا الجهاز.',
+  'screens_login_screen.019': 'لاحقًا',
+  'screens_login_screen.020': 'إعداد الآن',
+  'screens_login_screen.021': 'PIN أو البصمة',
+  'screens_login_screen.022': 'PIN',
   'screens_onboarding_screen.001': 'تخطي',
   'screens_onboarding_screen.002': 'ابدأ الآن',
   'screens_onboarding_screen.003': 'التالي',
@@ -548,15 +558,13 @@ const Map<String, String> appStringsAr = {
       'يجب أن تحتوي كلمة المرور على رمز واحد على الأقل.',
   'screens_register_screen.036': 'تأكيد كلمة المرور مطلوب.',
   'screens_register_screen.037': 'تأكيد كلمة المرور غير متطابق.',
-  'screens_register_screen.038':
-      'يجب الموافقة على الشروط والأحكام للمتابعة.',
+  'screens_register_screen.038': 'يجب الموافقة على الشروط والأحكام للمتابعة.',
   'screens_register_screen.039':
-      'أكمل بيانات التسجيل المطلوبة، وسنرسل لك رمز تحقق لإتمام إنشاء الحساب.',
+      'أكمل البيانات الأساسية فقط، وسيتم إنشاء اسم المستخدم تلقائيًا ويمكنك تعديل اسم المستخدم ورقم الإحالة لاحقًا من الملف الشخصي قبل التوثيق.',
   'screens_register_screen.040': 'لديك حساب بالفعل؟ سجّل الدخول',
   'screens_register_screen.041':
       'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل وأن تحتوي على حرف واحد ورمز واحد على الأقل.',
-  'screens_register_screen.042':
-      'أوافق على الشروط والسياسات والرسوم المعروضة.',
+  'screens_register_screen.042': 'أوافق على الشروط والسياسات والرسوم المعروضة.',
   'screens_register_screen.043': 'التسجيل معطل حاليًا',
   'screens_register_screen.044':
       'يمكنك التواصل مع الإدارة لطلب حساب جديد أو لطلب إعادة تفعيل التسجيل.',
@@ -709,8 +717,7 @@ const Map<String, String> appStringsAr = {
   'widgets_admin_transaction_audit_card.022': 'المصدر: رسوم الشحن',
   'widgets_admin_transaction_audit_card.023': 'المصدر: رسوم التحويل',
   'widgets_admin_transaction_audit_card.024': 'المصدر: رسوم استرداد البطاقة',
-  'widgets_admin_transaction_audit_card.025':
-      'المصدر: رسوم إعادة بيع البطاقة',
+  'widgets_admin_transaction_audit_card.025': 'المصدر: رسوم إعادة بيع البطاقة',
   'widgets_admin_transaction_audit_card.026': 'بانتظار مراجعة السحب',
   'widgets_admin_transaction_audit_card.027': 'تم رفض طلب السحب',
   'widgets_admin_transaction_audit_card.028': 'تم تسليم السحب بنجاح',
@@ -774,8 +781,7 @@ const Map<String, String> appStringsAr = {
       'تم حفظ ملف PDF الخاص بالطلب بنجاح في:\n{path}',
   'screens_admin_card_print_requests_screen.pdf_failed_title':
       'تعذر إنشاء الملف',
-  'screens_admin_card_print_requests_screen.print_failed_title':
-      'فشلت الطباعة',
+  'screens_admin_card_print_requests_screen.print_failed_title': 'فشلت الطباعة',
   'screens_admin_card_print_requests_screen.hero_title':
       'إدارة طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.hero_subtitle':
@@ -800,11 +806,15 @@ const Map<String, String> appStringsAr = {
   'screens_device_unlock_screen.006': 'افتح جهازك الآمن',
   'screens_device_unlock_screen.007': 'أدخل رمز PIN أو استخدم البصمة للمتابعة.',
   'screens_device_unlock_screen.008': 'استخدم البصمة للمتابعة إلى التطبيق.',
-  'screens_device_unlock_screen.009': 'مرحبًا {username}، أدخل رمز PIN أو استخدم البصمة للمتابعة.',
-  'screens_device_unlock_screen.010': 'مرحبًا {username}، استخدم البصمة للمتابعة إلى التطبيق.',
+  'screens_device_unlock_screen.009':
+      'مرحبًا {username}، أدخل رمز PIN أو استخدم البصمة للمتابعة.',
+  'screens_device_unlock_screen.010':
+      'مرحبًا {username}، استخدم البصمة للمتابعة إلى التطبيق.',
   'screens_device_unlock_screen.011': 'رمز PIN',
   'screens_device_unlock_screen.012': 'فتح عبر PIN',
   'screens_device_unlock_screen.013': 'فتح عبر البصمة',
+  'screens_device_unlock_screen.014':
+      'تم إيقاف المحاولة مؤقتًا. حاول مرة أخرى بعد {seconds} ثانية.',
   'screens_security_settings_screen.001': 'أمان الجهاز',
   'screens_security_settings_screen.002': 'إزالة الثقة من هذا الجهاز',
   'screens_security_settings_screen.003': 'إعدادات الحماية',
@@ -817,33 +827,42 @@ const Map<String, String> appStringsAr = {
   'screens_security_settings_screen.010': 'البصمة',
   'screens_security_settings_screen.011': 'رمز PIN',
   'screens_security_settings_screen.012': 'OTP',
-  'screens_security_settings_screen.013': 'أدر PIN والبصمة والأجهزة الموثوقة وإعدادات إعادة القفل من مكان واحد.',
+  'screens_security_settings_screen.013':
+      'أدر PIN والبصمة والأجهزة الموثوقة وإعدادات إعادة القفل من مكان واحد.',
   'screens_security_settings_screen.014': 'ملخص الأمان',
-  'screens_security_settings_screen.015': 'اطلع على حالة التحقق وثقة الجهاز وآخر وسيلة دخول.',
+  'screens_security_settings_screen.015':
+      'اطلع على حالة التحقق وثقة الجهاز وآخر وسيلة دخول.',
   'screens_security_settings_screen.016': 'ثقة الجهاز',
   'screens_security_settings_screen.017': 'موثوق',
   'screens_security_settings_screen.018': 'غير موثوق',
   'screens_security_settings_screen.019': 'PIN المحلي',
   'screens_security_settings_screen.020': 'مفعل',
   'screens_security_settings_screen.021': 'غير مفعل',
-  'screens_security_settings_screen.022': 'يمكنك استخدام البصمة أو PIN، كما تعمل البصمة حتى بدون PIN.',
-  'screens_security_settings_screen.023': 'يمكنك تفعيل البصمة مباشرة حتى لو لم تضبط PIN بعد.',
-  'screens_security_settings_screen.024': 'هذا الجهاز لا يدعم البصمة أو أنها غير مضبوطة في النظام.',
+  'screens_security_settings_screen.022':
+      'يمكنك استخدام البصمة أو PIN، كما تعمل البصمة حتى بدون PIN.',
+  'screens_security_settings_screen.023':
+      'يمكنك تفعيل البصمة مباشرة حتى لو لم تضبط PIN بعد.',
+  'screens_security_settings_screen.024':
+      'هذا الجهاز لا يدعم البصمة أو أنها غير مضبوطة في النظام.',
   'screens_security_settings_screen.025': 'آخر وسيلة تحقق',
   'screens_security_settings_screen.026': 'الحساب الموثوق على هذا الجهاز',
   'screens_security_settings_screen.027': 'وسائل الفتح المحلية',
-  'screens_security_settings_screen.028': 'فعّل PIN أو البصمة أو الاثنين لتسريع الدخول للتطبيق وتأكيد العمليات الحساسة.',
+  'screens_security_settings_screen.028':
+      'فعّل PIN أو البصمة أو الاثنين لتسريع الدخول للتطبيق وتأكيد العمليات الحساسة.',
   'screens_security_settings_screen.029': 'تغيير PIN',
   'screens_security_settings_screen.030': 'ضبط PIN',
-  'screens_security_settings_screen.031': 'يُستخدم لفتح التطبيق وتأكيد العمليات الحساسة.',
+  'screens_security_settings_screen.031':
+      'يُستخدم لفتح التطبيق وتأكيد العمليات الحساسة.',
   'screens_security_settings_screen.032': 'تحديث',
   'screens_security_settings_screen.033': 'إعداد',
   'screens_security_settings_screen.034': 'تفعيل البصمة',
   'screens_security_settings_screen.035': 'إعادة القفل التلقائي',
-  'screens_security_settings_screen.036': 'اختر متى يجب أن يطلب التطبيق التحقق المحلي مرة أخرى بعد بقائه في الخلفية.',
+  'screens_security_settings_screen.036':
+      'اختر متى يجب أن يطلب التطبيق التحقق المحلي مرة أخرى بعد بقائه في الخلفية.',
   'screens_security_settings_screen.037': 'أعد قفل التطبيق بعد',
   'screens_security_settings_screen.038': 'الأجهزة النشطة',
-  'screens_security_settings_screen.039': 'يمكنك إزالة أي جهاز وإجباره على التحقق مرة أخرى عند تسجيل الدخول القادم.',
+  'screens_security_settings_screen.039':
+      'يمكنك إزالة أي جهاز وإجباره على التحقق مرة أخرى عند تسجيل الدخول القادم.',
   'screens_security_settings_screen.040': 'لا توجد أجهزة نشطة ظاهرة حاليًا.',
   'screens_security_settings_screen.041': 'جهاز غير معروف',
   'screens_security_settings_screen.042': 'معرّف الجهاز: {id}',
@@ -853,7 +872,8 @@ const Map<String, String> appStringsAr = {
   'screens_security_settings_screen.046': '{count} ثانية',
   'screens_security_settings_screen.047': '{count} دقيقة',
   'screens_security_settings_screen.048': 'حذف الجهاز',
-  'screens_security_settings_screen.049': 'هل تريد إزالة هذا الجهاز من قائمة الأجهزة النشطة؟',
+  'screens_security_settings_screen.049':
+      'هل تريد إزالة هذا الجهاز من قائمة الأجهزة النشطة؟',
   'screens_security_settings_screen.050': 'إلغاء',
   'screens_security_settings_screen.051': 'حذف',
   'screens_security_settings_screen.052': 'تم الحذف',
@@ -867,25 +887,36 @@ const Map<String, String> appStringsAr = {
   'screens_security_settings_screen.060': 'رمز غير صالح',
   'screens_security_settings_screen.061': 'تأكد من إدخال 4 أرقام متطابقة.',
   'screens_security_settings_screen.062': 'إزالة PIN',
-  'screens_security_settings_screen.063': 'هل تريد إزالة رمز PIN المحلي من هذا الجهاز؟',
+  'screens_security_settings_screen.063':
+      'هل تريد إزالة رمز PIN المحلي من هذا الجهاز؟',
   'screens_security_settings_screen.064': 'إزالة',
   'screens_onboarding_screen.004': 'رصيدك وخدماتك في مكان واحد',
   'screens_onboarding_screen.005': 'إجراءات أسرع للبطاقات والتحويلات',
   'screens_onboarding_screen.006': 'حماية موثوقة وتجربة مستقرة',
-  'screens_onboarding_screen.007': 'تابع رصيدك، أنشئ البطاقات، وادخل إلى العمليات اليومية من واجهة واضحة وبسيطة.',
-  'screens_onboarding_screen.008': 'التطبيق مصمم لتقليل الخطوات وتسريع الوصول إلى إنشاء البطاقات والمسح والتحويلات.',
-  'screens_onboarding_screen.009': 'التوثيق وإدارة الحساب والعمليات الحساسة منظمة بطريقة آمنة وسهلة للمستخدم.',
-  'screens_otp_verification_screen.015': 'يرجى إدخال رمز التحقق كاملًا للمتابعة.',
-  'screens_otp_verification_screen.016': 'تم إنشاء حسابك بنجاح. يمكنك تسجيل الدخول الآن.',
+  'screens_onboarding_screen.007':
+      'تابع رصيدك، أنشئ البطاقات، وادخل إلى العمليات اليومية من واجهة واضحة وبسيطة.',
+  'screens_onboarding_screen.008':
+      'التطبيق مصمم لتقليل الخطوات وتسريع الوصول إلى إنشاء البطاقات والمسح والتحويلات.',
+  'screens_onboarding_screen.009':
+      'التوثيق وإدارة الحساب والعمليات الحساسة منظمة بطريقة آمنة وسهلة للمستخدم.',
+  'screens_otp_verification_screen.015':
+      'يرجى إدخال رمز التحقق كاملًا للمتابعة.',
+  'screens_otp_verification_screen.016':
+      'تم إنشاء حسابك بنجاح. يمكنك تسجيل الدخول الآن.',
   'screens_otp_verification_screen.017': 'تم إرسال رمز تحقق جديد إلى واتساب.',
-  'screens_otp_verification_screen.018': 'أدخل الرمز المرسل إلى واتساب لإكمال التسجيل.',
-  'screens_otp_verification_screen.019': 'أدخل الرمز المرسل إلى واتساب لتسجيل الدخول بشكل آمن.',
-  'screens_otp_verification_screen.020': 'يمكنك إعادة إرسال الرمز خلال {count} ثانية',
+  'screens_otp_verification_screen.018':
+      'أدخل الرمز المرسل إلى واتساب لإكمال التسجيل.',
+  'screens_otp_verification_screen.019':
+      'أدخل الرمز المرسل إلى واتساب لتسجيل الدخول بشكل آمن.',
+  'screens_otp_verification_screen.020':
+      'يمكنك إعادة إرسال الرمز خلال {count} ثانية',
   'screens_otp_verification_screen.021': 'لم يصلك الرمز بعد؟',
 
-  'screens_admin_permissions_screen.041': 'استخدم هذه الشاشة لضبط صلاحيات كل مستخدم بشكل دقيق بما يتناسب مع دوره ومسؤولياته.',
+  'screens_admin_permissions_screen.041':
+      'استخدم هذه الشاشة لضبط صلاحيات كل مستخدم بشكل دقيق بما يتناسب مع دوره ومسؤولياته.',
 
-  'screens_inventory_screen.014': 'تابع البطاقات المتاحة والمباعة والمستخدمة من مكان واحد مع مؤشرات واضحة وسريعة.',
+  'screens_inventory_screen.014':
+      'تابع البطاقات المتاحة والمباعة والمستخدمة من مكان واحد مع مؤشرات واضحة وسريعة.',
 
   'screens_inventory_screen.015': 'لا توجد بطاقات في هذا القسم',
 
@@ -897,31 +928,115 @@ const Map<String, String> appStringsAr = {
   'screens_inventory_screen.018': 'لا توجد بطاقات مطابقة حالياً.',
   'screens_topup_requests_screen.025': 'راجع طلبات الشحن وحدث حالتها بسرعة.',
   'screens_topup_requests_screen.026': 'هل تريد اعتماد الطلب؟',
-  'screens_topup_requests_screen.027': 'سيتم تحديث حالة الطلب وإشعار المستخدم مباشرة بعد تأكيد العملية.',
+  'screens_topup_requests_screen.027':
+      'سيتم تحديث حالة الطلب وإشعار المستخدم مباشرة بعد تأكيد العملية.',
   'screens_topup_requests_screen.028': 'جارٍ تحديث حالة الطلب...',
-  'screens_topup_requests_screen.029': 'لا توجد طلبات شحن مطابقة للفلاتر الحالية.',
+  'screens_topup_requests_screen.029':
+      'لا توجد طلبات شحن مطابقة للفلاتر الحالية.',
   'screens_topup_requests_screen.030': 'لم يتم العثور على نتائج.',
   'screens_topup_requests_screen.031': 'تحديث حالة طلب الشحن',
-  'screens_admin_system_settings_screen.035': 'لا توجد إعدادات محفوظة.',
-  'screens_admin_system_settings_screen.036': 'يمكنك ضبط الإعدادات العامة هنا.',
-  'screens_admin_system_settings_screen.037': 'اسم التطبيق في الواجهة',
-  'screens_admin_system_settings_screen.038': 'يظهر هذا الاسم داخل التطبيق وفي بعض رسائل النظام للمستخدم.',
-  'screens_admin_system_settings_screen.039': 'وصف مختصر للتطبيق والخدمة.',
-  'screens_admin_system_settings_screen.040': 'رقم واتساب الدعم المباشر',
-  'screens_admin_system_settings_screen.041': 'يستخدم لروابط الدعم داخل التطبيق.',
-  'screens_admin_system_settings_screen.042': 'روابط تحميل التطبيق',
-  'screens_admin_system_settings_screen.043': 'ضع روابط المتاجر المباشرة لكل منصة',
-  'screens_admin_system_settings_screen.044': 'رابط متجر أندرويد',
-  'screens_admin_system_settings_screen.045': 'رابط متجر آبل',
-  'screens_admin_system_settings_screen.046': 'يمكنك إضافة رابط APK مباشر عند الحاجة.',
-  'screens_admin_system_settings_screen.047': 'رابط تحميل APK مباشر',
-  'screens_admin_system_settings_screen.048': 'تحديث إعدادات التطبيق',
-  'screens_admin_system_settings_screen.049': 'لن يتم حفظ أي تغيير غير صالح.',
-  'screens_admin_system_settings_screen.050': 'احرص على إدخال روابط صحيحة قبل الحفظ.',
-  'screens_admin_system_settings_screen.051': 'متجر Android',
-  'screens_admin_system_settings_screen.052': 'متجر iOS',
-  'screens_withdrawal_requests_screen.026': 'راجع طلبات السحب واعتمدها أو ارفضها بحسب حالة الرصيد والمستندات المرفقة.',
-  'screens_withdrawal_requests_screen.027': 'لا توجد طلبات سحب مطابقة للفلاتر الحالية.',
+  'screens_admin_system_settings_screen.035': 'تم حفظ الإعدادات بنجاح.',
+  'screens_admin_system_settings_screen.036':
+      'العنوان ورقم الحساب أو المحفظة مطلوبان.',
+  'screens_admin_system_settings_screen.037': 'رقم الحساب أو المحفظة',
+  'screens_admin_system_settings_screen.038':
+      'جميع إعدادات الإدارة مجمعة هنا ويمكن ترتيبها على تبويبات أوضح.',
+  'screens_admin_system_settings_screen.039': 'إعدادات التواصل والدعم.',
+  'screens_admin_system_settings_screen.040': 'إعدادات التسجيل والتحويل',
+  'screens_admin_system_settings_screen.041':
+      'السياسات العامة وحدود التشغيل وروابط التحديث.',
+  'screens_admin_system_settings_screen.042': 'السماح بتسجيل حسابات جديدة',
+  'screens_admin_system_settings_screen.043': 'حد التحويل للحسابات غير الموثقة',
+  'screens_admin_system_settings_screen.044': 'أقل إصدار مدعوم',
+  'screens_admin_system_settings_screen.045': 'أحدث إصدار متاح',
+  'screens_admin_system_settings_screen.046':
+      'تفعيل الخدمة وإدارة وسائل الشحن المعروضة للمستخدمين.',
+  'screens_admin_system_settings_screen.047': 'تفعيل طلبات الشحن',
+  'screens_admin_system_settings_screen.048': 'تعليمات الشحن للمستخدم',
+  'screens_admin_system_settings_screen.049':
+      'لا توجد وسائل شحن مضافة حتى الآن.',
+  'screens_admin_system_settings_screen.050':
+      'حدّث نص سياسة الاستخدام الظاهر داخل التطبيق.',
+  'screens_admin_system_settings_screen.051': 'رابط متجر Android',
+  'screens_admin_system_settings_screen.052': 'رابط متجر iOS',
+  'screens_admin_system_settings_screen.053': 'التواصل',
+  'screens_admin_system_settings_screen.054': 'التطبيق',
+  'screens_admin_system_settings_screen.055': 'الشحن',
+  'screens_admin_system_settings_screen.056': 'السياسة',
+  'screens_admin_system_settings_screen.057': 'الرسوم',
+  'screens_admin_system_settings_screen.058':
+      'لا تملك صلاحية إدارة إعدادات النظام',
+  'screens_admin_system_settings_screen.059': 'رابط الويب أو APK المباشر',
+  'screens_admin_system_settings_screen.060': 'روابط التحديث والتنزيل لكل منصة',
+  'screens_admin_system_settings_screen.061':
+      'اضبط العنوان وواتساب الدعم والبريد والعنوان العام للتطبيق.',
+  'screens_admin_system_settings_screen.062':
+      'أدخل روابط المتاجر الصحيحة وتأكد من أرقام الإصدارات قبل الحفظ.',
+  'screens_admin_system_settings_screen.063':
+      'أدر وسائل الشحن وتعليمات الطلب من مكان واحد.',
+  'screens_admin_system_settings_screen.064':
+      'راجع نص السياسة المعروض داخل التطبيق.',
+  'screens_admin_system_settings_screen.065':
+      'اضبط نسب الرسوم الخاصة بحركات الرصيد والبطاقات.',
+  'screens_admin_customers_screen.038': 'لا تملك صلاحية عرض العملاء',
+  'screens_admin_customers_screen.039': 'إخفاء البحث',
+  'screens_admin_customers_screen.040': 'إظهار البحث',
+  'screens_admin_customers_screen.041': 'مساعدة',
+  'screens_admin_customers_screen.042':
+      'يمكنك فتح البحث من أيقونة البحث بالأعلى عند الحاجة.',
+  'screens_admin_customers_screen.043':
+      'المعروض الآن: {shown} • الإجمالي: {total}',
+  'screens_admin_customers_screen.044': 'مساعدة العملاء',
+  'screens_admin_customers_screen.045':
+      'استخدم البحث للوصول السريع، وافتح بطاقة العميل مباشرة لإدارة التفاصيل.',
+  'screens_admin_customers_screen.046': 'إغلاق',
+  'screens_account_settings_screen.056': 'حذف الحساب',
+  'screens_account_settings_screen.057':
+      'سيتم حذف الحساب نهائيًا من داخل التطبيق وتسجيل خروجك من هذا الجهاز. هل تريد المتابعة؟',
+  'screens_account_settings_screen.058': 'إلغاء',
+  'screens_account_settings_screen.059': 'تعذر حذف الحساب',
+  'screens_account_settings_screen.060': 'لا تملك صلاحية عرض إعدادات الحساب',
+  'screens_account_settings_screen.061': 'تسجيل الدخول مطلوب',
+  'screens_account_settings_screen.062':
+      'يرجى تسجيل الدخول قبل فتح إعدادات الحساب.',
+  'screens_account_settings_screen.063': 'الانتقال إلى تسجيل الدخول',
+  'screens_account_settings_screen.064': 'مساعدة',
+  'screens_account_settings_screen.065':
+      'يمكنك بدء حذف الحساب نهائيًا من هنا مباشرة.',
+  'screens_account_settings_screen.066': 'مساعدة سريعة',
+  'screens_account_settings_screen.067':
+      'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
+  'screens_account_settings_screen.068': 'الحساب',
+  'screens_admin_card_print_requests_screen.037':
+      'لا تملك صلاحية إدارة طلبات طباعة البطاقات',
+  'screens_admin_card_print_requests_screen.038': 'إخفاء البحث والفلاتر',
+  'screens_admin_card_print_requests_screen.039': 'إظهار البحث والفلاتر',
+  'screens_admin_card_print_requests_screen.040': 'مساعدة',
+  'screens_admin_card_print_requests_screen.041':
+      'المراجعة: {review} • المعتمد: {approved} • المكتمل: {completed}',
+  'screens_admin_card_print_requests_screen.042':
+      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_admin_card_print_requests_screen.043': 'مساعدة الطلبات',
+  'screens_admin_card_print_requests_screen.044':
+      'استخدم البحث والحالة للوصول السريع، ثم افتح الطلب لإدارة الخطوات المطلوبة.',
+  'screens_admin_card_print_requests_screen.045': 'إغلاق',
+  'screens_admin_device_requests_screen.010':
+      'لا تملك صلاحية مراجعة طلبات الأجهزة',
+  'screens_admin_device_requests_screen.011': 'مساعدة',
+  'screens_admin_device_requests_screen.012': 'مساعدة سريعة',
+  'screens_admin_device_requests_screen.013':
+      'تظهر هنا طلبات الوصول للأجهزة فقط. راجع البطاقة المناسبة ثم وافق أو ارفض حسب الحالة.',
+  'screens_admin_locations_screen.022': 'لا تملك صلاحية إدارة المناطق',
+  'screens_admin_locations_screen.023': 'إضافة',
+  'screens_admin_locations_screen.024': 'مساعدة',
+  'screens_admin_locations_screen.025': 'عدد النقاط المتاحة: {count}',
+  'screens_admin_locations_screen.026': 'مساعدة سريعة',
+  'screens_admin_locations_screen.027':
+      'تُعرض هنا نقاط الخدمة مباشرة. استخدم زر الإضافة من الأعلى، أو افتح البطاقة للتعديل والحذف.',
+  'screens_withdrawal_requests_screen.026':
+      'راجع طلبات السحب واعتمدها أو ارفضها بحسب حالة الرصيد والمستندات المرفقة.',
+  'screens_withdrawal_requests_screen.027':
+      'لا توجد طلبات سحب مطابقة للفلاتر الحالية.',
   'screens_withdrawal_requests_screen.028': 'تحديث حالة طلب السحب',
   'widgets_support_contact_card.001': 'هل تحتاج إلى مساعدة؟',
   'widgets_support_contact_card.002': 'تواصل مع فريق الدعم مباشرة عبر واتساب.',
@@ -929,22 +1044,27 @@ const Map<String, String> appStringsAr = {
   'widgets_support_contact_card.004': 'فتح واتساب',
   'widgets_support_contact_card.005': 'نسخ الرقم',
   'screens_usage_policy_screen.001': 'سياسة الاستخدام',
-  'screens_usage_policy_screen.002': 'نوضح هنا الشروط التي تنظّم استخدام التطبيق والخدمات بطريقة مباشرة وواضحة.',
+  'screens_usage_policy_screen.002':
+      'نوضح هنا الشروط التي تنظّم استخدام التطبيق والخدمات بطريقة مباشرة وواضحة.',
   'screens_usage_policy_screen.003': 'لا توجد سياسة استخدام متاحة حاليًا.',
   'screens_usage_policy_screen.004': 'الميثاق القانوني والخصوصية',
-  'screens_usage_policy_screen.005': 'التزامنا بتقديم خدمات آمنة ومنظمة لجميع مستخدمي شواكل.',
+  'screens_usage_policy_screen.005':
+      'التزامنا بتقديم خدمات آمنة ومنظمة لجميع مستخدمي شواكل.',
   'screens_supported_locations_screen.001': 'الفروع ومراكز الخدمة',
   'screens_supported_locations_screen.002': 'خريطة شواكل التفاعلية',
-  'screens_supported_locations_screen.003': 'اعثر على أقرب وكيل أو نقطة شحن معتمدة في منطقتك مع ترتيب تلقائي حسب المسافة.',
+  'screens_supported_locations_screen.003':
+      'اعثر على أقرب وكيل أو نقطة شحن معتمدة في منطقتك مع ترتيب تلقائي حسب المسافة.',
   'screens_supported_locations_screen.004': '{count} موقع متاح',
   'screens_supported_locations_screen.005': 'مرتبة حسب المسافة',
   'screens_supported_locations_screen.006': 'الترتيب العام',
-  'screens_supported_locations_screen.007': 'تم ترتيب المواقع تلقائيًا حسب المسافة من موقعك الحالي.',
+  'screens_supported_locations_screen.007':
+      'تم ترتيب المواقع تلقائيًا حسب المسافة من موقعك الحالي.',
   'screens_supported_locations_screen.008': 'فرع شواكل',
   'screens_supported_locations_screen.009': 'نقطة خدمة معتمدة',
   'screens_supported_locations_screen.010': 'فتح في الخرائط',
   'screens_supported_locations_screen.011': 'لا توجد مواقع مسجلة حاليًا',
-  'screens_supported_locations_screen.012': 'يمكنك العودة لاحقًا أو سحب الشاشة للتحديث.',
+  'screens_supported_locations_screen.012':
+      'يمكنك العودة لاحقًا أو سحب الشاشة للتحديث.',
   'screens_supported_locations_screen.013': '{count} م',
   'screens_supported_locations_screen.014': '{count} كم',
   'screens_scan_card_screen.001': 'فحص الباركود',
@@ -954,7 +1074,8 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.005': 'فتح الكاميرا',
   'screens_scan_card_screen.006': 'بحث',
   'screens_scan_card_screen.007': 'تفاصيل البطاقة',
-  'screens_scan_card_screen.008': 'ابحث عن بطاقة أو استخدم الكاميرا لعرض تفاصيلها.',
+  'screens_scan_card_screen.008':
+      'ابحث عن بطاقة أو استخدم الكاميرا لعرض تفاصيلها.',
   'screens_scan_card_screen.009': 'إخفاء تفاصيل البطاقة',
   'screens_scan_card_screen.010': 'إظهار تفاصيل البطاقة',
   'screens_scan_card_screen.011': 'إعادة تفعيل البطاقة',
@@ -963,12 +1084,15 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.014': 'نتيجة الفحص',
   'screens_scan_card_screen.015': 'البطاقة مستخدمة مسبقًا',
   'screens_scan_card_screen.016': 'البطاقة صالحة وجاهزة',
-  'screens_scan_card_screen.017': 'هذه البطاقة استُخدمت مسبقًا ولا يمكن استردادها مرة أخرى.',
-  'screens_scan_card_screen.018': 'هذه البطاقة صالحة ويمكن استردادها أو مراجعتها.',
+  'screens_scan_card_screen.017':
+      'هذه البطاقة استُخدمت مسبقًا ولا يمكن استردادها مرة أخرى.',
+  'screens_scan_card_screen.018':
+      'هذه البطاقة صالحة ويمكن استردادها أو مراجعتها.',
   'screens_scan_card_screen.019': 'الحالة',
   'screens_scan_card_screen.020': 'القيمة',
   'screens_scan_card_screen.021': 'استرداد البطاقة واستلام الرصيد',
-  'screens_scan_card_screen.022': 'يمكنك فقط فحص البطاقة. استلام الرصيد يتطلب توثيق الحساب.',
+  'screens_scan_card_screen.022':
+      'يمكنك فقط فحص البطاقة. استلام الرصيد يتطلب توثيق الحساب.',
   'screens_scan_card_screen.023': 'الباركود',
   'screens_scan_card_screen.024': 'نوع البطاقة',
   'screens_scan_card_screen.025': 'الظهور',
@@ -987,18 +1111,23 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.038': 'المستخدمون المسموح لهم',
   'screens_scan_card_screen.039': 'فشل الفحص',
   'screens_scan_card_screen.040': 'تعذر العثور على البطاقة.',
-  'screens_scan_card_screen.041': 'وجّه الكاميرا نحو البطاقة وسيتم التقاط الرمز تلقائيًا.',
-  'screens_scan_card_screen.042': 'إذا لم يتم التقاطه تلقائيًا، قرّب البطاقة من الإطار.',
+  'screens_scan_card_screen.041':
+      'وجّه الكاميرا نحو البطاقة وسيتم التقاط الرمز تلقائيًا.',
+  'screens_scan_card_screen.042':
+      'إذا لم يتم التقاطه تلقائيًا، قرّب البطاقة من الإطار.',
   'screens_scan_card_screen.043': 'غير متاح',
   'screens_scan_card_screen.044': 'تم الاسترداد',
   'screens_scan_card_screen.045': 'تم استرداد البطاقة وإضافة الرصيد بنجاح.',
   'screens_scan_card_screen.046': 'تعذر إكمال العملية',
-  'screens_scan_card_screen.047': 'لا تملك صلاحية إعادة تفعيل البطاقات المستخدمة.',
+  'screens_scan_card_screen.047':
+      'لا تملك صلاحية إعادة تفعيل البطاقات المستخدمة.',
   'screens_scan_card_screen.048': 'تأكيد إعادة التفعيل',
-  'screens_scan_card_screen.049': 'سيتم إعادة تفعيل هذه البطاقة لتصبح جاهزة للاستخدام مرة أخرى. هل تريد المتابعة؟',
+  'screens_scan_card_screen.049':
+      'سيتم إعادة تفعيل هذه البطاقة لتصبح جاهزة للاستخدام مرة أخرى. هل تريد المتابعة؟',
   'screens_scan_card_screen.050': 'إلغاء',
   'screens_scan_card_screen.051': 'تمت إعادة تفعيل البطاقة',
-  'screens_scan_card_screen.052': 'تمت إعادة تفعيل البطاقة بنجاح وأصبحت جاهزة للاستخدام.',
+  'screens_scan_card_screen.052':
+      'تمت إعادة تفعيل البطاقة بنجاح وأصبحت جاهزة للاستخدام.',
   'screens_scan_card_screen.053': 'مستخدمة',
   'screens_scan_card_screen.054': 'مؤرشفة',
   'screens_scan_card_screen.055': 'متاحة',
@@ -1012,8 +1141,7 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.060': 'مستخدم',
   'screens_card_print_requests_screen.001': 'تعذر تحميل الطلبات',
   'screens_card_print_requests_screen.002': 'بيانات غير مكتملة',
-  'screens_card_print_requests_screen.003':
-      'أدخل قيمة بطاقة وعددًا صالحين.',
+  'screens_card_print_requests_screen.003': 'أدخل قيمة بطاقة وعددًا صالحين.',
   'screens_card_print_requests_screen.004': 'تم إرسال الطلب',
   'screens_card_print_requests_screen.005':
       'تم إرسال طلب طباعة البطاقات بنجاح.',
@@ -1072,8 +1200,7 @@ const Map<String, String> appStringsAr = {
   'screens_create_card_screen.013': 'تأكيد إصدار البطاقات',
   'screens_create_card_screen.014':
       'أنت على وشك إصدار {quantity} بطاقات.\nالنوع: {type}\nالظهور: {visibility}\nالقيمة: {value}\n{privateLine}',
-  'screens_create_card_screen.015':
-      'عدد المستفيدين المحددين: {count}',
+  'screens_create_card_screen.015': 'عدد المستفيدين المحددين: {count}',
   'screens_create_card_screen.016': 'إلغاء',
   'screens_create_card_screen.017': 'إصدار الآن',
   'screens_create_card_screen.018': 'تعذر إصدار البطاقات',
@@ -1115,8 +1242,7 @@ const Map<String, String> appStringsAr = {
   'screens_create_card_screen.048': 'إظهار الشعار',
   'screens_create_card_screen.049':
       'سيتم استخدام شعار الحساب المرفوع عند التفعيل',
-  'screens_create_card_screen.050':
-      'سيتم استخدام شعار التطبيق الافتراضي',
+  'screens_create_card_screen.050': 'سيتم استخدام شعار التطبيق الافتراضي',
   'screens_create_card_screen.051': 'استخدام شعار الحساب',
   'screens_create_card_screen.052':
       'يمكنك تغيير الشعار من إعدادات الحساب عند الحاجة',
@@ -1138,9 +1264,11 @@ const Map<String, String> appStringsAr = {
   'screens_contact_us_screen.002': 'البريد الإلكتروني الرسمي',
   'screens_contact_us_screen.003': 'المكتب الرئيسي',
   'screens_contact_us_screen.004': 'ساعات العمل: 9:00 ص - 9:00 م',
-  'screens_contact_us_screen.005': 'نحن جاهزون لخدمتكم طوال الأسبوع باستثناء العطل الرسمية.',
+  'screens_contact_us_screen.005':
+      'نحن جاهزون لخدمتكم طوال الأسبوع باستثناء العطل الرسمية.',
   'screens_contact_us_screen.006': 'مركز مساعدة شواكل',
-  'screens_contact_us_screen.007': 'فريقنا جاهز للإجابة عن استفساراتك وحل المشكلات التقنية بأسرع وقت ممكن.',
+  'screens_contact_us_screen.007':
+      'فريقنا جاهز للإجابة عن استفساراتك وحل المشكلات التقنية بأسرع وقت ممكن.',
   'widgets_admin_summary_widgets.001': 'اليوم',
   'widgets_admin_summary_widgets.002': 'إجمالي الطلبات',
   'widgets_admin_summary_widgets.003': 'قيد المعالجة',
@@ -1153,21 +1281,29 @@ const Map<String, String> appStringsAr = {
   'widgets_admin_withdrawal_request_card.005': 'رفض',
   'screens_admin_dashboard_screen.003': 'الإحصائيات',
   'screens_admin_dashboard_screen.004': 'ملخص النشاط التشغيلي',
-  'screens_admin_dashboard_screen.005': 'تابع أهم الأرقام اليومية في لوحة واحدة وبطريقة واضحة.',
+  'screens_admin_dashboard_screen.005':
+      'تابع أهم الأرقام اليومية في لوحة واحدة وبطريقة واضحة.',
   'screens_admin_dashboard_screen.006': 'طلبات اليوم',
-  'screens_admin_dashboard_screen.007': 'عدد الطلبات التي تم تسجيلها خلال هذا اليوم.',
+  'screens_admin_dashboard_screen.007':
+      'عدد الطلبات التي تم تسجيلها خلال هذا اليوم.',
   'screens_admin_dashboard_screen.008': 'المستخدمون النشطون',
-  'screens_admin_dashboard_screen.009': 'إجمالي المستخدمين الذين نفذوا عمليات اليوم.',
+  'screens_admin_dashboard_screen.009':
+      'إجمالي المستخدمين الذين نفذوا عمليات اليوم.',
   'screens_admin_dashboard_screen.010': 'إجمالي السحب',
-  'screens_admin_dashboard_screen.011': 'مجموع طلبات السحب التي تمت أو ما زالت قيد المراجعة.',
+  'screens_admin_dashboard_screen.011':
+      'مجموع طلبات السحب التي تمت أو ما زالت قيد المراجعة.',
   'screens_admin_dashboard_screen.012': 'إجمالي الشحنات',
-  'screens_admin_dashboard_screen.013': 'مجموع طلبات الشحن خلال الفترة الحالية.',
+  'screens_admin_dashboard_screen.013':
+      'مجموع طلبات الشحن خلال الفترة الحالية.',
   'screens_admin_dashboard_screen.014': 'آخر التحديثات',
-  'screens_admin_dashboard_screen.015': 'راجع أحدث العمليات والتنبيهات المهمة التي تحتاج متابعة فورية.',
+  'screens_admin_dashboard_screen.015':
+      'راجع أحدث العمليات والتنبيهات المهمة التي تحتاج متابعة فورية.',
   'screens_admin_dashboard_screen.016': 'الحالة العامة',
-  'screens_admin_dashboard_screen.017': 'مؤشرات سريعة تساعدك على متابعة أداء النظام.',
+  'screens_admin_dashboard_screen.017':
+      'مؤشرات سريعة تساعدك على متابعة أداء النظام.',
   'screens_admin_dashboard_screen.018': 'روابط سريعة',
-  'screens_admin_dashboard_screen.019': 'انتقل إلى أهم الشاشات الإدارية من هنا بدون خطوات إضافية.',
+  'screens_admin_dashboard_screen.019':
+      'انتقل إلى أهم الشاشات الإدارية من هنا بدون خطوات إضافية.',
   'screens_quick_transfer_screen.023': 'أدخل رقم هاتف للبحث عن المستلم.',
   'screens_quick_transfer_screen.024': 'تعذر العثور على المستخدم',
   'screens_quick_transfer_screen.025': 'تعذر تحديد حساب المستلم.',
@@ -1175,12 +1311,16 @@ const Map<String, String> appStringsAr = {
   'screens_quick_transfer_screen.027': 'المبلغ المراد تحويله (شيكل)',
   'screens_quick_transfer_screen.028': 'لا تملك صلاحية استخدام التحويل السريع.',
   'screens_quick_transfer_screen.029': 'إرسال رصيد عبر رقم الهاتف',
-  'screens_quick_transfer_screen.030': 'أدخل رقم هاتف المستلم فقط، ثم راجع بياناته الأساسية دون عرض أي معلومات مالية.',
+  'screens_quick_transfer_screen.030':
+      'أدخل رقم هاتف المستلم فقط، ثم راجع بياناته الأساسية دون عرض أي معلومات مالية.',
   'screens_quick_transfer_screen.031': 'رقم هاتف المستلم',
-  'screens_quick_transfer_screen.032': 'لأسباب تتعلق بالخصوصية، لا يتم عرض رصيد المستلم.',
+  'screens_quick_transfer_screen.032':
+      'لأسباب تتعلق بالخصوصية، لا يتم عرض رصيد المستلم.',
   'screens_quick_transfer_screen.033': 'إرسال الرصيد إلى هذا الرقم',
-  'screens_quick_transfer_screen.034': 'يمكنك أيضًا فحص رمز المستلم لإكمال التحويل بشكل أسرع.',
-  'screens_quick_transfer_screen.035': 'اعرض هذا الرمز على المرسل ليتمكن من تحويل الرصيد إليك مباشرة.',
+  'screens_quick_transfer_screen.034':
+      'يمكنك أيضًا فحص رمز المستلم لإكمال التحويل بشكل أسرع.',
+  'screens_quick_transfer_screen.035':
+      'اعرض هذا الرمز على المرسل ليتمكن من تحويل الرصيد إليك مباشرة.',
   'screens_admin_card_print_requests_screen.029': 'الأرشيف',
   'screens_admin_card_print_requests_screen.030': 'مكتمل',
   'screens_admin_card_print_requests_screen.031': 'المصدر',
@@ -1197,27 +1337,23 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.004': 'إرسال التحويل',
   'screens_balance_screen.005': 'ملاحظات',
   'screens_balance_screen.006': 'فشل التحويل',
-  'screens_balance_screen.007':
-      'يتطلب السحب حسابًا موثقًا وصلاحية للسحب.',
+  'screens_balance_screen.007': 'يتطلب السحب حسابًا موثقًا وصلاحية للسحب.',
   'screens_balance_screen.008': 'تم إرسال طلب السحب بنجاح.',
   'screens_balance_screen.009': 'فشل طلب السحب',
-  'screens_balance_screen.010':
-      'ليست لديك صلاحية لشحن أرصدة مستخدمين آخرين.',
+  'screens_balance_screen.010': 'ليست لديك صلاحية لشحن أرصدة مستخدمين آخرين.',
   'screens_balance_screen.011': 'شحن رصيد',
   'screens_balance_screen.012': 'تنفيذ الشحن',
   'screens_balance_screen.013': 'ملاحظات',
   'screens_balance_screen.014':
       'أدخل المبلغ الذي تريد إضافته إلى المستخدم المحدد.',
-  'screens_balance_screen.015':
-      'تمت إضافة الرصيد وإشعار المستخدم بنجاح.',
+  'screens_balance_screen.015': 'تمت إضافة الرصيد وإشعار المستخدم بنجاح.',
   'screens_balance_screen.016': 'تمت إضافة الرصيد بنجاح.',
   'screens_balance_screen.017': 'فشل الشحن',
   'screens_balance_screen.018': 'خطأ',
   'screens_balance_screen.019': 'نجاح',
   'screens_balance_screen.020': 'الرصيد',
   'screens_balance_screen.021': 'سجل الحركات',
-  'screens_balance_screen.022':
-      'راجع أحدث الحركات والنشاط المرتبط بحسابك.',
+  'screens_balance_screen.022': 'راجع أحدث الحركات والنشاط المرتبط بحسابك.',
   'screens_balance_screen.023': 'الرصيد الحالي',
   'screens_balance_screen.024': 'رصيد الطباعة المتاح',
   'screens_balance_screen.025': 'المديونية: {debt} من {limit}',
@@ -1229,8 +1365,7 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.030': 'طلب سحب',
   'screens_balance_screen.031':
       'لا توجد إجراءات إضافية متاحة لهذا الحساب حاليًا.',
-  'screens_balance_screen.032':
-      'وثّق حسابك لفتح السحب والمزيد من الإجراءات.',
+  'screens_balance_screen.032': 'وثّق حسابك لفتح السحب والمزيد من الإجراءات.',
   'screens_balance_screen.033': 'ملخص الحساب',
   'screens_balance_screen.034': 'الدور',
   'screens_balance_screen.035': 'التوثيق',
@@ -1248,21 +1383,16 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.047': 'مديونية الطباعة',
   'screens_balance_screen.048': 'لا توجد حركات حتى الآن',
   'screens_balance_screen.049': 'اكتمل التحويل',
-  'screens_balance_screen.050':
-      'تم تنفيذ التحويل بنجاح وتحديث تفاصيل رصيدك.',
+  'screens_balance_screen.050': 'تم تنفيذ التحويل بنجاح وتحديث تفاصيل رصيدك.',
   'screens_balance_screen.051': 'إغلاق',
   'screens_balance_screen.052': 'طلبات الشحن غير متاحة',
-  'screens_balance_screen.053':
-      'طلبات الشحن معطلة حاليًا لهذا الحساب.',
+  'screens_balance_screen.053': 'طلبات الشحن معطلة حاليًا لهذا الحساب.',
   'screens_balance_screen.054': 'لا توجد وسائل دفع متاحة',
-  'screens_balance_screen.055':
-      'لا توجد وسائل دفع متاحة في الوقت الحالي.',
-  'screens_balance_screen.056':
-      'أدخل مبلغًا صحيحًا واختر وسيلة دفع.',
+  'screens_balance_screen.055': 'لا توجد وسائل دفع متاحة في الوقت الحالي.',
+  'screens_balance_screen.056': 'أدخل مبلغًا صحيحًا واختر وسيلة دفع.',
   'screens_balance_screen.057': 'تم إرسال الطلب',
   'screens_balance_screen.058': 'تم إرسال طلب الشحن بنجاح.',
-  'screens_balance_screen.059':
-      'راجع تعليمات الدفع جيدًا قبل إرسال الطلب.',
+  'screens_balance_screen.059': 'راجع تعليمات الدفع جيدًا قبل إرسال الطلب.',
   'screens_balance_screen.060': 'وسيلة الدفع',
   'screens_balance_screen.061': 'رقم الدفع: {number}',
   'screens_balance_screen.062': 'المبلغ المحول',
@@ -1276,14 +1406,11 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.070': 'جارٍ الإرسال...',
   'screens_balance_screen.071': 'إرسال الطلب',
   'screens_balance_screen.072': 'تعذر تحميل خيارات الطلب',
-  'screens_balance_screen.073':
-      'أدخل اسم المستخدم أو الاسم الكامل للبحث.',
+  'screens_balance_screen.073': 'أدخل اسم المستخدم أو الاسم الكامل للبحث.',
   'screens_balance_screen.074': 'لم يتم العثور على مستخدمين مطابقين.',
-  'screens_balance_screen.075':
-      'أدخل رقم الهاتف للبحث عن الحساب.',
+  'screens_balance_screen.075': 'أدخل رقم الهاتف للبحث عن الحساب.',
   'screens_balance_screen.076': 'تم العثور على الحساب وتحديده بنجاح.',
-  'screens_balance_screen.077':
-      'لم يتم العثور على حساب لهذا الرقم.',
+  'screens_balance_screen.077': 'لم يتم العثور على حساب لهذا الرقم.',
   'screens_balance_screen.078':
       'ابحث باسم المستخدم، أو اعثر على الحساب مباشرة عبر رقم الهاتف.',
   'screens_balance_screen.079': 'ابحث عن المستخدم باسم المستخدم.',
@@ -1297,19 +1424,15 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.087': 'التحقق من الرقم',
   'screens_balance_screen.088': 'تحقق',
   'screens_balance_screen.089': 'معرّف المستخدم: {id}',
-  'screens_balance_screen.090':
-      'معرّف المستخدم: {id} • الرصيد: {balance}',
+  'screens_balance_screen.090': 'معرّف المستخدم: {id} • الرصيد: {balance}',
   'screens_balance_screen.091': 'الحساب المحدد',
   'screens_balance_screen.092': 'رقم واتساب',
   'screens_balance_screen.093': 'المبلغ',
-  'screens_balance_screen.094':
-      'حدّد الحساب أولًا باستخدام البحث عبر الهاتف.',
-  'screens_balance_screen.095':
-      'حدّد الحساب أولًا من نتائج البحث.',
+  'screens_balance_screen.094': 'حدّد الحساب أولًا باستخدام البحث عبر الهاتف.',
+  'screens_balance_screen.095': 'حدّد الحساب أولًا من نتائج البحث.',
   'screens_balance_screen.096': 'رقم الحساب البنكي',
   'screens_balance_screen.097': 'رقم المحفظة أو اسم المستخدم',
-  'screens_balance_screen.098':
-      'راجع تفاصيل السحب قبل إرسال الطلب.',
+  'screens_balance_screen.098': 'راجع تفاصيل السحب قبل إرسال الطلب.',
   'screens_balance_screen.099': 'جهة السحب',
   'screens_balance_screen.100': 'محفظة',
   'screens_balance_screen.101': 'تحويل بنكي',
@@ -1317,20 +1440,706 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.103': 'اسم صاحب الحساب',
   'screens_balance_screen.104': 'اسم البنك',
   'screens_balance_screen.105': 'أدخل مبلغ سحب صحيحًا.',
-  'screens_balance_screen.106':
-      'رقم الحساب واسم صاحب الحساب مطلوبان.',
-  'screens_balance_screen.107':
-      'أدخل اسم البنك عند اختيار التحويل البنكي.',
+  'screens_balance_screen.106': 'رقم الحساب واسم صاحب الحساب مطلوبان.',
+  'screens_balance_screen.107': 'أدخل اسم البنك عند اختيار التحويل البنكي.',
   'screens_scan_card_screen.061': 'تم الفحص بدون إنترنت',
-  'screens_scan_card_screen.062': 'تم تحميل البطاقة من الذاكرة المحلية وسيتم المزامنة عند الاتصال.',
+  'screens_scan_card_screen.062':
+      'تم تحميل البطاقة من الذاكرة المحلية وسيتم المزامنة عند الاتصال.',
   'screens_scan_card_screen.063': 'تم حفظ الفحص محلياً',
   'screens_scan_card_screen.064': 'سيتم المزامنة عند الاتصال بالإنترنت.',
   'screens_card_print_requests_screen.041': 'تجاوز حد الطباعة',
-  'screens_card_print_requests_screen.042': 'الرصيد المتاح {available} أقل من إجمالي الطلب {total}. رسوم الطباعة {fee}%.\nللطباعة بمبالغ أعلى تواصل معنا على {phone}.',
+  'screens_card_print_requests_screen.042':
+      'الرصيد المتاح {available} أقل من إجمالي الطلب {total}. رسوم الطباعة {fee}%.\nللطباعة بمبالغ أعلى تواصل معنا على {phone}.',
   'screens_card_print_requests_screen.043': 'حسناً',
   'screens_card_print_requests_screen.044': 'المصدر',
   'screens_card_print_requests_screen.045': 'محلي',
   'screens_card_print_requests_screen.046': 'من التطبيق',
   'screens_card_print_requests_screen.047': 'آخر طباعة',
   'screens_card_print_requests_screen.048': 'لم يطبع بعد',
+  'screens_scan_card_screen.068': 'عاد الإنترنت',
+  'screens_scan_card_screen.069':
+      'تم اكتشاف اتصال بالإنترنت. هل تريد الانتقال الآن إلى شاشة القراءة الأونلاين لمزامنة العمل ومتابعة التنفيذ؟',
+  'screens_scan_card_screen.070': 'الاستمرار أوف لاين',
+  'screens_scan_card_screen.071': 'الانتقال للأونلاين',
+  'screens_scan_card_screen.072': 'أنت داخل مساحة الأوف لاين',
+  'screens_scan_card_screen.073':
+      'استخدم هذه الشاشة لقراءة البطاقة فقط، ثم اعتمدها من نفس النتيجة. ستتم المزامنة لاحقًا عند عودة الإنترنت.',
+  'screens_scan_card_screen.074': 'الأون لاين متوفر',
+  'screens_scan_card_screen.075':
+      'أنت الآن في وضع الأوف لاين لكن الإنترنت متوفر. الأولوية في التطبيق للعمل أون لاين، والأوف لاين مخصص للطوارئ فقط. هل تريد الانتقال الآن إلى الأون لاين قبل {action}؟',
+  'screens_scan_card_screen.076': 'قراءة البطاقة',
+  'screens_scan_card_screen.077': 'فتح الكاميرا',
+  'screens_scan_card_screen.078':
+      'لا تتوفر صلاحية الفحص الأوف لاين على هذا الجهاز.',
+  'screens_scan_card_screen.079':
+      'تم إيقاف الفحص مؤقتًا بسبب محاولات كثيرة لبطاقات غير موجودة في ذاكرة الأوف لاين.',
+  'screens_scan_card_screen.080':
+      'تم حفظ الباركود محليًا وسيتم التحقق منه تلقائيًا عند توفر الإنترنت.',
+  'screens_scan_card_screen.081': 'نتائج الفحص',
+  'screens_scan_card_screen.082': 'خطأ في الفحص',
+  'screens_scan_card_screen.083': 'تعذر العثور على بيانات هذه البطاقة.',
+  'screens_scan_card_screen.084': 'تم العثور على البطاقة',
+  'screens_scan_card_screen.085':
+      'تم فحص البطاقة بنجاح، لكنها مستخدمة بالفعل ولا يمكن سحبها مرة أخرى من هنا.',
+  'screens_scan_card_screen.086':
+      'تم فحص البطاقة بنجاح. راجع البيانات الأساسية ثم نفّذ السحب والاعتماد مباشرة.',
+  'screens_scan_card_screen.087': 'سحب واعتماد',
+  'screens_scan_card_screen.088': 'تم حفظ الاسم المرتبط بالبطاقة: {name}',
+  'screens_scan_card_screen.089': 'اسم صاحب البطاقة',
+  'screens_scan_card_screen.090': 'أدخل اسمًا لتعريف هذه البطاقة',
+  'screens_scan_card_screen.091': 'مثال: أحمد - بطاقة رقم 1',
+  'screens_scan_card_screen.092': 'حفظ',
+  'screens_scan_card_screen.093': 'لا تملك صلاحية استخدام شاشة البطاقات',
+  'screens_scan_card_screen.094': 'إخفاء البحث اليدوي',
+  'screens_scan_card_screen.095': 'إظهار البحث اليدوي',
+  'screens_scan_card_screen.096': 'مساعدة',
+  'screens_scan_card_screen.097': 'طريقة الاستخدام',
+  'screens_scan_card_screen.098':
+      'أدخل الكود أو امسحه، وسيتم الفحص من البيانات المحلية فقط.',
+  'screens_scan_card_screen.099':
+      'أدخل الكود أو امسحه لفحص البطاقة مباشرة. تفاصيل إضافية تظهر فقط عند الحاجة.',
+  'screens_scan_card_screen.100': 'إغلاق',
+  'screens_scan_card_screen.101': 'قراءة البطاقة أوف لاين',
+  'screens_scan_card_screen.102':
+      'العمل أوف لاين. امسح الباركود أو أدخل الرقم يدويًا ثم اعتمد البطاقة مباشرة.',
+  'screens_scan_card_screen.103': 'الانتقال إلى الأون لاين',
+  'screens_scan_card_screen.104': 'الانتقال إلى الأوف لاين',
+  'screens_scan_card_screen.105':
+      'يمكنك فتح البحث اليدوي من أيقونة البحث بالأعلى عند الحاجة.',
+  'screens_scan_card_screen.106':
+      'سيتم الفحص من البيانات المحلية فقط، وعند رجوع الإنترنت ستظهر لك رسالة للانتقال إلى الأونلاين.',
+  'screens_scan_card_screen.107':
+      'الإنترنت متوفر الآن. يفضّل الانتقال إلى الأون لاين، وسيتم تذكيرك بذلك عند استخدام القراءة أو الكاميرا.',
+  'screens_scan_card_screen.108':
+      'إخلاء طرف: التطبيق غير مسؤول عن حالات التعارض، أو البطاقات غير الموجودة في النظام، أو أي بطاقة تمت إضافتها واعتمادها أثناء وضع الأوف لاين ثم تعذر تأكيدها لاحقًا. المسؤولية تقع على من قام بإدخال البطاقة واعتمادها في وضع الأوف لاين.',
+  'screens_scan_card_screen.109': 'قيمة البطاقة',
+  'screens_scan_card_screen.110': 'هذه البطاقة مستعملة بالفعل.',
+  'screens_scan_card_screen.111':
+      'لا تملك صلاحية تنفيذ إجراء مباشر على هذه البطاقة.',
+  'screens_scan_card_screen.112': 'الإجراءات',
+  'screens_scan_card_screen.113':
+      'سقف اعتماد البطاقة لهذا التابع هو {limit}. إذا تجاوزت البطاقة هذا الحد فلن يتم اعتمادها من هذا الحساب.',
+  'screens_scan_card_screen.114':
+      'هذا الحساب تابع، والاعتماد يحتاج صلاحية مفعلة. عند التفعيل سيطبّق عليه سقف {limit} للبطاقة الواحدة.',
+  'screens_scan_card_screen.115': 'ابدأ بمسح الكود أو إدخال الرقم يدويًا',
+  'screens_scan_card_screen.116': 'ستظهر هنا نتيجة الفحص فقط عند توفرها',
+  'screens_offline_center_screen.001': 'تم تحديث بيانات الأوفلاين',
+  'screens_offline_center_screen.002':
+      'أصبح أحدث مخزون البطاقات متاحًا على هذا الجهاز.',
+  'screens_offline_center_screen.003': 'تعذر تحديث بيانات الأوفلاين',
+  'screens_offline_center_screen.004':
+      'لم يتم العثور على البطاقة بعد في النظام.',
+  'screens_offline_center_screen.005':
+      'تعذر التحقق من البطاقة الآن. ستعاد المحاولة لاحقًا.',
+  'screens_offline_center_screen.006': 'لا توجد عمليات معلقة',
+  'screens_offline_center_screen.007':
+      'كل عمليات الأوفلاين تمت مزامنتها بالفعل.',
+  'screens_offline_center_screen.008': 'اكتملت المزامنة',
+  'screens_offline_center_screen.009':
+      'تمت مزامنة {count} بطاقة، والمتبقي للمراجعة {remaining}.',
+  'screens_offline_center_screen.010': 'تعذر مزامنة العمليات',
+  'screens_offline_center_screen.011': 'لا تملك صلاحية استخدام مركز الأوفلاين',
+  'screens_offline_center_screen.012': 'بطاقات جاهزة',
+  'screens_offline_center_screen.013': 'للقراءة فقط',
+  'screens_offline_center_screen.014': 'معلّق للمزامنة',
+  'screens_offline_center_screen.015': 'حد الأوف لاين',
+  'screens_offline_center_screen.016': 'قبل طلب المزامنة',
+  'screens_offline_center_screen.017': 'بحاجة مراجعة',
+  'screens_offline_center_screen.018': 'بعد عودة الإنترنت',
+  'screens_offline_center_screen.019': 'العمل أوف لاين',
+  'screens_offline_center_screen.020':
+      'ابدأ بقراءة البطاقة محليًا، ثم مزامن العمليات عند عودة الإنترنت.',
+  'screens_offline_center_screen.021': 'بطاقات جاهزة: {count}',
+  'screens_offline_center_screen.022': 'عمليات معلقة: {count}',
+  'screens_offline_center_screen.023': 'مرفوض للمراجعة: {count}',
+  'screens_offline_center_screen.024': 'مساحة القراءة السريعة',
+  'screens_offline_center_screen.025':
+      'واجهة بسيطة لقراءة البطاقة ثم اعتمادها ومزامنتها لاحقًا.',
+  'screens_offline_center_screen.026': 'فتح القراءة للبطاقة',
+  'screens_offline_center_screen.027': 'تحديث مخزون الأوف لاين',
+  'screens_offline_center_screen.028': 'مزامنة العمليات المعلقة',
+  'screens_offline_center_screen.029': 'متابعة بطاقات الأوف لاين',
+  'screens_offline_center_screen.030':
+      'تظهر هنا البطاقات المعلقة حاليًا، وأي بطاقة فشلت مزامنتها بعد العودة إلى الأون لاين. اضغط على أي بطاقة لعرض التفاصيل.',
+  'screens_offline_center_screen.031': 'لا توجد بطاقات محفوظة للمراجعة حاليًا.',
+  'screens_offline_center_screen.032': 'لم يتم تأكيدها',
+  'screens_offline_center_screen.033': 'بانتظار جلبها من النظام',
+  'screens_offline_center_screen.034': 'بدون اسم',
+  'screens_offline_center_screen.035': 'غير متوفر',
+  'screens_offline_center_screen.036': 'تفاصيل البطاقة',
+  'screens_offline_center_screen.037': 'الاسم المضاف',
+  'screens_offline_center_screen.038': 'آخر استخدام',
+  'screens_offline_center_screen.039': 'اسم منفذ العملية',
+  'screens_offline_center_screen.040': 'من استخدمها',
+  'screens_offline_center_screen.041': 'من الذي أحضر البطاقة',
+  'screens_offline_center_screen.042': 'وقت المزامنة',
+  'screens_offline_center_screen.043': 'النتيجة',
+  'screens_offline_center_screen.044': 'ملاحظة',
+  'screens_offline_center_screen.045': 'معلقة للمزامنة',
+  'screens_offline_center_screen.046': 'تمت مزامنة دفتر الديون',
+  'screens_offline_center_screen.047':
+      'تم رفع العمليات المعلقة وتحديث بيانات دفتر الديون المحلية.',
+  'screens_offline_center_screen.048': 'تعذر مزامنة دفتر الديون',
+  'screens_offline_center_screen.049': 'عمليات دفتر الديون: {count}',
+  'screens_offline_center_screen.050': 'مزامنة دفتر الديون',
+  'screens_admin_dashboard_screen.020':
+      'لا تملك صلاحية الوصول إلى لوحة الإدارة',
+  'screens_admin_dashboard_screen.021': 'طلبات',
+  'screens_admin_dashboard_screen.022': 'عملاء',
+  'screens_admin_dashboard_screen.023': 'أجهزة',
+  'screens_admin_dashboard_screen.024': 'سحب',
+  'screens_admin_dashboard_screen.025': 'شحن',
+  'screens_admin_dashboard_screen.026': 'مناطق',
+  'screens_admin_dashboard_screen.027': 'إعدادات',
+  'screens_admin_dashboard_screen.028': 'صلاحيات',
+  'screens_admin_dashboard_screen.029': 'أرشيف دفتر الديون',
+  'screens_admin_dashboard_screen.030':
+      'بحث وفلترة وتقارير إدارية مستقلة لدفتر الديون.',
+  'screens_admin_dashboard_screen.031': 'ديون',
+  'screens_admin_dashboard_screen.032': 'ملخص العمل',
+  'screens_admin_dashboard_screen.033':
+      'نظرة سريعة على مستوى الوصول والصفحات المتاحة لك.',
+  'screens_admin_dashboard_screen.034': 'دفتر الديون',
+  'screens_admin_dashboard_screen.035':
+      'ملخص سريع لأداء دفتر الديون الحالي مع أعلى العملاء مديونية.',
+  'screens_admin_dashboard_screen.036': '{count} مديون',
+  'screens_admin_dashboard_screen.037': 'عملاء الدفتر',
+  'screens_admin_dashboard_screen.038': 'إجمالي العملاء داخل دفتر الديون',
+  'screens_admin_dashboard_screen.039': 'إجمالي الديون',
+  'screens_admin_dashboard_screen.040': 'مجموع قيود الدين المسجلة',
+  'screens_admin_dashboard_screen.041': 'إجمالي السداد',
+  'screens_admin_dashboard_screen.042': 'مجموع ما تم سداده حتى الآن',
+  'screens_admin_dashboard_screen.043': 'أعلى العملاء مديونية',
+  'screens_admin_dashboard_screen.044': 'لا توجد ديون مفتوحة حاليًا.',
+  'screens_admin_dashboard_screen.045':
+      'افتح الدفتر مباشرة لمراجعة التفاصيل الكاملة.',
+  'screens_admin_dashboard_screen.046': 'نسخ التقرير',
+  'screens_admin_dashboard_screen.047': 'طباعة',
+  'screens_admin_dashboard_screen.048': 'تصدير PDF',
+  'screens_admin_dashboard_screen.049':
+      'دفتر الديون لا يحتوي حاليًا على عملاء بمبالغ مستحقة.',
+  'screens_admin_dashboard_screen.050': 'الوحدات الإدارية',
+  'screens_admin_dashboard_screen.051':
+      'ادخل مباشرة إلى العمليات الأساسية من بطاقات مرتبة وواضحة.',
+  'screens_admin_dashboard_screen.052': '{count} أقسام',
+  'screens_admin_dashboard_screen.053': '{count} وحدات جاهزة',
+  'screens_admin_dashboard_screen.054': 'جاهزية الإدارة',
+  'screens_admin_dashboard_screen.055':
+      'لوحة مرتبة لفتح الأقسام الأساسية بسرعة ومتابعة العمل من نقطة واحدة.',
+  'screens_admin_dashboard_screen.056': 'مساعدة',
+  'screens_admin_dashboard_screen.057': 'مساعدة سريعة',
+  'screens_admin_dashboard_screen.058':
+      'هذه الصفحة للوصول السريع إلى الوحدات الإدارية. استخدم البطاقات مباشرة لفتح القسم المطلوب.',
+  'screens_admin_dashboard_screen.059': 'الوحدات المتاحة',
+  'screens_admin_dashboard_screen.060': 'أقسام الإدارة الجاهزة',
+  'screens_admin_dashboard_screen.061': 'المستخدم الحالي',
+  'screens_admin_dashboard_screen.062': 'مدير',
+  'screens_admin_dashboard_screen.063': 'هوية جلسة الإدارة',
+  'screens_admin_dashboard_screen.064': 'وضع التشغيل',
+  'screens_admin_dashboard_screen.065': 'كامل',
+  'screens_admin_dashboard_screen.066': 'مخصص',
+  'screens_admin_dashboard_screen.067': 'مستوى الوصول الحالي',
+  'screens_admin_dashboard_screen.068': 'تم النسخ',
+  'screens_admin_dashboard_screen.069': 'تم نسخ تقرير دفتر الديون إلى الحافظة.',
+  'screens_admin_dashboard_screen.070': 'فشل الطباعة',
+  'screens_admin_dashboard_screen.071': 'فشل التصدير',
+  'screens_admin_dashboard_screen.072': 'تقرير إداري - دفتر الديون',
+  'screens_admin_dashboard_screen.073': 'عدد العملاء: {count}',
+  'screens_admin_dashboard_screen.074': 'عدد المديونين: {count}',
+  'screens_admin_dashboard_screen.075': 'إجمالي الديون: {amount}',
+  'screens_admin_dashboard_screen.076': 'إجمالي السداد: {amount}',
+  'screens_admin_dashboard_screen.077': 'العملاء المديونون:',
+  'screens_admin_dashboard_screen.078': '- لا توجد ديون مفتوحة حاليًا',
+  'screens_admin_dashboard_screen.079': '- {name} | {phone} | {amount}',
+  'screens_admin_dashboard_screen.080': 'العميل',
+  'screens_admin_dashboard_screen.081': 'الجوال',
+  'screens_admin_dashboard_screen.082': 'المتبقي',
+  'screens_admin_dashboard_screen.083': 'بدون رقم',
+  'screens_admin_dashboard_screen.084': 'فتح القسم',
+  'screens_admin_dashboard_screen.085': 'ع',
+  'screens_admin_dashboard_screen.086': 'بدون رقم جوال',
+  'screens_home_screen.050': 'تمت مزامنة الأوف لاين',
+  'screens_home_screen.051': 'اكتملت مزامنة البطاقات',
+  'screens_home_screen.052':
+      'تمت مزامنة {accepted} بطاقة معلقة، وبقي {rejected} للمراجعة، كما تم تنزيل أحدث بطاقات الأوف لاين.',
+  'screens_home_screen.053':
+      'تم تنزيل أحدث بطاقات الأوف لاين وتحديث مساحة العمل المحلية.',
+  'screens_home_screen.054': 'تعذرت مزامنة الأوف لاين',
+  'screens_home_screen.055': 'لم يتم العثور على البطاقة بعد في النظام.',
+  'screens_home_screen.056':
+      'تعذر التحقق من البطاقة الآن. ستعاد المحاولة لاحقًا.',
+  'screens_home_screen.057': 'مساحة الأوف لاين جاهزة',
+  'screens_home_screen.058':
+      'يوجد على هذا الجهاز مخزون أوف لاين جاهز. هل تريد الانتقال مباشرة إلى قراءة البطاقات الأوف لاين؟',
+  'screens_home_screen.059': 'لاحقًا',
+  'screens_home_screen.060': 'فتح الأوف لاين',
+  'screens_home_screen.061': 'هذه الشاشة غير متاحة دون إنترنت',
+  'screens_home_screen.062':
+      'أنت الآن في وضع الأوفلاين. هذه الشاشة تحتاج اتصالًا بالإنترنت حتى تعمل.',
+  'screens_home_screen.063': '{count} خدمات',
+  'screens_home_screen.064': 'جاري مزامنة الأوف لاين',
+  'screens_home_screen.065': 'مزامنة الأوف لاين',
+  'screens_home_screen.066':
+      'يوجد {count} بطاقة معلقة بقيمة {amount} شيكل وسيتم تحديث المخزون المحلي أيضًا.',
+  'screens_home_screen.067':
+      'تحديث البطاقات المحلية وتنزيل أي بطاقات جديدة متاحة لهذا الجهاز.',
+  'screens_home_screen.068': 'مركز الأوف لاين',
+  'screens_home_screen.069': 'إظهار أدوات الأوف لاين فقط دون أي شاشات أونلاين.',
+  'screens_home_screen.070':
+      'إدارة مخزون الأوف لاين ومزامنة العمليات دون كشف البطاقات المحفوظة.',
+  'screens_home_screen.071': 'دفتر الديون',
+  'screens_home_screen.072':
+      'متاح للعمل المحلي مع رفع التعديلات عند عودة الإنترنت.',
+  'screens_home_screen.073':
+      'يوجد {count} بطاقة معلقة للمزامنة، مع تحديث تلقائي لمخزون الأوف لاين.',
+  'screens_home_screen.074':
+      'تحديث مساحة الأوف لاين وتنزيل البطاقات الجديدة لهذا الجهاز.',
+  'screens_home_screen.075': 'متابعة المزامنة المحلية بدون عرض أكواد البطاقات.',
+  'screens_home_screen.076':
+      'إدارة العملاء والمديونيات محليًا حتى أثناء انقطاع الإنترنت.',
+  'screens_home_screen.077':
+      'لديك {count} بطاقة معلقة للمزامنة، وسيتم تنزيل بطاقات أوف لاين جديدة أيضًا.',
+  'screens_home_screen.078':
+      'تحديث مخزون الأوف لاين على الجهاز وتنزيل أي بطاقات جديدة.',
+  'screens_home_screen.079':
+      'إدارة العملاء والمديونيات والسداد أون لاين وأوف لاين.',
+  'screens_home_screen.080': 'الواجهة الرئيسية',
+  'screens_home_screen.081': 'خدمة',
+  'screens_admin_customer_screen.073': 'إخفاء فلتر الحركات',
+  'screens_admin_customer_screen.074': 'إظهار فلتر الحركات',
+  'screens_admin_customer_screen.075': 'إعادة إرسال بيانات المستخدم',
+  'screens_admin_customer_screen.076':
+      'استعرض الحركات المالية والعمليات المرتبطة بهذا العميل.',
+  'screens_admin_customer_screen.077':
+      'يمكنك فتح فلتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_admin_customer_screen.078': 'دفتر الديون',
+  'screens_debt_book_screen.001': 'لا يوجد',
+  'screens_debt_book_screen.002': 'وضع أوف لاين',
+  'screens_debt_book_screen.003':
+      'سيتم حفظ التعديلات محليًا إلى حين توفر الإنترنت.',
+  'screens_debt_book_screen.004': 'إضافة عميل جديد',
+  'screens_debt_book_screen.005': 'تعديل بيانات العميل',
+  'screens_debt_book_screen.006': 'اسم العميل',
+  'screens_debt_book_screen.007': 'رقم الجوال',
+  'screens_debt_book_screen.008': 'ملاحظات',
+  'screens_debt_book_screen.009': 'إلغاء',
+  'screens_debt_book_screen.010': 'حفظ',
+  'screens_debt_book_screen.011': 'اسم العميل مطلوب.',
+  'screens_debt_book_screen.012': 'تم الحفظ محليًا',
+  'screens_debt_book_screen.013':
+      'سيتم رفع العميل إلى الخادم عند توفر الإنترنت.',
+  'screens_debt_book_screen.014': 'حذف العميل',
+  'screens_debt_book_screen.015':
+      'سيتم حذف العميل "{name}" مع جميع قيوده من دفتر الديون.',
+  'screens_debt_book_screen.016': 'حذف',
+  'screens_debt_book_screen.017': 'تم الحذف محليًا',
+  'screens_debt_book_screen.018':
+      'سيتم ترحيل الحذف إلى الخادم عند توفر الإنترنت.',
+  'screens_debt_book_screen.019': 'تحديث',
+  'screens_debt_book_screen.020': 'مزامنة',
+  'screens_debt_book_screen.021': 'إضافة عميل',
+  'screens_debt_book_screen.022': 'لا تملك صلاحية استخدام دفتر الديون.',
+  'screens_debt_book_screen.023': 'دفتر ديون العملاء',
+  'screens_debt_book_screen.024':
+      'تعمل الشاشة الآن أون لاين، وسيتم حفظ أي تعديل محليًا أيضًا للمراجعة السريعة.',
+  'screens_debt_book_screen.025':
+      'أنت الآن في وضع أوف لاين. يمكنك المتابعة محليًا وسيتم رفع التغييرات لاحقًا.',
+  'screens_debt_book_screen.026': 'عدد العملاء',
+  'screens_debt_book_screen.027': 'مديونون حاليًا',
+  'screens_debt_book_screen.028': 'إجمالي الديون',
+  'screens_debt_book_screen.029': 'إجمالي السداد',
+  'screens_debt_book_screen.030': 'عمليات تنتظر المزامنة',
+  'screens_debt_book_screen.031': 'الحالة: أون لاين',
+  'screens_debt_book_screen.032': 'الحالة: أوف لاين',
+  'screens_debt_book_screen.033': 'آخر مزامنة: {date}',
+  'screens_debt_book_screen.034': 'أعلى المديونين حاليًا',
+  'screens_debt_book_screen.035': 'بدون رقم جوال',
+  'screens_debt_book_screen.036': 'البحث بالاسم أو رقم الجوال',
+  'screens_debt_book_screen.037': 'الكل',
+  'screens_debt_book_screen.038': 'مديونون فقط',
+  'screens_debt_book_screen.039': 'مسددون أو بدون دين',
+  'screens_debt_book_screen.040': 'لا توجد بيانات في دفتر الديون حتى الآن.',
+  'screens_debt_book_screen.041': 'ع',
+  'screens_debt_book_screen.042': 'تعديل العميل',
+  'screens_debt_book_screen.043': 'إجمالي الدين',
+  'screens_debt_book_screen.044': 'المتبقي',
+  'screens_debt_book_screen.045': 'آخر حركة: {date}',
+  'screens_debt_book_screen.046': 'بانتظار المزامنة',
+  'screens_admin_debt_book_screen.001': 'لا يوجد',
+  'screens_admin_debt_book_screen.002': 'تقرير إداري - دفتر الديون',
+  'screens_admin_debt_book_screen.003': 'عدد العملاء: {count}',
+  'screens_admin_debt_book_screen.004': 'عدد المديونين: {count}',
+  'screens_admin_debt_book_screen.005': 'إجمالي الديون: {amount}',
+  'screens_admin_debt_book_screen.006': 'إجمالي السداد: {amount}',
+  'screens_admin_debt_book_screen.007': 'آخر مزامنة: {date}',
+  'screens_admin_debt_book_screen.008': 'العملاء المديونون:',
+  'screens_admin_debt_book_screen.009': '- لا توجد ديون مفتوحة حاليًا',
+  'screens_admin_debt_book_screen.010': '- {name} | {phone} | {amount}',
+  'screens_admin_debt_book_screen.011': 'أرشيف إداري - دفتر الديون',
+  'screens_admin_debt_book_screen.012': 'العميل',
+  'screens_admin_debt_book_screen.013': 'الجوال',
+  'screens_admin_debt_book_screen.014': 'المتبقي',
+  'screens_admin_debt_book_screen.015': 'آخر حركة',
+  'screens_admin_debt_book_screen.016': 'بدون رقم',
+  'screens_admin_debt_book_screen.017': 'تم النسخ',
+  'screens_admin_debt_book_screen.018': 'تم نسخ تقرير دفتر الديون الإداري.',
+  'screens_admin_debt_book_screen.019': 'فشل الطباعة',
+  'screens_admin_debt_book_screen.020': 'فشل التصدير',
+  'screens_admin_debt_book_screen.021':
+      'لا تملك صلاحية الوصول إلى أرشيف دفتر الديون.',
+  'screens_admin_debt_book_screen.022': 'أرشيف إداري كامل لدفتر الديون',
+  'screens_admin_debt_book_screen.023':
+      'ابحث، صفِّ، واطبع كشفًا عامًا للعملاء المديونين من مكان واحد.',
+  'screens_admin_debt_book_screen.024': 'عدد العملاء',
+  'screens_admin_debt_book_screen.025': 'المديونون',
+  'screens_admin_debt_book_screen.026': 'إجمالي الديون',
+  'screens_admin_debt_book_screen.027': 'إجمالي السداد',
+  'screens_admin_debt_book_screen.028': 'أون لاين',
+  'screens_admin_debt_book_screen.029': 'أوف لاين',
+  'screens_admin_debt_book_screen.030': 'نسخ التقرير',
+  'screens_admin_debt_book_screen.031': 'طباعة',
+  'screens_admin_debt_book_screen.032': 'تصدير PDF',
+  'screens_admin_debt_book_screen.033': 'البحث بالاسم أو رقم الجوال',
+  'screens_admin_debt_book_screen.034': 'الكل',
+  'screens_admin_debt_book_screen.035': 'مديونون فقط',
+  'screens_admin_debt_book_screen.036': 'مسددون أو بدون دين',
+  'screens_admin_debt_book_screen.037': 'لا توجد نتائج مطابقة.',
+  'screens_admin_debt_book_screen.038': 'ع',
+  'screens_admin_debt_book_screen.039': 'بدون رقم جوال',
+  'screens_admin_debt_book_screen.040': 'إجمالي الدين',
+  'screens_admin_debt_book_screen.041': 'إجمالي السداد',
+  'screens_debt_book_customer_screen.001': 'لا يوجد',
+  'screens_debt_book_customer_screen.002': 'كشف دفتر ديون',
+  'screens_debt_book_customer_screen.003': 'اسم العميل: {name}',
+  'screens_debt_book_customer_screen.004': 'رقم الجوال: {phone}',
+  'screens_debt_book_customer_screen.005': 'بدون رقم',
+  'screens_debt_book_customer_screen.006': 'آخر حركة: {date}',
+  'screens_debt_book_customer_screen.007': 'ملاحظات: {notes}',
+  'screens_debt_book_customer_screen.008': 'إجمالي الديون: {amount}',
+  'screens_debt_book_customer_screen.009': 'إجمالي السداد: {amount}',
+  'screens_debt_book_customer_screen.010': 'المتبقي: {amount}',
+  'screens_debt_book_customer_screen.011': 'سجل الحركات:',
+  'screens_debt_book_customer_screen.012':
+      '- {type} | {amount} | {date} | {note}',
+  'screens_debt_book_customer_screen.013': 'دين',
+  'screens_debt_book_customer_screen.014': 'سداد',
+  'screens_debt_book_customer_screen.015': 'بدون ملاحظات',
+  'screens_debt_book_customer_screen.016': 'كشف دفتر ديون العميل',
+  'screens_debt_book_customer_screen.017': 'سجل الحركات',
+  'screens_debt_book_customer_screen.018': 'لا توجد حركات مسجلة لهذا العميل.',
+  'screens_debt_book_customer_screen.019': 'النوع',
+  'screens_debt_book_customer_screen.020': 'المبلغ',
+  'screens_debt_book_customer_screen.021': 'التاريخ',
+  'screens_debt_book_customer_screen.022': 'البيان',
+  'screens_debt_book_customer_screen.023': 'تم النسخ',
+  'screens_debt_book_customer_screen.024': 'تم نسخ كشف العميل إلى الحافظة.',
+  'screens_debt_book_customer_screen.025': 'فشل الطباعة',
+  'screens_debt_book_customer_screen.026': 'فشل التصدير',
+  'screens_debt_book_customer_screen.027': 'إضافة دين',
+  'screens_debt_book_customer_screen.028': 'إضافة سداد',
+  'screens_debt_book_customer_screen.029': 'تعديل قيد دين',
+  'screens_debt_book_customer_screen.030': 'تعديل قيد سداد',
+  'screens_debt_book_customer_screen.031': 'المبلغ',
+  'screens_debt_book_customer_screen.032': 'بيان العملية',
+  'screens_debt_book_customer_screen.033': 'إلغاء',
+  'screens_debt_book_customer_screen.034': 'حفظ',
+  'screens_debt_book_customer_screen.035': 'أدخل مبلغًا صحيحًا أكبر من صفر.',
+  'screens_debt_book_customer_screen.036': 'تم الحفظ محليًا',
+  'screens_debt_book_customer_screen.037':
+      'سيتم رفع العملية عند توفر الإنترنت.',
+  'screens_debt_book_customer_screen.038': 'تعديل بيانات العميل',
+  'screens_debt_book_customer_screen.039': 'اسم العميل',
+  'screens_debt_book_customer_screen.040': 'رقم الجوال',
+  'screens_debt_book_customer_screen.041': 'ملاحظات',
+  'screens_debt_book_customer_screen.042': 'حذف العميل',
+  'screens_debt_book_customer_screen.043':
+      'سيتم حذف العميل "{name}" مع جميع حركاته من دفتر الديون.',
+  'screens_debt_book_customer_screen.044': 'حذف',
+  'screens_debt_book_customer_screen.045': 'حذف القيد',
+  'screens_debt_book_customer_screen.046': 'سيتم حذف هذا القيد من دفتر الديون.',
+  'screens_debt_book_customer_screen.047': 'تم الحذف محليًا',
+  'screens_debt_book_customer_screen.048':
+      'سيتم ترحيل حذف القيد عند توفر الإنترنت.',
+  'screens_debt_book_customer_screen.049': 'تحديث',
+  'screens_debt_book_customer_screen.050': 'مزامنة',
+  'screens_debt_book_customer_screen.051': 'تعذر العثور على بيانات هذا العميل.',
+  'screens_debt_book_customer_screen.052': 'بدون رقم جوال',
+  'screens_debt_book_customer_screen.053': 'تعديل',
+  'screens_debt_book_customer_screen.054': 'حذف',
+  'screens_debt_book_customer_screen.055': 'آخر حركة مسجلة: {date}',
+  'screens_debt_book_customer_screen.056': 'إجمالي الديون',
+  'screens_debt_book_customer_screen.057': 'إجمالي السداد',
+  'screens_debt_book_customer_screen.058': 'المتبقي',
+  'screens_debt_book_customer_screen.059': 'نسخ الكشف',
+  'screens_debt_book_customer_screen.060': 'طباعة',
+  'screens_debt_book_customer_screen.061': 'تصدير PDF',
+  'screens_debt_book_customer_screen.062': 'سجل العميل',
+  'screens_debt_book_customer_screen.063': 'قيد دين',
+  'screens_debt_book_customer_screen.064': 'قيد سداد',
+  'screens_debt_book_customer_screen.065': 'تعديل القيد',
+  'screens_debt_book_customer_screen.066': 'بانتظار المزامنة',
+  'services_app_alert_service.001': 'نجاح',
+  'services_app_alert_service.002': 'خطأ',
+  'services_app_alert_service.003': 'معلومة',
+  'services_app_alert_service.004': 'شواكل',
+  'services_app_alert_service.005': 'تواصل عبر واتساب',
+  'services_app_alert_service.006': 'موافق',
+  'services_app_alert_service.007': 'تعذر الاتصال بالخادم',
+  'services_app_alert_service.008': 'واتس',
+  'widgets_barcode_scanner_dialog.001': 'نتائج الفحص',
+  'widgets_barcode_scanner_dialog.002': 'تعذر إظهار نتيجة الفحص',
+  'widgets_barcode_scanner_dialog.003':
+      'لم تصل بيانات صالحة بعد قراءة الباركود.',
+  'widgets_barcode_scanner_dialog.004': 'فحص بطاقة أخرى',
+  'widgets_barcode_scanner_dialog.005': 'إطفاء الإضاءة',
+  'widgets_barcode_scanner_dialog.006': 'تشغيل الإضاءة',
+  'widgets_barcode_scanner_dialog.007': 'جارٍ تحليل الباركود',
+  'widgets_barcode_scanner_dialog.008': 'نحضّر نتيجة الفحص لعرضها هنا مباشرة.',
+  'widgets_barcode_scanner_dialog.009': 'تعذر تشغيل الكاميرا',
+  'widgets_barcode_scanner_dialog.010':
+      'أغلق أي تطبيق آخر يستخدم الكاميرا ثم أعد المحاولة.',
+  'widgets_app_top_actions.001': 'هذه الشاشة غير متاحة دون إنترنت',
+  'widgets_app_top_actions.002':
+      'أنت الآن في وضع الأوفلاين. شاشة الإشعارات تحتاج اتصالًا بالإنترنت حتى تعمل.',
+  'widgets_app_top_actions.003': 'الإشعارات غير المقروءة: {count}',
+  'widgets_app_top_actions.004': 'الإشعارات',
+  'widgets_app_top_actions.005': 'خروج سريع',
+  'widgets_app_sidebar.035': 'هذه الشاشة غير متاحة دون إنترنت',
+  'widgets_app_sidebar.036':
+      'أنت الآن في وضع الأوفلاين. هذه الشاشة تحتاج اتصالًا بالإنترنت حتى تعمل.',
+  'widgets_app_sidebar.037': 'مساحة الفحص',
+  'widgets_app_sidebar.038': 'مركز الأوف لاين',
+  'widgets_app_sidebar.039': 'المستخدمون التابعون',
+  'widgets_app_sidebar.040': 'دفتر الديون',
+  'services_error_message_service.001': 'حدث خطأ غير متوقع. حاول مرة أخرى.',
+  'services_error_message_service.002':
+      'يرجى تسجيل الدخول بحساب يملك الصلاحية المطلوبة للمتابعة.',
+  'services_error_message_service.003':
+      'تعذر الاتصال بالخادم في الوقت الحالي. تحقق من الإنترنت أو أعد المحاولة بعد قليل.',
+  'services_error_message_service.004':
+      'تعذر الاتصال بالخادم. تحقق من الإنترنت أو من توفر الخدمة ثم أعد المحاولة.',
+  'services_error_message_service.005':
+      'تعذر الاتصال الفوري بالخادم حالياً. يمكنك المتابعة وإعادة المحاولة بعد قليل.',
+  'services_error_message_service.006':
+      'تأكد من جميع البيانات وحاول مرة أخرى. Please verify all entered data and try again.',
+  'services_error_message_service.007':
+      'حدث خطأ أثناء تنفيذ الطلب. حاول مرة أخرى أو تواصل مع الدعم إذا استمرت المشكلة.',
+  'services_error_message_service.008': 'غير مصرح',
+  'services_error_message_service.009': 'غير مخول',
+  'services_local_notification_service.001': 'تحديثات الحساب',
+  'services_local_notification_service.002':
+      'إشعارات الحساب والطلبات والتنبيهات المهمة',
+  'services_local_notification_service.003': 'حركات الرصيد',
+  'services_local_notification_service.004':
+      'تنبيهات إضافة الرصيد والخصم والتحويلات والحركات المالية',
+  'services_contact_info_service.001': 'التواصل',
+  'services_contact_info_service.002': 'فلسطين',
+  'services_api_service.001': 'تأكد من جميع البيانات وحاول مرة أخرى.',
+  'screens_login_screen.023': 'تسجيل دخول آمن',
+  'screens_login_screen.024': 'وصول سريع',
+  'screens_login_screen.025': 'متوافق مع الجوال',
+  'screens_transactions_screen.036': 'إخفاء البحث والفلاتر',
+  'screens_transactions_screen.037': 'إظهار البحث والفلاتر',
+  'screens_transactions_screen.038':
+      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_transactions_screen.039': 'مساعدة سريعة',
+  'screens_transactions_screen.040':
+      'استخدم البحث والفلاتر لعرض الحركات المطلوبة، والملخص المختصر يوضح الرصيد والإجماليات بدون إزاحة المحتوى الأساسي.',
+  'screens_transactions_screen.041':
+      'الرصيد: {balance} • الداخل: {in} • الخارج: {out} • الصافي: {net}',
+  'screens_security_settings_screen.065': 'الحالة العامة',
+  'screens_security_settings_screen.066': 'القفل المحلي',
+  'screens_security_settings_screen.067': 'الأجهزة',
+  'screens_admin_permissions_screen.044': 'تعذر تحميل الصلاحيات',
+  'screens_admin_permissions_screen.045':
+      'تم تحديث قوالب الصلاحيات بنجاح.',
+  'screens_admin_permissions_screen.046':
+      'لا تملك صلاحية إدارة قوالب الصلاحيات.',
+  'screens_admin_permissions_screen.047': 'عرض المستخدمين التابعين',
+  'screens_admin_customers_screen.048': 'قائمة العملاء',
+  'screens_admin_customers_screen.049': 'ملخص سريع',
+  'screens_usage_policy_screen.006': 'عرض واضح',
+  'screens_usage_policy_screen.007':
+      'تنسيق مبسط يسهل قراءة البنود بسرعة.',
+  'screens_quick_transfer_screen.036': 'إرسال سريع',
+  'screens_quick_transfer_screen.037': 'استقبال سريع',
+  'screens_debt_book_screen.047': 'العملاء',
+  'screens_debt_book_screen.048': 'الملخص',
+  'screens_notifications_screen.027': 'غير مقروء',
+  'screens_notifications_screen.028': 'إشعارات تحتاج متابعة',
+  'screens_notifications_screen.029': 'إشعارات مالية',
+  'screens_notifications_screen.030': 'حركات وتنبيهات الرصيد',
+  'screens_notifications_screen.031': 'مقروءة',
+  'screens_notifications_screen.032': 'إشعارات تم الاطلاع عليها',
+  'screens_notifications_screen.033': 'غير مقروء: {count}',
+  'screens_notifications_screen.034': 'ملخص الإشعارات',
+  'screens_notifications_screen.035':
+      'نظرة سريعة على عدد الرسائل وحالة القراءة وتوزيع المتابعة.',
+  'screens_notifications_screen.036': 'التصفية والإجراءات',
+  'screens_notifications_screen.037':
+      'اختر نوع العرض وحدّث القائمة أو علّم الإشعارات كمقروءة.',
+  'screens_transactions_screen.042': 'بحث سريع',
+  'screens_transactions_screen.043': 'نطاق زمني',
+  'screens_transactions_screen.044': 'نوع العملية',
+  'screens_transactions_screen.045': 'نتائج الحركات',
+  'screens_transactions_screen.046': 'جارٍ تحميل نتائج الحركات الحالية.',
+  'screens_transactions_screen.047': 'إجمالي الحركات المطابقة: {count}',
+  'screens_security_settings_screen.068': 'تأكيد رمز PIN الحالي',
+  'screens_security_settings_screen.069': 'أدخل رمز PIN الحالي للمتابعة.',
+  'screens_quick_transfer_screen.038': 'البحث عن المستلم',
+  'screens_quick_transfer_screen.039':
+      'ابحث برقم الجوال ثم راجع بيانات المستخدم قبل التحويل.',
+  'screens_sub_users_screen.052': 'العودة إلى وضع الإضافة',
+  'screens_sub_users_screen.053': 'جارٍ الحفظ...',
+  'screens_sub_users_screen.054': 'حفظ التعديلات',
+  'screens_sub_users_screen.055': 'إلغاء التعديل',
+  'screens_sub_users_screen.056':
+      'إرسال الرصيد بسرعة من الحساب الرئيسي إلى التابع مع رفع سقف التشغيل للحد الأعلى.',
+  'screens_sub_users_screen.057':
+      'استلام الرصيد أو سحبه من حساب التابع إلى الرئيسي.',
+  'screens_sub_users_screen.058':
+      'الوصول إلى شاشة فحص البطاقات وقراءة نتائجها.',
+  'screens_sub_users_screen.059':
+      'اعتماد البطاقة وتنفيذ حركة السحب مباشرة.',
+  'screens_sub_users_screen.060':
+      'السماح بالفحص والمزامنة في وضع أوف لاين عند توفره.',
+  'screens_sub_users_screen.061':
+      'استعراض البطاقات ونتائج المراجعة والمتابعة.',
+  'screens_sub_users_screen.062':
+      'إرسال طلبات طباعة البطاقات، مع تطبيق سقف التابع تلقائيًا حسب مستوى الصلاحية.',
+  'screens_sub_users_screen.063': 'صلاحية تشغيلية داخل التطبيق.',
+  'screens_sub_users_screen.064': 'لا يوجد مستخدمون تابعون حاليًا',
+  'screens_sub_users_screen.065':
+      'ابدأ بإنشاء أول مستخدم تابع لتوزيع المهام والصلاحيات داخل النظام.',
+  'screens_sub_users_screen.066': 'استقبال سريع',
+  'screens_sub_users_screen.067': 'فحص',
+  'screens_sub_users_screen.068': 'اعتماد',
+  'screens_sub_users_screen.069': 'أوف لاين',
+  'screens_sub_users_screen.070': 'طباعة',
+  'screens_sub_users_screen.071': 'مراجعة',
+  'screens_sub_users_screen.072': 'بدون صلاحيات',
+  'screens_sub_users_screen.073': 'الإرسال السريع',
+  'screens_sub_users_screen.074': 'الاستلام السريع',
+  'screens_sub_users_screen.075': 'فحص البطاقات',
+  'screens_sub_users_screen.076': 'اعتماد البطاقات وسحب رصيدها',
+  'screens_sub_users_screen.077': 'الفحص والمزامنة أوف لاين',
+  'screens_sub_users_screen.078': 'طلب طباعة البطاقات',
+  'screens_sub_users_screen.079': 'مراجعة البطاقات',
+  'screens_sub_users_screen.080': 'تعذر تحميل المستخدمين التابعين',
+  'screens_sub_users_screen.081':
+      'اسم المستخدم وكلمة المرور مطلوبان عند إنشاء مستخدم تابع جديد.',
+  'screens_sub_users_screen.082': 'تم تحديث المستخدمين التابعين بنجاح.',
+  'screens_sub_users_screen.083': 'تحويل رصيد إلى التابع',
+  'screens_sub_users_screen.084': 'سحب رصيد من التابع',
+  'screens_sub_users_screen.085': 'المبلغ',
+  'screens_sub_users_screen.086': 'ملاحظات',
+  'screens_sub_users_screen.087': 'تنفيذ',
+  'screens_sub_users_screen.088': 'مبلغ غير صالح',
+  'screens_sub_users_screen.089': 'أدخل مبلغًا أكبر من صفر.',
+  'screens_sub_users_screen.090': 'تم التحويل',
+  'screens_sub_users_screen.091': 'تم تنفيذ حركة الرصيد بنجاح.',
+  'screens_sub_users_screen.092': 'تعذر التحويل',
+  'screens_sub_users_screen.093': 'المستخدمون التابعون',
+  'screens_sub_users_screen.094': 'لا تملك صلاحية عرض المستخدمين التابعين',
+  'screens_sub_users_screen.095': 'إضافة وتعديل',
+  'screens_sub_users_screen.096': 'قائمة التابعين',
+  'screens_sub_users_screen.097': 'القائمة هي الواجهة الأساسية',
+  'screens_sub_users_screen.098':
+      'ابدأ بمراجعة التابعين من هنا، وعند الحاجة إلى إضافة تابع جديد أو تعديل حساب موجود افتح تبويب الإضافة والتعديل من الأعلى.',
+  'screens_sub_users_screen.099': 'وضع تعديل التابع',
+  'screens_sub_users_screen.100': 'وضع إضافة تابع جديد',
+  'screens_sub_users_screen.101':
+      'يتم الآن تعديل بيانات الحساب المحدد. يمكنك تحديث الاسم أو كلمة المرور أو الصلاحيات أو حالة التعطيل.',
+  'screens_sub_users_screen.102':
+      'رتبنا الإضافة على خطوتين واضحتين: البيانات الأساسية أولاً، ثم الصلاحيات التشغيلية، ثم الحفظ.',
+  'screens_sub_users_screen.103': 'لا يوجد مستخدمون تابعون حتى الآن.',
+  'screens_sub_users_screen.104':
+      'القائمة مرتبة لعرض الحالة والصلاحيات وإجراءات الإدارة لكل تابع بشكل مباشر.',
+  'screens_sub_users_screen.105': 'نموذج الإضافة',
+  'screens_sub_users_screen.106': 'نموذج التعديل',
+  'screens_sub_users_screen.107':
+      'أدخل بيانات التابع ثم فعّل الصلاحيات التي يحتاجها فقط.',
+  'screens_sub_users_screen.108':
+      'حدّث بيانات الحساب الحالي ثم احفظ التغييرات من أسفل النموذج.',
+  'screens_sub_users_screen.109': 'إجمالي التابعين',
+  'screens_sub_users_screen.110': 'الحسابات الفرعية المسجلة',
+  'screens_sub_users_screen.111': 'النشطون',
+  'screens_sub_users_screen.112': 'جاهزون للعمل حاليًا',
+  'screens_sub_users_screen.113': 'المعطلون',
+  'screens_sub_users_screen.114': 'بحاجة إلى إعادة تفعيل',
+  'screens_sub_users_screen.115': 'البيانات الأساسية',
+  'screens_sub_users_screen.116':
+      'هيكل واضح لاسم التابع وبيانات الدخول الخاصة به.',
+  'screens_sub_users_screen.117': 'كلمة مرور جديدة - اختياري',
+  'screens_sub_users_screen.118': 'تعطيل الحساب',
+  'screens_sub_users_screen.119':
+      'الحساب موقوف مؤقتًا ولن يتمكن من تنفيذ العمليات.',
+  'screens_sub_users_screen.120':
+      'الحساب نشط ويمكنه استخدام الصلاحيات الممنوحة.',
+  'screens_sub_users_screen.121': 'الصلاحيات التشغيلية',
+  'screens_sub_users_screen.122':
+      'حدد ما يستطيع التابع الوصول إليه داخل التطبيق.',
+  'screens_sub_users_screen.123': '{count} مفعل',
+  'screens_sub_users_screen.124':
+      'الافتراضي للتابع: اعتماد البطاقة حتى 50 شيكل وطباعة بدين 5 شيكل وسقف 50 شيكل. عند تفعيل الإرسال السريع يرتفع التشغيل إلى اعتماد حتى 200 شيكل وطباعة بدين 50 شيكل وسقف 200 شيكل.',
+  'screens_sub_users_screen.125': 'تعديل',
+  'screens_inventory_screen.015': 'لا تملك صلاحية عرض المخزون',
+  'screens_inventory_screen.016': 'إخفاء الفلاتر',
+  'screens_inventory_screen.017': 'إظهار الفلاتر',
+  'screens_inventory_screen.018':
+      'يمكنك فتح الفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_inventory_screen.019':
+      'اختر الفلتر المناسب لعرض البطاقات فقط. بقية التفاصيل تظهر داخل العناصر نفسها.',
+  'screens_card_print_requests_screen.046':
+      'الرصيد المتاح للطباعة: {balance} • الرسوم: {fee}',
+  'screens_card_print_requests_screen.047':
+      'أنت تعمل بحساب تابع. الطباعة هنا تخضع لسقف {limit} ودين تشغيلي حتى {debtLimit}.',
+  'screens_card_print_requests_screen.048':
+      'استخدم هذا القسم لإرسال طلبات الطباعة ومتابعة حالتها، بينما يظهر الملخص السريع أعلى القائمة فقط.',
+  'screens_quick_transfer_screen.040': 'إخفاء البحث',
+  'screens_quick_transfer_screen.041': 'إظهار البحث',
+  'screens_quick_transfer_screen.042':
+      'ابحث بالرقم أو امسح رمز التحويل ثم راجع بيانات المستلم قبل تنفيذ العملية.',
+  'screens_quick_transfer_screen.043':
+      'يمكنك فتح البحث من أيقونة البحث بالأعلى عند الحاجة.',
+  'screens_topup_requests_screen.032': 'إخفاء البحث والفلاتر',
+  'screens_topup_requests_screen.033': 'إظهار البحث والفلاتر',
+  'screens_topup_requests_screen.034':
+      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_topup_requests_screen.035':
+      'استخدم البحث والحالة للوصول إلى طلبات التعبئة بسرعة، ثم افتح الطلب المناسب لاعتماده أو رفضه.',
+  'screens_withdrawal_requests_screen.029': 'إخفاء البحث والفلاتر',
+  'screens_withdrawal_requests_screen.030': 'إظهار البحث والفلاتر',
+  'screens_withdrawal_requests_screen.031':
+      'يمكنك فتح البحث والفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_withdrawal_requests_screen.032':
+      'استخدم البحث والفلاتر للوصول إلى الطلبات، ثم افتح الطلب المناسب واعتمد القرار عند الحاجة.',
+  'screens_supported_locations_screen.013':
+      'اعرض القائمة مباشرة، وإذا كانت خدمة الموقع متاحة فسيتم ترتيب النقاط الأقرب أولاً.',
+  'screens_create_card_screen.050': 'لا تملك صلاحية إصدار البطاقات',
+  'screens_quick_transfer_screen.044':
+      'وجّه الكاميرا نحو رمز التحويل ليتم التقاطه مباشرة.',
+  'screens_balance_screen.071': 'طريقة الشحن',
+  'screens_balance_screen.072': 'بيانات الطلب',
+  'screens_balance_screen.073': 'إخفاء فلاتر الحركات',
+  'screens_balance_screen.074': 'إظهار فلاتر الحركات',
+  'screens_balance_screen.075':
+      'يمكنك فتح فلاتر الحركات من أيقونة التصفية بالأعلى عند الحاجة.',
+  'screens_balance_screen.076': 'سجل العمليات',
+  'screens_balance_screen.077':
+      'لا توجد عمليات معروضة ضمن الفلاتر الحالية.',
+  'screens_balance_screen.078': 'عدد العناصر في هذه الصفحة: {count}',
+  'screens_balance_screen.079': 'الصفحة {page}',
+  'screens_balance_screen.080':
+      'استخدم الأزرار السريعة لإدارة الرصيد، ثم صفِّ السجل حسب النوع أو الموقع عند الحاجة.',
+  'screens_admin_system_settings_screen.066': 'تعذر تحميل الإعدادات',
+  'screens_balance_screen.104':
+      'ابحث عن المستلم عبر رقم الجوال أو اختره مباشرة ثم أدخل مبلغ التحويل.',
+  'screens_balance_screen.105':
+      'أدخل رقم الجوال للعثور على المستلم بسرعة وبدون تكرار في النتائج.',
+  'screens_balance_screen.106': 'نتائج البحث',
+  'screens_balance_screen.107': 'تم الاختيار',
+  'screens_balance_screen.108': 'بيانات التحويل',
+  'screens_balance_screen.109': 'نوع التحويل',
+  'screens_balance_screen.110': 'بيانات السحب',
 };

@@ -3,6 +3,10 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:http/http.dart' as http;
+
+import '../localization/app_localization.dart';
+import '../localization/app_strings_ar.dart';
+import '../localization/app_strings_en.dart';
 import '../models/index.dart';
 import 'app_config.dart';
 import 'app_version_service.dart';
@@ -776,12 +780,18 @@ class ApiService {
     String password = '',
     String countryCode = '970',
   }) async {
+    final normalizedUsername = username.trim().toLowerCase();
+    final normalizedWhatsapp = PhoneNumberService.normalize(
+      input: whatsapp.trim(),
+      defaultDialCode: countryCode.trim(),
+    );
+
     final response = await http.post(
       AppConfig.apiUri('admin/users'),
       headers: await _headers(),
       body: jsonEncode({
-        'username': username.trim(),
-        'whatsapp': whatsapp.trim(),
+        'username': normalizedUsername,
+        'whatsapp': normalizedWhatsapp,
         'fullName': fullName.trim(),
         'password': password,
         'countryCode': countryCode.trim(),
@@ -1652,7 +1662,7 @@ class ApiService {
         trimmedBody.startsWith('<!DOCTYPE html') ||
         trimmedBody.startsWith('<html') ||
         trimmedBody.startsWith('<');
-    const fallbackMessage = 'تأكد من جميع البيانات وحاول مرة أخرى.';
+    final fallbackMessage = _tr('services_api_service.001');
 
     if (!contentType.contains('application/json') && looksLikeHtml) {
       throw Exception(fallbackMessage);
@@ -1670,5 +1680,12 @@ class ApiService {
     }
 
     return body;
+  }
+
+  String _tr(String key) {
+    if ((AppLocaleService.instance.locale?.languageCode ?? 'ar') == 'en') {
+      return appStringsEn[key] ?? key;
+    }
+    return appStringsAr[key] ?? appStringsEn[key] ?? key;
   }
 }

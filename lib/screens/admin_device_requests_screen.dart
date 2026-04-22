@@ -122,10 +122,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  l.text(
-                    'لا تملك صلاحية مراجعة طلبات الأجهزة',
-                    'You do not have permission to review device requests.',
-                  ),
+                  l.tr('screens_admin_device_requests_screen.010'),
                   style: AppTheme.h3,
                 ),
               ],
@@ -141,7 +138,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
         title: Text(l.tr('screens_admin_device_requests_screen.001')),
         actions: [
           IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_device_requests_screen.011'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -194,11 +191,8 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'تظهر هنا طلبات الوصول للأجهزة فقط. راجع البطاقة المناسبة ثم وافق أو ارفض حسب الحالة.',
-        'Only device access requests appear here. Review the relevant card, then approve or reject it as needed.',
-      ),
+      title: l.tr('screens_admin_device_requests_screen.012'),
+      message: l.tr('screens_admin_device_requests_screen.013'),
     );
   }
 }

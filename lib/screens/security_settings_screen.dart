@@ -129,57 +129,66 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: Text(l.tr('screens_security_settings_screen.001')),
-        actions: const [AppNotificationAction(), QuickLogoutAction()],
-      ),
-      drawer: const AppSidebar(),
-      body: SingleChildScrollView(
-        child: ResponsiveScaffoldContainer(
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_security_settings_screen.001')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSecurityHero(),
-              const SizedBox(height: 24),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isCompact = constraints.maxWidth < 920;
-                  if (isCompact) {
-                    return Column(
-                      children: [
-                        _buildStatusOverview(),
-                        const SizedBox(height: 16),
-                        _buildPinSection(),
-                      ],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 5, child: _buildStatusOverview()),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 4, child: _buildPinSection()),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTimeoutSection(),
-              const SizedBox(height: 16),
-              _buildDevicesSection(),
-              if (_isTrustedDevice) ...[
-                const SizedBox(height: 20),
-                ShwakelButton(
-                  label: l.tr('screens_security_settings_screen.002'),
-                  icon: Icons.phonelink_erase_rounded,
-                  isSecondary: true,
-                  onPressed: _clearTrusted,
-                  width: double.infinity,
+              _buildPageHeader(),
+              const SizedBox(height: 18),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppTheme.borderLight),
                 ),
-              ],
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.all(6),
+                  tabs: [
+                    Tab(
+                      text: l.tr('screens_security_settings_screen.065'),
+                      icon: const Icon(Icons.shield_rounded),
+                    ),
+                    Tab(
+                      text: l.tr('screens_security_settings_screen.066'),
+                      icon: const Icon(Icons.pin_rounded),
+                    ),
+                    Tab(
+                      text: l.tr('screens_security_settings_screen.067'),
+                      icon: const Icon(Icons.devices_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildStatusOverview(),
+                          const SizedBox(height: 16),
+                          _buildTimeoutSection(),
+                        ],
+                      ),
+                    ),
+                    SingleChildScrollView(child: _buildPinTab()),
+                    SingleChildScrollView(child: _buildDevicesTab()),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -187,57 +196,23 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     );
   }
 
-  Widget _buildSecurityHero() {
+  Widget _buildPageHeader() {
     final l = context.loc;
     return ShwakelCard(
-      padding: const EdgeInsets.all(28),
-      gradient: AppTheme.darkGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.shield_rounded,
-                  color: Colors.white,
-                  size: 38,
-                ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.tr('screens_security_settings_screen.003'),
-                      style: AppTheme.h2.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l.tr('screens_security_settings_screen.013'),
-                      style: AppTheme.bodyAction.copyWith(
-                        color: Colors.white70,
-                        height: 1.55,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Text(
+            l.tr('screens_security_settings_screen.003'),
+            style: AppTheme.h2,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 8),
+          Text(
+            l.tr('screens_security_settings_screen.013'),
+            style: AppTheme.bodyAction,
+          ),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -256,6 +231,29 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildPinTab() {
+    final l = context.loc;
+    return Column(
+      children: [
+        _buildPinSection(),
+        if (_isTrustedDevice) ...[
+          const SizedBox(height: 16),
+          ShwakelButton(
+            label: l.tr('screens_security_settings_screen.002'),
+            icon: Icons.phonelink_erase_rounded,
+            isSecondary: true,
+            onPressed: _clearTrusted,
+            width: double.infinity,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDevicesTab() {
+    return _buildDevicesSection();
   }
 
   Widget _buildStatusOverview() {
@@ -668,19 +666,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: AppTheme.primarySoft,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.12)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 16),
+          Icon(icon, color: AppTheme.primary, size: 16),
           const SizedBox(width: 8),
           Text(
             label,
             style: AppTheme.caption.copyWith(
-              color: Colors.white,
+              color: AppTheme.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1114,9 +1112,15 @@ class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('تأكيد رمز PIN الحالي', style: AppTheme.h3),
+            Text(
+              l.tr('screens_security_settings_screen.068'),
+              style: AppTheme.h3,
+            ),
             const SizedBox(height: 10),
-            Text('أدخل رمز PIN الحالي للمتابعة.', style: AppTheme.bodyAction),
+            Text(
+              l.tr('screens_security_settings_screen.069'),
+              style: AppTheme.bodyAction,
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _pinController,
@@ -1145,14 +1149,17 @@ class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
               children: [
                 Expanded(
                   child: ShwakelButton(
-                    label: 'إلغاء',
+                    label: l.tr('screens_security_settings_screen.050'),
                     isSecondary: true,
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: ShwakelButton(label: 'تأكيد', onPressed: _submit),
+                  child: ShwakelButton(
+                    label: l.tr('screens_quick_transfer_screen.015'),
+                    onPressed: _submit,
+                  ),
                 ),
               ],
             ),

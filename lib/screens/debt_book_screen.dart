@@ -32,10 +32,13 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
   bool _syncing = false;
   _DebtCustomerFilter _activeFilter = _DebtCustomerFilter.all;
 
+  String _t(String key, {Map<String, String>? params}) =>
+      context.loc.tr(key, params: params);
+
   String _formatDateTime(dynamic value) {
     final raw = value?.toString().trim() ?? '';
     if (raw.isEmpty) {
-      return 'لا يوجد';
+      return _t('screens_debt_book_screen.001');
     }
     final parsed = DateTime.tryParse(raw)?.toLocal();
     if (parsed == null) {
@@ -47,17 +50,26 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
   List<Map<String, dynamic>> _topDebtors() {
     final customers = List<Map<String, dynamic>>.from(_customers);
     customers.sort((a, b) {
-      final aBalance = (a['balance'] as num?)?.toDouble() ?? 0;
-      final bBalance = (b['balance'] as num?)?.toDouble() ?? 0;
+      final aBalance = _remainingAmount(a);
+      final bBalance = _remainingAmount(b);
       return bBalance.compareTo(aBalance);
     });
     return customers
-        .where((customer) => ((customer['balance'] as num?)?.toDouble() ?? 0) > 0)
+        .where((customer) => _remainingAmount(customer) > 0)
         .take(3)
         .toList();
   }
 
   bool get _isOnline => ConnectivityService.instance.isOnline.value;
+
+  double _remainingAmount(Map<String, dynamic>? customer) {
+    if (customer == null) {
+      return 0;
+    }
+    return (customer['remainingAmount'] as num?)?.toDouble() ??
+        (customer['balance'] as num?)?.toDouble() ??
+        0;
+  }
 
   @override
   void initState() {
@@ -123,8 +135,8 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       if (showErrors && mounted) {
         await AppAlertService.showInfo(
           context,
-          title: 'وضع أوف لاين',
-          message: 'سيتم حفظ التعديلات محليًا إلى حين توفر الإنترنت.',
+          title: _t('screens_debt_book_screen.002'),
+          message: _t('screens_debt_book_screen.003'),
         );
       }
       return;
@@ -178,7 +190,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
     return customers.where((customer) {
       final name = customer['fullName']?.toString().toLowerCase() ?? '';
       final phone = customer['phone']?.toString().toLowerCase() ?? '';
-      final balance = (customer['balance'] as num?)?.toDouble() ?? 0;
+      final balance = _remainingAmount(customer);
       final matchesQuery =
           normalized.isEmpty ||
           name.contains(normalized) ||
@@ -192,9 +204,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
     }).toList();
   }
 
-  Future<void> _openCustomer(
-    Map<String, dynamic> customer,
-  ) async {
+  Future<void> _openCustomer(Map<String, dynamic> customer) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => DebtBookCustomerScreen(
@@ -223,7 +233,11 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: Text(customer == null ? 'إضافة عميل جديد' : 'تعديل بيانات العميل'),
+          title: Text(
+            customer == null
+                ? _t('screens_debt_book_screen.004')
+                : _t('screens_debt_book_screen.005'),
+          ),
           content: SizedBox(
             width: 420,
             child: Column(
@@ -231,20 +245,24 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'اسم العميل'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_screen.006'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'رقم الجوال'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_screen.007'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: notesController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'ملاحظات',
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_screen.008'),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -254,11 +272,11 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
+              child: Text(_t('screens_debt_book_screen.009')),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ'),
+              child: Text(_t('screens_debt_book_screen.010')),
             ),
           ],
         ),
@@ -271,7 +289,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
         if (!mounted) return;
         await AppAlertService.showError(
           context,
-          message: 'اسم العميل مطلوب.',
+          message: _t('screens_debt_book_screen.011'),
         );
         return;
       }
@@ -295,8 +313,8 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       } else if (mounted) {
         await AppAlertService.showInfo(
           context,
-          title: 'تم الحفظ محليًا',
-          message: 'سيتم رفع العميل إلى الخادم عند توفر الإنترنت.',
+          title: _t('screens_debt_book_screen.012'),
+          message: _t('screens_debt_book_screen.013'),
         );
       }
     } finally {
@@ -310,18 +328,21 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('حذف العميل'),
+        title: Text(_t('screens_debt_book_screen.014')),
         content: Text(
-          'سيتم حذف العميل "${customer['fullName'] ?? '-'}" مع جميع قيوده من دفتر الديون.',
+          _t(
+            'screens_debt_book_screen.015',
+            params: {'name': customer['fullName']?.toString() ?? '-'},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(_t('screens_debt_book_screen.009')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('حذف'),
+            child: Text(_t('screens_debt_book_screen.016')),
           ),
         ],
       ),
@@ -346,8 +367,8 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
     } else if (mounted) {
       await AppAlertService.showInfo(
         context,
-        title: 'تم الحذف محليًا',
-        message: 'سيتم ترحيل الحذف إلى الخادم عند توفر الإنترنت.',
+        title: _t('screens_debt_book_screen.017'),
+        message: _t('screens_debt_book_screen.018'),
       );
     }
   }
@@ -368,7 +389,8 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       }
       if (entity == 'entry') {
         final opCustomerId = operation['customerId']?.toString() ?? '';
-        final opCustomerClientRef = operation['customerClientRef']?.toString() ?? '';
+        final opCustomerClientRef =
+            operation['customerClientRef']?.toString() ?? '';
         if ((customerId.isNotEmpty && opCustomerId == customerId) ||
             (clientRef.isNotEmpty && opCustomerClientRef == clientRef)) {
           return true;
@@ -387,416 +409,482 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
     final lastSyncedAt = _formatDateTime(_snapshot['syncedAt']);
     final topDebtors = _topDebtors();
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      drawer: const AppSidebar(),
-      appBar: AppBar(
-        title: const Text('دفتر الديون'),
-        actions: [
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: _loading || _syncing ? null : () => _load(),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-          IconButton(
-            tooltip: 'مزامنة',
-            onPressed: _syncing ? null : () => _syncAndRefresh(),
-            icon: _syncing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    _isOnline
-                        ? Icons.cloud_sync_rounded
-                        : Icons.cloud_off_rounded,
-                  ),
-          ),
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
-      ),
-      floatingActionButton: permissions.canManageDebtBook
-          ? FloatingActionButton.extended(
-              onPressed: () => _showCustomerDialog(),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text('إضافة عميل'),
-            )
-          : null,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : !permissions.canManageDebtBook
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('لا تملك صلاحية استخدام دفتر الديون.'),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        drawer: const AppSidebar(),
+        appBar: AppBar(
+          title: Text(_t('screens_debt_book_screen.023')),
+          actions: [
+            IconButton(
+              tooltip: _t('screens_debt_book_screen.019'),
+              onPressed: _loading || _syncing ? null : () => _load(),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+            IconButton(
+              tooltip: _t('screens_debt_book_screen.020'),
+              onPressed: _syncing ? null : () => _syncAndRefresh(),
+              icon: _syncing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      _isOnline
+                          ? Icons.cloud_sync_rounded
+                          : Icons.cloud_off_rounded,
+                    ),
+            ),
+            const AppNotificationAction(),
+            const QuickLogoutAction(),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(76),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.all(6),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  tabs: [
+                    Tab(
+                      text: l.tr('screens_debt_book_screen.047'),
+                      icon: const Icon(Icons.people_alt_rounded),
+                    ),
+                    Tab(
+                      text: l.tr('screens_debt_book_screen.048'),
+                      icon: const Icon(Icons.analytics_rounded),
+                    ),
+                  ],
+                ),
               ),
-            )
-          : RefreshIndicator(
-              onRefresh: () async => _load(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
+            ),
+          ),
+        ),
+        floatingActionButton: permissions.canManageDebtBook
+            ? FloatingActionButton.extended(
+                onPressed: () => _showCustomerDialog(),
+                icon: const Icon(Icons.person_add_alt_1_rounded),
+                label: Text(_t('screens_debt_book_screen.021')),
+              )
+            : null,
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : !permissions.canManageDebtBook
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(_t('screens_debt_book_screen.022')),
+                ),
+              )
+            : RefreshIndicator(
+                onRefresh: () async => _load(),
                 child: ResponsiveScaffoldContainer(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  child: TabBarView(
                     children: [
-                      ShwakelCard(
-                        padding: const EdgeInsets.all(22),
-                        gradient: AppTheme.primaryGradient,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'دفتر ديون العملاء',
-                              style: AppTheme.h2.copyWith(color: Colors.white),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _isOnline
-                                  ? 'تعمل الشاشة الآن أون لاين، وسيتم حفظ أي تعديل محليًا أيضًا للمراجعة السريعة.'
-                                  : 'أنت الآن في وضع أوف لاين. يمكنك المتابعة محليًا وسيتم رفع التغييرات لاحقًا.',
-                              style: AppTheme.bodyText.copyWith(
-                                color: Colors.white.withValues(alpha: 0.92),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Wrap(
-                        spacing: 14,
-                        runSpacing: 14,
-                        children: [
-                          _metricCard(
-                            'عدد العملاء',
-                            '${(summary['customersCount'] as num?)?.toInt() ?? 0}',
-                            Icons.people_alt_rounded,
-                            AppTheme.primary,
-                          ),
-                          _metricCard(
-                            'مديونون حاليًا',
-                            '${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
-                            Icons.warning_amber_rounded,
-                            AppTheme.warning,
-                          ),
-                          _metricCard(
-                            'إجمالي الديون',
-                            CurrencyFormatter.ils(
-                              (summary['totalDebt'] as num?)?.toDouble() ?? 0,
-                            ),
-                            Icons.arrow_upward_rounded,
-                            AppTheme.error,
-                          ),
-                          _metricCard(
-                            'إجمالي السداد',
-                            CurrencyFormatter.ils(
-                              (summary['totalPaid'] as num?)?.toDouble() ?? 0,
-                            ),
-                            Icons.arrow_downward_rounded,
-                            AppTheme.success,
-                          ),
-                          _metricCard(
-                            'عمليات تنتظر المزامنة',
-                            '${_pendingOperations.length}',
-                            Icons.sync_problem_rounded,
-                            _pendingOperations.isEmpty
-                                ? AppTheme.primary
-                                : AppTheme.warning,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      ShwakelCard(
-                        padding: const EdgeInsets.all(18),
-                        child: Wrap(
-                          spacing: 18,
-                          runSpacing: 12,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            _statusPill(
-                              icon: _isOnline
-                                  ? Icons.wifi_rounded
-                                  : Icons.wifi_off_rounded,
-                              label: _isOnline ? 'الحالة: أون لاين' : 'الحالة: أوف لاين',
-                              color: _isOnline
-                                  ? AppTheme.success
-                                  : AppTheme.warning,
-                            ),
-                            _statusPill(
-                              icon: Icons.schedule_rounded,
-                              label: 'آخر مزامنة: $lastSyncedAt',
-                              color: AppTheme.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (topDebtors.isNotEmpty) ...[
-                        const SizedBox(height: 18),
-                        Text('أعلى المديونين حاليًا', style: AppTheme.h3),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: topDebtors.map((customer) {
-                            final balance =
-                                (customer['balance'] as num?)?.toDouble() ?? 0;
-                            return SizedBox(
-                              width: 260,
-                              child: ShwakelCard(
-                                onTap: () => _openCustomer(customer),
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      customer['fullName']?.toString() ?? '-',
-                                      style: AppTheme.bodyBold,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      customer['phone']?.toString().trim().isNotEmpty ==
-                                              true
-                                          ? customer['phone'].toString()
-                                          : 'بدون رقم جوال',
-                                      style: AppTheme.caption,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      CurrencyFormatter.ils(balance),
-                                      style: AppTheme.bodyBold.copyWith(
-                                        color: AppTheme.warning,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                      const SizedBox(height: 18),
-                      TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          setState(() {
-                            _customers = _filterCustomers(
-                              _snapshot,
-                              value,
-                              _activeFilter,
-                            );
-                          });
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'البحث بالاسم أو رقم الجوال',
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          suffixIcon: _searchController.text.isEmpty
-                              ? null
-                              : IconButton(
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _customers = _filterCustomers(
-                                        _snapshot,
-                                        '',
-                                        _activeFilter,
-                                      );
-                                    });
-                                  },
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          _buildFilterChip(
-                            title: 'الكل',
-                            filter: _DebtCustomerFilter.all,
-                          ),
-                          _buildFilterChip(
-                            title: 'مديونون فقط',
-                            filter: _DebtCustomerFilter.debtors,
-                          ),
-                          _buildFilterChip(
-                            title: 'مسددون أو بدون دين',
-                            filter: _DebtCustomerFilter.settled,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      if (_customers.isEmpty)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(40),
-                            child: Text(
-                              'لا توجد بيانات في دفتر الديون حتى الآن.',
-                            ),
-                          ),
-                        )
-                      else
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _customers.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final customer = _customers[index];
-                            final balance =
-                                (customer['balance'] as num?)?.toDouble() ?? 0;
-                            return ShwakelCard(
-                              onTap: () => _openCustomer(customer),
-                              padding: const EdgeInsets.all(18),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      CircleAvatar(
-                                        backgroundColor: AppTheme.primary
-                                            .withValues(alpha: 0.14),
-                                        child: Text(
-                                          (customer['fullName']
-                                                          ?.toString()
-                                                          .trim()
-                                                          .isNotEmpty ??
-                                                      false)
-                                              ? customer['fullName']
-                                                  .toString()
-                                                  .trim()
-                                                  .characters
-                                                  .first
-                                              : 'ع',
-                                          style: AppTheme.bodyBold.copyWith(
-                                            color: AppTheme.primary,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              customer['fullName']
-                                                      ?.toString() ??
-                                                  '-',
-                                              style: AppTheme.bodyBold,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            if (_customerHasPendingChanges(
-                                              customer,
-                                            )) ...[
-                                              _pendingBadge(),
-                                              const SizedBox(height: 4),
-                                            ],
-                                            Text(
-                                              customer['phone']
-                                                      ?.toString()
-                                                      .trim()
-                                                      .isNotEmpty ==
-                                                  true
-                                                  ? customer['phone']
-                                                      .toString()
-                                                  : 'بدون رقم جوال',
-                                              style: AppTheme.caption,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      PopupMenuButton<String>(
-                                        itemBuilder: (context) => const [
-                                          PopupMenuItem(
-                                            value: 'edit',
-                                            child: Text('تعديل العميل'),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'delete',
-                                            child: Text('حذف العميل'),
-                                          ),
-                                        ],
-                                        onSelected: (value) {
-                                          if (value == 'edit') {
-                                            _showCustomerDialog(
-                                              customer: customer,
-                                            );
-                                          } else if (value == 'delete') {
-                                            _deleteCustomer(customer);
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _smallSummary(
-                                          'إجمالي الدين',
-                                          CurrencyFormatter.ils(
-                                            (customer['totalDebt'] as num?)
-                                                    ?.toDouble() ??
-                                                0,
-                                          ),
-                                          AppTheme.error,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: _smallSummary(
-                                          'إجمالي السداد',
-                                          CurrencyFormatter.ils(
-                                            (customer['totalPaid'] as num?)
-                                                    ?.toDouble() ??
-                                                0,
-                                          ),
-                                          AppTheme.success,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: _smallSummary(
-                                          'المتبقي',
-                                          CurrencyFormatter.ils(balance),
-                                          balance > 0
-                                              ? AppTheme.warning
-                                              : AppTheme.primary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'آخر حركة: ${_formatDateTime(customer['lastEntryAt'])}',
-                                    style: AppTheme.caption,
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                      _buildCustomersTab(lastSyncedAt),
+                      _buildSummaryTab(summary, topDebtors, lastSyncedAt),
                     ],
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
-  Widget _metricCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
+  Widget _buildOverviewStrip({
+    required String lastSyncedAt,
+    String? description,
+  }) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      color: AppTheme.surface,
+      withBorder: true,
+      borderColor: AppTheme.borderLight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (description != null) ...[
+            Text(description, style: AppTheme.bodyAction),
+            const SizedBox(height: 12),
+          ],
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _statusPill(
+                icon: _isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                label: _isOnline
+                    ? _t('screens_debt_book_screen.031')
+                    : _t('screens_debt_book_screen.032'),
+                color: _isOnline ? AppTheme.success : AppTheme.warning,
+              ),
+              _statusPill(
+                icon: Icons.schedule_rounded,
+                label: _t(
+                  'screens_debt_book_screen.033',
+                  params: {'date': lastSyncedAt},
+                ),
+                color: AppTheme.primary,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomersTab(String lastSyncedAt) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildOverviewStrip(
+            lastSyncedAt: lastSyncedAt,
+            description: _isOnline
+                ? _t('screens_debt_book_screen.024')
+                : _t('screens_debt_book_screen.025'),
+          ),
+          const SizedBox(height: 16),
+          ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            color: AppTheme.surface,
+            withBorder: true,
+            borderColor: AppTheme.borderLight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _customers = _filterCustomers(
+                        _snapshot,
+                        value,
+                        _activeFilter,
+                      );
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_screen.036'),
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _customers = _filterCustomers(
+                                  _snapshot,
+                                  '',
+                                  _activeFilter,
+                                );
+                              });
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildFilterChip(
+                      title: _t('screens_debt_book_screen.037'),
+                      filter: _DebtCustomerFilter.all,
+                    ),
+                    _buildFilterChip(
+                      title: _t('screens_debt_book_screen.038'),
+                      filter: _DebtCustomerFilter.debtors,
+                    ),
+                    _buildFilterChip(
+                      title: _t('screens_debt_book_screen.039'),
+                      filter: _DebtCustomerFilter.settled,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_customers.isEmpty)
+            ShwakelCard(
+              padding: const EdgeInsets.all(28),
+              color: AppTheme.surface,
+              withBorder: true,
+              borderColor: AppTheme.borderLight,
+              child: Center(child: Text(_t('screens_debt_book_screen.040'))),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _customers.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final customer = _customers[index];
+                final balance = _remainingAmount(customer);
+                return ShwakelCard(
+                  onTap: () => _openCustomer(customer),
+                  padding: const EdgeInsets.all(18),
+                  color: AppTheme.surface,
+                  withBorder: true,
+                  borderColor: AppTheme.borderLight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: AppTheme.primary.withValues(
+                              alpha: 0.14,
+                            ),
+                            child: Text(
+                              (customer['fullName']
+                                          ?.toString()
+                                          .trim()
+                                          .isNotEmpty ??
+                                      false)
+                                  ? customer['fullName']
+                                        .toString()
+                                        .trim()
+                                        .characters
+                                        .first
+                                  : _t('screens_debt_book_screen.041'),
+                              style: AppTheme.bodyBold.copyWith(
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  customer['fullName']?.toString() ?? '-',
+                                  style: AppTheme.bodyBold,
+                                ),
+                                const SizedBox(height: 4),
+                                if (_customerHasPendingChanges(customer)) ...[
+                                  _pendingBadge(),
+                                  const SizedBox(height: 4),
+                                ],
+                                Text(
+                                  customer['phone']
+                                              ?.toString()
+                                              .trim()
+                                              .isNotEmpty ==
+                                          true
+                                      ? customer['phone'].toString()
+                                      : _t('screens_debt_book_screen.035'),
+                                  style: AppTheme.caption,
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text(_t('screens_debt_book_screen.042')),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(_t('screens_debt_book_screen.014')),
+                              ),
+                            ],
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showCustomerDialog(customer: customer);
+                              } else if (value == 'delete') {
+                                _deleteCustomer(customer);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _smallSummary(
+                              _t('screens_debt_book_screen.043'),
+                              CurrencyFormatter.ils(
+                                (customer['totalDebt'] as num?)?.toDouble() ??
+                                    0,
+                              ),
+                              AppTheme.error,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _smallSummary(
+                              _t('screens_debt_book_screen.029'),
+                              CurrencyFormatter.ils(
+                                (customer['totalPaid'] as num?)?.toDouble() ??
+                                    0,
+                              ),
+                              AppTheme.success,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _smallSummary(
+                              _t('screens_debt_book_screen.044'),
+                              CurrencyFormatter.ils(balance),
+                              balance > 0 ? AppTheme.warning : AppTheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _t(
+                          'screens_debt_book_screen.045',
+                          params: {
+                            'date': _formatDateTime(customer['lastEntryAt']),
+                          },
+                        ),
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryTab(
+    Map<String, dynamic> summary,
+    List<Map<String, dynamic>> topDebtors,
+    String lastSyncedAt,
   ) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildOverviewStrip(
+            lastSyncedAt: lastSyncedAt,
+            description: 'ملخص سريع ومباشر لدفتر الديون بدون تعقيد في العرض.',
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 14,
+            runSpacing: 14,
+            children: [
+              _metricCard(
+                _t('screens_debt_book_screen.026'),
+                '${(summary['customersCount'] as num?)?.toInt() ?? 0}',
+                Icons.people_alt_rounded,
+                AppTheme.primary,
+              ),
+              _metricCard(
+                _t('screens_debt_book_screen.027'),
+                '${(summary['openCustomersCount'] as num?)?.toInt() ?? 0}',
+                Icons.warning_amber_rounded,
+                AppTheme.warning,
+              ),
+              _metricCard(
+                _t('screens_debt_book_screen.028'),
+                CurrencyFormatter.ils(
+                  (summary['totalDebt'] as num?)?.toDouble() ?? 0,
+                ),
+                Icons.arrow_upward_rounded,
+                AppTheme.error,
+              ),
+              _metricCard(
+                _t('screens_debt_book_screen.029'),
+                CurrencyFormatter.ils(
+                  (summary['totalPaid'] as num?)?.toDouble() ?? 0,
+                ),
+                Icons.arrow_downward_rounded,
+                AppTheme.success,
+              ),
+              _metricCard(
+                _t('screens_debt_book_screen.030'),
+                '${_pendingOperations.length}',
+                Icons.sync_problem_rounded,
+                _pendingOperations.isEmpty
+                    ? AppTheme.primary
+                    : AppTheme.warning,
+              ),
+            ],
+          ),
+          if (topDebtors.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Text(_t('screens_debt_book_screen.034'), style: AppTheme.h3),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: topDebtors.map((customer) {
+                final balance = _remainingAmount(customer);
+                return SizedBox(
+                  width: 260,
+                  child: ShwakelCard(
+                    onTap: () => _openCustomer(customer),
+                    padding: const EdgeInsets.all(16),
+                    color: AppTheme.surface,
+                    withBorder: true,
+                    borderColor: AppTheme.borderLight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customer['fullName']?.toString() ?? '-',
+                          style: AppTheme.bodyBold,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          customer['phone']?.toString().trim().isNotEmpty ==
+                                  true
+                              ? customer['phone'].toString()
+                              : _t('screens_debt_book_screen.035'),
+                          style: AppTheme.caption,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          CurrencyFormatter.ils(balance),
+                          style: AppTheme.bodyBold.copyWith(
+                            color: AppTheme.warning,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _metricCard(String title, String value, IconData icon, Color color) {
     return SizedBox(
       width: 220,
       child: ShwakelCard(
         padding: const EdgeInsets.all(18),
+        color: AppTheme.surface,
+        withBorder: true,
+        borderColor: AppTheme.borderLight,
         child: Row(
           children: [
             Container(
@@ -837,10 +925,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
         children: [
           Text(title, style: AppTheme.caption),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: AppTheme.bodyBold.copyWith(color: color),
-          ),
+          Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
         ],
       ),
     );
@@ -874,7 +959,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        'بانتظار المزامنة',
+        _t('screens_debt_book_screen.046'),
         style: AppTheme.caption.copyWith(
           color: AppTheme.warning,
           fontWeight: FontWeight.w700,

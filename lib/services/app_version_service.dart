@@ -47,9 +47,12 @@ class AppVersionService {
     return {
       'Accept': 'application/json',
       if (includeJsonContentType) 'Content-Type': 'application/json',
+      'X-Requested-With': 'shwakil-flutter-client',
       'X-App-Version': info.version.trim(),
       'X-App-Build': info.buildNumber.trim(),
       'X-App-Platform': _platformLabel,
+      if (AppConfig.hasTrustedClientKey)
+        'X-Client-Key': AppConfig.trustedClientKey,
     };
   }
 

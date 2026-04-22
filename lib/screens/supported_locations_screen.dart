@@ -86,7 +86,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
         title: Text(l.tr('screens_supported_locations_screen.001')),
         actions: [
           IconButton(
-            tooltip: l.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -134,11 +134,8 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
-      title: l.text('مساعدة سريعة', 'Quick help'),
-      message: l.text(
-        'اعرض القائمة مباشرة، وإذا كانت خدمة الموقع متاحة فسيتم ترتيب النقاط الأقرب أولاً.',
-        'The list is shown directly, and when location is available the nearest points are sorted first.',
-      ),
+      title: l.tr('screens_transactions_screen.039'),
+      message: l.tr('screens_supported_locations_screen.013'),
     );
   }
 

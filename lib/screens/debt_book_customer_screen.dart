@@ -36,10 +36,22 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
   pw.Font? _pdfRegularFont;
   pw.Font? _pdfBoldFont;
 
+  String _t(String key, {Map<String, String>? params}) =>
+      context.loc.tr(key, params: params);
+
+  double _remainingAmount(Map<String, dynamic>? customer) {
+    if (customer == null) {
+      return 0;
+    }
+    return (customer['remainingAmount'] as num?)?.toDouble() ??
+        (customer['balance'] as num?)?.toDouble() ??
+        0;
+  }
+
   String _formatDateTime(dynamic value) {
     final raw = value?.toString().trim() ?? '';
     if (raw.isEmpty) {
-      return 'لا يوجد';
+      return _t('screens_debt_book_customer_screen.001');
     }
     final parsed = DateTime.tryParse(raw)?.toLocal();
     if (parsed == null) {
@@ -65,29 +77,78 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     final buffer = StringBuffer();
     final totalDebt = (customer['totalDebt'] as num?)?.toDouble() ?? 0;
     final totalPaid = (customer['totalPaid'] as num?)?.toDouble() ?? 0;
-    final balance = (customer['balance'] as num?)?.toDouble() ?? 0;
+    final balance = _remainingAmount(customer);
 
-    buffer.writeln('كشف دفتر ديون');
-    buffer.writeln('اسم العميل: ${customer['fullName'] ?? '-'}');
+    buffer.writeln(_t('screens_debt_book_customer_screen.002'));
     buffer.writeln(
-      'رقم الجوال: ${customer['phone']?.toString().trim().isNotEmpty == true ? customer['phone'] : 'بدون رقم'}',
+      _t(
+        'screens_debt_book_customer_screen.003',
+        params: {'name': customer['fullName']?.toString() ?? '-'},
+      ),
     );
     buffer.writeln(
-      'آخر حركة: ${_formatDateTime(customer['lastEntryAt'])}',
+      _t(
+        'screens_debt_book_customer_screen.004',
+        params: {
+          'phone': customer['phone']?.toString().trim().isNotEmpty == true
+              ? customer['phone'].toString()
+              : _t('screens_debt_book_customer_screen.005'),
+        },
+      ),
+    );
+    buffer.writeln(
+      _t(
+        'screens_debt_book_customer_screen.006',
+        params: {'date': _formatDateTime(customer['lastEntryAt'])},
+      ),
     );
     if ((customer['notes']?.toString().trim().isNotEmpty ?? false)) {
-      buffer.writeln('ملاحظات: ${customer['notes']}');
+      buffer.writeln(
+        _t(
+          'screens_debt_book_customer_screen.007',
+          params: {'notes': customer['notes'].toString()},
+        ),
+      );
     }
     buffer.writeln('');
-    buffer.writeln('إجمالي الديون: ${CurrencyFormatter.ils(totalDebt)}');
-    buffer.writeln('إجمالي السداد: ${CurrencyFormatter.ils(totalPaid)}');
-    buffer.writeln('المتبقي: ${CurrencyFormatter.ils(balance)}');
+    buffer.writeln(
+      _t(
+        'screens_debt_book_customer_screen.008',
+        params: {'amount': CurrencyFormatter.ils(totalDebt)},
+      ),
+    );
+    buffer.writeln(
+      _t(
+        'screens_debt_book_customer_screen.009',
+        params: {'amount': CurrencyFormatter.ils(totalPaid)},
+      ),
+    );
+    buffer.writeln(
+      _t(
+        'screens_debt_book_customer_screen.010',
+        params: {'amount': CurrencyFormatter.ils(balance)},
+      ),
+    );
     buffer.writeln('');
-    buffer.writeln('سجل الحركات:');
+    buffer.writeln(_t('screens_debt_book_customer_screen.011'));
     for (final entry in _entries) {
       final isDebt = entry['type'] == 'debt';
       buffer.writeln(
-        '- ${isDebt ? 'دين' : 'سداد'} | ${CurrencyFormatter.ils((entry['amount'] as num?)?.toDouble() ?? 0)} | ${_formatDateTime(entry['occurredAt'])} | ${entry['note']?.toString().trim().isNotEmpty == true ? entry['note'] : 'بدون ملاحظات'}',
+        _t(
+          'screens_debt_book_customer_screen.012',
+          params: {
+            'type': isDebt
+                ? _t('screens_debt_book_customer_screen.013')
+                : _t('screens_debt_book_customer_screen.014'),
+            'amount': CurrencyFormatter.ils(
+              (entry['amount'] as num?)?.toDouble() ?? 0,
+            ),
+            'date': _formatDateTime(entry['occurredAt']),
+            'note': entry['note']?.toString().trim().isNotEmpty == true
+                ? entry['note'].toString()
+                : _t('screens_debt_book_customer_screen.015'),
+          },
+        ),
       );
     }
     return buffer.toString();
@@ -95,10 +156,14 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
 
   Future<pw.Document> _buildCustomerReportPdf() async {
     await _ensurePdfFonts();
+    if (!mounted) {
+      return pw.Document();
+    }
+    final l = context.loc;
     final customer = _customer!;
     final totalDebt = (customer['totalDebt'] as num?)?.toDouble() ?? 0;
     final totalPaid = (customer['totalPaid'] as num?)?.toDouble() ?? 0;
-    final balance = (customer['balance'] as num?)?.toDouble() ?? 0;
+    final balance = _remainingAmount(customer);
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -112,27 +177,48 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
           ),
         ),
         textDirection: pw.TextDirection.rtl,
-        build: (context) => [
+        build: (_) => [
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
-                  'كشف دفتر ديون العميل',
-                  style: pw.TextStyle(
-                    font: _pdfBoldFont,
-                    fontSize: 18,
-                  ),
+                  l.tr('screens_debt_book_customer_screen.016'),
+                  style: pw.TextStyle(font: _pdfBoldFont, fontSize: 18),
                 ),
                 pw.SizedBox(height: 12),
-                pw.Text('اسم العميل: ${customer['fullName'] ?? '-'}'),
                 pw.Text(
-                  'رقم الجوال: ${customer['phone']?.toString().trim().isNotEmpty == true ? customer['phone'] : 'بدون رقم'}',
+                  l.tr(
+                    'screens_debt_book_customer_screen.003',
+                    params: {'name': customer['fullName']?.toString() ?? '-'},
+                  ),
                 ),
-                pw.Text('آخر حركة: ${_formatDateTime(customer['lastEntryAt'])}'),
+                pw.Text(
+                  l.tr(
+                    'screens_debt_book_customer_screen.004',
+                    params: {
+                      'phone':
+                          customer['phone']?.toString().trim().isNotEmpty ==
+                              true
+                          ? customer['phone'].toString()
+                          : l.tr('screens_debt_book_customer_screen.005'),
+                    },
+                  ),
+                ),
+                pw.Text(
+                  l.tr(
+                    'screens_debt_book_customer_screen.006',
+                    params: {'date': _formatDateTime(customer['lastEntryAt'])},
+                  ),
+                ),
                 if ((customer['notes']?.toString().trim().isNotEmpty ?? false))
-                  pw.Text('ملاحظات: ${customer['notes']}'),
+                  pw.Text(
+                    l.tr(
+                      'screens_debt_book_customer_screen.007',
+                      params: {'notes': customer['notes'].toString()},
+                    ),
+                  ),
                 pw.SizedBox(height: 16),
                 pw.Container(
                   padding: const pw.EdgeInsets.all(12),
@@ -143,20 +229,35 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('إجمالي الديون: ${CurrencyFormatter.ils(totalDebt)}'),
-                      pw.Text('إجمالي السداد: ${CurrencyFormatter.ils(totalPaid)}'),
-                      pw.Text('المتبقي: ${CurrencyFormatter.ils(balance)}'),
+                      pw.Text(
+                        l.tr(
+                          'screens_debt_book_customer_screen.008',
+                          params: {'amount': CurrencyFormatter.ils(totalDebt)},
+                        ),
+                      ),
+                      pw.Text(
+                        l.tr(
+                          'screens_debt_book_customer_screen.009',
+                          params: {'amount': CurrencyFormatter.ils(totalPaid)},
+                        ),
+                      ),
+                      pw.Text(
+                        l.tr(
+                          'screens_debt_book_customer_screen.010',
+                          params: {'amount': CurrencyFormatter.ils(balance)},
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 pw.SizedBox(height: 16),
                 pw.Text(
-                  'سجل الحركات',
+                  l.tr('screens_debt_book_customer_screen.017'),
                   style: pw.TextStyle(font: _pdfBoldFont, fontSize: 14),
                 ),
                 pw.SizedBox(height: 8),
                 if (_entries.isEmpty)
-                  pw.Text('لا توجد حركات مسجلة لهذا العميل.')
+                  pw.Text(l.tr('screens_debt_book_customer_screen.018'))
                 else
                   pw.TableHelper.fromTextArray(
                     headerStyle: pw.TextStyle(font: _pdfBoldFont),
@@ -164,18 +265,25 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                       color: PdfColors.grey300,
                     ),
                     cellAlignment: pw.Alignment.centerRight,
-                    headers: const ['النوع', 'المبلغ', 'التاريخ', 'البيان'],
+                    headers: [
+                      l.tr('screens_debt_book_customer_screen.019'),
+                      l.tr('screens_debt_book_customer_screen.020'),
+                      l.tr('screens_debt_book_customer_screen.021'),
+                      l.tr('screens_debt_book_customer_screen.022'),
+                    ],
                     data: _entries.map((entry) {
                       final isDebt = entry['type'] == 'debt';
                       return [
-                        isDebt ? 'دين' : 'سداد',
+                        isDebt
+                            ? l.tr('screens_debt_book_customer_screen.013')
+                            : l.tr('screens_debt_book_customer_screen.014'),
                         CurrencyFormatter.ils(
                           (entry['amount'] as num?)?.toDouble() ?? 0,
                         ),
                         _formatDateTime(entry['occurredAt']),
                         entry['note']?.toString().trim().isNotEmpty == true
                             ? entry['note'].toString()
-                            : 'بدون ملاحظات',
+                            : l.tr('screens_debt_book_customer_screen.015'),
                       ];
                     }).toList(),
                   ),
@@ -197,8 +305,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     }
     await AppAlertService.showSuccess(
       context,
-      title: 'تم النسخ',
-      message: 'تم نسخ كشف العميل إلى الحافظة.',
+      title: _t('screens_debt_book_customer_screen.023'),
+      message: _t('screens_debt_book_customer_screen.024'),
     );
   }
 
@@ -219,7 +327,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'فشل الطباعة',
+        title: _t('screens_debt_book_customer_screen.025'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -242,7 +350,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'فشل التصدير',
+        title: _t('screens_debt_book_customer_screen.026'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -323,10 +431,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     });
   }
 
-  bool _matchesCustomerRef(
-    Map<String, dynamic>? customer,
-    String customerRef,
-  ) {
+  bool _matchesCustomerRef(Map<String, dynamic>? customer, String customerRef) {
     if (customer == null) {
       return false;
     }
@@ -390,8 +495,12 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
         builder: (dialogContext) => AlertDialog(
           title: Text(
             entry == null
-                ? (entryType == 'debt' ? 'إضافة دين' : 'إضافة سداد')
-                : (entryType == 'debt' ? 'تعديل قيد دين' : 'تعديل قيد سداد'),
+                ? (entryType == 'debt'
+                      ? _t('screens_debt_book_customer_screen.027')
+                      : _t('screens_debt_book_customer_screen.028'))
+                : (entryType == 'debt'
+                      ? _t('screens_debt_book_customer_screen.029')
+                      : _t('screens_debt_book_customer_screen.030')),
           ),
           content: SizedBox(
             width: 420,
@@ -403,14 +512,16 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(labelText: 'المبلغ'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_customer_screen.031'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: noteController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'بيان العملية',
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_customer_screen.032'),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -420,11 +531,11 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
+              child: Text(_t('screens_debt_book_customer_screen.033')),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ'),
+              child: Text(_t('screens_debt_book_customer_screen.034')),
             ),
           ],
         ),
@@ -438,7 +549,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
         if (!mounted) return;
         await AppAlertService.showError(
           context,
-          message: 'أدخل مبلغًا صحيحًا أكبر من صفر.',
+          message: _t('screens_debt_book_customer_screen.035'),
         );
         return;
       }
@@ -476,8 +587,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       } else if (mounted) {
         await AppAlertService.showInfo(
           context,
-          title: 'تم الحفظ محليًا',
-          message: 'سيتم رفع العملية عند توفر الإنترنت.',
+          title: _t('screens_debt_book_customer_screen.036'),
+          message: _t('screens_debt_book_customer_screen.037'),
         );
       }
     } finally {
@@ -505,7 +616,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('تعديل بيانات العميل'),
+          title: Text(_t('screens_debt_book_customer_screen.038')),
           content: SizedBox(
             width: 420,
             child: Column(
@@ -513,19 +624,25 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'اسم العميل'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_customer_screen.039'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'رقم الجوال'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_customer_screen.040'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: notesController,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'ملاحظات'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_debt_book_customer_screen.041'),
+                  ),
                 ),
               ],
             ),
@@ -533,11 +650,11 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
+              child: Text(_t('screens_debt_book_customer_screen.033')),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ'),
+              child: Text(_t('screens_debt_book_customer_screen.034')),
             ),
           ],
         ),
@@ -582,18 +699,21 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('حذف العميل'),
+        title: Text(_t('screens_debt_book_customer_screen.042')),
         content: Text(
-          'سيتم حذف العميل "${customer['fullName'] ?? '-'}" مع جميع حركاته من دفتر الديون.',
+          _t(
+            'screens_debt_book_customer_screen.043',
+            params: {'name': customer['fullName']?.toString() ?? '-'},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(_t('screens_debt_book_customer_screen.033')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('حذف'),
+            child: Text(_t('screens_debt_book_customer_screen.044')),
           ),
         ],
       ),
@@ -629,16 +749,16 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('حذف القيد'),
-        content: const Text('سيتم حذف هذا القيد من دفتر الديون.'),
+        title: Text(_t('screens_debt_book_customer_screen.045')),
+        content: Text(_t('screens_debt_book_customer_screen.046')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(_t('screens_debt_book_customer_screen.033')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('حذف'),
+            child: Text(_t('screens_debt_book_customer_screen.044')),
           ),
         ],
       ),
@@ -657,8 +777,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     } else if (mounted) {
       await AppAlertService.showInfo(
         context,
-        title: 'تم الحذف محليًا',
-        message: 'سيتم ترحيل حذف القيد عند توفر الإنترنت.',
+        title: _t('screens_debt_book_customer_screen.047'),
+        message: _t('screens_debt_book_customer_screen.048'),
       );
     }
   }
@@ -715,20 +835,20 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     final customer = _customer;
     final totalDebt = (customer?['totalDebt'] as num?)?.toDouble() ?? 0;
     final totalPaid = (customer?['totalPaid'] as num?)?.toDouble() ?? 0;
-    final balance = (customer?['balance'] as num?)?.toDouble() ?? 0;
+    final balance = _remainingAmount(customer);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(customer?['fullName']?.toString() ?? 'تفاصيل العميل'),
+        title: const SizedBox.shrink(),
         actions: [
           IconButton(
-            tooltip: 'تحديث',
+            tooltip: _t('screens_debt_book_customer_screen.049'),
             onPressed: _loading ? null : () => _load(),
             icon: const Icon(Icons.refresh_rounded),
           ),
           IconButton(
-            tooltip: 'مزامنة',
+            tooltip: _t('screens_debt_book_customer_screen.050'),
             onPressed: _syncing ? null : () => _syncAndRefresh(),
             icon: _syncing
                 ? const SizedBox(
@@ -749,7 +869,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : customer == null
-          ? const Center(child: Text('تعذر العثور على بيانات هذا العميل.'))
+          ? Center(child: Text(_t('screens_debt_book_customer_screen.051')))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(AppTheme.spacingLg),
               child: ResponsiveScaffoldContainer(
@@ -773,13 +893,21 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      customer['phone']?.toString().trim().isNotEmpty ==
+                                      customer['phone']
+                                                  ?.toString()
+                                                  .trim()
+                                                  .isNotEmpty ==
                                               true
                                           ? customer['phone'].toString()
-                                          : 'بدون رقم جوال',
+                                          : _t(
+                                              'screens_debt_book_customer_screen.052',
+                                            ),
                                       style: AppTheme.caption,
                                     ),
-                                    if ((customer['notes']?.toString().trim().isNotEmpty ??
+                                    if ((customer['notes']
+                                            ?.toString()
+                                            .trim()
+                                            .isNotEmpty ??
                                         false)) ...[
                                       const SizedBox(height: 8),
                                       Text(
@@ -791,13 +919,17 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                 ),
                               ),
                               ShwakelButton(
-                                label: 'تعديل',
+                                label: _t(
+                                  'screens_debt_book_customer_screen.053',
+                                ),
                                 icon: Icons.edit_rounded,
                                 onPressed: _showEditCustomerDialog,
                               ),
                               const SizedBox(width: 8),
                               ShwakelButton(
-                                label: 'حذف',
+                                label: _t(
+                                  'screens_debt_book_customer_screen.054',
+                                ),
                                 icon: Icons.delete_outline_rounded,
                                 isDanger: true,
                                 onPressed: _deleteCustomer,
@@ -810,7 +942,14 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                           ],
                           const SizedBox(height: 10),
                           Text(
-                            'آخر حركة مسجلة: ${_formatDateTime(customer['lastEntryAt'])}',
+                            _t(
+                              'screens_debt_book_customer_screen.055',
+                              params: {
+                                'date': _formatDateTime(
+                                  customer['lastEntryAt'],
+                                ),
+                              },
+                            ),
                             style: AppTheme.caption,
                           ),
                           const SizedBox(height: 18),
@@ -819,17 +958,17 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                             runSpacing: 12,
                             children: [
                               _summaryCard(
-                                'إجمالي الديون',
+                                _t('screens_debt_book_customer_screen.056'),
                                 CurrencyFormatter.ils(totalDebt),
                                 AppTheme.error,
                               ),
                               _summaryCard(
-                                'إجمالي السداد',
+                                _t('screens_debt_book_customer_screen.057'),
                                 CurrencyFormatter.ils(totalPaid),
                                 AppTheme.success,
                               ),
                               _summaryCard(
-                                'المتبقي',
+                                _t('screens_debt_book_customer_screen.058'),
                                 CurrencyFormatter.ils(balance),
                                 balance > 0
                                     ? AppTheme.warning
@@ -843,29 +982,39 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                             runSpacing: 12,
                             children: [
                               ShwakelButton(
-                                label: 'إضافة دين',
+                                label: _t(
+                                  'screens_debt_book_customer_screen.027',
+                                ),
                                 icon: Icons.add_circle_rounded,
                                 color: AppTheme.error,
                                 onPressed: () => _showEntryDialog('debt'),
                               ),
                               ShwakelButton(
-                                label: 'إضافة سداد',
+                                label: _t(
+                                  'screens_debt_book_customer_screen.028',
+                                ),
                                 icon: Icons.payments_rounded,
                                 color: AppTheme.success,
                                 onPressed: () => _showEntryDialog('payment'),
                               ),
                               ShwakelButton(
-                                label: 'نسخ الكشف',
+                                label: _t(
+                                  'screens_debt_book_customer_screen.059',
+                                ),
                                 icon: Icons.copy_all_rounded,
                                 onPressed: _copyCustomerReport,
                               ),
                               ShwakelButton(
-                                label: 'طباعة',
+                                label: _t(
+                                  'screens_debt_book_customer_screen.060',
+                                ),
                                 icon: Icons.print_rounded,
                                 onPressed: _printCustomerReport,
                               ),
                               ShwakelButton(
-                                label: 'تصدير PDF',
+                                label: _t(
+                                  'screens_debt_book_customer_screen.061',
+                                ),
                                 icon: Icons.picture_as_pdf_rounded,
                                 onPressed: _shareCustomerReportPdf,
                               ),
@@ -875,12 +1024,19 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    Text('سجل العميل', style: AppTheme.h3),
+                    Text(
+                      _t('screens_debt_book_customer_screen.062'),
+                      style: AppTheme.h3,
+                    ),
                     const SizedBox(height: 12),
                     if (_entries.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: Text('لا توجد حركات مسجلة لهذا العميل.')),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(
+                          child: Text(
+                            _t('screens_debt_book_customer_screen.018'),
+                          ),
+                        ),
                       )
                     else
                       ListView.separated(
@@ -900,10 +1056,11 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                   width: 44,
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color: (isDebt
-                                            ? AppTheme.error
-                                            : AppTheme.success)
-                                        .withValues(alpha: 0.12),
+                                    color:
+                                        (isDebt
+                                                ? AppTheme.error
+                                                : AppTheme.success)
+                                            .withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: Icon(
@@ -918,10 +1075,17 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        isDebt ? 'قيد دين' : 'قيد سداد',
+                                        isDebt
+                                            ? _t(
+                                                'screens_debt_book_customer_screen.063',
+                                              )
+                                            : _t(
+                                                'screens_debt_book_customer_screen.064',
+                                              ),
                                         style: AppTheme.bodyBold,
                                       ),
                                       const SizedBox(height: 6),
@@ -931,7 +1095,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                       ],
                                       Text(
                                         CurrencyFormatter.ils(
-                                          (entry['amount'] as num?)?.toDouble() ??
+                                          (entry['amount'] as num?)
+                                                  ?.toDouble() ??
                                               0,
                                         ),
                                         style: AppTheme.bodyBold.copyWith(
@@ -942,10 +1107,15 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        entry['note']?.toString().trim().isNotEmpty ==
+                                        entry['note']
+                                                    ?.toString()
+                                                    .trim()
+                                                    .isNotEmpty ==
                                                 true
                                             ? entry['note'].toString()
-                                            : 'بدون ملاحظات',
+                                            : _t(
+                                                'screens_debt_book_customer_screen.015',
+                                              ),
                                         style: AppTheme.bodyText,
                                       ),
                                       const SizedBox(height: 6),
@@ -967,14 +1137,22 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                       _deleteEntry(entry);
                                     }
                                   },
-                                  itemBuilder: (context) => const [
+                                  itemBuilder: (context) => [
                                     PopupMenuItem(
                                       value: 'edit',
-                                      child: Text('تعديل القيد'),
+                                      child: Text(
+                                        _t(
+                                          'screens_debt_book_customer_screen.065',
+                                        ),
+                                      ),
                                     ),
                                     PopupMenuItem(
                                       value: 'delete',
-                                      child: Text('حذف القيد'),
+                                      child: Text(
+                                        _t(
+                                          'screens_debt_book_customer_screen.045',
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1004,10 +1182,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
           children: [
             Text(title, style: AppTheme.caption),
             const SizedBox(height: 8),
-            Text(
-              value,
-              style: AppTheme.bodyBold.copyWith(color: color),
-            ),
+            Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
           ],
         ),
       ),
@@ -1022,7 +1197,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        'بانتظار المزامنة',
+        _t('screens_debt_book_customer_screen.066'),
         style: AppTheme.caption.copyWith(
           color: AppTheme.warning,
           fontWeight: FontWeight.w700,

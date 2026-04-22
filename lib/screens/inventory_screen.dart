@@ -117,7 +117,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text('لا تملك صلاحية عرض المخزون', style: AppTheme.h3),
+                Text(
+                  l.tr('screens_inventory_screen.015'),
+                  style: AppTheme.h3,
+                ),
               ],
             ),
           ),
@@ -139,8 +142,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           IconButton(
             tooltip: _showFilters
-                ? context.loc.text('إخفاء الفلاتر', 'Hide filters')
-                : context.loc.text('إظهار الفلاتر', 'Show filters'),
+                ? l.tr('screens_inventory_screen.016')
+                : l.tr('screens_inventory_screen.017'),
             onPressed: () => setState(() => _showFilters = !_showFilters),
             icon: Icon(
               _showFilters
@@ -149,7 +152,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ),
           IconButton(
-            tooltip: context.loc.text('مساعدة', 'Help'),
+            tooltip: l.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -170,10 +173,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   const SizedBox(height: 16),
                 ] else ...[
                   ToolToggleHint(
-                    message: context.loc.text(
-                      'يمكنك فتح الفلاتر من أيقونة التصفية بالأعلى عند الحاجة.',
-                      'Open filters from the top filter icon when needed.',
-                    ),
+                    message: l.tr('screens_inventory_screen.018'),
                     icon: Icons.filter_alt_rounded,
                   ),
                   const SizedBox(height: 16),
@@ -209,15 +209,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('screens_inventory_screen.001')),
         content: Text(
-          context.loc.text(
-            'اختر الفلتر المناسب لعرض البطاقات فقط. بقية التفاصيل تظهر داخل العناصر نفسها.',
-            'Use the filter to show the cards you need. Extra details appear inside each item.',
-          ),
+          l.tr('screens_inventory_screen.019'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.loc.text('إغلاق', 'Close')),
+            child: Text(l.tr('screens_admin_customers_screen.046')),
           ),
         ],
       ),
