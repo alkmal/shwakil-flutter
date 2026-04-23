@@ -85,6 +85,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final currentAppVersion = await AppVersionService.currentVersion();
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
       if (!permissions.canManageSystemSettings) {
@@ -118,10 +119,16 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _contactEmailController.text = contactSettings['supportEmail'] ?? '';
       _contactAddressController.text = contactSettings['address'] ?? '';
       _registrationEnabled = authSettings['registrationEnabled'] == true;
+      final minSupportedVersion =
+          authSettings['minSupportedVersion']?.toString().trim() ?? '';
+      final latestVersion =
+          authSettings['latestVersion']?.toString().trim() ?? '';
       _minSupportedVersionController.text =
-          authSettings['minSupportedVersion']?.toString() ?? '';
+          minSupportedVersion.isNotEmpty
+              ? minSupportedVersion
+              : currentAppVersion;
       _latestVersionController.text =
-          authSettings['latestVersion']?.toString() ?? '';
+          latestVersion.isNotEmpty ? latestVersion : currentAppVersion;
       _androidStoreUrlController.text =
           authSettings['androidStoreUrl']?.toString() ?? '';
       _iosStoreUrlController.text =
