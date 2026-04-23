@@ -200,6 +200,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
+    if (!mounted) {
+      return;
+    }
     final securityResult = await TransferSecurityService.confirmTransfer(
       context,
     );

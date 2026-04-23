@@ -101,7 +101,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       );
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
 
       if (requestedPage > lastPage && lastPage > 0) {
         setState(() => _page = lastPage);
@@ -287,9 +287,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
           const SizedBox(height: 10),
           Text(
             context.loc.tr('screens_withdrawal_requests_screen.031'),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 12),
           Wrap(

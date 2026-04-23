@@ -107,7 +107,7 @@ class _AdminCardPrintRequestsScreenState
       );
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
       if (requestedPage > lastPage && lastPage > 0) {
         if (!mounted) {
           return;
@@ -247,8 +247,7 @@ class _AdminCardPrintRequestsScreenState
   }
 
   CardDesignSettings _settingsFromRequest(Map<String, dynamic> request) {
-    final title =
-        request['fullName']?.toString().trim().isNotEmpty == true
+    final title = request['fullName']?.toString().trim().isNotEmpty == true
         ? request['fullName'].toString().trim()
         : (request['username']?.toString().trim().isNotEmpty == true
               ? request['username'].toString().trim()
@@ -420,17 +419,23 @@ class _AdminCardPrintRequestsScreenState
         title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
         actions: [
           IconButton(
-            tooltip: context.loc.tr('screens_admin_card_print_requests_screen.040'),
+            tooltip: context.loc.tr(
+              'screens_admin_card_print_requests_screen.040',
+            ),
             onPressed: _showSummarySheet,
             icon: const Icon(Icons.dashboard_customize_rounded),
           ),
           IconButton(
-            tooltip: context.loc.tr('screens_admin_card_print_requests_screen.039'),
+            tooltip: context.loc.tr(
+              'screens_admin_card_print_requests_screen.039',
+            ),
             onPressed: _showFiltersSheet,
             icon: const Icon(Icons.filter_alt_rounded),
           ),
           IconButton(
-            tooltip: context.loc.tr('screens_admin_card_print_requests_screen.040'),
+            tooltip: context.loc.tr(
+              'screens_admin_card_print_requests_screen.040',
+            ),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -502,7 +507,9 @@ class _AdminCardPrintRequestsScreenState
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  context.loc.tr('screens_admin_card_print_requests_screen.001'),
+                  context.loc.tr(
+                    'screens_admin_card_print_requests_screen.001',
+                  ),
                   style: AppTheme.bodyBold,
                 ),
               ),
@@ -535,9 +542,7 @@ class _AdminCardPrintRequestsScreenState
                     '${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
               },
             ),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 12),
           ToolToggleHint(

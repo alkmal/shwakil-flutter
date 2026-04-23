@@ -87,7 +87,9 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
                                 width: 52,
                                 height: 52,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(alpha: 0.08),
+                                  color: AppTheme.primary.withValues(
+                                    alpha: 0.08,
+                                  ),
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 child: const Icon(
@@ -102,7 +104,9 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
                                   children: [
                                     Text(
                                       _title.isEmpty
-                                          ? l.tr('screens_usage_policy_screen.001')
+                                          ? l.tr(
+                                              'screens_usage_policy_screen.001',
+                                            )
                                           : _title,
                                       style: AppTheme.h3,
                                     ),
@@ -146,60 +150,6 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
                 ),
               ),
             ),
-    );
-  }
-
-  Widget _buildLegalHero() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      gradient: AppTheme.primaryGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 560;
-          final iconBox = Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Icon(Icons.gavel_rounded, color: Colors.white, size: 36),
-          );
-
-          final content = Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('screens_usage_policy_screen.004'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  l.tr('screens_usage_policy_screen.005'),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          );
-
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [iconBox, const SizedBox(height: 18), content],
-            );
-          }
-
-          return Row(
-            children: [iconBox, const SizedBox(width: 20), content],
-          );
-        },
-      ),
     );
   }
 

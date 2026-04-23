@@ -32,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _didSuggestOfflineWorkspace = false;
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
   int _pendingOfflineCount = 0;
-  double _pendingOfflineAmount = 0;
   String? _lastOfflineSyncAt;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
@@ -79,10 +78,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return AppPermissions.fromUser(_user).canTransfer;
   }
 
-  bool get _canReviewCards {
-    return AppPermissions.fromUser(_user).canReviewCards;
-  }
-
   bool get _canOfflineScan {
     return AppPermissions.fromUser(_user).canOfflineCardScan;
   }
@@ -106,23 +101,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         '';
   }
 
-  String get _userInitials {
-    final source = _displayName.trim();
-    if (source.isEmpty) {
-      return '؟';
-    }
-    final parts = source
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList(growable: false);
-    if (parts.length >= 2) {
-      return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
-          .toUpperCase();
-    }
-    final first = parts.first;
-    return first.substring(0, first.length >= 2 ? 2 : 1).toUpperCase();
-  }
-
   Future<void> _loadUser() async {
     setState(() => _isLoading = true);
     try {
@@ -136,8 +114,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
-        _pendingOfflineAmount =
-            (pendingSummary['amount'] as num?)?.toDouble() ?? 0;
         _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
       });
@@ -152,8 +128,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
-        _pendingOfflineAmount =
-            (pendingSummary['amount'] as num?)?.toDouble() ?? 0;
         _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
       });
@@ -218,8 +192,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final unknownLookups = await _offlineCardService.getUnknownCardLookups(
       userId,
     );
-    final hadPendingItems = queuedBeforeSync.isNotEmpty;
-
     if (mounted) {
       setState(() => _isSyncingOfflineWorkspace = true);
     }
@@ -731,7 +703,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       width: 44,
                       height: 44,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Image.asset(
+                      errorBuilder: (context, error, stackTrace) => Image.asset(
                         'assets/images/shwakel_app_icon.png',
                         width: 44,
                         height: 44,

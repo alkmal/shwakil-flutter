@@ -89,7 +89,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       );
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
 
       if (requestedPage > lastPage && lastPage > 0) {
         if (!mounted) {
@@ -147,10 +147,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _exportTransactions() async {
     if (_transactions.isEmpty) {
-      await _showMessage(
-        _t('screens_transactions_screen.048'),
-        isError: true,
-      );
+      await _showMessage(_t('screens_transactions_screen.048'), isError: true);
       return;
     }
     try {
@@ -158,9 +155,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       if (!mounted) {
         return;
       }
-      await _showMessage(
-        _t('screens_transactions_screen.049'),
-      );
+      await _showMessage(_t('screens_transactions_screen.049'));
     } catch (error) {
       if (!mounted) {
         return;
@@ -803,10 +798,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                label,
-                style: AppTheme.caption.copyWith(fontSize: 11),
-              ),
+              Text(label, style: AppTheme.caption.copyWith(fontSize: 11)),
               const SizedBox(height: 2),
               Text(
                 value,

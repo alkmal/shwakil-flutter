@@ -101,7 +101,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       );
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
 
       if (requestedPage > lastPage && lastPage > 0) {
         if (!mounted) {
@@ -290,9 +290,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
           const SizedBox(height: 10),
           Text(
             context.loc.tr('screens_topup_requests_screen.034'),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -301,10 +299,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             children: [
               _buildOverviewChip('إجمالي المعروض', '$_totalRequests'),
               _buildOverviewChip('قيد الانتظار', '$pendingCount'),
-              _buildOverviewChip(
-                'صفحة',
-                '$_page / $_lastPage',
-              ),
+              _buildOverviewChip('صفحة', '$_page / $_lastPage'),
             ],
           ),
           const SizedBox(height: 12),
