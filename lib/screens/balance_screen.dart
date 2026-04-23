@@ -724,6 +724,8 @@ class _BalanceScreenState extends State<BalanceScreen>
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildBalanceOverviewCard(isPhone: isPhone),
+                    const SizedBox(height: 14),
                     _buildTopTabs(),
                     const SizedBox(height: 16),
                     if (showingActionsTab)
@@ -788,6 +790,201 @@ class _BalanceScreenState extends State<BalanceScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildBalanceOverviewCard({required bool isPhone}) {
+    final l = context.loc;
+    final balance = _userAmount('balance');
+    final availablePrintingBalance = _userAmount('availablePrintingBalance');
+    final printingDebtLimit = _userAmount('printingDebtLimit');
+    final outstandingDebt = _userAmount('outstandingDebt');
+    final roleLabel = _user?['roleLabel']?.toString().trim() ?? '';
+    final verificationLabel = _isVerifiedAccount
+        ? l.tr('screens_balance_screen.036')
+        : l.tr('screens_balance_screen.037');
+    final details = [
+      _BalanceOverviewItem(
+        icon: Icons.print_rounded,
+        label: l.tr('screens_balance_screen.117'),
+        value: CurrencyFormatter.ils(availablePrintingBalance),
+        color: AppTheme.accent,
+      ),
+      _BalanceOverviewItem(
+        icon: Icons.credit_score_rounded,
+        label: l.tr('screens_balance_screen.118'),
+        value: CurrencyFormatter.ils(printingDebtLimit),
+        color: AppTheme.warning,
+      ),
+      _BalanceOverviewItem(
+        icon: Icons.trending_down_rounded,
+        label: l.tr('screens_balance_screen.119'),
+        value: CurrencyFormatter.ils(outstandingDebt),
+        color: outstandingDebt > 0 ? AppTheme.error : AppTheme.success,
+      ),
+      _BalanceOverviewItem(
+        icon: Icons.verified_user_rounded,
+        label: l.tr('screens_balance_screen.120'),
+        value: verificationLabel,
+        color: _isVerifiedAccount ? AppTheme.success : AppTheme.warning,
+      ),
+      _BalanceOverviewItem(
+        icon: Icons.send_rounded,
+        label: l.tr('screens_balance_screen.121'),
+        value: _canTransferAction
+            ? l.tr('screens_balance_screen.039')
+            : l.tr('screens_balance_screen.040'),
+        color: _canTransferAction ? AppTheme.success : AppTheme.textSecondary,
+      ),
+      _BalanceOverviewItem(
+        icon: Icons.account_circle_rounded,
+        label: l.tr('screens_balance_screen.122'),
+        value: roleLabel.isNotEmpty
+            ? roleLabel
+            : l.tr('screens_balance_screen.040'),
+        color: AppTheme.primary,
+      ),
+    ];
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(22),
+      borderRadius: BorderRadius.circular(30),
+      shadowLevel: ShwakelShadowLevel.premium,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF14B8A6)],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.tr('screens_balance_screen.116'),
+                      style: AppTheme.caption.copyWith(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      CurrencyFormatter.ils(balance),
+                      style: AppTheme.h1.copyWith(
+                        color: Colors.white,
+                        fontSize: isPhone ? 32 : 40,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l.tr('screens_balance_screen.123'),
+                      style: AppTheme.caption.copyWith(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: details
+                .map(
+                  (item) => SizedBox(
+                    width: isPhone ? double.infinity : 220,
+                    child: _buildBalanceOverviewTile(item),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBalanceOverviewTile(_BalanceOverviewItem item) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: item.color.withValues(alpha: 0.20),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(item.icon, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption.copyWith(
+                    color: Colors.white.withValues(alpha: 0.72),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  item.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold.copyWith(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _userAmount(String key) {
+    final value = _user?[key];
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   Widget _buildActionsCard({required bool isCompact, required bool isPhone}) {
@@ -2296,6 +2493,20 @@ class _BalanceScreenState extends State<BalanceScreen>
 }
 
 enum _BalanceAuditFilter { all, nearBranch, outsideBranches, printingDebt }
+
+class _BalanceOverviewItem {
+  const _BalanceOverviewItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+}
 
 class _UserAmountResult {
   const _UserAmountResult({

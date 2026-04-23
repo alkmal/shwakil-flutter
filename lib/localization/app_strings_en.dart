@@ -2285,6 +2285,15 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.114':
       'A clean and compact view of your latest balance activity.',
   'screens_balance_screen.115': 'Hide filters',
+  'screens_balance_screen.116': 'Main balance',
+  'screens_balance_screen.117': 'Available printing balance',
+  'screens_balance_screen.118': 'Allowed debt limit',
+  'screens_balance_screen.119': 'Current debt',
+  'screens_balance_screen.120': 'Account verification',
+  'screens_balance_screen.121': 'Transfer access',
+  'screens_balance_screen.122': 'Account type',
+  'screens_balance_screen.123':
+      'A quick summary of your available balances and account requirements.',
   'screens_offline_center_screen.054': 'Sync status',
   'screens_offline_center_screen.055': 'Sync in progress',
   'screens_offline_center_screen.056': 'Operations are waiting to sync',
