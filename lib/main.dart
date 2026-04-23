@@ -28,7 +28,10 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/quick-transfer': (context) => const QuickTransferScreen(),
   '/card-print-requests': (context) => const CardPrintRequestsScreen(),
   '/scan-card': (context) => const ScanCardScreen(),
+  '/scan-card-camera': (context) => const ScanCardScreen(autoOpenScanner: true),
   '/scan-card-offline': (context) => const ScanCardScreen(offlineMode: true),
+  '/scan-card-offline-camera': (context) =>
+      const ScanCardScreen(offlineMode: true, autoOpenScanner: true),
   '/offline-center': (context) => const OfflineCenterScreen(),
   '/inventory': (context) => const InventoryScreen(),
   '/transactions': (context) => const TransactionsScreen(),

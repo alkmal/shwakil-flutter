@@ -192,6 +192,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         recipientId: recipientId,
         amount: amount,
         otpCode: securityResult.otpCode,
+        localAuthMethod: securityResult.method,
         location: location,
       );
       await _load();

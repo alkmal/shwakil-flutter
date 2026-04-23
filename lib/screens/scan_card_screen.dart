@@ -23,10 +23,12 @@ class ScanCardScreen extends StatefulWidget {
     super.key,
     this.initialBarcode,
     this.offlineMode = false,
+    this.autoOpenScanner = false,
   });
 
   final String? initialBarcode;
   final bool offlineMode;
+  final bool autoOpenScanner;
 
   @override
   State<ScanCardScreen> createState() => _ScanCardScreenState();
@@ -47,6 +49,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _routeSubscribed = false;
   bool _hasShownOfflineIntro = false;
   bool _hasShownReconnectPrompt = false;
+  bool _autoScannerOpened = false;
   int _availableOfflineTransferSlots = 0;
 
   bool get _canAccessScanScreen {
@@ -121,6 +124,22 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     await _loadOfflineTransferSlotCount();
     await _ensureOfflineTemporaryTransferSlots();
     _maybeShowOfflineIntro();
+    _maybeOpenScannerAutomatically();
+  }
+
+  void _maybeOpenScannerAutomatically() {
+    if (!mounted ||
+        _autoScannerOpened ||
+        !widget.autoOpenScanner ||
+        widget.initialBarcode?.isNotEmpty == true) {
+      return;
+    }
+    _autoScannerOpened = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_openScannerDialog());
+      }
+    });
   }
 
   void _handleConnectivityChanged() {
@@ -478,17 +497,15 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       } else {
         final security = await TransferSecurityService.confirmTransfer(
           context,
-          requireOtpAfterLocalAuth: true,
         );
-        if (!mounted ||
-            !security.isVerified ||
-            (security.otpCode?.isEmpty ?? true)) {
+        if (!mounted || !security.isVerified) {
           return;
         }
 
         final response = await _api.createTemporaryTransferCode(
           amount: amount,
-          otpCode: security.otpCode!,
+          otpCode: security.otpCode,
+          localAuthMethod: security.method,
         );
         if (!mounted) {
           return;

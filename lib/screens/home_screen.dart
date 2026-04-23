@@ -437,11 +437,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   bool get _isDeviceOnline => ConnectivityService.instance.isOnline.value;
 
-  String get _scanRoute =>
-      OfflineSessionService.isOfflineMode ? '/scan-card-offline' : '/scan-card';
+  String get _scanCameraRoute => OfflineSessionService.isOfflineMode
+      ? '/scan-card-offline-camera'
+      : '/scan-card-camera';
 
   void _openScanScreen() {
-    Navigator.pushNamed(context, _scanRoute);
+    Navigator.pushNamed(context, _scanCameraRoute);
   }
 
   Future<void> _showOfflineBlockedMessage() {

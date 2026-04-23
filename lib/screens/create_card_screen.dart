@@ -185,6 +185,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
+    final securityResult = await TransferSecurityService.confirmTransfer(
+      context,
+    );
+    if (!mounted || !securityResult.isVerified) {
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final cards = await _apiService.issueCards(
@@ -192,6 +199,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         quantity: quantity,
         cardType: _cardType,
         visibilityScope: _visibilityScope,
+        otpCode: securityResult.otpCode,
+        localAuthMethod: securityResult.method,
         allowedUserIds: _selectedUsers
             .map((user) => user['id']?.toString() ?? '')
             .where((id) => id.isNotEmpty)

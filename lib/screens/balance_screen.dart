@@ -176,6 +176,7 @@ class _BalanceScreenState extends State<BalanceScreen>
         amount: result.amount,
         notes: result.notes,
         otpCode: securityResult.otpCode,
+        localAuthMethod: securityResult.method,
         location: location,
       );
       await _loadBalance();
@@ -272,6 +273,7 @@ class _BalanceScreenState extends State<BalanceScreen>
         amount: result.amount,
         notes: result.notes,
         otpCode: securityResult.otpCode,
+        localAuthMethod: securityResult.method,
         location: location,
       );
       await _loadBalance();

@@ -50,7 +50,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     try {
       final results = await Future.wait([
         _apiService.getMyCardPrintRequests(),
-        _authService.currentUser(),
+        _refreshAndReadCurrentUser(),
       ]);
       if (!mounted) {
         return;
@@ -74,6 +74,11 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         message: ErrorMessageService.sanitize(error),
       );
     }
+  }
+
+  Future<Map<String, dynamic>?> _refreshAndReadCurrentUser() async {
+    await _authService.refreshCurrentUser();
+    return _authService.currentUser();
   }
 
   Future<void> _showCreateRequestDialog() async {
@@ -403,28 +408,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l.tr(
-                          'screens_card_print_requests_screen.046',
-                          params: {
-                            'balance': CurrencyFormatter.ils(availableBalance),
-                            'fee':
-                                '${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%',
-                          },
-                        ),
-                        style: AppTheme.caption,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ShwakelButton(
-                      label: l.tr('screens_card_print_requests_screen.023'),
-                      icon: Icons.print_rounded,
-                      onPressed: _showCreateRequestDialog,
-                    ),
-                  ],
+                _buildPrintInfoCard(
+                  availableBalance: availableBalance,
+                  printFee: printFee,
                 ),
                 if (_isSubUser) ...[
                   const SizedBox(height: 12),
@@ -479,12 +465,181 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     );
   }
 
+  Widget _buildPrintInfoCard({
+    required double availableBalance,
+    required double? printFee,
+  }) {
+    final l = context.loc;
+    final feeLabel =
+        '${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%';
+    final debtLimit = (_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0;
+    final currentDebt = (_user?['outstandingDebt'] as num?)?.toDouble() ?? 0;
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(22),
+      borderRadius: BorderRadius.circular(28),
+      shadowLevel: ShwakelShadowLevel.premium,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0F172A), Color(0xFF0F766E)],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 620;
+          final actionButton = SizedBox(
+            width: compact ? double.infinity : 190,
+            child: ShwakelButton(
+              label: l.tr('screens_card_print_requests_screen.023'),
+              icon: Icons.print_rounded,
+              onPressed: _showCreateRequestDialog,
+            ),
+          );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flex(
+                direction: compact ? Axis.vertical : Axis.horizontal,
+                crossAxisAlignment: compact
+                    ? CrossAxisAlignment.stretch
+                    : CrossAxisAlignment.center,
+                children: [
+                  if (compact)
+                    _buildPrintInfoHeader()
+                  else
+                    Expanded(child: _buildPrintInfoHeader()),
+                  SizedBox(width: compact ? 0 : 18, height: compact ? 18 : 0),
+                  actionButton,
+                ],
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _buildPrintMetricTile(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: l.tr('screens_card_print_requests_screen.020'),
+                    value: CurrencyFormatter.ils(availableBalance),
+                  ),
+                  _buildPrintMetricTile(
+                    icon: Icons.percent_rounded,
+                    label: l.tr('screens_card_print_requests_screen.021'),
+                    value: feeLabel,
+                  ),
+                  _buildPrintMetricTile(
+                    icon: Icons.credit_score_rounded,
+                    label: l.tr('screens_card_print_requests_screen.051'),
+                    value: CurrencyFormatter.ils(debtLimit),
+                  ),
+                  _buildPrintMetricTile(
+                    icon: Icons.trending_down_rounded,
+                    label: l.tr('screens_card_print_requests_screen.052'),
+                    value: CurrencyFormatter.ils(currentDebt),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPrintInfoHeader() {
+    final l = context.loc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.print_rounded,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l.tr('screens_card_print_requests_screen.050'),
+                style: AppTheme.h3.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          l.tr('screens_card_print_requests_screen.019'),
+          style: AppTheme.caption.copyWith(
+            color: Colors.white.withValues(alpha: 0.76),
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrintMetricTile({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      width: 210,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 19),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption.copyWith(
+                    color: Colors.white.withValues(alpha: 0.70),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showHelpDialog() async {
     final l = context.loc;
     await AppAlertService.showInfo(
       context,
       title: l.tr('screens_admin_dashboard_screen.057'),
-      message: l.tr('screens_card_print_requests_screen.048'),
+      message: l.tr('screens_card_print_requests_screen.053'),
     );
   }
 

@@ -2157,6 +2157,11 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.054': 'حسابات عليها دين',
   'screens_card_print_requests_screen.049':
       'حد الطباعة الحالي لهذا التابع: سقف {limit} للطلب الواحد، ودين مسموح حتى {debtLimit}.',
+  'screens_card_print_requests_screen.050': 'بيانات الطباعة',
+  'screens_card_print_requests_screen.051': 'حد الدين للطباعة',
+  'screens_card_print_requests_screen.052': 'الدين المستخدم',
+  'screens_card_print_requests_screen.053':
+      'من هذه الشاشة يمكنك إرسال طلب طباعة بطاقات جديد ومتابعة حالته خطوة بخطوة. تأكد من أن الرصيد القابل للطباعة يكفي إجمالي قيمة البطاقات مع رسوم الطلب، ويمكنك استخدام خانة الملاحظات لتوضيح أي تفاصيل خاصة قبل الإرسال.',
   'screens_login_screen.026':
       'وضع العمل دون إنترنت مفعّل. بعد تسجيل الدخول سيتم فتح شاشة الفحص مباشرة.',
   'screens_debt_book_screen.049':

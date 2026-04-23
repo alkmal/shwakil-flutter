@@ -2236,6 +2236,11 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.054': 'Accounts with debt',
   'screens_card_print_requests_screen.049':
       'Current printing policy for this sub-user: a limit of {limit} per request, with operational debt allowed up to {debtLimit}.',
+  'screens_card_print_requests_screen.050': 'Printing details',
+  'screens_card_print_requests_screen.051': 'Printing debt limit',
+  'screens_card_print_requests_screen.052': 'Used debt',
+  'screens_card_print_requests_screen.053':
+      'From this screen, you can submit a new card printing request and track its status step by step. Make sure your printable balance covers the total card value plus the request fee, and use the notes field to add any special instructions before sending.',
   'screens_login_screen.026':
       'Offline work mode is enabled. After sign-in, the scan screen will open directly.',
   'screens_debt_book_screen.049':

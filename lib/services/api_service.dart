@@ -1347,6 +1347,7 @@ class ApiService {
     required double amount,
     String notes = '',
     String? otpCode,
+    String? localAuthMethod,
     Map<String, dynamic>? location,
   }) async {
     final payload = <String, dynamic>{
@@ -1359,6 +1360,8 @@ class ApiService {
     }
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
+    } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
+      payload['localAuthMethod'] = localAuthMethod.trim();
     }
     final response = await http.post(
       AppConfig.apiUri('wallet/topup'),
@@ -1373,6 +1376,7 @@ class ApiService {
     required double amount,
     String notes = '',
     String? otpCode,
+    String? localAuthMethod,
     Map<String, dynamic>? location,
   }) async {
     final payload = <String, dynamic>{
@@ -1385,6 +1389,8 @@ class ApiService {
     }
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
+    } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
+      payload['localAuthMethod'] = localAuthMethod.trim();
     }
     final response = await http.post(
       AppConfig.apiUri('wallet/transfer'),
@@ -1398,15 +1404,21 @@ class ApiService {
 
   Future<Map<String, dynamic>> createTemporaryTransferCode({
     required double amount,
-    required String otpCode,
+    String? otpCode,
+    String? localAuthMethod,
   }) async {
+    final payload = <String, dynamic>{
+      'amount': amount,
+    };
+    if (otpCode != null && otpCode.trim().isNotEmpty) {
+      payload['otpCode'] = otpCode.trim();
+    } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
+      payload['localAuthMethod'] = localAuthMethod.trim();
+    }
     final response = await http.post(
       AppConfig.apiUri('wallet/temporary-transfer-code'),
       headers: await _headers(),
-      body: jsonEncode({
-        'amount': amount,
-        'otpCode': otpCode.trim(),
-      }),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -1583,17 +1595,25 @@ class ApiService {
     List<String> allowedUserIds = const [],
     String visibilityScope = 'general',
     String cardType = 'standard',
+    String? otpCode,
+    String? localAuthMethod,
   }) async {
+    final payload = <String, dynamic>{
+      'value': value,
+      'quantity': quantity,
+      'allowedUserIds': allowedUserIds,
+      'visibilityScope': visibilityScope,
+      'cardType': cardType,
+    };
+    if (otpCode != null && otpCode.trim().isNotEmpty) {
+      payload['otpCode'] = otpCode.trim();
+    } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
+      payload['localAuthMethod'] = localAuthMethod.trim();
+    }
     final response = await http.post(
       AppConfig.apiUri('cards/issue'),
       headers: await _headers(),
-      body: jsonEncode({
-        'value': value,
-        'quantity': quantity,
-        'allowedUserIds': allowedUserIds,
-        'visibilityScope': visibilityScope,
-        'cardType': cardType,
-      }),
+      body: jsonEncode(payload),
     );
     final body = _decodeObject(response);
     await _authService.patchCurrentUser({
