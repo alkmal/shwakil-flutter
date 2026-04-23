@@ -28,6 +28,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isApproved = false;
+  String _requestedRole = 'verified_member';
   String? _identityBase64;
   String? _selfieBase64;
   Map<String, dynamic>? _verification;
@@ -58,9 +59,15 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       final status = verification['status']?.toString() ?? 'unverified';
       final nationalId = verification['nationalId']?.toString() ?? '';
       final birthDate = verification['birthDate']?.toString() ?? '';
+      final latestRequest = Map<String, dynamic>.from(
+        verification['latestRequest'] as Map? ?? const <String, dynamic>{},
+      );
       setState(() {
         _verification = verification;
         _isApproved = status == 'approved';
+        _requestedRole = latestRequest['requestedRole']?.toString() == 'driver'
+            ? 'driver'
+            : 'verified_member';
         _isLoading = false;
         if (nationalId.isNotEmpty) {
           _nationalIdController.text = nationalId;
@@ -141,6 +148,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         selfieImageBase64: _selfieBase64!,
         nationalId: nationalId,
         birthDate: birthDate,
+        requestedRole: _requestedRole,
         notes: _notesController.text.trim(),
       );
       if (!mounted) {
@@ -269,6 +277,13 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       _verification?['latestRequest'] as Map? ?? const <String, dynamic>{},
     );
     final reviewNotes = latestRequest['reviewNotes']?.toString().trim() ?? '';
+    final requestedRoleLabel =
+        latestRequest['requestedRoleLabel']?.toString().trim().isNotEmpty ==
+            true
+        ? latestRequest['requestedRoleLabel'].toString().trim()
+        : (_requestedRole == 'driver'
+              ? l.tr('shared.role_driver')
+              : l.tr('shared.role_verified_member'));
 
     switch (status) {
       case 'pending':
@@ -294,57 +309,99 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       padding: const EdgeInsets.all(20),
       color: color.withValues(alpha: 0.05),
       borderColor: color.withValues(alpha: 0.2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTheme.bodyBold.copyWith(color: color)),
-                const SizedBox(height: 6),
-                Text(
-                  text,
-                  style: AppTheme.bodyAction.copyWith(
-                    color: color,
-                    height: 1.6,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 640;
+          final details = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTheme.bodyBold.copyWith(color: color)),
+              const SizedBox(height: 6),
+              Text(
+                text,
+                style: AppTheme.bodyAction.copyWith(color: color, height: 1.6),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: color.withValues(alpha: 0.18)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.badge_outlined, color: color, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${l.tr('account_verification.requested_role_label')}: $requestedRoleLabel',
+                        style: AppTheme.bodyAction.copyWith(
+                          color: AppTheme.textPrimary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (status == 'rejected' && reviewNotes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: color.withValues(alpha: 0.18)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.tr('account_verification.rejection_reason_label'),
+                        style: AppTheme.bodyBold.copyWith(color: color),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        reviewNotes,
+                        style: AppTheme.bodyAction.copyWith(
+                          color: AppTheme.textPrimary,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (status == 'rejected' && reviewNotes.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: color.withValues(alpha: 0.18)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'سبب الرفض',
-                          style: AppTheme.bodyBold.copyWith(color: color),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          reviewNotes,
-                          style: AppTheme.bodyAction.copyWith(
-                            color: AppTheme.textPrimary,
-                            height: 1.6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
-            ),
-          ),
-        ],
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: color, size: 28),
+                const SizedBox(height: 14),
+                details,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(width: 16),
+              Expanded(child: details),
+            ],
+          );
+        },
       ),
     );
   }
@@ -364,6 +421,59 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           Text(
             l.tr('screens_account_verification_screen.022'),
             style: AppTheme.bodyAction.copyWith(height: 1.6),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            context.loc.tr('account_verification.post_verification_role'),
+            style: AppTheme.bodyBold,
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 520) {
+                return Column(
+                  children: [
+                    _roleChoiceCard(
+                      value: 'verified_member',
+                      label: l.tr('shared.role_verified_member'),
+                      icon: Icons.storefront_rounded,
+                    ),
+                    const SizedBox(height: 12),
+                    _roleChoiceCard(
+                      value: 'driver',
+                      label: l.tr('shared.role_driver'),
+                      icon: Icons.local_shipping_rounded,
+                    ),
+                  ],
+                );
+              }
+
+              return SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'verified_member',
+                    icon: const Icon(Icons.storefront_rounded),
+                    label: Text(l.tr('shared.role_verified_member')),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'driver',
+                    icon: const Icon(Icons.local_shipping_rounded),
+                    label: Text(l.tr('shared.role_driver')),
+                  ),
+                ],
+                selected: {_requestedRole},
+                onSelectionChanged: (selection) {
+                  setState(() => _requestedRole = selection.first);
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _requestedRole == 'driver'
+                ? context.loc.tr('account_verification.delivery_driver_note')
+                : context.loc.tr('account_verification.verified_member_note'),
+            style: AppTheme.caption.copyWith(height: 1.5, fontSize: 13),
           ),
           const SizedBox(height: 22),
           _docPicker(
@@ -473,6 +583,51 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _roleChoiceCard({
+    required String value,
+    required String label,
+    required IconData icon,
+  }) {
+    final selected = _requestedRole == value;
+
+    return InkWell(
+      onTap: () => setState(() => _requestedRole = value),
+      borderRadius: AppTheme.radiusMd,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primary.withValues(alpha: 0.08)
+              : AppTheme.surfaceVariant,
+          borderRadius: AppTheme.radiusMd,
+          border: Border.all(
+            color: selected ? AppTheme.primary : AppTheme.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTheme.bodyBold.copyWith(
+                  color: selected ? AppTheme.primary : AppTheme.textPrimary,
+                ),
+              ),
+            ),
+            if (selected)
+              const Icon(Icons.check_circle_rounded, color: AppTheme.primary),
           ],
         ),
       ),

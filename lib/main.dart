@@ -32,7 +32,6 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/scan-card-offline': (context) => const ScanCardScreen(offlineMode: true),
   '/scan-card-offline-camera': (context) =>
       const ScanCardScreen(offlineMode: true, autoOpenScanner: true),
-  '/offline-center': (context) => const OfflineCenterScreen(),
   '/inventory': (context) => const InventoryScreen(),
   '/transactions': (context) => const TransactionsScreen(),
   '/notifications': (context) => const NotificationsScreen(),
@@ -60,6 +59,19 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/sub-users': (context) => const SubUsersScreen(),
   '/debt-book': (context) => const DebtBookScreen(),
 };
+
+Route<dynamic> _buildNamedRoute(RouteSettings settings) {
+  final resolvedName = OfflineSessionService.resolveRoute(settings.name);
+  final builder = _appRoutes[resolvedName] ?? _appRoutes['/app-shell']!;
+
+  return MaterialPageRoute<void>(
+    settings: RouteSettings(
+      name: resolvedName,
+      arguments: settings.arguments,
+    ),
+    builder: builder,
+  );
+}
 
 Future<void> main() async {
   runZonedGuarded(
@@ -170,24 +182,9 @@ class MyApp extends StatelessWidget {
               ),
             );
           },
-          routes: _appRoutes,
+          onGenerateRoute: _buildNamedRoute,
           onGenerateInitialRoutes: (initialRouteName) {
-            final routeBuilder = _appRoutes[initialRouteName];
-            if (routeBuilder == null) {
-              return [
-                MaterialPageRoute<void>(
-                  settings: const RouteSettings(name: '/'),
-                  builder: (_) => const _AppLifecycleShell(),
-                ),
-              ];
-            }
-
-            return [
-              MaterialPageRoute<void>(
-                settings: RouteSettings(name: initialRouteName),
-                builder: routeBuilder,
-              ),
-            ];
+            return [_buildNamedRoute(RouteSettings(name: initialRouteName))];
           },
         );
       },

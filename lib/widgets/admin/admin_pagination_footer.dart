@@ -36,30 +36,34 @@ class AdminPaginationFooter extends StatelessWidget {
     final textDirection = l.textDirection;
 
     return Directionality(
-      // Make pagination layout deterministic even if an ancestor accidentally
-      // forces a wrong direction.
       textDirection: textDirection,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: ShwakelButton(
-                label:
-                    previousLabel ??
-                    l.tr('widgets_admin_admin_pagination_footer.001'),
-                isSecondary: true,
-                onPressed: currentPage > 1
-                    ? () => onPageChanged(currentPage - 1)
-                    : null,
-                // Uses semantic arrows that automatically match RTL/LTR.
-                icon: Icons.arrow_back_rounded,
-                iconAtEnd: false,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Container(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked = constraints.maxWidth < 560;
+            final previousButton = ShwakelButton(
+              label:
+                  previousLabel ??
+                  l.tr('widgets_admin_admin_pagination_footer.001'),
+              isSecondary: true,
+              onPressed: currentPage > 1
+                  ? () => onPageChanged(currentPage - 1)
+                  : null,
+              icon: Icons.arrow_back_rounded,
+              iconAtEnd: false,
+            );
+            final nextButton = ShwakelButton(
+              label:
+                  nextLabel ??
+                  l.tr('widgets_admin_admin_pagination_footer.002'),
+              onPressed: currentPage < lastPage
+                  ? () => onPageChanged(currentPage + 1)
+                  : null,
+              icon: Icons.arrow_forward_rounded,
+              iconAtEnd: true,
+            );
+            final pageBadge = Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withValues(alpha: 0.05),
@@ -72,20 +76,31 @@ class AdminPaginationFooter extends StatelessWidget {
                 '$currentPage / $lastPage',
                 style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ShwakelButton(
-                label:
-                    nextLabel ?? l.tr('widgets_admin_admin_pagination_footer.002'),
-                onPressed: currentPage < lastPage
-                    ? () => onPageChanged(currentPage + 1)
-                    : null,
-                icon: Icons.arrow_forward_rounded,
-                iconAtEnd: true,
-              ),
-            ),
-          ],
+            );
+
+            if (stacked) {
+              return Column(
+                children: [
+                  SizedBox(width: double.infinity, child: previousButton),
+                  const SizedBox(height: 12),
+                  pageBadge,
+                  const SizedBox(height: 12),
+                  SizedBox(width: double.infinity, child: nextButton),
+                ],
+              );
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(child: previousButton),
+                const SizedBox(width: 16),
+                pageBadge,
+                const SizedBox(width: 16),
+                Expanded(child: nextButton),
+              ],
+            );
+          },
         ),
       ),
     );

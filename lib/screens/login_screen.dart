@@ -444,15 +444,17 @@ class _LoginScreenState extends State<LoginScreen> {
             icon: Icons.login_rounded,
             gradient: AppTheme.primaryGradient,
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ShwakelButton(
-              label: l.tr('screens_login_screen.008'),
-              onPressed: () => Navigator.pushNamed(context, '/register'),
-              isSecondary: true,
+          if (!widget.offlineMode) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ShwakelButton(
+                label: l.tr('screens_login_screen.008'),
+                onPressed: () => Navigator.pushNamed(context, '/register'),
+                isSecondary: true,
+              ),
             ),
-          ),
+          ],
           if (!_registrationEnabled) ...[
             const SizedBox(height: 16),
             Container(

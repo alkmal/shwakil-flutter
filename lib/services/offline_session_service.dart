@@ -19,16 +19,41 @@ class OfflineSessionService {
 
   static const Set<String> _offlineAllowedRoutes = {
     '/scan-card-offline',
-    '/offline-center',
-    '/debt-book',
+    '/scan-card-offline-camera',
     '/login-offline',
     '/unlock',
   };
+
+  static String resolveRoute(String? routeName) {
+    final normalized = (routeName ?? '').trim();
+    final requestedRoute = normalized.isEmpty ? '/app-shell' : normalized;
+
+    if (!isOfflineMode) {
+      return requestedRoute;
+    }
+
+    if (_offlineAllowedRoutes.contains(requestedRoute)) {
+      return requestedRoute;
+    }
+
+    switch (requestedRoute) {
+      case '/scan-card':
+        return '/scan-card-offline';
+      case '/scan-card-camera':
+        return '/scan-card-offline-camera';
+      case '/login':
+      case '/register':
+      case '/forgot-password':
+        return '/login-offline';
+      default:
+        return '/scan-card-offline';
+    }
+  }
 
   static bool canOpenRoute(String routeName) {
     if (!isOfflineMode) {
       return true;
     }
-    return _offlineAllowedRoutes.contains(routeName);
+    return resolveRoute(routeName) == routeName;
   }
 }

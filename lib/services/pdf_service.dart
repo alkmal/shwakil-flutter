@@ -291,6 +291,7 @@ class PDFService {
   bool _isLocationSpecific(VirtualCard card) {
     final scope = card.visibilityScope.trim().toLowerCase();
     return card.isSingleUse ||
+        card.isDelivery ||
         scope == 'location' ||
         scope == 'place' ||
         scope == 'branch' ||
@@ -298,6 +299,9 @@ class PDFService {
   }
 
   String _cardTypeLabel(VirtualCard card) {
+    if (card.isDelivery) {
+      return 'بطاقة توصيل';
+    }
     if (_isLocationSpecific(card)) {
       return 'مخصصة لمكان محدد';
     }
@@ -305,6 +309,9 @@ class PDFService {
   }
 
   String _cardBadgeLabel(VirtualCard card) {
+    if (card.isDelivery) {
+      return 'توصيل';
+    }
     if (_isLocationSpecific(card)) {
       return 'مكان محدد';
     }
@@ -312,12 +319,18 @@ class PDFService {
   }
 
   String _cardTitle(VirtualCard card) {
+    if (card.isDelivery) {
+      return 'بطاقة توصيل';
+    }
     return card.isSingleUse
         ? 'بطاقة دخول أو تسليم'
         : '${card.value.toStringAsFixed(2)} شيكل';
   }
 
   String _cardSubtitle(VirtualCard card) {
+    if (card.isDelivery) {
+      return 'بطاقة توصيل يمكن استخدامها للمدفوعات';
+    }
     return card.isSingleUse
         ? 'مخصصة للدخول أو التسليم داخل النظام'
         : _valueInArabicWords(card.value);
@@ -393,10 +406,12 @@ class PDFService {
                       ),
                     ),
                     pw.SizedBox(height: compact ? 1.2 : 2.5),
-                    pw.Text(
-                      card.isSingleUse
-                          ? 'بطاقة استخدام داخلية'
-                          : 'بطاقة مالية رقمية',
+                      pw.Text(
+                        card.isDelivery
+                            ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
+                            : card.isSingleUse
+                                ? 'بطاقة استخدام داخلية'
+                                : 'بطاقة مالية رقمية',
                       textDirection: pw.TextDirection.rtl,
                       textAlign: pw.TextAlign.right,
                       style: _textStyle(
@@ -932,9 +947,11 @@ class PDFService {
                       ],
                       pw.SizedBox(height: 4),
                       pw.Text(
-                        card.isSingleUse
-                            ? 'صالحة للدخول أو التسليم داخل النظام'
-                            : 'قيمة داخلية صالحة للاستخدام داخل النظام',
+                        card.isDelivery
+                            ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
+                            : card.isSingleUse
+                                ? 'صالحة للدخول أو التسليم داخل النظام'
+                                : 'قيمة داخلية صالحة للاستخدام داخل النظام',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 8.2, color: _titleColor),

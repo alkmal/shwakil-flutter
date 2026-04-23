@@ -1124,10 +1124,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final scope = card.visibilityScope.trim().toLowerCase();
     final isLocationSpecific =
         card.isSingleUse ||
+        card.isDelivery ||
         scope == 'location' ||
         scope == 'place' ||
         scope == 'branch' ||
         scope == 'specific';
+    if (card.isDelivery) {
+      return context.loc.tr('shared.delivery_card_label');
+    }
     if (isLocationSpecific) {
       return l.tr('screens_scan_card_screen.065');
     }
@@ -1136,15 +1140,26 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         : l.tr('screens_scan_card_screen.067');
   }
 
+  String _cardUsageNote(VirtualCard card) {
+    if (card.isDelivery) {
+      return context.loc.tr('shared.delivery_card_payments_note');
+    }
+    return '';
+  }
+
   String _visibilityLabel(VirtualCard card) {
     final l = context.loc;
     final scope = card.visibilityScope.trim().toLowerCase();
     final isLocationSpecific =
         card.isSingleUse ||
+        card.isDelivery ||
         scope == 'location' ||
         scope == 'place' ||
         scope == 'branch' ||
         scope == 'specific';
+    if (card.isDelivery) {
+      return l.tr('shared.delivery_card_badge');
+    }
     if (isLocationSpecific) {
       return l.tr('screens_scan_card_screen.065');
     }
@@ -1169,8 +1184,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
+          automaticallyImplyLeading: !widget.offlineMode,
           title: const SizedBox.shrink(),
-          actions: const [AppNotificationAction(), QuickLogoutAction()],
+          actions: widget.offlineMode
+              ? const []
+              : const [AppNotificationAction(), QuickLogoutAction()],
         ),
         body: Center(
           child: ShwakelCard(
@@ -1198,43 +1216,41 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
+        automaticallyImplyLeading: !widget.offlineMode,
         title: const SizedBox.shrink(),
-        actions: [
-          IconButton(
-            tooltip: _t('screens_scan_card_screen.096'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
-          if (!widget.offlineMode)
-            IconButton(
-              tooltip: _canCreateTemporaryTransferCode
-                  ? (_isDeviceOffline
-                      ? 'إنشاء رمز تحويل مؤقت أوفلاين من الرصيد المحلي الجاهز'
-                      : 'إنشاء رمز تحويل مؤقت')
-                  : 'يتطلب حسابًا موثقًا ورصيدًا محليًا جاهزًا عند انقطاع الإنترنت',
-              onPressed: _showTemporaryTransferCreator,
-              icon: Icon(
-                Icons.qr_code_2_rounded,
-                color: _canCreateTemporaryTransferCode
-                    ? AppTheme.success
-                    : AppTheme.textTertiary,
-              ),
-            ),
-          IconButton(
-            tooltip: widget.offlineMode
-                ? _t('screens_scan_card_screen.103')
-                : _t('screens_scan_card_screen.104'),
-            onPressed: _switchScanMode,
-            icon: Icon(
-              widget.offlineMode
-                  ? Icons.cloud_done_rounded
-                  : Icons.cloud_off_rounded,
-              color: widget.offlineMode ? AppTheme.warning : AppTheme.primary,
-            ),
-          ),
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
+        actions: widget.offlineMode
+            ? const []
+            : [
+                IconButton(
+                  tooltip: _t('screens_scan_card_screen.096'),
+                  onPressed: _showHelpDialog,
+                  icon: const Icon(Icons.info_outline_rounded),
+                ),
+                IconButton(
+                  tooltip: _canCreateTemporaryTransferCode
+                      ? (_isDeviceOffline
+                          ? 'إنشاء رمز تحويل مؤقت أوفلاين من الرصيد المحلي الجاهز'
+                          : 'إنشاء رمز تحويل مؤقت')
+                      : 'يتطلب حسابًا موثقًا ورصيدًا محليًا جاهزًا عند انقطاع الإنترنت',
+                  onPressed: _showTemporaryTransferCreator,
+                  icon: Icon(
+                    Icons.qr_code_2_rounded,
+                    color: _canCreateTemporaryTransferCode
+                        ? AppTheme.success
+                        : AppTheme.textTertiary,
+                  ),
+                ),
+                IconButton(
+                  tooltip: _t('screens_scan_card_screen.104'),
+                  onPressed: _switchScanMode,
+                  icon: const Icon(
+                    Icons.cloud_off_rounded,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const AppNotificationAction(),
+                const QuickLogoutAction(),
+              ],
       ),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
@@ -1617,14 +1633,19 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 icon: Icons.payments_rounded,
                 label: CurrencyFormatter.ils(card.value),
               ),
-              _infoChip(
-                icon: Icons.category_rounded,
-                label: _cardTypeLabel(card),
-              ),
-              _infoChip(
-                icon: Icons.public_rounded,
-                label: _visibilityLabel(card),
-              ),
+                _infoChip(
+                  icon: Icons.category_rounded,
+                  label: _cardTypeLabel(card),
+                ),
+                if (card.isDelivery)
+                  _infoChip(
+                    icon: Icons.payments_rounded,
+                    label: _cardUsageNote(card),
+                  ),
+                _infoChip(
+                  icon: Icons.public_rounded,
+                  label: _visibilityLabel(card),
+                ),
               _infoChip(
                 icon: isUsed
                     ? Icons.cancel_schedule_send_rounded
@@ -1806,16 +1827,23 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         ? Icons.cancel_schedule_send_rounded
                         : Icons.verified_rounded,
                   ),
-                  _resultBadge(
-                    l.tr('screens_scan_card_screen.024'),
-                    _cardTypeLabel(card),
-                    AppTheme.primary,
-                    icon: Icons.category_rounded,
-                  ),
-                  _resultBadge(
-                    l.tr('screens_scan_card_screen.025'),
-                    _visibilityLabel(card),
-                    AppTheme.warning,
+                    _resultBadge(
+                      l.tr('screens_scan_card_screen.024'),
+                      _cardTypeLabel(card),
+                      AppTheme.primary,
+                      icon: Icons.category_rounded,
+                    ),
+                    if (card.isDelivery)
+                      _resultBadge(
+                        context.loc.tr('shared.usage_label'),
+                        _cardUsageNote(card),
+                        AppTheme.success,
+                        icon: Icons.payments_rounded,
+                      ),
+                    _resultBadge(
+                      l.tr('screens_scan_card_screen.025'),
+                      _visibilityLabel(card),
+                      AppTheme.warning,
                     icon: Icons.public_rounded,
                   ),
                 ],
@@ -2163,6 +2191,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         l.tr('screens_scan_card_screen.024'),
                         _cardTypeLabel(card),
                       ),
+                      if (card.isDelivery)
+                        _detailTile(
+                          context.loc.tr('shared.usage_label'),
+                          _cardUsageNote(card),
+                        ),
                       _detailTile(
                         l.tr('screens_scan_card_screen.025'),
                         _visibilityLabel(card),

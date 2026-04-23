@@ -102,7 +102,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       );
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
       if (requestedPage > lastPage && lastPage > 0) {
         if (!mounted) {
           return;
@@ -158,10 +158,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  l.tr('screens_inventory_screen.015'),
-                  style: AppTheme.h3,
-                ),
+                Text(l.tr('screens_inventory_screen.015'), style: AppTheme.h3),
               ],
             ),
           ),
@@ -255,9 +252,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('screens_inventory_screen.001')),
-        content: Text(
-          l.tr('screens_inventory_screen.019'),
-        ),
+        content: Text(l.tr('screens_inventory_screen.019')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -273,78 +268,107 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final unusedCount = _cards
         .where((card) => card.status == CardStatus.unused)
         .length;
-    final usedCount = _cards.where((card) => card.status == CardStatus.used).length;
+    final usedCount = _cards
+        .where((card) => card.status == CardStatus.used)
+        .length;
     final archivedCount = _cards
         .where((card) => card.status == CardStatus.archived)
         .length;
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.inventory_2_rounded, color: AppTheme.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  l.tr('screens_inventory_screen.002'),
-                  style: AppTheme.bodyBold,
+              Flex(
+                direction: isCompact ? Axis.vertical : Axis.horizontal,
+                crossAxisAlignment: isCompact
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.inventory_2_rounded,
+                    color: AppTheme.primary,
+                  ),
+                  SizedBox(
+                    width: isCompact ? 0 : 12,
+                    height: isCompact ? 10 : 0,
+                  ),
+                  if (isCompact)
+                    Text(
+                      l.tr('screens_inventory_screen.002'),
+                      style: AppTheme.bodyBold,
+                    )
+                  else
+                    Expanded(
+                      child: Text(
+                        l.tr('screens_inventory_screen.002'),
+                        style: AppTheme.bodyBold,
+                      ),
+                    ),
+                  SizedBox(
+                    width: isCompact ? 0 : 12,
+                    height: isCompact ? 12 : 0,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$_totalCards',
+                      style: AppTheme.bodyBold.copyWith(
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                l.tr('screens_inventory_screen.014'),
+                style: AppTheme.bodyAction.copyWith(
+                  color: AppTheme.textSecondary,
+                  height: 1.4,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$_totalCards',
-                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
-                ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _buildOverviewChip(
+                    l.tr('screens_inventory_screen.034'),
+                    '$unusedCount',
+                    AppTheme.success,
+                  ),
+                  _buildOverviewChip(
+                    l.tr('screens_inventory_screen.035'),
+                    '$usedCount',
+                    AppTheme.warning,
+                  ),
+                  _buildOverviewChip(
+                    l.tr('screens_inventory_screen.036'),
+                    '$archivedCount',
+                    AppTheme.error,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ToolToggleHint(
+                message: l.tr('screens_inventory_screen.018'),
+                icon: Icons.filter_alt_rounded,
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            l.tr('screens_inventory_screen.014'),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _buildOverviewChip(
-                l.tr('screens_inventory_screen.034'),
-                '$unusedCount',
-                AppTheme.success,
-              ),
-              _buildOverviewChip(
-                l.tr('screens_inventory_screen.035'),
-                '$usedCount',
-                AppTheme.warning,
-              ),
-              _buildOverviewChip(
-                l.tr('screens_inventory_screen.036'),
-                '$archivedCount',
-                AppTheme.error,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ToolToggleHint(
-            message: l.tr('screens_inventory_screen.018'),
-            icon: Icons.filter_alt_rounded,
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -401,7 +425,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l.tr('screens_inventory_screen.022'), style: AppTheme.bodyBold),
+              Text(
+                l.tr('screens_inventory_screen.022'),
+                style: AppTheme.bodyBold,
+              ),
               const SizedBox(height: 8),
               Text(
                 l.tr('screens_inventory_screen.023'),
@@ -492,10 +519,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         runSpacing: 12,
                         children: fields
                             .map(
-                              (field) => SizedBox(
-                                width: itemWidth,
-                                child: field,
-                              ),
+                              (field) =>
+                                  SizedBox(width: itemWidth, child: field),
                             )
                             .toList(),
                       ),
@@ -558,11 +583,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final scope = card.visibilityScope.trim().toLowerCase();
     final isLocationSpecific =
         card.isSingleUse ||
+        card.isDelivery ||
         scope == 'location' ||
         scope == 'place' ||
         scope == 'branch' ||
         scope == 'specific';
-    final categoryLabel = isLocationSpecific
+    final categoryLabel = card.isDelivery
+        ? l.tr('shared.delivery_card_label')
+        : isLocationSpecific
         ? l.tr('screens_scan_card_screen.065')
         : (card.isPrivate
               ? l.tr('screens_scan_card_screen.066')
@@ -571,90 +599,152 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return ShwakelCard(
       borderRadius: BorderRadius.circular(22),
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 560;
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+              if (isCompact)
+                Align(
+                  alignment: AlignmentDirectional.topEnd,
+                  child: _buildPopup(card),
                 ),
-                child: Icon(
-                  isUnused
-                      ? Icons.credit_card_rounded
-                      : Icons.check_circle_rounded,
-                  color: color,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(CurrencyFormatter.ils(card.value), style: AppTheme.h3),
-                    Text(
-                      card.barcode,
-                      style: AppTheme.caption.copyWith(letterSpacing: 1.5),
+              Flex(
+                direction: isCompact ? Axis.vertical : Axis.horizontal,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceMuted,
-                        borderRadius: AppTheme.radiusMd,
-                      ),
-                      child: Text(
-                        categoryLabel,
-                        style: AppTheme.caption.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
+                    child: Icon(
+                      isUnused
+                          ? Icons.credit_card_rounded
+                          : Icons.check_circle_rounded,
+                      color: color,
+                      size: 28,
                     ),
-                    if (card.ownerUsername?.trim().isNotEmpty == true) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        l.tr(
-                          'screens_inventory_screen.037',
-                          params: {'owner': card.ownerUsername ?? '-'},
-                        ),
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                  SizedBox(
+                    width: isCompact ? 0 : 16,
+                    height: isCompact ? 12 : 0,
+                  ),
+                  if (isCompact)
+                    _buildCardTileBody(card, categoryLabel, l)
+                  else
+                    Expanded(child: _buildCardTileBody(card, categoryLabel, l)),
+                  if (!isCompact) _buildPopup(card),
+                ],
               ),
-              _buildPopup(card),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildInfoChip(
+                    Icons.schedule_rounded,
+                    '${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}',
+                  ),
+                  if (card.usedBy != null && card.usedBy!.trim().isNotEmpty)
+                    _buildInfoChip(Icons.person_rounded, card.usedBy!),
+                ],
+              ),
             ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardTileBody(VirtualCard card, String categoryLabel, dynamic l) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(CurrencyFormatter.ils(card.value), style: AppTheme.h3),
+        Text(
+          card.barcode,
+          style: AppTheme.caption.copyWith(letterSpacing: 1.5),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceMuted,
+            borderRadius: AppTheme.radiusMd,
           ),
-          const Spacer(),
-          const Divider(),
+          child: Text(
+            categoryLabel,
+            style: AppTheme.caption.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ),
+        if (card.isDelivery) ...[
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildInfoChip(
-                Icons.schedule_rounded,
-                '${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}',
-              ),
-              if (card.usedBy != null && card.usedBy!.trim().isNotEmpty)
-                _buildInfoChip(Icons.person_rounded, card.usedBy!),
-            ],
+          Text(
+            l.tr('shared.delivery_card_payments_note'),
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.success,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
-      ),
+        if (card.ownerUsername?.trim().isNotEmpty == true) ...[
+          const SizedBox(height: 8),
+          Text(
+            l.tr(
+              'screens_inventory_screen.037',
+              params: {'owner': card.ownerUsername ?? '-'},
+            ),
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (card.issuedByUsername?.trim().isNotEmpty == true)
+              _buildInfoChip(
+                Icons.person_add_alt_rounded,
+                l.tr(
+                  'screens_inventory_screen.038',
+                  params: {'name': card.issuedByUsername ?? '-'},
+                ),
+              ),
+            if (card.usedBy?.trim().isNotEmpty == true)
+              _buildInfoChip(
+                Icons.person_rounded,
+                l.tr(
+                  'screens_inventory_screen.039',
+                  params: {'name': card.usedBy ?? '-'},
+                ),
+              ),
+            _buildInfoChip(
+              Icons.event_available_rounded,
+              l.tr(
+                'screens_inventory_screen.040',
+                params: {'date': _formatDateTime(card.createdAt)},
+              ),
+            ),
+            if (card.usedAt != null)
+              _buildInfoChip(
+                Icons.event_busy_rounded,
+                l.tr(
+                  'screens_inventory_screen.041',
+                  params: {'date': _formatDateTime(card.usedAt)},
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -676,6 +766,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  String _formatDateTime(DateTime? value) {
+    if (value == null) {
+      return '-';
+    }
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$year/$month/$day $hour:$minute';
+  }
+
   Future<void> _showSummarySheet() async {
     if (!mounted) {
       return;
@@ -688,7 +791,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
           padding: const EdgeInsets.all(16),
           shrinkWrap: true,
           children: [
-            Text(context.loc.tr('screens_inventory_screen.020'), style: AppTheme.h2),
+            Text(
+              context.loc.tr('screens_inventory_screen.020'),
+              style: AppTheme.h2,
+            ),
             const SizedBox(height: 8),
             Text(
               context.loc.tr('screens_inventory_screen.014'),
@@ -859,6 +965,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (_cards.isEmpty) {
       return;
     }
+    final fallbackPrintedBy = context.loc.tr('screens_inventory_screen.010');
     var cardsToPrint = _cards;
     if (_canUseAdminInventory && _totalCards > _cards.length) {
       final statusMap = {
@@ -883,8 +990,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final user = await _authService.currentUser();
     await _pdfService.printCards(
       cardsToPrint,
-      printedBy:
-          user?['username']?.toString() ?? context.loc.tr('screens_inventory_screen.010'),
+      printedBy: user?['username']?.toString() ?? fallbackPrintedBy,
     );
     if (!mounted) {
       return;
@@ -928,7 +1034,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
           prefixIcon: const Icon(Icons.calendar_today_rounded),
         ),
         child: Text(
-          value == null ? context.loc.tr('screens_inventory_screen.033') : _formatDate(value),
+          value == null
+              ? context.loc.tr('screens_inventory_screen.033')
+              : _formatDate(value),
           style: value == null
               ? AppTheme.bodyAction.copyWith(color: AppTheme.textTertiary)
               : AppTheme.bodyAction,

@@ -89,9 +89,6 @@ class _AppSidebarState extends State<AppSidebar> {
     final canHandleCardPrintRequests = permissions.canManageCardPrintRequests;
     final canReviewDevices = permissions.canReviewDevices;
     final isOfflineMode = OfflineSessionService.isOfflineMode;
-    final isRestrictedOfflineWorkspaceUser =
-        permissions.canOfflineCardScan && !permissions.canIssueCards;
-
     return Drawer(
       backgroundColor: AppTheme.sidebarSurface,
       child: SafeArea(
@@ -151,7 +148,7 @@ class _AppSidebarState extends State<AppSidebar> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                 children: [
-                  if (isOfflineMode || isRestrictedOfflineWorkspaceUser) ...[
+                  if (isOfflineMode) ...[
                     _buildSectionLabel(l.tr('widgets_app_sidebar.037')),
                     if (canScanCards)
                       _buildItem(
@@ -161,13 +158,6 @@ class _AppSidebarState extends State<AppSidebar> {
                         routeName: isOfflineMode
                             ? '/scan-card-offline'
                             : '/scan-card',
-                      ),
-                    if (permissions.canOfflineCardScan)
-                      _buildItem(
-                        context,
-                        icon: Icons.cloud_done_rounded,
-                        title: l.tr('widgets_app_sidebar.038'),
-                        routeName: '/offline-center',
                       ),
                     const Divider(indent: 8, endIndent: 8, height: 28),
                   ] else ...[
@@ -218,23 +208,21 @@ class _AppSidebarState extends State<AppSidebar> {
                     const Divider(indent: 8, endIndent: 8, height: 28),
                   ],
                   _buildSectionLabel(l.tr('widgets_app_sidebar.009')),
-                  if (!isRestrictedOfflineWorkspaceUser &&
-                      canViewAccountSettings)
+                  if (canViewAccountSettings)
                     _buildItem(
                       context,
                       icon: Icons.person_rounded,
                       title: l.tr('widgets_app_sidebar.010'),
                       routeName: '/account-settings',
                     ),
-                  if (!isRestrictedOfflineWorkspaceUser && canViewQuickTransfer)
+                  if (canViewQuickTransfer)
                     _buildItem(
                       context,
                       icon: Icons.send_to_mobile_rounded,
                       title: l.tr('widgets_app_sidebar.011'),
                       routeName: '/quick-transfer',
                     ),
-                  if (!isRestrictedOfflineWorkspaceUser &&
-                      verificationStatus != 'approved' &&
+                  if (verificationStatus != 'approved' &&
                       canRequestVerification)
                     _buildItem(
                       context,
@@ -242,22 +230,20 @@ class _AppSidebarState extends State<AppSidebar> {
                       title: l.tr('widgets_app_sidebar.012'),
                       routeName: '/account-verification',
                     ),
-                  if (!isRestrictedOfflineWorkspaceUser &&
-                      canViewSecuritySettings)
+                  if (canViewSecuritySettings)
                     _buildItem(
                       context,
                       icon: Icons.security_rounded,
                       title: l.tr('widgets_app_sidebar.013'),
                       routeName: '/security-settings',
                     ),
-                  if (!isRestrictedOfflineWorkspaceUser)
-                    _buildItem(
-                      context,
-                      icon: Icons.campaign_rounded,
-                      title: l.tr('widgets_app_sidebar.041'),
-                      routeName: '/affiliate-center',
-                    ),
-                  if (!isRestrictedOfflineWorkspaceUser && canViewSubUsers)
+                  _buildItem(
+                    context,
+                    icon: Icons.campaign_rounded,
+                    title: l.tr('widgets_app_sidebar.041'),
+                    routeName: '/affiliate-center',
+                  ),
+                  if (canViewSubUsers)
                     _buildItem(
                       context,
                       icon: Icons.supervised_user_circle_rounded,
@@ -271,8 +257,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       title: l.tr('widgets_app_sidebar.040'),
                       routeName: '/debt-book',
                     ),
-                  if (!isRestrictedOfflineWorkspaceUser &&
-                      hasAdminWorkspaceAccess) ...[
+                  if (hasAdminWorkspaceAccess) ...[
                     const Divider(indent: 8, endIndent: 8, height: 28),
                     _buildSectionLabel(l.tr('widgets_app_sidebar.014')),
                     _buildItem(
@@ -347,27 +332,21 @@ class _AppSidebarState extends State<AppSidebar> {
                   ],
                   const Divider(indent: 8, endIndent: 8, height: 28),
                   _buildSectionLabel(l.tr('widgets_app_sidebar.020')),
-                  if (!isRestrictedOfflineWorkspaceUser &&
-                      !isOfflineMode &&
-                      canViewUsagePolicy)
+                  if (!isOfflineMode && canViewUsagePolicy)
                     _buildItem(
                       context,
                       icon: Icons.policy_rounded,
                       title: l.tr('widgets_app_sidebar.021'),
                       routeName: '/usage-policy',
                     ),
-                  if (!isRestrictedOfflineWorkspaceUser &&
-                      !isOfflineMode &&
-                      canViewContact)
+                  if (!isOfflineMode && canViewContact)
                     _buildItem(
                       context,
                       icon: Icons.support_agent_rounded,
                       title: l.tr('widgets_app_sidebar.022'),
                       routeName: '/contact-us',
                     ),
-                  if (!isRestrictedOfflineWorkspaceUser &&
-                      !isOfflineMode &&
-                      canViewLocations)
+                  if (!isOfflineMode && canViewLocations)
                     _buildItem(
                       context,
                       icon: Icons.storefront_rounded,

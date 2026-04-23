@@ -321,6 +321,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _buildOverviewTab() {
+    final isPhone = AppTheme.isPhone(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: ResponsiveScaffoldContainer(
@@ -345,9 +347,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     ),
                     const SizedBox(height: 16),
                     ShwakelButton(
-                      label: _t(
-                        'screens_admin_customer_screen.075',
-                      ),
+                      label: _t('screens_admin_customer_screen.075'),
                       icon: Icons.mark_chat_unread_rounded,
                       onPressed: _busy ? null : _resendAccountDetails,
                       isLoading: _busy,
@@ -357,10 +357,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
               children: [
-                Expanded(
+                SizedBox(
+                  width: isPhone ? double.infinity : 420,
                   child: _buildMetricCard(
                     _t('screens_admin_customer_screen.013'),
                     CurrencyFormatter.ils(
@@ -370,8 +372,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     AppTheme.primary,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
+                SizedBox(
+                  width: isPhone ? double.infinity : 420,
                   child: _buildMetricCard(
                     _t('screens_admin_customer_screen.014'),
                     _customer['isDisabled'] == true
@@ -426,9 +428,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       padding: const EdgeInsets.all(32),
       gradient: AppTheme.primaryGradient,
       shadowLevel: ShwakelShadowLevel.premium,
-      child: Row(
-        children: [
-          CircleAvatar(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 640;
+          final avatar = CircleAvatar(
             radius: 40,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Text(
@@ -439,30 +442,59 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   'U'),
               style: AppTheme.h1.copyWith(color: Colors.white, fontSize: 32),
             ),
-          ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
+          );
+          final details = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _customer['fullName'] ?? _customer['username'],
+                style: AppTheme.h2.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _customer['roleLabel'] ??
+                    _t('screens_admin_customer_screen.022'),
+                style: AppTheme.caption.copyWith(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          );
+
+          if (compact) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _customer['fullName'] ?? _customer['username'],
-                  style: AppTheme.h2.copyWith(color: Colors.white),
-                ),
-                Text(
-                  _customer['roleLabel'] ??
-                      _t('screens_admin_customer_screen.022'),
-                  style: AppTheme.caption.copyWith(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.bold,
+                avatar,
+                const SizedBox(height: 16),
+                details,
+                if (_customer['isVerified'] == true) ...[
+                  const SizedBox(height: 12),
+                  const Icon(
+                    Icons.verified_rounded,
+                    color: Colors.white,
+                    size: 30,
                   ),
-                ),
+                ],
               ],
-            ),
-          ),
-          if (_customer['isVerified'] == true)
-            const Icon(Icons.verified_rounded, color: Colors.white, size: 30),
-        ],
+            );
+          }
+
+          return Row(
+            children: [
+              avatar,
+              const SizedBox(width: 24),
+              Expanded(child: details),
+              if (_customer['isVerified'] == true)
+                const Icon(
+                  Icons.verified_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -483,9 +515,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           children: [
             AdminSectionHeader(
               title: _t('screens_admin_customer_screen.023'),
-              subtitle: _t(
-                'screens_admin_customer_screen.076',
-              ),
+              subtitle: _t('screens_admin_customer_screen.076'),
               icon: Icons.history_rounded,
               trailing: _showTransactionFilters
                   ? DropdownButton<AdminTransactionAuditFilter>(
@@ -613,12 +643,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                         child: Text(_t('screens_admin_customer_screen.038')),
                       ),
                       DropdownMenuItem(
-                        value: 'verified_member',
-                        child: Text(_t('screens_admin_customer_screen.031')),
+                        value: 'driver',
+                        child: Text(_t('shared.role_driver')),
                       ),
                       DropdownMenuItem(
-                        value: 'advanced_member',
-                        child: Text(_t('screens_admin_customer_screen.032')),
+                        value: 'verified_member',
+                        child: Text(_t('screens_admin_customer_screen.031')),
                       ),
                       DropdownMenuItem(
                         value: 'support',
@@ -819,41 +849,70 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: ShwakelCard(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              Icons.smartphone_rounded,
-              color: d['isActiveDevice'] == true
-                  ? AppTheme.success
-                  : AppTheme.textTertiary,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    d['deviceName'] ?? _t('screens_admin_customer_screen.064'),
-                    style: AppTheme.bodyBold,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final info = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  d['deviceName'] ?? _t('screens_admin_customer_screen.064'),
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.loc.tr(
+                    'screens_admin_customer_screen.071',
+                    params: {'id': d['deviceId']?.toString() ?? '-'},
                   ),
-                  Text(
-                    context.loc.tr(
-                      'screens_admin_customer_screen.071',
-                      params: {'id': d['deviceId']?.toString() ?? '-'},
-                    ),
-                    style: AppTheme.caption,
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
+                  style: AppTheme.caption,
+                ),
+              ],
+            );
+            final deleteButton = IconButton(
               icon: const Icon(
                 Icons.delete_outline_rounded,
                 color: AppTheme.error,
               ),
               onPressed: () => _releaseDevice(d),
-            ),
-          ],
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.smartphone_rounded,
+                        color: d['isActiveDevice'] == true
+                            ? AppTheme.success
+                            : AppTheme.textTertiary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: info),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerLeft, child: deleteButton),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Icon(
+                  Icons.smartphone_rounded,
+                  color: d['isActiveDevice'] == true
+                      ? AppTheme.success
+                      : AppTheme.textTertiary,
+                ),
+                const SizedBox(width: 16),
+                Expanded(child: info),
+                deleteButton,
+              ],
+            );
+          },
         ),
       ),
     );
@@ -881,17 +940,40 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
 
   Widget _infoRow(String l, String v) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(l, style: AppTheme.bodyAction),
-        Text(v, style: AppTheme.bodyBold),
-      ],
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l, style: AppTheme.bodyAction),
+              const SizedBox(height: 6),
+              Text(v, style: AppTheme.bodyBold),
+            ],
+          );
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Text(l, style: AppTheme.bodyAction)),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                v,
+                style: AppTheme.bodyBold,
+                textAlign: TextAlign.end,
+              ),
+            ),
+          ],
+        );
+      },
     ),
   );
 
   Widget _feeField(String l, TextEditingController c) => SizedBox(
-    width: 140,
+    width: AppTheme.isPhone(context) ? double.infinity : 140,
     child: TextField(
       controller: c,
       keyboardType: TextInputType.number,

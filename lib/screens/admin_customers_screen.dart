@@ -91,7 +91,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       );
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
 
       if (_customerPage > lastPage && lastPage > 0) {
         if (!mounted) {
@@ -228,8 +228,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
           return AlertDialog(
             title: Text(l.tr('screens_admin_customers_screen.005')),
-            content: SizedBox(
-              width: 460,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -634,7 +634,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
   Widget _summaryCard(String title, String value, IconData icon, Color color) {
     return SizedBox(
-      width: 170,
+      width: AppTheme.isPhone(context) ? double.infinity : 170,
       child: ShwakelCard(
         padding: const EdgeInsets.all(18),
         withBorder: true,
@@ -735,12 +735,15 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 ),
                 onChanged: (_) {
                   _searchDebounce?.cancel();
-                  _searchDebounce = Timer(const Duration(milliseconds: 550), () {
-                    if (!mounted) {
-                      return;
-                    }
-                    _submitSearch();
-                  });
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 550),
+                    () {
+                      if (!mounted) {
+                        return;
+                      }
+                      _submitSearch();
+                    },
+                  );
                 },
               ),
             ),

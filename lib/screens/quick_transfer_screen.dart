@@ -218,23 +218,26 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         final amountController = TextEditingController();
         return AlertDialog(
           title: Text(_t('screens_quick_transfer_screen.013')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _RecipientPreviewCard(recipient: recipient),
-              const SizedBox(height: 20),
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _RecipientPreviewCard(recipient: recipient),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_quick_transfer_screen.027'),
+                    prefixIcon: const Icon(Icons.payments_rounded),
+                  ),
                 ),
-                decoration: InputDecoration(
-                  labelText: _t('screens_quick_transfer_screen.027'),
-                  prefixIcon: const Icon(Icons.payments_rounded),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -268,7 +271,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         appBar: AppBar(
           title: Text(_t('screens_quick_transfer_screen.016')),
           actions: [
-          IconButton(
+            IconButton(
               tooltip: context.loc.tr('screens_admin_customers_screen.041'),
               onPressed: _showHelpDialog,
               icon: const Icon(Icons.info_outline_rounded),
@@ -340,24 +343,54 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         color: AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(22),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildTabButton(
-              label: context.loc.tr('screens_quick_transfer_screen.036'),
-              icon: Icons.send_rounded,
-              index: 0,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _buildTabButton(
-              label: context.loc.tr('screens_quick_transfer_screen.037'),
-              icon: Icons.qr_code_2_rounded,
-              index: 1,
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stacked = constraints.maxWidth < 440;
+
+          if (stacked) {
+            return Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: _buildTabButton(
+                    label: context.loc.tr('screens_quick_transfer_screen.036'),
+                    icon: Icons.send_rounded,
+                    index: 0,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: _buildTabButton(
+                    label: context.loc.tr('screens_quick_transfer_screen.037'),
+                    icon: Icons.qr_code_2_rounded,
+                    index: 1,
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(
+                child: _buildTabButton(
+                  label: context.loc.tr('screens_quick_transfer_screen.036'),
+                  icon: Icons.send_rounded,
+                  index: 0,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTabButton(
+                  label: context.loc.tr('screens_quick_transfer_screen.037'),
+                  icon: Icons.qr_code_2_rounded,
+                  index: 1,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -651,7 +684,17 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               color: Colors.white,
               borderRadius: AppTheme.radiusMd,
             ),
-            child: QrImageView(data: _payload(), size: 240),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final qrSize = constraints.maxWidth < 320
+                    ? constraints.maxWidth - 32
+                    : 240.0;
+                return QrImageView(
+                  data: _payload(),
+                  size: qrSize.clamp(160.0, 240.0),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 24),
           Text(
@@ -676,10 +719,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     required IconData icon,
     Color accent = AppTheme.primary,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 420;
+        final badge = Container(
           width: 52,
           height: 52,
           decoration: BoxDecoration(
@@ -687,19 +730,32 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             borderRadius: BorderRadius.circular(18),
           ),
           child: Icon(icon, color: accent),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
+        );
+        final text = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: AppTheme.h3),
+            const SizedBox(height: 4),
+            Text(subtitle, style: AppTheme.caption.copyWith(fontSize: 14)),
+          ],
+        );
+
+        if (compact) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: AppTheme.h3),
-              const SizedBox(height: 4),
-              Text(subtitle, style: AppTheme.caption.copyWith(fontSize: 14)),
-            ],
-          ),
-        ),
-      ],
+            children: [badge, const SizedBox(height: 12), text],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            badge,
+            const SizedBox(width: 14),
+            Expanded(child: text),
+          ],
+        );
+      },
     );
   }
 }
@@ -726,6 +782,12 @@ class _RecipientPreviewCard extends StatelessWidget {
         return l.tr('screens_quick_transfer_screen.001');
       case 'support':
         return l.tr('screens_quick_transfer_screen.002');
+      case 'driver':
+        return l.tr('shared.role_driver');
+      case 'verified_member':
+        return l.tr('shared.role_verified_member');
+      case 'advanced_member':
+        return l.tr('shared.role_verified_member');
       default:
         return l.tr('screens_quick_transfer_screen.003');
     }
@@ -746,9 +808,10 @@ class _RecipientPreviewCard extends StatelessWidget {
         borderRadius: AppTheme.radiusMd,
         border: Border.all(color: AppTheme.border),
       ),
-      child: Row(
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 420;
+          final avatar = Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
@@ -756,24 +819,21 @@ class _RecipientPreviewCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.person_rounded, color: AppTheme.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  username?.isNotEmpty == true
-                      ? username!
-                      : l.tr('screens_quick_transfer_screen.004'),
-                  style: AppTheme.bodyBold,
-                ),
-                const SizedBox(height: 4),
-                Text(_maskedPhone(phone), style: AppTheme.bodyAction),
-              ],
-            ),
-          ),
-          Container(
+          );
+          final info = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                username?.isNotEmpty == true
+                    ? username!
+                    : l.tr('screens_quick_transfer_screen.004'),
+                style: AppTheme.bodyBold,
+              ),
+              const SizedBox(height: 4),
+              Text(_maskedPhone(phone), style: AppTheme.bodyAction),
+            ],
+          );
+          final badge = Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: AppTheme.primarySoft,
@@ -786,8 +846,35 @@ class _RecipientPreviewCard extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-          ),
-        ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    avatar,
+                    const SizedBox(width: 12),
+                    Expanded(child: info),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                badge,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              avatar,
+              const SizedBox(width: 12),
+              Expanded(child: info),
+              const SizedBox(width: 8),
+              badge,
+            ],
+          );
+        },
       ),
     );
   }

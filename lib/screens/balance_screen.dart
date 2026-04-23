@@ -101,7 +101,7 @@ class _BalanceScreenState extends State<BalanceScreen>
       );
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
       if (requestedPage > lastPage && lastPage > 0) {
         if (!mounted) return;
         setState(() => _page = lastPage);
@@ -401,8 +401,8 @@ class _BalanceScreenState extends State<BalanceScreen>
             }
 
             return AlertDialog(
-              content: SizedBox(
-                width: 560,
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -728,10 +728,10 @@ class _BalanceScreenState extends State<BalanceScreen>
                   children: [
                     _buildBalanceOverviewCard(isPhone: isPhone),
                     const SizedBox(height: 14),
-                    _buildTopTabs(),
+                    _buildTopTabs(isPhone: isPhone),
                     const SizedBox(height: 16),
                     if (showingActionsTab)
-                      _buildActionsCard(isCompact: true, isPhone: isPhone)
+                      _buildActionsCard(isCompact: isCompact, isPhone: isPhone)
                     else ...[
                       if (_showHistoryFilters) ...[
                         _buildAuditFilters(compact: isCompact),
@@ -770,7 +770,30 @@ class _BalanceScreenState extends State<BalanceScreen>
     );
   }
 
-  Widget _buildTopTabs() {
+  Widget _buildTopTabs({required bool isPhone}) {
+    final l = context.loc;
+    if (isPhone) {
+      return ShwakelCard(
+        padding: const EdgeInsets.all(8),
+        borderRadius: BorderRadius.circular(24),
+        shadowLevel: ShwakelShadowLevel.soft,
+        child: Column(
+          children: [
+            _buildTabButton(
+              index: 0,
+              icon: Icons.flash_on_rounded,
+              label: l.tr('screens_balance_screen.111'),
+            ),
+            const SizedBox(height: 8),
+            _buildTabButton(
+              index: 1,
+              icon: Icons.receipt_long_rounded,
+              label: l.tr('screens_balance_screen.112'),
+            ),
+          ],
+        ),
+      );
+    }
     return ShwakelCard(
       padding: const EdgeInsets.all(10),
       borderRadius: BorderRadius.circular(24),
@@ -790,6 +813,50 @@ class _BalanceScreenState extends State<BalanceScreen>
             text: context.loc.tr('screens_balance_screen.112'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final selected = _tabController.index == index;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => _tabController.animateTo(index),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primary.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected
+                ? AppTheme.primary.withValues(alpha: 0.2)
+                : AppTheme.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTheme.bodyBold.copyWith(
+                  color: selected ? AppTheme.primary : AppTheme.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1193,37 +1260,62 @@ class _BalanceScreenState extends State<BalanceScreen>
 
   Widget _buildHistoryResultsHeader() {
     final l = context.loc;
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l.tr('screens_balance_screen.113'),
-                style: AppTheme.h3.copyWith(fontSize: 18),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 520;
+        return Flex(
+          direction: isCompact ? Axis.vertical : Axis.horizontal,
+          crossAxisAlignment: isCompact
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.center,
+          children: [
+            if (isCompact)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.tr('screens_balance_screen.113'),
+                    style: AppTheme.h3.copyWith(fontSize: 18),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l.tr('screens_balance_screen.114'),
+                    style: AppTheme.caption,
+                  ),
+                ],
+              )
+            else
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.tr('screens_balance_screen.113'),
+                      style: AppTheme.h3.copyWith(fontSize: 18),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l.tr('screens_balance_screen.114'),
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                l.tr('screens_balance_screen.114'),
-                style: AppTheme.caption,
+            if (_showHistoryFilters) ...[
+              SizedBox(width: isCompact ? 0 : 12, height: isCompact ? 10 : 0),
+              TextButton.icon(
+                onPressed: () => setState(() => _showHistoryFilters = false),
+                icon: const Icon(Icons.expand_less_rounded, size: 18),
+                label: Text(l.tr('screens_balance_screen.115')),
               ),
             ],
-          ),
-        ),
-        if (_showHistoryFilters)
-          TextButton.icon(
-            onPressed: () => setState(() => _showHistoryFilters = false),
-            icon: const Icon(Icons.expand_less_rounded, size: 18),
-            label: Text(l.tr('screens_balance_screen.115')),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildBalanceHistoryCard({
-    required Map<String, dynamic> transaction,
-  }) {
+  Widget _buildBalanceHistoryCard({required Map<String, dynamic> transaction}) {
     final l = context.loc;
     final type = transaction['type']?.toString() ?? '';
     final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
@@ -1246,117 +1338,162 @@ class _BalanceScreenState extends State<BalanceScreen>
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       borderRadius: BorderRadius.circular(22),
       shadowLevel: ShwakelShadowLevel.soft,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 560;
+          final amountBadge = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(14),
+              color: accentColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
             ),
-            child: Icon(
-              _historyIcon(type: type, amount: amount, isRejected: isRejected),
-              color: accentColor,
-              size: 20,
+            child: Text(
+              CurrencyFormatter.ils(amount),
+              style: AppTheme.bodyBold.copyWith(
+                color: accentColor,
+                fontSize: 13,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          );
+
+          return Flex(
+            direction: isCompact ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  _historyIcon(
+                    type: type,
+                    amount: amount,
+                    isRejected: isRejected,
+                  ),
+                  color: accentColor,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: isCompact ? 0 : 12, height: isCompact ? 12 : 0),
+              if (isCompact)
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        _historyTypeLabel(type: type, metadata: metadata),
-                        style: AppTheme.bodyBold.copyWith(fontSize: 15),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        CurrencyFormatter.ils(amount),
-                        style: AppTheme.bodyBold.copyWith(
-                          color: accentColor,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
                     Text(
-                      createdAt,
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                      _historyTypeLabel(type: type, metadata: metadata),
+                      style: AppTheme.bodyBold.copyWith(fontSize: 15),
                     ),
-                    if (isRejected)
-                      Text(
-                        l.tr('widgets_admin_transaction_audit_card.029'),
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.error,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                    const SizedBox(height: 8),
+                    amountBadge,
+                    const SizedBox(height: 6),
+                    _buildHistoryMeta(
+                      createdAt: createdAt,
+                      isRejected: isRejected,
+                      actorLine: actorLine,
+                      isNearBranch: isNearBranch,
+                      l: l,
+                    ),
                   ],
-                ),
-                if (actorLine != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    actorLine,
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
-                      height: 1.3,
-                    ),
+                )
+              else
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _historyTypeLabel(type: type, metadata: metadata),
+                              style: AppTheme.bodyBold.copyWith(fontSize: 15),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          amountBadge,
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      _buildHistoryMeta(
+                        createdAt: createdAt,
+                        isRejected: isRejected,
+                        actorLine: actorLine,
+                        isNearBranch: isNearBranch,
+                        l: l,
+                      ),
+                    ],
                   ),
-                ],
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      isNearBranch
-                          ? Icons.place_rounded
-                          : Icons.location_off_outlined,
-                      size: 14,
-                      color: isNearBranch ? AppTheme.primary : AppTheme.warning,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        isNearBranch
-                            ? l.tr('widgets_admin_transaction_audit_card.030')
-                            : l.tr('widgets_admin_transaction_audit_card.031'),
-                        style: AppTheme.caption.copyWith(
-                          color: isNearBranch
-                              ? AppTheme.primary
-                              : AppTheme.warning,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHistoryMeta({
+    required String createdAt,
+    required bool isRejected,
+    required String? actorLine,
+    required bool isNearBranch,
+    required AppLocalizer l,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            Text(
+              createdAt,
+              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+            ),
+            if (isRejected)
+              Text(
+                l.tr('widgets_admin_transaction_audit_card.029'),
+                style: AppTheme.caption.copyWith(
+                  color: AppTheme.error,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+          ],
+        ),
+        if (actorLine != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            actorLine,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.3,
             ),
           ),
         ],
-      ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              isNearBranch ? Icons.place_rounded : Icons.location_off_outlined,
+              size: 14,
+              color: isNearBranch ? AppTheme.primary : AppTheme.warning,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                isNearBranch
+                    ? l.tr('widgets_admin_transaction_audit_card.030')
+                    : l.tr('widgets_admin_transaction_audit_card.031'),
+                style: AppTheme.caption.copyWith(
+                  color: isNearBranch ? AppTheme.primary : AppTheme.warning,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1666,8 +1803,8 @@ class _BalanceScreenState extends State<BalanceScreen>
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(title),
-          content: SizedBox(
-            width: 520,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1700,8 +1837,8 @@ class _BalanceScreenState extends State<BalanceScreen>
                             children: [
                               Text(title, style: AppTheme.h3),
                               const SizedBox(height: 4),
-                                Text(
-                                  enablePhoneLookup
+                              Text(
+                                enablePhoneLookup
                                     ? l.tr('screens_balance_screen.104')
                                     : l.tr('screens_balance_screen.079'),
                                 style: AppTheme.bodyAction.copyWith(
@@ -2273,8 +2410,8 @@ class _BalanceScreenState extends State<BalanceScreen>
               : l.tr('screens_balance_screen.097');
 
           return AlertDialog(
-            content: SizedBox(
-              width: 520,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

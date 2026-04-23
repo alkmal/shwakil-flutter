@@ -75,6 +75,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         }
         _useAccountLogo =
             user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
+        if (user?['role']?.toString() == 'driver') {
+          _cardType = 'delivery';
+        }
         _isLoadingUser = false;
       });
     } finally {
@@ -90,19 +93,29 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   bool get _canRequestCardPrinting => _appPermissions.canRequestCardPrinting;
 
+  bool get _isDriverAccount => _user?['role']?.toString() == 'driver';
+
   bool get _hasAccountLogo =>
       _user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
 
-  List<DropdownMenuItem<String>> _cardTypeItems(AppLocalizer l) => [
-    DropdownMenuItem(
-      value: 'standard',
-      child: Text(l.tr('screens_create_card_screen.002')),
-    ),
-    DropdownMenuItem(
-      value: 'single_use',
-      child: Text(l.tr('screens_create_card_screen.003')),
-    ),
-  ];
+  List<DropdownMenuItem<String>> _cardTypeItems(AppLocalizer l) =>
+      _isDriverAccount
+      ? [
+          DropdownMenuItem(
+            value: 'delivery',
+            child: Text(l.tr('shared.delivery_card_label')),
+          ),
+        ]
+      : [
+          DropdownMenuItem(
+            value: 'standard',
+            child: Text(l.tr('screens_create_card_screen.002')),
+          ),
+          DropdownMenuItem(
+            value: 'single_use',
+            child: Text(l.tr('screens_create_card_screen.003')),
+          ),
+        ];
 
   Future<void> _create() async {
     final l = context.loc;
@@ -139,6 +152,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
     final typeLabel = _cardType == 'single_use'
         ? l.tr('screens_create_card_screen.008')
+        : _cardType == 'delivery'
+        ? l.tr('shared.delivery_card_label')
         : l.tr('screens_create_card_screen.009');
     final visibilityLabel = isPrivate
         ? l.tr('screens_create_card_screen.010')
@@ -199,6 +214,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         quantity: quantity,
         cardType: _cardType,
         visibilityScope: _visibilityScope,
+        printDesign: {
+          'logoText': _titleC.text.trim().isEmpty
+              ? l.tr('screens_create_card_screen.001')
+              : _titleC.text.trim(),
+          'stampText': _stampC.text.trim().isEmpty
+              ? l.tr('screens_create_card_screen.019')
+              : _stampC.text.trim(),
+          'logoUrl': (_showLogo && _useAccountLogo)
+              ? (_user?['printLogoUrl'])?.toString()
+              : null,
+          'showStamp': _showStamp,
+        },
         otpCode: securityResult.otpCode,
         localAuthMethod: securityResult.method,
         allowedUserIds: _selectedUsers
@@ -318,8 +345,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) => AlertDialog(
             title: Text(l.tr('screens_create_card_screen.024')),
-            content: SizedBox(
-              width: 460,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -523,44 +550,75 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       padding: const EdgeInsets.all(24),
       gradient: AppTheme.primaryGradient,
       withBorder: false,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: AppTheme.radiusMd,
-            ),
-            child: const Icon(
-              Icons.add_card_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('screens_create_card_screen.030'),
-                  style: AppTheme.h2.copyWith(
-                    color: Colors.white,
-                    fontSize: 22,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 560;
+          return Flex(
+            direction: isCompact ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: isCompact
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: AppTheme.radiusMd,
+                ),
+                child: const Icon(
+                  Icons.add_card_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              SizedBox(width: isCompact ? 0 : 18, height: isCompact ? 14 : 0),
+              if (isCompact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.tr('screens_create_card_screen.030'),
+                      style: AppTheme.h2.copyWith(
+                        color: Colors.white,
+                        fontSize: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      l.tr('screens_create_card_screen.031'),
+                      style: AppTheme.caption.copyWith(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.tr('screens_create_card_screen.030'),
+                        style: AppTheme.h2.copyWith(
+                          color: Colors.white,
+                          fontSize: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l.tr('screens_create_card_screen.031'),
+                        style: AppTheme.caption.copyWith(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  l.tr('screens_create_card_screen.031'),
-                  style: AppTheme.caption.copyWith(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -614,6 +672,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 style: AppTheme.bodyText.copyWith(fontSize: 14),
               ),
             ),
+          if (_cardType == 'delivery')
+            ShwakelCard(
+              padding: const EdgeInsets.all(16),
+              color: AppTheme.warning.withValues(alpha: 0.06),
+              borderColor: AppTheme.warning.withValues(alpha: 0.15),
+              child: Text(
+                l.tr('shared.delivery_card_create_note'),
+                style: AppTheme.bodyText.copyWith(fontSize: 14),
+              ),
+            ),
           const SizedBox(height: 16),
           TextField(
             controller: _qtyC,
@@ -623,34 +691,56 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               prefixIcon: const Icon(Icons.pin_rounded),
             ),
           ),
-          if (_canIssuePrivateCards) ...[
+          if (_canIssuePrivateCards && _cardType != 'delivery') ...[
             const SizedBox(height: 24),
             Text(
               l.tr('screens_create_card_screen.038'),
               style: AppTheme.bodyBold,
             ),
             const SizedBox(height: 12),
-            SegmentedButton<String>(
-              segments: [
-                ButtonSegment<String>(
-                  value: 'general',
-                  icon: const Icon(Icons.public_rounded),
-                  label: Text(l.tr('screens_create_card_screen.011')),
-                ),
-                ButtonSegment<String>(
-                  value: 'restricted',
-                  icon: const Icon(Icons.lock_rounded),
-                  label: Text(l.tr('screens_create_card_screen.010')),
-                ),
-              ],
-              selected: {_visibilityScope},
-              onSelectionChanged: (selection) {
-                setState(() {
-                  _visibilityScope = selection.first;
-                  if (_visibilityScope != 'restricted') {
-                    _selectedUsers = [];
-                  }
-                });
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 520;
+                if (isCompact) {
+                  return Column(
+                    children: [
+                      _buildVisibilityChoiceCard(
+                        value: 'general',
+                        icon: Icons.public_rounded,
+                        label: l.tr('screens_create_card_screen.011'),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildVisibilityChoiceCard(
+                        value: 'restricted',
+                        icon: Icons.lock_rounded,
+                        label: l.tr('screens_create_card_screen.010'),
+                      ),
+                    ],
+                  );
+                }
+                return SegmentedButton<String>(
+                  segments: [
+                    ButtonSegment<String>(
+                      value: 'general',
+                      icon: const Icon(Icons.public_rounded),
+                      label: Text(l.tr('screens_create_card_screen.011')),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'restricted',
+                      icon: const Icon(Icons.lock_rounded),
+                      label: Text(l.tr('screens_create_card_screen.010')),
+                    ),
+                  ],
+                  selected: {_visibilityScope},
+                  onSelectionChanged: (selection) {
+                    setState(() {
+                      _visibilityScope = selection.first;
+                      if (_visibilityScope != 'restricted') {
+                        _selectedUsers = [];
+                      }
+                    });
+                  },
+                );
               },
             ),
           ],
@@ -999,12 +1089,90 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildRecentRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: AppTheme.bodyAction.copyWith(fontSize: 14)),
-        Text(value, style: AppTheme.bodyBold.copyWith(fontSize: 14)),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 320;
+        if (isCompact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: AppTheme.bodyAction.copyWith(fontSize: 14)),
+              const SizedBox(height: 4),
+              Text(value, style: AppTheme.bodyBold.copyWith(fontSize: 14)),
+            ],
+          );
+        }
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: AppTheme.bodyAction.copyWith(fontSize: 14),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: AppTheme.bodyBold.copyWith(fontSize: 14),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildVisibilityChoiceCard({
+    required String value,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = _visibilityScope == value;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () {
+        setState(() {
+          _visibilityScope = value;
+          if (_visibilityScope != 'restricted') {
+            _selectedUsers = [];
+          }
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primary.withValues(alpha: 0.08)
+              : AppTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected ? AppTheme.primary : AppTheme.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTheme.bodyBold.copyWith(
+                  color: isSelected ? AppTheme.primary : AppTheme.textPrimary,
+                ),
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle_rounded, color: AppTheme.primary),
+          ],
+        ),
+      ),
     );
   }
 }

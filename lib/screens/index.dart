@@ -9,7 +9,6 @@ export 'create_card_screen.dart';
 export 'quick_transfer_screen.dart';
 export 'card_print_requests_screen.dart';
 export 'scan_card_screen.dart';
-export 'offline_center_screen.dart';
 export 'inventory_screen.dart';
 export 'transactions_screen.dart';
 export 'notifications_screen.dart';

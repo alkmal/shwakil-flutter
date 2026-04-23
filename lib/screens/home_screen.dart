@@ -430,11 +430,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return _offlineCardService.hasOfflineWorkspace(user['id'].toString());
   }
 
-  bool get _isRestrictedOfflineWorkspaceUser {
-    final permissions = AppPermissions.fromUser(_user);
-    return permissions.canOfflineCardScan && !permissions.canIssueCards;
-  }
-
   bool get _isDeviceOnline => ConnectivityService.instance.isOnline.value;
 
   String get _scanCameraRoute => OfflineSessionService.isOfflineMode
@@ -483,12 +478,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       appBar: AppBar(
         title: const SizedBox.shrink(),
         actions: [
-          if (_canOfflineScan) _buildSyncStatusAction(),
-          const AppNotificationAction(),
+          if (_canOfflineScan && !OfflineSessionService.isOfflineMode)
+            _buildSyncStatusAction(),
+          if (!OfflineSessionService.isOfflineMode)
+            const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: OfflineSessionService.isOfflineMode ? null : const AppSidebar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -530,34 +527,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final l = context.loc;
-    final canOpenOfflineCenter = _hasOfflineWorkspace || canScanCards;
     final showOfflineSyncAction =
         _canOfflineScan &&
         _isDeviceOnline &&
         (_pendingOfflineCount > 0 || _isSyncingOfflineWorkspace);
 
-    if (OfflineSessionService.isOfflineMode ||
-        _isRestrictedOfflineWorkspaceUser) {
+    if (OfflineSessionService.isOfflineMode) {
       return [
-        if (showOfflineSyncAction)
-          _HomeServiceItem(
-            title: _isSyncingOfflineWorkspace
-                ? _t('screens_home_screen.064')
-                : _t('screens_home_screen.065'),
-            subtitle: _pendingOfflineCount > 0
-                ? _t(
-                    'screens_home_screen.066',
-                    params: {
-                      'count': '$_pendingOfflineCount',
-                      'amount': _pendingOfflineAmount.toStringAsFixed(2),
-                    },
-                  )
-                : _t('screens_home_screen.067'),
-            icon: Icons.cloud_sync_rounded,
-            color: AppTheme.primary,
-            kind: _HomeServiceKind.sync,
-            onTap: () => unawaited(_syncOfflineWorkspace()),
-          ),
         if (canScanCards)
           _HomeServiceItem(
             title: l.tr('screens_home_screen.015'),
@@ -566,26 +542,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             color: AppTheme.success,
             kind: _HomeServiceKind.scan,
             onTap: _openScanScreen,
-          ),
-        if (canOpenOfflineCenter)
-          _HomeServiceItem(
-            title: _t('screens_home_screen.068'),
-            subtitle: OfflineSessionService.isOfflineMode
-                ? _t('screens_home_screen.069')
-                : _t('screens_home_screen.070'),
-            icon: Icons.cloud_done_rounded,
-            color: AppTheme.warning,
-            kind: _HomeServiceKind.offlineCenter,
-            onTap: () => Navigator.pushNamed(context, '/offline-center'),
-          ),
-        if (canManageDebtBook)
-          _HomeServiceItem(
-            title: _t('screens_home_screen.071'),
-            subtitle: _t('screens_home_screen.072'),
-            icon: Icons.menu_book_rounded,
-            color: const Color(0xFF7C3AED),
-            kind: _HomeServiceKind.debtBook,
-            onTap: () => Navigator.pushNamed(context, '/debt-book'),
           ),
       ];
     }
@@ -616,15 +572,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           kind: _HomeServiceKind.scan,
           onTap: _openScanScreen,
         ),
-        if (canOpenOfflineCenter)
-          _HomeServiceItem(
-            title: _t('screens_home_screen.068'),
-            subtitle: _t('screens_home_screen.075'),
-            icon: Icons.cloud_done_rounded,
-            color: AppTheme.warning,
-            kind: _HomeServiceKind.offlineCenter,
-            onTap: () => Navigator.pushNamed(context, '/offline-center'),
-          ),
         if (canManageDebtBook)
           _HomeServiceItem(
             title: _t('screens_home_screen.071'),
@@ -764,9 +711,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),
-      child: Row(
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+          final logo = Container(
             width: 64,
             height: 64,
             decoration: BoxDecoration(
@@ -797,33 +745,42 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       fit: BoxFit.contain,
                     ),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: AppTheme.h2.copyWith(
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
+          );
+
+          final textBlock = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                style: AppTheme.h2.copyWith(fontSize: 18, color: Colors.white),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: AppTheme.bodyAction.copyWith(
+                  color: Colors.white.withValues(alpha: 0.88),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white.withValues(alpha: 0.88),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
+                maxLines: isCompact ? null : 1,
+                overflow: isCompact
+                    ? TextOverflow.visible
+                    : TextOverflow.ellipsis,
+              ),
+            ],
+          );
+
+          return Flex(
+            direction: isCompact ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: isCompact
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            children: [
+              logo,
+              SizedBox(width: isCompact ? 0 : 14, height: isCompact ? 14 : 0),
+              if (isCompact) textBlock else Expanded(child: textBlock),
+            ],
+          );
+        },
       ),
     );
   }
@@ -835,36 +792,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       borderRadius: BorderRadius.circular(24),
       shadowLevel: ShwakelShadowLevel.medium,
       borderColor: item.color.withValues(alpha: 0.16),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(item.icon, color: item.color, size: 28),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _t('screens_home_screen.086'),
-                  style: AppTheme.bodyBold.copyWith(fontSize: 16),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _t('screens_home_screen.087'),
-                  style: AppTheme.bodyAction.copyWith(height: 1.35),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 560;
+          final cta = Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: item.color.withValues(alpha: 0.10),
@@ -884,8 +815,63 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ),
               ],
             ),
-          ),
-        ],
+          );
+          return Flex(
+            direction: isCompact ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: isCompact
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: item.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(item.icon, color: item.color, size: 28),
+              ),
+              SizedBox(width: isCompact ? 0 : 14, height: isCompact ? 12 : 0),
+              if (isCompact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _t('screens_home_screen.086'),
+                      style: AppTheme.bodyBold.copyWith(fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _t('screens_home_screen.087'),
+                      style: AppTheme.bodyAction.copyWith(height: 1.35),
+                    ),
+                    const SizedBox(height: 12),
+                    cta,
+                  ],
+                )
+              else ...[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _t('screens_home_screen.086'),
+                        style: AppTheme.bodyBold.copyWith(fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _t('screens_home_screen.087'),
+                        style: AppTheme.bodyAction.copyWith(height: 1.35),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                cta,
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -916,9 +902,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       padding: const EdgeInsetsDirectional.only(end: 2),
       child: IconButton(
         tooltip: tooltip,
-        onPressed: !canOpenStatus
-            ? null
-            : _showSyncStatusSheet,
+        onPressed: !canOpenStatus ? null : _showSyncStatusSheet,
         icon: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -937,11 +921,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         valueColor: AlwaysStoppedAnimation<Color>(iconColor),
                       ),
                     )
-                  : Icon(
-                      Icons.check_rounded,
-                      color: iconColor,
-                      size: 20,
-                    ),
+                  : Icon(Icons.check_rounded, color: iconColor, size: 20),
             ),
             if (hasPending && !_isSyncingOfflineWorkspace)
               Positioned(
@@ -1130,44 +1110,75 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ),
             ],
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(item.icon, color: item.color, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, style: AppTheme.bodyBold),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.subtitle,
-                      style: AppTheme.bodyAction.copyWith(height: 1.35),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 520;
+              return Flex(
+                direction: isCompact ? Axis.vertical : Axis.horizontal,
+                crossAxisAlignment: isCompact
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: item.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(item.icon, color: item.color, size: 26),
+                  ),
+                  SizedBox(
+                    width: isCompact ? 0 : 14,
+                    height: isCompact ? 12 : 0,
+                  ),
+                  if (isCompact)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(item.title, style: AppTheme.bodyBold),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.subtitle,
+                          style: AppTheme.bodyAction.copyWith(height: 1.35),
+                        ),
+                        const SizedBox(height: 10),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 18,
+                          color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    )
+                  else ...[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.title, style: AppTheme.bodyBold),
+                          const SizedBox(height: 4),
+                          Text(
+                            item.subtitle,
+                            style: AppTheme.bodyAction.copyWith(height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 18,
+                      color: AppTheme.textSecondary.withValues(alpha: 0.7),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 18,
-                color: AppTheme.textSecondary.withValues(alpha: 0.7),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
-
 }
 
 class _HomeServiceItem {
@@ -1200,5 +1211,4 @@ enum _HomeServiceKind {
   affiliate,
   debtBook,
   security,
-  offlineCenter,
 }

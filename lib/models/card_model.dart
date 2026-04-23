@@ -52,6 +52,7 @@ class VirtualCard {
   });
 
   bool get isSingleUse => cardType == 'single_use';
+  bool get isDelivery => cardType == 'delivery';
   bool get isPrivate => visibilityScope == 'restricted';
 
   Map<String, dynamic> toMap() {
@@ -83,48 +84,67 @@ class VirtualCard {
   }
 
   factory VirtualCard.fromMap(Map<String, dynamic> map) {
+    final createdAtValue =
+        map['createdAt'] ?? map['issuedAt'] ?? map['created_at'];
+    final usedAtValue = map['usedAt'] ?? map['redeemedAt'] ?? map['used_at'];
     return VirtualCard(
       id: map['id']?.toString() ?? '',
       barcode: map['barcode']?.toString() ?? '',
       value: (map['value'] as num?)?.toDouble() ?? 0,
-      cardType: map['card_type']?.toString() ?? 'standard',
-      visibilityScope: map['visibility_scope']?.toString() ?? 'general',
-      issueCost: (map['issue_cost'] as num?)?.toDouble() ?? 0,
-      ownerId: map['owner_id']?.toString(),
-      ownerUsername: map['owner_username']?.toString(),
-      issuedById: map['issued_by_id']?.toString(),
-      issuedByUsername: map['issued_by_username']?.toString(),
-      redeemedById: map['redeemed_by_id']?.toString(),
+      cardType:
+          map['cardType']?.toString() ??
+          map['card_type']?.toString() ??
+          'standard',
+      visibilityScope:
+          map['visibilityScope']?.toString() ??
+          map['visibility_scope']?.toString() ??
+          'general',
+      issueCost:
+          (map['issueCost'] as num?)?.toDouble() ??
+          (map['issue_cost'] as num?)?.toDouble() ??
+          0,
+      ownerId: (map['ownerId'] ?? map['owner_id'])?.toString(),
+      ownerUsername: (map['ownerUsername'] ?? map['owner_username'])
+          ?.toString(),
+      issuedById: (map['issuedById'] ?? map['issued_by_id'])?.toString(),
+      issuedByUsername: (map['issuedByUsername'] ?? map['issued_by_username'])
+          ?.toString(),
+      redeemedById: (map['redeemedById'] ?? map['redeemed_by_id'])?.toString(),
       allowedUserIds: List<String>.from(
-        (map['allowed_user_ids'] as List? ?? const []).map(
-          (item) => item.toString(),
-        ),
+        ((map['allowedUserIds'] ?? map['allowed_user_ids']) as List? ??
+                const [])
+            .map((item) => item.toString()),
       ),
       allowedUsernames: List<String>.from(
-        (map['allowed_usernames'] as List? ?? const []).map(
-          (item) => item.toString(),
-        ),
+        ((map['allowedUsernames'] ?? map['allowed_usernames']) as List? ??
+                const [])
+            .map((item) => item.toString()),
       ),
-      customerName: map['customer_name']?.toString(),
+      customerName: (map['customerName'] ?? map['customer_name'])?.toString(),
       createdAt:
-          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
-          DateTime.now(),
-      lastResoldAt: map['last_resold_at'] == null
+          DateTime.tryParse(createdAtValue?.toString() ?? '') ?? DateTime.now(),
+      lastResoldAt: (map['lastResoldAt'] ?? map['last_resold_at']) == null
           ? null
-          : DateTime.tryParse(map['last_resold_at'].toString()),
-      useCount: (map['use_count'] as num?)?.toInt() ?? 0,
-      resaleCount: (map['resale_count'] as num?)?.toInt() ?? 0,
+          : DateTime.tryParse(
+              (map['lastResoldAt'] ?? map['last_resold_at']).toString(),
+            ),
+      useCount: ((map['useCount'] ?? map['use_count']) as num?)?.toInt() ?? 0,
+      resaleCount:
+          ((map['resaleCount'] ?? map['resale_count']) as num?)?.toInt() ?? 0,
       totalRedeemedValue:
-          (map['total_redeemed_value'] as num?)?.toDouble() ?? 0,
+          ((map['totalRedeemedValue'] ?? map['total_redeemed_value']) as num?)
+              ?.toDouble() ??
+          0,
       status: CardStatus.values.firstWhere(
         (e) => e.toString().split('.').last == map['status']?.toString(),
         orElse: () => CardStatus.unused,
       ),
-      usedAt: map['used_at'] == null
+      usedAt: usedAtValue == null
           ? null
-          : DateTime.tryParse(map['used_at'].toString()),
-      usedBy: map['used_by']?.toString(),
-      soldPrice: (map['sold_price'] as num?)?.toDouble(),
+          : DateTime.tryParse(usedAtValue.toString()),
+      usedBy: (map['usedBy'] ?? map['redeemedByUsername'] ?? map['used_by'])
+          ?.toString(),
+      soldPrice: ((map['soldPrice'] ?? map['sold_price']) as num?)?.toDouble(),
     );
   }
 

@@ -42,6 +42,21 @@ class _AdminCardPrintRequestsScreenState
   int _loadRequestId = 0;
   String _lastSubmittedQuery = '';
 
+  String _cardTypeLabel(BuildContext context, String cardType) {
+    final l = context.loc;
+    return switch (cardType) {
+      'single_use' => l.tr('screens_admin_card_print_requests_screen.018'),
+      'delivery' => l.tr('shared.delivery_card_label'),
+      _ => l.tr('screens_admin_card_print_requests_screen.019'),
+    };
+  }
+
+  String _cardTypeUsageNote(String cardType) {
+    return cardType == 'delivery'
+        ? context.loc.tr('shared.delivery_card_payments_note')
+        : '';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -758,10 +773,18 @@ class _AdminCardPrintRequestsScreenState
                 ),
                 _metaItem(
                   l.tr('screens_admin_card_print_requests_screen.017'),
-                  request['cardType'] == 'single_use'
-                      ? l.tr('screens_admin_card_print_requests_screen.018')
-                      : l.tr('screens_admin_card_print_requests_screen.019'),
+                  _cardTypeLabel(
+                    context,
+                    request['cardType']?.toString() ?? 'standard',
+                  ),
                 ),
+                if ((request['cardType']?.toString() ?? '') == 'delivery')
+                  _metaItem(
+                    l.tr('shared.usage_label'),
+                    _cardTypeUsageNote(
+                      request['cardType']?.toString() ?? 'standard',
+                    ),
+                  ),
                 _metaItem(
                   l.tr('screens_admin_card_print_requests_screen.020'),
                   l.tr(

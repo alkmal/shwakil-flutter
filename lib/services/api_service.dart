@@ -1407,9 +1407,7 @@ class ApiService {
     String? otpCode,
     String? localAuthMethod,
   }) async {
-    final payload = <String, dynamic>{
-      'amount': amount,
-    };
+    final payload = <String, dynamic>{'amount': amount};
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
     } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
@@ -1450,10 +1448,7 @@ class ApiService {
     final response = await http.post(
       AppConfig.apiUri('wallet/temporary-transfer-code/prefetch'),
       headers: await _headers(),
-      body: jsonEncode({
-        'deviceId': deviceId,
-        'count': count,
-      }),
+      body: jsonEncode({'deviceId': deviceId, 'count': count}),
     );
     return _decodeObject(response);
   }
@@ -1567,6 +1562,7 @@ class ApiService {
     required String selfieImageBase64,
     required String nationalId,
     required String birthDate,
+    String requestedRole = 'verified_member',
     String notes = '',
   }) async {
     final response = await http.post(
@@ -1577,6 +1573,7 @@ class ApiService {
         'selfieImageBase64': selfieImageBase64,
         'nationalId': nationalId.trim(),
         'birthDate': birthDate.trim(),
+        'requestedRole': requestedRole,
         'notes': notes,
       }),
     );
@@ -1595,6 +1592,7 @@ class ApiService {
     List<String> allowedUserIds = const [],
     String visibilityScope = 'general',
     String cardType = 'standard',
+    Map<String, dynamic>? printDesign,
     String? otpCode,
     String? localAuthMethod,
   }) async {
@@ -1604,6 +1602,7 @@ class ApiService {
       'allowedUserIds': allowedUserIds,
       'visibilityScope': visibilityScope,
       'cardType': cardType,
+      'printDesign': printDesign,
     };
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();

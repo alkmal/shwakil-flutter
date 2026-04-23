@@ -38,6 +38,23 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   double? _limitAsDouble(String key) =>
       (_subUserOperationalLimits[key] as num?)?.toDouble();
 
+  bool get _isDriverAccount => _user?['role']?.toString() == 'driver';
+
+  String _cardTypeLabel(BuildContext context, String cardType) {
+    final l = context.loc;
+    return switch (cardType) {
+      'single_use' => l.tr('screens_card_print_requests_screen.027'),
+      'delivery' => l.tr('shared.delivery_card_label'),
+      _ => l.tr('screens_card_print_requests_screen.028'),
+    };
+  }
+
+  String _cardTypeUsageNote(String cardType) {
+    return cardType == 'delivery'
+        ? context.loc.tr('shared.delivery_card_payments_note')
+        : '';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -89,7 +106,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final valueController = TextEditingController();
     final quantityController = TextEditingController(text: '10');
     final notesController = TextEditingController();
-    var cardType = 'standard';
+    var cardType = _isDriverAccount ? 'delivery' : 'standard';
 
     await showDialog<void>(
       context: context,
@@ -114,7 +131,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 (_user?['customCardPrintRequestFeePercent'] as num?)
                     ?.toDouble() ??
                 0;
-            final unitAmount = cardType == 'single_use' ? 0.01 : value;
+            final unitAmount =
+                (cardType == 'single_use' || cardType == 'delivery')
+                ? 0.01
+                : value;
             final baseAmount = unitAmount * quantity;
             final feeAmount = baseAmount * (feePercent / 100);
             final totalAmount = baseAmount + feeAmount;
@@ -171,8 +191,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
           return AlertDialog(
             title: Text(l.tr('screens_card_print_requests_screen.007')),
-            content: SizedBox(
-              width: 460,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -215,20 +235,31 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           'screens_card_print_requests_screen.008',
                         ),
                       ),
-                      items: [
-                        DropdownMenuItem(
-                          value: 'standard',
-                          child: Text(
-                            l.tr('screens_card_print_requests_screen.009'),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'single_use',
-                          child: Text(
-                            l.tr('screens_card_print_requests_screen.010'),
-                          ),
-                        ),
-                      ],
+                      items: _isDriverAccount
+                          ? [
+                              DropdownMenuItem(
+                                value: 'delivery',
+                                child: Text(l.tr('shared.delivery_card_label')),
+                              ),
+                            ]
+                          : [
+                              DropdownMenuItem(
+                                value: 'standard',
+                                child: Text(
+                                  l.tr(
+                                    'screens_card_print_requests_screen.009',
+                                  ),
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'single_use',
+                                child: Text(
+                                  l.tr(
+                                    'screens_card_print_requests_screen.010',
+                                  ),
+                                ),
+                              ),
+                            ],
                       onChanged: (value) {
                         if (value == null) {
                           return;
@@ -237,6 +268,26 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
+                    if (cardType == 'delivery')
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primarySoft.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        child: Text(
+                          l.tr('shared.delivery_card_print_note'),
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    if (cardType == 'delivery') const SizedBox(height: 12),
                     TextField(
                       controller: valueController,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -244,7 +295,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       ),
                       enabled: cardType == 'standard',
                       decoration: InputDecoration(
-                        labelText: cardType == 'single_use'
+                        labelText:
+                            cardType == 'single_use' || cardType == 'delivery'
                             ? l.tr('screens_card_print_requests_screen.011')
                             : l.tr('screens_card_print_requests_screen.012'),
                       ),
@@ -561,10 +613,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 color: Colors.white.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
-                Icons.print_rounded,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.print_rounded, color: Colors.white),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -596,7 +645,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     required String value,
   }) {
     return Container(
-      width: 210,
+      width: AppTheme.isPhone(context) ? double.infinity : 210,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
@@ -646,9 +695,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   Widget _buildRequestCard(Map<String, dynamic> request) {
     final l = context.loc;
     final status = request['status']?.toString() ?? 'pending_review';
-    final cardType = request['cardType'] == 'single_use'
-        ? l.tr('screens_card_print_requests_screen.027')
-        : l.tr('screens_card_print_requests_screen.028');
+    final cardType = _cardTypeLabel(
+      context,
+      request['cardType']?.toString() ?? 'standard',
+    );
     final quantityLabel = l.tr(
       'screens_card_print_requests_screen.030',
       params: {'count': '${request['quantity'] ?? 0}'},
@@ -667,10 +717,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         onTap: () => _showRequestDetails(request),
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(22),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final iconCard = Container(
               width: 46,
               height: 46,
               decoration: BoxDecoration(
@@ -682,12 +732,25 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 color: _statusColor(status),
                 size: 22,
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            );
+            final content = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (compact)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        request['statusLabel']?.toString() ??
+                            l.tr('screens_card_print_requests_screen.025'),
+                        style: AppTheme.bodyBold.copyWith(fontSize: 16),
+                      ),
+                      _statusChip(status),
+                    ],
+                  )
+                else
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -702,42 +765,75 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       _statusChip(status),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    _miniMetaChip(
+                      label: l.tr('screens_card_print_requests_screen.026'),
+                      value: cardType,
+                    ),
+                    _miniMetaChip(
+                      label: l.tr('screens_card_print_requests_screen.029'),
+                      value: quantityLabel,
+                    ),
+                    _miniMetaChip(
+                      label: l.tr('screens_card_print_requests_screen.032'),
+                      value: totalAmount,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  createdAt,
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _miniMetaChip(
-                        label: l.tr('screens_card_print_requests_screen.026'),
-                        value: cardType,
-                      ),
-                      _miniMetaChip(
-                        label: l.tr('screens_card_print_requests_screen.029'),
-                        value: quantityLabel,
-                      ),
-                      _miniMetaChip(
-                        label: l.tr('screens_card_print_requests_screen.032'),
-                        value: totalAmount,
-                      ),
+                      iconCard,
+                      const SizedBox(width: 12),
+                      Expanded(child: content),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    createdAt,
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: AppTheme.textTertiary,
+                      size: 22,
                     ),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_left_rounded,
-              color: AppTheme.textTertiary,
-              size: 22,
-            ),
-          ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                iconCard,
+                const SizedBox(width: 12),
+                Expanded(child: content),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_left_rounded,
+                  color: AppTheme.textTertiary,
+                  size: 22,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -779,10 +875,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'تفاصيل طلب الطباعة',
-                        style: AppTheme.h3,
-                      ),
+                      child: Text('تفاصيل طلب الطباعة', style: AppTheme.h3),
                     ),
                     _statusChip(
                       request['status']?.toString() ?? 'pending_review',
@@ -796,10 +889,18 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   children: [
                     _metaItem(
                       l.tr('screens_card_print_requests_screen.026'),
-                      request['cardType'] == 'single_use'
-                          ? l.tr('screens_card_print_requests_screen.027')
-                          : l.tr('screens_card_print_requests_screen.028'),
+                      _cardTypeLabel(
+                        context,
+                        request['cardType']?.toString() ?? 'standard',
+                      ),
                     ),
+                    if ((request['cardType']?.toString() ?? '') == 'delivery')
+                      _metaItem(
+                        l.tr('shared.usage_label'),
+                        _cardTypeUsageNote(
+                          request['cardType']?.toString() ?? 'standard',
+                        ),
+                      ),
                     _metaItem(
                       l.tr('screens_card_print_requests_screen.029'),
                       l.tr(

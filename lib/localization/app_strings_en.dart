@@ -199,10 +199,10 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.029': 'Verification status',
   'screens_admin_customer_screen.030': 'Restricted membership',
   'screens_admin_customer_screen.031': 'Trader',
-  'screens_admin_customer_screen.032': 'Verified trader',
+  'screens_admin_customer_screen.032': 'Merchant',
   'screens_admin_customer_screen.033': 'Unverified',
   'screens_admin_customer_screen.034': 'Pending',
-  'screens_admin_customer_screen.035': 'Verified / active',
+  'screens_admin_customer_screen.035': 'Approved',
   'screens_admin_customer_screen.036': 'Rejected',
   'screens_admin_customer_screen.037': 'Account role',
   'screens_admin_customer_screen.038': 'User',
@@ -586,7 +586,7 @@ const Map<String, String> appStringsEn = {
   'screens_inventory_screen.002': 'Card Inventory',
   'screens_inventory_screen.003': 'Request card printing',
   'screens_inventory_screen.004': '{totalCards} cards',
-  'screens_inventory_screen.005': 'New',
+  'screens_inventory_screen.005': 'Unused',
   'screens_inventory_screen.006': 'Used',
   'screens_inventory_screen.007': 'Archived',
   'screens_inventory_screen.008': 'Print',
@@ -1594,67 +1594,6 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.115':
       'Start by scanning the code or entering it manually',
   'screens_scan_card_screen.116': 'The result will appear here when available',
-  'screens_offline_center_screen.001': 'Offline data updated',
-  'screens_offline_center_screen.002':
-      'The latest card inventory is now available on this device.',
-  'screens_offline_center_screen.003': 'Could not update offline data',
-  'screens_offline_center_screen.004':
-      'The card has not been found in the system yet.',
-  'screens_offline_center_screen.005':
-      'Could not verify the card right now. It will be retried later.',
-  'screens_offline_center_screen.006': 'No pending operations',
-  'screens_offline_center_screen.007':
-      'All offline operations have already been synced.',
-  'screens_offline_center_screen.008': 'Sync completed',
-  'screens_offline_center_screen.009':
-      '{count} cards were synced, and {remaining} still need review.',
-  'screens_offline_center_screen.010': 'Could not sync operations',
-  'screens_offline_center_screen.011':
-      'You do not have access to the offline center',
-  'screens_offline_center_screen.012': 'Ready cards',
-  'screens_offline_center_screen.013': 'Read only',
-  'screens_offline_center_screen.014': 'Pending sync',
-  'screens_offline_center_screen.015': 'Offline limit',
-  'screens_offline_center_screen.016': 'Before sync is requested',
-  'screens_offline_center_screen.017': 'Needs review',
-  'screens_offline_center_screen.018': 'After internet returns',
-  'screens_offline_center_screen.019': 'Offline work',
-  'screens_offline_center_screen.020':
-      'Start by reading the card locally, then sync the operations when the internet returns.',
-  'screens_offline_center_screen.021': 'Ready cards: {count}',
-  'screens_offline_center_screen.022': 'Pending operations: {count}',
-  'screens_offline_center_screen.023': 'Rejected for review: {count}',
-  'screens_offline_center_screen.024': 'Quick reading area',
-  'screens_offline_center_screen.025':
-      'A simple interface to read the card, approve it, and sync it later.',
-  'screens_offline_center_screen.026': 'Open card reading',
-  'screens_offline_center_screen.027': 'Update offline inventory',
-  'screens_offline_center_screen.028': 'Sync pending operations',
-  'screens_offline_center_screen.029': 'Offline card tracking',
-  'screens_offline_center_screen.030':
-      'Current pending cards appear here, along with any card that failed to sync after going back online. Tap any card to see details.',
-  'screens_offline_center_screen.031':
-      'There are no saved cards for review right now.',
-  'screens_offline_center_screen.032': 'Not confirmed',
-  'screens_offline_center_screen.033': 'Waiting to fetch from system',
-  'screens_offline_center_screen.034': 'No name',
-  'screens_offline_center_screen.035': 'Unavailable',
-  'screens_offline_center_screen.036': 'Card details',
-  'screens_offline_center_screen.037': 'Added name',
-  'screens_offline_center_screen.038': 'Last use',
-  'screens_offline_center_screen.039': 'Operation executor',
-  'screens_offline_center_screen.040': 'Used by',
-  'screens_offline_center_screen.041': 'Brought by',
-  'screens_offline_center_screen.042': 'Sync time',
-  'screens_offline_center_screen.043': 'Result',
-  'screens_offline_center_screen.044': 'Note',
-  'screens_offline_center_screen.045': 'Pending sync',
-  'screens_offline_center_screen.046': 'Debt book synced',
-  'screens_offline_center_screen.047':
-      'Pending operations were uploaded and the local debt book data was refreshed.',
-  'screens_offline_center_screen.048': 'Could not sync debt book',
-  'screens_offline_center_screen.049': 'Debt book operations: {count}',
-  'screens_offline_center_screen.050': 'Sync debt book',
   'screens_admin_dashboard_screen.020':
       'You do not have access to the admin dashboard',
   'screens_admin_dashboard_screen.021': 'Requests',
@@ -2081,8 +2020,7 @@ const Map<String, String> appStringsEn = {
   'screens_transactions_screen.043': 'Time range',
   'screens_transactions_screen.044': 'Transaction type',
   'screens_transactions_screen.045': 'Transaction results',
-  'screens_transactions_screen.046':
-      'Loading the current transaction results.',
+  'screens_transactions_screen.046': 'Loading the current transaction results.',
   'screens_transactions_screen.047': 'Total matching transactions: {count}',
   'screens_transactions_screen.048':
       'There are no transactions available for export right now.',
@@ -2095,8 +2033,7 @@ const Map<String, String> appStringsEn = {
   'screens_transactions_screen.052':
       'Try changing the search text or selected filters.',
   'screens_security_settings_screen.068': 'Confirm current PIN',
-  'screens_security_settings_screen.069':
-      'Enter the current PIN to continue.',
+  'screens_security_settings_screen.069': 'Enter the current PIN to continue.',
   'screens_security_settings_screen.070': 'The current PIN is incorrect.',
   'screens_security_settings_screen.071': 'Current PIN',
   'screens_quick_transfer_screen.038': 'Find recipient',
@@ -2144,8 +2081,7 @@ const Map<String, String> appStringsEn = {
   'screens_sub_users_screen.080': 'Could not load sub users',
   'screens_sub_users_screen.081':
       'Username and password are required when creating a new sub user.',
-  'screens_sub_users_screen.082':
-      'Sub users have been updated successfully.',
+  'screens_sub_users_screen.082': 'Sub users have been updated successfully.',
   'screens_sub_users_screen.083': 'Transfer balance to sub user',
   'screens_sub_users_screen.084': 'Withdraw balance from sub user',
   'screens_sub_users_screen.085': 'Amount',
@@ -2234,6 +2170,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.052': 'Total balances',
   'screens_admin_customers_screen.053': 'Printing debt',
   'screens_admin_customers_screen.054': 'Accounts with debt',
+  'screens_admin_customers_screen.055': 'Added at',
   'screens_card_print_requests_screen.049':
       'Current printing policy for this sub-user: a limit of {limit} per request, with operational debt allowed up to {debtLimit}.',
   'screens_card_print_requests_screen.050': 'Printing details',
@@ -2278,7 +2215,8 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.084': 'Welcome',
   'screens_home_screen.085': 'Services available for your account',
   'screens_home_screen.086': 'Scan barcode',
-  'screens_home_screen.087': 'Open the camera directly and start scanning fast.',
+  'screens_home_screen.087':
+      'Open the camera directly and start scanning fast.',
   'screens_home_screen.088': 'Open camera',
   'screens_home_screen.089': 'Sync status',
   'screens_home_screen.090': 'Status',
@@ -2299,13 +2237,6 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.122': 'Account type',
   'screens_balance_screen.123':
       'A quick summary of your available balances and account requirements.',
-  'screens_offline_center_screen.054': 'Sync status',
-  'screens_offline_center_screen.055': 'Sync in progress',
-  'screens_offline_center_screen.056': 'Operations are waiting to sync',
-  'screens_offline_center_screen.057': 'Sync completed',
-  'screens_offline_center_screen.058': 'Status',
-  'screens_offline_center_screen.059': 'Last sync',
-  'screens_offline_center_screen.060': 'No sync yet',
   'screens_admin_pending_registrations_screen.001':
       'Search by name, username, or phone',
   'screens_admin_pending_registrations_screen.002':
@@ -2349,13 +2280,11 @@ const Map<String, String> appStringsEn = {
   'screens_admin_system_settings_screen.067': 'Affiliate marketing settings',
   'screens_admin_system_settings_screen.068':
       'Control referral activation, reward amount, and the minimum qualifying first top-up.',
-  'screens_admin_system_settings_screen.069':
-      'Enable affiliate marketing',
+  'screens_admin_system_settings_screen.069': 'Enable affiliate marketing',
   'screens_admin_system_settings_screen.070':
       'When enabled, a reward is granted for the referred user first qualifying top-up.',
   'screens_admin_system_settings_screen.071': 'Reward amount',
-  'screens_admin_system_settings_screen.072':
-      'Minimum qualifying first top-up',
+  'screens_admin_system_settings_screen.072': 'Minimum qualifying first top-up',
   'screens_affiliate_center_screen.001': 'Could not load affiliate marketing',
   'screens_affiliate_center_screen.002': 'Copied',
   'screens_affiliate_center_screen.003': '{label} was copied successfully.',
@@ -2369,8 +2298,7 @@ const Map<String, String> appStringsEn = {
   'screens_affiliate_center_screen.009': 'Recent rewards',
   'screens_affiliate_center_screen.010':
       'Each reward appears here after the referred user first qualifying top-up.',
-  'screens_affiliate_center_screen.011':
-      'There are no added rewards yet.',
+  'screens_affiliate_center_screen.011': 'There are no added rewards yet.',
   'screens_affiliate_center_screen.012':
       'Earn a reward on the first qualifying top-up',
   'screens_affiliate_center_screen.013':
@@ -2418,10 +2346,14 @@ const Map<String, String> appStringsEn = {
   'screens_inventory_screen.031': 'Clear',
   'screens_inventory_screen.032': 'The filtered results are ready to print.',
   'screens_inventory_screen.033': 'Choose a date',
-  'screens_inventory_screen.034': 'Active',
+  'screens_inventory_screen.034': 'Unused',
   'screens_inventory_screen.035': 'Used',
   'screens_inventory_screen.036': 'Archived',
   'screens_inventory_screen.037': 'Owner: {owner}',
+  'screens_inventory_screen.038': 'Created by: {name}',
+  'screens_inventory_screen.039': 'Used by: {name}',
+  'screens_inventory_screen.040': 'Created: {date}',
+  'screens_inventory_screen.041': 'Used: {date}',
   'screens_transactions_screen.053':
       'Search quickly, then narrow the results by time or activity type.',
   'screens_transactions_screen.054': 'Search and filters',
@@ -2455,8 +2387,7 @@ const Map<String, String> appStringsEn = {
   'screens_supported_locations_screen.032': 'My requests',
   'screens_supported_locations_screen.033':
       'Browse approved centers, and traders can submit their own centers for review from this screen.',
-  'screens_supported_locations_screen.034':
-      'Linked account: @{username}',
+  'screens_supported_locations_screen.034': 'Linked account: @{username}',
   'screens_supported_locations_screen.035': 'Approved',
   'screens_supported_locations_screen.036': 'Rejected',
   'screens_supported_locations_screen.037': 'Pending approval',
@@ -2468,4 +2399,23 @@ const Map<String, String> appStringsEn = {
   'widgets_admin_admin_location_card.008': 'Pending',
   'widgets_admin_admin_location_card.009': 'Linked account: {account}',
   'widgets_admin_admin_location_card.010': 'Added by: {account}',
+  'shared.delivery_card_label': 'Delivery card',
+  'shared.delivery_card_badge': 'Delivery',
+  'shared.delivery_card_payments_note':
+      'Delivery card can be used for payments',
+  'shared.delivery_card_create_note':
+      'This is a non-financial delivery card for offline scanning and syncing, and it can be used for payments.',
+  'shared.delivery_card_print_note':
+      'Delivery cards are non-financial and are printed for drivers with a clear delivery label.',
+  'shared.usage_label': 'Usage',
+  'shared.role_driver': 'Driver',
+  'shared.role_verified_member': 'Merchant',
+  'shared.role_advanced_member': 'Merchant',
+  'account_verification.requested_role_label': 'Requested account type',
+  'account_verification.rejection_reason_label': 'Rejection reason',
+  'account_verification.post_verification_role': 'Account type',
+  'account_verification.delivery_driver_note':
+      'The account will be activated as a driver, and only delivery cards will sync in offline mode.',
+  'account_verification.verified_member_note':
+      'The account will be activated as a trader after the verification request is reviewed.',
 };

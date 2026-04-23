@@ -193,10 +193,10 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customer_screen.029': 'حالة التوثيق',
   'screens_admin_customer_screen.030': 'عضوية مقيّدة',
   'screens_admin_customer_screen.031': 'تاجر',
-  'screens_admin_customer_screen.032': 'تاجر موثق',
+  'screens_admin_customer_screen.032': 'تاجر',
   'screens_admin_customer_screen.033': 'غير موثّق',
   'screens_admin_customer_screen.034': 'قيد المراجعة',
-  'screens_admin_customer_screen.035': 'موثّق ونشط',
+  'screens_admin_customer_screen.035': 'معتمد',
   'screens_admin_customer_screen.036': 'مرفوض',
   'screens_admin_customer_screen.037': 'دور الحساب',
   'screens_admin_customer_screen.038': 'مستخدم',
@@ -454,7 +454,7 @@ const Map<String, String> appStringsAr = {
   'screens_inventory_screen.002': 'أرشيف البطاقات',
   'screens_inventory_screen.003': 'طلب طباعة البطاقات',
   'screens_inventory_screen.004': '{totalCards} بطاقة',
-  'screens_inventory_screen.005': 'جديدة',
+  'screens_inventory_screen.005': 'غير مستخدمة',
   'screens_inventory_screen.006': 'مستخدمة',
   'screens_inventory_screen.007': 'مؤرشفة',
   'screens_inventory_screen.008': 'طباعة',
@@ -565,7 +565,8 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.035':
       'ستصلك كلمة المرور في رسالة الاعتماد على واتساب المرتبط بالحساب.',
   'screens_register_screen.036': 'لا حاجة لتأكيد كلمة المرور في هذه المرحلة.',
-  'screens_register_screen.037': 'سيتم إرسال كلمة المرور لك بعد اعتماد التسجيل.',
+  'screens_register_screen.037':
+      'سيتم إرسال كلمة المرور لك بعد اعتماد التسجيل.',
   'screens_register_screen.038': 'يجب الموافقة على الشروط والأحكام للمتابعة.',
   'screens_register_screen.039':
       'أكمل البيانات الأساسية فقط، وسيتم إنشاء اسم المستخدم تلقائيًا ويمكنك تعديل اسم المستخدم ورقم الإحالة لاحقًا من الملف الشخصي قبل التوثيق.',
@@ -920,7 +921,8 @@ const Map<String, String> appStringsAr = {
   'screens_otp_verification_screen.020':
       'يمكنك إعادة إرسال الرمز خلال {count} ثانية',
   'screens_otp_verification_screen.021': 'لم يصلك الرمز بعد؟',
-  'screens_otp_verification_screen.022': 'سيتم إنشاء اسم المستخدم عند اعتماد التسجيل',
+  'screens_otp_verification_screen.022':
+      'سيتم إنشاء اسم المستخدم عند اعتماد التسجيل',
 
   'screens_admin_permissions_screen.041':
       'استخدم هذه الشاشة لضبط صلاحيات كل مستخدم بشكل دقيق بما يتناسب مع دوره ومسؤولياته.',
@@ -1533,65 +1535,6 @@ const Map<String, String> appStringsAr = {
       'هذا الحساب تابع، والاعتماد يحتاج إلى صلاحية مفعّلة. عند التفعيل سيُطبّق عليه سقف {limit} للبطاقة الواحدة.',
   'screens_scan_card_screen.115': 'ابدأ بمسح الكود أو إدخال الرقم يدويًا',
   'screens_scan_card_screen.116': 'ستظهر هنا نتيجة الفحص فقط عند توفرها',
-  'screens_offline_center_screen.001': 'تم تحديث بيانات الأوفلاين',
-  'screens_offline_center_screen.002':
-      'أصبح أحدث مخزون البطاقات متاحًا على هذا الجهاز.',
-  'screens_offline_center_screen.003': 'تعذر تحديث بيانات الأوفلاين',
-  'screens_offline_center_screen.004':
-      'لم يتم العثور على البطاقة بعد في النظام.',
-  'screens_offline_center_screen.005':
-      'تعذر التحقق من البطاقة الآن. ستعاد المحاولة لاحقًا.',
-  'screens_offline_center_screen.006': 'لا توجد عمليات معلقة',
-  'screens_offline_center_screen.007':
-      'كل عمليات الأوفلاين تمت مزامنتها بالفعل.',
-  'screens_offline_center_screen.008': 'اكتملت المزامنة',
-  'screens_offline_center_screen.009':
-      'تمت مزامنة {count} بطاقة، والمتبقي للمراجعة {remaining}.',
-  'screens_offline_center_screen.010': 'تعذر مزامنة العمليات',
-  'screens_offline_center_screen.011': 'لا تملك صلاحية استخدام مركز الأوفلاين',
-  'screens_offline_center_screen.012': 'بطاقات جاهزة',
-  'screens_offline_center_screen.013': 'للقراءة فقط',
-  'screens_offline_center_screen.014': 'معلّق للمزامنة',
-  'screens_offline_center_screen.015': 'حد الأوفلاين',
-  'screens_offline_center_screen.016': 'قبل طلب المزامنة',
-  'screens_offline_center_screen.017': 'بحاجة مراجعة',
-  'screens_offline_center_screen.018': 'بعد عودة الإنترنت',
-  'screens_offline_center_screen.019': 'العمل أوفلاين',
-  'screens_offline_center_screen.020':
-      'ابدأ بقراءة البطاقة محليًا، ثم زامن العمليات عند عودة الإنترنت.',
-  'screens_offline_center_screen.021': 'بطاقات جاهزة: {count}',
-  'screens_offline_center_screen.022': 'عمليات معلقة: {count}',
-  'screens_offline_center_screen.023': 'مرفوض للمراجعة: {count}',
-  'screens_offline_center_screen.024': 'مساحة القراءة السريعة',
-  'screens_offline_center_screen.025':
-      'واجهة بسيطة لقراءة البطاقة ثم اعتمادها ومزامنتها لاحقًا.',
-  'screens_offline_center_screen.026': 'فتح القراءة للبطاقة',
-  'screens_offline_center_screen.027': 'تحديث مخزون الأوفلاين',
-  'screens_offline_center_screen.028': 'مزامنة العمليات المعلقة',
-  'screens_offline_center_screen.029': 'متابعة بطاقات الأوفلاين',
-  'screens_offline_center_screen.030':
-      'تظهر هنا البطاقات المعلقة حاليًا، وأي بطاقة فشلت مزامنتها بعد العودة إلى الأونلاين. اضغط على أي بطاقة لعرض التفاصيل.',
-  'screens_offline_center_screen.031': 'لا توجد بطاقات محفوظة للمراجعة حاليًا.',
-  'screens_offline_center_screen.032': 'لم يتم تأكيدها',
-  'screens_offline_center_screen.033': 'بانتظار جلبها من النظام',
-  'screens_offline_center_screen.034': 'بدون اسم',
-  'screens_offline_center_screen.035': 'غير متوفر',
-  'screens_offline_center_screen.036': 'تفاصيل البطاقة',
-  'screens_offline_center_screen.037': 'الاسم المضاف',
-  'screens_offline_center_screen.038': 'آخر استخدام',
-  'screens_offline_center_screen.039': 'اسم منفذ العملية',
-  'screens_offline_center_screen.040': 'من استخدمها',
-  'screens_offline_center_screen.041': 'من الذي أحضر البطاقة',
-  'screens_offline_center_screen.042': 'وقت المزامنة',
-  'screens_offline_center_screen.043': 'النتيجة',
-  'screens_offline_center_screen.044': 'ملاحظة',
-  'screens_offline_center_screen.045': 'معلقة للمزامنة',
-  'screens_offline_center_screen.046': 'تمت مزامنة دفتر الديون',
-  'screens_offline_center_screen.047':
-      'تم رفع العمليات المعلقة وتحديث بيانات دفتر الديون المحلية.',
-  'screens_offline_center_screen.048': 'تعذر مزامنة دفتر الديون',
-  'screens_offline_center_screen.049': 'عمليات دفتر الديون: {count}',
-  'screens_offline_center_screen.050': 'مزامنة دفتر الديون',
   'screens_admin_dashboard_screen.020':
       'لا تملك صلاحية الوصول إلى لوحة الإدارة',
   'screens_admin_dashboard_screen.021': 'طلبات',
@@ -1966,16 +1909,14 @@ const Map<String, String> appStringsAr = {
   'screens_security_settings_screen.066': 'القفل المحلي',
   'screens_security_settings_screen.067': 'الأجهزة',
   'screens_admin_permissions_screen.044': 'تعذر تحميل الصلاحيات',
-  'screens_admin_permissions_screen.045':
-      'تم تحديث قوالب الصلاحيات بنجاح.',
+  'screens_admin_permissions_screen.045': 'تم تحديث قوالب الصلاحيات بنجاح.',
   'screens_admin_permissions_screen.046':
       'لا تملك صلاحية إدارة قوالب الصلاحيات.',
   'screens_admin_permissions_screen.047': 'عرض المستخدمين التابعين',
   'screens_admin_customers_screen.048': 'قائمة العملاء',
   'screens_admin_customers_screen.049': 'ملخص سريع',
   'screens_usage_policy_screen.006': 'عرض واضح',
-  'screens_usage_policy_screen.007':
-      'تنسيق مبسط يسهل قراءة البنود بسرعة.',
+  'screens_usage_policy_screen.007': 'تنسيق مبسط يسهل قراءة البنود بسرعة.',
   'screens_quick_transfer_screen.036': 'إرسال سريع',
   'screens_quick_transfer_screen.037': 'استقبال سريع',
   'screens_debt_book_screen.047': 'العملاء',
@@ -2015,10 +1956,8 @@ const Map<String, String> appStringsAr = {
   'screens_transactions_screen.049': 'تم تصدير سجل الحركات بنجاح.',
   'screens_transactions_screen.050':
       'نظّم حركاتك باستخدام البحث والنطاق الزمني وفلاتر الموقع.',
-  'screens_transactions_screen.051':
-      'ابحث بالوصف أو البطاقة أو نوع الحركة',
-  'screens_transactions_screen.052':
-      'جرّب تغيير نص البحث أو الفلاتر المحددة.',
+  'screens_transactions_screen.051': 'ابحث بالوصف أو البطاقة أو نوع الحركة',
+  'screens_transactions_screen.052': 'جرّب تغيير نص البحث أو الفلاتر المحددة.',
   'screens_security_settings_screen.068': 'تأكيد رمز PIN الحالي',
   'screens_security_settings_screen.069': 'أدخل رمز PIN الحالي للمتابعة.',
   'screens_security_settings_screen.070': 'رمز PIN الحالي غير صحيح.',
@@ -2039,8 +1978,7 @@ const Map<String, String> appStringsAr = {
       'استلام الرصيد أو سحبه من حساب التابع إلى الرئيسي.',
   'screens_sub_users_screen.058':
       'الوصول إلى شاشة فحص البطاقات ومراجعة نتائجها.',
-  'screens_sub_users_screen.059':
-      'اعتماد البطاقة وتنفيذ حركة السحب مباشرة.',
+  'screens_sub_users_screen.059': 'اعتماد البطاقة وتنفيذ حركة السحب مباشرة.',
   'screens_sub_users_screen.060':
       'السماح بالفحص والمزامنة في وضع أوفلاين عند توفره.',
   'screens_sub_users_screen.061':
@@ -2155,6 +2093,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.052': 'إجمالي الأرصدة',
   'screens_admin_customers_screen.053': 'مديونية الطباعة',
   'screens_admin_customers_screen.054': 'حسابات عليها دين',
+  'screens_admin_customers_screen.055': 'تاريخ الإضافة',
   'screens_card_print_requests_screen.049':
       'حد الطباعة الحالي لهذا التابع: سقف {limit} للطلب الواحد، ودين مسموح حتى {debtLimit}.',
   'screens_card_print_requests_screen.050': 'بيانات الطباعة',
@@ -2219,21 +2158,13 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.122': 'نوع الحساب',
   'screens_balance_screen.123':
       'ملخص سريع للأرصدة المتاحة والمتطلبات المرتبطة بحسابك.',
-  'screens_offline_center_screen.054': 'حالة المزامنة',
-  'screens_offline_center_screen.055': 'جارٍ تنفيذ المزامنة',
-  'screens_offline_center_screen.056': 'توجد عمليات بانتظار المزامنة',
-  'screens_offline_center_screen.057': 'المزامنة مكتملة',
-  'screens_offline_center_screen.058': 'الحالة',
-  'screens_offline_center_screen.059': 'آخر مزامنة',
-  'screens_offline_center_screen.060': 'لم تتم مزامنة بعد',
   'screens_admin_pending_registrations_screen.001':
       'بحث بالاسم أو اسم المستخدم أو الجوال',
   'screens_admin_pending_registrations_screen.002':
       'لا توجد طلبات تسجيل معلقة حاليًا.',
   'screens_admin_pending_registrations_screen.003':
       'لا توجد نتائج مطابقة للبحث.',
-  'screens_admin_pending_registrations_screen.004':
-      'تعذر تحميل طلبات التسجيل',
+  'screens_admin_pending_registrations_screen.004': 'تعذر تحميل طلبات التسجيل',
   'screens_admin_pending_registrations_screen.005': 'تم اعتماد الطلب',
   'screens_admin_pending_registrations_screen.006':
       'تم اعتماد طلب التسجيل بنجاح.',
@@ -2255,8 +2186,7 @@ const Map<String, String> appStringsAr = {
       'راجع طلبات التسجيل التي أكملت خطوة التسجيل وتنتظر قرار الإدارة.',
   'screens_admin_pending_registrations_screen.019': 'بدون اسم',
   'screens_admin_pending_registrations_screen.020': 'جاهز للمراجعة',
-  'screens_admin_pending_registrations_screen.021':
-      'بانتظار تأكيد الواتساب',
+  'screens_admin_pending_registrations_screen.021': 'بانتظار تأكيد الواتساب',
   'screens_admin_pending_registrations_screen.022': 'رفض وحذف الطلب',
   'screens_admin_pending_registrations_screen.023': 'اعتماد وإنشاء الحساب',
   'screens_admin_pending_registrations_screen.024':
@@ -2329,10 +2259,14 @@ const Map<String, String> appStringsAr = {
   'screens_inventory_screen.031': 'مسح',
   'screens_inventory_screen.032': 'تم تجهيز نتائج الفلتر للطباعة.',
   'screens_inventory_screen.033': 'اختر التاريخ',
-  'screens_inventory_screen.034': 'نشطة',
+  'screens_inventory_screen.034': 'غير مستخدمة',
   'screens_inventory_screen.035': 'مستخدمة',
   'screens_inventory_screen.036': 'مؤرشفة',
   'screens_inventory_screen.037': 'المالك: {owner}',
+  'screens_inventory_screen.038': 'المنشئ: {name}',
+  'screens_inventory_screen.039': 'المستخدم: {name}',
+  'screens_inventory_screen.040': 'الإنشاء: {date}',
+  'screens_inventory_screen.041': 'الاستخدام: {date}',
   'screens_transactions_screen.053':
       'ابحث بسرعة ثم ضيّق النتائج حسب الوقت أو نوع الحركة.',
   'screens_transactions_screen.054': 'البحث والتصفية',
@@ -2377,4 +2311,22 @@ const Map<String, String> appStringsAr = {
   'widgets_admin_admin_location_card.008': 'معلّق',
   'widgets_admin_admin_location_card.009': 'الحساب المرتبط: {account}',
   'widgets_admin_admin_location_card.010': 'أُضيف بواسطة: {account}',
+  'shared.delivery_card_label': 'بطاقة توصيل',
+  'shared.delivery_card_badge': 'توصيل',
+  'shared.delivery_card_payments_note': 'بطاقة توصيل يمكن استخدامها للمدفوعات',
+  'shared.delivery_card_create_note':
+      'بطاقة توصيل غير مالية، وتُستخدم للمسح والمزامنة في وضع الأوف لاين، ويمكن استخدامها للمدفوعات.',
+  'shared.delivery_card_print_note':
+      'بطاقات التوصيل غير مالية، وتُطبع للسائقين مع توضيح أنها بطاقات توصيل.',
+  'shared.usage_label': 'الاستخدام',
+  'shared.role_driver': 'سائق',
+  'shared.role_verified_member': 'تاجر',
+  'shared.role_advanced_member': 'تاجر',
+  'account_verification.requested_role_label': 'نوع الحساب المطلوب',
+  'account_verification.rejection_reason_label': 'سبب الرفض',
+  'account_verification.post_verification_role': 'نوع الحساب',
+  'account_verification.delivery_driver_note':
+      'سيُفعّل الحساب كسائق مع مزامنة بطاقات التوصيل فقط في الأوف لاين.',
+  'account_verification.verified_member_note':
+      'سيُفعّل الحساب كتاجر بعد مراجعة طلب التوثيق.',
 };

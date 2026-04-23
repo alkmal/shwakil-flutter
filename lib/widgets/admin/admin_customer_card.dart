@@ -27,6 +27,40 @@ class AdminCustomerCard extends StatelessWidget {
 
   String _currency(num? amount) => CurrencyFormatter.ils(amount);
 
+  String _formatCreatedAt() {
+    final raw = customer['createdAt']?.toString() ?? '';
+    final date = DateTime.tryParse(raw);
+    if (date == null) {
+      return '-';
+    }
+    final local = date.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$year/$month/$day $hour:$minute';
+  }
+
+  String _roleLabel(BuildContext context) {
+    final explicit = customer['roleLabel']?.toString().trim() ?? '';
+    if (explicit.isNotEmpty) {
+      return explicit;
+    }
+
+    final l = context.loc;
+    return switch (customer['role']?.toString() ?? '') {
+      'driver' => l.tr('shared.role_driver'),
+      'verified_member' => l.tr('shared.role_verified_member'),
+      'advanced_member' => l.tr('shared.role_verified_member'),
+      'support' => 'دعم',
+      'admin' => 'إداري',
+      'basic' => 'أساسي',
+      'restricted' => 'مقيد',
+      _ => 'مستخدم',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
@@ -161,14 +195,36 @@ class AdminCustomerCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    role == 'admin'
-                        ? l.tr('widgets_admin_admin_customer_card.007')
-                        : statusLabel,
+                    role == 'admin' ? _roleLabel(context) : statusLabel,
                     style: AppTheme.caption.copyWith(
-                      color: verificationStatus == 'approved'
+                      color: role == 'admin'
+                          ? AppTheme.accent
+                          : verificationStatus == 'approved'
                           ? AppTheme.success
                           : AppTheme.textSecondary,
                       fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l.tr('screens_admin_customers_screen.055'),
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      _formatCreatedAt(),
+                      textAlign: TextAlign.end,
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -185,7 +241,7 @@ class AdminCustomerCard extends StatelessWidget {
                     borderRadius: AppTheme.radiusSm,
                   ),
                   child: Text(
-                    l.tr('widgets_admin_admin_customer_card.008'),
+                    _roleLabel(context),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.accent,
                       fontWeight: FontWeight.bold,

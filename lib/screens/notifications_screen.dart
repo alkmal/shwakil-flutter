@@ -66,14 +66,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
-      final notifications = List<Map<String, dynamic>>.from(
-        (payload['notifications'] as List? ?? const []).map(
-          (item) => Map<String, dynamic>.from(item as Map),
-        ),
-      );
+      final notifications = _normalizeNotifications(payload['notifications']);
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
-      final normalizedPage = currentPage.clamp(1, lastPage) as int;
+      final normalizedPage = currentPage.clamp(1, lastPage);
 
       if (requestedPage > lastPage && lastPage > 0) {
         if (!mounted) {
@@ -100,6 +96,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       }
       setState(() => _isLoading = false);
+      if (silent) {
+        return;
+      }
       await AppAlertService.showError(
         context,
         title: context.loc.tr('screens_login_screen.002'),
@@ -124,10 +123,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _openNotification(Map<String, dynamic> item) async {
-    if (item['isRead'] != true) {
-      await _apiService.markNotificationAsRead(item['id'].toString());
-      RealtimeNotificationService.notifyNotificationsUpdated();
-      await _loadNotifications(silent: true);
+    final id = item['id']?.toString().trim() ?? '';
+    if (item['isRead'] != true && id.isNotEmpty) {
+      try {
+        await _apiService.markNotificationAsRead(id);
+        RealtimeNotificationService.notifyNotificationsUpdated();
+        await _loadNotifications(silent: true);
+      } catch (_) {
+        // Keep details view available even if the read-state sync fails.
+      }
     }
 
     if (!mounted) return;
@@ -144,9 +148,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(
-          context.loc.tr('widgets_app_top_actions.004'),
-        ),
+        title: Text(context.loc.tr('widgets_app_top_actions.004')),
         actions: [
           IconButton(
             tooltip: context.loc.tr('screens_notifications_screen.036'),
@@ -247,10 +249,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           padding: const EdgeInsets.all(16),
           shrinkWrap: true,
           children: [
-            Text(
-              _t('screens_notifications_screen.034'),
-              style: AppTheme.h2,
-            ),
+            Text(_t('screens_notifications_screen.034'), style: AppTheme.h2),
             const SizedBox(height: 8),
             Text(
               _t('screens_notifications_screen.035'),
@@ -284,10 +283,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           padding: const EdgeInsets.all(16),
           shrinkWrap: true,
           children: [
-            Text(
-              _t('screens_notifications_screen.036'),
-              style: AppTheme.h2,
-            ),
+            Text(_t('screens_notifications_screen.036'), style: AppTheme.h2),
             const SizedBox(height: 8),
             Text(
               _t('screens_notifications_screen.038'),
@@ -448,10 +444,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               color: AppTheme.textTertiary,
             ),
             const SizedBox(height: 18),
-            Text(
-              _t('screens_notifications_screen.043'),
-              style: AppTheme.h3,
-            ),
+            Text(_t('screens_notifications_screen.043'), style: AppTheme.h3),
             const SizedBox(height: 6),
             Text(
               _t('screens_notifications_screen.044'),
@@ -470,6 +463,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
+
+  List<Map<String, dynamic>> _normalizeNotifications(Object? raw) {
+    if (raw is! List) {
+      return const [];
+    }
+
+    return raw
+        .whereType<Map>()
+        .map(
+          (item) => _normalizeNotificationItem(Map<String, dynamic>.from(item)),
+        )
+        .toList();
+  }
+
+  Map<String, dynamic> _normalizeNotificationItem(Map<String, dynamic> item) {
+    return {
+      'id': item['id']?.toString() ?? '',
+      'type': item['type']?.toString() ?? 'general',
+      'category': item['category']?.toString() ?? 'general',
+      'title': item['title']?.toString() ?? '',
+      'body': item['body']?.toString() ?? '',
+      'data': _extractDataMap(item['data']),
+      'sourceType': item['sourceType']?.toString(),
+      'sourceId': item['sourceId']?.toString(),
+      'isRead': item['isRead'] == true,
+      'readAt': item['readAt']?.toString(),
+      'createdAt': item['createdAt']?.toString() ?? '',
+    };
+  }
+
+  Map<String, dynamic> _extractDataMap(Object? raw) {
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+
+    return const <String, dynamic>{};
+  }
 }
 
 class _NotificationCard extends StatelessWidget {
@@ -481,7 +515,11 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isRead = item['isRead'] == true;
-    final data = Map<String, dynamic>.from(item['data'] as Map? ?? const {});
+    final data = item['data'] is Map<String, dynamic>
+        ? item['data'] as Map<String, dynamic>
+        : item['data'] is Map
+        ? Map<String, dynamic>.from(item['data'] as Map)
+        : const <String, dynamic>{};
     final isFinancial = item['category'] == 'financial';
     final amount = (data['amount'] as num?)?.toDouble();
     final fee = (data['fee'] as num?)?.toDouble();
@@ -607,7 +645,11 @@ class _NotificationDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = Map<String, dynamic>.from(item['data'] as Map? ?? const {});
+    final data = item['data'] is Map<String, dynamic>
+        ? item['data'] as Map<String, dynamic>
+        : item['data'] is Map
+        ? Map<String, dynamic>.from(item['data'] as Map)
+        : const <String, dynamic>{};
     final amount = (data['amount'] as num?)?.toDouble();
     final fee = (data['fee'] as num?)?.toDouble();
     final description = data['description']?.toString() ?? '';
@@ -659,7 +701,9 @@ class _NotificationDetailsSheet extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(context.loc.tr('screens_admin_customers_screen.046')),
+                child: Text(
+                  context.loc.tr('screens_admin_customers_screen.046'),
+                ),
               ),
             ),
           ],
