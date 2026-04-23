@@ -1025,6 +1025,7 @@ class _BalanceScreenState extends State<BalanceScreen>
   Widget _buildBalanceHistoryCard({
     required Map<String, dynamic> transaction,
   }) {
+    final l = context.loc;
     final type = transaction['type']?.toString() ?? '';
     final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
     final createdAt = transaction['createdAt']?.toString() ?? '';
