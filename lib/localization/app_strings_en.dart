@@ -664,7 +664,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.003': 'Invalid national ID number.',
   'screens_register_screen.004': 'Please select your birth date.',
   'screens_register_screen.005': 'Invalid birth date.',
-  'screens_register_screen.006': 'Password is required.',
+  'screens_register_screen.006': 'Registration data is incomplete.',
   'screens_register_screen.007': 'Check your data',
   'screens_register_screen.008': 'Could not start registration',
   'screens_register_screen.009': 'Create a New Account',
@@ -677,7 +677,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.016': 'Country',
   'screens_register_screen.017': 'WhatsApp number',
   'screens_register_screen.018': 'Referral phone number',
-  'screens_register_screen.019': 'Account Security',
+  'screens_register_screen.019': 'Account follow-up',
   'screens_register_screen.020': 'Password',
   'screens_register_screen.021': 'Confirm password',
   'screens_register_screen.022': 'Previous',
@@ -692,18 +692,23 @@ const Map<String, String> appStringsEn = {
       'Username must use English letters or numbers only, with . _ - + and @ allowed.',
   'screens_register_screen.031': 'Please enter a valid WhatsApp number.',
   'screens_register_screen.032': 'Referral phone number is invalid.',
-  'screens_register_screen.033': 'Password must be at least 8 characters.',
-  'screens_register_screen.034': 'Password must contain at least one letter.',
-  'screens_register_screen.035': 'Password must contain at least one symbol.',
-  'screens_register_screen.036': 'Password confirmation is required.',
-  'screens_register_screen.037': 'Password confirmation does not match.',
+  'screens_register_screen.033':
+      'You do not need to enter a password during registration.',
+  'screens_register_screen.034':
+      'A password will be created automatically after the admin approves your registration.',
+  'screens_register_screen.035':
+      'Your password will be sent in the approval message to your WhatsApp number.',
+  'screens_register_screen.036':
+      'You do not need to confirm a password at this stage.',
+  'screens_register_screen.037':
+      'Your password will be sent to you after the registration is approved.',
   'screens_register_screen.038':
       'You must accept the terms and conditions to continue.',
   'screens_register_screen.039':
       'Complete only the basic registration details. A username will be generated automatically, and you can edit the username and referral number later from the profile before verification.',
   'screens_register_screen.040': 'Already have an account? Log in',
   'screens_register_screen.041':
-      'Password must be at least 8 characters and include at least one letter and one symbol.',
+      'You do not need to create a password now. After the admin approves your registration, your password will be sent to your WhatsApp so you can sign in and continue account verification.',
   'screens_register_screen.042':
       'I agree to the displayed terms, policies, and fees.',
   'screens_register_screen.043': 'Registration is currently disabled',
@@ -1064,6 +1069,8 @@ const Map<String, String> appStringsEn = {
   'screens_otp_verification_screen.021':
       'Didn'
       't receive the code yet?',
+  'screens_otp_verification_screen.022':
+      'The username will be created when the registration is approved',
 
   'screens_admin_permissions_screen.041':
       'From here you can define what this membership level can see and use across the app and admin panel.',
@@ -1959,6 +1966,7 @@ const Map<String, String> appStringsEn = {
   'services_app_alert_service.006': 'OK',
   'services_app_alert_service.007': 'Failed to reach the server',
   'services_app_alert_service.008': 'WhatsApp',
+  'services_app_alert_service.009': 'Sign in again',
   'widgets_barcode_scanner_dialog.001': 'Scan results',
   'widgets_barcode_scanner_dialog.002': 'Could not show the scan result',
   'widgets_barcode_scanner_dialog.003':
@@ -2001,6 +2009,10 @@ const Map<String, String> appStringsEn = {
       'An error occurred while processing the request. Try again, or contact support if the issue continues.',
   'services_error_message_service.008': 'Unauthorized',
   'services_error_message_service.009': 'Not permitted',
+  'services_error_message_service.010':
+      'This device is not approved for this account. Sign in from an approved device or ask the admin to approve this one.',
+  'services_error_message_service.011':
+      'Your session has expired or is no longer valid on this device. Sign in again, then try scanning the card once more.',
   'services_local_notification_service.001': 'Account updates',
   'services_local_notification_service.002':
       'Account, request, and important alert notifications',

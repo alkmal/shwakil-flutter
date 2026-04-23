@@ -14,6 +14,9 @@ import 'app_config.dart';
 import 'auth_service.dart';
 import 'app_version_service.dart';
 import 'error_message_service.dart';
+import 'local_security_service.dart';
+import 'offline_session_service.dart';
+import 'realtime_notification_service.dart';
 
 enum AppAlertType { success, error, info }
 
@@ -161,6 +164,8 @@ class AppAlertService {
     final returnToHomeOnAcknowledge =
         type == AppAlertType.error &&
         _shouldReturnHomeOnAcknowledge(cleanMessage);
+    final canRelogin =
+        type == AppAlertType.error && _shouldOfferRelogin(cleanMessage);
 
     return showDialog<void>(
       context: context,
@@ -244,6 +249,34 @@ class AppAlertService {
                 ),
                 const SizedBox(height: 12),
               ],
+              if (canRelogin) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(dialogContext);
+                      await _restartLoginFlow();
+                    },
+                    icon: const Icon(Icons.login_rounded),
+                    label: Text(
+                      context.loc.tr('services_app_alert_service.009'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: BorderSide(color: AppTheme.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -282,6 +315,24 @@ class AppAlertService {
 
   static bool _shouldReturnHomeOnAcknowledge(String message) {
     return _messageContainsAny(message, 'services_app_alert_service.007');
+  }
+
+  static bool _shouldOfferRelogin(String message) {
+    return _messageContainsAny(message, 'services_error_message_service.010') ||
+        _messageContainsAny(message, 'services_error_message_service.011');
+  }
+
+  static Future<void> _restartLoginFlow() async {
+    final authService = AuthService();
+    await RealtimeNotificationService.stop();
+    await authService.logout();
+    await LocalSecurityService.clearTrustedState();
+    OfflineSessionService.setOfflineMode(false);
+
+    final navigator = navigatorKey.currentState;
+    if (navigator != null) {
+      navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+    }
   }
 
   static Future<void> _openWhatsApp(String phone) async {

@@ -14,6 +14,21 @@ class ErrorMessageService {
     }
 
     final lower = text.toLowerCase();
+    if (lower.contains('هذا الجهاز غير معتمد') ||
+        lower.contains('device is not approved') ||
+        lower.contains('device not approved')) {
+      return _tr('services_error_message_service.010');
+    }
+
+    if (lower.contains('غير مصرح.') ||
+        lower == 'غير مصرح' ||
+        lower.contains('session version') ||
+        lower.contains('bearer ') ||
+        lower.contains('jwt') ||
+        lower.contains('token')) {
+      return _tr('services_error_message_service.011');
+    }
+
     if (lower.contains('401') ||
         lower.contains('403') ||
         lower.contains('unauthorized') ||

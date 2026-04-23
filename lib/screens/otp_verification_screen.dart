@@ -13,7 +13,7 @@ class OtpVerificationScreen extends StatefulWidget {
     super.key,
     required this.fullName,
     required this.username,
-    required this.password,
+    this.password,
     this.termsAccepted = false,
     this.whatsapp,
     this.countryCode,
@@ -29,7 +29,7 @@ class OtpVerificationScreen extends StatefulWidget {
 
   final String fullName;
   final String username;
-  final String password;
+  final String? password;
   final bool termsAccepted;
   final String? whatsapp;
   final String? countryCode;
@@ -103,7 +103,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         final response = await _authService.register(
           fullName: widget.fullName,
           username: widget.username,
-          password: widget.password,
           whatsapp: widget.whatsapp,
           countryCode: widget.countryCode,
           nationalId: widget.nationalId,
@@ -133,7 +132,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
       await _authService.login(
         username: widget.username,
-        password: widget.password,
+        password: widget.password ?? '',
         otpCode: _otpController.text.trim(),
       );
       await LocalSecurityService.clearRelockRequirement();
@@ -326,7 +325,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   style: AppTheme.caption,
                 ),
                 const SizedBox(height: 4),
-                Text(widget.username, style: AppTheme.bodyBold),
+                Text(
+                  widget.username.trim().isEmpty
+                      ? l.tr('screens_otp_verification_screen.022')
+                      : widget.username,
+                  style: AppTheme.bodyBold,
+                ),
                 if ((widget.whatsapp ?? '').trim().isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Text(

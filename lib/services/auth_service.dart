@@ -110,7 +110,6 @@ class AuthService {
   Future<void> validateRegistration({
     required String fullName,
     String? username,
-    required String password,
     required String whatsapp,
     required String countryCode,
     String? nationalId,
@@ -127,7 +126,6 @@ class AuthService {
             'username': username == null || username.trim().isEmpty
                 ? null
                 : _normalizeUsername(username),
-            'password': password,
             'whatsapp': whatsapp.trim(),
             'countryCode': countryCode.trim(),
             'nationalId': nationalId?.trim(),
@@ -147,7 +145,6 @@ class AuthService {
   Future<OtpRequestResult> startRegistration({
     required String fullName,
     String? username,
-    required String password,
     required String whatsapp,
     required String countryCode,
     String? nationalId,
@@ -164,7 +161,6 @@ class AuthService {
             'username': username == null || username.trim().isEmpty
                 ? null
                 : _normalizeUsername(username),
-            'password': password,
             'whatsapp': whatsapp.trim(),
             'countryCode': countryCode.trim(),
             'nationalId': nationalId?.trim(),
@@ -195,7 +191,6 @@ class AuthService {
   Future<Map<String, dynamic>> register({
     String? fullName,
     String? username,
-    String? password,
     String? whatsapp,
     String? countryCode,
     String? nationalId,
@@ -213,7 +208,6 @@ class AuthService {
           body: jsonEncode({
             'fullName': fullName?.trim(),
             'username': username == null ? null : _normalizeUsername(username),
-            'password': password,
             'whatsapp': whatsapp?.trim(),
             'countryCode': countryCode?.trim(),
             'nationalId': nationalId?.trim(),

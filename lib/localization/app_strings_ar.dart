@@ -531,7 +531,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.003': 'رقم الهوية غير صالح.',
   'screens_register_screen.004': 'يرجى اختيار تاريخ الميلاد.',
   'screens_register_screen.005': 'تاريخ الميلاد غير صالح.',
-  'screens_register_screen.006': 'كلمة المرور مطلوبة.',
+  'screens_register_screen.006': 'بيانات التسجيل غير مكتملة.',
   'screens_register_screen.007': 'تحقق من بياناتك',
   'screens_register_screen.008': 'تعذر بدء التسجيل',
   'screens_register_screen.009': 'إنشاء حساب جديد',
@@ -544,7 +544,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.016': 'الدولة',
   'screens_register_screen.017': 'رقم واتساب',
   'screens_register_screen.018': 'رقم الإحالة',
-  'screens_register_screen.019': 'أمان الحساب',
+  'screens_register_screen.019': 'متابعة الحساب',
   'screens_register_screen.020': 'كلمة المرور',
   'screens_register_screen.021': 'تأكيد كلمة المرور',
   'screens_register_screen.022': 'السابق',
@@ -559,20 +559,19 @@ const Map<String, String> appStringsAr = {
       'يجب أن يتكون اسم المستخدم من أحرف أو أرقام إنجليزية فقط، مع السماح بالرموز . _ - + و @.',
   'screens_register_screen.031': 'يرجى إدخال رقم واتساب صحيح.',
   'screens_register_screen.032': 'رقم الإحالة غير صالح.',
-  'screens_register_screen.033':
-      'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.',
+  'screens_register_screen.033': 'لا حاجة لإدخال كلمة مرور أثناء التسجيل.',
   'screens_register_screen.034':
-      'يجب أن تحتوي كلمة المرور على حرف واحد على الأقل.',
+      'سيتم إنشاء كلمة المرور تلقائيًا بعد اعتماد التسجيل من الإدارة.',
   'screens_register_screen.035':
-      'يجب أن تحتوي كلمة المرور على رمز واحد على الأقل.',
-  'screens_register_screen.036': 'تأكيد كلمة المرور مطلوب.',
-  'screens_register_screen.037': 'تأكيد كلمة المرور غير متطابق.',
+      'ستصلك كلمة المرور في رسالة الاعتماد على واتساب المرتبط بالحساب.',
+  'screens_register_screen.036': 'لا حاجة لتأكيد كلمة المرور في هذه المرحلة.',
+  'screens_register_screen.037': 'سيتم إرسال كلمة المرور لك بعد اعتماد التسجيل.',
   'screens_register_screen.038': 'يجب الموافقة على الشروط والأحكام للمتابعة.',
   'screens_register_screen.039':
       'أكمل البيانات الأساسية فقط، وسيتم إنشاء اسم المستخدم تلقائيًا ويمكنك تعديل اسم المستخدم ورقم الإحالة لاحقًا من الملف الشخصي قبل التوثيق.',
   'screens_register_screen.040': 'لديك حساب بالفعل؟ سجّل الدخول',
   'screens_register_screen.041':
-      'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل وأن تحتوي على حرف واحد ورمز واحد على الأقل.',
+      'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور على واتساب لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
   'screens_register_screen.042': 'أوافق على الشروط والسياسات والرسوم المعروضة.',
   'screens_register_screen.043': 'التسجيل معطّل حاليًا',
   'screens_register_screen.044':
@@ -921,6 +920,7 @@ const Map<String, String> appStringsAr = {
   'screens_otp_verification_screen.020':
       'يمكنك إعادة إرسال الرمز خلال {count} ثانية',
   'screens_otp_verification_screen.021': 'لم يصلك الرمز بعد؟',
+  'screens_otp_verification_screen.022': 'سيتم إنشاء اسم المستخدم عند اعتماد التسجيل',
 
   'screens_admin_permissions_screen.041':
       'استخدم هذه الشاشة لضبط صلاحيات كل مستخدم بشكل دقيق بما يتناسب مع دوره ومسؤولياته.',
@@ -1896,6 +1896,7 @@ const Map<String, String> appStringsAr = {
   'services_app_alert_service.006': 'موافق',
   'services_app_alert_service.007': 'تعذر الاتصال بالخادم',
   'services_app_alert_service.008': 'واتساب',
+  'services_app_alert_service.009': 'إعادة تسجيل الدخول',
   'widgets_barcode_scanner_dialog.001': 'نتائج الفحص',
   'widgets_barcode_scanner_dialog.002': 'تعذر إظهار نتيجة الفحص',
   'widgets_barcode_scanner_dialog.003':
@@ -1936,6 +1937,10 @@ const Map<String, String> appStringsAr = {
       'حدث خطأ أثناء تنفيذ الطلب. حاول مرة أخرى أو تواصل مع الدعم إذا استمرت المشكلة.',
   'services_error_message_service.008': 'غير مصرح',
   'services_error_message_service.009': 'غير مخول',
+  'services_error_message_service.010':
+      'هذا الجهاز غير معتمد لهذا الحساب. جرّب تسجيل الدخول من الجهاز المعتمد أو راجع الإدارة لاعتماد هذا الجهاز.',
+  'services_error_message_service.011':
+      'انتهت الجلسة أو لم يعد تسجيل الدخول صالحًا على هذا الجهاز. أعد تسجيل الدخول ثم جرّب فحص البطاقة مرة أخرى.',
   'services_local_notification_service.001': 'تحديثات الحساب',
   'services_local_notification_service.002':
       'إشعارات الحساب والطلبات والتنبيهات المهمة',

@@ -17,24 +17,15 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  static final RegExp _passwordLetterPattern = RegExp(r'[A-Za-z\u0600-\u06FF]');
-  static final RegExp _passwordSymbolPattern = RegExp(
-    r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:\|,.<>\/\?~`]',
-  );
-
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
 
   final _fullNameC = TextEditingController();
-  final _passwordC = TextEditingController();
-  final _confirmPassC = TextEditingController();
   final _whatsappC = TextEditingController();
 
   bool _isLoading = false;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
   String? _supportWhatsapp;
 
@@ -47,8 +38,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _fullNameC.dispose();
-    _passwordC.dispose();
-    _confirmPassC.dispose();
     _whatsappC.dispose();
     super.dispose();
   }
@@ -90,29 +79,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  String? _validateSecurityStep() {
+  String? _validateConfirmationStep() {
     final l = context.loc;
-    final password = _passwordC.text;
-    final confirm = _confirmPassC.text;
-
-    if (password.trim().isEmpty) {
-      return l.tr('screens_register_screen.006');
-    }
-    if (password.length < 8) {
-      return l.tr('screens_register_screen.033');
-    }
-    if (!_passwordLetterPattern.hasMatch(password)) {
-      return l.tr('screens_register_screen.034');
-    }
-    if (!_passwordSymbolPattern.hasMatch(password)) {
-      return l.tr('screens_register_screen.035');
-    }
-    if (confirm.trim().isEmpty) {
-      return l.tr('screens_register_screen.036');
-    }
-    if (password != confirm) {
-      return l.tr('screens_register_screen.037');
-    }
     if (!_termsAccepted) {
       return l.tr('screens_register_screen.038');
     }
@@ -125,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final localError =
         _validatePersonalStep() ??
         _validateContactStep() ??
-        _validateSecurityStep();
+        _validateConfirmationStep();
     if (localError != null) {
       await AppAlertService.showError(
         context,
@@ -143,7 +111,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       final otp = await _authService.startRegistration(
         fullName: _fullNameC.text.trim(),
-        password: _passwordC.text,
         whatsapp: whatsapp,
         countryCode: _selectedCountry.dialCode,
         termsAccepted: true,
@@ -159,7 +126,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           builder: (_) => OtpVerificationScreen(
             fullName: _fullNameC.text.trim(),
             username: '',
-            password: _passwordC.text,
             whatsapp: whatsapp,
             countryCode: _selectedCountry.dialCode,
             termsAccepted: true,
@@ -283,45 +249,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
             prefix: '+${_selectedCountry.dialCode} ',
           ),
           const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.020'),
-            _passwordC,
-            Icons.lock_rounded,
-            obscure: _obscurePassword,
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(() => _obscurePassword = !_obscurePassword);
-              },
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: AppTheme.radiusMd,
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Text(
+              l.tr('screens_register_screen.041'),
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w700,
+                height: 1.6,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.021'),
-            _confirmPassC,
-            Icons.lock_reset_rounded,
-            obscure: _obscureConfirmPassword,
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(
-                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
-                );
-              },
-              icon: Icon(
-                _obscureConfirmPassword
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l.tr('screens_register_screen.041'),
-            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 8),
           CheckboxListTile(
