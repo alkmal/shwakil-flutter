@@ -29,6 +29,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   }
 
   Future<void> _load() async {
+    final l = context.loc;
     try {
       final payload = await _apiService.getAffiliateDashboard();
       if (!mounted) {
@@ -47,13 +48,14 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل التسويق بالعمولة',
+        title: l.tr('screens_affiliate_center_screen.001'),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
   Future<void> _copyValue(String label, String value) async {
+    final l = context.loc;
     if (value.trim().isEmpty) {
       return;
     }
@@ -63,13 +65,17 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
     }
     await AppAlertService.showSuccess(
       context,
-      title: 'تم النسخ',
-      message: 'تم نسخ $label بنجاح.',
+      title: l.tr('screens_affiliate_center_screen.002'),
+      message: l.tr(
+        'screens_affiliate_center_screen.003',
+        params: {'label': label},
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -92,10 +98,10 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('التسويق بالعمولة'),
+        title: Text(l.tr('screens_affiliate_center_screen.004')),
         actions: [
           IconButton(
-            tooltip: 'تحديث',
+            tooltip: l.tr('screens_affiliate_center_screen.005'),
             onPressed: _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
@@ -121,22 +127,22 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                   _buildSummaryGrid(summary),
                   const SizedBox(height: 20),
                   _buildSectionTitle(
-                    'آخر الإحالات',
-                    'تابع حالة العملاء الذين سجلوا من خلالك.',
+                    l.tr('screens_affiliate_center_screen.006'),
+                    l.tr('screens_affiliate_center_screen.007'),
                   ),
                   const SizedBox(height: 12),
                   if (recentReferrals.isEmpty)
-                    _buildEmptyCard('لا توجد إحالات مسجلة حتى الآن.')
+                    _buildEmptyCard(l.tr('screens_affiliate_center_screen.008'))
                   else
                     ...recentReferrals.map(_buildReferralCard),
                   const SizedBox(height: 20),
                   _buildSectionTitle(
-                    'آخر العمولات',
-                    'كل عمولة تظهر هنا بعد أول شحن مؤهل للمحال.',
+                    l.tr('screens_affiliate_center_screen.009'),
+                    l.tr('screens_affiliate_center_screen.010'),
                   ),
                   const SizedBox(height: 12),
                   if (recentCommissions.isEmpty)
-                    _buildEmptyCard('لا توجد عمولات مضافة حتى الآن.')
+                    _buildEmptyCard(l.tr('screens_affiliate_center_screen.011'))
                   else
                     ...recentCommissions.map(_buildCommissionCard),
                 ],
@@ -149,6 +155,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   }
 
   Widget _buildHero(bool enabled) {
+    final l = context.loc;
     final rewardAmount = (_affiliate['rewardAmount'] as num?)?.toDouble() ?? 0;
     final minAmount = (_affiliate['firstTopupMinAmount'] as num?)?.toDouble() ?? 0;
 
@@ -180,14 +187,14 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'اكسب عمولة على أول شحن مؤهل',
+                      l.tr('screens_affiliate_center_screen.012'),
                       style: AppTheme.h2.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       enabled
-                          ? 'عند تسجيل عميل من خلالك ثم تنفيذ أول شحن مؤهل، تُضاف عمولتك مباشرة إلى الرصيد.'
-                          : 'نظام التسويق بالعمولة متوقف حاليًا من الإعدادات.',
+                          ? l.tr('screens_affiliate_center_screen.013')
+                          : l.tr('screens_affiliate_center_screen.014'),
                       style: AppTheme.bodyAction.copyWith(
                         color: Colors.white.withValues(alpha: 0.88),
                         height: 1.6,
@@ -203,9 +210,20 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _heroPill('العمولة', CurrencyFormatter.ils(rewardAmount)),
-              _heroPill('الحد الأدنى للشحن', CurrencyFormatter.ils(minAmount)),
-              _heroPill('الحالة', enabled ? 'مفعل' : 'متوقف'),
+              _heroPill(
+                l.tr('screens_affiliate_center_screen.015'),
+                CurrencyFormatter.ils(rewardAmount),
+              ),
+              _heroPill(
+                l.tr('screens_affiliate_center_screen.016'),
+                CurrencyFormatter.ils(minAmount),
+              ),
+              _heroPill(
+                l.tr('screens_affiliate_center_screen.017'),
+                enabled
+                    ? l.tr('screens_affiliate_center_screen.018')
+                    : l.tr('screens_affiliate_center_screen.019'),
+              ),
             ],
           ),
         ],
@@ -214,6 +232,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   }
 
   Widget _buildShareCard() {
+    final l = context.loc;
     final shareCode = _affiliate['shareCode']?.toString() ?? '';
     final sharePhone = _affiliate['sharePhone']?.toString() ?? '';
 
@@ -222,22 +241,37 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('بيانات الإحالة الخاصة بك', style: AppTheme.h3),
+          Text(l.tr('screens_affiliate_center_screen.020'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'يمكن للعميل إدخال اسم المستخدم أو رقم الواتساب الخاص بك أثناء التسجيل.',
+            l.tr('screens_affiliate_center_screen.021'),
             style: AppTheme.caption.copyWith(height: 1.6),
           ),
           const SizedBox(height: 16),
-          _shareRow('اسم المستخدم', shareCode, () => _copyValue('اسم المستخدم', shareCode)),
+          _shareRow(
+            l.tr('screens_affiliate_center_screen.022'),
+            shareCode,
+            () => _copyValue(
+              l.tr('screens_affiliate_center_screen.022'),
+              shareCode,
+            ),
+          ),
           const SizedBox(height: 12),
-          _shareRow('رقم الواتساب', sharePhone, () => _copyValue('رقم الواتساب', sharePhone)),
+          _shareRow(
+            l.tr('screens_affiliate_center_screen.023'),
+            sharePhone,
+            () => _copyValue(
+              l.tr('screens_affiliate_center_screen.023'),
+              sharePhone,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _shareRow(String label, String value, VoidCallback onCopy) {
+    final l = context.loc;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -253,14 +287,19 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
               children: [
                 Text(label, style: AppTheme.caption),
                 const SizedBox(height: 6),
-                Text(value.isEmpty ? 'غير متوفر' : value, style: AppTheme.bodyBold),
+                Text(
+                  value.isEmpty
+                      ? l.tr('screens_affiliate_center_screen.024')
+                      : value,
+                  style: AppTheme.bodyBold,
+                ),
               ],
             ),
           ),
           FilledButton.icon(
             onPressed: value.isEmpty ? null : onCopy,
             icon: const Icon(Icons.copy_rounded, size: 18),
-            label: const Text('نسخ'),
+            label: Text(l.tr('screens_affiliate_center_screen.025')),
           ),
         ],
       ),
@@ -268,11 +307,30 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   }
 
   Widget _buildSummaryGrid(Map<String, dynamic> summary) {
+    final l = context.loc;
     final cards = [
-      _summaryCard('إجمالي الإحالات', '${(summary['totalReferrals'] as num?)?.toInt() ?? 0}', Icons.groups_rounded),
-      _summaryCard('إحالات نشطة', '${(summary['activeReferrals'] as num?)?.toInt() ?? 0}', Icons.local_fire_department_rounded),
-      _summaryCard('إحالات مؤهلة', '${(summary['qualifiedReferrals'] as num?)?.toInt() ?? 0}', Icons.verified_rounded),
-      _summaryCard('إجمالي العمولات', CurrencyFormatter.ils((summary['totalRewards'] as num?)?.toDouble() ?? 0), Icons.account_balance_wallet_rounded),
+      _summaryCard(
+        l.tr('screens_affiliate_center_screen.026'),
+        '${(summary['totalReferrals'] as num?)?.toInt() ?? 0}',
+        Icons.groups_rounded,
+      ),
+      _summaryCard(
+        l.tr('screens_affiliate_center_screen.027'),
+        '${(summary['activeReferrals'] as num?)?.toInt() ?? 0}',
+        Icons.local_fire_department_rounded,
+      ),
+      _summaryCard(
+        l.tr('screens_affiliate_center_screen.028'),
+        '${(summary['qualifiedReferrals'] as num?)?.toInt() ?? 0}',
+        Icons.verified_rounded,
+      ),
+      _summaryCard(
+        l.tr('screens_affiliate_center_screen.029'),
+        CurrencyFormatter.ils(
+          (summary['totalRewards'] as num?)?.toDouble() ?? 0,
+        ),
+        Icons.account_balance_wallet_rounded,
+      ),
     ];
 
     return LayoutBuilder(
@@ -323,11 +381,12 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   }
 
   Widget _buildReferralCard(Map<String, dynamic> item) {
+    final l = context.loc;
     final status = item['status']?.toString() ?? 'waiting_for_first_topup';
     final label = switch (status) {
-      'rewarded' => 'تمت العمولة',
-      'waiting_for_qualification' => 'بانتظار شحن مؤهل',
-      _ => 'بانتظار أول شحن',
+      'rewarded' => l.tr('screens_affiliate_center_screen.030'),
+      'waiting_for_qualification' => l.tr('screens_affiliate_center_screen.031'),
+      _ => l.tr('screens_affiliate_center_screen.032'),
     };
     final color = switch (status) {
       'rewarded' => AppTheme.success,
@@ -353,7 +412,8 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                   Text(
                     item['fullName']?.toString().trim().isNotEmpty == true
                         ? item['fullName'].toString()
-                        : (item['username']?.toString() ?? 'عميل جديد'),
+                        : (item['username']?.toString() ??
+                              l.tr('screens_affiliate_center_screen.033')),
                     style: AppTheme.bodyBold,
                   ),
                   const SizedBox(height: 4),
@@ -385,6 +445,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   }
 
   Widget _buildCommissionCard(Map<String, dynamic> item) {
+    final l = context.loc;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: ShwakelCard(
@@ -406,12 +467,20 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                   Text(
                     item['referredFullName']?.toString().trim().isNotEmpty == true
                         ? item['referredFullName'].toString()
-                        : (item['referredUsername']?.toString() ?? 'عميل'),
+                        : (item['referredUsername']?.toString() ??
+                              l.tr('screens_affiliate_center_screen.034')),
                     style: AppTheme.bodyBold,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'أول شحن مؤهل: ${CurrencyFormatter.ils((item['qualifyingAmount'] as num?)?.toDouble() ?? 0)}',
+                    l.tr(
+                      'screens_affiliate_center_screen.035',
+                      params: {
+                        'amount': CurrencyFormatter.ils(
+                          (item['qualifyingAmount'] as num?)?.toDouble() ?? 0,
+                        ),
+                      },
+                    ),
                     style: AppTheme.caption.copyWith(height: 1.5),
                   ),
                 ],

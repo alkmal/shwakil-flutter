@@ -1188,7 +1188,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
-          const AppNotificationAction(),
           if (!widget.offlineMode)
             IconButton(
               tooltip: _canCreateTemporaryTransferCode
@@ -1216,6 +1215,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               color: widget.offlineMode ? AppTheme.warning : AppTheme.primary,
             ),
           ),
+          const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
       ),

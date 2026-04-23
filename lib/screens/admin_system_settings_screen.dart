@@ -528,9 +528,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       icon: const Icon(Icons.add_card_rounded),
                       text: l.tr('screens_admin_system_settings_screen.055'),
                     ),
-                    const Tab(
+                    Tab(
                       icon: Icon(Icons.campaign_rounded),
-                      text: 'التسويق بالعمولة',
+                      text: l.tr('screens_admin_system_settings_screen.066'),
                     ),
                     Tab(
                       icon: const Icon(Icons.policy_rounded),
@@ -841,10 +841,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AdminSectionHeader(
-            title: 'إعدادات التسويق بالعمولة',
-            subtitle:
-                'التحكم في تفعيل نظام الإحالة، قيمة العمولة، والحد الأدنى لأول شحن مؤهل.',
+          AdminSectionHeader(
+            title: context.loc.tr('screens_admin_system_settings_screen.067'),
+            subtitle: context.loc.tr(
+              'screens_admin_system_settings_screen.068',
+            ),
             icon: Icons.campaign_rounded,
           ),
           const SizedBox(height: 16),
@@ -856,9 +857,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _affiliateEnabled,
                   onChanged: (value) =>
                       setState(() => _affiliateEnabled = value),
-                  title: const Text('تفعيل التسويق بالعمولة'),
-                  subtitle: const Text(
-                    'عند التفعيل تُمنح عمولة لأول شحن مؤهل للمستخدم المحال.',
+                  title: Text(
+                    context.loc.tr('screens_admin_system_settings_screen.069'),
+                  ),
+                  subtitle: Text(
+                    context.loc.tr('screens_admin_system_settings_screen.070'),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -867,8 +870,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
-                    labelText: 'قيمة العمولة',
+                  decoration: InputDecoration(
+                    labelText: context.loc.tr(
+                      'screens_admin_system_settings_screen.071',
+                    ),
                     suffixText: '₪',
                   ),
                 ),
@@ -878,8 +883,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
-                    labelText: 'الحد الأدنى لأول شحن مؤهل',
+                  decoration: InputDecoration(
+                    labelText: context.loc.tr(
+                      'screens_admin_system_settings_screen.072',
+                    ),
                     suffixText: '₪',
                   ),
                 ),

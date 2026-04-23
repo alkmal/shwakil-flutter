@@ -71,8 +71,6 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildLegalHero(),
-                    const SizedBox(height: 24),
                     _buildHighlights(),
                     const SizedBox(height: 20),
                     ShwakelCard(

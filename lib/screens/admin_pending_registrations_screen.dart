@@ -41,6 +41,7 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _load() async {
+    final l = context.loc;
     setState(() => _isLoading = true);
     try {
       final currentUser = await _authService.currentUser();
@@ -72,13 +73,14 @@ class _AdminPendingRegistrationsScreenState
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل طلبات التسجيل',
+        title: l.tr('screens_admin_pending_registrations_screen.004'),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
   Future<void> _approve(Map<String, dynamic> request) async {
+    final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {
       return;
@@ -93,10 +95,10 @@ class _AdminPendingRegistrationsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم اعتماد الطلب',
+        title: l.tr('screens_admin_pending_registrations_screen.005'),
         message:
             response['message']?.toString() ??
-            'تم اعتماد طلب التسجيل بنجاح.',
+            l.tr('screens_admin_pending_registrations_screen.006'),
       );
       await _load();
     } catch (error) {
@@ -105,7 +107,7 @@ class _AdminPendingRegistrationsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر اعتماد الطلب',
+        title: l.tr('screens_admin_pending_registrations_screen.007'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -116,6 +118,7 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _reject(Map<String, dynamic> request) async {
+    final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {
       return;
@@ -123,19 +126,19 @@ class _AdminPendingRegistrationsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('رفض الطلب'),
-        content: const Text(
-          'سيتم حذف الطلب المعلق عند الرفض. هل تريد المتابعة؟',
+        title: Text(l.tr('screens_admin_pending_registrations_screen.008')),
+        content: Text(
+          l.tr('screens_admin_pending_registrations_screen.009'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(l.tr('screens_admin_pending_registrations_screen.010')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('رفض'),
+            child: Text(l.tr('screens_admin_pending_registrations_screen.011')),
           ),
         ],
       ),
@@ -155,10 +158,10 @@ class _AdminPendingRegistrationsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم رفض الطلب',
+        title: l.tr('screens_admin_pending_registrations_screen.012'),
         message:
             response['message']?.toString() ??
-            'تم رفض طلب التسجيل وحذفه من المتابعة.',
+            l.tr('screens_admin_pending_registrations_screen.013'),
       );
       await _load();
     } catch (error) {
@@ -167,7 +170,7 @@ class _AdminPendingRegistrationsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر رفض الطلب',
+        title: l.tr('screens_admin_pending_registrations_screen.014'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -195,6 +198,7 @@ class _AdminPendingRegistrationsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -202,21 +206,23 @@ class _AdminPendingRegistrationsScreenState
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: const Text('طلبات التسجيل المعلقة')),
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_pending_registrations_screen.015')),
+        ),
         drawer: const AppSidebar(),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(
+              children: [
+                const Icon(
                   Icons.lock_outline_rounded,
                   size: 54,
                   color: AppTheme.textTertiary,
                 ),
-                SizedBox(height: 14),
-                Text('لا تملك صلاحية مراجعة طلبات التسجيل.'),
+                const SizedBox(height: 14),
+                Text(l.tr('screens_admin_pending_registrations_screen.016')),
               ],
             ),
           ),
@@ -229,10 +235,10 @@ class _AdminPendingRegistrationsScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('طلبات التسجيل المعلقة'),
+        title: Text(l.tr('screens_admin_pending_registrations_screen.015')),
         actions: [
           IconButton(
-            tooltip: 'تحديث',
+            tooltip: l.tr('screens_admin_pending_registrations_screen.017'),
             onPressed: _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
@@ -257,7 +263,7 @@ class _AdminPendingRegistrationsScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'راجع طلبات التسجيل التي أكملت خطوة التسجيل وتنتظر قرار الإدارة.',
+                          l.tr('screens_admin_pending_registrations_screen.018'),
                           style: AppTheme.bodyAction.copyWith(
                             color: AppTheme.textSecondary,
                             height: 1.5,
@@ -266,9 +272,11 @@ class _AdminPendingRegistrationsScreenState
                         const SizedBox(height: 14),
                         TextField(
                           controller: _searchController,
-                          decoration: const InputDecoration(
-                            labelText: 'بحث بالاسم أو اسم المستخدم أو الجوال',
-                            prefixIcon: Icon(Icons.search_rounded),
+                          decoration: InputDecoration(
+                            labelText: context.loc.tr(
+                              'screens_admin_pending_registrations_screen.001',
+                            ),
+                            prefixIcon: const Icon(Icons.search_rounded),
                           ),
                           onChanged: (value) {
                             setState(() => _searchQuery = value);
@@ -284,8 +292,12 @@ class _AdminPendingRegistrationsScreenState
                       child: Center(
                         child: Text(
                           _searchQuery.trim().isEmpty
-                              ? 'لا توجد طلبات تسجيل معلقة حاليًا.'
-                              : 'لا توجد نتائج مطابقة للبحث.',
+                              ? context.loc.tr(
+                                  'screens_admin_pending_registrations_screen.002',
+                                )
+                              : context.loc.tr(
+                                  'screens_admin_pending_registrations_screen.003',
+                                ),
                           style: AppTheme.bodyAction,
                         ),
                       ),
@@ -307,6 +319,7 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Widget _requestCard(Map<String, dynamic> request) {
+    final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     final isBusy = _busyId == requestId;
     final otpVerified = (request['otpVerifiedAt']?.toString().trim().isNotEmpty ??
@@ -328,7 +341,7 @@ class _AdminPendingRegistrationsScreenState
                     Text(
                       request['fullName']?.toString().trim().isNotEmpty == true
                           ? request['fullName'].toString()
-                          : 'بدون اسم',
+                          : l.tr('screens_admin_pending_registrations_screen.019'),
                       style: AppTheme.h3,
                     ),
                     const SizedBox(height: 4),
@@ -343,8 +356,8 @@ class _AdminPendingRegistrationsScreenState
               ),
               _statusChip(
                 label: otpVerified
-                    ? 'جاهز للمراجعة'
-                    : 'بانتظار تأكيد الواتساب',
+                    ? l.tr('screens_admin_pending_registrations_screen.020')
+                    : l.tr('screens_admin_pending_registrations_screen.021'),
                 color: otpVerified ? AppTheme.success : AppTheme.warning,
               ),
             ],
@@ -377,7 +390,7 @@ class _AdminPendingRegistrationsScreenState
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.error,
                   ),
-                  label: const Text('رفض وحذف الطلب'),
+                  label: Text(l.tr('screens_admin_pending_registrations_screen.022')),
                 ),
               ),
               const SizedBox(width: 12),
@@ -396,7 +409,7 @@ class _AdminPendingRegistrationsScreenState
                           ),
                         )
                       : const Icon(Icons.check_rounded),
-                  label: const Text('اعتماد وإنشاء الحساب'),
+                  label: Text(l.tr('screens_admin_pending_registrations_screen.023')),
                 ),
               ),
             ],
@@ -404,7 +417,7 @@ class _AdminPendingRegistrationsScreenState
           if (!otpVerified) ...[
             const SizedBox(height: 12),
             Text(
-              'لن يظهر زر الاعتماد إلا بعد أن يؤكد صاحب الطلب رمز التحقق من واتساب.',
+              l.tr('screens_admin_pending_registrations_screen.024'),
               style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
             ),
           ],

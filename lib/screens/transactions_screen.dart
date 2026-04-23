@@ -327,7 +327,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             Text(_t('screens_transactions_screen.037'), style: AppTheme.h2),
             const SizedBox(height: 8),
             Text(
-              'ابحث بسرعة ثم ضيّق النتائج حسب الوقت أو نوع الحركة.',
+              _t('screens_transactions_screen.053'),
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
@@ -344,25 +344,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final net = _totalCredits - _totalDebits;
     final summaryItems = [
       (
-        label: 'الرصيد الحالي',
+        label: _t('screens_transactions_screen.058'),
         value: CurrencyFormatter.ils(_currentBalance),
         icon: Icons.account_balance_wallet_rounded,
         color: AppTheme.primary,
       ),
       (
-        label: 'الإجمالي الداخل',
+        label: _t('screens_transactions_screen.059'),
         value: CurrencyFormatter.ils(_totalCredits),
         icon: Icons.south_west_rounded,
         color: AppTheme.success,
       ),
       (
-        label: 'الإجمالي الخارج',
+        label: _t('screens_transactions_screen.060'),
         value: CurrencyFormatter.ils(_totalDebits),
         icon: Icons.north_east_rounded,
         color: const Color(0xFFB45309),
       ),
       (
-        label: 'الصافي',
+        label: _t('screens_transactions_screen.061'),
         value: CurrencyFormatter.ils(net),
         icon: Icons.analytics_rounded,
         color: const Color(0xFF7C3AED),
@@ -436,7 +436,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'البحث والتصفية',
+            _t('screens_transactions_screen.054'),
             style: AppTheme.bodyBold.copyWith(
               color: AppTheme.primary,
               fontSize: 16,
@@ -444,7 +444,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'ابحث بسرعة ثم ضيّق النتائج حسب الوقت أو نوع الحركة.',
+            _t('screens_transactions_screen.053'),
             style: AppTheme.caption.copyWith(height: 1.35),
           ),
           const SizedBox(height: 12),
@@ -496,7 +496,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 return Column(
                   children: [
                     _buildFilterPanel(
-                      title: 'الفترة',
+                      title: _t('screens_transactions_screen.055'),
                       icon: Icons.calendar_month_rounded,
                       chips: [
                         _buildDateChip(
@@ -519,7 +519,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                     const SizedBox(height: 10),
                     _buildFilterPanel(
-                      title: 'نوع الحركات',
+                      title: _t('screens_transactions_screen.056'),
                       icon: Icons.filter_alt_rounded,
                       chips: [
                         _buildAuditChip(
@@ -549,7 +549,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 children: [
                   Expanded(
                     child: _buildFilterPanel(
-                      title: 'الفترة',
+                      title: _t('screens_transactions_screen.055'),
                       icon: Icons.calendar_month_rounded,
                       chips: [
                         _buildDateChip(
@@ -574,7 +574,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: _buildFilterPanel(
-                      title: 'نوع الحركات',
+                      title: _t('screens_transactions_screen.056'),
                       icon: Icons.filter_alt_rounded,
                       chips: [
                         _buildAuditChip(
@@ -765,7 +765,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         TextButton.icon(
           onPressed: _showFiltersSheet,
           icon: const Icon(Icons.tune_rounded, size: 18),
-          label: const Text('الفلاتر'),
+          label: Text(_t('screens_transactions_screen.057')),
         ),
       ],
     );

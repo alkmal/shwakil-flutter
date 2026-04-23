@@ -22,6 +22,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   List<Map<String, dynamic>> _locations = const [];
   bool _isLoading = true;
   bool _isAuthorized = false;
+  String? _busyId;
 
   @override
   void initState() {
@@ -286,6 +287,60 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
     }
   }
 
+  Future<void> _approveLocation(Map<String, dynamic> location) async {
+    final l = context.loc;
+    setState(() => _busyId = location['id']?.toString());
+    try {
+      final data = await _apiService.approveAdminSupportedLocation(
+        location['id'].toString(),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _locations = data);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_admin_locations_screen.028'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
+    }
+  }
+
+  Future<void> _rejectLocation(Map<String, dynamic> location) async {
+    final l = context.loc;
+    setState(() => _busyId = location['id']?.toString());
+    try {
+      final data = await _apiService.rejectAdminSupportedLocation(
+        location['id'].toString(),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _locations = data);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_admin_locations_screen.029'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
@@ -374,14 +429,23 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                         crossAxisCount: cols,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        mainAxisExtent: 160,
+                        mainAxisExtent: 220,
                       ),
                       itemCount: _locations.length,
                       itemBuilder: (context, index) => AdminLocationCard(
                         location: _locations[index],
+                        isSaving: _busyId == _locations[index]['id']?.toString(),
                         onEdit: () =>
                             _showLocationDialog(location: _locations[index]),
                         onDelete: () => _deleteLocation(_locations[index]),
+                        onApprove:
+                            _locations[index]['status'] == 'pending'
+                            ? () => _approveLocation(_locations[index])
+                            : null,
+                        onReject:
+                            _locations[index]['status'] == 'pending'
+                            ? () => _rejectLocation(_locations[index])
+                            : null,
                         onMap: () {},
                       ),
                     );

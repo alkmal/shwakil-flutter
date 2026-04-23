@@ -175,7 +175,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         title: Text(l.tr('screens_inventory_screen.001')),
         actions: [
           IconButton(
-            tooltip: 'ملخص البطاقات',
+            tooltip: l.tr('screens_inventory_screen.020'),
             onPressed: _showSummarySheet,
             icon: const Icon(Icons.dashboard_customize_rounded),
           ),
@@ -214,7 +214,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: ShwakelButton(
-                      label: 'إعادة طباعة النتائج',
+                      label: l.tr('screens_inventory_screen.021'),
                       icon: Icons.print_rounded,
                       onPressed: _reprintFilteredCards,
                     ),
@@ -322,9 +322,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildOverviewChip('نشطة', '$unusedCount', AppTheme.success),
-              _buildOverviewChip('مستخدمة', '$usedCount', AppTheme.warning),
-              _buildOverviewChip('مؤرشفة', '$archivedCount', AppTheme.error),
+              _buildOverviewChip(
+                l.tr('screens_inventory_screen.034'),
+                '$unusedCount',
+                AppTheme.success,
+              ),
+              _buildOverviewChip(
+                l.tr('screens_inventory_screen.035'),
+                '$usedCount',
+                AppTheme.warning,
+              ),
+              _buildOverviewChip(
+                l.tr('screens_inventory_screen.036'),
+                '$archivedCount',
+                AppTheme.error,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -389,10 +401,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('فلاتر الإدارة', style: AppTheme.bodyBold),
+              Text(l.tr('screens_inventory_screen.022'), style: AppTheme.bodyBold),
               const SizedBox(height: 8),
               Text(
-                'اعرض البطاقات حسب المنشأ والقيمة والفترة، ثم أعد طباعة النتائج المطابقة.',
+                l.tr('screens_inventory_screen.023'),
                 style: AppTheme.caption,
               ),
               const SizedBox(height: 14),
@@ -402,13 +414,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   final fields = <Widget>[
                     _adminFilterField(
                       controller: _creatorController,
-                      label: 'منشأ البطاقة',
-                      hint: 'اسم المنشئ أو المالك',
+                      label: l.tr('screens_inventory_screen.024'),
+                      hint: l.tr('screens_inventory_screen.025'),
                       icon: Icons.person_search_rounded,
                     ),
                     _adminFilterField(
                       controller: _valueMinController,
-                      label: 'أقل قيمة',
+                      label: l.tr('screens_inventory_screen.026'),
                       hint: '0.00',
                       icon: Icons.south_rounded,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -417,7 +429,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ),
                     _adminFilterField(
                       controller: _valueMaxController,
-                      label: 'أعلى قيمة',
+                      label: l.tr('screens_inventory_screen.027'),
                       hint: '500.00',
                       icon: Icons.north_rounded,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -425,12 +437,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       ),
                     ),
                     _adminDateField(
-                      label: 'من تاريخ',
+                      label: l.tr('screens_inventory_screen.028'),
                       value: _issuedFrom,
                       onTap: () => _pickDate(true),
                     ),
                     _adminDateField(
-                      label: 'إلى تاريخ',
+                      label: l.tr('screens_inventory_screen.029'),
                       value: _issuedTo,
                       onTap: () => _pickDate(false),
                     ),
@@ -449,7 +461,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           children: [
                             Expanded(
                               child: ShwakelButton(
-                                label: 'تطبيق الفلاتر',
+                                label: l.tr('screens_inventory_screen.030'),
                                 icon: Icons.filter_alt_rounded,
                                 onPressed: _applyAdminFilters,
                               ),
@@ -457,7 +469,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: ShwakelButton(
-                                label: 'مسح',
+                                label: l.tr('screens_inventory_screen.031'),
                                 icon: Icons.refresh_rounded,
                                 isSecondary: true,
                                 onPressed: _clearAdminFilters,
@@ -491,13 +503,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       Row(
                         children: [
                           ShwakelButton(
-                            label: 'تطبيق الفلاتر',
+                            label: l.tr('screens_inventory_screen.030'),
                             icon: Icons.filter_alt_rounded,
                             onPressed: _applyAdminFilters,
                           ),
                           const SizedBox(width: 10),
                           ShwakelButton(
-                            label: 'مسح',
+                            label: l.tr('screens_inventory_screen.031'),
                             icon: Icons.refresh_rounded,
                             isSecondary: true,
                             onPressed: _clearAdminFilters,
@@ -611,7 +623,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     if (card.ownerUsername?.trim().isNotEmpty == true) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'المالك: ${card.ownerUsername}',
+                        l.tr(
+                          'screens_inventory_screen.037',
+                          params: {'owner': card.ownerUsername ?? '-'},
+                        ),
                         style: AppTheme.caption.copyWith(
                           color: AppTheme.textSecondary,
                         ),
@@ -673,7 +688,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           padding: const EdgeInsets.all(16),
           shrinkWrap: true,
           children: [
-            Text('ملخص البطاقات', style: AppTheme.h2),
+            Text(context.loc.tr('screens_inventory_screen.020'), style: AppTheme.h2),
             const SizedBox(height: 8),
             Text(
               context.loc.tr('screens_inventory_screen.014'),
@@ -876,7 +891,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
     AppAlertService.showSuccess(
       context,
-      message: 'تم تجهيز نتائج الفلتر للطباعة.',
+      message: context.loc.tr('screens_inventory_screen.032'),
     );
   }
 
@@ -913,7 +928,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           prefixIcon: const Icon(Icons.calendar_today_rounded),
         ),
         child: Text(
-          value == null ? 'اختر التاريخ' : _formatDate(value),
+          value == null ? context.loc.tr('screens_inventory_screen.033') : _formatDate(value),
           style: value == null
               ? AppTheme.bodyAction.copyWith(color: AppTheme.textTertiary)
               : AppTheme.bodyAction,

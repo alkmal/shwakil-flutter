@@ -717,8 +717,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           onTap: () => unawaited(_openOnlineOnlyRoute('/transactions')),
         ),
       _HomeServiceItem(
-        title: 'التسويق بالعمولة',
-        subtitle: 'تابع إحالاتك وعمولاتك وشارك بيانات الإحالة الخاصة بك.',
+        title: l.tr('screens_home_screen.082'),
+        subtitle: l.tr('screens_home_screen.083'),
         icon: Icons.campaign_rounded,
         color: const Color(0xFF0F766E),
         kind: _HomeServiceKind.affiliate,
@@ -747,9 +747,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Widget _buildWelcomeCard() {
     final title = _displayName.isEmpty
-        ? 'مرحبًا'
-        : 'مرحبًا، $_displayName';
-    final subtitle = _roleLabel.isEmpty ? 'الخدمات المتاحة لحسابك' : _roleLabel;
+        ? _t('screens_home_screen.084')
+        : '${_t('screens_home_screen.084')}، $_displayName';
+    final subtitle = _roleLabel.isEmpty
+        ? _t('screens_home_screen.085')
+        : _roleLabel;
     final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
 
     return ShwakelCard(
@@ -799,6 +801,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   title,
@@ -815,24 +818,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    _userInitials,
-                    style: AppTheme.caption.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -866,12 +851,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'قراءة الباركود',
+                  _t('screens_home_screen.086'),
                   style: AppTheme.bodyBold.copyWith(fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'افتح الكاميرا مباشرة وابدأ الفحص بسرعة.',
+                  _t('screens_home_screen.087'),
                   style: AppTheme.bodyAction.copyWith(height: 1.35),
                 ),
               ],
@@ -890,7 +875,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 Icon(Icons.camera_alt_rounded, size: 18, color: item.color),
                 const SizedBox(width: 6),
                 Text(
-                  'فتح الكاميرا',
+                  _t('screens_home_screen.088'),
                   style: AppTheme.caption.copyWith(
                     color: item.color,
                     fontWeight: FontWeight.w800,
@@ -1012,10 +997,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('حالة المزامنة', style: AppTheme.h3),
+              Text(_t('screens_home_screen.089'), style: AppTheme.h3),
               const SizedBox(height: 14),
-              _syncInfoRow('الحالة', statusText),
-              _syncInfoRow('آخر مزامنة', lastSync),
+              _syncInfoRow(_t('screens_home_screen.090'), statusText),
+              _syncInfoRow(_t('screens_home_screen.091'), lastSync),
             ],
           ),
         ),
@@ -1026,7 +1011,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   String _formatSyncTimestamp(String? raw) {
     final date = raw == null ? null : DateTime.tryParse(raw);
     if (date == null) {
-      return 'لم تتم مزامنة بعد';
+      return _t('screens_home_screen.092');
     }
     final local = date.toLocal();
     final y = local.year.toString().padLeft(4, '0');

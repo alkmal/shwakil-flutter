@@ -254,7 +254,7 @@ class _AppSidebarState extends State<AppSidebar> {
                     _buildItem(
                       context,
                       icon: Icons.campaign_rounded,
-                      title: 'التسويق بالعمولة',
+                      title: l.tr('widgets_app_sidebar.041'),
                       routeName: '/affiliate-center',
                     ),
                   if (!isRestrictedOfflineWorkspaceUser && canViewSubUsers)
@@ -292,7 +292,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       _buildItem(
                         context,
                         icon: Icons.person_add_alt_1_rounded,
-                        title: 'طلبات التسجيل',
+                        title: l.tr('widgets_app_sidebar.042'),
                         routeName: '/admin-pending-registrations',
                       ),
                     if (canReviewDevices)

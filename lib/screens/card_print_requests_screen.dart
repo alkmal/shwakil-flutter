@@ -393,6 +393,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         onRefresh: _load,
         child: SingleChildScrollView(
           child: ResponsiveScaffoldContainer(
+            useSafeArea: false,
             padding: const EdgeInsets.fromLTRB(
               AppTheme.spacingLg,
               8,

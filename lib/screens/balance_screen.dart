@@ -21,7 +21,8 @@ class BalanceScreen extends StatefulWidget {
   State<BalanceScreen> createState() => _BalanceScreenState();
 }
 
-class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
+class _BalanceScreenState extends State<BalanceScreen>
+    with RouteAware, SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
 
   Map<String, dynamic>? _user;
@@ -35,6 +36,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
   bool _showHistoryFilters = false;
+  late final TabController _tabController;
 
   AppPermissions get _appPermissions => AppPermissions.fromUser(_user);
 
@@ -47,6 +49,12 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      });
     _loadBalance();
     _balanceSubscription = RealtimeNotificationService.balanceUpdatesStream
         .listen((_) {
@@ -66,6 +74,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _balanceSubscription?.cancel();
     if (_routeSubscribed) {
       appRouteObserver.unsubscribe(this);
@@ -679,18 +688,19 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
       appBar: AppBar(
         title: Text(l.tr('screens_balance_screen.020')),
         actions: [
-          IconButton(
-            tooltip: _showHistoryFilters
-                ? l.tr('screens_balance_screen.073')
-                : l.tr('screens_balance_screen.074'),
-            onPressed: () =>
-                setState(() => _showHistoryFilters = !_showHistoryFilters),
-            icon: Icon(
-              _showHistoryFilters
-                  ? Icons.filter_alt_off_rounded
-                  : Icons.filter_alt_rounded,
+          if (_tabController.index == 1)
+            IconButton(
+              tooltip: _showHistoryFilters
+                  ? l.tr('screens_balance_screen.073')
+                  : l.tr('screens_balance_screen.074'),
+              onPressed: () =>
+                  setState(() => _showHistoryFilters = !_showHistoryFilters),
+              icon: Icon(
+                _showHistoryFilters
+                    ? Icons.filter_alt_off_rounded
+                    : Icons.filter_alt_rounded,
+              ),
             ),
-          ),
           IconButton(
             tooltip: l.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
@@ -710,34 +720,41 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
               builder: (context, constraints) {
                 final isCompact = constraints.maxWidth < 920;
                 final isPhone = constraints.maxWidth < 640;
+                final showingActionsTab = _tabController.index == 0;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildActionsCard(isCompact: true, isPhone: isPhone),
+                    _buildTopTabs(),
                     const SizedBox(height: 16),
-                    _buildHistorySection(isCompact: isCompact),
-                    const SizedBox(height: 14),
-                    if (_transactions.isEmpty)
-                      _buildEmptyState()
+                    if (showingActionsTab)
+                      _buildActionsCard(isCompact: true, isPhone: isPhone)
                     else ...[
-                      _buildHistoryResultsHeader(),
-                      const SizedBox(height: 10),
-                      ..._transactions.map(
-                        (tx) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _buildBalanceHistoryCard(
-                            transaction: Map<String, dynamic>.from(tx),
+                      if (_showHistoryFilters) ...[
+                        _buildAuditFilters(compact: isCompact),
+                        const SizedBox(height: 14),
+                      ],
+                      if (_transactions.isEmpty)
+                        _buildEmptyState()
+                      else ...[
+                        _buildHistoryResultsHeader(),
+                        const SizedBox(height: 10),
+                        ..._transactions.map(
+                          (tx) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _buildBalanceHistoryCard(
+                              transaction: Map<String, dynamic>.from(tx),
+                            ),
                           ),
                         ),
-                      ),
-                      AdminPaginationFooter(
-                        currentPage: _page,
-                        lastPage: _lastPage,
-                        onPageChanged: (page) {
-                          setState(() => _page = page);
-                          _loadBalance();
-                        },
-                      ),
+                        AdminPaginationFooter(
+                          currentPage: _page,
+                          lastPage: _lastPage,
+                          onPageChanged: (page) {
+                            setState(() => _page = page);
+                            _loadBalance();
+                          },
+                        ),
+                      ],
                     ],
                   ],
                 );
@@ -749,61 +766,25 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
     );
   }
 
-  Widget _buildHistorySection({required bool isCompact}) {
+  Widget _buildTopTabs() {
     return ShwakelCard(
-      padding: EdgeInsets.all(isCompact ? 14 : 18),
+      padding: const EdgeInsets.all(10),
       borderRadius: BorderRadius.circular(24),
       shadowLevel: ShwakelShadowLevel.soft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'سجل الحركات',
-                      style: AppTheme.bodyBold.copyWith(
-                        color: AppTheme.primary,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'تابع أحدث العمليات على الرصيد مع فلترة سريعة حسب المكان.',
-                      style: AppTheme.caption.copyWith(height: 1.35),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () =>
-                    setState(() => _showHistoryFilters = !_showHistoryFilters),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceVariant,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Icon(
-                    _showHistoryFilters
-                        ? Icons.filter_alt_off_rounded
-                        : Icons.filter_alt_rounded,
-                    color: AppTheme.primary,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
+      child: TabBar(
+        controller: _tabController,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: const EdgeInsets.all(4),
+        tabs: [
+          Tab(
+            icon: const Icon(Icons.flash_on_rounded),
+            text: context.loc.tr('screens_balance_screen.111'),
           ),
-          if (_showHistoryFilters) ...[
-            const SizedBox(height: 12),
-            _buildAuditFilters(compact: isCompact),
-          ],
+          Tab(
+            icon: const Icon(Icons.receipt_long_rounded),
+            text: context.loc.tr('screens_balance_screen.112'),
+          ),
         ],
       ),
     );
@@ -1012,6 +993,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
   }
 
   Widget _buildHistoryResultsHeader() {
+    final l = context.loc;
     return Row(
       children: [
         Expanded(
@@ -1019,12 +1001,12 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'آخر الحركات',
+                l.tr('screens_balance_screen.113'),
                 style: AppTheme.h3.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 4),
               Text(
-                'عرض مرتب ومختصر لعمليات الرصيد الأخيرة.',
+                l.tr('screens_balance_screen.114'),
                 style: AppTheme.caption,
               ),
             ],
@@ -1034,7 +1016,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
           TextButton.icon(
             onPressed: () => setState(() => _showHistoryFilters = false),
             icon: const Icon(Icons.expand_less_rounded, size: 18),
-            label: const Text('إخفاء الفلاتر'),
+            label: Text(l.tr('screens_balance_screen.115')),
           ),
       ],
     );
@@ -1127,7 +1109,7 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     ),
                     if (isRejected)
                       Text(
-                        'مرفوضة',
+                        l.tr('widgets_admin_transaction_audit_card.029'),
                         style: AppTheme.caption.copyWith(
                           color: AppTheme.error,
                           fontWeight: FontWeight.w800,
@@ -1158,7 +1140,9 @@ class _BalanceScreenState extends State<BalanceScreen> with RouteAware {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        isNearBranch ? 'بالقرب من فرع' : 'خارج نطاق الفرع',
+                        isNearBranch
+                            ? l.tr('widgets_admin_transaction_audit_card.030')
+                            : l.tr('widgets_admin_transaction_audit_card.031'),
                         style: AppTheme.caption.copyWith(
                           color: isNearBranch
                               ? AppTheme.primary

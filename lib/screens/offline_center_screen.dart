@@ -813,6 +813,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
   }
 
   Widget _buildSyncStatusAction() {
+    final l = context.loc;
     final hasPending = _pendingCount > 0 || _debtPendingCount > 0;
     final isSyncing =
         _isSyncingCards || _isSyncingQueue || _isSyncingDebtBook;
@@ -830,7 +831,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
     return Padding(
       padding: const EdgeInsetsDirectional.only(end: 2),
       child: IconButton(
-        tooltip: 'حالة المزامنة',
+        tooltip: l.tr('screens_offline_center_screen.054'),
         onPressed: _showSyncStatusSheet,
         icon: Container(
           width: 38,
@@ -859,10 +860,11 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
 
   Future<void> _showSyncStatusSheet() async {
     final status = (_isSyncingCards || _isSyncingQueue || _isSyncingDebtBook)
-        ? 'جارٍ تنفيذ المزامنة'
+        ? context.loc.tr('screens_offline_center_screen.055')
         : (_pendingCount > 0 || _debtPendingCount > 0)
-        ? 'توجد عمليات بانتظار المزامنة'
-        : 'المزامنة مكتملة';
+        ? context.loc.tr('screens_offline_center_screen.056')
+        : context.loc.tr('screens_offline_center_screen.057');
+    final l = context.loc;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -873,10 +875,13 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('حالة المزامنة', style: AppTheme.h3),
+              Text(l.tr('screens_offline_center_screen.054'), style: AppTheme.h3),
               const SizedBox(height: 14),
-              _detailRow('الحالة', status),
-              _detailRow('آخر مزامنة', _formatSyncTimestamp(_lastOfflineSyncAt)),
+              _detailRow(l.tr('screens_offline_center_screen.058'), status),
+              _detailRow(
+                l.tr('screens_offline_center_screen.059'),
+                _formatSyncTimestamp(_lastOfflineSyncAt),
+              ),
             ],
           ),
         ),
@@ -887,7 +892,7 @@ class _OfflineCenterScreenState extends State<OfflineCenterScreen> {
   String _formatSyncTimestamp(String? raw) {
     final date = raw == null ? null : DateTime.tryParse(raw);
     if (date == null) {
-      return 'لم تتم مزامنة بعد';
+      return context.loc.tr('screens_offline_center_screen.060');
     }
     final local = date.toLocal();
     final y = local.year.toString().padLeft(4, '0');

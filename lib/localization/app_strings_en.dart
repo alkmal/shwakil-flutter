@@ -2253,4 +2253,193 @@ const Map<String, String> appStringsEn = {
   'services_transfer_security_service.017': 'Send code',
   'services_transfer_security_service.018':
       'You can resend after {seconds} seconds',
+  'widgets_app_sidebar.041': 'Affiliate marketing',
+  'widgets_app_sidebar.042': 'Registration requests',
+  'screens_home_screen.082': 'Affiliate marketing',
+  'screens_home_screen.083':
+      'Track your referrals and rewards, and share your referral details.',
+  'screens_home_screen.084': 'Welcome',
+  'screens_home_screen.085': 'Services available for your account',
+  'screens_home_screen.086': 'Scan barcode',
+  'screens_home_screen.087': 'Open the camera directly and start scanning fast.',
+  'screens_home_screen.088': 'Open camera',
+  'screens_home_screen.089': 'Sync status',
+  'screens_home_screen.090': 'Status',
+  'screens_home_screen.091': 'Last sync',
+  'screens_home_screen.092': 'No sync yet',
+  'screens_balance_screen.111': 'Quick actions',
+  'screens_balance_screen.112': 'Recent transactions',
+  'screens_balance_screen.113': 'Recent transactions',
+  'screens_balance_screen.114':
+      'A clean and compact view of your latest balance activity.',
+  'screens_balance_screen.115': 'Hide filters',
+  'screens_offline_center_screen.054': 'Sync status',
+  'screens_offline_center_screen.055': 'Sync in progress',
+  'screens_offline_center_screen.056': 'Operations are waiting to sync',
+  'screens_offline_center_screen.057': 'Sync completed',
+  'screens_offline_center_screen.058': 'Status',
+  'screens_offline_center_screen.059': 'Last sync',
+  'screens_offline_center_screen.060': 'No sync yet',
+  'screens_admin_pending_registrations_screen.001':
+      'Search by name, username, or phone',
+  'screens_admin_pending_registrations_screen.002':
+      'There are no pending registration requests right now.',
+  'screens_admin_pending_registrations_screen.003':
+      'No results match the current search.',
+  'screens_admin_pending_registrations_screen.004':
+      'Could not load registration requests',
+  'screens_admin_pending_registrations_screen.005': 'Request approved',
+  'screens_admin_pending_registrations_screen.006':
+      'The registration request was approved successfully.',
+  'screens_admin_pending_registrations_screen.007':
+      'Could not approve the request',
+  'screens_admin_pending_registrations_screen.008': 'Reject request',
+  'screens_admin_pending_registrations_screen.009':
+      'The pending request will be deleted when rejected. Do you want to continue?',
+  'screens_admin_pending_registrations_screen.010': 'Cancel',
+  'screens_admin_pending_registrations_screen.011': 'Reject',
+  'screens_admin_pending_registrations_screen.012': 'Request rejected',
+  'screens_admin_pending_registrations_screen.013':
+      'The registration request was rejected and removed from follow-up.',
+  'screens_admin_pending_registrations_screen.014':
+      'Could not reject the request',
+  'screens_admin_pending_registrations_screen.015':
+      'Pending registration requests',
+  'screens_admin_pending_registrations_screen.016':
+      'You do not have permission to review registration requests.',
+  'screens_admin_pending_registrations_screen.017': 'Refresh',
+  'screens_admin_pending_registrations_screen.018':
+      'Review registration requests that completed sign-up and are waiting for an admin decision.',
+  'screens_admin_pending_registrations_screen.019': 'No name',
+  'screens_admin_pending_registrations_screen.020': 'Ready for review',
+  'screens_admin_pending_registrations_screen.021':
+      'Waiting for WhatsApp confirmation',
+  'screens_admin_pending_registrations_screen.022': 'Reject and delete request',
+  'screens_admin_pending_registrations_screen.023':
+      'Approve and create account',
+  'screens_admin_pending_registrations_screen.024':
+      'The approve button will not appear until the requester confirms the WhatsApp verification code.',
+  'screens_admin_system_settings_screen.066': 'Affiliate marketing',
+  'screens_admin_system_settings_screen.067': 'Affiliate marketing settings',
+  'screens_admin_system_settings_screen.068':
+      'Control referral activation, reward amount, and the minimum qualifying first top-up.',
+  'screens_admin_system_settings_screen.069':
+      'Enable affiliate marketing',
+  'screens_admin_system_settings_screen.070':
+      'When enabled, a reward is granted for the referred user first qualifying top-up.',
+  'screens_admin_system_settings_screen.071': 'Reward amount',
+  'screens_admin_system_settings_screen.072':
+      'Minimum qualifying first top-up',
+  'screens_affiliate_center_screen.001': 'Could not load affiliate marketing',
+  'screens_affiliate_center_screen.002': 'Copied',
+  'screens_affiliate_center_screen.003': '{label} was copied successfully.',
+  'screens_affiliate_center_screen.004': 'Affiliate marketing',
+  'screens_affiliate_center_screen.005': 'Refresh',
+  'screens_affiliate_center_screen.006': 'Recent referrals',
+  'screens_affiliate_center_screen.007':
+      'Track the status of customers who registered through you.',
+  'screens_affiliate_center_screen.008':
+      'There are no registered referrals yet.',
+  'screens_affiliate_center_screen.009': 'Recent rewards',
+  'screens_affiliate_center_screen.010':
+      'Each reward appears here after the referred user first qualifying top-up.',
+  'screens_affiliate_center_screen.011':
+      'There are no added rewards yet.',
+  'screens_affiliate_center_screen.012':
+      'Earn a reward on the first qualifying top-up',
+  'screens_affiliate_center_screen.013':
+      'When a customer registers through you and completes the first qualifying top-up, your reward is added directly to your balance.',
+  'screens_affiliate_center_screen.014':
+      'Affiliate marketing is currently disabled in settings.',
+  'screens_affiliate_center_screen.015': 'Reward',
+  'screens_affiliate_center_screen.016': 'Minimum top-up',
+  'screens_affiliate_center_screen.017': 'Status',
+  'screens_affiliate_center_screen.018': 'Enabled',
+  'screens_affiliate_center_screen.019': 'Disabled',
+  'screens_affiliate_center_screen.020': 'Your referral details',
+  'screens_affiliate_center_screen.021':
+      'The customer can enter your username or WhatsApp number during registration.',
+  'screens_affiliate_center_screen.022': 'Username',
+  'screens_affiliate_center_screen.023': 'WhatsApp number',
+  'screens_affiliate_center_screen.024': 'Unavailable',
+  'screens_affiliate_center_screen.025': 'Copy',
+  'screens_affiliate_center_screen.026': 'Total referrals',
+  'screens_affiliate_center_screen.027': 'Active referrals',
+  'screens_affiliate_center_screen.028': 'Qualified referrals',
+  'screens_affiliate_center_screen.029': 'Total rewards',
+  'screens_affiliate_center_screen.030': 'Reward completed',
+  'screens_affiliate_center_screen.031': 'Waiting for qualifying top-up',
+  'screens_affiliate_center_screen.032': 'Waiting for first top-up',
+  'screens_affiliate_center_screen.033': 'New customer',
+  'screens_affiliate_center_screen.034': 'Customer',
+  'screens_affiliate_center_screen.035': 'First qualifying top-up: {amount}',
+  'screens_admin_dashboard_screen.087': 'Registration requests',
+  'screens_admin_dashboard_screen.088':
+      'Approve or reject pending registration requests after WhatsApp confirmation.',
+  'screens_admin_dashboard_screen.089': 'Pending',
+  'screens_inventory_screen.020': 'Cards summary',
+  'screens_inventory_screen.021': 'Reprint results',
+  'screens_inventory_screen.022': 'Admin filters',
+  'screens_inventory_screen.023':
+      'Show cards by creator, value, and date, then reprint the matching results.',
+  'screens_inventory_screen.024': 'Card creator',
+  'screens_inventory_screen.025': 'Creator or owner name',
+  'screens_inventory_screen.026': 'Minimum value',
+  'screens_inventory_screen.027': 'Maximum value',
+  'screens_inventory_screen.028': 'From date',
+  'screens_inventory_screen.029': 'To date',
+  'screens_inventory_screen.030': 'Apply filters',
+  'screens_inventory_screen.031': 'Clear',
+  'screens_inventory_screen.032': 'The filtered results are ready to print.',
+  'screens_inventory_screen.033': 'Choose a date',
+  'screens_inventory_screen.034': 'Active',
+  'screens_inventory_screen.035': 'Used',
+  'screens_inventory_screen.036': 'Archived',
+  'screens_inventory_screen.037': 'Owner: {owner}',
+  'screens_transactions_screen.053':
+      'Search quickly, then narrow the results by time or activity type.',
+  'screens_transactions_screen.054': 'Search and filters',
+  'screens_transactions_screen.055': 'Period',
+  'screens_transactions_screen.056': 'Transaction type',
+  'screens_transactions_screen.057': 'Filters',
+  'screens_transactions_screen.058': 'Current balance',
+  'screens_transactions_screen.059': 'Total incoming',
+  'screens_transactions_screen.060': 'Total outgoing',
+  'screens_transactions_screen.061': 'Net',
+  'screens_supported_locations_screen.015': 'Missing data',
+  'screens_supported_locations_screen.016':
+      'Center name and address are required.',
+  'screens_supported_locations_screen.017': 'Request submitted',
+  'screens_supported_locations_screen.018':
+      'The center was sent for review and will appear after admin approval.',
+  'screens_supported_locations_screen.019': 'Could not submit request',
+  'screens_supported_locations_screen.020': 'Add center',
+  'screens_supported_locations_screen.021': 'Center or shop name',
+  'screens_supported_locations_screen.022': 'Address',
+  'screens_supported_locations_screen.023': 'Contact number',
+  'screens_supported_locations_screen.024': 'Business type',
+  'screens_supported_locations_screen.025': 'Latitude',
+  'screens_supported_locations_screen.026': 'Longitude',
+  'screens_supported_locations_screen.027': 'Cancel',
+  'screens_supported_locations_screen.028': 'Submitting...',
+  'screens_supported_locations_screen.029': 'Submit for review',
+  'screens_supported_locations_screen.030': 'Add center',
+  'screens_supported_locations_screen.031':
+      'You can add your center or shop to appear in the directory after admin approval.',
+  'screens_supported_locations_screen.032': 'My requests',
+  'screens_supported_locations_screen.033':
+      'Browse approved centers, and traders can submit their own centers for review from this screen.',
+  'screens_supported_locations_screen.034':
+      'Linked account: @{username}',
+  'screens_supported_locations_screen.035': 'Approved',
+  'screens_supported_locations_screen.036': 'Rejected',
+  'screens_supported_locations_screen.037': 'Pending approval',
+  'screens_supported_locations_screen.038': 'Rejection reason: {reason}',
+  'screens_admin_locations_screen.028': 'Could not approve center',
+  'screens_admin_locations_screen.029': 'Could not reject center',
+  'widgets_admin_admin_location_card.006': 'Approved',
+  'widgets_admin_admin_location_card.007': 'Rejected',
+  'widgets_admin_admin_location_card.008': 'Pending',
+  'widgets_admin_admin_location_card.009': 'Linked account: {account}',
+  'widgets_admin_admin_location_card.010': 'Added by: {account}',
 };

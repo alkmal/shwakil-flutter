@@ -162,6 +162,27 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> getSupportedLocationsDashboard() async {
+    final response = await http.get(
+      AppConfig.apiUri('supported-locations/dashboard'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return {
+      'locations': List<Map<String, dynamic>>.from(
+        (body['locations'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      ),
+      'myLocations': List<Map<String, dynamic>>.from(
+        (body['myLocations'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      ),
+      'canSubmit': body['canSubmit'] == true,
+    };
+  }
+
   Future<List<Map<String, dynamic>>> getAdminSupportedLocations() async {
     final response = await http.get(
       AppConfig.apiUri('admin/supported-locations'),
@@ -170,6 +191,34 @@ class ApiService {
     final body = _decodeObject(response);
     return List<Map<String, dynamic>>.from(
       (body['locations'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> submitSupportedLocation({
+    required String title,
+    required String address,
+    required String phone,
+    required String type,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('supported-locations/submissions'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'title': title.trim(),
+        'address': address.trim(),
+        'phone': phone.trim(),
+        'type': type.trim(),
+        'latitude': latitude,
+        'longitude': longitude,
+      }),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['myLocations'] as List? ?? const []).map(
         (item) => Map<String, dynamic>.from(item as Map),
       ),
     );
@@ -207,6 +256,38 @@ class ApiService {
             headers: await _headers(),
             body: jsonEncode(payload),
           );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['locations'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> approveAdminSupportedLocation(
+    String locationId,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/supported-locations/$locationId/approve'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['locations'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> rejectAdminSupportedLocation(
+    String locationId, {
+    String reason = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/supported-locations/$locationId/reject'),
+      headers: await _headers(),
+      body: jsonEncode({'reason': reason.trim()}),
+    );
     final body = _decodeObject(response);
     return List<Map<String, dynamic>>.from(
       (body['locations'] as List? ?? const []).map(

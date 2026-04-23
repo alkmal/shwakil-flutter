@@ -154,6 +154,36 @@ class PDFService {
     return serialNumber.toString().padLeft(4, '0');
   }
 
+  String _resolvedLogoText() {
+    final text = designSettings.logoText?.trim() ?? '';
+    return text.isEmpty ? 'شواكل' : text;
+  }
+
+  String _resolvedStampText() {
+    final text = designSettings.stampText?.trim() ?? '';
+    return text.isEmpty ? 'صالح للتداول' : text;
+  }
+
+  double _headerTitleSize(bool compact) {
+    final length = _resolvedLogoText().runes.length;
+    if (compact) {
+      if (length > 26) {
+        return 5.6;
+      }
+      if (length > 18) {
+        return 6.2;
+      }
+      return 7.2;
+    }
+    if (length > 30) {
+      return 12.8;
+    }
+    if (length > 20) {
+      return 14.6;
+    }
+    return 16.5;
+  }
+
   String _valueInArabicWords(double value) {
     final rounded = value.round();
     if ((value - rounded).abs() < 0.001) {
@@ -300,10 +330,9 @@ class PDFService {
   }) {
     final shwakelLogoSize = compact ? 24.0 : 58.0;
     final accountLogoSize = compact ? 24.0 : 54.0;
-    final titleSize = compact ? 7.2 : 16.5;
+    final titleSize = _headerTitleSize(compact);
     final badgeFont = compact ? 4.8 : 8.8;
     return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Container(
@@ -325,43 +354,61 @@ class PDFService {
             ),
           ),
         ),
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
-          children: [
-            pw.Text(
-              designSettings.showLogo
-                  ? (designSettings.logoText?.trim().isNotEmpty == true
-                        ? designSettings.logoText!.trim()
-                        : 'شواكل')
-                  : 'شواكل',
-              textDirection: pw.TextDirection.rtl,
-              style: _textStyle(
-                fontSize: titleSize,
-                bold: true,
-                color: palette.primary,
-              ),
-            ),
-            pw.SizedBox(height: compact ? 1.8 : 4),
-            pw.Row(
-              mainAxisSize: pw.MainAxisSize.min,
-              children: [
-                if (_accountLogoImage != null) ...[
-                  _buildHeaderLogoBox(
-                    _accountLogoImage!,
-                    size: accountLogoSize,
-                    compact: compact,
-                  ),
-                  pw.SizedBox(width: compact ? 4 : 8),
-                ],
-                if (_defaultLogoImage != null)
-                  _buildHeaderLogoBox(
-                    _defaultLogoImage!,
-                    size: shwakelLogoSize,
-                    compact: compact,
-                  ),
+        pw.SizedBox(width: compact ? 4 : 10),
+        pw.Expanded(
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              if (_accountLogoImage != null) ...[
+                _buildHeaderLogoBox(
+                  _accountLogoImage!,
+                  size: accountLogoSize,
+                  compact: compact,
+                ),
+                pw.SizedBox(width: compact ? 4 : 7),
               ],
-            ),
-          ],
+              if (_defaultLogoImage != null) ...[
+                _buildHeaderLogoBox(
+                  _defaultLogoImage!,
+                  size: shwakelLogoSize,
+                  compact: compact,
+                ),
+                pw.SizedBox(width: compact ? 5 : 10),
+              ],
+              pw.Flexible(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  mainAxisSize: pw.MainAxisSize.min,
+                  children: [
+                    pw.Text(
+                      _resolvedLogoText(),
+                      maxLines: compact ? 2 : 3,
+                      textAlign: pw.TextAlign.right,
+                      textDirection: pw.TextDirection.rtl,
+                      style: _textStyle(
+                        fontSize: titleSize,
+                        bold: true,
+                        color: palette.primary,
+                      ),
+                    ),
+                    pw.SizedBox(height: compact ? 1.2 : 2.5),
+                    pw.Text(
+                      card.isSingleUse
+                          ? 'بطاقة استخدام داخلية'
+                          : 'بطاقة مالية رقمية',
+                      textDirection: pw.TextDirection.rtl,
+                      textAlign: pw.TextAlign.right,
+                      style: _textStyle(
+                        fontSize: compact ? 4.2 : 7.2,
+                        color: _mutedColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -381,6 +428,52 @@ class PDFService {
         borderRadius: pw.BorderRadius.circular(compact ? 3 : 8),
       ),
       child: pw.Image(image, fit: pw.BoxFit.contain),
+    );
+  }
+
+  pw.Widget _buildStampBadge({required bool compact}) {
+    final borderRadius = compact ? 4.0 : 8.0;
+    return pw.Transform.rotateBox(
+      angle: compact ? -0.22 : -0.26,
+      child: pw.Opacity(
+        opacity: compact ? 0.38 : 0.34,
+        child: pw.Container(
+          padding: pw.EdgeInsets.symmetric(
+            horizontal: compact ? 3.6 : 8.0,
+            vertical: compact ? 1.8 : 4.2,
+          ),
+          decoration: pw.BoxDecoration(
+            color: PdfColors.white,
+            border: pw.Border.all(color: _stampColor, width: compact ? 0.7 : 1),
+            borderRadius: pw.BorderRadius.circular(borderRadius),
+          ),
+          child: pw.Container(
+            padding: pw.EdgeInsets.symmetric(
+              horizontal: compact ? 2.2 : 4.6,
+              vertical: compact ? 1.0 : 2.2,
+            ),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(
+                color: _stampColor,
+                width: compact ? 0.45 : 0.7,
+              ),
+              borderRadius: pw.BorderRadius.circular(
+                compact ? 2.4 : borderRadius - 2,
+              ),
+            ),
+            child: pw.Text(
+              _resolvedStampText(),
+              textAlign: pw.TextAlign.center,
+              textDirection: pw.TextDirection.rtl,
+              style: _textStyle(
+                fontSize: compact ? 4.2 : 8.8,
+                bold: true,
+                color: _stampColor,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -708,32 +801,9 @@ class PDFService {
           ),
           if (designSettings.showStamp)
             pw.Positioned(
-              top: 13,
-              left: 2,
-              child: pw.Opacity(
-                opacity: 0.55,
-                child: pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 3,
-                    vertical: 1,
-                  ),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: _stampColor, width: 0.7),
-                    borderRadius: pw.BorderRadius.circular(3),
-                  ),
-                  child: pw.Text(
-                    designSettings.stampText?.trim().isNotEmpty == true
-                        ? designSettings.stampText!.trim()
-                        : 'صالح للتداول',
-                    textDirection: pw.TextDirection.rtl,
-                    style: _textStyle(
-                      fontSize: 4.6,
-                      bold: true,
-                      color: _stampColor,
-                    ),
-                  ),
-                ),
-              ),
+              top: 20,
+              left: 1,
+              child: _buildStampBadge(compact: true),
             ),
         ],
       ),
@@ -977,32 +1047,9 @@ class PDFService {
           ),
           if (designSettings.showStamp)
             pw.Positioned(
-              top: 78,
-              left: 12,
-              child: pw.Opacity(
-                opacity: 0.5,
-                child: pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: _stampColor, width: 1),
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Text(
-                    designSettings.stampText?.trim().isNotEmpty == true
-                        ? designSettings.stampText!.trim()
-                        : 'صالح للتداول',
-                    textDirection: pw.TextDirection.rtl,
-                    style: _textStyle(
-                      fontSize: 9.6,
-                      bold: true,
-                      color: _stampColor,
-                    ),
-                  ),
-                ),
-              ),
+              top: 52,
+              left: 8,
+              child: _buildStampBadge(compact: false),
             ),
         ],
       ),

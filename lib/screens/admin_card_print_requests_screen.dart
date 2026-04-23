@@ -231,6 +231,23 @@ class _AdminCardPrintRequestsScreenState
     return VirtualCard.fromMap(normalized);
   }
 
+  CardDesignSettings _settingsFromRequest(Map<String, dynamic> request) {
+    final title =
+        request['fullName']?.toString().trim().isNotEmpty == true
+        ? request['fullName'].toString().trim()
+        : (request['username']?.toString().trim().isNotEmpty == true
+              ? request['username'].toString().trim()
+              : 'شواكل');
+    final settings = CardDesignSettings(
+      showLogo: true,
+      showStamp: true,
+      logoText: title,
+    );
+    final logoUrl = request['printLogoUrl']?.toString().trim() ?? '';
+    settings.logoUrl = logoUrl.isEmpty ? null : logoUrl;
+    return settings;
+  }
+
   Future<void> _exportRequestPdf(Map<String, dynamic> request) async {
     final l = context.loc;
     final cards = _extractCardsFromRequest(request);
@@ -253,6 +270,7 @@ class _AdminCardPrintRequestsScreenState
           currentUser?['fullName']?.toString().trim().isNotEmpty == true
           ? currentUser!['fullName'].toString().trim()
           : currentUser?['username']?.toString();
+      _pdfService.setDesignSettings(_settingsFromRequest(request));
       final pdf = await _pdfService.createMultiCardPDF(
         cards,
         printedBy: printedBy,
@@ -320,6 +338,7 @@ class _AdminCardPrintRequestsScreenState
           currentUser?['fullName']?.toString().trim().isNotEmpty == true
           ? currentUser!['fullName'].toString().trim()
           : currentUser?['username']?.toString();
+      _pdfService.setDesignSettings(_settingsFromRequest(request));
       await _pdfService.printCards(cards, printedBy: printedBy);
       final requestId = request['id']?.toString();
       if (requestId != null && requestId.isNotEmpty) {
