@@ -10,6 +10,7 @@ export 'error_message_service.dart';
 export 'phone_number_service.dart';
 export 'local_notification_service.dart';
 export 'realtime_notification_service.dart';
+export 'referral_attribution_service.dart';
 export 'local_security_service.dart';
 export 'transfer_security_service.dart';
 export 'transaction_location_service.dart';

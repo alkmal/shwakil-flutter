@@ -28,11 +28,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _termsAccepted = false;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
   String? _supportWhatsapp;
+  String? _pendingReferralCode;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _loadPendingReferral();
   }
 
   @override
@@ -54,6 +56,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _supportWhatsapp = ContactInfoService.supportWhatsapp(contact);
       });
     } catch (_) {}
+  }
+
+  Future<void> _loadPendingReferral() async {
+    final referralCode = await ReferralAttributionService.getPendingReferralCode();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _pendingReferralCode = referralCode);
   }
 
   String? _validatePersonalStep() {
@@ -114,6 +125,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         whatsapp: whatsapp,
         countryCode: _selectedCountry.dialCode,
         termsAccepted: true,
+        referralPhone: _pendingReferralCode,
       );
 
       if (!mounted) {
@@ -129,6 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             whatsapp: whatsapp,
             countryCode: _selectedCountry.dialCode,
             termsAccepted: true,
+            referralPhone: _pendingReferralCode,
             pendingRegistrationId: otp.pendingRegistrationId,
             purpose: 'register',
             initialDebugOtpCode: otp.debugOtpCode,
@@ -248,6 +261,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             type: TextInputType.phone,
             prefix: '+${_selectedCountry.dialCode} ',
           ),
+          if ((_pendingReferralCode ?? '').isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildReferralAppliedCard(),
+          ],
           const SizedBox(height: 16),
           Container(
             width: double.infinity,
@@ -378,6 +395,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildReferralAppliedCard() {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final title = isEnglish ? 'Applied referral' : 'إحالة مطبقة تلقائيًا';
+    final subtitle = isEnglish
+        ? 'This registration will use the referral code captured from your invite link.'
+        : 'سيتم استخدام رمز الإحالة الملتقط من رابط الدعوة تلقائيًا في هذا التسجيل.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primarySoft,
+        borderRadius: AppTheme.radiusMd,
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.verified_user_rounded,
+                color: AppTheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _pendingReferralCode ?? '',
+            style: AppTheme.bodyBold,
+          ),
+        ],
       ),
     );
   }

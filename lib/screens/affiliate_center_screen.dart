@@ -235,6 +235,12 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
     final l = context.loc;
     final shareCode = _affiliate['shareCode']?.toString() ?? '';
     final sharePhone = _affiliate['sharePhone']?.toString() ?? '';
+    final preferredReferral = shareCode.trim().isNotEmpty ? shareCode : sharePhone;
+    final inviteLink = preferredReferral.trim().isEmpty
+        ? ''
+        : AppConfig.inviteUri(preferredReferral).toString();
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final inviteLabel = isEnglish ? 'Invite link' : 'رابط الدعوة';
 
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
@@ -264,6 +270,12 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
               l.tr('screens_affiliate_center_screen.023'),
               sharePhone,
             ),
+          ),
+          const SizedBox(height: 12),
+          _shareRow(
+            inviteLabel,
+            inviteLink,
+            () => _copyValue(inviteLabel, inviteLink),
           ),
         ],
       ),

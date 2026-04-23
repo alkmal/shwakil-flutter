@@ -25,6 +25,26 @@ class AppConfig {
   static String get trustedClientKey => _trustedClientKey.trim();
   static bool get hasTrustedClientKey => trustedClientKey.isNotEmpty;
 
+  static Uri inviteUri(String referralCode) {
+    final normalizedCode = referralCode.trim();
+    const envInviteBaseUrl = String.fromEnvironment('INVITE_BASE_URL');
+
+    if (envInviteBaseUrl.isNotEmpty) {
+      final inviteBaseUri = Uri.parse(envInviteBaseUrl);
+      final inviteBasePath = inviteBaseUri.path.endsWith('/')
+          ? inviteBaseUri.path
+          : '${inviteBaseUri.path}/';
+      return inviteBaseUri.replace(
+        path: '$inviteBasePath${Uri.encodeComponent(normalizedCode)}',
+        queryParameters: null,
+      );
+    }
+
+    return Uri.parse(
+      '${baseUri.origin}/invite/${Uri.encodeComponent(normalizedCode)}',
+    );
+  }
+
   static Uri apiUri(String path, [Map<String, dynamic>? queryParameters]) {
     final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
     final basePath = baseUri.path.endsWith('/')

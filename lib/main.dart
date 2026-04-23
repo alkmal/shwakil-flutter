@@ -125,6 +125,10 @@ Future<void> _warmUpAppServices() async {
     LocalSecurityService.getOrCreateDeviceId,
     label: 'device_id',
   );
+  await _runStartupTask(
+    ReferralAttributionService.initialize,
+    label: 'referral_attribution',
+  );
 }
 
 Future<void> _runStartupTask(

@@ -126,6 +126,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         if (!mounted) {
           return;
         }
+        await ReferralAttributionService.clearPendingReferralCode();
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
         return;
       }
