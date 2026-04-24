@@ -375,8 +375,9 @@ class _BalanceScreenState extends State<BalanceScreen>
               );
               setDialogState(() {
                 selectedTransferredAt = merged;
-                transferredAtController.text =
-                    _formatTopupRequestDateTime(merged);
+                transferredAtController.text = _formatTopupRequestDateTime(
+                  merged,
+                );
               });
             }
 
@@ -397,8 +398,9 @@ class _BalanceScreenState extends State<BalanceScreen>
               );
               setDialogState(() {
                 selectedTransferredAt = merged;
-                transferredAtController.text =
-                    _formatTopupRequestDateTime(merged);
+                transferredAtController.text = _formatTopupRequestDateTime(
+                  merged,
+                );
               });
             }
 
@@ -664,14 +666,22 @@ class _BalanceScreenState extends State<BalanceScreen>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        tooltip: l.tr('screens_balance_screen.126'),
+                                        tooltip: l.tr(
+                                          'screens_balance_screen.126',
+                                        ),
                                         onPressed: pickTransferDate,
-                                        icon: const Icon(Icons.calendar_today_rounded),
+                                        icon: const Icon(
+                                          Icons.calendar_today_rounded,
+                                        ),
                                       ),
                                       IconButton(
-                                        tooltip: l.tr('screens_balance_screen.127'),
+                                        tooltip: l.tr(
+                                          'screens_balance_screen.127',
+                                        ),
                                         onPressed: pickTransferTime,
-                                        icon: const Icon(Icons.access_time_rounded),
+                                        icon: const Icon(
+                                          Icons.access_time_rounded,
+                                        ),
                                       ),
                                     ],
                                   ),

@@ -890,22 +890,27 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                             builder: (context, constraints) {
                               final isCompact = constraints.maxWidth < 720;
                               return Flex(
-                                direction: isCompact ? Axis.vertical : Axis.horizontal,
+                                direction: isCompact
+                                    ? Axis.vertical
+                                    : Axis.horizontal,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
                                     flex: isCompact ? 0 : 1,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          customer['fullName']?.toString() ?? '-',
+                                          customer['fullName']?.toString() ??
+                                              '-',
                                           style: AppTheme.h3,
                                         ),
                                         const SizedBox(height: 10),
                                         _customerInfoPill(
                                           icon: Icons.phone_rounded,
-                                          text: customer['phone']
+                                          text:
+                                              customer['phone']
                                                       ?.toString()
                                                       .trim()
                                                       .isNotEmpty ==
@@ -926,7 +931,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                             padding: const EdgeInsets.all(14),
                                             decoration: BoxDecoration(
                                               color: AppTheme.surfaceVariant,
-                                              borderRadius: BorderRadius.circular(16),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
                                             ),
                                             child: Text(
                                               customer['notes'].toString(),
@@ -1255,10 +1261,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     );
   }
 
-  Widget _customerInfoPill({
-    required IconData icon,
-    required String text,
-  }) {
+  Widget _customerInfoPill({required IconData icon, required String text}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(

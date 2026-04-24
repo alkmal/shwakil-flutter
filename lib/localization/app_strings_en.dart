@@ -2533,8 +2533,7 @@ const Map<String, String> appStringsEn = {
       'The marketer debt cap is applied automatically from the marketing settings.',
   'screens_admin_customer_screen.080':
       'Marketers cannot edit admin, support, or marketer accounts.',
-  'screens_admin_system_settings_screen.073':
-      'Marketer printing debt cap',
+  'screens_admin_system_settings_screen.073': 'Marketer printing debt cap',
   'screens_admin_system_settings_screen.074':
       'This cap controls the maximum printing debt a marketer can grant to a user.',
   'screens_admin_permissions_screen.048': 'View affiliate center',

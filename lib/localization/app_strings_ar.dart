@@ -2439,8 +2439,7 @@ const Map<String, String> appStringsAr = {
       'سيتم تطبيق سقف مديونية المسوق تلقائيًا بحسب إعدادات التسويق.',
   'screens_admin_customer_screen.080':
       'لا يمكن للمسوق تعديل حسابات الإدارة أو الدعم أو المسوقين.',
-  'screens_admin_system_settings_screen.073':
-      'سقف مديونية الطباعة للمسوق',
+  'screens_admin_system_settings_screen.073': 'سقف مديونية الطباعة للمسوق',
   'screens_admin_system_settings_screen.074':
       'هذا السقف يحدد الحد الأعلى الذي يستطيع المسوق منحه للمستخدم كمديونية طباعة.',
   'screens_admin_permissions_screen.048': 'عرض مركز التسويق بالعمولة',
