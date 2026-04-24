@@ -2331,6 +2331,14 @@ const Map<String, String> appStringsEn = {
       'After approval, the balance will be added directly to your account with a suitable in-app notification.',
   'screens_balance_screen.126': 'Choose date',
   'screens_balance_screen.127': 'Choose time',
+  'screens_balance_screen.128':
+      'Search by username, or send directly using the recipient phone number.',
+  'screens_balance_screen.129':
+      'Enter the recipient phone number and verify it before sending.',
+  'screens_balance_screen.130': 'Search results',
+  'screens_balance_screen.131': 'Selected',
+  'screens_balance_screen.132': 'Search user',
+  'screens_balance_screen.133': 'Send by phone',
   'screens_admin_pending_registrations_screen.001':
       'Search by name, username, or phone',
   'screens_admin_pending_registrations_screen.002':

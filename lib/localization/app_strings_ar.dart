@@ -2248,6 +2248,14 @@ const Map<String, String> appStringsAr = {
       'بعد اعتماد الطلب سيضاف الرصيد مباشرة إلى حسابك مع إشعار مناسب داخل التطبيق.',
   'screens_balance_screen.126': 'اختيار التاريخ',
   'screens_balance_screen.127': 'اختيار الوقت',
+  'screens_balance_screen.128':
+      'ابحث باسم المستخدم أو أرسل مباشرة باستخدام رقم هاتف المستلم.',
+  'screens_balance_screen.129':
+      'أدخل رقم هاتف المستلم وتحقق منه قبل إرسال الرصيد.',
+  'screens_balance_screen.130': 'نتائج البحث',
+  'screens_balance_screen.131': 'تم الاختيار',
+  'screens_balance_screen.132': 'بحث عن مستخدم',
+  'screens_balance_screen.133': 'إرسال برقم الهاتف',
   'screens_admin_pending_registrations_screen.001':
       'بحث بالاسم أو اسم المستخدم أو الجوال',
   'screens_admin_pending_registrations_screen.002':
