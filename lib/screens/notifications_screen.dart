@@ -534,6 +534,8 @@ class _NotificationCard extends StatelessWidget {
         : const <String, dynamic>{};
     final amount = (data['amount'] as num?)?.toDouble();
     final fee = (data['fee'] as num?)?.toDouble();
+    final type =
+        data['transactionType']?.toString() ?? item['type']?.toString() ?? '';
     final categoryColor = _notificationCategoryColor(categoryKind);
 
     return ShwakelCard(
@@ -629,6 +631,12 @@ class _NotificationCard extends StatelessWidget {
                   icon: Icons.percent_rounded,
                   label: CurrencyFormatter.ils(fee),
                 ),
+              ..._notificationCardContextChips(
+                context,
+                data,
+                type,
+                includeCardBarcode: false,
+              ),
             ],
           ),
         ],
@@ -663,54 +671,62 @@ class _NotificationDetailsSheet extends StatelessWidget {
           right: 22,
           bottom: MediaQuery.viewInsetsOf(context).bottom + 22,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(item['title']?.toString() ?? '', style: AppTheme.h2),
-            const SizedBox(height: 10),
-            Text(
-              item['body']?.toString() ?? '',
-              style: AppTheme.bodyText.copyWith(height: 1.6),
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _InfoChip(
-                  icon: _notificationCategoryIcon(categoryKind),
-                  label: _notificationCategoryLabel(context, categoryKind),
-                ),
-                if (type.isNotEmpty)
-                  _InfoChip(icon: Icons.category_rounded, label: type),
-                if (amount != null)
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item['title']?.toString() ?? '', style: AppTheme.h2),
+              const SizedBox(height: 10),
+              Text(
+                item['body']?.toString() ?? '',
+                style: AppTheme.bodyText.copyWith(height: 1.6),
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
                   _InfoChip(
-                    icon: Icons.payments_rounded,
-                    label: CurrencyFormatter.ils(amount),
+                    icon: _notificationCategoryIcon(categoryKind),
+                    label: _notificationCategoryLabel(context, categoryKind),
                   ),
-                if (fee != null)
-                  _InfoChip(
-                    icon: Icons.percent_rounded,
-                    label: CurrencyFormatter.ils(fee),
+                  if (type.isNotEmpty)
+                    _InfoChip(icon: Icons.category_rounded, label: type),
+                  if (amount != null)
+                    _InfoChip(
+                      icon: Icons.payments_rounded,
+                      label: CurrencyFormatter.ils(amount),
+                    ),
+                  if (fee != null)
+                    _InfoChip(
+                      icon: Icons.percent_rounded,
+                      label: CurrencyFormatter.ils(fee),
+                    ),
+                  ..._notificationCardContextChips(
+                    context,
+                    data,
+                    type,
+                    includeCardBarcode: true,
                   ),
+                ],
+              ),
+              if (description.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(description, style: AppTheme.bodyAction),
               ],
-            ),
-            if (description.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(description, style: AppTheme.bodyAction),
-            ],
-            const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  context.loc.tr('screens_admin_customers_screen.046'),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    context.loc.tr('screens_admin_customers_screen.046'),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -767,6 +783,9 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width - 64,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: AppTheme.surfaceVariant,
@@ -777,9 +796,13 @@ class _InfoChip extends StatelessWidget {
         children: [
           Icon(icon, size: 15, color: AppTheme.primary),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(color: AppTheme.textPrimary),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.caption.copyWith(color: AppTheme.textPrimary),
+            ),
           ),
         ],
       ),
@@ -862,4 +885,216 @@ String _notificationCategoryLabel(BuildContext context, _NotificationKind kind) 
     _NotificationKind.general =>
       context.loc.tr('screens_notifications_screen.046'),
   };
+}
+
+List<Widget> _notificationCardContextChips(
+  BuildContext context,
+  Map<String, dynamic> data,
+  String type, {
+  required bool includeCardBarcode,
+}) {
+  if (!_hasCardNotificationContext(data, type)) {
+    return const [];
+  }
+
+  final chips = <Widget>[];
+  final actor = _displayUser(
+    data,
+    displayKeys: const ['actorDisplayName'],
+    usernameKeys: const ['actorUsername'],
+    metadataDisplayKeys: const ['byDisplayName'],
+    metadataUsernameKeys: const ['byUsername'],
+  );
+  final cardSource = _cardSourceLabel(context, data);
+  final usedBy = _displayUser(
+    data,
+    displayKeys: const ['cardUsedByDisplayName', 'redeemedByDisplayName'],
+    usernameKeys: const ['cardUsedByUsername', 'redeemedByUsername'],
+  );
+  final customer = _firstNonEmptyString(
+    data,
+    const ['cardCustomerName'],
+    metadataKeys: const ['customerName'],
+  );
+  final barcode = _firstNonEmptyString(
+    data,
+    const ['cardBarcode'],
+    metadataKeys: const ['barcode'],
+  );
+
+  if (actor != null) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.person_rounded,
+        label: context.loc.tr(
+          'screens_notifications_screen.050',
+          params: {'name': actor},
+        ),
+      ),
+    );
+  }
+  if (cardSource != null) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.add_card_rounded,
+        label: context.loc.tr(
+          'screens_notifications_screen.051',
+          params: {'source': cardSource},
+        ),
+      ),
+    );
+  }
+  if (usedBy != null) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.fact_check_rounded,
+        label: context.loc.tr(
+          'screens_notifications_screen.052',
+          params: {'name': usedBy},
+        ),
+      ),
+    );
+  }
+  if (customer != null) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.badge_rounded,
+        label: context.loc.tr(
+          'screens_notifications_screen.053',
+          params: {'name': customer},
+        ),
+      ),
+    );
+  }
+  if (includeCardBarcode && barcode != null) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.qr_code_2_rounded,
+        label: context.loc.tr(
+          'screens_notifications_screen.054',
+          params: {'barcode': barcode},
+        ),
+      ),
+    );
+  }
+
+  return chips;
+}
+
+bool _hasCardNotificationContext(Map<String, dynamic> data, String type) {
+  final normalizedType = type.trim().toLowerCase();
+  if (const {
+    'issue_cards',
+    'printed_cards_received',
+    'delete_card',
+    'redeem_card',
+    'resell_card',
+    'card_print_request',
+    'card_print_request_completed',
+    'card_print_request_refund',
+  }.contains(normalizedType)) {
+    return true;
+  }
+
+  return _firstNonEmptyString(data, const [
+        'cardBarcode',
+        'cardSourceUsername',
+        'cardSourceDisplayName',
+        'cardUsedByUsername',
+        'cardUsedByDisplayName',
+        'cardCustomerName',
+      ]) !=
+      null;
+}
+
+String? _cardSourceLabel(BuildContext context, Map<String, dynamic> data) {
+  final user = _displayUser(
+    data,
+    displayKeys: const [
+      'cardSourceDisplayName',
+      'cardIssuedByDisplayName',
+      'cardOwnerDisplayName',
+    ],
+    usernameKeys: const [
+      'cardSourceUsername',
+      'cardIssuedByUsername',
+      'cardOwnerUsername',
+    ],
+  );
+  if (user != null) {
+    return user;
+  }
+
+  final sourceType = _firstNonEmptyString(
+    data,
+    const ['cardSourceType'],
+    metadataKeys: const ['sourceType'],
+  );
+  if (sourceType == null) {
+    return null;
+  }
+
+  return switch (sourceType) {
+    'card_print_request' =>
+      context.loc.tr('screens_notifications_screen.055'),
+    'local' || 'issued_cards' =>
+      context.loc.tr('screens_notifications_screen.056'),
+    'app' => context.loc.tr('screens_notifications_screen.057'),
+    _ => sourceType,
+  };
+}
+
+String? _displayUser(
+  Map<String, dynamic> data, {
+  required List<String> displayKeys,
+  required List<String> usernameKeys,
+  List<String> metadataDisplayKeys = const [],
+  List<String> metadataUsernameKeys = const [],
+}) {
+  final displayName = _firstNonEmptyString(
+    data,
+    displayKeys,
+    metadataKeys: metadataDisplayKeys,
+  );
+  if (displayName != null) {
+    return displayName;
+  }
+
+  final username = _firstNonEmptyString(
+    data,
+    usernameKeys,
+    metadataKeys: metadataUsernameKeys,
+  );
+  if (username == null) {
+    return null;
+  }
+
+  return username.startsWith('@') ? username : '@$username';
+}
+
+String? _firstNonEmptyString(
+  Map<String, dynamic> data,
+  List<String> keys, {
+  List<String> metadataKeys = const [],
+}) {
+  for (final key in keys) {
+    final value = data[key]?.toString().trim();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+  }
+
+  final metadata = data['metadata'] is Map<String, dynamic>
+      ? data['metadata'] as Map<String, dynamic>
+      : data['metadata'] is Map
+      ? Map<String, dynamic>.from(data['metadata'] as Map)
+      : const <String, dynamic>{};
+  for (final key in metadataKeys) {
+    final value = metadata[key]?.toString().trim();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+  }
+
+  return null;
 }
