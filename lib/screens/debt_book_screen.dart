@@ -30,6 +30,9 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
   List<Map<String, dynamic>> _pendingOperations = const [];
   bool _loading = true;
   bool _syncing = false;
+  bool _showSearchTools = false;
+  bool _showFilterTools = false;
+  bool _showStatusMessage = false;
   _DebtCustomerFilter _activeFilter = _DebtCustomerFilter.all;
 
   String _t(String key, {Map<String, String>? params}) =>
@@ -418,6 +421,13 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
         appBar: AppBar(
           title: Text(_t('screens_debt_book_screen.023')),
           actions: [
+            if (OfflineSessionService.isOfflineMode)
+              IconButton(
+                tooltip: _t('screens_debt_book_screen.058'),
+                onPressed: () =>
+                    Navigator.pushReplacementNamed(context, '/scan-card-offline'),
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+              ),
             IconButton(
               tooltip: _t('screens_debt_book_screen.019'),
               onPressed: _loading || _syncing ? null : () => _load(),
@@ -545,76 +555,158 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
   }
 
   Widget _buildCustomersTab(String lastSyncedAt) {
+    final summary = Map<String, dynamic>.from(
+      _snapshot['summary'] as Map? ?? const {},
+    );
+    final customersCount = (summary['customersCount'] as num?)?.toInt() ?? 0;
+    final hasSearchQuery = _searchController.text.trim().isNotEmpty;
+    final hasCustomFilter = _activeFilter != _DebtCustomerFilter.all;
+    final showToolsPanel =
+        _showSearchTools || _showFilterTools || _showStatusMessage;
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildOverviewStrip(
-            lastSyncedAt: lastSyncedAt,
-            description: _isOnline
-                ? _t('screens_debt_book_screen.024')
-                : _t('screens_debt_book_screen.025'),
-          ),
-          const SizedBox(height: 16),
           ShwakelCard(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             color: AppTheme.surface,
             withBorder: true,
             borderColor: AppTheme.borderLight,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      _customers = _filterCustomers(
-                        _snapshot,
-                        value,
-                        _activeFilter,
-                      );
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: _t('screens_debt_book_screen.036'),
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _searchController.text.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _customers = _filterCustomers(
-                                  _snapshot,
-                                  '',
-                                  _activeFilter,
-                                );
-                              });
-                            },
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
+                Row(
                   children: [
-                    _buildFilterChip(
-                      title: _t('screens_debt_book_screen.037'),
-                      filter: _DebtCustomerFilter.all,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _t('screens_debt_book_screen.047'),
+                            style: AppTheme.h3,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _t(
+                              'screens_debt_book_screen.050',
+                              params: {'count': '$customersCount'},
+                            ),
+                            style: AppTheme.caption,
+                          ),
+                        ],
+                      ),
                     ),
-                    _buildFilterChip(
-                      title: _t('screens_debt_book_screen.038'),
-                      filter: _DebtCustomerFilter.debtors,
+                    _toolIconButton(
+                      icon: _showSearchTools
+                          ? Icons.search_off_rounded
+                          : Icons.search_rounded,
+                      tooltip: _showSearchTools
+                          ? _t('screens_debt_book_screen.051')
+                          : _t('screens_debt_book_screen.052'),
+                      highlighted: _showSearchTools || hasSearchQuery,
+                      onPressed: () {
+                        setState(() {
+                          _showSearchTools = !_showSearchTools;
+                        });
+                      },
                     ),
-                    _buildFilterChip(
-                      title: _t('screens_debt_book_screen.039'),
-                      filter: _DebtCustomerFilter.settled,
+                    const SizedBox(width: 8),
+                    _toolIconButton(
+                      icon: _showFilterTools
+                          ? Icons.filter_alt_off_rounded
+                          : Icons.filter_alt_rounded,
+                      tooltip: _showFilterTools
+                          ? _t('screens_debt_book_screen.053')
+                          : _t('screens_debt_book_screen.054'),
+                      highlighted: _showFilterTools || hasCustomFilter,
+                      onPressed: () {
+                        setState(() {
+                          _showFilterTools = !_showFilterTools;
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _toolIconButton(
+                      icon: _showStatusMessage
+                          ? Icons.notifications_off_outlined
+                          : Icons.notifications_active_outlined,
+                      tooltip: _showStatusMessage
+                          ? _t('screens_debt_book_screen.055')
+                          : _t('screens_debt_book_screen.056'),
+                      highlighted: _showStatusMessage ||
+                          _pendingOperations.isNotEmpty ||
+                          !_isOnline,
+                      onPressed: () {
+                        setState(() {
+                          _showStatusMessage = !_showStatusMessage;
+                        });
+                      },
                     ),
                   ],
                 ),
+                if (showToolsPanel) ...[
+                  const SizedBox(height: 14),
+                  if (_showSearchTools) ...[
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _customers = _filterCustomers(
+                            _snapshot,
+                            value,
+                            _activeFilter,
+                          );
+                        });
+                      },
+                      decoration: InputDecoration(
+                        labelText: _t('screens_debt_book_screen.036'),
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: _searchController.text.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _customers = _filterCustomers(
+                                      _snapshot,
+                                      '',
+                                      _activeFilter,
+                                    );
+                                  });
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                      ),
+                    ),
+                  ],
+                  if (_showFilterTools) ...[
+                    if (_showSearchTools) const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _buildFilterChip(
+                          title: _t('screens_debt_book_screen.037'),
+                          filter: _DebtCustomerFilter.all,
+                        ),
+                        _buildFilterChip(
+                          title: _t('screens_debt_book_screen.038'),
+                          filter: _DebtCustomerFilter.debtors,
+                        ),
+                        _buildFilterChip(
+                          title: _t('screens_debt_book_screen.039'),
+                          filter: _DebtCustomerFilter.settled,
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (_showStatusMessage) ...[
+                    if (_showSearchTools || _showFilterTools)
+                      const SizedBox(height: 12),
+                    _buildCompactStatusCard(lastSyncedAt: lastSyncedAt),
+                  ],
+                ],
               ],
             ),
           ),
@@ -949,6 +1041,111 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
           );
         });
       },
+    );
+  }
+
+  Widget _toolIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    bool highlighted = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: highlighted
+            ? AppTheme.primary.withValues(alpha: 0.12)
+            : AppTheme.background,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(
+              icon,
+              size: 20,
+              color: highlighted ? AppTheme.primary : AppTheme.textMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactStatusCard({required String lastSyncedAt}) {
+    final hasPendingOperations = _pendingOperations.isNotEmpty;
+    final message = _isOnline
+        ? _t('screens_debt_book_screen.024')
+        : _t('screens_debt_book_screen.025');
+    final accentColor = !_isOnline
+        ? AppTheme.warning
+        : hasPendingOperations
+        ? AppTheme.primary
+        : AppTheme.success;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _isOnline ? Icons.info_outline_rounded : Icons.wifi_off_rounded,
+                size: 18,
+                color: accentColor,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: AppTheme.caption.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _statusPill(
+                icon: _isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                label: _isOnline
+                    ? _t('screens_debt_book_screen.031')
+                    : _t('screens_debt_book_screen.032'),
+                color: _isOnline ? AppTheme.success : AppTheme.warning,
+              ),
+              _statusPill(
+                icon: Icons.schedule_rounded,
+                label: _t(
+                  'screens_debt_book_screen.033',
+                  params: {'date': lastSyncedAt},
+                ),
+                color: AppTheme.primary,
+              ),
+              if (hasPendingOperations)
+                _statusPill(
+                  icon: Icons.sync_problem_rounded,
+                  label: _t(
+                    'screens_debt_book_screen.057',
+                    params: {'count': '${_pendingOperations.length}'},
+                  ),
+                  color: AppTheme.warning,
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

@@ -370,7 +370,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-customers',
           badge: l.tr('screens_admin_dashboard_screen.022'),
         ),
-      if (permissions.canManageUsers)
+      if (permissions.canManageUsers || permissions.canManageMarketingAccounts)
         _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.087'),
           subtitle: l.tr('screens_admin_dashboard_screen.088'),

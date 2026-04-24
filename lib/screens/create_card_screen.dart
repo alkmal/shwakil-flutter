@@ -557,56 +557,73 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: Text(l.tr('screens_create_card_screen.029')),
-        actions: const [AppNotificationAction(), QuickLogoutAction()],
-      ),
-      drawer: const AppSidebar(),
-      body: SingleChildScrollView(
-        child: ResponsiveScaffoldContainer(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHero(),
-              const SizedBox(height: 24),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 980;
-                  if (!isWide) {
-                    return Column(
-                      children: [
-                        _buildForm(),
-                        const SizedBox(height: 20),
-                        _buildDesignSettings(),
-                        const SizedBox(height: 20),
-                        _buildRecent(),
-                      ],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 3, child: _buildForm()),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          children: [
-                            _buildDesignSettings(),
-                            const SizedBox(height: 20),
-                            _buildRecent(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_create_card_screen.029')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+          bottom: TabBar(
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.add_card_rounded),
+                text: l.tr('screens_create_card_screen.066'),
+              ),
+              Tab(
+                icon: const Icon(Icons.tune_rounded),
+                text: l.tr('screens_create_card_screen.067'),
+              ),
+              Tab(
+                icon: const Icon(Icons.history_rounded),
+                text: l.tr('screens_create_card_screen.068'),
               ),
             ],
           ),
+        ),
+        drawer: const AppSidebar(),
+        body: TabBarView(
+          children: [
+            SingleChildScrollView(
+              child: ResponsiveScaffoldContainer(
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHero(),
+                    const SizedBox(height: 24),
+                    _buildForm(),
+                  ],
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              child: ResponsiveScaffoldContainer(
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHero(),
+                    const SizedBox(height: 24),
+                    _buildDesignSettings(),
+                  ],
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              child: ResponsiveScaffoldContainer(
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHero(),
+                    const SizedBox(height: 24),
+                    _buildRecent(),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

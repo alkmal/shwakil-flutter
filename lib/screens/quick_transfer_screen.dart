@@ -32,9 +32,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   bool _canTransfer = false;
   bool _canViewQuickTransfer = false;
   bool _isLookingUpRecipient = false;
+  bool _isTransfering = false;
   int _activeTab = 0;
   bool _showLookupTools = false;
-  CountryOption _selectedCountry = PhoneNumberService.countries.first;
 
   String _t(String key) => context.loc.tr(key);
 
@@ -133,7 +133,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     try {
       final response = await _api.lookupUserByPhone(
         phone: rawPhone,
-        countryCode: _selectedCountry.dialCode,
+        countryCode: PhoneNumberService.countries.first.dialCode,
       );
       final recipient = Map<String, dynamic>.from(
         response['user'] as Map? ?? const <String, dynamic>{},
@@ -185,9 +185,14 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       return;
     }
 
+    var progressShown = false;
     try {
       final location =
           await TransactionLocationService.captureCurrentLocation();
+      if (!mounted) return;
+      setState(() => _isTransfering = true);
+      _showTransferProgressDialog();
+      progressShown = true;
       await _api.transferBalance(
         recipientId: recipientId,
         amount: amount,
@@ -197,6 +202,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       );
       await _load();
       if (!mounted) return;
+      if (progressShown) {
+        Navigator.of(context, rootNavigator: true).maybePop();
+      }
       await AppAlertService.showSuccess(
         context,
         title: _t('screens_quick_transfer_screen.012'),
@@ -204,11 +212,49 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       );
     } catch (error) {
       if (!mounted) return;
+      if (progressShown) {
+        Navigator.of(context, rootNavigator: true).maybePop();
+      }
       await AppAlertService.showError(
         context,
         message: ErrorMessageService.sanitize(error),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isTransfering = false);
+      }
     }
+  }
+
+  void _showTransferProgressDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (dialogContext) => AlertDialog(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 18),
+              Text(
+                _t('screens_quick_transfer_screen.047'),
+                style: AppTheme.bodyBold,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _t('screens_quick_transfer_screen.048'),
+                textAlign: TextAlign.center,
+                style: AppTheme.caption,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<double?> _askAmount(Map<String, dynamic> recipient) {
@@ -469,54 +515,17 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           const SizedBox(height: 18),
           LayoutBuilder(
             builder: (context, innerConstraints) {
-              final stackFields = compact || innerConstraints.maxWidth < 520;
-              final countryField = DropdownButtonFormField<CountryOption>(
-                initialValue: _selectedCountry,
-                decoration: InputDecoration(
-                  labelText: _t('screens_quick_transfer_screen.017'),
-                ),
-                items: PhoneNumberService.countries
-                    .map(
-                      (country) => DropdownMenuItem<CountryOption>(
-                        value: country,
-                        child: Text('+${country.dialCode}'),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => _selectedCountry = value);
-                },
-              );
               final phoneField = TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: _t('screens_quick_transfer_screen.031'),
                   prefixIcon: const Icon(Icons.phone_rounded),
+                  helperText: _t('screens_quick_transfer_screen.030'),
                 ),
                 onSubmitted: (_) => _lookupRecipient(),
               );
-
-              if (stackFields) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    countryField,
-                    const SizedBox(height: 12),
-                    phoneField,
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(width: 150, child: countryField),
-                  const SizedBox(width: 12),
-                  Expanded(child: phoneField),
-                ],
-              );
+              return phoneField;
             },
           ),
           const SizedBox(height: 16),
@@ -524,8 +533,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             label: _t('screens_quick_transfer_screen.018'),
             icon: Icons.search_rounded,
             gradient: AppTheme.primaryGradient,
-            isLoading: _isLookingUpRecipient,
-            onPressed: _canTransfer ? _lookupRecipient : null,
+            isLoading: _isLookingUpRecipient || _isTransfering,
+            onPressed: (_canTransfer && !_isTransfering) ? _lookupRecipient : null,
           ),
           if (!_canTransfer) ...[
             const SizedBox(height: 12),
@@ -583,7 +592,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                   ShwakelButton(
                     label: _t('screens_quick_transfer_screen.033'),
                     icon: Icons.send_rounded,
-                    onPressed: _canTransfer
+                    isLoading: _isTransfering,
+                    onPressed: (_canTransfer && !_isTransfering)
                         ? () => _startTransferToRecipient(_recipient!)
                         : null,
                   ),
@@ -797,8 +807,14 @@ class _RecipientPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.loc;
     final username = recipient['username']?.toString().trim();
+    final fullName = recipient['fullName']?.toString().trim();
     final phone = recipient['whatsapp']?.toString().trim() ?? '';
     final role = recipient['role']?.toString().trim() ?? '';
+    final displayName = fullName?.isNotEmpty == true
+        ? fullName!
+        : (username?.isNotEmpty == true
+              ? username!
+              : l.tr('screens_quick_transfer_screen.004'));
 
     return Container(
       width: double.infinity,
@@ -824,13 +840,18 @@ class _RecipientPreviewCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                username?.isNotEmpty == true
-                    ? username!
-                    : l.tr('screens_quick_transfer_screen.004'),
+                displayName,
                 style: AppTheme.bodyBold,
               ),
               const SizedBox(height: 4),
-              Text(_maskedPhone(phone), style: AppTheme.bodyAction),
+              Text(
+                username?.isNotEmpty == true ? '@$username' : _maskedPhone(phone),
+                style: AppTheme.bodyAction,
+              ),
+              if (username?.isNotEmpty == true) ...[
+                const SizedBox(height: 4),
+                Text(_maskedPhone(phone), style: AppTheme.caption),
+              ],
             ],
           );
           final badge = Container(

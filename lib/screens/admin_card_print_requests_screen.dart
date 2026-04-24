@@ -10,6 +10,7 @@ import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/tool_toggle_hint.dart';
@@ -152,6 +153,18 @@ class _AdminCardPrintRequestsScreenState
     Map<String, dynamic> request,
     String action,
   ) async {
+    String? rejectionReason;
+    if (action == 'reject') {
+      rejectionReason = await showRejectionReasonDialog(
+        context,
+        title: context.loc.tr('shared.rejection_reason_label'),
+        confirmText: context.loc.tr('shared.confirm_rejection'),
+      );
+      if (rejectionReason == null) {
+        return;
+      }
+    }
+
     setState(() => _busyId = request['id']?.toString());
     try {
       switch (action) {
@@ -168,7 +181,10 @@ class _AdminCardPrintRequestsScreenState
           await _apiService.completeCardPrintRequest(request['id'].toString());
           break;
         case 'reject':
-          await _apiService.rejectCardPrintRequest(request['id'].toString());
+          await _apiService.rejectCardPrintRequest(
+            request['id'].toString(),
+            notes: rejectionReason ?? '',
+          );
           break;
       }
       await _load();

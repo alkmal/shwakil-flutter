@@ -496,6 +496,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewInventory = permissions.canViewInventory;
     final canViewQuickTransfer = permissions.canOpenQuickTransfer;
     final canManageDebtBook = permissions.canManageDebtBook;
+    final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final l = context.loc;
@@ -636,14 +637,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           kind: _HomeServiceKind.transactions,
           onTap: () => unawaited(_openOnlineOnlyRoute('/transactions')),
         ),
-      _HomeServiceItem(
-        title: l.tr('screens_home_screen.082'),
-        subtitle: l.tr('screens_home_screen.083'),
-        icon: Icons.campaign_rounded,
-        color: const Color(0xFF0F766E),
-        kind: _HomeServiceKind.affiliate,
-        onTap: () => unawaited(_openOnlineOnlyRoute('/affiliate-center')),
-      ),
+      if (canViewAffiliateCenter)
+        _HomeServiceItem(
+          title: l.tr('screens_home_screen.082'),
+          subtitle: l.tr('screens_home_screen.083'),
+          icon: Icons.campaign_rounded,
+          color: const Color(0xFF0F766E),
+          kind: _HomeServiceKind.affiliate,
+          onTap: () => unawaited(_openOnlineOnlyRoute('/affiliate-center')),
+        ),
       if (canManageDebtBook)
         _HomeServiceItem(
           title: _t('screens_home_screen.071'),

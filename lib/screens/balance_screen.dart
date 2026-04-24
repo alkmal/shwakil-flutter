@@ -337,7 +337,10 @@ class _BalanceScreenState extends State<BalanceScreen>
         text: _user?['whatsapp']?.toString() ?? '',
       );
       final transferReferenceController = TextEditingController();
-      final transferredAtController = TextEditingController();
+      var selectedTransferredAt = DateTime.now();
+      final transferredAtController = TextEditingController(
+        text: _formatTopupRequestDateTime(selectedTransferredAt),
+      );
       final notesController = TextEditingController();
       String? selectedMethodId = methods.first['id']?.toString();
       String? errorText;
@@ -352,6 +355,52 @@ class _BalanceScreenState extends State<BalanceScreen>
               (item) => item['id']?.toString() == selectedMethodId,
               orElse: () => methods.first,
             );
+
+            Future<void> pickTransferDate() async {
+              final pickedDate = await showDatePicker(
+                context: dialogContext,
+                initialDate: selectedTransferredAt,
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now().add(const Duration(days: 30)),
+              );
+              if (pickedDate == null) {
+                return;
+              }
+              final merged = DateTime(
+                pickedDate.year,
+                pickedDate.month,
+                pickedDate.day,
+                selectedTransferredAt.hour,
+                selectedTransferredAt.minute,
+              );
+              setDialogState(() {
+                selectedTransferredAt = merged;
+                transferredAtController.text =
+                    _formatTopupRequestDateTime(merged);
+              });
+            }
+
+            Future<void> pickTransferTime() async {
+              final pickedTime = await showTimePicker(
+                context: dialogContext,
+                initialTime: TimeOfDay.fromDateTime(selectedTransferredAt),
+              );
+              if (pickedTime == null) {
+                return;
+              }
+              final merged = DateTime(
+                selectedTransferredAt.year,
+                selectedTransferredAt.month,
+                selectedTransferredAt.day,
+                pickedTime.hour,
+                pickedTime.minute,
+              );
+              setDialogState(() {
+                selectedTransferredAt = merged;
+                transferredAtController.text =
+                    _formatTopupRequestDateTime(merged);
+              });
+            }
 
             Future<void> submit() async {
               final amount = double.tryParse(amountController.text.trim()) ?? 0;
@@ -450,6 +499,16 @@ class _BalanceScreenState extends State<BalanceScreen>
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 18),
+                      _buildTopupRequestInfoCard(
+                        icon: Icons.verified_user_outlined,
+                        message: l.tr('screens_balance_screen.124'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTopupRequestInfoCard(
+                        icon: Icons.hourglass_top_rounded,
+                        message: l.tr('screens_balance_screen.125'),
                       ),
                       const SizedBox(height: 18),
                       ShwakelCard(
@@ -592,10 +651,31 @@ class _BalanceScreenState extends State<BalanceScreen>
                             const SizedBox(height: 12),
                             TextField(
                               controller: transferredAtController,
+                              readOnly: true,
+                              onTap: pickTransferDate,
                               decoration: InputDecoration(
                                 labelText: l.tr('screens_balance_screen.066'),
                                 helperText: l.tr('screens_balance_screen.067'),
                                 prefixIcon: const Icon(Icons.schedule_rounded),
+                                suffixIcon: SizedBox(
+                                  width: 96,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: l.tr('screens_balance_screen.126'),
+                                        onPressed: pickTransferDate,
+                                        icon: const Icon(Icons.calendar_today_rounded),
+                                      ),
+                                      IconButton(
+                                        tooltip: l.tr('screens_balance_screen.127'),
+                                        onPressed: pickTransferTime,
+                                        icon: const Icon(Icons.access_time_rounded),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -673,6 +753,46 @@ class _BalanceScreenState extends State<BalanceScreen>
     isError || operation != null
         ? AppAlertService.showError(context, title: title, message: text)
         : AppAlertService.showSuccess(context, title: title, message: text);
+  }
+
+  String _formatTopupRequestDateTime(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  Widget _buildTopupRequestInfoCard({
+    required IconData icon,
+    required String message,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: AppTheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textPrimary,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

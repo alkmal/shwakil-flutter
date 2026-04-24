@@ -33,6 +33,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   bool _isLoadingCustomers = false;
   bool _isAuthorized = false;
   bool _canManageUsers = false;
+  bool _canManageMarketingAccounts = false;
   String? _resendBusyId;
   int _customerPage = 1;
   int _customerLastPage = 1;
@@ -117,6 +118,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         _customerPage = normalizedPage;
         _customerLastPage = lastPage;
         _canManageUsers = permissions.canManageUsers;
+        _canManageMarketingAccounts = permissions.canManageMarketingAccounts;
         _isLoading = false;
         _isLoadingCustomers = false;
       });
@@ -143,6 +145,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         builder: (_) => AdminCustomerScreen(
           customer: customer,
           canManageUsers: _canManageUsers,
+          canManageMarketingAccounts: _canManageMarketingAccounts,
         ),
       ),
     );
@@ -420,7 +423,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   Widget build(BuildContext context) {
     final l = context.loc;
     final totalCustomers =
-        (_summary['totalCustomers'] as num?)?.toInt() ?? _customers.length;
+        (_summary['customersCount'] as num?)?.toInt() ??
+        (_summary['totalCustomers'] as num?)?.toInt() ??
+        _customers.length;
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -517,8 +522,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                     child: AdminCustomerCard(
                       customer: customer,
                       onTap: () => _openCustomerDetails(customer),
-                      onResendCredentials: () =>
-                          _resendCustomerCredentials(customer),
+                      onResendCredentials: _canManageUsers
+                          ? () => _resendCustomerCredentials(customer)
+                          : null,
                     ),
                   ),
                 ),

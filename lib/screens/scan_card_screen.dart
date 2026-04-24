@@ -1204,7 +1204,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           automaticallyImplyLeading: !widget.offlineMode,
           title: const SizedBox.shrink(),
           actions: widget.offlineMode
-              ? const []
+              ? [
+                  IconButton(
+                    tooltip: _t('screens_scan_card_screen.117'),
+                    onPressed: () => Navigator.pushReplacementNamed(
+                      context,
+                      '/debt-book',
+                    ),
+                    icon: const Icon(Icons.menu_book_rounded),
+                  ),
+                ]
               : const [AppNotificationAction(), QuickLogoutAction()],
         ),
         body: Center(
@@ -1236,7 +1245,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         automaticallyImplyLeading: !widget.offlineMode,
         title: const SizedBox.shrink(),
         actions: widget.offlineMode
-            ? const []
+            ? [
+                IconButton(
+                  tooltip: _t('screens_scan_card_screen.117'),
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    '/debt-book',
+                  ),
+                  icon: const Icon(Icons.menu_book_rounded),
+                ),
+              ]
             : [
                 IconButton(
                   tooltip: _t('screens_scan_card_screen.096'),

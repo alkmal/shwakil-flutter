@@ -42,6 +42,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardPrintRequestFeeController = TextEditingController();
   final _affiliateRewardAmountController = TextEditingController();
   final _affiliateFirstTopupMinAmountController = TextEditingController();
+  final _affiliateMarketerDebtLimitController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -79,6 +80,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardPrintRequestFeeController.dispose();
     _affiliateRewardAmountController.dispose();
     _affiliateFirstTopupMinAmountController.dispose();
+    _affiliateMarketerDebtLimitController.dispose();
     super.dispose();
   }
 
@@ -158,6 +160,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _affiliateFirstTopupMinAmountController.text =
           (affiliateSettings['firstTopupMinAmount'] as num?)?.toString() ??
           '100';
+      _affiliateMarketerDebtLimitController.text =
+          (affiliateSettings['marketerDebtLimit'] as num?)?.toString() ?? '50';
       _policyTitleController.text = usagePolicy['title'] ?? '';
       _policyContentController.text = usagePolicy['content'] ?? '';
 
@@ -225,6 +229,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           firstTopupMinAmount:
               double.tryParse(_affiliateFirstTopupMinAmountController.text) ??
               100,
+          marketerDebtLimit:
+              double.tryParse(_affiliateMarketerDebtLimitController.text) ??
+              50,
         ),
         _apiService.updateUsagePolicy(
           title: _policyTitleController.text,
@@ -895,6 +902,31 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       'screens_admin_system_settings_screen.072',
                     ),
                     suffixText: '₪',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _affiliateMarketerDebtLimitController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: context.loc.tr(
+                      'screens_admin_system_settings_screen.073',
+                    ),
+                    suffixText: '₪',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    context.loc.tr(
+                      'screens_admin_system_settings_screen.074',
+                    ),
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                 ),
               ],

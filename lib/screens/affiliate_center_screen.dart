@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
@@ -18,8 +19,10 @@ class AffiliateCenterScreen extends StatefulWidget {
 
 class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
 
   bool _isLoading = true;
+  bool _isAuthorized = true;
   Map<String, dynamic> _affiliate = const {};
 
   @override
@@ -31,11 +34,25 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   Future<void> _load() async {
     final l = context.loc;
     try {
+      final currentUser = await _authService.currentUser();
+      final permissions = AppPermissions.fromUser(currentUser);
+      if (!permissions.canViewAffiliateCenter) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
+
       final payload = await _apiService.getAffiliateDashboard();
       if (!mounted) {
         return;
       }
       setState(() {
+        _isAuthorized = true;
         _affiliate = Map<String, dynamic>.from(
           payload['affiliate'] as Map? ?? const {},
         );
@@ -78,6 +95,44 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
     final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_affiliate_center_screen.004')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 54,
+                  color: AppTheme.textTertiary,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  l.tr('screens_affiliate_center_screen.036'),
+                  style: AppTheme.h3,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l.tr('screens_affiliate_center_screen.037'),
+                  style: AppTheme.bodyAction,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     final enabled = _affiliate['enabled'] == true;

@@ -76,12 +76,14 @@ class _AppSidebarState extends State<AppSidebar> {
     final canManageDebtBook = permissions.canManageDebtBook;
     final canViewAccountSettings = permissions.canViewAccountSettings;
     final canRequestVerification = permissions.canRequestVerification;
+    final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canIssueCards = permissions.canIssueCards;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final canScanCards = permissions.canOpenCardTools;
     final hasAdminWorkspaceAccess = permissions.hasAdminWorkspaceAccess;
     final canViewCustomers = permissions.canViewCustomers;
     final canManageUsers = permissions.canManageUsers;
+    final canManageMarketingAccounts = permissions.canManageMarketingAccounts;
     final canManageLocations = permissions.canManageLocations;
     final canManageSystemSettings = permissions.canManageSystemSettings;
     final canReviewWithdrawals = permissions.canReviewWithdrawals;
@@ -245,12 +247,13 @@ class _AppSidebarState extends State<AppSidebar> {
                         title: l.tr('widgets_app_sidebar.013'),
                         routeName: '/security-settings',
                       ),
-                    _buildItem(
-                      context,
-                      icon: Icons.campaign_rounded,
-                      title: l.tr('widgets_app_sidebar.041'),
-                      routeName: '/affiliate-center',
-                    ),
+                    if (canViewAffiliateCenter)
+                      _buildItem(
+                        context,
+                        icon: Icons.campaign_rounded,
+                        title: l.tr('widgets_app_sidebar.041'),
+                        routeName: '/affiliate-center',
+                      ),
                     if (canViewSubUsers)
                       _buildItem(
                         context,
@@ -281,7 +284,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.030'),
                           routeName: '/admin-customers',
                         ),
-                      if (canManageUsers)
+                      if (canManageUsers || canManageMarketingAccounts)
                         _buildItem(
                           context,
                           icon: Icons.person_add_alt_1_rounded,
@@ -329,6 +332,13 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: Icons.settings_applications_rounded,
                           title: l.tr('widgets_app_sidebar.019'),
                           routeName: '/admin-system-settings',
+                        ),
+                      if (canManageSystemSettings)
+                        _buildItem(
+                          context,
+                          icon: Icons.campaign_rounded,
+                          title: l.tr('widgets_app_sidebar.043'),
+                          routeName: '/admin-notifications',
                         ),
                       if (canManageSystemSettings)
                         _buildItem(
