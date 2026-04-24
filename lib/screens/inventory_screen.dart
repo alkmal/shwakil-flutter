@@ -976,6 +976,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (!await _confirmCardOutputSecurity()) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
     final fallbackPrintedBy = context.loc.tr('screens_inventory_screen.010');
     var cardsToPrint = _cards;
     if (_canUseAdminInventory && _totalCards > _cards.length) {

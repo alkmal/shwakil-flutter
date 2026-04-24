@@ -311,6 +311,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (requireSecurity && !await _confirmCardOutputSecurity()) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
 
     final l = context.loc;
     final printedBy = _user?['fullName']?.toString().trim().isNotEmpty == true

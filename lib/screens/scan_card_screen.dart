@@ -496,6 +496,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         payload = offlinePayload;
       } else {
         final hasLocalSecurity = await _hasLocalTransferSecurity();
+        if (!mounted) {
+          return;
+        }
         final security = await TransferSecurityService.confirmTransfer(
           context,
           allowOtpFallback: !hasLocalSecurity,
@@ -514,6 +517,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         }
 
         payload = _TemporaryTransferPayload.fromMap(response);
+      }
+      if (!mounted) {
+        return;
       }
       await showDialog<void>(
         context: context,
