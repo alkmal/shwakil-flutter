@@ -253,7 +253,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     Navigator.pushNamedAndRemoveUntil(
       context,
-      permissions.hasAdminWorkspaceAccess ? '/admin-dashboard' : '/app-shell',
+      permissions.shouldOpenAdminWorkspaceByDefault
+          ? '/admin-dashboard'
+          : '/app-shell',
       (route) => false,
     );
   }

@@ -35,6 +35,23 @@ class TransferSecurityService {
       return const TransferSecurityResult(isVerified: false);
     }
 
+    if (hasPin) {
+      final pinResult = await _confirmWithPin(
+        context,
+        canUseBiometrics: canUseBiometrics,
+      );
+      if (!context.mounted) {
+        return const TransferSecurityResult(isVerified: false);
+      }
+      if (pinResult.isVerified && requireOtpAfterLocalAuth) {
+        return _confirmWithOtp(
+          context,
+          introText: context.loc.tr('services_transfer_security_service.002'),
+        );
+      }
+      return pinResult;
+    }
+
     if (canUseBiometrics) {
       final biometricOk =
           await LocalSecurityService.authenticateWithBiometrics();
@@ -59,23 +76,6 @@ class TransferSecurityService {
       return const TransferSecurityResult(isVerified: false);
     }
 
-    if (hasPin) {
-      final pinResult = await _confirmWithPin(
-        context,
-        canUseBiometrics: canUseBiometrics,
-      );
-      if (!context.mounted) {
-        return const TransferSecurityResult(isVerified: false);
-      }
-      if (pinResult.isVerified && requireOtpAfterLocalAuth) {
-        return _confirmWithOtp(
-          context,
-          introText: context.loc.tr('services_transfer_security_service.002'),
-        );
-      }
-      return pinResult;
-    }
-
     if (!allowOtpFallback) {
       return const TransferSecurityResult(isVerified: false);
     }
@@ -90,6 +90,7 @@ class TransferSecurityService {
     final l = context.loc;
     final pinController = TextEditingController();
     var isChecking = false;
+    String? errorText;
 
     final result = await showDialog<TransferSecurityResult>(
       context: context,
@@ -99,9 +100,15 @@ class TransferSecurityService {
           Future<void> submitPin() async {
             final pin = pinController.text.trim();
             if (pin.length != 4) {
+              setState(
+                () => errorText = l.tr('screens_device_unlock_screen.002'),
+              );
               return;
             }
-            setState(() => isChecking = true);
+            setState(() {
+              isChecking = true;
+              errorText = null;
+            });
             final isValid = await LocalSecurityService.verifyPin(pin);
             if (!dialogContext.mounted) {
               return;
@@ -112,17 +119,35 @@ class TransferSecurityService {
             if (!dialogContext.mounted) {
               return;
             }
-            Navigator.pop(
-              dialogContext,
-              TransferSecurityResult(
-                isVerified: isValid,
-                method: isValid ? 'pin' : null,
-              ),
-            );
+            if (isValid) {
+              Navigator.pop(
+                dialogContext,
+                const TransferSecurityResult(isVerified: true, method: 'pin'),
+              );
+              return;
+            }
+
+            final retryAfterSeconds =
+                await LocalSecurityService.pinRetryAfterSeconds();
+            if (!dialogContext.mounted) {
+              return;
+            }
+            setState(() {
+              isChecking = false;
+              errorText = retryAfterSeconds > 0
+                  ? l.tr(
+                      'screens_device_unlock_screen.014',
+                      params: {'seconds': '$retryAfterSeconds'},
+                    )
+                  : l.tr('screens_device_unlock_screen.004');
+            });
           }
 
           Future<void> submitBiometric() async {
-            setState(() => isChecking = true);
+            setState(() {
+              isChecking = true;
+              errorText = null;
+            });
             final ok = await LocalSecurityService.authenticateWithBiometrics();
             if (!dialogContext.mounted) {
               return;
@@ -160,8 +185,24 @@ class TransferSecurityService {
                     labelText: l.tr('services_transfer_security_service.006'),
                     prefixIcon: const Icon(Icons.pin_outlined),
                   ),
+                  onChanged: (_) {
+                    if (errorText == null) {
+                      return;
+                    }
+                    setState(() => errorText = null);
+                  },
                   onSubmitted: (_) => submitPin(),
                 ),
+                if (errorText != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorText!,
+                    style: const TextStyle(
+                      color: Color(0xFFDC2626),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
             actions: [

@@ -163,7 +163,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
       Navigator.pushNamedAndRemoveUntil(
         context,
-        permissions.hasAdminWorkspaceAccess ? '/admin-dashboard' : '/app-shell',
+        permissions.shouldOpenAdminWorkspaceByDefault
+            ? '/admin-dashboard'
+            : '/app-shell',
         (route) => false,
       );
     } catch (error) {
@@ -200,7 +202,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         nationalId: widget.nationalId,
         birthDate: widget.birthDate,
         referralPhone: widget.referralPhone,
-        pendingRegistrationId: widget.pendingRegistrationId,
+        pendingRegistrationId: _pendingRegistrationId,
         termsAccepted: widget.termsAccepted,
       );
       if (!mounted) {

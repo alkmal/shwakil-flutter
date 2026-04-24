@@ -20,6 +20,7 @@ class OfflineSessionService {
   static const Set<String> _offlineAllowedRoutes = {
     '/scan-card-offline',
     '/scan-card-offline-camera',
+    '/debt-book',
     '/login-offline',
     '/unlock',
   };

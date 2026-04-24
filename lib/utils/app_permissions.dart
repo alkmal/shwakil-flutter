@@ -63,6 +63,8 @@ class AppPermissions {
     'canFinalizeCardPrintRequests',
     'canOpenQuickTransfer',
     'canOpenCardTools',
+    'isAdmin',
+    'isSupport',
   ];
 
   static Map<String, dynamic> _coerceMap(dynamic value) {
@@ -120,6 +122,14 @@ class AppPermissions {
   bool get canPrepareCardPrintRequests => canManageCardPrintRequests;
   bool get canFinalizeCardPrintRequests => canManageCardPrintRequests;
 
+  String get role => _raw['role']?.toString().trim().toLowerCase() ?? '';
+  bool get isAdminRole =>
+      _raw['isAdmin'] == true ||
+      role == 'admin' ||
+      role == 'super_admin' ||
+      role == 'technical_admin';
+  bool get isSupportRole => _raw['isSupport'] == true || role == 'support';
+
   bool get hasAdminWorkspaceAccess =>
       canViewCustomers ||
       canManageUsers ||
@@ -130,6 +140,9 @@ class AppPermissions {
       canReviewDevices ||
       canManageLocations ||
       canManageSystemSettings;
+
+  bool get shouldOpenAdminWorkspaceByDefault =>
+      hasAdminWorkspaceAccess && (isAdminRole || isSupportRole);
 
   bool get canOpenCardTools =>
       canScanCards ||

@@ -263,6 +263,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  Future<bool> _confirmCardOutputSecurity() async {
+    final security = await TransferSecurityService.confirmTransfer(context);
+    return mounted && security.isVerified;
+  }
+
   Widget _buildOverviewCard() {
     final l = context.loc;
     final unusedCount = _cards
@@ -906,6 +911,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Future<void> _reprint(VirtualCard card) async {
     final l = context.loc;
+    if (!await _confirmCardOutputSecurity()) {
+      return;
+    }
     final user = await _authService.currentUser();
     await _pdfService.printCards([
       card,
@@ -963,6 +971,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Future<void> _reprintFilteredCards() async {
     if (_cards.isEmpty) {
+      return;
+    }
+    if (!await _confirmCardOutputSecurity()) {
       return;
     }
     final fallbackPrintedBy = context.loc.tr('screens_inventory_screen.010');

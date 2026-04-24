@@ -840,7 +840,11 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const SizedBox.shrink(),
+        title: Text(
+          customer?['fullName']?.toString().trim().isNotEmpty == true
+              ? customer!['fullName'].toString()
+              : _t('screens_debt_book_customer_screen.062'),
+        ),
         actions: [
           IconButton(
             tooltip: _t('screens_debt_book_customer_screen.049'),
@@ -870,9 +874,10 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
           ? const Center(child: CircularProgressIndicator())
           : customer == null
           ? Center(child: Text(_t('screens_debt_book_customer_screen.051')))
-          : SingleChildScrollView(
+          : ResponsiveScaffoldContainer(
               padding: const EdgeInsets.all(AppTheme.spacingLg),
-              child: ResponsiveScaffoldContainer(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

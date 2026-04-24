@@ -142,7 +142,9 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     final permissions = AppPermissions.fromUser(currentUser);
     Navigator.pushNamedAndRemoveUntil(
       context,
-      permissions.hasAdminWorkspaceAccess ? '/admin-dashboard' : '/home',
+      permissions.shouldOpenAdminWorkspaceByDefault
+          ? '/admin-dashboard'
+          : '/home',
       (route) => false,
     );
   }

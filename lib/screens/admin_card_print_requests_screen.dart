@@ -262,6 +262,11 @@ class _AdminCardPrintRequestsScreenState
     return settings;
   }
 
+  Future<bool> _confirmCardOutputSecurity() async {
+    final security = await TransferSecurityService.confirmTransfer(context);
+    return mounted && security.isVerified;
+  }
+
   Future<void> _exportRequestPdf(Map<String, dynamic> request) async {
     final l = context.loc;
     final cards = _extractCardsFromRequest(request);
@@ -275,6 +280,10 @@ class _AdminCardPrintRequestsScreenState
           'screens_admin_card_print_requests_screen.export_unavailable_message',
         ),
       );
+      return;
+    }
+
+    if (!await _confirmCardOutputSecurity()) {
       return;
     }
 
@@ -343,6 +352,10 @@ class _AdminCardPrintRequestsScreenState
           'screens_admin_card_print_requests_screen.print_unavailable_message',
         ),
       );
+      return;
+    }
+
+    if (!await _confirmCardOutputSecurity()) {
       return;
     }
 

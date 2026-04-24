@@ -200,69 +200,118 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (!mounted) {
-      return;
-    }
-    final securityResult = await TransferSecurityService.confirmTransfer(
-      context,
-    );
-    if (!mounted || !securityResult.isVerified) {
+    final cards = await _issueCardsAfterSecurity(amount, quantity);
+    if (cards == null || !mounted) {
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      final cards = await _apiService.issueCards(
-        value: amount,
-        quantity: quantity,
-        cardType: _cardType,
-        visibilityScope: _visibilityScope,
-        printDesign: {
-          'logoText': _titleC.text.trim().isEmpty
-              ? l.tr('screens_create_card_screen.001')
-              : _titleC.text.trim(),
-          'stampText': _stampC.text.trim().isEmpty
-              ? l.tr('screens_create_card_screen.019')
-              : _stampC.text.trim(),
-          'logoUrl': (_showLogo && _useAccountLogo)
-              ? (_user?['printLogoUrl'])?.toString()
-              : null,
-          'showStamp': _showStamp,
-        },
-        otpCode: securityResult.otpCode,
-        localAuthMethod: securityResult.method,
-        allowedUserIds: _selectedUsers
-            .map((user) => user['id']?.toString() ?? '')
-            .where((id) => id.isNotEmpty)
-            .toList(),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _recent = cards;
-        _isLoading = false;
-      });
-      await _load();
-      if (mounted) {
-        _showSuccess(cards);
-      }
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _isLoading = false);
-      await AppAlertService.showError(
-        context,
-        title: l.tr('screens_create_card_screen.018'),
-        message: ErrorMessageService.sanitize(error),
-      );
+    setState(() {
+      _recent = cards;
+      _isLoading = false;
+    });
+    await _load();
+    if (mounted) {
+      _showSuccess(cards);
     }
   }
 
-  Future<void> _printCards(List<VirtualCard> cards) async {
+  Future<List<VirtualCard>?> _issueCardsAfterSecurity(
+    double amount,
+    int quantity,
+  ) async {
+    final l = context.loc;
+    var securityResult = await TransferSecurityService.confirmTransfer(context);
+    if (!mounted || !securityResult.isVerified) {
+      return null;
+    }
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      setState(() => _isLoading = true);
+      try {
+        return await _apiService.issueCards(
+          value: amount,
+          quantity: quantity,
+          cardType: _cardType,
+          visibilityScope: _visibilityScope,
+          printDesign: _currentPrintDesign(),
+          otpCode: securityResult.otpCode,
+          localAuthMethod: securityResult.method,
+          allowedUserIds: _selectedAllowedUserIds(),
+        );
+      } catch (error) {
+        if (!mounted) {
+          return null;
+        }
+        final message = ErrorMessageService.sanitize(error);
+        setState(() => _isLoading = false);
+
+        if (attempt == 0 && _isLocalSecurityRequiredMessage(message)) {
+          securityResult = await TransferSecurityService.confirmTransfer(
+            context,
+          );
+          if (!mounted || !securityResult.isVerified) {
+            return null;
+          }
+          continue;
+        }
+
+        await AppAlertService.showError(
+          context,
+          title: l.tr('screens_create_card_screen.018'),
+          message: message,
+        );
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic> _currentPrintDesign() {
+    final l = context.loc;
+    return {
+      'logoText': _titleC.text.trim().isEmpty
+          ? l.tr('screens_create_card_screen.001')
+          : _titleC.text.trim(),
+      'stampText': _stampC.text.trim().isEmpty
+          ? l.tr('screens_create_card_screen.019')
+          : _stampC.text.trim(),
+      'logoUrl': (_showLogo && _useAccountLogo)
+          ? (_user?['printLogoUrl'])?.toString()
+          : null,
+      'showStamp': _showStamp,
+    };
+  }
+
+  List<String> _selectedAllowedUserIds() {
+    return _selectedUsers
+        .map((user) => user['id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+  }
+
+  bool _isLocalSecurityRequiredMessage(String message) {
+    final normalized = message.toLowerCase();
+    return normalized.contains('pin') &&
+        (normalized.contains('البصمة') ||
+            normalized.contains('biometric') ||
+            normalized.contains('otp')) &&
+        (normalized.contains('تأكيد') || normalized.contains('confirm'));
+  }
+
+  Future<bool> _confirmCardOutputSecurity() async {
+    final security = await TransferSecurityService.confirmTransfer(context);
+    return mounted && security.isVerified;
+  }
+
+  Future<void> _printCards(
+    List<VirtualCard> cards, {
+    bool requireSecurity = true,
+  }) async {
+    if (requireSecurity && !await _confirmCardOutputSecurity()) {
+      return;
+    }
+
     final l = context.loc;
     final printedBy = _user?['fullName']?.toString().trim().isNotEmpty == true
         ? _user!['fullName'].toString().trim()
@@ -282,7 +331,20 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ? (_user?['printLogoUrl'])?.toString()
         : null;
     _pdfService.setDesignSettings(settings);
-    await _pdfService.printCards(cards, printedBy: printedBy);
+    try {
+      await _pdfService.printCards(cards, printedBy: printedBy);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr(
+          'screens_admin_card_print_requests_screen.print_failed_title',
+        ),
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
   }
 
   void _showSuccess(List<VirtualCard> cards) {
@@ -307,7 +369,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               label: l.tr('screens_create_card_screen.023'),
               onPressed: () async {
                 Navigator.pop(dialogContext);
-                await _printCards(cards);
+                await _printCards(cards, requireSecurity: false);
               },
               width: 150,
             ),

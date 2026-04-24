@@ -180,12 +180,7 @@ class RealtimeNotificationService {
 
   static void _handleForegroundMessage(RemoteMessage message) {
     final payload = Map<String, dynamic>.from(message.data);
-    final type = payload['type']?.toString() ?? '';
-    if (type.contains('balance') ||
-        type.contains('topup') ||
-        type.contains('transfer') ||
-        type.contains('withdrawal') ||
-        type.contains('card')) {
+    if (_shouldRefreshBalance(payload)) {
       notifyBalanceUpdated(payload);
     }
     notifyNotificationsUpdated(payload);
@@ -205,10 +200,41 @@ class RealtimeNotificationService {
 
   static void _handleNotificationOpen(RemoteMessage message) {
     final payload = Map<String, dynamic>.from(message.data);
-    if (payload.isNotEmpty) {
+    if (payload.isNotEmpty && _shouldRefreshBalance(payload)) {
       notifyBalanceUpdated(payload);
+    }
+    if (payload.isNotEmpty) {
       notifyNotificationsUpdated(payload);
     }
+  }
+
+  static bool _shouldRefreshBalance(Map<String, dynamic> payload) {
+    final category = payload['category']?.toString().trim().toLowerCase() ?? '';
+    if (category == 'financial') {
+      return true;
+    }
+
+    final type = payload['type']?.toString().trim().toLowerCase() ?? '';
+    return const {
+      'financial_transaction',
+      'topup',
+      'balance_credit',
+      'manual_deduction',
+      'transfer_out',
+      'transfer_in',
+      'withdrawal',
+      'withdrawal_refund',
+      'issue_cards',
+      'delete_card',
+      'redeem_card',
+      'resell_card',
+      'card_print_request',
+      'card_print_request_refund',
+      'affiliate_commission_credit',
+      'wallet_topup_received',
+      'wallet_transfer_sent',
+      'printed_cards_received',
+    }.contains(type);
   }
 
   static Future<void> _waitForApplePushToken(FirebaseMessaging messaging) async {

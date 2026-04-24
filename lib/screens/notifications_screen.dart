@@ -301,7 +301,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   List<_NotificationStat> _buildQuickStats() {
     final financialCount = _notifications
-        .where((item) => item['category'] == 'financial')
+        .where(_isFinancialNotification)
+        .length;
+    final accountCount = _notifications
+        .where(_isAccountNotification)
         .length;
     final readCount = _notifications
         .where((item) => item['isRead'] == true)
@@ -320,6 +323,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         hint: context.loc.tr('screens_notifications_screen.030'),
         icon: Icons.account_balance_wallet_rounded,
         color: AppTheme.primary,
+      ),
+      _NotificationStat(
+        label: context.loc.tr('screens_notifications_screen.047'),
+        value: '$accountCount',
+        hint: context.loc.tr('screens_notifications_screen.048'),
+        icon: Icons.verified_user_rounded,
+        color: AppTheme.secondary,
       ),
       _NotificationStat(
         label: context.loc.tr('screens_notifications_screen.031'),
@@ -378,6 +388,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _filterChip(_t('screens_transactions_screen.016'), 'all'),
       _filterChip(_t('screens_notifications_screen.027'), 'unread'),
       _filterChip(_t('screens_notifications_screen.029'), 'financial'),
+      _filterChip(_t('screens_notifications_screen.047'), 'account'),
     ];
 
     return ShwakelCard(
@@ -515,14 +526,15 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isRead = item['isRead'] == true;
+    final categoryKind = _notificationKind(item);
     final data = item['data'] is Map<String, dynamic>
         ? item['data'] as Map<String, dynamic>
         : item['data'] is Map
         ? Map<String, dynamic>.from(item['data'] as Map)
         : const <String, dynamic>{};
-    final isFinancial = item['category'] == 'financial';
     final amount = (data['amount'] as num?)?.toDouble();
     final fee = (data['fee'] as num?)?.toDouble();
+    final categoryColor = _notificationCategoryColor(categoryKind);
 
     return ShwakelCard(
       onTap: onTap,
@@ -539,14 +551,12 @@ class _NotificationCard extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: _categoryColor(isFinancial).withValues(alpha: 0.12),
+                  color: categoryColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Icon(
-                  isFinancial
-                      ? Icons.account_balance_wallet_rounded
-                      : Icons.notifications_rounded,
-                  color: _categoryColor(isFinancial),
+                  _notificationCategoryIcon(categoryKind),
+                  color: categoryColor,
                 ),
               ),
               const SizedBox(width: 14),
@@ -565,21 +575,13 @@ class _NotificationCard extends StatelessWidget {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: _categoryColor(
-                              isFinancial,
-                            ).withValues(alpha: 0.08),
+                            color: categoryColor.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            isFinancial
-                                ? context.loc.tr(
-                                    'screens_notifications_screen.045',
-                                  )
-                                : context.loc.tr(
-                                    'screens_notifications_screen.046',
-                                  ),
+                            _notificationCategoryLabel(context, categoryKind),
                             style: AppTheme.caption.copyWith(
-                              color: _categoryColor(isFinancial),
+                              color: categoryColor,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -633,9 +635,6 @@ class _NotificationCard extends StatelessWidget {
       ),
     );
   }
-
-  Color _categoryColor(bool isFinancial) =>
-      isFinancial ? AppTheme.primary : AppTheme.accent;
 }
 
 class _NotificationDetailsSheet extends StatelessWidget {
@@ -645,6 +644,7 @@ class _NotificationDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final categoryKind = _notificationKind(item);
     final data = item['data'] is Map<String, dynamic>
         ? item['data'] as Map<String, dynamic>
         : item['data'] is Map
@@ -678,6 +678,10 @@ class _NotificationDetailsSheet extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
+                _InfoChip(
+                  icon: _notificationCategoryIcon(categoryKind),
+                  label: _notificationCategoryLabel(context, categoryKind),
+                ),
                 if (type.isNotEmpty)
                   _InfoChip(icon: Icons.category_rounded, label: type),
                 if (amount != null)
@@ -797,4 +801,65 @@ class _NotificationStat {
   final String hint;
   final IconData icon;
   final Color color;
+}
+
+enum _NotificationKind { financial, account, general }
+
+_NotificationKind _notificationKind(Map<String, dynamic> item) {
+  final category = item['category']?.toString().trim().toLowerCase() ?? '';
+  if (category == 'financial') {
+    return _NotificationKind.financial;
+  }
+  if (category == 'account') {
+    return _NotificationKind.account;
+  }
+
+  final type = item['type']?.toString().trim().toLowerCase() ?? '';
+  if (type == 'financial_transaction') {
+    return _NotificationKind.financial;
+  }
+  if (type == 'account_event' ||
+      type.startsWith('account_') ||
+      type.contains('verification') ||
+      type.contains('password') ||
+      type.contains('profile') ||
+      type.contains('credential') ||
+      type.contains('registration')) {
+    return _NotificationKind.account;
+  }
+
+  return _NotificationKind.general;
+}
+
+bool _isFinancialNotification(Map<String, dynamic> item) =>
+    _notificationKind(item) == _NotificationKind.financial;
+
+bool _isAccountNotification(Map<String, dynamic> item) =>
+    _notificationKind(item) == _NotificationKind.account;
+
+Color _notificationCategoryColor(_NotificationKind kind) {
+  return switch (kind) {
+    _NotificationKind.financial => AppTheme.primary,
+    _NotificationKind.account => AppTheme.secondary,
+    _NotificationKind.general => AppTheme.accent,
+  };
+}
+
+IconData _notificationCategoryIcon(_NotificationKind kind) {
+  return switch (kind) {
+    _NotificationKind.financial => Icons.account_balance_wallet_rounded,
+    _NotificationKind.account => Icons.verified_user_rounded,
+    _NotificationKind.general => Icons.notifications_rounded,
+  };
+}
+
+String _notificationCategoryLabel(BuildContext context, _NotificationKind kind) {
+  return switch (kind) {
+    _NotificationKind.financial =>
+      context.loc.tr('screens_notifications_screen.045'),
+    _NotificationKind.account =>
+      context.loc.tr('screens_notifications_screen.049'),
+    _NotificationKind.general =>
+      context.loc.tr('screens_notifications_screen.046'),
+  };
 }

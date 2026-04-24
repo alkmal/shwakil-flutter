@@ -1946,6 +1946,10 @@ const Map<String, String> appStringsAr = {
       'ستظهر هنا الحركات المالية والتنبيهات الخاصة فور وصولها.',
   'screens_notifications_screen.045': 'مالي',
   'screens_notifications_screen.046': 'عام',
+  'screens_notifications_screen.047': 'إشعارات الحساب',
+  'screens_notifications_screen.048':
+      'ترقيات الحساب والتوثيق والبيانات الأساسية',
+  'screens_notifications_screen.049': 'حساب',
   'screens_transactions_screen.042': 'بحث سريع',
   'screens_transactions_screen.043': 'نطاق زمني',
   'screens_transactions_screen.044': 'نوع العملية',

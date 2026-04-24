@@ -2016,6 +2016,10 @@ const Map<String, String> appStringsEn = {
       'Financial movements and custom alerts will appear here.',
   'screens_notifications_screen.045': 'Financial',
   'screens_notifications_screen.046': 'General',
+  'screens_notifications_screen.047': 'Account notifications',
+  'screens_notifications_screen.048':
+      'Account upgrades, verification, and profile updates',
+  'screens_notifications_screen.049': 'Account',
   'screens_transactions_screen.042': 'Quick search',
   'screens_transactions_screen.043': 'Time range',
   'screens_transactions_screen.044': 'Transaction type',

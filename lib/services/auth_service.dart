@@ -152,6 +152,7 @@ class AuthService {
     required bool termsAccepted,
     String? referralPhone,
   }) async {
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
     final response = await http
         .post(
           AppConfig.apiUri('auth/register'),
@@ -169,6 +170,7 @@ class AuthService {
                 ? null
                 : referralPhone?.trim(),
             'termsAccepted': termsAccepted,
+            'deviceId': deviceId,
           }),
         )
         .timeout(_requestTimeout);
@@ -201,6 +203,7 @@ class AuthService {
     String? otpCode,
     String otpPurpose = 'register',
   }) async {
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
     final response = await http
         .post(
           AppConfig.apiUri('auth/register'),
@@ -219,6 +222,7 @@ class AuthService {
             'pendingRegistrationId': pendingRegistrationId?.trim(),
             'otpCode': otpCode?.trim(),
             'otpPurpose': otpPurpose,
+            'deviceId': deviceId,
           }),
         )
         .timeout(_requestTimeout);

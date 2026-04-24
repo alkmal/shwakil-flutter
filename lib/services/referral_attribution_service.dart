@@ -15,7 +15,7 @@ class ReferralAttributionService {
 
   static Future<void> initialize() async {
     if (kIsWeb) {
-      await _storeReferralFromQuery(Uri.base, source: 'web_query');
+      await _storeReferralFromCurrentWebUrl(source: 'web_query');
       return;
     }
 
@@ -72,6 +72,10 @@ class ReferralAttributionService {
   }
 
   static Future<String?> getPendingReferralCode() async {
+    if (kIsWeb) {
+      await _storeReferralFromCurrentWebUrl(source: 'web_query');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     return _normalizeReferralCode(prefs.getString(_pendingReferralKey));
   }
@@ -92,17 +96,48 @@ class ReferralAttributionService {
     Uri uri, {
     required String source,
   }) async {
-    final code = _normalizeReferralCode(
-      uri.queryParameters['ref'] ??
-          uri.queryParameters['referral'] ??
-          uri.queryParameters['code'] ??
-          uri.queryParameters['referralPhone'],
-    );
+    final code = _extractReferralCode(uri);
     if (code == null) {
       return;
     }
 
     await savePendingReferralCode(code, source: source);
+  }
+
+  static Future<void> _storeReferralFromCurrentWebUrl({
+    required String source,
+  }) async {
+    await _storeReferralFromQuery(Uri.base, source: source);
+  }
+
+  static String? _extractReferralCode(Uri uri) {
+    final directCode = _normalizeReferralCode(
+      uri.queryParameters['ref'] ??
+          uri.queryParameters['referral'] ??
+          uri.queryParameters['code'] ??
+          uri.queryParameters['referralPhone'],
+    );
+    if (directCode != null) {
+      return directCode;
+    }
+
+    final fragment = uri.fragment.trim();
+    if (fragment.isEmpty || !fragment.contains('?')) {
+      return null;
+    }
+
+    final fragmentQuery = fragment.substring(fragment.indexOf('?') + 1);
+    final fragmentUri = Uri.tryParse('https://local.invalid/?$fragmentQuery');
+    if (fragmentUri == null) {
+      return null;
+    }
+
+    return _normalizeReferralCode(
+      fragmentUri.queryParameters['ref'] ??
+          fragmentUri.queryParameters['referral'] ??
+          fragmentUri.queryParameters['code'] ??
+          fragmentUri.queryParameters['referralPhone'],
+    );
   }
 
   static String? _normalizeReferralCode(String? value) {

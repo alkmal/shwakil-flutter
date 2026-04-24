@@ -495,8 +495,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         }
         payload = offlinePayload;
       } else {
+        final hasLocalSecurity = await _hasLocalTransferSecurity();
         final security = await TransferSecurityService.confirmTransfer(
           context,
+          allowOtpFallback: !hasLocalSecurity,
         );
         if (!mounted || !security.isVerified) {
           return;
@@ -530,6 +532,15 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     } finally {
       amountController.dispose();
     }
+  }
+
+  Future<bool> _hasLocalTransferSecurity() async {
+    final hasPin = await LocalSecurityService.hasPin();
+    if (hasPin) {
+      return true;
+    }
+
+    return LocalSecurityService.isBiometricEnabled();
   }
 
   Future<_TemporaryTransferPayload?> _createOfflineTemporaryTransferPayload(
