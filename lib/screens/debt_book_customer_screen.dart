@@ -886,60 +886,85 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      customer['fullName']?.toString() ?? '-',
-                                      style: AppTheme.h3,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      customer['phone']
-                                                  ?.toString()
-                                                  .trim()
-                                                  .isNotEmpty ==
-                                              true
-                                          ? customer['phone'].toString()
-                                          : _t(
-                                              'screens_debt_book_customer_screen.052',
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isCompact = constraints.maxWidth < 720;
+                              return Flex(
+                                direction: isCompact ? Axis.vertical : Axis.horizontal,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: isCompact ? 0 : 1,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          customer['fullName']?.toString() ?? '-',
+                                          style: AppTheme.h3,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        _customerInfoPill(
+                                          icon: Icons.phone_rounded,
+                                          text: customer['phone']
+                                                      ?.toString()
+                                                      .trim()
+                                                      .isNotEmpty ==
+                                                  true
+                                              ? customer['phone'].toString()
+                                              : _t(
+                                                  'screens_debt_book_customer_screen.052',
+                                                ),
+                                        ),
+                                        if ((customer['notes']
+                                                ?.toString()
+                                                .trim()
+                                                .isNotEmpty ??
+                                            false)) ...[
+                                          const SizedBox(height: 12),
+                                          Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(14),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.surfaceVariant,
+                                              borderRadius: BorderRadius.circular(16),
                                             ),
-                                      style: AppTheme.caption,
+                                            child: Text(
+                                              customer['notes'].toString(),
+                                              style: AppTheme.bodyText,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
-                                    if ((customer['notes']
-                                            ?.toString()
-                                            .trim()
-                                            .isNotEmpty ??
-                                        false)) ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        customer['notes'].toString(),
-                                        style: AppTheme.bodyText,
+                                  ),
+                                  SizedBox(
+                                    width: isCompact ? 0 : 12,
+                                    height: isCompact ? 14 : 0,
+                                  ),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    children: [
+                                      ShwakelButton(
+                                        label: _t(
+                                          'screens_debt_book_customer_screen.053',
+                                        ),
+                                        icon: Icons.edit_rounded,
+                                        onPressed: _showEditCustomerDialog,
+                                      ),
+                                      ShwakelButton(
+                                        label: _t(
+                                          'screens_debt_book_customer_screen.054',
+                                        ),
+                                        icon: Icons.delete_outline_rounded,
+                                        isDanger: true,
+                                        onPressed: _deleteCustomer,
                                       ),
                                     ],
-                                  ],
-                                ),
-                              ),
-                              ShwakelButton(
-                                label: _t(
-                                  'screens_debt_book_customer_screen.053',
-                                ),
-                                icon: Icons.edit_rounded,
-                                onPressed: _showEditCustomerDialog,
-                              ),
-                              const SizedBox(width: 8),
-                              ShwakelButton(
-                                label: _t(
-                                  'screens_debt_book_customer_screen.054',
-                                ),
-                                icon: Icons.delete_outline_rounded,
-                                isDanger: true,
-                                onPressed: _deleteCustomer,
-                              ),
-                            ],
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                           if (_customerHasPendingChanges(customer)) ...[
                             const SizedBox(height: 12),
@@ -1207,6 +1232,27 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
           color: AppTheme.warning,
           fontWeight: FontWeight.w700,
         ),
+      ),
+    );
+  }
+
+  Widget _customerInfoPill({
+    required IconData icon,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 8),
+          Flexible(child: Text(text, style: AppTheme.caption)),
+        ],
       ),
     );
   }

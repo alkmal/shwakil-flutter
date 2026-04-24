@@ -12,6 +12,7 @@ import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/tool_toggle_hint.dart';
@@ -697,35 +698,15 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
 
   Future<void> _reject(String requestId) async {
     final l = context.loc;
-    final notesController = TextEditingController();
-    final approved = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.tr('screens_topup_requests_screen.020')),
-        content: TextField(
-          controller: notesController,
-          minLines: 3,
-          maxLines: 5,
-          decoration: InputDecoration(
-            labelText: l.tr('screens_topup_requests_screen.021'),
-            hintText: l.tr('screens_topup_requests_screen.031'),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l.tr('screens_topup_requests_screen.022')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l.tr('screens_topup_requests_screen.023')),
-          ),
-        ],
-      ),
+    final reason = await showRejectionReasonDialog(
+      context,
+      title: l.tr('screens_topup_requests_screen.020'),
+      confirmText: l.tr('screens_topup_requests_screen.023'),
+      labelText: l.tr('screens_topup_requests_screen.021'),
+      hintText: l.tr('screens_topup_requests_screen.031'),
     );
 
-    if (approved != true) {
-      notesController.dispose();
+    if (reason == null) {
       return;
     }
 
@@ -733,7 +714,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     try {
       final response = await _apiService.rejectPendingTopupRequest(
         requestId,
-        notes: notesController.text.trim(),
+        notes: reason,
       );
       if (!mounted) {
         return;
@@ -753,7 +734,6 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         );
       }
     } finally {
-      notesController.dispose();
       if (mounted) {
         setState(() => _busyId = null);
       }

@@ -12,6 +12,7 @@ import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/tool_toggle_hint.dart';
@@ -689,35 +690,15 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
 
   Future<void> _reject(String requestId) async {
     final l = context.loc;
-    final notesController = TextEditingController();
-    final approved = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.tr('screens_withdrawal_requests_screen.021')),
-        content: TextField(
-          controller: notesController,
-          minLines: 3,
-          maxLines: 5,
-          decoration: InputDecoration(
-            labelText: l.tr('screens_withdrawal_requests_screen.022'),
-            hintText: l.tr('screens_withdrawal_requests_screen.028'),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l.tr('screens_withdrawal_requests_screen.023')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l.tr('screens_withdrawal_requests_screen.024')),
-          ),
-        ],
-      ),
+    final reason = await showRejectionReasonDialog(
+      context,
+      title: l.tr('screens_withdrawal_requests_screen.021'),
+      confirmText: l.tr('screens_withdrawal_requests_screen.024'),
+      labelText: l.tr('screens_withdrawal_requests_screen.022'),
+      hintText: l.tr('screens_withdrawal_requests_screen.028'),
     );
 
-    if (approved != true) {
-      notesController.dispose();
+    if (reason == null) {
       return;
     }
 
@@ -725,7 +706,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     try {
       final response = await _apiService.rejectPendingWithdrawalRequest(
         requestId,
-        notes: notesController.text,
+        notes: reason,
       );
       if (!mounted) {
         return;
@@ -745,7 +726,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         );
       }
     } finally {
-      notesController.dispose();
       if (mounted) {
         setState(() => _busyId = null);
       }

@@ -47,6 +47,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
       const AdminPendingRegistrationsScreen(),
   '/admin-device-requests': (context) => const AdminDeviceRequestsScreen(),
   '/admin-locations': (context) => const AdminLocationsScreen(),
+  '/admin-notifications': (context) => const AdminNotificationsScreen(),
   '/admin-system-settings': (context) => const AdminSystemSettingsScreen(),
   '/admin-permissions': (context) => const AdminPermissionsScreen(),
   '/withdrawal-requests': (context) => const WithdrawalRequestsScreen(),
@@ -65,10 +66,7 @@ Route<dynamic> _buildNamedRoute(RouteSettings settings) {
   final builder = _appRoutes[resolvedName] ?? _appRoutes['/app-shell']!;
 
   return MaterialPageRoute<void>(
-    settings: RouteSettings(
-      name: resolvedName,
-      arguments: settings.arguments,
-    ),
+    settings: RouteSettings(name: resolvedName, arguments: settings.arguments),
     builder: builder,
   );
 }

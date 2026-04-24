@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -46,7 +47,8 @@ class _AdminPendingRegistrationsScreenState
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
-      if (!permissions.canManageUsers) {
+      if (!permissions.canManageUsers &&
+          !permissions.canManageMarketingAccounts) {
         if (!mounted) {
           return;
         }
@@ -123,28 +125,14 @@ class _AdminPendingRegistrationsScreenState
     if (requestId.isEmpty) {
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.tr('screens_admin_pending_registrations_screen.008')),
-        content: Text(
-          l.tr('screens_admin_pending_registrations_screen.009'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l.tr('screens_admin_pending_registrations_screen.010')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
-            child: Text(l.tr('screens_admin_pending_registrations_screen.011')),
-          ),
-        ],
-      ),
+
+    final reason = await showRejectionReasonDialog(
+      context,
+      title: l.tr('screens_admin_pending_registrations_screen.008'),
+      confirmText: l.tr('shared.confirm_rejection'),
     );
 
-    if (confirmed != true) {
+    if (reason == null) {
       return;
     }
 
@@ -152,6 +140,7 @@ class _AdminPendingRegistrationsScreenState
     try {
       final response = await _apiService.rejectPendingRegistrationRequest(
         requestId,
+        reason: reason,
       );
       if (!mounted) {
         return;

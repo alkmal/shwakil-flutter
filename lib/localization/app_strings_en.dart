@@ -1434,6 +1434,9 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.063': 'Visibility type',
   'screens_create_card_screen.064': 'Single-card value',
   'screens_create_card_screen.065': 'Reprint batch',
+  'screens_create_card_screen.066': 'Issue',
+  'screens_create_card_screen.067': 'Customize',
+  'screens_create_card_screen.068': 'Latest batch',
   'screens_contact_us_screen.001': 'Support WhatsApp',
   'screens_contact_us_screen.002': 'Official email',
   'screens_contact_us_screen.003': 'Head office',
@@ -1594,6 +1597,7 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.115':
       'Start by scanning the code or entering it manually',
   'screens_scan_card_screen.116': 'The result will appear here when available',
+  'screens_scan_card_screen.117': 'Open debt book',
   'screens_admin_dashboard_screen.020':
       'You do not have access to the admin dashboard',
   'screens_admin_dashboard_screen.021': 'Requests',
@@ -1991,6 +1995,15 @@ const Map<String, String> appStringsEn = {
   'screens_quick_transfer_screen.037': 'Quick receive',
   'screens_debt_book_screen.047': 'Customers',
   'screens_debt_book_screen.048': 'Summary',
+  'screens_debt_book_screen.050': 'Visible customers: {count}',
+  'screens_debt_book_screen.051': 'Hide search',
+  'screens_debt_book_screen.052': 'Show search',
+  'screens_debt_book_screen.053': 'Hide filters',
+  'screens_debt_book_screen.054': 'Show filters',
+  'screens_debt_book_screen.055': 'Hide messages',
+  'screens_debt_book_screen.056': 'Show messages',
+  'screens_debt_book_screen.057': 'Pending sync operations: {count}',
+  'screens_debt_book_screen.058': 'Back to card scan',
   'screens_notifications_screen.027': 'Unread',
   'screens_notifications_screen.028': 'Notifications that need follow-up',
   'screens_notifications_screen.029': 'Financial notifications',
@@ -2028,6 +2041,11 @@ const Map<String, String> appStringsEn = {
   'screens_notifications_screen.055': 'Card print request',
   'screens_notifications_screen.056': 'Local issue',
   'screens_notifications_screen.057': 'App',
+  'screens_notifications_screen.058': 'From admin: {name}',
+  'screens_notifications_screen.059': 'Open details',
+  'screens_notifications_screen.060': 'Important',
+  'screens_notifications_screen.061': 'Urgent',
+  'screens_notifications_screen.062': 'Normal',
   'screens_transactions_screen.042': 'Quick search',
   'screens_transactions_screen.043': 'Time range',
   'screens_transactions_screen.044': 'Transaction type',
@@ -2054,6 +2072,9 @@ const Map<String, String> appStringsEn = {
   'screens_quick_transfer_screen.045': 'Scan the transfer code',
   'screens_quick_transfer_screen.046':
       'Read the code directly to identify the recipient and move quickly to execution.',
+  'screens_quick_transfer_screen.047': 'Processing transfer',
+  'screens_quick_transfer_screen.048':
+      'Please wait while the transfer is confirmed and the balance is updated.',
   'screens_sub_users_screen.052': 'Back to add mode',
   'screens_sub_users_screen.053': 'Saving...',
   'screens_sub_users_screen.054': 'Save changes',
@@ -2221,6 +2242,61 @@ const Map<String, String> appStringsEn = {
       'You can resend after {seconds} seconds',
   'widgets_app_sidebar.041': 'Affiliate marketing',
   'widgets_app_sidebar.042': 'Registration requests',
+  'widgets_app_sidebar.043': 'Send notifications',
+  'screens_admin_notifications_screen.001': 'Could not load notifications',
+  'screens_admin_notifications_screen.002': 'Send notifications',
+  'screens_admin_notifications_screen.003': 'New notification',
+  'screens_admin_notifications_screen.004': 'Targeting',
+  'screens_admin_notifications_screen.005': 'Notification category',
+  'screens_admin_notifications_screen.006': 'Notification status/type',
+  'screens_admin_notifications_screen.007': 'Priority',
+  'screens_admin_notifications_screen.010': 'All users',
+  'screens_admin_notifications_screen.011': 'Specific account',
+  'screens_admin_notifications_screen.012': 'Membership type',
+  'screens_admin_notifications_screen.013': 'Verification status',
+  'screens_admin_notifications_screen.014': 'Specific permission',
+  'screens_admin_notifications_screen.015': 'General',
+  'screens_admin_notifications_screen.016': 'Account',
+  'screens_admin_notifications_screen.017': 'Financial',
+  'screens_admin_notifications_screen.018': 'Cards',
+  'screens_admin_notifications_screen.019': 'Security',
+  'screens_admin_notifications_screen.020': 'Custom admin notification',
+  'screens_admin_notifications_screen.021': 'Account alert',
+  'screens_admin_notifications_screen.022': 'Card alert',
+  'screens_admin_notifications_screen.023': 'Financial alert',
+  'screens_admin_notifications_screen.024': 'Security alert',
+  'screens_admin_notifications_screen.025': 'Maintenance alert',
+  'screens_admin_notifications_screen.026': 'Normal',
+  'screens_admin_notifications_screen.027': 'Important',
+  'screens_admin_notifications_screen.028': 'Urgent',
+  'screens_admin_notifications_screen.029': 'Account search',
+  'screens_admin_notifications_screen.030': 'Targeting is incomplete',
+  'screens_admin_notifications_screen.031':
+      'Please choose the required target.',
+  'screens_admin_notifications_screen.032': 'Notification sent',
+  'screens_admin_notifications_screen.033':
+      'The notification reached {count} users.',
+  'screens_admin_notifications_screen.034': 'Could not send notification',
+  'screens_admin_notifications_screen.035':
+      'You do not have permission to send admin notifications.',
+  'screens_admin_notifications_screen.036': 'Notification title',
+  'screens_admin_notifications_screen.037': 'Enter a notification title.',
+  'screens_admin_notifications_screen.038': 'Message body',
+  'screens_admin_notifications_screen.039': 'Enter the message body.',
+  'screens_admin_notifications_screen.040': 'Additional details',
+  'screens_admin_notifications_screen.041': 'Action route',
+  'screens_admin_notifications_screen.042': 'Action button label',
+  'screens_admin_notifications_screen.043': 'Sending',
+  'screens_admin_notifications_screen.044': 'Send notification',
+  'screens_admin_notifications_screen.045': 'Search by name or username',
+  'screens_admin_notifications_screen.046': 'Target value',
+  'screens_admin_notifications_screen.047': 'Notification title appears here',
+  'screens_admin_notifications_screen.048':
+      'The full notification message appears here.',
+  'screens_admin_notifications_screen.049': 'Preview',
+  'screens_admin_notifications_screen.050': 'Recent sent notifications',
+  'screens_admin_notifications_screen.051':
+      'No admin notifications have been sent yet.',
   'screens_home_screen.082': 'Affiliate marketing',
   'screens_home_screen.083':
       'Track your referrals and rewards, and share your referral details.',
@@ -2249,6 +2325,12 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.122': 'Account type',
   'screens_balance_screen.123':
       'A quick summary of your available balances and account requirements.',
+  'screens_balance_screen.124':
+      'The received amount and transfer details will be reviewed before the balance is approved to your account.',
+  'screens_balance_screen.125':
+      'After approval, the balance will be added directly to your account with a suitable in-app notification.',
+  'screens_balance_screen.126': 'Choose date',
+  'screens_balance_screen.127': 'Choose time',
   'screens_admin_pending_registrations_screen.001':
       'Search by name, username, or phone',
   'screens_admin_pending_registrations_screen.002':
@@ -2420,9 +2502,37 @@ const Map<String, String> appStringsEn = {
   'shared.delivery_card_print_note':
       'Delivery cards are non-financial and are printed for drivers with a clear delivery label.',
   'shared.usage_label': 'Usage',
+  'shared.role_marketer': 'Marketer',
+  'shared.rejection_reason_label': 'Rejection reason',
+  'shared.rejection_reason_hint': 'Write a clear reason for the rejection.',
+  'shared.rejection_reason_required':
+      'A rejection reason is required before you continue.',
+  'shared.confirm_rejection': 'Confirm rejection',
   'shared.role_driver': 'Driver',
   'shared.role_verified_member': 'Merchant',
   'shared.role_advanced_member': 'Merchant',
+  'screens_balance_screen.108': 'Top-up details',
+  'screens_balance_screen.109': 'Withdrawal destination',
+  'screens_balance_screen.110': 'Amount details',
+  'screens_inventory_screen.019':
+      'Use this screen to review available cards, search through them, and print matching results when needed.',
+  'screens_quick_transfer_screen.044':
+      'Point the camera at the barcode or QR code to read the transfer data directly.',
+  'screens_affiliate_center_screen.036': 'Access unavailable',
+  'screens_affiliate_center_screen.037':
+      'This account does not have permission to open the affiliate center.',
+  'screens_admin_customer_screen.079':
+      'The marketer debt cap is applied automatically from the marketing settings.',
+  'screens_admin_customer_screen.080':
+      'Marketers cannot edit admin, support, or marketer accounts.',
+  'screens_admin_system_settings_screen.073':
+      'Marketer printing debt cap',
+  'screens_admin_system_settings_screen.074':
+      'This cap controls the maximum printing debt a marketer can grant to a user.',
+  'screens_admin_permissions_screen.048': 'View affiliate center',
+  'screens_admin_permissions_screen.049':
+      'Manage account activation and type for marketers',
+  'screens_admin_permissions_screen.050': 'View private cards',
   'account_verification.requested_role_label': 'Requested account type',
   'account_verification.rejection_reason_label': 'Rejection reason',
   'account_verification.post_verification_role': 'Account type',

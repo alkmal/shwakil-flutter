@@ -19,11 +19,13 @@ class AdminCustomerScreen extends StatefulWidget {
     required this.customer,
     this.canExport = false,
     this.canManageUsers = false,
+    this.canManageMarketingAccounts = false,
   });
 
   final Map<String, dynamic> customer;
   final bool canExport;
   final bool canManageUsers;
+  final bool canManageMarketingAccounts;
 
   @override
   State<AdminCustomerScreen> createState() => _AdminCustomerScreenState();
@@ -51,6 +53,17 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   static const _perPage = 10;
   AdminTransactionAuditFilter _auditFilter = AdminTransactionAuditFilter.all;
   bool _showTransactionFilters = false;
+
+  bool get _canManageAccountControls =>
+      widget.canManageUsers || widget.canManageMarketingAccounts;
+
+  bool get _isMarketingManagerOnly =>
+      widget.canManageMarketingAccounts && !widget.canManageUsers;
+
+  bool get _isStaffAccount {
+    final role = _customer['role']?.toString().trim().toLowerCase() ?? '';
+    return role == 'admin' || role == 'support' || role == 'marketer';
+  }
 
   @override
   void initState() {
@@ -119,7 +132,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 : 'all');
       final results = await Future.wait([
         _api.getAdminCustomerTransactions(id, locationFilter: filter),
-        _api.getAdminUserDevices(id),
+        widget.canManageUsers
+            ? _api.getAdminUserDevices(id)
+            : Future.value(const <String, dynamic>{'devices': []}),
       ]);
       if (!mounted) return;
       final txData = results[0];
@@ -131,9 +146,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         _transactions = List<Map<String, dynamic>>.from(
           txData['transactions'] as List? ?? [],
         );
-        _devices = List<Map<String, dynamic>>.from(
-          dvData['devices'] as List? ?? [],
-        );
+        _devices = widget.canManageUsers
+            ? List<Map<String, dynamic>>.from(
+                dvData['devices'] as List? ?? [],
+              )
+            : const [];
         _txPage = 1;
         _syncFields();
         _firstLoad = false;
@@ -154,6 +171,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _updateAccount() async {
+    if (!_canManageAccountControls) {
+      return;
+    }
+
     setState(() => _busy = true);
     try {
       final payload = await _api.updateAdminUserAccountControls(
@@ -242,8 +263,41 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     if (_firstLoad) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    final tabs = <Tab>[
+      Tab(
+        text: _t('screens_admin_customer_screen.007'),
+        icon: const Icon(Icons.info_outline_rounded, size: 20),
+      ),
+      Tab(
+        text: _t('screens_admin_customer_screen.008'),
+        icon: const Icon(Icons.receipt_long_rounded, size: 20),
+      ),
+      if (_canManageAccountControls)
+        Tab(
+          text: _t('screens_admin_customer_screen.009'),
+          icon: const Icon(Icons.manage_accounts_rounded, size: 20),
+        ),
+      if (widget.canManageUsers)
+        Tab(
+          text: _t('screens_admin_customer_screen.010'),
+          icon: const Icon(Icons.security_rounded, size: 20),
+        ),
+      if (widget.canManageUsers)
+        Tab(
+          text: _t('screens_admin_customer_screen.011'),
+          icon: const Icon(Icons.devices_rounded, size: 20),
+        ),
+    ];
+    final views = <Widget>[
+      _buildOverviewTab(),
+      _buildTransactionsTab(),
+      if (_canManageAccountControls) _buildManagementTab(),
+      if (widget.canManageUsers) _buildPermissionsTab(),
+      if (widget.canManageUsers) _buildDevicesTab(),
+    ];
+
     return DefaultTabController(
-      length: 5,
+      length: tabs.length,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -280,42 +334,13 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: const EdgeInsets.all(6),
                   labelPadding: const EdgeInsets.symmetric(horizontal: 14),
-                  tabs: [
-                    Tab(
-                      text: _t('screens_admin_customer_screen.007'),
-                      icon: const Icon(Icons.info_outline_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: _t('screens_admin_customer_screen.008'),
-                      icon: const Icon(Icons.receipt_long_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: _t('screens_admin_customer_screen.009'),
-                      icon: const Icon(Icons.manage_accounts_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: _t('screens_admin_customer_screen.010'),
-                      icon: const Icon(Icons.security_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: _t('screens_admin_customer_screen.011'),
-                      icon: const Icon(Icons.devices_rounded, size: 20),
-                    ),
-                  ],
+                  tabs: tabs,
                 ),
               ),
             ),
           ),
         ),
-        body: TabBarView(
-          children: [
-            _buildOverviewTab(),
-            _buildTransactionsTab(),
-            _buildManagementTab(),
-            _buildPermissionsTab(),
-            _buildDevicesTab(),
-          ],
-        ),
+        body: TabBarView(children: views),
       ),
     );
   }
@@ -587,6 +612,65 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _buildManagementTab() {
+    if (_isMarketingManagerOnly && _isStaffAccount) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: ResponsiveScaffoldContainer(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _t('screens_admin_customer_screen.028'),
+                  style: AppTheme.h3,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _t('screens_admin_customer_screen.080'),
+                  style: AppTheme.bodyAction,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final roleOptions = <DropdownMenuItem<String>>[
+      DropdownMenuItem(
+        value: 'restricted',
+        child: Text(_t('screens_admin_customer_screen.030')),
+      ),
+      DropdownMenuItem(
+        value: 'basic',
+        child: Text(_t('screens_admin_customer_screen.038')),
+      ),
+      DropdownMenuItem(
+        value: 'driver',
+        child: Text(_t('shared.role_driver')),
+      ),
+      DropdownMenuItem(
+        value: 'verified_member',
+        child: Text(_t('screens_admin_customer_screen.031')),
+      ),
+      if (widget.canManageUsers)
+        DropdownMenuItem(
+          value: 'marketer',
+          child: Text(_t('shared.role_marketer')),
+        ),
+      if (widget.canManageUsers)
+        DropdownMenuItem(
+          value: 'support',
+          child: Text(_t('screens_admin_customer_screen.039')),
+        ),
+      if (widget.canManageUsers)
+        DropdownMenuItem(
+          value: 'admin',
+          child: Text(_t('screens_admin_customer_screen.040')),
+        ),
+    ];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: ResponsiveScaffoldContainer(
@@ -602,63 +686,54 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     style: AppTheme.h3,
                   ),
                   const SizedBox(height: 24),
-                  DropdownButtonFormField<String>(
-                    initialValue: _verification,
-                    decoration: InputDecoration(
-                      labelText: _t('screens_admin_customer_screen.029'),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(_t('screens_admin_customer_screen.014')),
+                    subtitle: Text(
+                      _customer['isDisabled'] == true
+                          ? _t('screens_admin_customer_screen.015')
+                          : _t('screens_admin_customer_screen.016'),
                     ),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'unverified',
-                        child: Text(_t('screens_admin_customer_screen.033')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'pending',
-                        child: Text(_t('screens_admin_customer_screen.034')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'approved',
-                        child: Text(_t('screens_admin_customer_screen.035')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'rejected',
-                        child: Text(_t('screens_admin_customer_screen.036')),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _verification = v!),
+                    value: _customer['isDisabled'] != true,
+                    onChanged: (value) => setState(
+                      () => _customer['isDisabled'] = !value,
+                    ),
                   ),
                   const SizedBox(height: 16),
+                  if (widget.canManageUsers) ...[
+                    DropdownButtonFormField<String>(
+                      initialValue: _verification,
+                      decoration: InputDecoration(
+                        labelText: _t('screens_admin_customer_screen.029'),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'unverified',
+                          child: Text(_t('screens_admin_customer_screen.033')),
+                        ),
+                        DropdownMenuItem(
+                          value: 'pending',
+                          child: Text(_t('screens_admin_customer_screen.034')),
+                        ),
+                        DropdownMenuItem(
+                          value: 'approved',
+                          child: Text(_t('screens_admin_customer_screen.035')),
+                        ),
+                        DropdownMenuItem(
+                          value: 'rejected',
+                          child: Text(_t('screens_admin_customer_screen.036')),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _verification = v!),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   DropdownButtonFormField<String>(
                     initialValue: _role,
                     decoration: InputDecoration(
                       labelText: _t('screens_admin_customer_screen.037'),
                     ),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'restricted',
-                        child: Text(_t('screens_admin_customer_screen.030')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'basic',
-                        child: Text(_t('screens_admin_customer_screen.038')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'driver',
-                        child: Text(_t('shared.role_driver')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'verified_member',
-                        child: Text(_t('screens_admin_customer_screen.031')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'support',
-                        child: Text(_t('screens_admin_customer_screen.039')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'admin',
-                        child: Text(_t('screens_admin_customer_screen.040')),
-                      ),
-                    ],
+                    items: roleOptions,
                     onChanged: (v) => setState(() => _role = v!),
                   ),
                   const SizedBox(height: 16),
@@ -669,13 +744,24 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       suffixText: '₪',
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  Text(
-                    _t('screens_admin_customer_screen.042'),
-                    style: AppTheme.bodyBold,
-                  ),
-                  const SizedBox(height: 16),
-                  _feeGrid(),
+                  if (_isMarketingManagerOnly) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _t('screens_admin_customer_screen.079'),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                  if (widget.canManageUsers) ...[
+                    const SizedBox(height: 32),
+                    Text(
+                      _t('screens_admin_customer_screen.042'),
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 16),
+                    _feeGrid(),
+                  ],
                   const SizedBox(height: 40),
                   ShwakelButton(
                     label: _t('screens_admin_customer_screen.043'),

@@ -53,6 +53,7 @@ class AdminCustomerCard extends StatelessWidget {
       'driver' => l.tr('shared.role_driver'),
       'verified_member' => l.tr('shared.role_verified_member'),
       'advanced_member' => l.tr('shared.role_verified_member'),
+      'marketer' => l.tr('shared.role_marketer'),
       'support' => 'دعم',
       'admin' => 'إداري',
       'basic' => 'أساسي',

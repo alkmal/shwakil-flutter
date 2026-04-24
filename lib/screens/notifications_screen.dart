@@ -303,9 +303,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final financialCount = _notifications
         .where(_isFinancialNotification)
         .length;
-    final accountCount = _notifications
-        .where(_isAccountNotification)
-        .length;
+    final accountCount = _notifications.where(_isAccountNotification).length;
     final readCount = _notifications
         .where((item) => item['isRead'] == true)
         .length;
@@ -608,8 +606,6 @@ class _NotificationCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             item['body']?.toString() ?? '',
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
             style: AppTheme.bodyAction.copyWith(height: 1.5),
           ),
           const SizedBox(height: 12),
@@ -661,6 +657,14 @@ class _NotificationDetailsSheet extends StatelessWidget {
     final amount = (data['amount'] as num?)?.toDouble();
     final fee = (data['fee'] as num?)?.toDouble();
     final description = data['description']?.toString() ?? '';
+    final details = data['details']?.toString().trim() ?? '';
+    final sentBy =
+        data['sentByDisplayName']?.toString().trim().isNotEmpty == true
+        ? data['sentByDisplayName'].toString().trim()
+        : data['sentByUsername']?.toString().trim() ?? '';
+    final priority = data['priority']?.toString().trim() ?? '';
+    final actionRoute = data['actionRoute']?.toString().trim() ?? '';
+    final actionLabel = data['actionLabel']?.toString().trim() ?? '';
     final type =
         data['transactionType']?.toString() ?? item['type']?.toString() ?? '';
 
@@ -709,11 +713,46 @@ class _NotificationDetailsSheet extends StatelessWidget {
                     type,
                     includeCardBarcode: true,
                   ),
+                  if (sentBy.isNotEmpty)
+                    _InfoChip(
+                      icon: Icons.campaign_rounded,
+                      label: context.loc.tr(
+                        'screens_notifications_screen.058',
+                        params: {'name': sentBy},
+                      ),
+                    ),
+                  if (priority.isNotEmpty)
+                    _InfoChip(
+                      icon: Icons.priority_high_rounded,
+                      label: _notificationPriorityLabel(context, priority),
+                    ),
                 ],
               ),
               if (description.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(description, style: AppTheme.bodyAction),
+              ],
+              if (details.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(details, style: AppTheme.bodyAction.copyWith(height: 1.5)),
+              ],
+              if (actionRoute.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, actionRoute);
+                    },
+                    icon: const Icon(Icons.open_in_new_rounded),
+                    label: Text(
+                      actionLabel.isEmpty
+                          ? context.loc.tr('screens_notifications_screen.059')
+                          : actionLabel,
+                    ),
+                  ),
+                ),
               ],
               const SizedBox(height: 18),
               SizedBox(
@@ -876,14 +915,28 @@ IconData _notificationCategoryIcon(_NotificationKind kind) {
   };
 }
 
-String _notificationCategoryLabel(BuildContext context, _NotificationKind kind) {
+String _notificationCategoryLabel(
+  BuildContext context,
+  _NotificationKind kind,
+) {
   return switch (kind) {
-    _NotificationKind.financial =>
-      context.loc.tr('screens_notifications_screen.045'),
-    _NotificationKind.account =>
-      context.loc.tr('screens_notifications_screen.049'),
-    _NotificationKind.general =>
-      context.loc.tr('screens_notifications_screen.046'),
+    _NotificationKind.financial => context.loc.tr(
+      'screens_notifications_screen.045',
+    ),
+    _NotificationKind.account => context.loc.tr(
+      'screens_notifications_screen.049',
+    ),
+    _NotificationKind.general => context.loc.tr(
+      'screens_notifications_screen.046',
+    ),
+  };
+}
+
+String _notificationPriorityLabel(BuildContext context, String priority) {
+  return switch (priority) {
+    'urgent' => context.loc.tr('screens_notifications_screen.061'),
+    'important' => context.loc.tr('screens_notifications_screen.060'),
+    _ => context.loc.tr('screens_notifications_screen.062'),
   };
 }
 
@@ -1035,10 +1088,9 @@ String? _cardSourceLabel(BuildContext context, Map<String, dynamic> data) {
   }
 
   return switch (sourceType) {
-    'card_print_request' =>
-      context.loc.tr('screens_notifications_screen.055'),
-    'local' || 'issued_cards' =>
-      context.loc.tr('screens_notifications_screen.056'),
+    'card_print_request' => context.loc.tr('screens_notifications_screen.055'),
+    'local' ||
+    'issued_cards' => context.loc.tr('screens_notifications_screen.056'),
     'app' => context.loc.tr('screens_notifications_screen.057'),
     _ => sourceType,
   };

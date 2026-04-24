@@ -6,6 +6,7 @@ import '../utils/app_theme.dart';
 import '../widgets/admin/admin_device_request_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -71,11 +72,25 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
   }
 
   Future<void> _handle(Map<String, dynamic> request, bool approve) async {
+    String notes = '';
+    if (!approve) {
+      final reason = await showRejectionReasonDialog(
+        context,
+        title: context.loc.tr('shared.rejection_reason_label'),
+        confirmText: context.loc.tr('shared.confirm_rejection'),
+      );
+      if (reason == null) {
+        return;
+      }
+      notes = reason;
+    }
+
     setState(() => _busyId = request['id']?.toString());
     try {
       await _apiService.reviewDeviceAccessRequest(
         request['id'].toString(),
         approve: approve,
+        notes: notes,
       );
       await _load();
     } catch (error) {

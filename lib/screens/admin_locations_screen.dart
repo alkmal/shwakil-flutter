@@ -6,6 +6,7 @@ import '../utils/app_theme.dart';
 import '../widgets/admin/admin_location_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -316,10 +317,20 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
 
   Future<void> _rejectLocation(Map<String, dynamic> location) async {
     final l = context.loc;
+    final reason = await showRejectionReasonDialog(
+      context,
+      title: l.tr('shared.rejection_reason_label'),
+      confirmText: l.tr('shared.confirm_rejection'),
+    );
+    if (reason == null) {
+      return;
+    }
+
     setState(() => _busyId = location['id']?.toString());
     try {
       final data = await _apiService.rejectAdminSupportedLocation(
         location['id'].toString(),
+        reason: reason,
       );
       if (!mounted) {
         return;

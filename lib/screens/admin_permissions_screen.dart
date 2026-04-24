@@ -30,17 +30,17 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     {
       'titleKey': 'public_pages',
       'keys':
-          'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canViewContact,canViewLocations,canViewUsagePolicy,canViewSecuritySettings,canViewAccountSettings,canRequestVerification',
+          'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canViewContact,canViewLocations,canViewUsagePolicy,canViewSecuritySettings,canViewAccountSettings,canRequestVerification,canViewAffiliateCenter',
     },
     {
       'titleKey': 'cards_and_ops',
       'keys':
-          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canDeleteCards,canResellCards,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
+          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canViewPrivateCards,canDeleteCards,canResellCards,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
     },
     {
       'titleKey': 'admin_followup',
       'keys':
-          'canViewCustomers,canLookupMembers,canManageUsers,canViewSubUsers,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canManageCardPrintRequests,canExportCustomerTransactions',
+          'canViewCustomers,canLookupMembers,canManageUsers,canManageMarketingAccounts,canViewSubUsers,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canManageCardPrintRequests,canExportCustomerTransactions',
     },
   ];
 
@@ -284,10 +284,12 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canViewSecuritySettings' => l.tr('screens_admin_permissions_screen.016'),
       'canViewAccountSettings' => l.tr('screens_admin_permissions_screen.017'),
       'canRequestVerification' => l.tr('screens_admin_permissions_screen.018'),
+      'canViewAffiliateCenter' => l.tr('screens_admin_permissions_screen.048'),
       'canIssueCards' => l.tr('screens_admin_permissions_screen.019'),
       'canIssueSubShekelCards' => l.tr('screens_admin_permissions_screen.020'),
       'canIssueHighValueCards' => l.tr('screens_admin_permissions_screen.021'),
       'canIssuePrivateCards' => l.tr('screens_admin_permissions_screen.022'),
+      'canViewPrivateCards' => l.tr('screens_admin_permissions_screen.050'),
       'canDeleteCards' => l.tr('screens_admin_permissions_screen.023'),
       'canResellCards' => l.tr('screens_admin_permissions_screen.024'),
       'canRequestCardPrinting' => l.tr('screens_admin_permissions_screen.025'),
@@ -298,6 +300,9 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),
       'canLookupMembers' => l.tr('screens_admin_permissions_screen.030'),
       'canManageUsers' => l.tr('screens_admin_permissions_screen.031'),
+      'canManageMarketingAccounts' => l.tr(
+        'screens_admin_permissions_screen.049',
+      ),
       'canViewSubUsers' => l.tr('screens_admin_permissions_screen.047'),
       'canManageSubUsers' => l.tr('screens_admin_permissions_screen.043'),
       'canManageLocations' => l.tr('screens_admin_permissions_screen.032'),

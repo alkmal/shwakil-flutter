@@ -990,6 +990,7 @@ class ApiService {
     required bool enabled,
     required double rewardAmount,
     required double firstTopupMinAmount,
+    required double marketerDebtLimit,
   }) async {
     final response = await http.put(
       AppConfig.apiUri('admin/settings/affiliate'),
@@ -998,6 +999,7 @@ class ApiService {
         'enabled': enabled,
         'rewardAmount': rewardAmount,
         'firstTopupMinAmount': firstTopupMinAmount,
+        'marketerDebtLimit': marketerDebtLimit,
       }),
     );
     return _decodeObject(response);
@@ -1163,11 +1165,13 @@ class ApiService {
     required bool enabled,
     required double rewardAmount,
     required double firstTopupMinAmount,
+    required double marketerDebtLimit,
   }) {
     return updateAdminAffiliateSettings(
       enabled: enabled,
       rewardAmount: rewardAmount,
       firstTopupMinAmount: firstTopupMinAmount,
+      marketerDebtLimit: marketerDebtLimit,
     );
   }
 
@@ -1432,11 +1436,13 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> rejectPendingRegistrationRequest(
-    String requestId,
-  ) async {
+    String requestId, {
+    String reason = '',
+  }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/registrations/$requestId/reject'),
       headers: await _headers(),
+      body: jsonEncode({'rejectionReason': reason.trim()}),
     );
     return _decodeObject(response);
   }
@@ -1818,6 +1824,45 @@ class ApiService {
         'perPage': perPage.toString(),
       }),
       headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminNotificationComposer() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/notifications'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> sendAdminNotification({
+    required String targetType,
+    String targetValue = '',
+    required String category,
+    required String notificationType,
+    required String priority,
+    required String title,
+    required String body,
+    String details = '',
+    String actionRoute = '',
+    String actionLabel = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/notifications'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'targetType': targetType,
+        'targetValue': targetValue,
+        'category': category,
+        'notificationType': notificationType,
+        'priority': priority,
+        'title': title.trim(),
+        'body': body.trim(),
+        if (details.trim().isNotEmpty) 'details': details.trim(),
+        if (actionRoute.trim().isNotEmpty) 'actionRoute': actionRoute.trim(),
+        if (actionLabel.trim().isNotEmpty) 'actionLabel': actionLabel.trim(),
+      }),
     );
     return _decodeObject(response);
   }
