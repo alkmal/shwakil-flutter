@@ -1065,7 +1065,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
             child: Icon(
               icon,
               size: 20,
-              color: highlighted ? AppTheme.primary : AppTheme.textMuted,
+              color: highlighted ? AppTheme.primary : AppTheme.textSecondary,
             ),
           ),
         ),
