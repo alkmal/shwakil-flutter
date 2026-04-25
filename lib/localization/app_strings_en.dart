@@ -2337,10 +2337,10 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.094':
       'This balance updates automatically when financial activity and notifications arrive.',
   'screens_home_screen.095': 'Hideable',
-  'screens_home_screen.096': 'Hide welcome card',
+  'screens_home_screen.096': 'Hide balance',
   'screens_home_screen.097': 'Welcome card is hidden',
   'screens_home_screen.098': 'You can show it again any time from here.',
-  'screens_home_screen.099': 'Show card',
+  'screens_home_screen.099': 'Show balance',
   'screens_balance_screen.111': 'Quick actions',
   'screens_balance_screen.112': 'Recent transactions',
   'screens_balance_screen.113': 'Recent transactions',

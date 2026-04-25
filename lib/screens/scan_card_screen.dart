@@ -33,7 +33,7 @@ class ScanCardScreen extends StatefulWidget {
 
   @override
   State<ScanCardScreen> createState() => _ScanCardScreenState();
-}
+} 
 
 class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   final TextEditingController _bcC = TextEditingController();
@@ -1056,30 +1056,33 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final isUsed = card.status == CardStatus.used;
     final permissions = AppPermissions.fromUser(_user);
     final canRedeemCards = permissions.canRedeemCards && !isUsed;
+    final canResellCards = !widget.offlineMode && permissions.canResellCards && isUsed;
 
     return BarcodeScannerDialogResult(
-      headline: isUsed
-          ? _t('screens_scan_card_screen.015')
-          : _t('screens_scan_card_screen.084'),
-      description: isUsed
-          ? _t('screens_scan_card_screen.085')
-          : _t('screens_scan_card_screen.086'),
+      headline: '',
+      description: '',
       color: _cardAccent(card),
       icon: isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
       customContent: _buildCardScannerResultContent(card),
       primaryActionLabel: canRedeemCards
           ? _t('screens_scan_card_screen.087')
-          : null,
-      primaryActionIcon: Icons.download_done_rounded,
+          : (canResellCards ? _t('screens_scan_card_screen.011') : null),
+      primaryActionIcon: canRedeemCards
+          ? Icons.download_done_rounded
+          : (canResellCards ? Icons.autorenew_rounded : null),
       onPrimaryAction: canRedeemCards
           ? () async {
-              final success = await _redeemCard(card, showFeedback: false);
-              if (!success) {
-                return _resolveScannerDialogResult(card.barcode);
-              }
+              await _redeemCard(card, showFeedback: false);
               return _resolveScannerDialogResult(card.barcode);
             }
-          : null,
+          : (canResellCards
+                ? () async {
+                    await _resellCardFromScannerResult(card);
+                    return _resolveScannerDialogResult(card.barcode);
+                  }
+                : null),
+      hideDialogHeader: true,
+      hideDialogDescription: true,
     );
   }
 
@@ -1330,6 +1333,42 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         title: l.tr('screens_scan_card_screen.051'),
         message: l.tr('screens_scan_card_screen.052'),
       );
+    } catch (error) {
+      if (!mounted) return;
+      AppAlertService.showError(
+        context,
+        title: l.tr('screens_scan_card_screen.046'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _resellCardFromScannerResult(VirtualCard card) async {
+    final l = context.loc;
+    final permissions = AppPermissions.fromUser(_user);
+    if (widget.offlineMode || !permissions.canResellCards) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final location =
+          await TransactionLocationService.captureCurrentLocation();
+      final response = await _api.resellCard(
+        cardId: card.id,
+        location: location,
+      );
+      final updatedBalance = (response['balance'] as num?)?.toDouble();
+      final refreshed = await _lookupCard(card.barcode);
+      if (!mounted) return;
+      setState(() {
+        _card = refreshed.card;
+        if (updatedBalance != null) {
+          _user = {...?_user, 'balance': updatedBalance};
+        }
+      });
     } catch (error) {
       if (!mounted) return;
       AppAlertService.showError(
@@ -1938,91 +1977,33 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 720;
 
-              final identityBlock = Row(
+              final identityBlock = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Icon(
-                      isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
-                      color: accent,
-                      size: 30,
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        isUsed ? Icons.close_rounded : Icons.verified_rounded,
+                        color: accent,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isUsed
+                              ? l.tr('screens_scan_card_screen.015')
+                              : l.tr('screens_scan_card_screen.016'),
+                          style: AppTheme.h3.copyWith(color: accent),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 10,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              isUsed
-                                  ? l.tr('screens_scan_card_screen.015')
-                                  : l.tr('screens_scan_card_screen.016'),
-                              style: AppTheme.h3.copyWith(color: accent),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              card.barcode,
-                              style: AppTheme.bodyBold.copyWith(
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.92),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: accent.withValues(alpha: 0.18),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: accent.withValues(alpha: 0.10),
-                                blurRadius: 14,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                l.tr('screens_scan_card_screen.109'),
-                                style: AppTheme.caption.copyWith(
-                                  color: accent,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                CurrencyFormatter.ils(card.value),
-                                style: AppTheme.h3.copyWith(
-                                  color: accent,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 6),
+                  Text(
+                    card.barcode,
+                    style: AppTheme.bodyBold.copyWith(
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -2208,45 +2189,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Widget _buildCardScannerResultContent(VirtualCard card) {
-    final isUsed = card.status == CardStatus.used;
-
+    final isFailed = card.status == CardStatus.used;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildCardSummaryPanel(card),
         const SizedBox(height: 14),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _resultBadge(
-              context.loc.tr('screens_scan_card_screen.019'),
-              _statusLabel(card),
-              _cardAccent(card),
-              icon: isUsed
-                  ? Icons.cancel_schedule_send_rounded
-                  : Icons.verified_rounded,
-            ),
-            _resultBadge(
-              context.loc.tr('screens_scan_card_screen.024'),
-              _cardTypeLabel(card),
-              AppTheme.primary,
-              icon: Icons.category_rounded,
-            ),
-            if (card.isDelivery)
-              _resultBadge(
-                context.loc.tr('shared.usage_label'),
-                _cardUsageNote(card),
-                AppTheme.success,
-                icon: Icons.payments_rounded,
-              ),
-            _resultBadge(
-              context.loc.tr('screens_scan_card_screen.025'),
-              _visibilityLabel(card),
-              AppTheme.warning,
-              icon: Icons.public_rounded,
-            ),
-          ],
+        _resultBadge(
+          context.loc.tr('screens_scan_card_screen.024'),
+          _cardTypeLabel(card),
+          isFailed ? AppTheme.error : AppTheme.primary,
+          icon: Icons.category_rounded,
+          isFullWidth: isFailed,
         ),
       ],
     );
@@ -2316,9 +2270,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               ),
               const SizedBox(height: 8),
               Text(
-                isUsed
-                    ? l.tr('screens_scan_card_screen.110')
-                    : l.tr('screens_scan_card_screen.087'),
+                _cardTypeLabel(card),
                 style: AppTheme.caption.copyWith(
                   color: accent.withValues(alpha: 0.9),
                   fontWeight: FontWeight.w700,
@@ -2328,53 +2280,32 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           ),
         );
 
-        final header = Row(
+        final header = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
-                color: accent,
-                size: 34,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l.tr('screens_scan_card_screen.014'),
-                    style: AppTheme.caption.copyWith(color: accent),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
+            Row(
+              children: [
+                Icon(
+                  isUsed ? Icons.close_rounded : Icons.verified_rounded,
+                  color: accent,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
                     isUsed
                         ? l.tr('screens_scan_card_screen.015')
                         : l.tr('screens_scan_card_screen.016'),
-                    style: AppTheme.h2.copyWith(color: accent),
+                    style: AppTheme.h3.copyWith(color: accent),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    card.barcode,
-                    style: AppTheme.bodyBold.copyWith(
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isUsed
-                        ? l.tr('screens_scan_card_screen.017')
-                        : l.tr('screens_scan_card_screen.018'),
-                    style: AppTheme.caption.copyWith(color: accent),
-                  ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              card.barcode,
+              style: AppTheme.bodyBold.copyWith(
+                color: AppTheme.textPrimary,
               ),
             ),
           ],
@@ -2514,14 +2445,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     String value,
     Color color, {
     required IconData icon,
+    bool isFullWidth = false,
   }) {
     return SizedBox(
-      width: 182,
+      width: isFullWidth ? double.infinity : 182,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
         ),
         child: Row(
           children: [
@@ -2542,7 +2475,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   Text(
                     label,
                     style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
+                      color: color.withValues(alpha: 0.92),
                     ),
                   ),
                   const SizedBox(height: 4),

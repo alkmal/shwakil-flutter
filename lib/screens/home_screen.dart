@@ -22,8 +22,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
-  static const String _welcomeCardVisibleKeyPrefix =
-      'home_welcome_card_visible';
+  static const String _balanceVisibleKeyPrefix = 'home_balance_visible';
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
@@ -34,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _hasOfflineWorkspace = false;
   bool _isSyncingOfflineWorkspace = false;
   bool _didSuggestOfflineWorkspace = false;
-  bool _isWelcomeCardVisible = true;
+  bool _isBalanceVisible = true;
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
   int _pendingOfflineCount = 0;
   String? _lastOfflineSyncAt;
@@ -114,12 +113,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       final pendingSummary = await _resolveOfflinePendingSummary(user);
       final lastSyncAt = await _resolveLastOfflineSyncAt(user);
-      final isWelcomeCardVisible = await _resolveWelcomeCardVisibility(user);
+      final isBalanceVisible = await _resolveBalanceVisibility(user);
       if (!mounted) return;
       setState(() {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
-        _isWelcomeCardVisible = isWelcomeCardVisible;
+        _isBalanceVisible = isBalanceVisible;
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
         _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
@@ -130,12 +129,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       final pendingSummary = await _resolveOfflinePendingSummary(user);
       final lastSyncAt = await _resolveLastOfflineSyncAt(user);
-      final isWelcomeCardVisible = await _resolveWelcomeCardVisibility(user);
+      final isBalanceVisible = await _resolveBalanceVisibility(user);
       if (!mounted) return;
       setState(() {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
-        _isWelcomeCardVisible = isWelcomeCardVisible;
+        _isBalanceVisible = isBalanceVisible;
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
         _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
@@ -417,23 +416,23 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   bool get _isDeviceOnline => ConnectivityService.instance.isOnline.value;
 
-  String _welcomeCardPreferenceKey(Map<String, dynamic>? user) {
+  String _balanceVisibilityPreferenceKey(Map<String, dynamic>? user) {
     final userId = user?['id']?.toString().trim();
-    return '${_welcomeCardVisibleKeyPrefix}_${userId?.isNotEmpty == true ? userId : 'guest'}';
+    return '${_balanceVisibleKeyPrefix}_${userId?.isNotEmpty == true ? userId : 'guest'}';
   }
 
-  Future<bool> _resolveWelcomeCardVisibility(Map<String, dynamic>? user) async {
+  Future<bool> _resolveBalanceVisibility(Map<String, dynamic>? user) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_welcomeCardPreferenceKey(user)) ?? true;
+    return prefs.getBool(_balanceVisibilityPreferenceKey(user)) ?? true;
   }
 
-  Future<void> _setWelcomeCardVisibility(bool visible) async {
+  Future<void> _setBalanceVisibility(bool visible) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_welcomeCardPreferenceKey(_user), visible);
+    await prefs.setBool(_balanceVisibilityPreferenceKey(_user), visible);
     if (!mounted) {
       return;
     }
-    setState(() => _isWelcomeCardVisible = visible);
+    setState(() => _isBalanceVisible = visible);
   }
 
   String get _scanCameraRoute => OfflineSessionService.isOfflineMode
@@ -502,10 +501,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_isWelcomeCardVisible)
-                          _buildWelcomeCard()
-                        else
-                          _buildWelcomeCardRestore(),
+                        _buildWelcomeCard(),
                         if (scanShortcut != null) ...[
                           const SizedBox(height: 14),
                           _buildScanShortcut(scanShortcut),
@@ -741,21 +737,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               overflow: TextOverflow.ellipsis,
             ),
           );
-          final hideChip = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Text(
-              _t('screens_home_screen.095'),
-              style: AppTheme.caption.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          );
           final logo = Container(
             width: 72,
             height: 72,
@@ -807,12 +788,35 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  CurrencyFormatter.ils(balance),
-                  style: AppTheme.h1.copyWith(
-                    color: Colors.white,
-                    fontSize: isCompact ? 28 : 32,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _isBalanceVisible
+                            ? CurrencyFormatter.ils(balance)
+                            : '******',
+                        style: AppTheme.h1.copyWith(
+                          color: Colors.white,
+                          fontSize: isCompact ? 28 : 32,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: _isBalanceVisible
+                          ? _t('screens_home_screen.096')
+                          : _t('screens_home_screen.099'),
+                      onPressed: () =>
+                          _setBalanceVisibility(!_isBalanceVisible),
+                      icon: Icon(
+                        _isBalanceVisible
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -842,14 +846,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  IconButton(
-                    tooltip: _t('screens_home_screen.096'),
-                    onPressed: () => _setWelcomeCardVisibility(false),
-                    icon: const Icon(
-                      Icons.visibility_off_rounded,
-                      color: Colors.white,
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -865,7 +861,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     : TextOverflow.ellipsis,
               ),
               const SizedBox(height: 14),
-              Wrap(spacing: 10, runSpacing: 10, children: [statChip, hideChip]),
+              Wrap(spacing: 10, runSpacing: 10, children: [statChip]),
               const SizedBox(height: 16),
               balanceCard,
             ],
@@ -884,53 +880,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 if (isCompact) textBlock else Expanded(child: textBlock),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildWelcomeCardRestore() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(18),
-      borderRadius: BorderRadius.circular(22),
-      shadowLevel: ShwakelShadowLevel.soft,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 420;
-          return Flex(
-            direction: isCompact ? Axis.vertical : Axis.horizontal,
-            crossAxisAlignment: isCompact
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                flex: isCompact ? 0 : 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _t('screens_home_screen.097'),
-                      style: AppTheme.bodyBold,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _t('screens_home_screen.098'),
-                      style: AppTheme.caption,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: isCompact ? 0 : 12, height: isCompact ? 12 : 0),
-              SizedBox(
-                width: isCompact ? double.infinity : null,
-                child: FilledButton.icon(
-                  onPressed: () => _setWelcomeCardVisibility(true),
-                  icon: const Icon(Icons.visibility_rounded),
-                  label: Text(_t('screens_home_screen.099')),
-                ),
-              ),
-            ],
           );
         },
       ),

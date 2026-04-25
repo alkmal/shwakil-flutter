@@ -2255,10 +2255,10 @@ const Map<String, String> appStringsAr = {
   'screens_home_screen.094':
       'يتم تحديث هذا الرصيد تلقائيًا عند وصول الحركات والإشعارات المالية.',
   'screens_home_screen.095': 'قابلة للإخفاء',
-  'screens_home_screen.096': 'إخفاء البطاقة الترحيبية',
+  'screens_home_screen.096': 'إخفاء الرصيد',
   'screens_home_screen.097': 'البطاقة الترحيبية مخفية',
   'screens_home_screen.098': 'يمكنك إظهارها مرة أخرى في أي وقت من هنا.',
-  'screens_home_screen.099': 'إظهار البطاقة',
+  'screens_home_screen.099': 'إظهار الرصيد',
   'screens_balance_screen.111': 'الإجراءات السريعة',
   'screens_balance_screen.112': 'آخر الحركات',
   'screens_balance_screen.113': 'آخر الحركات',

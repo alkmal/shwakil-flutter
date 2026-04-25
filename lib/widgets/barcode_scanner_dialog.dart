@@ -175,6 +175,14 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
     if (!mounted) {
       return;
     }
+    try {
+      await _controller.stop();
+    } catch (_) {
+      // Ignore stop errors and continue with resetting the scanner state.
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _didScan = false;
       _isResolving = false;
@@ -182,6 +190,7 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
       _resolvedResult = null;
       _errorText = null;
     });
+    await Future<void>.delayed(const Duration(milliseconds: 120));
     await _startScanner();
   }
 
@@ -221,6 +230,10 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
   @override
   Widget build(BuildContext context) {
     final showingResult = _resolvedResult != null;
+    final hideDialogHeader =
+        showingResult && (_resolvedResult?.hideDialogHeader ?? false);
+    final hideDialogDescription =
+        showingResult && (_resolvedResult?.hideDialogDescription ?? false);
     final title = showingResult
         ? (widget.resultTitle?.trim().isNotEmpty == true
               ? widget.resultTitle!
@@ -243,53 +256,55 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
             children: [
               Row(
                 children: [
-                  Expanded(child: Text(title, style: AppTheme.h3)),
+                  Expanded(
+                    child: showingResult
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: ShwakelButton(
+                              label: context.loc.tr(
+                                'widgets_barcode_scanner_dialog.004',
+                              ),
+                              isSecondary: true,
+                              icon: Icons.qr_code_scanner_rounded,
+                              onPressed: _resetScanner,
+                            ),
+                          )
+                        : hideDialogHeader
+                        ? const SizedBox.shrink()
+                        : Text(title, style: AppTheme.h3),
+                  ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                showingResult
-                    ? (_resolvedResult?.description ?? widget.description)
-                    : widget.description,
-                textAlign: TextAlign.center,
-                style: AppTheme.bodyAction,
-              ),
-              const SizedBox(height: 18),
-              scanner,
-              if (showingResult) ...[
+              if (!hideDialogDescription) ...[
+                const SizedBox(height: 12),
+                Text(
+                  showingResult
+                      ? (_resolvedResult?.description ?? widget.description)
+                      : widget.description,
+                  textAlign: TextAlign.center,
+                  style: AppTheme.bodyAction,
+                ),
                 const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ShwakelButton(
-                        label: context.loc.tr(
-                          'widgets_barcode_scanner_dialog.004',
-                        ),
-                        isSecondary: true,
-                        icon: Icons.qr_code_scanner_rounded,
-                        onPressed: _resetScanner,
-                      ),
-                    ),
-                    if (_resolvedResult?.primaryActionLabel != null) ...[
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ShwakelButton(
-                          label: _resolvedResult!.primaryActionLabel!,
-                          icon:
-                              _resolvedResult!.primaryActionIcon ??
-                              Icons.check_circle_rounded,
-                          onPressed: _resolvedResult!.onPrimaryAction == null
-                              ? null
-                              : _runPrimaryAction,
-                          isLoading: _isRunningPrimaryAction,
-                        ),
-                      ),
-                    ],
-                  ],
+              ] else
+                const SizedBox(height: 8),
+              scanner,
+              if (showingResult &&
+                  _resolvedResult?.primaryActionLabel != null) ...[
+                const SizedBox(height: 18),
+                ShwakelButton(
+                  width: double.infinity,
+                  label: _resolvedResult!.primaryActionLabel!,
+                  icon:
+                      _resolvedResult!.primaryActionIcon ??
+                      Icons.check_circle_rounded,
+                  onPressed: _resolvedResult!.onPrimaryAction == null
+                      ? null
+                      : _runPrimaryAction,
+                  isLoading: _isRunningPrimaryAction,
                 ),
               ] else if (widget.onCancelLabel != null) ...[
                 const SizedBox(height: 18),
@@ -394,6 +409,8 @@ class BarcodeScannerDialogResult {
     this.primaryActionLabel,
     this.primaryActionIcon,
     this.onPrimaryAction,
+    this.hideDialogHeader = false,
+    this.hideDialogDescription = false,
   }) : isError = false;
 
   const BarcodeScannerDialogResult.error({
@@ -407,6 +424,8 @@ class BarcodeScannerDialogResult {
        primaryActionLabel = null,
        primaryActionIcon = null,
        onPrimaryAction = null,
+       hideDialogHeader = false,
+       hideDialogDescription = false,
        isError = true;
 
   final String headline;
@@ -419,6 +438,8 @@ class BarcodeScannerDialogResult {
   final String? primaryActionLabel;
   final IconData? primaryActionIcon;
   final Future<BarcodeScannerDialogResult?> Function()? onPrimaryAction;
+  final bool hideDialogHeader;
+  final bool hideDialogDescription;
 }
 
 class BarcodeScannerDialogResultItem {
@@ -473,22 +494,23 @@ class _ScannerLoadingView extends StatelessWidget {
 class _ScannerResolvedView extends StatelessWidget {
   const _ScannerResolvedView({
     required this.result,
-    required this.height,
+    this.height,
     required this.borderRadius,
   });
 
   final BarcodeScannerDialogResult result;
-  final double height;
+  final double? height;
   final BorderRadiusGeometry borderRadius;
 
   @override
   Widget build(BuildContext context) {
     final hasCustomContent = result.customContent != null;
+    final hasDescription = result.description.trim().isNotEmpty;
 
     return ClipRRect(
       borderRadius: borderRadius,
       child: Container(
-        height: height,
+        constraints: height == null ? null : BoxConstraints(minHeight: height!),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -501,27 +523,28 @@ class _ScannerResolvedView extends StatelessWidget {
           ),
           border: Border.all(color: result.color.withValues(alpha: 0.28)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (!hasCustomContent) ...[
-                Container(
-                  width: 74,
-                  height: 74,
-                  decoration: BoxDecoration(
-                    color: result.color.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Icon(result.icon, color: result.color, size: 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!hasCustomContent) ...[
+              Container(
+                width: 74,
+                height: 74,
+                decoration: BoxDecoration(
+                  color: result.color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  result.headline,
-                  style: AppTheme.h2.copyWith(color: result.color),
-                ),
-                const SizedBox(height: 8),
-              ],
+                child: Icon(result.icon, color: result.color, size: 40),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                result.headline,
+                style: AppTheme.h2.copyWith(color: result.color),
+              ),
+              if (hasDescription) const SizedBox(height: 8),
+            ],
+            if (hasDescription)
               Text(
                 result.description,
                 style: AppTheme.bodyAction.copyWith(
@@ -529,25 +552,24 @@ class _ScannerResolvedView extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
-              if (hasCustomContent) ...[
-                const SizedBox(height: 18),
-                result.customContent!,
-              ],
-              if (result.items.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: result.items
-                      .map(
-                        (item) =>
-                            _ScannerResultTile(item: item, color: result.color),
-                      )
-                      .toList(),
-                ),
-              ],
+            if (hasCustomContent) ...[
+              const SizedBox(height: 18),
+              result.customContent!,
             ],
-          ),
+            if (result.items.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: result.items
+                    .map(
+                      (item) =>
+                          _ScannerResultTile(item: item, color: result.color),
+                    )
+                    .toList(),
+              ),
+            ],
+          ],
         ),
       ),
     );
