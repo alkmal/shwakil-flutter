@@ -15,6 +15,7 @@ class DeviceUnlockScreen extends StatefulWidget {
 
 class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   final TextEditingController _pinController = TextEditingController();
+  final FocusNode _pinFocusNode = FocusNode();
   final AuthService _auth = AuthService();
 
   String _username = '';
@@ -34,6 +35,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   @override
   void dispose() {
     _pinController.dispose();
+    _pinFocusNode.dispose();
     super.dispose();
   }
 
@@ -136,6 +138,9 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
 
     if (mounted) {
       setState(() => _isUnlocking = false);
+      if (_hasPin) {
+        _pinFocusNode.requestFocus();
+      }
     }
   }
 
@@ -255,6 +260,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
             const SizedBox(height: 24),
             TextField(
               controller: _pinController,
+              focusNode: _pinFocusNode,
               obscureText: true,
               maxLength: 4,
               textAlign: TextAlign.center,

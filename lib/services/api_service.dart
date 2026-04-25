@@ -1709,13 +1709,14 @@ class ApiService {
     final payload = <String, dynamic>{
       'value': value,
       'quantity': quantity,
-      'allowedUserIds': allowedUserIds,
-      'visibilityScope': visibilityScope,
       'cardType': cardType,
-      'printDesign': printDesign,
-      'validFrom': validFrom,
-      'validUntil': validUntil,
-      'cardDetails': cardDetails,
+      if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
+      if (visibilityScope.trim().isNotEmpty) 'visibilityScope': visibilityScope,
+      if (printDesign != null) 'printDesign': printDesign,
+      if (validFrom != null && validFrom.trim().isNotEmpty) 'validFrom': validFrom,
+      if (validUntil != null && validUntil.trim().isNotEmpty)
+        'validUntil': validUntil,
+      if (cardDetails != null) 'cardDetails': cardDetails,
     };
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();

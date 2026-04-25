@@ -259,11 +259,13 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
   }
 
   Future<void> _handleAppResumed() async {
-    await LocalSecurityService.handleAppResumed();
+    final shouldRebuild = await LocalSecurityService.handleAppResumed();
     if (!mounted) {
       return;
     }
-    setState(() => _appLifecycleVersion++);
+    if (shouldRebuild) {
+      setState(() => _appLifecycleVersion++);
+    }
   }
 
   @override

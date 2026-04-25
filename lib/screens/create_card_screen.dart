@@ -22,13 +22,17 @@ class CreateCardScreen extends StatefulWidget {
 }
 
 class _CreateCardScreenState extends State<CreateCardScreen> {
+  static const int _cardsPerA4Page = 30;
+
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final PDFService _pdfService = PDFService();
   final ThermalPrinterService _thermalPrinterService = ThermalPrinterService();
   final ScreenshotController _thermalTicketScreenshot = ScreenshotController();
   final TextEditingController _amountC = TextEditingController();
-  final TextEditingController _qtyC = TextEditingController(text: '1');
+  final TextEditingController _qtyC = TextEditingController(
+    text: '$_cardsPerA4Page',
+  );
   final TextEditingController _titleC = TextEditingController();
   final TextEditingController _stampC = TextEditingController();
   final TextEditingController _detailsTitleC = TextEditingController();
@@ -185,6 +189,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         context,
         title: l.tr('screens_create_card_screen.004'),
         message: l.tr('screens_create_card_screen.005'),
+      );
+      return;
+    }
+
+    if (quantity % _cardsPerA4Page != 0) {
+      await AppAlertService.showError(
+        context,
+        title: 'عدد البطاقات غير صالح',
+        message:
+            'عدد البطاقات يجب أن يكون من مضاعفات $_cardsPerA4Page لأن صفحة A4 تطبع $_cardsPerA4Page بطاقة.',
       );
       return;
     }
@@ -1479,9 +1493,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           TextField(
             controller: _qtyC,
             keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               labelText: l.tr('screens_create_card_screen.037'),
               prefixIcon: const Icon(Icons.pin_rounded),
+              helperText:
+                  'أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
             ),
           ),
           if (_canIssuePrivateCards && _cardType != 'delivery') ...[

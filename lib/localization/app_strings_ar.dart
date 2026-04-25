@@ -1238,10 +1238,10 @@ const Map<String, String> appStringsAr = {
   'screens_create_card_screen.029': 'إصدار بطاقات جديدة',
   'screens_create_card_screen.030': 'إصدار بطاقات رقمية بتنسيق احترافي',
   'screens_create_card_screen.031':
-      'حدّد القيمة والكمية ونوع البطاقة، ثم خصّص العنوان والختم والشعار قبل إرسال الدفعة للطباعة.',
+      'المطلوب فقط قيمة البطاقة وعدد البطاقات، على أن يكون العدد من مضاعفات 30 لأن صفحة A4 تطبع 30 بطاقة.',
   'screens_create_card_screen.032': 'تفاصيل الإصدار',
   'screens_create_card_screen.033':
-      'اختر النوع والكمية والقيمة، ثم حدّد نطاق ظهور البطاقة.',
+      'أدخل القيمة والعدد أولًا. باقي الإعدادات اختيارية عند الحاجة.',
   'screens_create_card_screen.034': 'نوع البطاقة',
   'screens_create_card_screen.035': 'قيمة البطاقة',
   'screens_create_card_screen.036':

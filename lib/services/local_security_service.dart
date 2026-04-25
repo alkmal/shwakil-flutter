@@ -351,11 +351,11 @@ class LocalSecurityService {
     );
   }
 
-  static Future<void> handleAppResumed() async {
+  static Future<bool> handleAppResumed() async {
     if (_shouldIgnoreLifecycleRelock()) {
-      return;
+      return false;
     }
-    await _evaluateRelockRequirement(
+    return _evaluateRelockRequirement(
       forceOnNextLaunch: false,
       consumeEvent: true,
     );
@@ -368,14 +368,15 @@ class LocalSecurityService {
     );
   }
 
-  static Future<void> _evaluateRelockRequirement({
+  static Future<bool> _evaluateRelockRequirement({
     required bool forceOnNextLaunch,
     required bool consumeEvent,
   }) async {
+    var changed = false;
     final prefs = await SharedPreferences.getInstance();
     final backgroundedAt = prefs.getInt(_backgroundedAtKey);
     if (backgroundedAt == null) {
-      return;
+      return false;
     }
 
     if (consumeEvent) {
@@ -384,9 +385,12 @@ class LocalSecurityService {
 
     final hasLocalSecurity = await hasConfiguredLocalSecurity();
     if (!hasLocalSecurity) {
-      _securitySetupRequired = true;
-      _notifySecurityStateChanged();
-      return;
+      if (!_securitySetupRequired) {
+        _securitySetupRequired = true;
+        changed = true;
+        _notifySecurityStateChanged();
+      }
+      return changed;
     }
     final relockTimeout = await relockTimeoutInSeconds();
     final elapsed = DateTime.now().millisecondsSinceEpoch - backgroundedAt;
@@ -396,9 +400,13 @@ class LocalSecurityService {
         (forceOnNextLaunch ||
             elapsed >= Duration(seconds: relockTimeout).inMilliseconds);
     if (shouldRelock) {
-      _relockRequired = true;
-      _notifySecurityStateChanged();
+      if (!_relockRequired) {
+        _relockRequired = true;
+        changed = true;
+        _notifySecurityStateChanged();
+      }
     }
+    return changed;
   }
 
   static Future<void> clearRelockRequirement() async {
