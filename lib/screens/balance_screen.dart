@@ -903,49 +903,43 @@ class _BalanceScreenState extends State<BalanceScreen>
   Widget _buildTopTabs({required bool isPhone}) {
     final l = context.loc;
     if (isPhone) {
-      return ShwakelCard(
-        padding: const EdgeInsets.all(8),
-        borderRadius: BorderRadius.circular(24),
-        shadowLevel: ShwakelShadowLevel.soft,
-        child: Column(
-          children: [
-            _buildTabButton(
+      return Row(
+        children: [
+          Expanded(
+            child: _buildTabButton(
               index: 0,
               icon: Icons.flash_on_rounded,
               label: l.tr('screens_balance_screen.111'),
             ),
-            const SizedBox(height: 8),
-            _buildTabButton(
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildTabButton(
               index: 1,
               icon: Icons.receipt_long_rounded,
               label: l.tr('screens_balance_screen.112'),
             ),
-          ],
-        ),
-      );
-    }
-    return ShwakelCard(
-      padding: const EdgeInsets.all(10),
-      borderRadius: BorderRadius.circular(24),
-      shadowLevel: ShwakelShadowLevel.soft,
-      child: TabBar(
-        controller: _tabController,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        dividerColor: Colors.transparent,
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicatorPadding: const EdgeInsets.all(4),
-        tabs: [
-          Tab(
-            icon: const Icon(Icons.flash_on_rounded),
-            text: context.loc.tr('screens_balance_screen.111'),
-          ),
-          Tab(
-            icon: const Icon(Icons.receipt_long_rounded),
-            text: context.loc.tr('screens_balance_screen.112'),
           ),
         ],
-      ),
+      );
+    }
+    return TabBar(
+      controller: _tabController,
+      isScrollable: false,
+      dividerColor: Colors.transparent,
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicatorPadding: const EdgeInsets.symmetric(vertical: 4),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+      tabs: [
+        Tab(
+          icon: const Icon(Icons.flash_on_rounded),
+          text: context.loc.tr('screens_balance_screen.111'),
+        ),
+        Tab(
+          icon: const Icon(Icons.receipt_long_rounded),
+          text: context.loc.tr('screens_balance_screen.112'),
+        ),
+      ],
     );
   }
 
@@ -960,7 +954,7 @@ class _BalanceScreenState extends State<BalanceScreen>
       onTap: () => _tabController.animateTo(index),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
           color: selected
               ? AppTheme.primary.withValues(alpha: 0.08)
@@ -982,6 +976,8 @@ class _BalanceScreenState extends State<BalanceScreen>
             Expanded(
               child: Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: AppTheme.bodyBold.copyWith(
                   color: selected ? AppTheme.primary : AppTheme.textPrimary,
                 ),
@@ -999,29 +995,33 @@ class _BalanceScreenState extends State<BalanceScreen>
     final availablePrintingBalance = _userAmount('availablePrintingBalance');
     final printingDebtLimit = _userAmount('printingDebtLimit');
     final outstandingDebt = _userAmount('outstandingDebt');
+    final showPrintingDebtLimit = printingDebtLimit > 0;
+    final showOutstandingDebt = outstandingDebt > 0;
     final roleLabel = _user?['roleLabel']?.toString().trim() ?? '';
     final verificationLabel = _isVerifiedAccount
         ? l.tr('screens_balance_screen.036')
         : l.tr('screens_balance_screen.037');
-    final details = [
+    final details = <_BalanceOverviewItem>[
       _BalanceOverviewItem(
         icon: Icons.print_rounded,
         label: l.tr('screens_balance_screen.117'),
         value: CurrencyFormatter.ils(availablePrintingBalance),
         color: AppTheme.accent,
       ),
-      _BalanceOverviewItem(
-        icon: Icons.credit_score_rounded,
-        label: l.tr('screens_balance_screen.118'),
-        value: CurrencyFormatter.ils(printingDebtLimit),
-        color: AppTheme.warning,
-      ),
-      _BalanceOverviewItem(
-        icon: Icons.trending_down_rounded,
-        label: l.tr('screens_balance_screen.119'),
-        value: CurrencyFormatter.ils(outstandingDebt),
-        color: outstandingDebt > 0 ? AppTheme.error : AppTheme.success,
-      ),
+      if (showPrintingDebtLimit)
+        _BalanceOverviewItem(
+          icon: Icons.credit_score_rounded,
+          label: l.tr('screens_balance_screen.118'),
+          value: CurrencyFormatter.ils(printingDebtLimit),
+          color: AppTheme.warning,
+        ),
+      if (showOutstandingDebt)
+        _BalanceOverviewItem(
+          icon: Icons.trending_down_rounded,
+          label: l.tr('screens_balance_screen.119'),
+          value: CurrencyFormatter.ils(outstandingDebt),
+          color: outstandingDebt > 0 ? AppTheme.error : AppTheme.success,
+        ),
       _BalanceOverviewItem(
         icon: Icons.verified_user_rounded,
         label: l.tr('screens_balance_screen.120'),
@@ -1333,7 +1333,8 @@ class _BalanceScreenState extends State<BalanceScreen>
             _BalanceAuditFilter.outsideBranches,
             compact: compact,
           ),
-          if (((_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0) > 0)
+          if (_userAmount('printingDebtLimit') > 0 ||
+              _userAmount('outstandingDebt') > 0)
             _filterChip(
               l.tr('screens_balance_screen.047'),
               _BalanceAuditFilter.printingDebt,
@@ -1871,6 +1872,9 @@ class _BalanceScreenState extends State<BalanceScreen>
         setDialogState(() {
           searchResults = results;
           selectedUser = results.length == 1 ? results.first : null;
+          if (selectedUser != null && enablePhoneLookup) {
+            recipientLookupTab = 2;
+          }
           isSearching = false;
           searchError = results.isEmpty
               ? l.tr('screens_balance_screen.074')
@@ -1915,6 +1919,7 @@ class _BalanceScreenState extends State<BalanceScreen>
             searchResults = const [];
             searchError = null;
             phoneLookupMessage = l.tr('screens_balance_screen.076');
+            recipientLookupTab = 2;
           } else {
             selectedUser = null;
             phoneLookupMessage =
@@ -2289,8 +2294,12 @@ class _BalanceScreenState extends State<BalanceScreen>
                                 ? AppTheme.primary.withValues(alpha: 0.35)
                                 : AppTheme.border,
                             shadowLevel: ShwakelShadowLevel.none,
-                            onTap: () =>
-                                setDialogState(() => selectedUser = item),
+                            onTap: () => setDialogState(() {
+                              selectedUser = item;
+                              if (enablePhoneLookup) {
+                                recipientLookupTab = 2;
+                              }
+                            }),
                             child: Row(
                               children: [
                                 Container(
@@ -2357,99 +2366,12 @@ class _BalanceScreenState extends State<BalanceScreen>
                       ),
                     ),
                   ],
-                  if (selectedUser != null) ...[
+                  if (enablePhoneLookup && recipientLookupTab == 2) ...[
                     const SizedBox(height: 16),
-                    ShwakelCard(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      color: AppTheme.primary.withValues(alpha: 0.05),
-                      borderColor: AppTheme.primary.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(22),
-                      shadowLevel: ShwakelShadowLevel.none,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Icon(
-                                  Icons.person_pin_circle_rounded,
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      l.tr('screens_balance_screen.091'),
-                                      style: AppTheme.caption.copyWith(
-                                        color: AppTheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      selectedUser!['username']?.toString() ??
-                                          '-',
-                                      style: AppTheme.bodyBold.copyWith(
-                                        color: AppTheme.primary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.success.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  l.tr('screens_balance_screen.131'),
-                                  style: AppTheme.caption.copyWith(
-                                    color: AppTheme.success,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (enablePhoneLookup) ...[
-                            const SizedBox(height: 10),
-                            Text(
-                              l.tr('screens_balance_screen.092'),
-                              style: AppTheme.caption.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                          if ((selectedUser!['whatsapp']?.toString() ?? '')
-                              .isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              selectedUser!['whatsapp']?.toString() ?? '',
-                              style: AppTheme.caption.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+                    _buildSelectedRecipientPanel(selectedUser: selectedUser),
+                  ] else if (!enablePhoneLookup && selectedUser != null) ...[
+                    const SizedBox(height: 16),
+                    _buildSelectedRecipientPanel(selectedUser: selectedUser),
                   ],
                   const SizedBox(height: 18),
                   ShwakelCard(
@@ -2510,7 +2432,7 @@ class _BalanceScreenState extends State<BalanceScreen>
                 if (selectedUser == null) {
                   setDialogState(
                     () => searchError =
-                        enablePhoneLookup && recipientLookupTab == 1
+                        enablePhoneLookup && recipientLookupTab != 2
                         ? l.tr('screens_balance_screen.094')
                         : l.tr('screens_balance_screen.095'),
                   );
@@ -2561,6 +2483,122 @@ class _BalanceScreenState extends State<BalanceScreen>
               onTap: () => onChanged(1),
             ),
           ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _buildRecipientLookupTab(
+              selected: selectedIndex == 2,
+              icon: Icons.person_pin_circle_rounded,
+              label: l.tr('screens_balance_screen.134'),
+              onTap: () => onChanged(2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedRecipientPanel({
+    required Map<String, dynamic>? selectedUser,
+  }) {
+    final l = context.loc;
+    if (selectedUser == null) {
+      return ShwakelCard(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(22),
+        shadowLevel: ShwakelShadowLevel.none,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.tr('screens_balance_screen.134'), style: AppTheme.bodyBold),
+            const SizedBox(height: 8),
+            Text(
+              l.tr('screens_balance_screen.135'),
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textSecondary,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ShwakelCard(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      color: AppTheme.primary.withValues(alpha: 0.05),
+      borderColor: AppTheme.primary.withValues(alpha: 0.18),
+      borderRadius: BorderRadius.circular(22),
+      shadowLevel: ShwakelShadowLevel.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.person_pin_circle_rounded,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.tr('screens_balance_screen.091'),
+                      style: AppTheme.caption.copyWith(color: AppTheme.primary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      selectedUser['username']?.toString() ?? '-',
+                      style: AppTheme.bodyBold.copyWith(
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  l.tr('screens_balance_screen.131'),
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.success,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l.tr('screens_balance_screen.092'),
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+          if ((selectedUser['whatsapp']?.toString() ?? '').isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              selectedUser['whatsapp']?.toString() ?? '',
+              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+            ),
+          ],
         ],
       ),
     );

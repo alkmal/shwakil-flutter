@@ -226,9 +226,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(context.loc.tr('screens_account_settings_screen.056')),
-        content: Text(
-          context.loc.tr('screens_account_settings_screen.057'),
-        ),
+        content: Text(context.loc.tr('screens_account_settings_screen.057')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -388,7 +386,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             const QuickLogoutAction(),
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(72),
+            preferredSize: const Size.fromHeight(78),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
               child: DecoratedBox(
@@ -396,27 +394,61 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   color: Colors.white.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: EdgeInsets.all(6),
-                  labelPadding: EdgeInsets.symmetric(horizontal: 8),
-                  tabs: [
-                    Tab(
-                      text: l.tr('screens_account_settings_screen.009'),
-                      icon: Icon(Icons.person_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: l.tr('screens_account_settings_screen.010'),
-                      icon: Icon(Icons.lock_rounded, size: 20),
-                    ),
-                    Tab(
-                      text: l.tr('screens_account_settings_screen.068'),
-                      icon: Icon(Icons.manage_accounts_rounded, size: 20),
-                    ),
-                  ],
+                child: SizedBox(
+                  height: 56,
+                  child: TabBar(
+                    dividerColor: Colors.transparent,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorPadding: const EdgeInsets.all(6),
+                    labelPadding: EdgeInsets.zero,
+                    tabs: [
+                      Tab(
+                        height: 56,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.person_rounded, size: 20),
+                              const SizedBox(width: 8),
+                              Text(l.tr('screens_account_settings_screen.009')),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        height: 56,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.lock_rounded, size: 20),
+                              const SizedBox(width: 8),
+                              Text(l.tr('screens_account_settings_screen.010')),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        height: 56,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.manage_accounts_rounded,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(l.tr('screens_account_settings_screen.068')),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -234,6 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           '/security-settings',
           (route) => false,
+          arguments: const {'showSetupHint': true},
         );
         return;
       }
@@ -296,10 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('screens_login_screen.017')),
         content: Text(
-          l.tr(
-            'screens_login_screen.018',
-            params: {'method': methodLabel},
-          ),
+          l.tr('screens_login_screen.018', params: {'method': methodLabel}),
         ),
         actions: [
           TextButton(

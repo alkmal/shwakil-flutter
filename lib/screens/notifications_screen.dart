@@ -23,6 +23,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final ApiService _apiService = ApiService();
   List<Map<String, dynamic>> _notifications = const [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
   String _filter = 'all';
   int _unreadCount = 0;
   int _page = 1;
@@ -30,6 +31,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _total = 0;
   static const int _perPage = 20;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+  int _loadRequestId = 0;
 
   String _t(String key, {Map<String, String>? params}) =>
       context.loc.tr(key, params: params);
@@ -49,10 +51,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _loadNotifications({bool silent = false}) async {
-    if (!silent) {
-      setState(() => _isLoading = true);
+    final requestId = ++_loadRequestId;
+    if (!mounted) {
+      return;
     }
-
+    setState(() {
+      if (silent) {
+        _isRefreshing = true;
+      } else {
+        _isLoading = true;
+      }
+    });
     final requestedPage = _page;
     try {
       final payload = await _apiService.getAppNotifications(
@@ -60,6 +69,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         page: requestedPage,
         perPage: _perPage,
       );
+      if (!mounted || requestId != _loadRequestId) {
+        return;
+      }
       final summary = Map<String, dynamic>.from(
         payload['summary'] as Map? ?? const {},
       );
@@ -72,17 +84,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final normalizedPage = currentPage.clamp(1, lastPage);
 
       if (requestedPage > lastPage && lastPage > 0) {
-        if (!mounted) {
-          return;
-        }
-        setState(() => _page = lastPage);
+        setState(() {
+          _page = lastPage;
+          _isRefreshing = false;
+        });
         await _loadNotifications(silent: silent);
         return;
       }
 
-      if (!mounted) {
-        return;
-      }
       setState(() {
         _notifications = notifications;
         _unreadCount = (summary['unreadCount'] as num?)?.toInt() ?? 0;
@@ -90,12 +99,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _lastPage = lastPage;
         _total = (pagination['total'] as num?)?.toInt() ?? notifications.length;
         _isLoading = false;
+        _isRefreshing = false;
       });
     } catch (error) {
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isRefreshing = false;
+      });
       if (silent) {
         return;
       }
@@ -150,6 +163,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: AppBar(
         title: Text(context.loc.tr('widgets_app_top_actions.004')),
         actions: [
+          if (_isRefreshing)
+            const Padding(
+              padding: EdgeInsetsDirectional.only(end: 6),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
           IconButton(
             tooltip: context.loc.tr('screens_notifications_screen.036'),
             onPressed: _showSummarySheet,
@@ -546,10 +570,7 @@ class _NotificationCard extends StatelessWidget {
                   color: categoryColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(
-                  notificationIcon,
-                  color: categoryColor,
-                ),
+                child: Icon(notificationIcon, color: categoryColor),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -603,7 +624,9 @@ class _NotificationCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: categoryColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: categoryColor.withValues(alpha: 0.12)),
+                border: Border.all(
+                  color: categoryColor.withValues(alpha: 0.12),
+                ),
               ),
               child: Row(
                 children: [
@@ -628,7 +651,9 @@ class _NotificationCard extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        if ((item['body']?.toString() ?? '').trim().isNotEmpty) ...[
+                        if ((item['body']?.toString() ?? '')
+                            .trim()
+                            .isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
                             item['body']?.toString() ?? '',
@@ -653,10 +678,7 @@ class _NotificationCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _InfoChip(
-                icon: Icons.schedule_rounded,
-                label: createdAt,
-              ),
+              _InfoChip(icon: Icons.schedule_rounded, label: createdAt),
               if (amount != null && !isFinancial)
                 _InfoChip(
                   icon: Icons.payments_rounded,
@@ -668,10 +690,7 @@ class _NotificationCard extends StatelessWidget {
                   label: CurrencyFormatter.ils(fee),
                 ),
               if (actor != null)
-                _InfoChip(
-                  icon: Icons.person_rounded,
-                  label: actor,
-                ),
+                _InfoChip(icon: Icons.person_rounded, label: actor),
               ..._notificationCardContextChips(
                 context,
                 data,
@@ -1002,12 +1021,16 @@ IconData _notificationVisualIcon(Map<String, dynamic> item) {
           .toLowerCase();
 
   return switch (type) {
-    'topup' || 'balance_credit' || 'transfer_in' || 'withdrawal_refund' =>
-      Icons.south_west_rounded,
-    'transfer_out' || 'manual_deduction' || 'withdrawal' =>
-      Icons.north_east_rounded,
-    'issue_cards' || 'printed_cards_received' || 'card_print_request_completed' =>
-      Icons.style_rounded,
+    'topup' ||
+    'balance_credit' ||
+    'transfer_in' ||
+    'withdrawal_refund' => Icons.south_west_rounded,
+    'transfer_out' ||
+    'manual_deduction' ||
+    'withdrawal' => Icons.north_east_rounded,
+    'issue_cards' ||
+    'printed_cards_received' ||
+    'card_print_request_completed' => Icons.style_rounded,
     _ => _notificationCategoryIcon(_notificationKind(item)),
   };
 }

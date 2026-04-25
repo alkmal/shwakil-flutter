@@ -390,6 +390,7 @@ class BarcodeScannerDialogResult {
     required this.color,
     required this.icon,
     this.items = const [],
+    this.customContent,
     this.primaryActionLabel,
     this.primaryActionIcon,
     this.onPrimaryAction,
@@ -399,6 +400,7 @@ class BarcodeScannerDialogResult {
     required this.headline,
     required String message,
     this.items = const [],
+    this.customContent,
   }) : description = message,
        color = AppTheme.error,
        icon = Icons.error_outline_rounded,
@@ -413,6 +415,7 @@ class BarcodeScannerDialogResult {
   final IconData icon;
   final bool isError;
   final List<BarcodeScannerDialogResultItem> items;
+  final Widget? customContent;
   final String? primaryActionLabel;
   final IconData? primaryActionIcon;
   final Future<BarcodeScannerDialogResult?> Function()? onPrimaryAction;
@@ -480,6 +483,8 @@ class _ScannerResolvedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasCustomContent = result.customContent != null;
+
     return ClipRRect(
       borderRadius: borderRadius,
       child: Container(
@@ -500,21 +505,23 @@ class _ScannerResolvedView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 74,
-                height: 74,
-                decoration: BoxDecoration(
-                  color: result.color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(24),
+              if (!hasCustomContent) ...[
+                Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    color: result.color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(result.icon, color: result.color, size: 40),
                 ),
-                child: Icon(result.icon, color: result.color, size: 40),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                result.headline,
-                style: AppTheme.h2.copyWith(color: result.color),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                Text(
+                  result.headline,
+                  style: AppTheme.h2.copyWith(color: result.color),
+                ),
+                const SizedBox(height: 8),
+              ],
               Text(
                 result.description,
                 style: AppTheme.bodyAction.copyWith(
@@ -522,6 +529,10 @@ class _ScannerResolvedView extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
+              if (hasCustomContent) ...[
+                const SizedBox(height: 18),
+                result.customContent!,
+              ],
               if (result.items.isNotEmpty) ...[
                 const SizedBox(height: 18),
                 Wrap(

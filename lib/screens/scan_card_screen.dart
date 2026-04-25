@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 import '../models/index.dart';
@@ -57,6 +58,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _offlineAccessExpired = false;
   bool _clearedExpiredOfflineCards = false;
   bool _isSyncingOfflineCards = false;
+  bool _showUserBalance = true;
+  bool _isPreparingScreen = true;
 
   bool get _canAccessScanScreen {
     final permissions = AppPermissions.fromUser(_user);
@@ -125,15 +128,58 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Future<void> _load() async {
-    final user = await _auth.currentUser();
-    if (mounted) {
-      setState(() => _user = user);
+    try {
+      final user = await _auth.currentUser();
+      final showUserBalance = await _loadBalanceVisibilityPreference(user);
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _showUserBalance = showUserBalance;
+        });
+      }
+      await _refreshOfflineCardStatus();
+      await _loadOfflineTransferSlotCount();
+      await _ensureOfflineTemporaryTransferSlots();
+      _maybeShowOfflineIntro();
+      _maybeOpenScannerAutomatically();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _availableOfflineTransferSlots = 0;
+        _availableOfflineCardCount = 0;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isPreparingScreen = false);
+      }
     }
-    await _refreshOfflineCardStatus();
-    await _loadOfflineTransferSlotCount();
-    await _ensureOfflineTemporaryTransferSlots();
-    _maybeShowOfflineIntro();
-    _maybeOpenScannerAutomatically();
+  }
+
+  String _balanceVisibilityKey(Map<String, dynamic>? user) {
+    final userId = user?['id']?.toString().trim();
+    if (userId == null || userId.isEmpty) {
+      return 'scan_card_show_balance';
+    }
+    return 'scan_card_show_balance_$userId';
+  }
+
+  Future<bool> _loadBalanceVisibilityPreference(
+    Map<String, dynamic>? user,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_balanceVisibilityKey(user)) ?? true;
+  }
+
+  Future<void> _toggleBalanceVisibility() async {
+    final nextValue = !_showUserBalance;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_balanceVisibilityKey(_user), nextValue);
+    if (!mounted) {
+      return;
+    }
+    setState(() => _showUserBalance = nextValue);
   }
 
   void _maybeOpenScannerAutomatically() {
@@ -496,6 +542,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Future<void> _search() async {
+    if (_isPreparingScreen) {
+      return;
+    }
     if (widget.offlineMode && !await _ensureOfflineAccessReady()) {
       return;
     }
@@ -1015,32 +1064,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       description: isUsed
           ? _t('screens_scan_card_screen.085')
           : _t('screens_scan_card_screen.086'),
-      color: isUsed ? AppTheme.error : AppTheme.success,
+      color: _cardAccent(card),
       icon: isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
-      items: [
-        BarcodeScannerDialogResultItem(
-          label: _t('screens_scan_card_screen.023'),
-          value: card.barcode,
-          icon: Icons.qr_code_2_rounded,
-        ),
-        BarcodeScannerDialogResultItem(
-          label: _t('screens_scan_card_screen.020'),
-          value: CurrencyFormatter.ils(card.value),
-          icon: Icons.payments_rounded,
-        ),
-        BarcodeScannerDialogResultItem(
-          label: _t('screens_scan_card_screen.024'),
-          value: _cardTypeLabel(card),
-          icon: Icons.category_rounded,
-        ),
-        BarcodeScannerDialogResultItem(
-          label: _t('screens_scan_card_screen.019'),
-          value: _statusLabel(card),
-          icon: isUsed
-              ? Icons.cancel_schedule_send_rounded
-              : Icons.verified_rounded,
-        ),
-      ],
+      customContent: _buildCardScannerResultContent(card),
       primaryActionLabel: canRedeemCards
           ? _t('screens_scan_card_screen.087')
           : null,
@@ -1546,19 +1572,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('البحث عن بطاقة', style: AppTheme.h3),
-                      const SizedBox(height: 4),
-                      Text(
-                        'أدخل رقم الباركود للوصول السريع إلى البطاقة.',
-                        style: AppTheme.bodyAction,
-                      ),
-                    ],
+                    children: [Text('البحث عن بطاقة', style: AppTheme.h3)],
                   ),
                 ),
               ],
             ),
           const SizedBox(height: 14),
+          _buildUserBalanceCard(),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -1571,9 +1592,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 Expanded(
                   child: TextField(
                     controller: _bcC,
+                    enabled: !_isPreparingScreen,
                     decoration: InputDecoration(
                       labelText: 'رقم الباركود',
-                      hintText: 'اكتب الرقم ثم اضغط بحث',
+                      hintText: _isPreparingScreen
+                          ? 'جارٍ تجهيز الشاشة...'
+                          : 'اكتب الرقم ثم اضغط بحث',
                       prefixIcon: const Icon(Icons.qr_code_rounded),
                       suffixIcon: _isSearching
                           ? const Padding(
@@ -1588,21 +1612,22 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               ],
             ),
           ),
+          if (_isPreparingScreen) ...[
+            const SizedBox(height: 10),
+            const LinearProgressIndicator(minHeight: 3),
+          ],
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: widget.offlineMode
-                  ? AppTheme.warning.withValues(alpha: 0.08)
-                  : AppTheme.primary.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(18),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               widget.offlineMode
                   ? 'وضع الأوفلاين مفعل. يمكنك البحث ضمن البطاقات المحفوظة.'
                   : 'ابحث عن بطاقة برقم الباركود أو استخدم الكاميرا للفحص السريع.',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTheme.bodyAction.copyWith(
+                fontSize: 10,
                 color: widget.offlineMode
                     ? AppTheme.warning
                     : AppTheme.textSecondary,
@@ -1799,6 +1824,70 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                       'date': lastSyncLabel,
                     }),
               style: AppTheme.bodyAction.copyWith(color: color, height: 1.45),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserBalanceCard() {
+    final rawBalance = (_user?['balance'] as num?)?.toDouble() ?? 0;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_rounded,
+              color: AppTheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'رصيدك الحالي',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _showUserBalance
+                      ? CurrencyFormatter.ils(rawBalance)
+                      : '••••••',
+                  style: AppTheme.h3.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: _showUserBalance ? 'إخفاء الرصيد' : 'إظهار الرصيد',
+            onPressed: _toggleBalanceVisibility,
+            icon: Icon(
+              _showUserBalance
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
             ),
           ),
         ],
@@ -2089,10 +2178,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Widget _buildDetails() {
-    final l = context.loc;
     final card = _card!;
-    final isUsed = card.status == CardStatus.used;
-    final accent = isUsed ? AppTheme.error : AppTheme.success;
     final appPermissions = AppPermissions.fromUser(_user);
     final canRedeemCards = appPermissions.canRedeemCards;
     final canResellCards = !widget.offlineMode && appPermissions.canResellCards;
@@ -2103,134 +2189,218 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       children: [
         ShwakelCard(
           padding: const EdgeInsets.all(20),
-          color: accent.withValues(alpha: 0.08),
-          borderColor: accent.withValues(alpha: 0.24),
+          color: _cardAccent(card).withValues(alpha: 0.08),
+          borderColor: _cardAccent(card).withValues(alpha: 0.24),
           borderRadius: BorderRadius.circular(28),
           shadowLevel: ShwakelShadowLevel.medium,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
-                      color: accent,
-                      size: 34,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l.tr('screens_scan_card_screen.014'),
-                          style: AppTheme.caption.copyWith(color: accent),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isUsed
-                              ? l.tr('screens_scan_card_screen.015')
-                              : l.tr('screens_scan_card_screen.016'),
-                          style: AppTheme.h2.copyWith(color: accent),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isUsed
-                              ? l.tr('screens_scan_card_screen.017')
-                              : l.tr('screens_scan_card_screen.018'),
-                          style: AppTheme.caption.copyWith(color: accent),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.78),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: accent.withValues(alpha: 0.16)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l.tr('screens_scan_card_screen.020'),
-                          style: AppTheme.caption.copyWith(color: accent),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          CurrencyFormatter.ils(card.value),
-                          style: AppTheme.h2.copyWith(
-                            color: accent,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _resultBadge(
-                    l.tr('screens_scan_card_screen.019'),
-                    _statusLabel(card),
-                    accent,
-                    icon: isUsed
-                        ? Icons.cancel_schedule_send_rounded
-                        : Icons.verified_rounded,
-                  ),
-                  _resultBadge(
-                    l.tr('screens_scan_card_screen.024'),
-                    _cardTypeLabel(card),
-                    AppTheme.primary,
-                    icon: Icons.category_rounded,
-                  ),
-                  if (card.isDelivery)
-                    _resultBadge(
-                      context.loc.tr('shared.usage_label'),
-                      _cardUsageNote(card),
-                      AppTheme.success,
-                      icon: Icons.payments_rounded,
-                    ),
-                  _resultBadge(
-                    l.tr('screens_scan_card_screen.025'),
-                    _visibilityLabel(card),
-                    AppTheme.warning,
-                    icon: Icons.public_rounded,
-                  ),
-                ],
-              ),
-            ],
-          ),
+          child: _buildCardScannerResultContent(card),
         ),
         const SizedBox(height: 16),
         _buildActionPanel(
           card: card,
-          isUsed: isUsed,
+          isUsed: card.status == CardStatus.used,
           canRedeemCards: canRedeemCards,
           canResellCards: canResellCards,
           canViewCardDetails: canViewCardDetails,
         ),
       ],
     );
+  }
+
+  Widget _buildCardScannerResultContent(VirtualCard card) {
+    final isUsed = card.status == CardStatus.used;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildCardSummaryPanel(card),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _resultBadge(
+              context.loc.tr('screens_scan_card_screen.019'),
+              _statusLabel(card),
+              _cardAccent(card),
+              icon: isUsed
+                  ? Icons.cancel_schedule_send_rounded
+                  : Icons.verified_rounded,
+            ),
+            _resultBadge(
+              context.loc.tr('screens_scan_card_screen.024'),
+              _cardTypeLabel(card),
+              AppTheme.primary,
+              icon: Icons.category_rounded,
+            ),
+            if (card.isDelivery)
+              _resultBadge(
+                context.loc.tr('shared.usage_label'),
+                _cardUsageNote(card),
+                AppTheme.success,
+                icon: Icons.payments_rounded,
+              ),
+            _resultBadge(
+              context.loc.tr('screens_scan_card_screen.025'),
+              _visibilityLabel(card),
+              AppTheme.warning,
+              icon: Icons.public_rounded,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCardSummaryPanel(VirtualCard card) {
+    final l = context.loc;
+    final isUsed = card.status == CardStatus.used;
+    final accent = _cardAccent(card);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 720;
+        final hero = Container(
+          width: compact ? double.infinity : 270,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isUsed
+                  ? const [Color(0xFFFFE4E6), Color(0xFFFFF1F2)]
+                  : const [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: accent.withValues(alpha: 0.18)),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: 0.14),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(Icons.payments_rounded, color: accent),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l.tr('screens_scan_card_screen.109'),
+                      style: AppTheme.bodyBold.copyWith(color: accent),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                CurrencyFormatter.ils(card.value),
+                style: AppTheme.h1.copyWith(
+                  color: accent,
+                  fontSize: compact ? 34 : 42,
+                  fontWeight: FontWeight.w900,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isUsed
+                    ? l.tr('screens_scan_card_screen.110')
+                    : l.tr('screens_scan_card_screen.087'),
+                style: AppTheme.caption.copyWith(
+                  color: accent.withValues(alpha: 0.9),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        );
+
+        final header = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
+                color: accent,
+                size: 34,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.tr('screens_scan_card_screen.014'),
+                    style: AppTheme.caption.copyWith(color: accent),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isUsed
+                        ? l.tr('screens_scan_card_screen.015')
+                        : l.tr('screens_scan_card_screen.016'),
+                    style: AppTheme.h2.copyWith(color: accent),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    card.barcode,
+                    style: AppTheme.bodyBold.copyWith(
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isUsed
+                        ? l.tr('screens_scan_card_screen.017')
+                        : l.tr('screens_scan_card_screen.018'),
+                    style: AppTheme.caption.copyWith(color: accent),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [header, const SizedBox(height: 14), hero],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: header),
+            const SizedBox(width: 14),
+            hero,
+          ],
+        );
+      },
+    );
+  }
+
+  Color _cardAccent(VirtualCard card) {
+    return card.status == CardStatus.used ? AppTheme.error : AppTheme.success;
   }
 
   Widget _buildActionPanel({

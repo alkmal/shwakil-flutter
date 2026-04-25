@@ -1917,6 +1917,8 @@ const Map<String, String> appStringsEn = {
   'screens_debt_book_customer_screen.064': 'Payment entry',
   'screens_debt_book_customer_screen.065': 'Edit entry',
   'screens_debt_book_customer_screen.066': 'Pending sync',
+  'screens_debt_book_customer_screen.067': 'Debt summary',
+  'screens_debt_book_customer_screen.068': 'Close',
   'services_app_alert_service.001': 'Success',
   'services_app_alert_service.002': 'Error',
   'services_app_alert_service.003': 'Info',
@@ -2191,6 +2193,8 @@ const Map<String, String> appStringsEn = {
       'This screen is in view-only mode. You can review sub-user accounts without creating, editing, or transferring balances.',
   'screens_sub_users_screen.127': 'Disabled',
   'screens_sub_users_screen.128': 'Active',
+  'screens_sub_users_screen.129': 'Show statistics',
+  'screens_sub_users_screen.130': 'Hide statistics',
   'screens_quick_transfer_screen.040': 'Hide search',
   'screens_quick_transfer_screen.041': 'Show search',
   'screens_quick_transfer_screen.042':
@@ -2227,6 +2231,8 @@ const Map<String, String> appStringsEn = {
   'screens_card_print_requests_screen.052': 'Used debt',
   'screens_card_print_requests_screen.053':
       'From this screen, you can submit a new card printing request and track its status step by step. Make sure your printable balance covers the total card value plus the request fee, and use the notes field to add any special instructions before sending.',
+  'screens_card_print_requests_screen.054':
+      'The current print limit for this sub-user is {limit} per request.',
   'screens_login_screen.026':
       'Offline work mode is enabled. After sign-in, the scan screen will open directly.',
   'screens_debt_book_screen.049':
@@ -2326,6 +2332,14 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.090': 'Status',
   'screens_home_screen.091': 'Last sync',
   'screens_home_screen.092': 'No sync yet',
+  'screens_home_screen.093': 'Current balance',
+  'screens_home_screen.094':
+      'This balance updates automatically when financial activity and notifications arrive.',
+  'screens_home_screen.095': 'Hideable',
+  'screens_home_screen.096': 'Hide welcome card',
+  'screens_home_screen.097': 'Welcome card is hidden',
+  'screens_home_screen.098': 'You can show it again any time from here.',
+  'screens_home_screen.099': 'Show card',
   'screens_balance_screen.111': 'Quick actions',
   'screens_balance_screen.112': 'Recent transactions',
   'screens_balance_screen.113': 'Recent transactions',
@@ -2355,6 +2369,13 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.131': 'Selected',
   'screens_balance_screen.132': 'Search user',
   'screens_balance_screen.133': 'Send by phone',
+  'screens_balance_screen.134': 'Recipient',
+  'screens_balance_screen.135':
+      'Choose the recipient from the search or phone tab to show them here.',
+  'screens_security_settings_screen.072':
+      'Enable local lock to protect your account',
+  'screens_security_settings_screen.073':
+      'We recommend enabling a PIN or biometrics to strengthen your account security and make future sign-in and sensitive actions easier.',
   'screens_admin_pending_registrations_screen.001':
       'Search by name, username, or phone',
   'screens_admin_pending_registrations_screen.002':
@@ -2545,6 +2566,7 @@ const Map<String, String> appStringsEn = {
   'screens_affiliate_center_screen.036': 'Access unavailable',
   'screens_affiliate_center_screen.037':
       'This account does not have permission to open the affiliate center.',
+  'screens_affiliate_center_screen.038': 'Copy the link and share it directly',
   'screens_admin_customer_screen.079':
       'The marketer debt cap is applied automatically from the marketing settings.',
   'screens_admin_customer_screen.080':

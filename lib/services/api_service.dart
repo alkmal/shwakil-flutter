@@ -17,6 +17,7 @@ import 'phone_number_service.dart';
 class ApiService {
   final AuthService _authService = AuthService();
   static const Duration _publicRequestTimeout = Duration(seconds: 8);
+  static const Duration _authenticatedRequestTimeout = Duration(seconds: 12);
 
   Future<Map<String, String>> _headers() async {
     final token = await _authService.token();
@@ -1833,10 +1834,12 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getNotificationSummary() async {
-    final response = await http.get(
-      AppConfig.apiUri('notifications/summary'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .get(
+          AppConfig.apiUri('notifications/summary'),
+          headers: await _headers(),
+        )
+        .timeout(_authenticatedRequestTimeout);
     return _decodeObject(response);
   }
 
@@ -1845,14 +1848,16 @@ class ApiService {
     int page = 1,
     int perPage = 20,
   }) async {
-    final response = await http.get(
-      AppConfig.apiUri('notifications', {
-        'filter': filter,
-        'page': page.toString(),
-        'perPage': perPage.toString(),
-      }),
-      headers: await _headers(),
-    );
+    final response = await http
+        .get(
+          AppConfig.apiUri('notifications', {
+            'filter': filter,
+            'page': page.toString(),
+            'perPage': perPage.toString(),
+          }),
+          headers: await _headers(),
+        )
+        .timeout(_authenticatedRequestTimeout);
     return _decodeObject(response);
   }
 
@@ -1896,18 +1901,22 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
-    final response = await http.post(
-      AppConfig.apiUri('notifications/$id/read'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .post(
+          AppConfig.apiUri('notifications/$id/read'),
+          headers: await _headers(),
+        )
+        .timeout(_authenticatedRequestTimeout);
     return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> markAllNotificationsAsRead() async {
-    final response = await http.post(
-      AppConfig.apiUri('notifications/read-all'),
-      headers: await _headers(),
-    );
+    final response = await http
+        .post(
+          AppConfig.apiUri('notifications/read-all'),
+          headers: await _headers(),
+        )
+        .timeout(_authenticatedRequestTimeout);
     return _decodeObject(response);
   }
 

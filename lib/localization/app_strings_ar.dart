@@ -1851,6 +1851,8 @@ const Map<String, String> appStringsAr = {
   'screens_debt_book_customer_screen.064': 'قيد سداد',
   'screens_debt_book_customer_screen.065': 'تعديل القيد',
   'screens_debt_book_customer_screen.066': 'بانتظار المزامنة',
+  'screens_debt_book_customer_screen.067': 'ملخص الدين',
+  'screens_debt_book_customer_screen.068': 'إغلاق',
   'services_app_alert_service.001': 'نجاح',
   'services_app_alert_service.002': 'خطأ',
   'services_app_alert_service.003': 'معلومة',
@@ -2114,6 +2116,8 @@ const Map<String, String> appStringsAr = {
       'هذه الشاشة في وضع العرض فقط. يمكنك مراجعة الحسابات التابعة دون إنشاء أو تعديل أو تحويل أرصدة.',
   'screens_sub_users_screen.127': 'معطّل',
   'screens_sub_users_screen.128': 'نشط',
+  'screens_sub_users_screen.129': 'عرض الإحصائيات',
+  'screens_sub_users_screen.130': 'إخفاء الإحصائيات',
   'screens_quick_transfer_screen.040': 'إخفاء البحث',
   'screens_quick_transfer_screen.041': 'إظهار البحث',
   'screens_quick_transfer_screen.042':
@@ -2150,6 +2154,8 @@ const Map<String, String> appStringsAr = {
   'screens_card_print_requests_screen.052': 'الدين المستخدم',
   'screens_card_print_requests_screen.053':
       'من هذه الشاشة يمكنك إرسال طلب طباعة بطاقات جديد ومتابعة حالته خطوة بخطوة. تأكد من أن الرصيد القابل للطباعة يكفي إجمالي قيمة البطاقات مع رسوم الطلب، ويمكنك استخدام خانة الملاحظات لتوضيح أي تفاصيل خاصة قبل الإرسال.',
+  'screens_card_print_requests_screen.054':
+      'حد الطباعة الحالي لهذا التابع: سقف {limit} للطلب الواحد.',
   'screens_login_screen.026':
       'وضع العمل دون إنترنت مفعّل. بعد تسجيل الدخول سيتم فتح شاشة الفحص مباشرة.',
   'screens_debt_book_screen.049':
@@ -2244,6 +2250,14 @@ const Map<String, String> appStringsAr = {
   'screens_home_screen.090': 'الحالة',
   'screens_home_screen.091': 'آخر مزامنة',
   'screens_home_screen.092': 'لم تتم مزامنة بعد',
+  'screens_home_screen.093': 'رصيدك الحالي',
+  'screens_home_screen.094':
+      'يتم تحديث هذا الرصيد تلقائيًا عند وصول الحركات والإشعارات المالية.',
+  'screens_home_screen.095': 'قابلة للإخفاء',
+  'screens_home_screen.096': 'إخفاء البطاقة الترحيبية',
+  'screens_home_screen.097': 'البطاقة الترحيبية مخفية',
+  'screens_home_screen.098': 'يمكنك إظهارها مرة أخرى في أي وقت من هنا.',
+  'screens_home_screen.099': 'إظهار البطاقة',
   'screens_balance_screen.111': 'الإجراءات السريعة',
   'screens_balance_screen.112': 'آخر الحركات',
   'screens_balance_screen.113': 'آخر الحركات',
@@ -2272,6 +2286,12 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.131': 'تم الاختيار',
   'screens_balance_screen.132': 'بحث عن مستخدم',
   'screens_balance_screen.133': 'إرسال برقم الهاتف',
+  'screens_balance_screen.134': 'المستلم',
+  'screens_balance_screen.135':
+      'اختر المستلم من تبويب البحث أو الهاتف ليظهر هنا.',
+  'screens_security_settings_screen.072': 'فعّل القفل المحلي لحماية حسابك',
+  'screens_security_settings_screen.073':
+      'ننصح بتفعيل رقم PIN أو البصمة لزيادة الأمان على حسابك وتسهيل الدخول السريع واستخدام العمليات الحساسة لاحقًا.',
   'screens_admin_pending_registrations_screen.001':
       'بحث بالاسم أو اسم المستخدم أو الجوال',
   'screens_admin_pending_registrations_screen.002':
@@ -2451,6 +2471,7 @@ const Map<String, String> appStringsAr = {
   'screens_affiliate_center_screen.036': 'الوصول غير متاح',
   'screens_affiliate_center_screen.037':
       'هذا الحساب لا يملك صلاحية عرض مركز التسويق بالعمولة.',
+  'screens_affiliate_center_screen.038': 'انسخ الرابط وشاركه مباشرة',
   'screens_admin_customer_screen.079':
       'سيتم تطبيق سقف مديونية المسوق تلقائيًا بحسب إعدادات التسويق.',
   'screens_admin_customer_screen.080':

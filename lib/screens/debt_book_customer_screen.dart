@@ -783,6 +783,68 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     }
   }
 
+  Future<void> _showSummaryDialog() async {
+    final customer = _customer;
+    if (customer == null || !mounted) {
+      return;
+    }
+
+    final totalDebt = (customer['totalDebt'] as num?)?.toDouble() ?? 0;
+    final totalPaid = (customer['totalPaid'] as num?)?.toDouble() ?? 0;
+    final balance = _remainingAmount(customer);
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_t('screens_debt_book_customer_screen.067')),
+        content: SizedBox(
+          width: 460,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 420;
+              final cards = [
+                _summaryCard(
+                  _t('screens_debt_book_customer_screen.056'),
+                  CurrencyFormatter.ils(totalDebt),
+                  AppTheme.error,
+                ),
+                _summaryCard(
+                  _t('screens_debt_book_customer_screen.057'),
+                  CurrencyFormatter.ils(totalPaid),
+                  AppTheme.success,
+                ),
+                _summaryCard(
+                  _t('screens_debt_book_customer_screen.058'),
+                  CurrencyFormatter.ils(balance),
+                  balance > 0 ? AppTheme.warning : AppTheme.primary,
+                ),
+              ];
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: cards
+                    .map(
+                      (card) => SizedBox(
+                        width: isCompact ? double.infinity : 132,
+                        child: card,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(_t('screens_debt_book_customer_screen.068')),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _customerHasPendingChanges(Map<String, dynamic> customer) {
     final customerId = customer['id']?.toString() ?? '';
     final clientRef = customer['clientRef']?.toString() ?? '';
@@ -833,9 +895,6 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
   @override
   Widget build(BuildContext context) {
     final customer = _customer;
-    final totalDebt = (customer?['totalDebt'] as num?)?.toDouble() ?? 0;
-    final totalPaid = (customer?['totalPaid'] as num?)?.toDouble() ?? 0;
-    final balance = _remainingAmount(customer);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -846,6 +905,18 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
               : _t('screens_debt_book_customer_screen.062'),
         ),
         actions: [
+          if (customer != null) ...[
+            IconButton(
+              tooltip: _t('screens_debt_book_customer_screen.053'),
+              onPressed: _showEditCustomerDialog,
+              icon: const Icon(Icons.edit_rounded),
+            ),
+            IconButton(
+              tooltip: _t('screens_debt_book_customer_screen.054'),
+              onPressed: _deleteCustomer,
+              icon: const Icon(Icons.delete_outline_rounded),
+            ),
+          ],
           IconButton(
             tooltip: _t('screens_debt_book_customer_screen.049'),
             onPressed: _loading ? null : () => _load(),
@@ -947,27 +1018,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                     width: isCompact ? 0 : 12,
                                     height: isCompact ? 14 : 0,
                                   ),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      _smallActionIconButton(
-                                        tooltip: _t(
-                                          'screens_debt_book_customer_screen.053',
-                                        ),
-                                        icon: Icons.edit_rounded,
-                                        onPressed: _showEditCustomerDialog,
-                                      ),
-                                      _smallActionIconButton(
-                                        tooltip: _t(
-                                          'screens_debt_book_customer_screen.054',
-                                        ),
-                                        icon: Icons.delete_outline_rounded,
-                                        isDanger: true,
-                                        onPressed: _deleteCustomer,
-                                      ),
-                                    ],
-                                  ),
+                                  const SizedBox.shrink(),
                                 ],
                               );
                             },
@@ -993,30 +1044,13 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                             spacing: 12,
                             runSpacing: 12,
                             children: [
-                              _summaryCard(
-                                _t('screens_debt_book_customer_screen.056'),
-                                CurrencyFormatter.ils(totalDebt),
-                                AppTheme.error,
+                              ShwakelButton(
+                                label: _t(
+                                  'screens_debt_book_customer_screen.067',
+                                ),
+                                icon: Icons.summarize_rounded,
+                                onPressed: _showSummaryDialog,
                               ),
-                              _summaryCard(
-                                _t('screens_debt_book_customer_screen.057'),
-                                CurrencyFormatter.ils(totalPaid),
-                                AppTheme.success,
-                              ),
-                              _summaryCard(
-                                _t('screens_debt_book_customer_screen.058'),
-                                CurrencyFormatter.ils(balance),
-                                balance > 0
-                                    ? AppTheme.warning
-                                    : AppTheme.primary,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
                               ShwakelButton(
                                 label: _t(
                                   'screens_debt_book_customer_screen.027',
@@ -1224,22 +1258,24 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
   }
 
   Widget _summaryCard(String title, String value, Color color) {
-    return SizedBox(
-      width: 220,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: AppTheme.caption),
-            const SizedBox(height: 8),
-            Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(title, textAlign: TextAlign.center, style: AppTheme.caption),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: AppTheme.bodyBold.copyWith(color: color),
+          ),
+        ],
       ),
     );
   }

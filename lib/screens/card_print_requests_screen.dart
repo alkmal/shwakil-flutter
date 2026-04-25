@@ -40,6 +40,28 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
   bool get _isDriverAccount => _user?['role']?.toString() == 'driver';
 
+  String _subUserPrintLimitMessage(BuildContext context) {
+    final l = context.loc;
+    final limit = CurrencyFormatter.ils(
+      _limitAsDouble('printRequestMaxAmount') ?? 0,
+    );
+    final rawDebtLimit = _limitAsDouble('printingDebtLimit') ?? 0;
+    if (rawDebtLimit > 0) {
+      return l.tr(
+        'screens_card_print_requests_screen.049',
+        params: {
+          'limit': limit,
+          'debtLimit': CurrencyFormatter.ils(rawDebtLimit),
+        },
+      );
+    }
+
+    return l.tr(
+      'screens_card_print_requests_screen.054',
+      params: {'limit': limit},
+    );
+  }
+
   String _cardTypeLabel(BuildContext context, String cardType) {
     final l = context.loc;
     return switch (cardType) {
@@ -208,17 +230,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           ),
                         ),
                         child: Text(
-                          l.tr(
-                            'screens_card_print_requests_screen.049',
-                            params: {
-                              'limit': CurrencyFormatter.ils(
-                                _limitAsDouble('printRequestMaxAmount') ?? 0,
-                              ),
-                              'debtLimit': CurrencyFormatter.ils(
-                                _limitAsDouble('printingDebtLimit') ?? 0,
-                              ),
-                            },
-                          ),
+                          _subUserPrintLimitMessage(dialogContext),
                           style: AppTheme.caption.copyWith(
                             color: AppTheme.textPrimary,
                             fontWeight: FontWeight.w700,
@@ -469,17 +481,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     color: AppTheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(20),
                     child: Text(
-                      l.tr(
-                        'screens_card_print_requests_screen.047',
-                        params: {
-                          'limit': CurrencyFormatter.ils(
-                            _limitAsDouble('printRequestMaxAmount') ?? 0,
-                          ),
-                          'debtLimit': CurrencyFormatter.ils(
-                            _limitAsDouble('printingDebtLimit') ?? 0,
-                          ),
-                        },
-                      ),
+                      _subUserPrintLimitMessage(context),
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textPrimary,
                         fontWeight: FontWeight.w700,
@@ -524,6 +526,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         '${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%';
     final debtLimit = (_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0;
     final currentDebt = (_user?['outstandingDebt'] as num?)?.toDouble() ?? 0;
+    final showPrintFee = (printFee ?? 0) > 0;
+    final showDebtLimit = debtLimit > 0;
+    final showCurrentDebt = currentDebt > 0;
 
     return ShwakelCard(
       padding: const EdgeInsets.all(22),
@@ -573,21 +578,24 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     label: l.tr('screens_card_print_requests_screen.020'),
                     value: CurrencyFormatter.ils(availableBalance),
                   ),
-                  _buildPrintMetricTile(
-                    icon: Icons.percent_rounded,
-                    label: l.tr('screens_card_print_requests_screen.021'),
-                    value: feeLabel,
-                  ),
-                  _buildPrintMetricTile(
-                    icon: Icons.credit_score_rounded,
-                    label: l.tr('screens_card_print_requests_screen.051'),
-                    value: CurrencyFormatter.ils(debtLimit),
-                  ),
-                  _buildPrintMetricTile(
-                    icon: Icons.trending_down_rounded,
-                    label: l.tr('screens_card_print_requests_screen.052'),
-                    value: CurrencyFormatter.ils(currentDebt),
-                  ),
+                  if (showPrintFee)
+                    _buildPrintMetricTile(
+                      icon: Icons.percent_rounded,
+                      label: l.tr('screens_card_print_requests_screen.021'),
+                      value: feeLabel,
+                    ),
+                  if (showDebtLimit)
+                    _buildPrintMetricTile(
+                      icon: Icons.credit_score_rounded,
+                      label: l.tr('screens_card_print_requests_screen.051'),
+                      value: CurrencyFormatter.ils(debtLimit),
+                    ),
+                  if (showCurrentDebt)
+                    _buildPrintMetricTile(
+                      icon: Icons.trending_down_rounded,
+                      label: l.tr('screens_card_print_requests_screen.052'),
+                      value: CurrencyFormatter.ils(currentDebt),
+                    ),
                 ],
               ),
             ],
@@ -691,16 +699,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Widget _buildRequestCard(Map<String, dynamic> request) {
-    final l = context.loc;
     final status = request['status']?.toString() ?? 'pending_review';
-    final cardType = _cardTypeLabel(
+    final cardTypeLabel = _cardTypeLabel(
       context,
       request['cardType']?.toString() ?? 'standard',
     );
-    final quantityLabel = l.tr(
-      'screens_card_print_requests_screen.030',
-      params: {'count': '${request['quantity'] ?? 0}'},
-    );
+    final quantity = (request['quantity'] as num?)?.toInt() ?? 0;
     final totalAmount = CurrencyFormatter.ils(
       (request['totalAmount'] as num?)?.toDouble() ?? 0,
     );
@@ -708,130 +712,79 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       request['createdAt']?.toString(),
       request['created_at']?.toString() ?? '-',
     );
+    final title = request['statusLabel']?.toString().trim().isNotEmpty == true
+        ? request['statusLabel']!.toString()
+        : cardTypeLabel;
+    final summary = '$cardTypeLabel  |  $quantity  |  $totalAmount';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: ShwakelCard(
         onTap: () => _showRequestDetails(request),
-        padding: const EdgeInsets.all(16),
-        borderRadius: BorderRadius.circular(22),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 560;
-            final iconCard = Container(
-              width: 46,
-              height: 46,
+        padding: const EdgeInsets.all(14),
+        borderRadius: BorderRadius.circular(20),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: _statusColor(status).withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 Icons.print_rounded,
                 color: _statusColor(status),
-                size: 22,
+                size: 20,
               ),
-            );
-            final content = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (compact)
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        request['statusLabel']?.toString() ??
-                            l.tr('screens_card_print_requests_screen.025'),
-                        style: AppTheme.bodyBold.copyWith(fontSize: 16),
-                      ),
-                      _statusChip(status),
-                    ],
-                  )
-                else
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
-                          request['statusLabel']?.toString() ??
-                              l.tr('screens_card_print_requests_screen.025'),
-                          style: AppTheme.bodyBold.copyWith(fontSize: 16),
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.bodyBold.copyWith(fontSize: 15),
                         ),
                       ),
                       const SizedBox(width: 8),
                       _statusChip(status),
                     ],
                   ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    _miniMetaChip(
-                      label: l.tr('screens_card_print_requests_screen.026'),
-                      value: cardType,
+                  const SizedBox(height: 6),
+                  Text(
+                    summary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
                     ),
-                    _miniMetaChip(
-                      label: l.tr('screens_card_print_requests_screen.029'),
-                      value: quantityLabel,
-                    ),
-                    _miniMetaChip(
-                      label: l.tr('screens_card_print_requests_screen.032'),
-                      value: totalAmount,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  createdAt,
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
                   ),
-                ),
-              ],
-            );
-
-            if (compact) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      iconCard,
-                      const SizedBox(width: 12),
-                      Expanded(child: content),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Icon(
-                      Icons.chevron_left_rounded,
+                  const SizedBox(height: 4),
+                  Text(
+                    createdAt,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(
                       color: AppTheme.textTertiary,
-                      size: 22,
                     ),
                   ),
                 ],
-              );
-            }
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                iconCard,
-                const SizedBox(width: 12),
-                Expanded(child: content),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.chevron_left_rounded,
-                  color: AppTheme.textTertiary,
-                  size: 22,
-                ),
-              ],
-            );
-          },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_left_rounded,
+              color: AppTheme.textTertiary,
+              size: 22,
+            ),
+          ],
         ),
       ),
     );
@@ -993,31 +946,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           const SizedBox(height: 4),
           Text(value, style: AppTheme.bodyBold),
         ],
-      ),
-    );
-  }
-
-  Widget _miniMetaChip({required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceMuted,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: RichText(
-        text: TextSpan(
-          style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
-          children: [
-            TextSpan(text: '$label: '),
-            TextSpan(
-              text: value,
-              style: AppTheme.caption.copyWith(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

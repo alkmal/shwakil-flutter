@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 import '../models/index.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -20,6 +22,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
+  static const String _welcomeCardVisibleKeyPrefix =
+      'home_welcome_card_visible';
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
@@ -30,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _hasOfflineWorkspace = false;
   bool _isSyncingOfflineWorkspace = false;
   bool _didSuggestOfflineWorkspace = false;
+  bool _isWelcomeCardVisible = true;
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
   int _pendingOfflineCount = 0;
   String? _lastOfflineSyncAt;
@@ -109,10 +114,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       final pendingSummary = await _resolveOfflinePendingSummary(user);
       final lastSyncAt = await _resolveLastOfflineSyncAt(user);
+      final isWelcomeCardVisible = await _resolveWelcomeCardVisibility(user);
       if (!mounted) return;
       setState(() {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
+        _isWelcomeCardVisible = isWelcomeCardVisible;
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
         _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
@@ -123,10 +130,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
       final pendingSummary = await _resolveOfflinePendingSummary(user);
       final lastSyncAt = await _resolveLastOfflineSyncAt(user);
+      final isWelcomeCardVisible = await _resolveWelcomeCardVisibility(user);
       if (!mounted) return;
       setState(() {
         _user = user;
         _hasOfflineWorkspace = hasOfflineWorkspace;
+        _isWelcomeCardVisible = isWelcomeCardVisible;
         _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
         _lastOfflineSyncAt = lastSyncAt;
         _isLoading = false;
@@ -408,6 +417,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   bool get _isDeviceOnline => ConnectivityService.instance.isOnline.value;
 
+  String _welcomeCardPreferenceKey(Map<String, dynamic>? user) {
+    final userId = user?['id']?.toString().trim();
+    return '${_welcomeCardVisibleKeyPrefix}_${userId?.isNotEmpty == true ? userId : 'guest'}';
+  }
+
+  Future<bool> _resolveWelcomeCardVisibility(Map<String, dynamic>? user) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_welcomeCardPreferenceKey(user)) ?? true;
+  }
+
+  Future<void> _setWelcomeCardVisibility(bool visible) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_welcomeCardPreferenceKey(_user), visible);
+    if (!mounted) {
+      return;
+    }
+    setState(() => _isWelcomeCardVisible = visible);
+  }
+
   String get _scanCameraRoute => OfflineSessionService.isOfflineMode
       ? '/scan-card-offline-camera'
       : '/scan-card-camera';
@@ -474,7 +502,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildWelcomeCard(),
+                        if (_isWelcomeCardVisible)
+                          _buildWelcomeCard()
+                        else
+                          _buildWelcomeCardRestore(),
                         if (scanShortcut != null) ...[
                           const SizedBox(height: 14),
                           _buildScanShortcut(scanShortcut),
@@ -679,9 +710,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ? _t('screens_home_screen.085')
         : _roleLabel;
     final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
+    final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
 
     return ShwakelCard(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       borderRadius: BorderRadius.circular(26),
       shadowLevel: ShwakelShadowLevel.medium,
       gradient: const LinearGradient(
@@ -692,9 +724,41 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 520;
+          final statChip = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Text(
+              subtitle,
+              style: AppTheme.caption.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+          final hideChip = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Text(
+              _t('screens_home_screen.095'),
+              style: AppTheme.caption.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          );
           final logo = Container(
-            width: 64,
-            height: 64,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(20),
@@ -724,38 +788,148 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
             ),
           );
+          final balanceCard = Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _t('screens_home_screen.093'),
+                  style: AppTheme.caption.copyWith(
+                    color: Colors.white.withValues(alpha: 0.86),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  CurrencyFormatter.ils(balance),
+                  style: AppTheme.h1.copyWith(
+                    color: Colors.white,
+                    fontSize: isCompact ? 28 : 32,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _t('screens_home_screen.094'),
+                  style: AppTheme.bodyAction.copyWith(
+                    color: Colors.white.withValues(alpha: 0.86),
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          );
 
           final textBlock = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                title,
-                style: AppTheme.h2.copyWith(fontSize: 18, color: Colors.white),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: AppTheme.h2.copyWith(
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  IconButton(
+                    tooltip: _t('screens_home_screen.096'),
+                    onPressed: () => _setWelcomeCardVisibility(false),
+                    icon: const Icon(
+                      Icons.visibility_off_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 subtitle,
                 style: AppTheme.bodyAction.copyWith(
                   color: Colors.white.withValues(alpha: 0.88),
+                  height: 1.5,
                 ),
-                maxLines: isCompact ? null : 1,
+                maxLines: isCompact ? 2 : 1,
                 overflow: isCompact
                     ? TextOverflow.visible
                     : TextOverflow.ellipsis,
               ),
+              const SizedBox(height: 14),
+              Wrap(spacing: 10, runSpacing: 10, children: [statChip, hideChip]),
+              const SizedBox(height: 16),
+              balanceCard,
             ],
           );
 
+          return ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 144),
+            child: Flex(
+              direction: isCompact ? Axis.vertical : Axis.horizontal,
+              crossAxisAlignment: isCompact
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.center,
+              children: [
+                logo,
+                SizedBox(width: isCompact ? 0 : 18, height: isCompact ? 16 : 0),
+                if (isCompact) textBlock else Expanded(child: textBlock),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCardRestore() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(22),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 420;
           return Flex(
             direction: isCompact ? Axis.vertical : Axis.horizontal,
             crossAxisAlignment: isCompact
                 ? CrossAxisAlignment.start
                 : CrossAxisAlignment.center,
             children: [
-              logo,
-              SizedBox(width: isCompact ? 0 : 14, height: isCompact ? 14 : 0),
-              if (isCompact) textBlock else Expanded(child: textBlock),
+              Expanded(
+                flex: isCompact ? 0 : 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _t('screens_home_screen.097'),
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _t('screens_home_screen.098'),
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: isCompact ? 0 : 12, height: isCompact ? 12 : 0),
+              SizedBox(
+                width: isCompact ? double.infinity : null,
+                child: FilledButton.icon(
+                  onPressed: () => _setWelcomeCardVisibility(true),
+                  icon: const Icon(Icons.visibility_rounded),
+                  label: Text(_t('screens_home_screen.099')),
+                ),
+              ),
             ],
           );
         },
@@ -766,21 +940,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   Widget _buildScanShortcut(_HomeServiceItem item) {
     return ShwakelCard(
       onTap: item.onTap,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(22),
       borderRadius: BorderRadius.circular(24),
       shadowLevel: ShwakelShadowLevel.medium,
       borderColor: item.color.withValues(alpha: 0.16),
+      color: item.color.withValues(alpha: 0.04),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 560;
           final cta = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: item.color.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: item.color.withValues(alpha: 0.14)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.camera_alt_rounded, size: 18, color: item.color),
                 const SizedBox(width: 6),
@@ -794,60 +971,69 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ],
             ),
           );
-          return Flex(
-            direction: isCompact ? Axis.vertical : Axis.horizontal,
-            crossAxisAlignment: isCompact
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
+          final iconBox = Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: item.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(item.icon, color: item.color, size: 30),
+          );
+
+          final textBlock = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(item.icon, color: item.color, size: 28),
+              Text(
+                _t('screens_home_screen.086'),
+                style: AppTheme.bodyBold.copyWith(fontSize: 17),
               ),
-              SizedBox(width: isCompact ? 0 : 14, height: isCompact ? 12 : 0),
-              if (isCompact)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _t('screens_home_screen.086'),
-                      style: AppTheme.bodyBold.copyWith(fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _t('screens_home_screen.087'),
-                      style: AppTheme.bodyAction.copyWith(height: 1.35),
-                    ),
-                    const SizedBox(height: 12),
-                    cta,
-                  ],
-                )
-              else ...[
-                Expanded(
-                  child: Column(
+              const SizedBox(height: 6),
+              Text(
+                _t('screens_home_screen.087'),
+                style: AppTheme.bodyAction.copyWith(height: 1.45),
+              ),
+            ],
+          );
+
+          return ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 148),
+            child: isCompact
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _t('screens_home_screen.086'),
-                        style: AppTheme.bodyBold.copyWith(fontSize: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          iconBox,
+                          const SizedBox(width: 14),
+                          Expanded(child: textBlock),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _t('screens_home_screen.087'),
-                        style: AppTheme.bodyAction.copyWith(height: 1.35),
+                      const Spacer(),
+                      const SizedBox(height: 16),
+                      SizedBox(width: double.infinity, child: cta),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      iconBox,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [textBlock],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Align(
+                        alignment: Alignment.center,
+                        child: SizedBox(width: 170, child: cta),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                cta,
-              ],
-            ],
           );
         },
       ),
@@ -1062,13 +1248,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: services.length,
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.92,
-                    ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.92,
+                ),
                 itemBuilder: (context, index) =>
                     _buildCompactServiceTile(services[index]),
               ),
@@ -1092,14 +1277,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 emptyState
               else
                 Column(
-                  children: services.asMap().entries.map((entry) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        bottom: entry.key == services.length - 1 ? 0 : 12,
-                      ),
-                      child: _buildServiceListItem(entry.value),
-                    );
-                  }).toList(growable: false),
+                  children: services
+                      .asMap()
+                      .entries
+                      .map((entry) {
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: entry.key == services.length - 1 ? 0 : 12,
+                          ),
+                          child: _buildServiceListItem(entry.value),
+                        );
+                      })
+                      .toList(growable: false),
                 ),
             ],
           ),

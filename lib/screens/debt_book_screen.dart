@@ -461,12 +461,10 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
+                  isScrollable: false,
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: const EdgeInsets.all(6),
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                   tabs: [
                     Tab(
                       text: l.tr('screens_debt_book_screen.047'),
@@ -811,38 +809,13 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _smallSummary(
-                              _t('screens_debt_book_screen.043'),
-                              CurrencyFormatter.ils(
-                                (customer['totalDebt'] as num?)?.toDouble() ??
-                                    0,
-                              ),
-                              AppTheme.error,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _smallSummary(
-                              _t('screens_debt_book_screen.029'),
-                              CurrencyFormatter.ils(
-                                (customer['totalPaid'] as num?)?.toDouble() ??
-                                    0,
-                              ),
-                              AppTheme.success,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _smallSummary(
-                              _t('screens_debt_book_screen.044'),
-                              CurrencyFormatter.ils(balance),
-                              balance > 0 ? AppTheme.warning : AppTheme.primary,
-                            ),
-                          ),
-                        ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: _smallSummary(
+                          _t('screens_debt_book_screen.044'),
+                          CurrencyFormatter.ils(balance),
+                          balance > 0 ? AppTheme.warning : AppTheme.primary,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -1010,17 +983,22 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
 
   Widget _smallSummary(String title, String value, Color color) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(title, style: AppTheme.caption),
           const SizedBox(height: 6),
-          Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: AppTheme.bodyBold.copyWith(color: color),
+          ),
         ],
       ),
     );

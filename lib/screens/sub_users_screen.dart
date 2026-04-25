@@ -30,6 +30,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   bool _isDisabled = false;
   bool _canViewSubUsers = false;
   bool _canManageSubUsers = false;
+  bool _showStats = false;
   late final Map<String, bool> _permissions = _defaultPermissions();
 
   static Map<String, bool> _defaultPermissions() => {
@@ -387,10 +388,12 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   Widget _buildUsersTab() {
     return ListView(
       children: [
-        _buildStatsRow(),
-        const SizedBox(height: 18),
         if (_canManageSubUsers) ...[
           _buildInlineGuideCard(),
+          const SizedBox(height: 18),
+        ],
+        if (_showStats) ...[
+          _buildStatsRow(),
           const SizedBox(height: 18),
         ],
         if (!_canManageSubUsers) ...[
@@ -455,6 +458,17 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(width: 12),
+          ShwakelButton(
+            label: _showStats
+                ? context.loc.tr('screens_sub_users_screen.130')
+                : context.loc.tr('screens_sub_users_screen.129'),
+            icon: _showStats
+                ? Icons.visibility_off_rounded
+                : Icons.query_stats_rounded,
+            isSecondary: true,
+            onPressed: () => setState(() => _showStats = !_showStats),
           ),
         ],
       ),
@@ -1139,16 +1153,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                       const SizedBox(height: 12),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
-                        child: IconButton.filledTonal(
-                          tooltip: context.loc.tr('screens_sub_users_screen.125'),
-                          onPressed: _canManageSubUsers
-                              ? () {
-                                  _edit(user);
-                                  DefaultTabController.of(context).animateTo(1);
-                                }
-                              : null,
-                          icon: const Icon(Icons.edit_rounded),
-                        ),
+                        child: _buildSubUserActionsMenu(user),
                       ),
                     ],
                   );
@@ -1164,71 +1169,52 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                       children: [
                         statusChip,
                         const SizedBox(height: 10),
-                        IconButton.filledTonal(
-                          tooltip: context.loc.tr('screens_sub_users_screen.125'),
-                          onPressed: _canManageSubUsers
-                              ? () {
-                                  _edit(user);
-                                  DefaultTabController.of(context).animateTo(1);
-                                }
-                              : null,
-                          icon: const Icon(Icons.edit_rounded),
-                        ),
+                        _buildSubUserActionsMenu(user),
                       ],
                     ),
                   ],
                 );
               },
             ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _saving || !_canManageSubUsers
-                        ? null
-                        : () => _transferBalance(user, 'to_sub'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: BorderSide(
-                        color: AppTheme.primary.withValues(alpha: 0.2),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppTheme.radiusMd,
-                      ),
-                    ),
-                    icon: const Icon(Icons.call_made_rounded),
-                    label: Text(
-                      context.loc.tr('screens_quick_transfer_screen.036'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _saving || !_canManageSubUsers
-                        ? null
-                        : () => _transferBalance(user, 'from_sub'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: BorderSide(
-                        color: AppTheme.accent.withValues(alpha: 0.2),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppTheme.radiusMd,
-                      ),
-                    ),
-                    icon: const Icon(Icons.call_received_rounded),
-                    label: Text(
-                      context.loc.tr('screens_sub_users_screen.066'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSubUserActionsMenu(Map<String, dynamic> user) {
+    return PopupMenuButton<String>(
+      tooltip: context.loc.tr('screens_sub_users_screen.125'),
+      icon: const Icon(Icons.more_horiz_rounded),
+      enabled: _canManageSubUsers && !_saving,
+      onSelected: (value) {
+        switch (value) {
+          case 'edit':
+            _edit(user);
+            DefaultTabController.of(context).animateTo(1);
+            break;
+          case 'to_sub':
+            _transferBalance(user, 'to_sub');
+            break;
+          case 'from_sub':
+            _transferBalance(user, 'from_sub');
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: 'edit',
+          child: Text(context.loc.tr('screens_sub_users_screen.125')),
+        ),
+        PopupMenuItem<String>(
+          value: 'to_sub',
+          child: Text(context.loc.tr('screens_quick_transfer_screen.036')),
+        ),
+        PopupMenuItem<String>(
+          value: 'from_sub',
+          child: Text(context.loc.tr('screens_sub_users_screen.066')),
+        ),
+      ],
     );
   }
 

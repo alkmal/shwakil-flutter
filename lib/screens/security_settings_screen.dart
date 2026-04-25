@@ -31,6 +31,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   String? _busyDeviceId;
   bool _isUpdatingBiometric = false;
   bool _isUpdatingPin = false;
+  bool _showSetupHint = false;
+  bool _routeArgsApplied = false;
 
   @override
   void initState() {
@@ -123,6 +125,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeArgsApplied) {
+      return;
+    }
+    _routeArgsApplied = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['showSetupHint'] == true) {
+      _showSetupHint = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_isLoading) {
@@ -143,6 +158,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_showSetupHint) ...[
+                _buildSetupHintCard(),
+                const SizedBox(height: 18),
+              ],
               _buildPageHeader(),
               const SizedBox(height: 18),
               DecoratedBox(
@@ -229,6 +248,50 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 label: _biometricStatusLabel(l),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetupHintCard() {
+    final l = context.loc;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      color: AppTheme.primarySoft.withValues(alpha: 0.72),
+      borderRadius: BorderRadius.circular(22),
+      borderColor: AppTheme.primary.withValues(alpha: 0.14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.lock_person_rounded,
+              color: AppTheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l.tr('screens_security_settings_screen.072'),
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l.tr('screens_security_settings_screen.073'),
+                  style: AppTheme.bodyAction.copyWith(height: 1.5),
+                ),
+              ],
+            ),
           ),
         ],
       ),

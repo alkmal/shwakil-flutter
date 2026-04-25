@@ -327,10 +327,11 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _shareRow(
-            inviteLabel,
-            inviteLink,
-            () => _copyValue(inviteLabel, inviteLink),
+          _shareActionRow(
+            label: inviteLabel,
+            hint: l.tr('screens_affiliate_center_screen.038'),
+            onCopy: () => _copyValue(inviteLabel, inviteLink),
+            enabled: inviteLink.isNotEmpty,
           ),
         ],
       ),
@@ -365,6 +366,49 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
           ),
           FilledButton.icon(
             onPressed: value.isEmpty ? null : onCopy,
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: Text(l.tr('screens_affiliate_center_screen.025')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shareActionRow({
+    required String label,
+    required String hint,
+    required VoidCallback onCopy,
+    required bool enabled,
+  }) {
+    final l = context.loc;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppTheme.caption),
+                const SizedBox(height: 6),
+                Text(
+                  hint,
+                  style: AppTheme.bodyBold.copyWith(
+                    color: enabled
+                        ? AppTheme.textPrimary
+                        : AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: enabled ? onCopy : null,
             icon: const Icon(Icons.copy_rounded, size: 18),
             label: Text(l.tr('screens_affiliate_center_screen.025')),
           ),

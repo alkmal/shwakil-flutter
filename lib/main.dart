@@ -353,11 +353,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final relockRequired = LocalSecurityService.relockRequired;
     final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
         .timeout(const Duration(seconds: 1), onTimeout: () => false);
-    if (relockRequired || canUseTrustedUnlock) {
-      if (!relockRequired && _localUnlockSatisfiedThisSession) {
-        unawaited(RealtimeNotificationService.start());
-        return const _LaunchDecision(state: _LaunchState.home);
-      }
+    if (relockRequired) {
       unawaited(RealtimeNotificationService.stop());
       if (canUseTrustedUnlock) {
         return const _LaunchDecision(state: _LaunchState.unlock);
@@ -622,7 +618,10 @@ class _ForcedUpdateScreen extends StatelessWidget {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
-                        _versionRow('نسختك الحالية', requirement.currentVersion),
+                        _versionRow(
+                          'نسختك الحالية',
+                          requirement.currentVersion,
+                        ),
                         const SizedBox(height: 10),
                         _versionRow(
                           requirement.isForced
@@ -640,7 +639,9 @@ class _ForcedUpdateScreen extends StatelessWidget {
                               ? 'فتح صفحة التحديث'
                               : 'رابط التحديث غير متوفر',
                           icon: Icons.system_update_rounded,
-                          onPressed: requirement.hasStoreUrl ? _openStore : null,
+                          onPressed: requirement.hasStoreUrl
+                              ? _openStore
+                              : null,
                         ),
                         const SizedBox(height: 12),
                         ShwakelButton(
