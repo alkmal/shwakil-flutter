@@ -95,7 +95,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final currentAppVersion = await AppVersionService.currentVersion();
+      final currentAppVersionFuture = AppVersionService.currentVersion();
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
       if (!permissions.canManageSystemSettings) {
@@ -108,21 +108,35 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         });
         return;
       }
-      final contactSettings = await _apiService.getContactInfo();
-      final authSettings = await _apiService.getAuthSettings();
-      final transferSettings = await _apiService.getTransferSettings();
-      final offlineCardSettings = await _apiService.getOfflineCardSettings();
-      final feeSettings = await _apiService.getFeeSettings();
-      final topupRequestSettings = await _apiService
-          .getAdminTopupRequestSettings();
-      final affiliateSettings = await _apiService.getAdminAffiliateSettings();
-      final topupPaymentMethods = await _apiService
-          .getAdminTopupPaymentMethods();
-      final usagePolicy = await _apiService.getUsagePolicy();
+      final results = await Future.wait<dynamic>([
+        currentAppVersionFuture,
+        _apiService.getContactInfo(),
+        _apiService.getAuthSettings(),
+        _apiService.getTransferSettings(),
+        _apiService.getOfflineCardSettings(),
+        _apiService.getFeeSettings(),
+        _apiService.getAdminTopupRequestSettings(),
+        _apiService.getAdminAffiliateSettings(),
+        _apiService.getAdminTopupPaymentMethods(),
+        _apiService.getUsagePolicy(),
+      ]);
 
       if (!mounted) {
         return;
       }
+
+      final currentAppVersion = results[0] as String;
+      final contactSettings = Map<String, dynamic>.from(results[1] as Map);
+      final authSettings = Map<String, dynamic>.from(results[2] as Map);
+      final transferSettings = Map<String, dynamic>.from(results[3] as Map);
+      final offlineCardSettings = Map<String, dynamic>.from(results[4] as Map);
+      final feeSettings = Map<String, dynamic>.from(results[5] as Map);
+      final topupRequestSettings = Map<String, dynamic>.from(results[6] as Map);
+      final affiliateSettings = Map<String, dynamic>.from(results[7] as Map);
+      final topupPaymentMethods = List<Map<String, dynamic>>.from(
+        (results[8] as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+      final usagePolicy = Map<String, dynamic>.from(results[9] as Map);
 
       _contactTitleController.text = contactSettings['title'] ?? '';
       _contactWhatsappController.text =

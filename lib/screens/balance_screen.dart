@@ -89,13 +89,17 @@ class _BalanceScreenState extends State<BalanceScreen>
     setState(() => _isLoading = true);
     final requestedPage = _page;
     try {
-      final data = await _apiService.getMyBalance(
-        locationFilter: _apiLocationFilterValue,
-        page: requestedPage,
-        perPage: _perPage,
-        printingDebtOnly: _auditFilter == _BalanceAuditFilter.printingDebt,
-      );
-      final topupSettings = await _apiService.getTopupRequestSettings();
+      final results = await Future.wait<dynamic>([
+        _apiService.getMyBalance(
+          locationFilter: _apiLocationFilterValue,
+          page: requestedPage,
+          perPage: _perPage,
+          printingDebtOnly: _auditFilter == _BalanceAuditFilter.printingDebt,
+        ),
+        _apiService.getTopupRequestSettings(),
+      ]);
+      final data = Map<String, dynamic>.from(results[0] as Map);
+      final topupSettings = Map<String, dynamic>.from(results[1] as Map);
       final pagination = Map<String, dynamic>.from(
         data['pagination'] as Map? ?? const {},
       );

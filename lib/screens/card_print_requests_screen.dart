@@ -116,8 +116,16 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Future<Map<String, dynamic>?> _refreshAndReadCurrentUser() async {
-    await _authService.refreshCurrentUser();
-    return _authService.currentUser();
+    var user = await _authService.currentUser();
+    try {
+      await _authService.refreshCurrentUser().timeout(
+        const Duration(milliseconds: 1800),
+      );
+      user = await _authService.currentUser();
+    } catch (_) {
+      user ??= await _authService.currentUser();
+    }
+    return user;
   }
 
   Future<void> _showCreateRequestDialog() async {
