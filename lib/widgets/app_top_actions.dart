@@ -16,6 +16,7 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
   final ApiService _apiService = ApiService();
   int _unreadNotifications = 0;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+  bool _isOpening = false;
 
   @override
   void initState() {
@@ -63,14 +64,37 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
       );
       return;
     }
-    if (!mounted) {
+    if (!mounted || _isOpening) {
       return;
     }
-    await Navigator.pushNamed(context, '/notifications');
-    if (!mounted) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == '/notifications') {
       return;
     }
-    _loadNotificationSummary();
+    setState(() => _isOpening = true);
+    try {
+      await Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pushNamed('/notifications');
+      if (!mounted) {
+        return;
+      }
+      _loadNotificationSummary();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: context.loc.tr('screens_login_screen.002'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isOpening = false);
+      }
+    }
   }
 
   @override
@@ -86,7 +110,7 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
                 params: {'count': '$_unreadNotifications'},
               )
             : l.tr('widgets_app_top_actions.004'),
-        onPressed: _openNotifications,
+        onPressed: _isOpening ? null : _openNotifications,
         icon: Stack(
           clipBehavior: Clip.none,
           children: [

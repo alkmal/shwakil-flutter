@@ -2188,6 +2188,7 @@ const Map<String, String> appStringsAr = {
   'widgets_app_sidebar.041': 'التسويق بالعمولة',
   'widgets_app_sidebar.042': 'طلبات التسجيل',
   'widgets_app_sidebar.043': 'إرسال الإشعارات',
+  'widgets_app_sidebar.044': 'الإشعارات',
   'screens_admin_notifications_screen.001': 'تعذر تحميل الإشعارات',
   'screens_admin_notifications_screen.002': 'إرسال الإشعارات',
   'screens_admin_notifications_screen.003': 'إشعار جديد',

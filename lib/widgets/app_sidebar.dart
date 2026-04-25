@@ -70,6 +70,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canViewQuickTransfer = permissions.canOpenQuickTransfer;
     final canViewContact = permissions.canViewContact;
     final canViewLocations = permissions.canViewLocations;
+    final canViewNotifications = permissions.canViewTransactions || canViewBalance;
     final canViewUsagePolicy = permissions.canViewUsagePolicy;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canViewSubUsers = permissions.canViewSubUsers;
@@ -190,6 +191,13 @@ class _AppSidebarState extends State<AppSidebar> {
                         icon: Icons.receipt_long_rounded,
                         title: l.tr('widgets_app_sidebar.005'),
                         routeName: '/transactions',
+                      ),
+                    if (canViewNotifications)
+                      _buildItem(
+                        context,
+                        icon: Icons.notifications_active_rounded,
+                        title: l.tr('widgets_app_sidebar.044'),
+                        routeName: '/notifications',
                       ),
                     if (canViewInventory && canIssueCards)
                       _buildItem(

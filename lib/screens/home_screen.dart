@@ -1000,6 +1000,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             constraints: const BoxConstraints(minHeight: 148),
             child: isCompact
                 ? Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
@@ -1010,7 +1011,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           Expanded(child: textBlock),
                         ],
                       ),
-                      const Spacer(),
                       const SizedBox(height: 16),
                       SizedBox(width: double.infinity, child: cta),
                     ],

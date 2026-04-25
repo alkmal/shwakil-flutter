@@ -2265,6 +2265,7 @@ const Map<String, String> appStringsEn = {
   'widgets_app_sidebar.041': 'Affiliate marketing',
   'widgets_app_sidebar.042': 'Registration requests',
   'widgets_app_sidebar.043': 'Send notifications',
+  'widgets_app_sidebar.044': 'Notifications',
   'screens_admin_notifications_screen.001': 'Could not load notifications',
   'screens_admin_notifications_screen.002': 'Send notifications',
   'screens_admin_notifications_screen.003': 'New notification',
