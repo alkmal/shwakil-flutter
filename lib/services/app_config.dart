@@ -12,12 +12,6 @@ class AppConfig {
     if (env.isNotEmpty) {
       return env;
     }
-    if (kDebugMode) {
-      return _localDebugApiUrl;
-    }
-    if (kIsWeb) {
-      return '${Uri.base.origin}/api';
-    }
     return _productionApiUrl;
   }
 
