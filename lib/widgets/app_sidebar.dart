@@ -14,7 +14,7 @@ class AppSidebar extends StatefulWidget {
 
 class _AppSidebarState extends State<AppSidebar> {
   final AuthService _authService = AuthService();
-  Map<String, dynamic>? _user;
+  Map<String, dynamic>? _user = AuthService.peekCurrentUser();
 
   @override
   void initState() {
@@ -25,6 +25,11 @@ class _AppSidebarState extends State<AppSidebar> {
   Future<void> _loadUser() async {
     final user = await _authService.currentUser();
     if (!mounted) {
+      return;
+    }
+    final previousRaw = _user?.toString();
+    final nextRaw = user?.toString();
+    if (previousRaw == nextRaw) {
       return;
     }
     setState(() => _user = user);

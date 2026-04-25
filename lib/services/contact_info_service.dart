@@ -6,7 +6,10 @@ import '../localization/app_strings_en.dart';
 class ContactInfoService {
   ContactInfoService._();
   static final ApiService _apiService = ApiService();
+  static const Duration _cacheLifetime = Duration(minutes: 5);
   static Map<String, dynamic>? _cachedContact;
+  static DateTime? _cachedContactAt;
+  static Future<Map<String, dynamic>>? _pendingRequest;
   static Map<String, dynamic> fallbackContact() {
     return <String, dynamic>{
       'title': _tr('services_contact_info_service.001'),
@@ -19,14 +22,35 @@ class ContactInfoService {
   static Future<Map<String, dynamic>> getContactInfo({
     bool refresh = false,
   }) async {
-    if (!refresh && _cachedContact != null) {
+    if (!refresh &&
+        _cachedContact != null &&
+        _cachedContactAt != null &&
+        DateTime.now().difference(_cachedContactAt!) < _cacheLifetime) {
       return Map<String, dynamic>.from(_cachedContact!);
     }
+    final pending = _pendingRequest;
+    if (!refresh && pending != null) {
+      return Map<String, dynamic>.from(await pending);
+    }
+    final future = _fetchContactInfo();
+    _pendingRequest = future;
+    try {
+      return Map<String, dynamic>.from(await future);
+    } finally {
+      if (identical(_pendingRequest, future)) {
+        _pendingRequest = null;
+      }
+    }
+  }
+
+  static Future<Map<String, dynamic>> _fetchContactInfo() async {
     try {
       final contact = await _apiService.getContactInfo();
       _cachedContact = _mergedWithFallback(contact);
+      _cachedContactAt = DateTime.now();
     } catch (_) {
       _cachedContact ??= fallbackContact();
+      _cachedContactAt ??= DateTime.now();
     }
     return Map<String, dynamic>.from(_cachedContact!);
   }

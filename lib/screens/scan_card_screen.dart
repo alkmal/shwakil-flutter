@@ -130,16 +130,23 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Future<void> _load() async {
     try {
       final user = await _auth.currentUser();
-      final showUserBalance = await _loadBalanceVisibilityPreference(user);
+      final showUserBalanceFuture = _loadBalanceVisibilityPreference(user);
       if (mounted) {
         setState(() {
           _user = user;
+        });
+      }
+      final showUserBalance = await showUserBalanceFuture;
+      if (mounted) {
+        setState(() {
           _showUserBalance = showUserBalance;
         });
       }
-      await _refreshOfflineCardStatus();
-      await _loadOfflineTransferSlotCount();
-      await _ensureOfflineTemporaryTransferSlots();
+      await Future.wait<void>([
+        _refreshOfflineCardStatus(),
+        _loadOfflineTransferSlotCount(),
+        _ensureOfflineTemporaryTransferSlots(),
+      ]);
       _maybeShowOfflineIntro();
       _maybeOpenScannerAutomatically();
     } catch (_) {
@@ -290,8 +297,24 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
 
-    final overview = await _offlineCardService.offlineOverview(userId);
-    final settings = Map<String, dynamic>.from(
+    final snapshot = await _resolveOfflineStatusSnapshot(userId);
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _availableOfflineCardCount = snapshot.availableCount;
+      _offlineSyncIntervalMinutes = snapshot.intervalMinutes;
+      _offlineLastSyncAt = snapshot.lastSyncAt;
+      _offlineAccessExpired = snapshot.expired;
+    });
+  }
+
+  Future<_OfflineStatusSnapshot> _resolveOfflineStatusSnapshot(
+    String userId,
+  ) async {
+    var overview = await _offlineCardService.offlineOverview(userId);
+    var settings = Map<String, dynamic>.from(
       overview['settings'] as Map? ?? const {},
     );
     final interval =
@@ -310,22 +333,23 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (expired && !_clearedExpiredOfflineCards) {
       await _offlineCardService.clearCachedCards(userId);
       _clearedExpiredOfflineCards = true;
+      overview = await _offlineCardService.offlineOverview(userId);
+      settings = Map<String, dynamic>.from(
+        overview['settings'] as Map? ?? const {},
+      );
     }
 
-    final refreshedOverview = expired
-        ? await _offlineCardService.offlineOverview(userId)
-        : overview;
-
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _availableOfflineCardCount =
-          (refreshedOverview['availableCount'] as num?)?.toInt() ?? 0;
-      _offlineSyncIntervalMinutes = interval;
-      _offlineLastSyncAt = lastSync;
-      _offlineAccessExpired = expired;
-    });
+    return _OfflineStatusSnapshot(
+      availableCount: (overview['availableCount'] as num?)?.toInt() ?? 0,
+      intervalMinutes:
+          (((settings['syncIntervalMinutes'] as num?)?.toInt() ?? interval)
+                  .clamp(5, 1440))
+              .toInt(),
+      lastSyncAt: DateTime.tryParse(
+        settings['lastSyncAt']?.toString() ?? '',
+      )?.toLocal(),
+      expired: expired,
+    );
   }
 
   Future<bool> _ensureOfflineAccessReady() async {
@@ -2880,6 +2904,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       ),
     );
   }
+}
+
+class _OfflineStatusSnapshot {
+  const _OfflineStatusSnapshot({
+    required this.availableCount,
+    required this.intervalMinutes,
+    required this.lastSyncAt,
+    required this.expired,
+  });
+
+  final int availableCount;
+  final int intervalMinutes;
+  final DateTime? lastSyncAt;
+  final bool expired;
 }
 
 class _CardLookupResult {

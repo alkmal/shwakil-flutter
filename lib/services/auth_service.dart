@@ -8,6 +8,7 @@ import 'app_config.dart';
 import 'app_version_service.dart';
 import 'error_message_service.dart';
 import 'local_security_service.dart';
+import 'network_client_service.dart';
 
 class OtpRequestResult {
   const OtpRequestResult({
@@ -29,6 +30,11 @@ class AuthService {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user_json';
   static const Duration _requestTimeout = Duration(seconds: 10);
+  static final http.Client _client = NetworkClientService.client;
+  static SharedPreferences? _cachedPrefs;
+  static String? _cachedToken;
+  static Map<String, dynamic>? _cachedUser;
+  static Future<void>? _pendingRefreshCurrentUser;
 
   static String _normalizeUsername(String? value) {
     return value?.trim().toLowerCase() ?? '';
@@ -36,6 +42,18 @@ class AuthService {
 
   static String _normalizeIdentifier(String? value) {
     return value?.trim() ?? '';
+  }
+
+  static Map<String, dynamic>? peekCurrentUser() {
+    final cached = _cachedUser;
+    return cached == null ? null : Map<String, dynamic>.from(cached);
+  }
+
+  static String? peekToken() => _cachedToken;
+
+  static Future<SharedPreferences> _prefs() async {
+    _cachedPrefs ??= await SharedPreferences.getInstance();
+    return _cachedPrefs!;
   }
 
   Future<Map<String, String>> _jsonHeaders({String? token}) async {
@@ -70,7 +88,7 @@ class AuthService {
     bool termsAccepted = false,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
-    final response = await http
+    final response = await _client
         .post(
           AppConfig.apiUri('auth/request-otp'),
           headers: await _jsonHeaders(),
@@ -117,7 +135,7 @@ class AuthService {
     required bool termsAccepted,
     String? referralPhone,
   }) async {
-    final response = await http
+    final response = await _client
         .post(
           AppConfig.apiUri('auth/register/validate'),
           headers: await _jsonHeaders(),
@@ -153,7 +171,7 @@ class AuthService {
     String? referralPhone,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
-    final response = await http
+    final response = await _client
         .post(
           AppConfig.apiUri('auth/register'),
           headers: await _jsonHeaders(),
@@ -204,7 +222,7 @@ class AuthService {
     String otpPurpose = 'register',
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
-    final response = await http
+    final response = await _client
         .post(
           AppConfig.apiUri('auth/register'),
           headers: await _jsonHeaders(),
@@ -240,7 +258,7 @@ class AuthService {
     String? otpCode,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
-    final response = await http
+    final response = await _client
         .post(
           AppConfig.apiUri('auth/login'),
           headers: await _jsonHeaders(),
@@ -261,14 +279,15 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+    _cachedToken = null;
+    _cachedUser = null;
   }
 
   Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return (prefs.getString(_tokenKey) ?? '').isNotEmpty;
+    return ((await token()) ?? '').isNotEmpty;
   }
 
   Future<String?> currentUsername() async {
@@ -277,21 +296,32 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>?> currentUser() async {
-    final prefs = await SharedPreferences.getInstance();
+    final cached = _cachedUser;
+    if (cached != null) {
+      return Map<String, dynamic>.from(cached);
+    }
+    final prefs = await _prefs();
     final raw = prefs.getString(_userKey);
     if (raw == null || raw.isEmpty) {
       return null;
     }
-    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    _cachedUser = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    return Map<String, dynamic>.from(_cachedUser!);
   }
 
   Future<String?> token() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    final cached = _cachedToken;
+    if (cached != null) {
+      return cached;
+    }
+    final prefs = await _prefs();
+    _cachedToken = prefs.getString(_tokenKey);
+    return _cachedToken;
   }
 
   Future<void> cacheCurrentUser(Map<String, dynamic> user) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs();
+    _cachedUser = Map<String, dynamic>.from(user);
     await prefs.setString(_userKey, jsonEncode(user));
   }
 
@@ -308,11 +338,29 @@ class AuthService {
   }
 
   Future<void> refreshCurrentUser() async {
+    final pending = _pendingRefreshCurrentUser;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+    final future = _refreshCurrentUserInternal();
+    _pendingRefreshCurrentUser = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_pendingRefreshCurrentUser, future)) {
+        _pendingRefreshCurrentUser = null;
+      }
+    }
+  }
+
+  Future<void> _refreshCurrentUserInternal() async {
     final authToken = await token();
     if (authToken == null || authToken.isEmpty) {
       return;
     }
-    final response = await http
+    final stopwatch = Stopwatch()..start();
+    final response = await _client
         .get(
           AppConfig.apiUri('auth/me'),
           headers: await _requestHeaders(token: authToken),
@@ -323,6 +371,11 @@ class AuthService {
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     await cacheCurrentUser(Map<String, dynamic>.from(body['user'] as Map));
+    assert(() {
+      // ignore: avoid_print
+      print('[auth] GET auth/me ${stopwatch.elapsed.inMilliseconds}ms');
+      return true;
+    }());
   }
 
   Future<Map<String, dynamic>> updateProfile({
@@ -452,8 +505,12 @@ class AuthService {
   }
 
   Future<void> _saveAuthPayload(Map<String, dynamic> payload) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, payload['token']?.toString() ?? '');
+    final prefs = await _prefs();
+    _cachedToken = payload['token']?.toString() ?? '';
+    _cachedUser = payload['user'] is Map
+        ? Map<String, dynamic>.from(payload['user'] as Map)
+        : null;
+    await prefs.setString(_tokenKey, _cachedToken ?? '');
     await prefs.setString(_userKey, jsonEncode(payload['user']));
   }
 

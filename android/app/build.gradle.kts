@@ -9,7 +9,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-if (file("google-services.json").exists()) {
+val isDebugBuildRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName.contains("Debug", ignoreCase = true)
+}
+
+if (file("google-services.json").exists() && !isDebugBuildRequested) {
     apply(plugin = "com.google.gms.google-services")
 }
 
@@ -80,6 +84,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
         }

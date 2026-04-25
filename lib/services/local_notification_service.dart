@@ -12,6 +12,7 @@ class LocalNotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static bool _permissionsRequested = false;
 
   static Future<void> initialize() async {
     if (_initialized || kIsWeb) {
@@ -46,6 +47,19 @@ class LocalNotificationService {
         importance: Importance.max,
       ),
     );
+    _initialized = true;
+  }
+
+  static Future<void> ensurePermissionsRequested() async {
+    if (_permissionsRequested || kIsWeb) {
+      return;
+    }
+    await initialize();
+
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidPlugin?.requestNotificationsPermission();
 
     final iosPlugin = _plugin
@@ -64,7 +78,7 @@ class LocalNotificationService {
       sound: true,
     );
 
-    _initialized = true;
+    _permissionsRequested = true;
   }
 
   static Future<void> showBalanceChange({
@@ -77,6 +91,7 @@ class LocalNotificationService {
     }
 
     await initialize();
+    await ensurePermissionsRequested();
 
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -110,6 +125,7 @@ class LocalNotificationService {
     }
 
     await initialize();
+    await ensurePermissionsRequested();
 
     final details = NotificationDetails(
       android: AndroidNotificationDetails(

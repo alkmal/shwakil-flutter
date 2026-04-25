@@ -120,43 +120,59 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Future<void> _loadUser() async {
-    setState(() => _isLoading = true);
+    final hadUser = _user != null;
+    if (!hadUser) {
+      setState(() => _isLoading = true);
+    }
     try {
-      await _authService.refreshCurrentUser();
-      final user = await _authService.currentUser();
-      final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
-      final pendingSummary = await _resolveOfflinePendingSummary(user);
-      final lastSyncAt = await _resolveLastOfflineSyncAt(user);
-      final isBalanceVisible = await _resolveBalanceVisibility(user);
-      if (!mounted) return;
-      setState(() {
-        _user = user;
-        _hasOfflineWorkspace = hasOfflineWorkspace;
-        _isBalanceVisible = isBalanceVisible;
-        _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
-        _lastOfflineSyncAt = lastSyncAt;
-        _isLoading = false;
-      });
-      _maybeSuggestOfflineWorkspace();
-      unawaited(_maybePromptLocalSecuritySetup());
+      var user = await _authService.currentUser();
+      if (user != null) {
+        await _applyUserSnapshot(user, isLoading: false);
+      }
+
+      try {
+        await _authService.refreshCurrentUser().timeout(
+          const Duration(milliseconds: 1800),
+        );
+        user = await _authService.currentUser();
+      } catch (_) {
+        user ??= await _authService.currentUser();
+      }
+
+      await _applyUserSnapshot(user, isLoading: false);
     } catch (_) {
       final user = await _authService.currentUser();
-      final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
-      final pendingSummary = await _resolveOfflinePendingSummary(user);
-      final lastSyncAt = await _resolveLastOfflineSyncAt(user);
-      final isBalanceVisible = await _resolveBalanceVisibility(user);
-      if (!mounted) return;
-      setState(() {
-        _user = user;
-        _hasOfflineWorkspace = hasOfflineWorkspace;
-        _isBalanceVisible = isBalanceVisible;
-        _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
-        _lastOfflineSyncAt = lastSyncAt;
-        _isLoading = false;
-      });
-      _maybeSuggestOfflineWorkspace();
-      unawaited(_maybePromptLocalSecuritySetup());
+      await _applyUserSnapshot(user, isLoading: false);
     }
+  }
+
+  Future<void> _applyUserSnapshot(
+    Map<String, dynamic>? user, {
+    required bool isLoading,
+  }) async {
+    final hasOfflineWorkspaceFuture = _resolveOfflineWorkspace(user);
+    final pendingSummaryFuture = _resolveOfflinePendingSummary(user);
+    final lastSyncAtFuture = _resolveLastOfflineSyncAt(user);
+    final isBalanceVisibleFuture = _resolveBalanceVisibility(user);
+
+    final hasOfflineWorkspace = await hasOfflineWorkspaceFuture;
+    final pendingSummary = await pendingSummaryFuture;
+    final lastSyncAt = await lastSyncAtFuture;
+    final isBalanceVisible = await isBalanceVisibleFuture;
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _user = user;
+      _hasOfflineWorkspace = hasOfflineWorkspace;
+      _isBalanceVisible = isBalanceVisible;
+      _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
+      _lastOfflineSyncAt = lastSyncAt;
+      _isLoading = isLoading;
+    });
+    _maybeSuggestOfflineWorkspace();
+    unawaited(_maybePromptLocalSecuritySetup());
   }
 
   Future<void> _maybePromptLocalSecuritySetup() async {

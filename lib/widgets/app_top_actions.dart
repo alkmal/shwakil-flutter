@@ -23,7 +23,10 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
     super.initState();
     _loadNotificationSummary();
     _notificationSubscription = RealtimeNotificationService.notificationsStream
-        .listen((_) => _loadNotificationSummary());
+        .listen((_) {
+          ApiService.invalidateNotificationSummaryCache();
+          _loadNotificationSummary();
+        });
   }
 
   @override
@@ -80,6 +83,7 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
       if (!mounted) {
         return;
       }
+      ApiService.invalidateNotificationSummaryCache();
       _loadNotificationSummary();
     } catch (error) {
       if (!mounted) {

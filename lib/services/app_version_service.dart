@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app_config.dart';
+import 'network_client_service.dart';
 
 class AppUpdateRequirement {
   const AppUpdateRequirement({
@@ -30,6 +31,7 @@ class AppUpdateRequirement {
 class AppVersionService {
   AppVersionService._();
   static const Duration _requestTimeout = Duration(seconds: 8);
+  static final http.Client _client = NetworkClientService.client;
 
   static PackageInfo? _cachedInfo;
 
@@ -61,8 +63,9 @@ class AppVersionService {
   static Future<AppUpdateRequirement?> fetchRequiredUpdate() async {
     final info = await _packageInfo();
     late final http.Response response;
+    final stopwatch = Stopwatch()..start();
     try {
-      response = await http
+      response = await _client
           .get(
             AppConfig.apiUri('app/auth-settings'),
             headers: await publicHeaders(),
@@ -97,9 +100,21 @@ class AppVersionService {
         _compareVersions(currentVersion, latestVersion) < 0;
 
     if (!forced && !newerAvailable) {
+      assert(() {
+        // ignore: avoid_print
+        print(
+          '[startup] GET app/auth-settings ${stopwatch.elapsed.inMilliseconds}ms',
+        );
+        return true;
+      }());
       return null;
     }
 
+    assert(() {
+      // ignore: avoid_print
+      print('[startup] GET app/auth-settings ${stopwatch.elapsed.inMilliseconds}ms');
+      return true;
+    }());
     return AppUpdateRequirement(
       currentVersion: currentVersion,
       minSupportedVersion: minSupportedVersion,

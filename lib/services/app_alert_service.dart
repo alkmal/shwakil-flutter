@@ -15,6 +15,7 @@ import 'auth_service.dart';
 import 'app_version_service.dart';
 import 'error_message_service.dart';
 import 'local_security_service.dart';
+import 'network_client_service.dart';
 import 'offline_session_service.dart';
 import 'realtime_notification_service.dart';
 
@@ -25,6 +26,10 @@ class AppAlertService {
 
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
+  static final http.Client _client = NetworkClientService.client;
+  static bool _isShowingGlobalError = false;
+  static String? _lastGlobalErrorFingerprint;
+  static DateTime? _lastGlobalErrorAt;
 
   static Future<void> showSuccess(
     BuildContext context, {
@@ -72,18 +77,32 @@ class AppAlertService {
     required String message,
     Map<String, dynamic>? extraContext,
   }) {
+    final fingerprint = '${title.trim()}|${message.trim()}';
+    final lastAt = _lastGlobalErrorAt;
+    final isDuplicate =
+        _isShowingGlobalError ||
+        (_lastGlobalErrorFingerprint == fingerprint &&
+            lastAt != null &&
+            DateTime.now().difference(lastAt) < const Duration(seconds: 5));
+    if (isDuplicate) {
+      return Future.value();
+    }
     final context = navigatorKey.currentContext;
     if (context == null) {
       debugPrint('Global alert skipped: $title - $message');
       return Future.value();
     }
-
+    _isShowingGlobalError = true;
+    _lastGlobalErrorFingerprint = fingerprint;
+    _lastGlobalErrorAt = DateTime.now();
     return showError(
       context,
       title: title,
       message: message,
       extraContext: extraContext,
-    );
+    ).whenComplete(() {
+      _isShowingGlobalError = false;
+    });
   }
 
   static Future<void> reportUnhandledCrash({
@@ -139,14 +158,16 @@ class AppAlertService {
         payload[key] = text;
       });
 
-      await http.post(
+      await _client
+          .post(
         AppConfig.apiUri('app/report-crash'),
         headers: {
           ...await AppVersionService.publicHeaders(includeJsonContentType: true),
           if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(payload),
-      );
+      )
+          .timeout(const Duration(seconds: 4));
     } catch (_) {}
   }
 

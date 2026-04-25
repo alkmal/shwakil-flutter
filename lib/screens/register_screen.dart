@@ -46,8 +46,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _loadSettings() async {
     try {
-      final settings = await _apiService.getAuthSettings();
-      final contact = await ContactInfoService.getContactInfo();
+      final results = await Future.wait<dynamic>([
+        _apiService.getAuthSettings(),
+        ContactInfoService.getContactInfo(),
+      ]);
+      final settings = Map<String, dynamic>.from(results[0] as Map);
+      final contact = Map<String, dynamic>.from(results[1] as Map);
       if (!mounted) {
         return;
       }

@@ -12,12 +12,22 @@ import 'app_config.dart';
 import 'app_version_service.dart';
 import 'auth_service.dart';
 import 'error_message_service.dart';
+import 'network_client_service.dart';
 import 'phone_number_service.dart';
 
 class ApiService {
   final AuthService _authService = AuthService();
+  static final http.Client _client = NetworkClientService.client;
   static const Duration _publicRequestTimeout = Duration(seconds: 8);
   static const Duration _authenticatedRequestTimeout = Duration(seconds: 12);
+  static const Duration _authSettingsCacheLifetime = Duration(minutes: 5);
+  static const Duration _notificationSummaryCacheLifetime = Duration(seconds: 20);
+  static Map<String, dynamic>? _cachedAuthSettings;
+  static DateTime? _cachedAuthSettingsAt;
+  static Future<Map<String, dynamic>>? _pendingAuthSettingsRequest;
+  static Map<String, dynamic>? _cachedNotificationSummary;
+  static DateTime? _cachedNotificationSummaryAt;
+  static Future<Map<String, dynamic>>? _pendingNotificationSummaryRequest;
 
   Future<Map<String, String>> _headers() async {
     final token = await _authService.token();
@@ -40,7 +50,7 @@ class ApiService {
     int perPage = 8,
     bool printingDebtOnly = false,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('balance/me', {
         if (locationFilter != 'all') 'locationFilter': locationFilter,
         'page': page.toString(),
@@ -76,25 +86,75 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getContactInfo() async {
-    final response = await http
+    final stopwatch = Stopwatch()..start();
+    final response = await _client
         .get(
           AppConfig.apiUri('app/contact-info'),
           headers: await _publicHeaders(),
         )
         .timeout(_publicRequestTimeout);
     final body = _decodeObject(response);
+    _debugLogRequest('GET', 'app/contact-info', stopwatch.elapsed);
     return Map<String, dynamic>.from(body['contact'] as Map? ?? const {});
   }
 
-  Future<Map<String, dynamic>> getAuthSettings() async {
-    final response = await http
+  Future<Map<String, dynamic>> getAuthSettings({bool refresh = false}) async {
+    if (!refresh && _hasFreshCachedAuthSettings()) {
+      return Map<String, dynamic>.from(_cachedAuthSettings!);
+    }
+    final pendingRequest = _pendingAuthSettingsRequest;
+    if (!refresh && pendingRequest != null) {
+      return Map<String, dynamic>.from(await pendingRequest);
+    }
+
+    final future = _fetchAuthSettings();
+    _pendingAuthSettingsRequest = future;
+    try {
+      return Map<String, dynamic>.from(await future);
+    } finally {
+      if (identical(_pendingAuthSettingsRequest, future)) {
+        _pendingAuthSettingsRequest = null;
+      }
+    }
+  }
+
+  static bool _hasFreshCachedAuthSettings() {
+    final cached = _cachedAuthSettings;
+    final cachedAt = _cachedAuthSettingsAt;
+    if (cached == null || cachedAt == null) {
+      return false;
+    }
+    return DateTime.now().difference(cachedAt) < _authSettingsCacheLifetime;
+  }
+
+  Future<Map<String, dynamic>> _fetchAuthSettings() async {
+    final stopwatch = Stopwatch()..start();
+    final response = await _client
         .get(
           AppConfig.apiUri('app/auth-settings'),
           headers: await _publicHeaders(),
         )
         .timeout(_publicRequestTimeout);
     final body = _decodeObject(response);
-    return Map<String, dynamic>.from(body['auth'] as Map? ?? const {});
+    final auth = Map<String, dynamic>.from(body['auth'] as Map? ?? const {});
+    _cachedAuthSettings = Map<String, dynamic>.from(auth);
+    _cachedAuthSettingsAt = DateTime.now();
+    _debugLogRequest('GET', 'app/auth-settings', stopwatch.elapsed);
+    return auth;
+  }
+
+  static void _debugLogRequest(String method, String path, Duration elapsed) {
+    assert(() {
+      // Keep network timing visible in debug runs without impacting release.
+      // ignore: avoid_print
+      print('[api] $method $path ${elapsed.inMilliseconds}ms');
+      return true;
+    }());
+  }
+
+  static void invalidateNotificationSummaryCache() {
+    _cachedNotificationSummary = null;
+    _cachedNotificationSummaryAt = null;
   }
 
   Future<Map<String, dynamic>> getTopupRequestSettings() async {
@@ -1834,13 +1894,40 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getNotificationSummary() async {
-    final response = await http
+    final cached = _cachedNotificationSummary;
+    final cachedAt = _cachedNotificationSummaryAt;
+    if (cached != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) <
+            _notificationSummaryCacheLifetime) {
+      return Map<String, dynamic>.from(cached);
+    }
+    final pending = _pendingNotificationSummaryRequest;
+    if (pending != null) {
+      return Map<String, dynamic>.from(await pending);
+    }
+    final future = _fetchNotificationSummary();
+    _pendingNotificationSummaryRequest = future;
+    try {
+      return Map<String, dynamic>.from(await future);
+    } finally {
+      if (identical(_pendingNotificationSummaryRequest, future)) {
+        _pendingNotificationSummaryRequest = null;
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchNotificationSummary() async {
+    final response = await _client
         .get(
           AppConfig.apiUri('notifications/summary'),
           headers: await _headers(),
         )
         .timeout(_authenticatedRequestTimeout);
-    return _decodeObject(response);
+    final payload = _decodeObject(response);
+    _cachedNotificationSummary = Map<String, dynamic>.from(payload);
+    _cachedNotificationSummaryAt = DateTime.now();
+    return payload;
   }
 
   Future<Map<String, dynamic>> getAppNotifications({

@@ -77,6 +77,19 @@ Future<void> main() async {
       WidgetsFlutterBinding.ensureInitialized();
       FlutterError.onError = (details) {
         FlutterError.presentError(details);
+        assert(() {
+          debugPrint('FlutterError: ${details.exceptionAsString()}');
+          debugPrintStack(stackTrace: details.stack);
+          return true;
+        }());
+        unawaited(
+          AppAlertService.reportUnhandledCrash(
+            title: 'Flutter framework error',
+            message: details.exceptionAsString(),
+            details: details.summary.toDescription(),
+            stackTrace: details.stack?.toString(),
+          ),
+        );
         unawaited(
           AppAlertService.showGlobalError(
             title: 'خطأ في التطبيق',
@@ -85,6 +98,18 @@ Future<void> main() async {
         );
       };
       PlatformDispatcher.instance.onError = (error, stack) {
+        assert(() {
+          debugPrint('PlatformDispatcher error: $error');
+          debugPrintStack(stackTrace: stack);
+          return true;
+        }());
+        unawaited(
+          AppAlertService.reportUnhandledCrash(
+            title: 'Unhandled platform error',
+            message: error.toString(),
+            stackTrace: stack.toString(),
+          ),
+        );
         unawaited(
           AppAlertService.showGlobalError(
             title: 'خطأ غير متوقع',
@@ -110,23 +135,25 @@ Future<void> main() async {
 }
 
 Future<void> _warmUpAppServices() async {
-  await _runStartupTask(AppLocaleService.instance.init, label: 'locale');
-  await _runStartupTask(
-    ConnectivityService.instance.startMonitoring,
-    label: 'connectivity',
-  );
-  await _runStartupTask(
-    LocalNotificationService.initialize,
-    label: 'local_notifications',
-  );
-  await _runStartupTask(
-    LocalSecurityService.getOrCreateDeviceId,
-    label: 'device_id',
-  );
-  await _runStartupTask(
-    ReferralAttributionService.initialize,
-    label: 'referral_attribution',
-  );
+  await Future.wait<void>([
+    _runStartupTask(AppLocaleService.instance.init, label: 'locale'),
+    _runStartupTask(
+      ConnectivityService.instance.startMonitoring,
+      label: 'connectivity',
+    ),
+    _runStartupTask(
+      LocalNotificationService.initialize,
+      label: 'local_notifications',
+    ),
+    _runStartupTask(
+      LocalSecurityService.getOrCreateDeviceId,
+      label: 'device_id',
+    ),
+    _runStartupTask(
+      ReferralAttributionService.initialize,
+      label: 'referral_attribution',
+    ),
+  ]);
 }
 
 Future<void> _runStartupTask(
@@ -304,6 +331,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   }
 
   Future<_LaunchDecision> _resolveLaunchState() async {
+    final stopwatch = Stopwatch()..start();
     await LocalSecurityService.syncRelockStateForLaunch();
     final updateRequirementFuture = AppVersionService.fetchRequiredUpdate()
         .timeout(const Duration(milliseconds: 1200), onTimeout: () => null);
@@ -314,6 +342,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
     final updateRequirement = await updateRequirementFuture;
     if (updateRequirement != null && updateRequirement.isForced) {
+      _debugLaunchDecision('updateRequired', stopwatch.elapsed);
       return _LaunchDecision(
         state: _LaunchState.updateRequired,
         updateRequirement: updateRequirement,
@@ -323,6 +352,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final prefs = await prefsFuture;
     final hasSeenOnboarding = prefs.getBool(_onboardingSeenKey) ?? false;
     if (!hasSeenOnboarding) {
+      _debugLaunchDecision('onboarding', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.onboarding);
     }
 
@@ -331,9 +361,11 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     if (!isLoggedIn) {
       if (await _canOpenOfflineWorkspace(cachedUser)) {
         unawaited(RealtimeNotificationService.stop());
+        _debugLaunchDecision('loginOffline', stopwatch.elapsed);
         return const _LaunchDecision(state: _LaunchState.loginOffline);
       }
       unawaited(RealtimeNotificationService.stop());
+      _debugLaunchDecision('login', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
     }
     final hasLocalSecurity =
@@ -344,6 +376,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final skipNextUnlock = await LocalSecurityService.consumeSkipNextUnlock();
     if (skipNextUnlock) {
       unawaited(RealtimeNotificationService.start());
+      _debugLaunchDecision('home(skipNextUnlock)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.home);
     }
     final relockRequired = LocalSecurityService.relockRequired;
@@ -352,12 +385,15 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     if (relockRequired && hasLocalSecurity) {
       unawaited(RealtimeNotificationService.stop());
       if (canUseTrustedUnlock) {
+        _debugLaunchDecision('unlock', stopwatch.elapsed);
         return const _LaunchDecision(state: _LaunchState.unlock);
       }
       if (await _canOpenOfflineWorkspace(cachedUser)) {
+        _debugLaunchDecision('scanOffline', stopwatch.elapsed);
         return const _LaunchDecision(state: _LaunchState.scanOffline);
       }
       await authService.logout();
+      _debugLaunchDecision('login(relock)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
     }
     if (cachedUser != null) {
@@ -367,6 +403,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         ),
       );
       unawaited(RealtimeNotificationService.start());
+      _debugLaunchDecision('home(cachedUser)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.home);
     }
     try {
@@ -376,9 +413,11 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     } catch (_) {
       await authService.logout();
       unawaited(RealtimeNotificationService.stop());
+      _debugLaunchDecision('login(refreshFailed)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
     }
     unawaited(RealtimeNotificationService.start());
+    _debugLaunchDecision('home(freshUser)', stopwatch.elapsed);
     return const _LaunchDecision(state: _LaunchState.home);
   }
 
@@ -436,6 +475,13 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_onboardingSeenKey, true);
     _refreshLaunchState();
+  }
+
+  void _debugLaunchDecision(String state, Duration elapsed) {
+    assert(() {
+      debugPrint('[startup] launch=$state ${elapsed.inMilliseconds}ms');
+      return true;
+    }());
   }
 
   @override

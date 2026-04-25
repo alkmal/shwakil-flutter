@@ -63,8 +63,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loadAuthSettings() async {
     try {
-      final authSettings = await _apiService.getAuthSettings();
-      final contact = await ContactInfoService.getContactInfo();
+      final results = await Future.wait<dynamic>([
+        _apiService.getAuthSettings(),
+        ContactInfoService.getContactInfo(),
+      ]);
+      final authSettings = Map<String, dynamic>.from(results[0] as Map);
+      final contact = Map<String, dynamic>.from(results[1] as Map);
       if (!mounted) {
         return;
       }

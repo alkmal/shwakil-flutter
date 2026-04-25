@@ -821,31 +821,6 @@ class _NotificationDetailsSheet extends StatelessWidget {
   }
 }
 
-class _UnreadPill extends StatelessWidget {
-  const _UnreadPill({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: Text(
-        context.loc.tr(
-          'screens_notifications_screen.033',
-          params: {'count': '$count'},
-        ),
-        style: AppTheme.bodyBold.copyWith(color: Colors.white),
-      ),
-    );
-  }
-}
-
 class _UnreadDot extends StatelessWidget {
   const _UnreadDot();
 
