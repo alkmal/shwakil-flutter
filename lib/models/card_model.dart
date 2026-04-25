@@ -25,6 +25,7 @@ class VirtualCard {
   final String barcode;
   final double value;
   final String cardType;
+  final String? originalCardType;
   final String visibilityScope;
   final double issueCost;
   final DateTime createdAt;
@@ -53,6 +54,7 @@ class VirtualCard {
     required this.barcode,
     required this.value,
     this.cardType = 'standard',
+    this.originalCardType,
     this.visibilityScope = 'general',
     this.issueCost = 0,
     required this.createdAt,
@@ -81,6 +83,16 @@ class VirtualCard {
   bool get isDelivery => cardType == 'delivery';
   bool get isAppointment => cardType == 'appointment';
   bool get isQueueTicket => cardType == 'queue';
+  String get resolvedOriginalCardType {
+    final normalized = originalCardType?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) {
+      return cardType;
+    }
+    return normalized;
+  }
+
+  bool get isLoadedAsDeliveryForDriver =>
+      isDelivery && resolvedOriginalCardType != 'delivery';
   bool get isPrivate => visibilityScope == 'restricted';
   String? get title => details['title']?.toString();
   String? get description => details['description']?.toString();
@@ -96,6 +108,7 @@ class VirtualCard {
       'barcode': barcode,
       'value': value,
       'card_type': cardType,
+      'original_card_type': originalCardType,
       'visibility_scope': visibilityScope,
       'issue_cost': issueCost,
       'created_at': createdAt.toIso8601String(),
@@ -134,6 +147,8 @@ class VirtualCard {
           map['cardType']?.toString() ??
           map['card_type']?.toString() ??
           'standard',
+      originalCardType:
+          (map['originalCardType'] ?? map['original_card_type'])?.toString(),
       visibilityScope:
           map['visibilityScope']?.toString() ??
           map['visibility_scope']?.toString() ??
@@ -199,6 +214,7 @@ class VirtualCard {
     String? barcode,
     double? value,
     String? cardType,
+    String? originalCardType,
     String? visibilityScope,
     double? issueCost,
     DateTime? createdAt,
@@ -227,6 +243,7 @@ class VirtualCard {
       barcode: barcode ?? this.barcode,
       value: value ?? this.value,
       cardType: cardType ?? this.cardType,
+      originalCardType: originalCardType ?? this.originalCardType,
       visibilityScope: visibilityScope ?? this.visibilityScope,
       issueCost: issueCost ?? this.issueCost,
       createdAt: createdAt ?? this.createdAt,
@@ -255,6 +272,7 @@ class VirtualCard {
   @override
   String toString() {
     return 'VirtualCard(id: $id, barcode: $barcode, value: $value, '
-        'cardType: $cardType, visibilityScope: $visibilityScope, status: $status)';
+        'cardType: $cardType, originalCardType: $originalCardType, '
+        'visibilityScope: $visibilityScope, status: $status)';
   }
 }

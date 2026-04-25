@@ -2455,8 +2455,11 @@ const Map<String, String> appStringsAr = {
   'widgets_admin_admin_location_card.009': 'الحساب المرتبط: {account}',
   'widgets_admin_admin_location_card.010': 'أُضيف بواسطة: {account}',
   'shared.delivery_card_label': 'بطاقة توصيل',
+  'shared.balance_card_label': 'بطاقة رصيد',
   'shared.delivery_card_badge': 'توصيل',
   'shared.delivery_card_payments_note': 'بطاقة توصيل يمكن استخدامها للمدفوعات',
+  'shared.driver_delivery_proxy_note':
+      'محمّلة عند السائق كسلوك توصيل. النوع الأصلي: {type}',
   'shared.delivery_card_create_note':
       'بطاقة توصيل مالية تظهر للسائقين في مزامنة الأوفلاين ويمكن استخدامها للمدفوعات.',
   'shared.delivery_card_print_note':

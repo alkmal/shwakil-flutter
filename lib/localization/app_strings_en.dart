@@ -2548,9 +2548,12 @@ const Map<String, String> appStringsEn = {
   'widgets_admin_admin_location_card.009': 'Linked account: {account}',
   'widgets_admin_admin_location_card.010': 'Added by: {account}',
   'shared.delivery_card_label': 'Delivery card',
+  'shared.balance_card_label': 'Balance card',
   'shared.delivery_card_badge': 'Delivery',
   'shared.delivery_card_payments_note':
       'Delivery card can be used for payments',
+  'shared.driver_delivery_proxy_note':
+      'Loaded for the driver as delivery behavior. Original type: {type}',
   'shared.delivery_card_create_note':
       'This is a balance delivery card that syncs to drivers for offline scanning and can be used for payments.',
   'shared.delivery_card_print_note':

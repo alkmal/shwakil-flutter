@@ -956,6 +956,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  String _rawCardTypeLabel(dynamic l, String type) {
+    switch (type.trim().toLowerCase()) {
+      case 'delivery':
+        return l.tr('shared.delivery_card_label');
+      case 'appointment':
+        return 'تذكرة موعد';
+      case 'queue':
+        return 'تذكرة طابور';
+      case 'single_use':
+        return 'بطاقة دخول';
+      default:
+        return l.tr('shared.balance_card_label');
+    }
+  }
+
   Widget _buildCardTileBody(VirtualCard card, String categoryLabel, dynamic l) {
     final isRevealed = _revealedBarcodes.contains(card.barcode);
     return Column(
@@ -986,6 +1001,31 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ),
         ),
+        if (card.isLoadedAsDeliveryForDriver) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.08),
+              borderRadius: AppTheme.radiusMd,
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.22),
+              ),
+            ),
+            child: Text(
+              l.tr(
+                'shared.driver_delivery_proxy_note',
+                params: {
+                  'type': _rawCardTypeLabel(l, card.resolvedOriginalCardType),
+                },
+              ),
+              style: AppTheme.caption.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primary,
+              ),
+            ),
+          ),
+        ],
         if (isRevealed) ...[
           const SizedBox(height: 8),
           Container(

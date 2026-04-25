@@ -33,6 +33,21 @@ class ThermalCardTicket extends StatelessWidget {
     return card.isPrivate ? 'بطاقة خاصة' : 'بطاقة عامة';
   }
 
+  String get _originalTypeLabel {
+    switch (card.resolvedOriginalCardType) {
+      case 'delivery':
+        return 'بطاقة توصيل';
+      case 'appointment':
+        return 'تذكرة موعد';
+      case 'queue':
+        return 'تذكرة طابور';
+      case 'single_use':
+        return 'بطاقة دخول';
+      default:
+        return 'بطاقة رصيد';
+    }
+  }
+
   String get _valueLabel {
     return card.isSingleUse
         ? 'استخدام مرة واحدة'
@@ -72,6 +87,18 @@ class ThermalCardTicket extends StatelessWidget {
                 fontSize: 13,
               ),
             ),
+            if (card.isLoadedAsDeliveryForDriver) ...[
+              const SizedBox(height: 6),
+              Text(
+                'محمّلة للسائق كسلوك توصيل. النوع الأصلي: $_originalTypeLabel',
+                textAlign: TextAlign.center,
+                style: AppTheme.caption.copyWith(
+                  color: Colors.red.shade700,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             if (card.title?.trim().isNotEmpty == true) ...[
               Text(

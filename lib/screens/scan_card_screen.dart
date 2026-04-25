@@ -1444,9 +1444,39 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         : l.tr('screens_scan_card_screen.067');
   }
 
+  String _rawCardTypeLabel(String type) {
+    switch (type.trim().toLowerCase()) {
+      case 'delivery':
+        return context.loc.tr('shared.delivery_card_label');
+      case 'appointment':
+        return 'تذكرة موعد';
+      case 'queue':
+        return 'تذكرة طابور';
+      case 'single_use':
+        return 'بطاقة دخول';
+      default:
+        return context.loc.tr('shared.balance_card_label');
+    }
+  }
+
+  String _driverDeliveryProxyNote(VirtualCard card) {
+    if (!card.isLoadedAsDeliveryForDriver) {
+      return '';
+    }
+    return context.loc.tr(
+      'shared.driver_delivery_proxy_note',
+      params: {'type': _rawCardTypeLabel(card.resolvedOriginalCardType)},
+    );
+  }
+
   String _cardUsageNote(VirtualCard card) {
+    final proxyNote = _driverDeliveryProxyNote(card);
     if (card.isDelivery) {
-      return context.loc.tr('shared.delivery_card_payments_note');
+      final paymentNote = context.loc.tr('shared.delivery_card_payments_note');
+      if (proxyNote.isEmpty) {
+        return paymentNote;
+      }
+      return '$paymentNote\n$proxyNote';
     }
     if (card.isAppointment && card.title?.trim().isNotEmpty == true) {
       return card.title!.trim();
@@ -2326,6 +2356,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (_driverDeliveryProxyNote(card).isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _driverDeliveryProxyNote(card),
+                  style: AppTheme.caption.copyWith(
+                    color: accent.withValues(alpha: 0.92),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ],
           ),
         );
