@@ -1745,6 +1745,43 @@ class ApiService {
         .toList();
   }
 
+  Future<List<VirtualCard>> issueTrialCards({
+    required List<Map<String, dynamic>> items,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final payload = <String, dynamic>{
+      'items': items,
+      if (otpCode != null && otpCode.trim().isNotEmpty)
+        'otpCode': otpCode.trim(),
+      if (otpCode == null || otpCode.trim().isEmpty)
+        if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+    };
+    final response = await http.post(
+      AppConfig.apiUri('cards/trial-issue'),
+      headers: await _headers(),
+      body: jsonEncode(payload),
+    );
+    final body = _decodeObject(response);
+    await _authService.patchCurrentUser({
+      if (body['balance'] is num)
+        'balance': (body['balance'] as num).toDouble(),
+      if (body['trialCardsLimit'] is num)
+        'trialCardsLimit': (body['trialCardsLimit'] as num).toDouble(),
+      if (body['trialCardsOutstandingAmount'] is num)
+        'trialCardsOutstandingAmount':
+            (body['trialCardsOutstandingAmount'] as num).toDouble(),
+      if (body['trialCardsRemainingAmount'] is num)
+        'trialCardsAvailableAmount':
+            (body['trialCardsRemainingAmount'] as num).toDouble(),
+    });
+    final rawCards = List<dynamic>.from(body['cards'] as List? ?? const []);
+    return rawCards
+        .map((item) => _cardFromApi(Map<String, dynamic>.from(item as Map)))
+        .toList();
+  }
+
   Future<Map<String, dynamic>> getMyCards({
     String? status,
     int page = 1,
@@ -1847,6 +1884,16 @@ class ApiService {
     );
     final body = _decodeObject(response);
     await _patchCachedBalanceFromPayload(body);
+    await _authService.patchCurrentUser({
+      if (body['trialCardsLimit'] is num)
+        'trialCardsLimit': (body['trialCardsLimit'] as num).toDouble(),
+      if (body['trialCardsOutstandingAmount'] is num)
+        'trialCardsOutstandingAmount':
+            (body['trialCardsOutstandingAmount'] as num).toDouble(),
+      if (body['trialCardsRemainingAmount'] is num)
+        'trialCardsAvailableAmount':
+            (body['trialCardsRemainingAmount'] as num).toDouble(),
+    });
   }
 
   Future<VirtualCard?> getCardByBarcode(String barcode) async {
@@ -1877,6 +1924,16 @@ class ApiService {
     );
     final body = _decodeObject(response);
     await _patchCachedBalanceFromPayload(body);
+    await _authService.patchCurrentUser({
+      if (body['trialCardsLimit'] is num)
+        'trialCardsLimit': (body['trialCardsLimit'] as num).toDouble(),
+      if (body['trialCardsOutstandingAmount'] is num)
+        'trialCardsOutstandingAmount':
+            (body['trialCardsOutstandingAmount'] as num).toDouble(),
+      if (body['trialCardsRemainingAmount'] is num)
+        'trialCardsAvailableAmount':
+            (body['trialCardsRemainingAmount'] as num).toDouble(),
+    });
     return body;
   }
 

@@ -1001,6 +1001,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ),
         ),
+        if (card.isTrial) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.12),
+              borderRadius: AppTheme.radiusMd,
+              border: Border.all(
+                color: AppTheme.warning.withValues(alpha: 0.20),
+              ),
+            ),
+            child: Text(
+              card.trialLabel?.trim().isNotEmpty == true
+                  ? card.trialLabel!.trim()
+                  : 'تجريبية',
+              style: AppTheme.caption.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.warning,
+              ),
+            ),
+          ),
+        ],
         if (card.isLoadedAsDeliveryForDriver) ...[
           const SizedBox(height: 8),
           Container(

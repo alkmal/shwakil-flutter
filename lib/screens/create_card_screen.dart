@@ -10,6 +10,7 @@ import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
+import '../widgets/print_card_preview.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/thermal_card_ticket.dart';
@@ -23,6 +24,7 @@ class CreateCardScreen extends StatefulWidget {
 
 class _CreateCardScreenState extends State<CreateCardScreen> {
   static const int _cardsPerA4Page = 30;
+  static const double _trialCardsLimit = 10;
 
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
@@ -86,6 +88,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       setState(() {
         _user = user;
         _isAuthorized = permissions.canIssueCards;
+        final isTrialMode =
+            (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
+            'approved';
         final accountName =
             user?['fullName']?.toString().trim().isNotEmpty == true
             ? user!['fullName'].toString().trim()
@@ -100,6 +105,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         if (!issuableCardTypes.contains(_cardType) &&
             issuableCardTypes.isNotEmpty) {
           _cardType = issuableCardTypes.first;
+        }
+        if (isTrialMode) {
+          _cardType = 'standard';
+          _visibilityScope = 'restricted';
+          if ((_qtyC.text.trim()).isEmpty ||
+              (int.tryParse(_qtyC.text.trim()) ?? 0) % _cardsPerA4Page == 0) {
+            _qtyC.text = '1';
+          }
         }
         _isLoadingUser = false;
       });
@@ -130,6 +143,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   bool get _isBalanceCard => _cardType == 'standard' || _cardType == 'delivery';
   bool get _needsTypeDetails => _isAppointmentCard || _isQueueCard;
+  bool get _isTrialMode =>
+      (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
+      'approved';
+  double get _trialCardsRemainingAmount =>
+      ((_user?['trialCardsAvailableAmount'] as num?)?.toDouble() ??
+              _trialCardsLimit)
+          .clamp(0, _trialCardsLimit)
+          .toDouble();
+  double get _trialCardsOutstandingAmount =>
+      ((_user?['trialCardsOutstandingAmount'] as num?)?.toDouble() ?? 0)
+          .clamp(0, _trialCardsLimit)
+          .toDouble();
 
   List<String> get _issuableCardTypes => _issuableCardTypesFromUser(_user);
 
@@ -197,7 +222,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
-    final isPrivate = _visibilityScope == 'restricted';
+    final isPrivate = _isTrialMode || _visibilityScope == 'restricted';
 
     if (quantity <= 0) {
       await AppAlertService.showError(
@@ -218,7 +243,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (quantity % _cardsPerA4Page != 0) {
+    if (!_isTrialMode && quantity % _cardsPerA4Page != 0) {
       await AppAlertService.showError(
         context,
         title: 'عدد البطاقات غير صالح',
@@ -226,6 +251,19 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             'عدد البطاقات يجب أن يكون من مضاعفات $_cardsPerA4Page لأن صفحة A4 تطبع $_cardsPerA4Page بطاقة.',
       );
       return;
+    }
+
+    if (_isTrialMode) {
+      final totalAmount = amount * quantity;
+      if (totalAmount > _trialCardsRemainingAmount) {
+        await AppAlertService.showError(
+          context,
+          title: 'تجاوزت الحد التجريبي',
+          message:
+              'يمكنك إنشاء بطاقات تجريبية بمجموع متبقٍ ${CurrencyFormatter.ils(_trialCardsRemainingAmount)} فقط.',
+        );
+        return;
+      }
     }
 
     if (_isAppointmentCard) {
@@ -269,7 +307,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (isPrivate && _selectedUsers.isEmpty) {
+    if (! _isTrialMode && isPrivate && _selectedUsers.isEmpty) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.006'),
@@ -354,7 +392,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    final cards = await _issueCardsAfterSecurity(amount, quantity);
+    final cards = await (_isTrialMode
+        ? _issueTrialCardsAfterSecurity(amount, quantity)
+        : _issueCardsAfterSecurity(amount, quantity));
     if (cards == null || !mounted) {
       return;
     }
@@ -429,6 +469,66 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     return null;
   }
 
+  Future<List<VirtualCard>?> _issueTrialCardsAfterSecurity(
+    double amount,
+    int quantity,
+  ) async {
+    var securityResult = await TransferSecurityService.confirmTransfer(context);
+    if (!mounted || !securityResult.isVerified) {
+      return null;
+    }
+
+    final baseTitle = _detailsTitleC.text.trim();
+    final items = List.generate(quantity, (index) {
+      return <String, dynamic>{
+        'value': amount,
+        if (baseTitle.isNotEmpty)
+          'title': quantity == 1 ? baseTitle : '$baseTitle ${index + 1}',
+      };
+    });
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      setState(() => _isLoading = true);
+      try {
+        final cards = await _apiService.issueTrialCards(
+          items: items,
+          otpCode: securityResult.otpCode,
+          localAuthMethod: securityResult.method,
+        );
+        final userId = _user?['id']?.toString();
+        if (userId != null && userId.isNotEmpty) {
+          await _offlineCardService.cacheCards(userId: userId, cards: cards);
+        }
+        return cards;
+      } catch (error) {
+        if (!mounted) {
+          return null;
+        }
+        final message = ErrorMessageService.sanitize(error);
+        setState(() => _isLoading = false);
+
+        if (attempt == 0 && _isLocalSecurityRequiredMessage(message)) {
+          securityResult = await TransferSecurityService.confirmTransfer(
+            context,
+          );
+          if (!mounted || !securityResult.isVerified) {
+            return null;
+          }
+          continue;
+        }
+
+        await AppAlertService.showError(
+          context,
+          title: 'تعذر إنشاء البطاقات التجريبية',
+          message: message,
+        );
+        return null;
+      }
+    }
+
+    return null;
+  }
+
   Map<String, dynamic> _currentPrintDesign() {
     final l = context.loc;
     return {
@@ -482,15 +582,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     return CurrencyFormatter.ils(amount);
   }
 
-  String _buildPreviewFooterLabel(AppLocalizer l) {
-    if (_isAppointmentCard && _appointmentStartsAt != null) {
-      return 'موعد: ${_formatDateTime(_appointmentStartsAt)}';
-    }
-    return _visibilityScope == 'restricted'
-        ? l.tr('screens_create_card_screen.057')
-        : l.tr('screens_create_card_screen.058');
-  }
-
   String _formatValidityWindow() {
     if (_validFrom == null && _validUntil == null) {
       return '';
@@ -515,42 +606,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$year/$month/$day $hour:$minute';
-  }
-
-  ({List<Color> colors, IconData icon, Color accent})
-  _previewThemeForCardType() {
-    switch (_cardType) {
-      case 'delivery':
-        return (
-          colors: const [Color(0xFFFFF7ED), Color(0xFFECFDF5)],
-          icon: Icons.local_shipping_rounded,
-          accent: const Color(0xFFB45309),
-        );
-      case 'single_use':
-        return (
-          colors: const [Color(0xFFFDF4FF), Color(0xFFFAF5FF)],
-          icon: Icons.confirmation_number_rounded,
-          accent: const Color(0xFFA21CAF),
-        );
-      case 'appointment':
-        return (
-          colors: const [Color(0xFFEFF6FF), Color(0xFFF0FDFA)],
-          icon: Icons.event_available_rounded,
-          accent: const Color(0xFF0F766E),
-        );
-      case 'queue':
-        return (
-          colors: const [Color(0xFFFEFCE8), Color(0xFFFFF7ED)],
-          icon: Icons.people_alt_rounded,
-          accent: const Color(0xFFB45309),
-        );
-      default:
-        return (
-          colors: const [Color(0xFFFFFBF2), Color(0xFFF2FFFC)],
-          icon: Icons.credit_card_rounded,
-          accent: AppTheme.primary,
-        );
-    }
   }
 
   Widget _buildDateTimeField({
@@ -1334,6 +1389,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             l.tr('screens_create_card_screen.033'),
             style: AppTheme.bodyAction.copyWith(fontSize: 14),
           ),
+          if (_isTrialMode) ...[
+            const SizedBox(height: 18),
+            _buildTrialInfoCard(),
+          ],
           const SizedBox(height: 24),
           ShwakelCard(
             padding: const EdgeInsets.all(18),
@@ -1352,7 +1411,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          if (_cardTypeItems(l).length > 1) ...[
+          if (!_isTrialMode && _cardTypeItems(l).length > 1) ...[
             DropdownButtonFormField<String>(
               initialValue: _cardType,
               decoration: InputDecoration(
@@ -1405,7 +1464,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               labelText: l.tr('screens_create_card_screen.037'),
               prefixIcon: const Icon(Icons.pin_rounded),
               helperText:
-                  'أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
+                  _isTrialMode
+                  ? 'يمكنك إنشاء أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.ils(_trialCardsRemainingAmount)}.'
+                  : 'أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
             ),
           ),
           if (_cardType == 'single_use') ...[
@@ -1535,7 +1596,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               childrenPadding: EdgeInsets.zero,
               title: Text('إعدادات متقدمة', style: AppTheme.bodyBold),
               subtitle: Text(
-                'الصلاحية والخصوصية والتصميم والمعاينة. يمكنك تجاهلها إذا كنت تريد إصدارًا سريعًا.',
+                _isTrialMode
+                    ? 'في الوضع التجريبي تكون البطاقة خاصة بحسابك تلقائيًا، ويمكنك فقط تعديل الصلاحية والتصميم.'
+                    : 'الصلاحية والخصوصية والتصميم والمعاينة. يمكنك تجاهلها إذا كنت تريد إصدارًا سريعًا.',
                 style: AppTheme.caption.copyWith(fontSize: 12),
               ),
               children: [
@@ -1578,7 +1641,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     ],
                   ),
                 ),
-                if (_canIssuePrivateCards && _cardType != 'delivery') ...[
+                if (!_isTrialMode &&
+                    _canIssuePrivateCards &&
+                    _cardType != 'delivery') ...[
                   const SizedBox(height: 16),
                   Text(
                     l.tr('screens_create_card_screen.038'),
@@ -1631,7 +1696,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     },
                   ),
                 ],
-                if (_canIssuePrivateCards &&
+                if (!_isTrialMode &&
+                    _canIssuePrivateCards &&
                     _visibilityScope == 'restricted') ...[
                   const SizedBox(height: 20),
                   ShwakelCard(
@@ -1682,6 +1748,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                           onPressed: _pickPrivateUsers,
                         ),
                       ],
+                    ),
+                  ),
+                ],
+                if (_isTrialMode) ...[
+                  const SizedBox(height: 16),
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(16),
+                    color: AppTheme.warning.withValues(alpha: 0.05),
+                    borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                    child: Text(
+                      'البطاقات التجريبية تُنشأ كبطاقات خاصة بحسابك فقط، ولا يمكن استخدامها في حساب آخر. بعد التوثيق يمكنك اعتمادها، وقبل ذلك يمكنك حذفها لإرجاع قيمتها إلى الرصيد.',
+                      style: AppTheme.bodyText.copyWith(fontSize: 13),
                     ),
                   ),
                 ],
@@ -1776,196 +1854,116 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
+  Widget _buildTrialInfoCard() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      color: AppTheme.warning.withValues(alpha: 0.07),
+      borderColor: AppTheme.warning.withValues(alpha: 0.16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('وضع البطاقات التجريبية', style: AppTheme.bodyBold),
+          const SizedBox(height: 8),
+          Text(
+            'هذا الحساب غير موثق بعد، لذلك يتم إنشاء بطاقات تجريبية خاصة بك فقط. مجموع البطاقات غير المستخدمة لا يتجاوز ${CurrencyFormatter.ils(_trialCardsLimit)} وتسجل قيمتها بالسالب على الرصيد.',
+            style: AppTheme.bodyAction.copyWith(fontSize: 13, height: 1.6),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _trialInfoChip(
+                Icons.account_balance_wallet_rounded,
+                'المتبقي ${CurrencyFormatter.ils(_trialCardsRemainingAmount)}',
+              ),
+              _trialInfoChip(
+                Icons.trending_down_rounded,
+                'المستخدم ${CurrencyFormatter.ils(_trialCardsOutstandingAmount)}',
+              ),
+              _trialInfoChip(Icons.lock_rounded, 'خاصة بحسابك'),
+              _trialInfoChip(
+                Icons.verified_user_rounded,
+                'الاعتماد بعد التوثيق',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _trialInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(label, style: AppTheme.caption),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDesignPreview() {
     final l = context.loc;
-    final title = _titleC.text.trim().isEmpty
-        ? l.tr('screens_create_card_screen.001')
-        : _titleC.text.trim();
-    final stamp = _stampC.text.trim().isEmpty
-        ? l.tr('screens_create_card_screen.019')
-        : _stampC.text.trim();
     final amount = double.tryParse(_amountC.text) ?? 0;
-    final valueLabel = _cardValueLabel(l, amount);
-    final detailTitle = _detailsTitleC.text.trim();
-    final previewTheme = _previewThemeForCardType();
+    final previewCard = VirtualCard(
+      id: 'preview',
+      barcode: 'SHW-0001-2026',
+      value: amount,
+      cardType: _cardType,
+      visibilityScope: _isTrialMode ? 'restricted' : _visibilityScope,
+      createdAt: DateTime.now(),
+      details: _currentCardDetails() ?? const {},
+    );
+    final settings = CardDesignSettings(
+      showLogo: _showLogo,
+      showStamp: _showStamp,
+      logoText: _titleC.text.trim().isEmpty
+          ? l.tr('screens_create_card_screen.001')
+          : _titleC.text.trim(),
+      stampText: _stampC.text.trim().isEmpty
+          ? l.tr('screens_create_card_screen.019')
+          : _stampC.text.trim(),
+    );
+    settings.logoUrl = _useAccountLogo
+        ? (_user?['printLogoUrl'])?.toString()
+        : null;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: previewTheme.colors,
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        color: AppTheme.surfaceVariant,
         borderRadius: AppTheme.radiusLg,
         border: Border.all(color: AppTheme.border),
       ),
-      child: Stack(
+      child: Column(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: AppTheme.bodyBold.copyWith(
-                        fontSize: 16,
-                        color: previewTheme.accent,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          previewTheme.icon,
-                          size: 14,
-                          color: previewTheme.accent,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _cardTypeLabel(l, _cardType),
-                          style: AppTheme.caption.copyWith(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: previewTheme.accent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  if (_showLogo)
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: Icon(
-                        _useAccountLogo
-                            ? Icons.image_rounded
-                            : Icons.shield_rounded,
-                        size: 18,
-                        color: previewTheme.accent,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                detailTitle.isNotEmpty
-                    ? detailTitle
-                    : _cardTypeLabel(l, _cardType),
-                style: AppTheme.caption.copyWith(
-                  fontSize: 11,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                valueLabel,
-                style: AppTheme.h2.copyWith(
-                  fontSize: 20,
-                  color: previewTheme.accent,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (_detailsDescriptionC.text.trim().isNotEmpty) ...[
-                Text(
-                  _detailsDescriptionC.text.trim(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption.copyWith(
-                    fontSize: 11,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              Container(
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '|| ||| || |||| |||',
-                  style: AppTheme.caption.copyWith(
-                    fontSize: 14,
-                    letterSpacing: 2,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _buildPreviewFooterLabel(l),
-                      style: AppTheme.caption.copyWith(
-                        fontSize: 11,
-                        color: previewTheme.accent,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    _formatValidityWindow().isEmpty
-                        ? l.tr('screens_create_card_screen.059')
-                        : _formatValidityWindow(),
-                    style: AppTheme.caption.copyWith(fontSize: 10),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          if (_showStamp)
-            Positioned(
-              left: 0,
-              top: 66,
-              child: Transform.rotate(
-                angle: -0.22,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: previewTheme.accent.withValues(alpha: 0.45),
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    stamp,
-                    style: AppTheme.caption.copyWith(
-                      fontSize: 10,
-                      color: previewTheme.accent.withValues(alpha: 0.82),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
+          Text(
+            'هذه هي البطاقة بشكل الطباعة الفعلي قبل الإصدار',
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w700,
             ),
+          ),
+          const SizedBox(height: 14),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: PrintCardPreview(
+              card: previewCard,
+              serialNumber: 1,
+              printedBy: _resolvedIssuerName(l),
+              designSettings: settings,
+            ),
+          ),
         ],
       ),
     );
@@ -2009,7 +2007,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           _buildRecentRow(
             'النوع',
             _recent.isNotEmpty
-                ? _cardTypeLabel(l, _recent.first.cardType)
+                ? (_recent.first.isTrial
+                      ? 'بطاقة تجريبية'
+                      : _cardTypeLabel(l, _recent.first.cardType))
                 : '-',
           ),
           const SizedBox(height: 8),
