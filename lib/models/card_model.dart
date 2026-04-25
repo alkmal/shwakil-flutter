@@ -16,6 +16,9 @@ class VirtualCard {
   final List<String> allowedUserIds;
   final List<String> allowedUsernames;
   final String? customerName;
+  final DateTime? validFrom;
+  final DateTime? validUntil;
+  final Map<String, dynamic> details;
   final DateTime? lastResoldAt;
   final int useCount;
   final int resaleCount;
@@ -41,6 +44,9 @@ class VirtualCard {
     this.allowedUserIds = const [],
     this.allowedUsernames = const [],
     this.customerName,
+    this.validFrom,
+    this.validUntil,
+    this.details = const {},
     this.lastResoldAt,
     this.useCount = 0,
     this.resaleCount = 0,
@@ -53,7 +59,16 @@ class VirtualCard {
 
   bool get isSingleUse => cardType == 'single_use';
   bool get isDelivery => cardType == 'delivery';
+  bool get isAppointment => cardType == 'appointment';
+  bool get isQueueTicket => cardType == 'queue';
   bool get isPrivate => visibilityScope == 'restricted';
+  String? get title => details['title']?.toString();
+  String? get description => details['description']?.toString();
+  String? get location => details['location']?.toString();
+  DateTime? get appointmentStartsAt =>
+      DateTime.tryParse(details['startsAt']?.toString() ?? '');
+  DateTime? get appointmentEndsAt =>
+      DateTime.tryParse(details['endsAt']?.toString() ?? '');
 
   Map<String, dynamic> toMap() {
     return {
@@ -72,6 +87,9 @@ class VirtualCard {
       'allowed_user_ids': allowedUserIds,
       'allowed_usernames': allowedUsernames,
       'customer_name': customerName,
+      'valid_from': validFrom?.toIso8601String(),
+      'valid_until': validUntil?.toIso8601String(),
+      'details': details,
       'last_resold_at': lastResoldAt?.toIso8601String(),
       'use_count': useCount,
       'resale_count': resaleCount,
@@ -121,6 +139,19 @@ class VirtualCard {
             .map((item) => item.toString()),
       ),
       customerName: (map['customerName'] ?? map['customer_name'])?.toString(),
+      validFrom: (map['validFrom'] ?? map['valid_from']) == null
+          ? null
+          : DateTime.tryParse(
+              (map['validFrom'] ?? map['valid_from']).toString(),
+            ),
+      validUntil: (map['validUntil'] ?? map['valid_until']) == null
+          ? null
+          : DateTime.tryParse(
+              (map['validUntil'] ?? map['valid_until']).toString(),
+            ),
+      details: Map<String, dynamic>.from(
+        (map['details'] as Map?) ?? const <String, dynamic>{},
+      ),
       createdAt:
           DateTime.tryParse(createdAtValue?.toString() ?? '') ?? DateTime.now(),
       lastResoldAt: (map['lastResoldAt'] ?? map['last_resold_at']) == null
@@ -164,6 +195,9 @@ class VirtualCard {
     List<String>? allowedUserIds,
     List<String>? allowedUsernames,
     String? customerName,
+    DateTime? validFrom,
+    DateTime? validUntil,
+    Map<String, dynamic>? details,
     DateTime? lastResoldAt,
     int? useCount,
     int? resaleCount,
@@ -189,6 +223,9 @@ class VirtualCard {
       allowedUserIds: allowedUserIds ?? this.allowedUserIds,
       allowedUsernames: allowedUsernames ?? this.allowedUsernames,
       customerName: customerName ?? this.customerName,
+      validFrom: validFrom ?? this.validFrom,
+      validUntil: validUntil ?? this.validUntil,
+      details: details ?? this.details,
       lastResoldAt: lastResoldAt ?? this.lastResoldAt,
       useCount: useCount ?? this.useCount,
       resaleCount: resaleCount ?? this.resaleCount,

@@ -40,6 +40,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardRedeemFeeController = TextEditingController();
   final _cardResellFeeController = TextEditingController();
   final _cardPrintRequestFeeController = TextEditingController();
+  final _singleUseTicketIssueCostController = TextEditingController();
+  final _appointmentTicketIssueCostController = TextEditingController();
+  final _queueTicketIssueCostController = TextEditingController();
   final _offlineMaxPendingAmountController = TextEditingController();
   final _offlineMaxPendingCountController = TextEditingController();
   final _offlineCacheLimitController = TextEditingController();
@@ -82,6 +85,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardRedeemFeeController.dispose();
     _cardResellFeeController.dispose();
     _cardPrintRequestFeeController.dispose();
+    _singleUseTicketIssueCostController.dispose();
+    _appointmentTicketIssueCostController.dispose();
+    _queueTicketIssueCostController.dispose();
     _offlineMaxPendingAmountController.dispose();
     _offlineMaxPendingCountController.dispose();
     _offlineCacheLimitController.dispose();
@@ -174,6 +180,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (feeSettings['cardResellPercent'] as num?)?.toString() ?? '1';
       _cardPrintRequestFeeController.text =
           (feeSettings['cardPrintRequestPercent'] as num?)?.toString() ?? '1';
+      _singleUseTicketIssueCostController.text =
+          (feeSettings['singleUseTicketIssueCost'] as num?)?.toString() ??
+          '0.01';
+      _appointmentTicketIssueCostController.text =
+          (feeSettings['appointmentTicketIssueCost'] as num?)?.toString() ??
+          '0.5';
+      _queueTicketIssueCostController.text =
+          (feeSettings['queueTicketIssueCost'] as num?)?.toString() ?? '0.25';
       _offlineMaxPendingAmountController.text =
           (offlineCardSettings['maxPendingAmount'] as num?)?.toString() ??
           '500';
@@ -250,6 +264,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               double.tryParse(_cardResellFeeController.text) ?? 1,
           cardPrintRequestPercent:
               double.tryParse(_cardPrintRequestFeeController.text) ?? 1,
+          singleUseTicketIssueCost:
+              double.tryParse(_singleUseTicketIssueCostController.text) ??
+              0.01,
+          appointmentTicketIssueCost:
+              double.tryParse(_appointmentTicketIssueCostController.text) ??
+              0.5,
+          queueTicketIssueCost:
+              double.tryParse(_queueTicketIssueCostController.text) ?? 0.25,
         ),
         _apiService.updateAdminOfflineCardSettings(
           maxPendingAmount:
@@ -1066,6 +1088,21 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   l.tr('screens_admin_system_settings_screen.033'),
                   _cardPrintRequestFeeController,
                 ),
+                _buildFeeField(
+                  'رسوم إصدار تذكرة دخول',
+                  _singleUseTicketIssueCostController,
+                  suffixText: '₪',
+                ),
+                _buildFeeField(
+                  'رسوم إصدار تذكرة موعد',
+                  _appointmentTicketIssueCostController,
+                  suffixText: '₪',
+                ),
+                _buildFeeField(
+                  'رسوم إصدار تذكرة طابور',
+                  _queueTicketIssueCostController,
+                  suffixText: '₪',
+                ),
               ],
             ),
           ),
@@ -1084,13 +1121,17 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     );
   }
 
-  Widget _buildFeeField(String label, TextEditingController controller) {
+  Widget _buildFeeField(
+    String label,
+    TextEditingController controller, {
+    String suffixText = '%',
+  }) {
     return SizedBox(
       width: 190,
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(labelText: label, suffixText: '%'),
+        decoration: InputDecoration(labelText: label, suffixText: suffixText),
       ),
     );
   }

@@ -35,7 +35,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     {
       'titleKey': 'cards_and_ops',
       'keys':
-          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canViewPrivateCards,canDeleteCards,canResellCards,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
+          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canIssueSingleUseTickets,canIssueAppointmentTickets,canIssueQueueTickets,canViewPrivateCards,canDeleteCards,canResellCards,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
     },
     {
       'titleKey': 'admin_followup',
@@ -290,6 +290,9 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canIssueSubShekelCards' => l.tr('screens_admin_permissions_screen.020'),
       'canIssueHighValueCards' => l.tr('screens_admin_permissions_screen.021'),
       'canIssuePrivateCards' => l.tr('screens_admin_permissions_screen.022'),
+      'canIssueSingleUseTickets' => 'إنشاء تذاكر دخول لمرة واحدة',
+      'canIssueAppointmentTickets' => 'إنشاء تذاكر مواعيد',
+      'canIssueQueueTickets' => 'إنشاء تذاكر طوابير',
       'canViewPrivateCards' => l.tr('screens_admin_permissions_screen.050'),
       'canDeleteCards' => l.tr('screens_admin_permissions_screen.023'),
       'canResellCards' => l.tr('screens_admin_permissions_screen.024'),

@@ -838,6 +838,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 perms,
               ),
               _permItem(
+                'إنشاء تذاكر دخول لمرة واحدة',
+                'canIssueSingleUseTickets',
+                perms,
+              ),
+              _permItem(
+                'إنشاء تذاكر مواعيد',
+                'canIssueAppointmentTickets',
+                perms,
+              ),
+              _permItem(
+                'إنشاء تذاكر طوابير',
+                'canIssueQueueTickets',
+                perms,
+              ),
+              _permItem(
                 _t('screens_admin_customer_screen.054'),
                 'canIssueHighValueCards',
                 perms,
@@ -1088,6 +1103,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canIssueSubShekelCards: p['canIssueSubShekelCards'] == true,
         canIssueHighValueCards: p['canIssueHighValueCards'] == true,
         canIssuePrivateCards: p['canIssuePrivateCards'] == true,
+        canIssueSingleUseTickets: p['canIssueSingleUseTickets'] == true,
+        canIssueAppointmentTickets: p['canIssueAppointmentTickets'] == true,
+        canIssueQueueTickets: p['canIssueQueueTickets'] == true,
         canResellCards: p['canResellCards'] == true,
         canRequestCardPrinting: p['canRequestCardPrinting'] == true,
         canManageCardPrintRequests: p['canManageCardPrintRequests'] == true,

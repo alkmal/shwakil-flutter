@@ -39,6 +39,8 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>يستخدم التطبيق الكاميرا لمسح الباركود ورموز QR الخاصة بالبطاقات وعمليات التحويل بشكل آمن.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>يستخدم التطبيق البلوتوث للاتصال بالطابعات الحرارية وطباعة البطاقات بسرعة مباشرة من الجوال.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>يستخدم التطبيق الموقع لتوثيق العمليات والتحقق من تنفيذها من الموقع المناسب عند الحاجة، حتى تبقى الحركات أكثر أمانًا وموثوقية.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -595,6 +595,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         scope == 'specific';
     final categoryLabel = card.isDelivery
         ? l.tr('shared.delivery_card_label')
+        : card.isAppointment
+        ? 'تذكرة موعد'
+        : card.isQueueTicket
+        ? 'تذكرة طابور'
         : isLocationSpecific
         ? l.tr('screens_scan_card_screen.065')
         : (card.isPrivate
@@ -671,7 +675,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(CurrencyFormatter.ils(card.value), style: AppTheme.h3),
+        Text(
+          (card.isAppointment || card.isQueueTicket) && card.value <= 0
+              ? (card.isQueueTicket ? 'تذكرة طابور' : 'تذكرة موعد')
+              : CurrencyFormatter.ils(card.value),
+          style: AppTheme.h3,
+        ),
         Text(
           card.barcode,
           style: AppTheme.caption.copyWith(letterSpacing: 1.5),
@@ -699,6 +708,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
               color: AppTheme.success,
               fontWeight: FontWeight.w700,
             ),
+          ),
+        ],
+        if (card.title?.trim().isNotEmpty == true) ...[
+          const SizedBox(height: 8),
+          Text(
+            card.title!.trim(),
+            style: AppTheme.bodyBold.copyWith(fontSize: 13),
           ),
         ],
         if (card.ownerUsername?.trim().isNotEmpty == true) ...[
@@ -746,6 +762,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   'screens_inventory_screen.041',
                   params: {'date': _formatDateTime(card.usedAt)},
                 ),
+              ),
+            if (card.validUntil != null)
+              _buildInfoChip(
+                Icons.timer_off_rounded,
+                'تنتهي ${_formatDateTime(card.validUntil)}',
+              ),
+            if (card.isAppointment && card.appointmentStartsAt != null)
+              _buildInfoChip(
+                Icons.schedule_rounded,
+                'الموعد ${_formatDateTime(card.appointmentStartsAt)}',
               ),
           ],
         ),

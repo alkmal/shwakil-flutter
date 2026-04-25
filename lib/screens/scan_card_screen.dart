@@ -1430,6 +1430,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (card.isDelivery) {
       return context.loc.tr('shared.delivery_card_label');
     }
+    if (card.isAppointment) {
+      return 'تذكرة موعد';
+    }
+    if (card.isQueueTicket) {
+      return 'تذكرة طابور';
+    }
     if (isLocationSpecific) {
       return l.tr('screens_scan_card_screen.065');
     }
@@ -1441,6 +1447,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   String _cardUsageNote(VirtualCard card) {
     if (card.isDelivery) {
       return context.loc.tr('shared.delivery_card_payments_note');
+    }
+    if (card.isAppointment && card.title?.trim().isNotEmpty == true) {
+      return card.title!.trim();
+    }
+    if (card.isQueueTicket && card.title?.trim().isNotEmpty == true) {
+      return card.title!.trim();
     }
     return '';
   }
@@ -1458,12 +1470,26 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (card.isDelivery) {
       return l.tr('shared.delivery_card_badge');
     }
+    if (card.isAppointment) {
+      return 'موعد';
+    }
+    if (card.isQueueTicket) {
+      return 'طابور';
+    }
     if (isLocationSpecific) {
       return l.tr('screens_scan_card_screen.065');
     }
     return card.isPrivate
         ? l.tr('screens_scan_card_screen.058')
         : l.tr('screens_scan_card_screen.059');
+  }
+
+  String _cardAmountLabel(VirtualCard card) {
+    if ((card.isSingleUse || card.isAppointment || card.isQueueTicket) &&
+        card.value <= 0) {
+      return _cardTypeLabel(card);
+    }
+    return CurrencyFormatter.ils(card.value);
   }
 
   String _formatDate(DateTime? value) {
@@ -2079,7 +2105,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      CurrencyFormatter.ils(card.value),
+                      _cardAmountLabel(card),
                       style: AppTheme.h1.copyWith(
                         color: accent,
                         fontSize: compact ? 34 : 42,
@@ -2284,7 +2310,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               ),
               const SizedBox(height: 16),
               Text(
-                CurrencyFormatter.ils(card.value),
+                _cardAmountLabel(card),
                 style: AppTheme.h1.copyWith(
                   color: accent,
                   fontSize: compact ? 34 : 42,
@@ -2734,7 +2760,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                             : CrossAxisAlignment.end,
                         children: [
                           Text(
-                            CurrencyFormatter.ils(card.value),
+                            _cardAmountLabel(card),
                             style: AppTheme.h1.copyWith(
                               color: accent,
                               fontSize: compact ? 38 : 44,
@@ -2815,7 +2841,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         l.tr('screens_scan_card_screen.024'),
                         _cardTypeLabel(card),
                       ),
-                      if (card.isDelivery)
+                      if (_cardUsageNote(card).trim().isNotEmpty)
                         _detailTile(
                           context.loc.tr('shared.usage_label'),
                           _cardUsageNote(card),
@@ -2826,7 +2852,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                       ),
                       _detailTile(
                         l.tr('screens_scan_card_screen.026'),
-                        CurrencyFormatter.ils(card.value),
+                        _cardAmountLabel(card),
                       ),
                       _detailTile(
                         l.tr('screens_scan_card_screen.027'),
@@ -2872,6 +2898,33 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         l.tr('screens_scan_card_screen.037'),
                         CurrencyFormatter.ils(card.totalRedeemedValue),
                       ),
+                      if (card.validFrom != null || card.validUntil != null)
+                        _detailTile(
+                          'الصلاحية',
+                          '${card.validFrom != null ? _formatDate(card.validFrom) : 'غير محدد'}'
+                          '${card.validUntil != null ? ' -> ${_formatDate(card.validUntil)}' : ''}',
+                          spanTwo: true,
+                        ),
+                      if (card.isAppointment &&
+                          card.appointmentStartsAt != null)
+                        _detailTile(
+                          'الموعد',
+                          '${_formatDate(card.appointmentStartsAt)}'
+                          '${card.appointmentEndsAt != null ? ' -> ${_formatDate(card.appointmentEndsAt)}' : ''}',
+                          spanTwo: true,
+                        ),
+                      if (card.location?.trim().isNotEmpty == true)
+                        _detailTile(
+                          'الموقع',
+                          card.location!.trim(),
+                          spanTwo: true,
+                        ),
+                      if (card.description?.trim().isNotEmpty == true)
+                        _detailTile(
+                          'ملاحظات',
+                          card.description!.trim(),
+                          spanTwo: true,
+                        ),
                       _detailTile(
                         l.tr('screens_scan_card_screen.038'),
                         card.allowedUsernames.isEmpty

@@ -39,6 +39,9 @@ class AppPermissions {
     'canRequestVerification',
     'canIssueCards',
     'canIssuePrivateCards',
+    'canIssueSingleUseTickets',
+    'canIssueAppointmentTickets',
+    'canIssueQueueTickets',
     'canViewPrivateCards',
     'canRequestCardPrinting',
     'canScanCards',
@@ -97,6 +100,10 @@ class AppPermissions {
   bool get canRequestVerification => _isEnabled('canRequestVerification');
   bool get canIssueCards => _isEnabled('canIssueCards');
   bool get canIssuePrivateCards => _isEnabled('canIssuePrivateCards');
+  bool get canIssueSingleUseTickets => _isEnabled('canIssueSingleUseTickets');
+  bool get canIssueAppointmentTickets =>
+      _isEnabled('canIssueAppointmentTickets');
+  bool get canIssueQueueTickets => _isEnabled('canIssueQueueTickets');
   bool get canViewPrivateCards => _raw['canViewPrivateCards'] != false;
   bool get canRequestCardPrinting => _isEnabled('canRequestCardPrinting');
   bool get canScanCards => _isEnabled('canScanCards');

@@ -705,6 +705,9 @@ class ApiService {
     required bool canIssueSubShekelCards,
     required bool canIssueHighValueCards,
     required bool canIssuePrivateCards,
+    required bool canIssueSingleUseTickets,
+    required bool canIssueAppointmentTickets,
+    required bool canIssueQueueTickets,
     required bool canResellCards,
     required bool canRequestCardPrinting,
     required bool canManageCardPrintRequests,
@@ -720,6 +723,9 @@ class ApiService {
         'canIssueSubShekelCards': canIssueSubShekelCards,
         'canIssueHighValueCards': canIssueHighValueCards,
         'canIssuePrivateCards': canIssuePrivateCards,
+        'canIssueSingleUseTickets': canIssueSingleUseTickets,
+        'canIssueAppointmentTickets': canIssueAppointmentTickets,
+        'canIssueQueueTickets': canIssueQueueTickets,
         'canResellCards': canResellCards,
         'canRequestCardPrinting': canRequestCardPrinting,
         'canManageCardPrintRequests': canManageCardPrintRequests,
@@ -788,6 +794,9 @@ class ApiService {
     required double cardRedeemPercent,
     required double cardResellPercent,
     required double cardPrintRequestPercent,
+    required double singleUseTicketIssueCost,
+    required double appointmentTicketIssueCost,
+    required double queueTicketIssueCost,
   }) async {
     final response = await http.put(
       AppConfig.apiUri('admin/settings/fees'),
@@ -798,6 +807,9 @@ class ApiService {
         'cardRedeemPercent': cardRedeemPercent,
         'cardResellPercent': cardResellPercent,
         'cardPrintRequestPercent': cardPrintRequestPercent,
+        'singleUseTicketIssueCost': singleUseTicketIssueCost,
+        'appointmentTicketIssueCost': appointmentTicketIssueCost,
+        'queueTicketIssueCost': queueTicketIssueCost,
       }),
     );
     return _decodeObject(response);
@@ -1688,6 +1700,9 @@ class ApiService {
     String visibilityScope = 'general',
     String cardType = 'standard',
     Map<String, dynamic>? printDesign,
+    String? validFrom,
+    String? validUntil,
+    Map<String, dynamic>? cardDetails,
     String? otpCode,
     String? localAuthMethod,
   }) async {
@@ -1698,6 +1713,9 @@ class ApiService {
       'visibilityScope': visibilityScope,
       'cardType': cardType,
       'printDesign': printDesign,
+      'validFrom': validFrom,
+      'validUntil': validUntil,
+      'cardDetails': cardDetails,
     };
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
@@ -2056,43 +2074,11 @@ class ApiService {
   }
 
   VirtualCard _cardFromApi(Map<String, dynamic> map) {
-    return VirtualCard(
-      id: map['id']?.toString() ?? '',
-      barcode: map['barcode']?.toString() ?? '',
-      value: (map['value'] as num?)?.toDouble() ?? 0,
-      cardType: map['cardType']?.toString() ?? 'standard',
-      visibilityScope: map['visibilityScope']?.toString() ?? 'general',
-      issueCost: (map['issueCost'] as num?)?.toDouble() ?? 0,
-      ownerId: map['ownerId']?.toString(),
-      ownerUsername: map['ownerUsername']?.toString(),
-      issuedById: map['issuedById']?.toString(),
-      issuedByUsername: map['issuedByUsername']?.toString(),
-      redeemedById: map['redeemedById']?.toString(),
-      allowedUserIds: List<String>.from(
-        (map['allowedUserIds'] as List? ?? const []).map(
-          (item) => item.toString(),
-        ),
-      ),
-      allowedUsernames: List<String>.from(
-        (map['allowedUsernames'] as List? ?? const []).map(
-          (item) => item.toString(),
-        ),
-      ),
-      customerName: map['customerName']?.toString(),
-      createdAt:
-          DateTime.tryParse(map['issuedAt']?.toString() ?? '') ??
-          DateTime.now(),
-      lastResoldAt: map['lastResoldAt'] == null
-          ? null
-          : DateTime.tryParse(map['lastResoldAt'].toString()),
-      useCount: (map['useCount'] as num?)?.toInt() ?? 0,
-      resaleCount: (map['resaleCount'] as num?)?.toInt() ?? 0,
-      totalRedeemedValue: (map['totalRedeemedValue'] as num?)?.toDouble() ?? 0,
+    return VirtualCard.fromMap({
+      ...map,
+      'status': map['status']?.toString() ?? 'available',
+    }).copyWith(
       status: _statusFromApi(map['status']?.toString()),
-      usedAt: map['redeemedAt'] == null
-          ? null
-          : DateTime.tryParse(map['redeemedAt'].toString()),
-      usedBy: map['redeemedByUsername']?.toString(),
       soldPrice: (map['value'] as num?)?.toDouble(),
     );
   }

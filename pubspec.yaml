@@ -53,6 +53,10 @@ dependencies:
   # PDF & Printing
   pdf: ^3.11.0
   printing: ^5.12.0
+  print_bluetooth_thermal: ^1.1.6
+  esc_pos_utils_plus: ^2.0.4
+  screenshot: ^3.0.0
+  image: ^4.5.4
 
   # Utilities
   intl: ^0.20.2

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:screenshot/screenshot.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -10,6 +12,7 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/thermal_card_ticket.dart';
 
 class CreateCardScreen extends StatefulWidget {
   const CreateCardScreen({super.key});
@@ -22,10 +25,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final PDFService _pdfService = PDFService();
+  final ThermalPrinterService _thermalPrinterService = ThermalPrinterService();
+  final ScreenshotController _thermalTicketScreenshot = ScreenshotController();
   final TextEditingController _amountC = TextEditingController();
   final TextEditingController _qtyC = TextEditingController(text: '1');
   final TextEditingController _titleC = TextEditingController();
   final TextEditingController _stampC = TextEditingController();
+  final TextEditingController _detailsTitleC = TextEditingController();
+  final TextEditingController _detailsDescriptionC = TextEditingController();
+  final TextEditingController _appointmentLocationC = TextEditingController();
 
   bool _isLoading = false;
   bool _isLoadingUser = true;
@@ -33,8 +41,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool _showLogo = true;
   bool _showStamp = true;
   bool _useAccountLogo = true;
+  bool _isThermalPrinting = false;
   String _cardType = 'standard';
   String _visibilityScope = 'general';
+  DateTime? _validFrom;
+  DateTime? _validUntil;
+  DateTime? _appointmentStartsAt;
+  DateTime? _appointmentEndsAt;
   Map<String, dynamic>? _user;
   List<VirtualCard> _recent = [];
   List<Map<String, dynamic>> _selectedUsers = [];
@@ -51,6 +64,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _qtyC.dispose();
     _titleC.dispose();
     _stampC.dispose();
+    _detailsTitleC.dispose();
+    _detailsDescriptionC.dispose();
+    _appointmentLocationC.dispose();
     super.dispose();
   }
 
@@ -75,8 +91,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         }
         _useAccountLogo =
             user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
-        if (user?['role']?.toString() == 'driver') {
-          _cardType = 'delivery';
+        final issuableCardTypes = _issuableCardTypesFromUser(user);
+        if (!issuableCardTypes.contains(_cardType) && issuableCardTypes.isNotEmpty) {
+          _cardType = issuableCardTypes.first;
         }
         _isLoadingUser = false;
       });
@@ -93,29 +110,61 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   bool get _canRequestCardPrinting => _appPermissions.canRequestCardPrinting;
 
-  bool get _isDriverAccount => _user?['role']?.toString() == 'driver';
-
   bool get _hasAccountLogo =>
       _user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
 
+  bool get _canUseThermalPrinting =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+
+  bool get _isAppointmentCard => _cardType == 'appointment';
+  bool get _isQueueCard => _cardType == 'queue';
+
+  bool get _isBalanceCard => _cardType == 'standard' || _cardType == 'delivery';
+
+  List<String> get _issuableCardTypes => _issuableCardTypesFromUser(_user);
+
+  List<String> _issuableCardTypesFromUser(Map<String, dynamic>? user) {
+    final raw = user?['cardIssuanceOptions'];
+    if (raw is List) {
+      final values = raw
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+      if (values.isNotEmpty) {
+        return values;
+      }
+    }
+    if (user?['role']?.toString() == 'driver') {
+      return const ['delivery'];
+    }
+    return const ['standard', 'single_use', 'appointment', 'queue'];
+  }
+
   List<DropdownMenuItem<String>> _cardTypeItems(AppLocalizer l) =>
-      _isDriverAccount
-      ? [
-          DropdownMenuItem(
-            value: 'delivery',
-            child: Text(l.tr('shared.delivery_card_label')),
-          ),
-        ]
-      : [
-          DropdownMenuItem(
-            value: 'standard',
-            child: Text(l.tr('screens_create_card_screen.002')),
-          ),
-          DropdownMenuItem(
-            value: 'single_use',
-            child: Text(l.tr('screens_create_card_screen.003')),
-          ),
-        ];
+      _issuableCardTypes.map((type) {
+        return DropdownMenuItem(
+          value: type,
+          child: Text(_cardTypeLabel(l, type)),
+        );
+      }).toList();
+
+  String _cardTypeLabel(AppLocalizer l, String type) {
+    switch (type) {
+      case 'single_use':
+        return l.tr('screens_create_card_screen.003');
+      case 'delivery':
+        return l.tr('shared.delivery_card_label');
+      case 'appointment':
+        return 'تذكرة موعد';
+      case 'queue':
+        return 'تذكرة طابور';
+      default:
+        return l.tr('screens_create_card_screen.002');
+    }
+  }
 
   Future<void> _create() async {
     final l = context.loc;
@@ -129,14 +178,54 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
-    final isBalanceCard = _cardType == 'standard' || _cardType == 'delivery';
     final isPrivate = _visibilityScope == 'restricted';
 
-    if (quantity <= 0 || (isBalanceCard && amount <= 0)) {
+    if (quantity <= 0 || (_isBalanceCard && amount <= 0)) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
         message: l.tr('screens_create_card_screen.005'),
+      );
+      return;
+    }
+
+    if (_isAppointmentCard) {
+      if (_detailsTitleC.text.trim().isEmpty || _appointmentStartsAt == null) {
+        await AppAlertService.showError(
+          context,
+          title: 'بيانات الموعد ناقصة',
+          message: 'أدخل عنوان الموعد وحدد وقت البداية على الأقل.',
+        );
+        return;
+      }
+
+      if (_appointmentEndsAt != null &&
+          !_appointmentEndsAt!.isAfter(_appointmentStartsAt!)) {
+        await AppAlertService.showError(
+          context,
+          title: 'وقت الموعد غير صحيح',
+          message: 'وقت نهاية الموعد يجب أن يكون بعد وقت البداية.',
+        );
+        return;
+      }
+    }
+
+    if (_isQueueCard && _detailsTitleC.text.trim().isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'بيانات الطابور ناقصة',
+        message: 'أدخل عنوان أو اسم خدمة الطابور.',
+      );
+      return;
+    }
+
+    if (_validFrom != null &&
+        _validUntil != null &&
+        !_validUntil!.isAfter(_validFrom!)) {
+      await AppAlertService.showError(
+        context,
+        title: 'نافذة الصلاحية غير صحيحة',
+        message: 'وقت انتهاء الصلاحية يجب أن يكون بعد وقت البداية.',
       );
       return;
     }
@@ -150,38 +239,53 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    final typeLabel = _cardType == 'single_use'
-        ? l.tr('screens_create_card_screen.008')
-        : _cardType == 'delivery'
-        ? l.tr('shared.delivery_card_label')
-        : l.tr('screens_create_card_screen.009');
+    final typeLabel = _cardTypeLabel(l, _cardType);
     final visibilityLabel = isPrivate
         ? l.tr('screens_create_card_screen.010')
         : l.tr('screens_create_card_screen.011');
-    final valueLabel = isBalanceCard
-        ? CurrencyFormatter.ils(amount)
-        : l.tr('screens_create_card_screen.012');
+    final valueLabel = _cardValueLabel(l, amount);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('screens_create_card_screen.013')),
-        content: Text(
-          l.tr(
-            'screens_create_card_screen.014',
-            params: {
-              'quantity': '$quantity',
-              'type': typeLabel,
-              'visibility': visibilityLabel,
-              'value': valueLabel,
-              'privateLine': isPrivate
-                  ? l.tr(
-                      'screens_create_card_screen.015',
-                      params: {'count': '${_selectedUsers.length}'},
-                    )
-                  : '',
-            },
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l.tr(
+                'screens_create_card_screen.014',
+                params: {
+                  'quantity': '$quantity',
+                  'type': typeLabel,
+                  'visibility': visibilityLabel,
+                  'value': valueLabel,
+                  'privateLine': isPrivate
+                      ? l.tr(
+                          'screens_create_card_screen.015',
+                          params: {'count': '${_selectedUsers.length}'},
+                        )
+                      : '',
+                },
+              ),
+              textDirection: TextDirection.rtl,
+            ),
+            if (_detailsTitleC.text.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('العنوان: ${_detailsTitleC.text.trim()}'),
+            ],
+            if (_formatValidityWindow().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('الصلاحية: ${_formatValidityWindow()}'),
+            ],
+            if (_isAppointmentCard && _appointmentStartsAt != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'الموعد: ${_formatDateTime(_appointmentStartsAt)}${_appointmentEndsAt != null ? ' - ${_formatDateTime(_appointmentEndsAt)}' : ''}',
+              ),
+            ],
+          ],
         ),
         actions: [
           TextButton(
@@ -234,6 +338,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           cardType: _cardType,
           visibilityScope: _visibilityScope,
           printDesign: _currentPrintDesign(),
+          validFrom: _validFrom?.toUtc().toIso8601String(),
+          validUntil: _validUntil?.toUtc().toIso8601String(),
+          cardDetails: _currentCardDetails(),
           otpCode: securityResult.otpCode,
           localAuthMethod: securityResult.method,
           allowedUserIds: _selectedAllowedUserIds(),
@@ -281,6 +388,153 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           : null,
       'showStamp': _showStamp,
     };
+  }
+
+  Map<String, dynamic>? _currentCardDetails() {
+    final details = <String, dynamic>{};
+    if (_detailsTitleC.text.trim().isNotEmpty) {
+      details['title'] = _detailsTitleC.text.trim();
+    }
+    if (_detailsDescriptionC.text.trim().isNotEmpty) {
+      details['description'] = _detailsDescriptionC.text.trim();
+    }
+    if (_appointmentLocationC.text.trim().isNotEmpty) {
+      details['location'] = _appointmentLocationC.text.trim();
+    }
+    if (_appointmentStartsAt != null) {
+      details['startsAt'] = _appointmentStartsAt!.toUtc().toIso8601String();
+    }
+    if (_appointmentEndsAt != null) {
+      details['endsAt'] = _appointmentEndsAt!.toUtc().toIso8601String();
+    }
+    if (_isAppointmentCard) {
+      details['ticketKind'] = 'appointment';
+    } else if (_isQueueCard) {
+      details['ticketKind'] = 'queue';
+    }
+    return details.isEmpty ? null : details;
+  }
+
+  String _cardValueLabel(AppLocalizer l, double amount) {
+    if (_cardType == 'single_use' || _isQueueCard) {
+      return amount <= 0 ? 'تذكرة استخدام تنظيمي' : CurrencyFormatter.ils(amount);
+    }
+    if (_isAppointmentCard && amount <= 0) {
+      return 'بدون قيمة مالية';
+    }
+    return CurrencyFormatter.ils(amount);
+  }
+
+  String _buildPreviewFooterLabel(AppLocalizer l) {
+    if (_isAppointmentCard && _appointmentStartsAt != null) {
+      return 'موعد: ${_formatDateTime(_appointmentStartsAt)}';
+    }
+    return _visibilityScope == 'restricted'
+        ? l.tr('screens_create_card_screen.057')
+        : l.tr('screens_create_card_screen.058');
+  }
+
+  String _formatValidityWindow() {
+    if (_validFrom == null && _validUntil == null) {
+      return '';
+    }
+    if (_validFrom != null && _validUntil != null) {
+      return '${_formatDateTime(_validFrom)} - ${_formatDateTime(_validUntil)}';
+    }
+    if (_validFrom != null) {
+      return 'من ${_formatDateTime(_validFrom)}';
+    }
+    return 'حتى ${_formatDateTime(_validUntil)}';
+  }
+
+  String _formatDateTime(DateTime? value) {
+    if (value == null) {
+      return '-';
+    }
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$year/$month/$day $hour:$minute';
+  }
+
+  Widget _buildDateTimeField({
+    required String label,
+    required DateTime? value,
+    required IconData icon,
+    required Future<void> Function() onPick,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onPick,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          suffixIcon: value == null
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.clear_rounded),
+                  onPressed: () {
+                    setState(() {
+                      if (label == 'فعالة من') {
+                        _validFrom = null;
+                      } else if (label == 'تنتهي في') {
+                        _validUntil = null;
+                      } else if (label == 'بداية الموعد') {
+                        _appointmentStartsAt = null;
+                      } else if (label == 'نهاية الموعد') {
+                        _appointmentEndsAt = null;
+                      }
+                    });
+                  },
+                ),
+        ),
+        child: Text(
+          value == null ? 'اختر التاريخ والوقت' : _formatDateTime(value),
+          style: value == null
+              ? AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary)
+              : AppTheme.bodyBold,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDateTime({
+    required DateTime? initialValue,
+    required void Function(DateTime value) onChanged,
+  }) async {
+    final now = DateTime.now();
+    final start = initialValue?.toLocal() ?? now;
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: start,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (pickedDate == null || !mounted) {
+      return;
+    }
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(start),
+    );
+    if (pickedTime == null || !mounted) {
+      return;
+    }
+
+    onChanged(
+      DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      ),
+    );
   }
 
   List<String> _selectedAllowedUserIds() {
@@ -350,6 +604,277 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
   }
 
+  Future<void> _quickThermalPrintCards(
+    List<VirtualCard> cards, {
+    bool requireSecurity = true,
+  }) async {
+    final l = context.loc;
+    if (!_canUseThermalPrinting) {
+      await AppAlertService.showInfo(
+        context,
+        title: 'الطباعة الحرارية غير متاحة',
+        message: 'الطباعة الحرارية السريعة مدعومة حاليًا على الأجهزة المحمولة.',
+      );
+      return;
+    }
+    if (cards.isEmpty) {
+      return;
+    }
+    if (requireSecurity && !await _confirmCardOutputSecurity()) {
+      return;
+    }
+
+    setState(() => _isThermalPrinting = true);
+    try {
+      final printer = await _resolveThermalPrinter();
+      if (printer == null || !mounted) {
+        return;
+      }
+
+      final connected = await _thermalPrinterService.ensureConnected(printer);
+      if (!connected) {
+        if (!mounted) {
+          return;
+        }
+        await AppAlertService.showError(
+          context,
+          title: 'تعذر الاتصال بالطابعة',
+          message:
+              'تأكد من تشغيل البلوتوث وأن الطابعة الحرارية مقترنة بالجهاز.',
+        );
+        return;
+      }
+
+      final issuerName = _resolvedIssuerName(l);
+      for (var index = 0; index < cards.length; index++) {
+        final card = cards[index];
+        final ticketBytes = await _captureThermalTicketBytes(card, issuerName);
+        final printed = await _thermalPrinterService.printCardTicket(
+          card: card,
+          ticketPngBytes: ticketBytes,
+          issuerName: issuerName,
+          cutPaper: index == cards.length - 1,
+        );
+        if (!printed) {
+          if (!mounted) {
+            return;
+          }
+          await AppAlertService.showError(
+            context,
+            title: 'فشل الطباعة الحرارية',
+            message: 'تعذر إرسال البطاقة إلى الطابعة الحرارية.',
+          );
+          return;
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تمت الطباعة الحرارية',
+        message: l.tr(
+          'screens_create_card_screen.021',
+          params: {'count': '${cards.length}'},
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر الطباعة الحرارية',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isThermalPrinting = false);
+      }
+    }
+  }
+
+  String _resolvedIssuerName(AppLocalizer l) {
+    final fullName = _user?['fullName']?.toString().trim() ?? '';
+    final username = _user?['username']?.toString().trim() ?? '';
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+    if (username.isNotEmpty) {
+      return username;
+    }
+    return l.tr('screens_create_card_screen.001');
+  }
+
+  Future<Uint8List> _captureThermalTicketBytes(
+    VirtualCard card,
+    String issuerName,
+  ) {
+    final title = _titleC.text.trim().isEmpty
+        ? context.loc.tr('screens_create_card_screen.001')
+        : _titleC.text.trim();
+
+    return _thermalTicketScreenshot.captureFromWidget(
+      ThermalCardTicket(card: card, issuerName: issuerName, title: title),
+      context: context,
+      pixelRatio: 2.4,
+      delay: const Duration(milliseconds: 100),
+      targetSize: const Size(320, 420),
+    );
+  }
+
+  Future<ThermalPrinterDevice?> _resolveThermalPrinter() async {
+    final selected = await _thermalPrinterService.selectedDevice();
+    final hasPermission = await _thermalPrinterService
+        .ensureBluetoothPermission();
+    if (!hasPermission) {
+      if (!mounted) {
+        return null;
+      }
+      await AppAlertService.showInfo(
+        context,
+        title: 'صلاحية البلوتوث مطلوبة',
+        message: 'فعّل صلاحية البلوتوث للتطبيق ثم أعد محاولة الطباعة الحرارية.',
+      );
+      return null;
+    }
+
+    final bluetoothEnabled = await _thermalPrinterService.isBluetoothEnabled();
+    if (!bluetoothEnabled) {
+      if (!mounted) {
+        return null;
+      }
+      await AppAlertService.showInfo(
+        context,
+        title: 'البلوتوث غير مفعّل',
+        message: 'شغّل البلوتوث على الجهاز ثم أعد محاولة الطباعة الحرارية.',
+      );
+      return null;
+    }
+
+    final devices = await _thermalPrinterService.pairedDevices();
+    if (devices.isEmpty) {
+      if (!mounted) {
+        return null;
+      }
+      await AppAlertService.showInfo(
+        context,
+        title: 'لا توجد طابعات مقترنة',
+        message:
+            'قم بربط الطابعة الحرارية من إعدادات البلوتوث أولًا ثم أعد المحاولة.',
+      );
+      return null;
+    }
+
+    if (selected != null &&
+        devices.any((device) => device.macAddress == selected.macAddress)) {
+      return selected;
+    }
+
+    if (!mounted) {
+      return null;
+    }
+    final picked = await _showThermalPrinterPicker(devices);
+    if (picked != null) {
+      await _thermalPrinterService.rememberDevice(picked);
+    }
+    return picked;
+  }
+
+  Future<ThermalPrinterDevice?> _showThermalPrinterPicker(
+    List<ThermalPrinterDevice> devices,
+  ) async {
+    final selected = await _thermalPrinterService.selectedDevice();
+    if (!mounted) {
+      return null;
+    }
+
+    return showModalBottomSheet<ThermalPrinterDevice>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final selectedMac = selected?.macAddress;
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            children: [
+              Text('اختر الطابعة الحرارية', style: AppTheme.h3),
+              const SizedBox(height: 8),
+              Text(
+                'سيتم حفظ الطابعة المختارة لتسريع الطباعة لاحقًا.',
+                style: AppTheme.bodyAction,
+              ),
+              const SizedBox(height: 14),
+              ...devices.map((device) {
+                final isSelected = device.macAddress == selectedMac;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => Navigator.pop(context, device),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.primary.withValues(alpha: 0.08)
+                            : AppTheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : AppTheme.border,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primarySoft,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.print_rounded,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(device.name, style: AppTheme.bodyBold),
+                                const SizedBox(height: 4),
+                                Text(
+                                  device.macAddress,
+                                  style: AppTheme.caption.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isSelected)
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: AppTheme.primary,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showSuccess(List<VirtualCard> cards) {
     final l = context.loc;
     showDialog(
@@ -367,6 +892,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l.tr('screens_create_card_screen.022')),
           ),
+          if (_canUseThermalPrinting)
+            ShwakelButton(
+              label: 'طباعة حرارية',
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await _quickThermalPrintCards(cards, requireSecurity: false);
+              },
+              width: 150,
+              isSecondary: true,
+            ),
           if (_canRequestCardPrinting)
             ShwakelButton(
               label: l.tr('screens_create_card_screen.023'),
@@ -732,12 +1267,28 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 prefixIcon: const Icon(Icons.category_rounded),
               ),
               items: _cardTypeItems(l),
-              onChanged: (value) =>
-                  setState(() => _cardType = value ?? 'standard'),
+              onChanged: (value) {
+                setState(() {
+                  _cardType = value ?? 'standard';
+                  if (_cardType == 'delivery') {
+                    _visibilityScope = 'general';
+                    _selectedUsers = [];
+                  }
+                  if (_cardType != 'appointment') {
+                    _appointmentStartsAt = null;
+                    _appointmentEndsAt = null;
+                  }
+                  if (_cardType != 'appointment' && _cardType != 'queue') {
+                    _appointmentLocationC.clear();
+                    _detailsTitleC.clear();
+                    _detailsDescriptionC.clear();
+                  }
+                });
+              },
             ),
             const SizedBox(height: 16),
           ],
-          if (_cardType == 'standard' || _cardType == 'delivery')
+          if (_isBalanceCard || _isAppointmentCard)
             TextField(
               controller: _amountC,
               keyboardType: const TextInputType.numberWithOptions(
@@ -745,7 +1296,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               ),
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                labelText: l.tr('screens_create_card_screen.035'),
+                labelText: _isAppointmentCard
+                    ? 'القيمة المالية إن وجدت'
+                    : l.tr('screens_create_card_screen.035'),
                 prefixIcon: const Icon(Icons.money_rounded),
               ),
             ),
@@ -769,6 +1322,159 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 style: AppTheme.bodyText.copyWith(fontSize: 14),
               ),
             ),
+          if (_isQueueCard) ...[
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(16),
+              color: AppTheme.secondary.withValues(alpha: 0.05),
+              borderColor: AppTheme.secondary.withValues(alpha: 0.15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('تفاصيل تذكرة الطابور', style: AppTheme.bodyBold),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _detailsTitleC,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم الخدمة أو الطابور',
+                      prefixIcon: Icon(Icons.confirmation_number_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _appointmentLocationC,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'الموقع أو القسم',
+                      prefixIcon: Icon(Icons.place_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _detailsDescriptionC,
+                    minLines: 2,
+                    maxLines: 4,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'ملاحظات إضافية',
+                      prefixIcon: Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (_isAppointmentCard) ...[
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(16),
+              color: AppTheme.primary.withValues(alpha: 0.05),
+              borderColor: AppTheme.primary.withValues(alpha: 0.15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('تفاصيل الموعد', style: AppTheme.bodyBold),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _detailsTitleC,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'عنوان الموعد',
+                      prefixIcon: Icon(Icons.event_note_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _appointmentLocationC,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'الموقع',
+                      prefixIcon: Icon(Icons.place_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _detailsDescriptionC,
+                    minLines: 2,
+                    maxLines: 4,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'ملاحظات أو تعليمات',
+                      prefixIcon: Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDateTimeField(
+                    label: 'بداية الموعد',
+                    value: _appointmentStartsAt,
+                    icon: Icons.schedule_rounded,
+                    onPick: () => _pickDateTime(
+                      initialValue: _appointmentStartsAt,
+                      onChanged: (value) {
+                        setState(() {
+                          _appointmentStartsAt = value;
+                          _validFrom ??= value;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDateTimeField(
+                    label: 'نهاية الموعد',
+                    value: _appointmentEndsAt,
+                    icon: Icons.event_available_rounded,
+                    onPick: () => _pickDateTime(
+                      initialValue: _appointmentEndsAt ?? _appointmentStartsAt,
+                      onChanged: (value) {
+                        setState(() {
+                          _appointmentEndsAt = value;
+                          _validUntil ??= value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          ShwakelCard(
+            padding: const EdgeInsets.all(16),
+            color: AppTheme.surfaceVariant,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('نافذة الصلاحية', style: AppTheme.bodyBold),
+                const SizedBox(height: 8),
+                Text(
+                  'يمكن تحديد بداية ونهاية لاستخدام البطاقة. إذا تُركت فارغة تبقى البطاقة دون تقييد زمني.',
+                  style: AppTheme.caption.copyWith(fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                _buildDateTimeField(
+                  label: 'فعالة من',
+                  value: _validFrom,
+                  icon: Icons.login_rounded,
+                  onPick: () => _pickDateTime(
+                    initialValue: _validFrom ?? _appointmentStartsAt,
+                    onChanged: (value) => setState(() => _validFrom = value),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildDateTimeField(
+                  label: 'تنتهي في',
+                  value: _validUntil,
+                  icon: Icons.timer_off_rounded,
+                  onPick: () => _pickDateTime(
+                    initialValue:
+                        _validUntil ?? _appointmentEndsAt ?? _validFrom,
+                    onChanged: (value) => setState(() => _validUntil = value),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _qtyC,
@@ -977,9 +1683,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ? l.tr('screens_create_card_screen.019')
         : _stampC.text.trim();
     final amount = double.tryParse(_amountC.text) ?? 0;
-    final valueLabel = _cardType == 'single_use'
-        ? l.tr('screens_create_card_screen.008')
-        : CurrencyFormatter.ils(amount);
+    final valueLabel = _cardValueLabel(l, amount);
+    final detailTitle = _detailsTitleC.text.trim();
 
     return Container(
       width: double.infinity,
@@ -1030,9 +1735,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                _cardType == 'single_use'
-                    ? l.tr('screens_create_card_screen.055')
-                    : l.tr('screens_create_card_screen.056'),
+                detailTitle.isNotEmpty
+                    ? detailTitle
+                    : _cardTypeLabel(l, _cardType),
                 style: AppTheme.caption.copyWith(
                   fontSize: 11,
                   color: AppTheme.textSecondary,
@@ -1047,6 +1752,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              if (_detailsDescriptionC.text.trim().isNotEmpty) ...[
+                Text(
+                  _detailsDescriptionC.text.trim(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption.copyWith(
+                    fontSize: 11,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               Container(
                 height: 42,
                 decoration: BoxDecoration(
@@ -1069,9 +1786,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      _visibilityScope == 'restricted'
-                          ? l.tr('screens_create_card_screen.057')
-                          : l.tr('screens_create_card_screen.058'),
+                      _buildPreviewFooterLabel(l),
                       style: AppTheme.caption.copyWith(
                         fontSize: 11,
                         color: AppTheme.primary,
@@ -1080,7 +1795,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     ),
                   ),
                   Text(
-                    l.tr('screens_create_card_screen.059'),
+                    _formatValidityWindow().isEmpty
+                        ? l.tr('screens_create_card_screen.059')
+                        : _formatValidityWindow(),
                     style: AppTheme.caption.copyWith(fontSize: 10),
                   ),
                 ],
@@ -1156,13 +1873,41 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ),
           const SizedBox(height: 8),
           _buildRecentRow(
+            'النوع',
+            _recent.isNotEmpty ? _cardTypeLabel(l, _recent.first.cardType) : '-',
+          ),
+          const SizedBox(height: 8),
+          _buildRecentRow(
             l.tr('screens_create_card_screen.064'),
             _recent.isNotEmpty
-                ? CurrencyFormatter.ils(_recent.first.value)
+                ? (_recent.first.isAppointment && _recent.first.value <= 0
+                      ? 'بدون قيمة مالية'
+                      : CurrencyFormatter.ils(_recent.first.value))
                 : CurrencyFormatter.ils(0),
           ),
+          if (_recent.isNotEmpty && _recent.first.title?.trim().isNotEmpty == true) ...[
+            const SizedBox(height: 8),
+            _buildRecentRow('العنوان', _recent.first.title!.trim()),
+          ],
+          if (_recent.isNotEmpty && _recent.first.validUntil != null) ...[
+            const SizedBox(height: 8),
+            _buildRecentRow(
+              'تنتهي',
+              _formatDateTime(_recent.first.validUntil),
+            ),
+          ],
           if (_recent.isNotEmpty) ...[
             const SizedBox(height: 20),
+            if (_canUseThermalPrinting) ...[
+              ShwakelButton(
+                label: 'إعادة طباعة حرارية',
+                icon: Icons.local_printshop_rounded,
+                isSecondary: true,
+                isLoading: _isThermalPrinting,
+                onPressed: () => _quickThermalPrintCards(_recent),
+              ),
+              const SizedBox(height: 10),
+            ],
             ShwakelButton(
               label: l.tr('screens_create_card_screen.065'),
               icon: Icons.print_rounded,
