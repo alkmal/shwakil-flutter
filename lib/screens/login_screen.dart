@@ -41,6 +41,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _registrationEnabled = true;
   String? _supportWhatsapp;
 
+  String get _postAuthRoute => widget.redirectRoute?.trim().isNotEmpty == true
+      ? widget.redirectRoute!.trim()
+      : '/home';
+
   @override
   void initState() {
     super.initState();
@@ -247,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
     }
-    navigator.pushNamedAndRemoveUntil('/app-shell', (route) => false);
+    navigator.pushNamedAndRemoveUntil(_postAuthRoute, (route) => false);
   }
 
   Future<bool> _isTrustedDeviceForUsername(String username) async {

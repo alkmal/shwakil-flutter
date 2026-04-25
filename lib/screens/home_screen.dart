@@ -770,13 +770,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 520;
+          final logoSize = isCompact ? 64.0 : 72.0;
+          final logoImageSize = isCompact ? 38.0 : 44.0;
           Widget infoChip({
             required IconData icon,
             required String label,
             required Color color,
           }) {
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 10 : 12,
+                vertical: isCompact ? 8 : 10,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(999),
@@ -822,8 +827,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ],
           );
           final logo = Container(
-            width: 72,
-            height: 72,
+            width: logoSize,
+            height: logoSize,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(20),
@@ -835,27 +840,27 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               child: userLogoUrl.isNotEmpty
                   ? Image.network(
                       userLogoUrl,
-                      width: 44,
-                      height: 44,
+                      width: logoImageSize,
+                      height: logoImageSize,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Image.asset(
                         'assets/images/shwakel_app_icon.png',
-                        width: 44,
-                        height: 44,
+                        width: logoImageSize,
+                        height: logoImageSize,
                         fit: BoxFit.contain,
                       ),
                     )
                   : Image.asset(
                       'assets/images/shwakel_app_icon.png',
-                      width: 44,
-                      height: 44,
+                      width: logoImageSize,
+                      height: logoImageSize,
                       fit: BoxFit.contain,
                     ),
             ),
           );
           final balanceCard = Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isCompact ? 14 : 16),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(22),
@@ -875,24 +880,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Text(
-                        _isBalanceVisible
-                            ? CurrencyFormatter.ils(balance)
-                            : '******',
-                        style: AppTheme.h1.copyWith(
-                          color: Colors.white,
-                          fontSize: isCompact ? 28 : 32,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     IconButton(
                       tooltip: _isBalanceVisible
                           ? _t('screens_home_screen.096')
                           : _t('screens_home_screen.099'),
                       onPressed: () =>
                           _setBalanceVisibility(!_isBalanceVisible),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
                       icon: Icon(
                         _isBalanceVisible
                             ? Icons.visibility_off_rounded
@@ -900,72 +899,111 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         color: Colors.white,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _isBalanceVisible
+                            ? CurrencyFormatter.ils(balance)
+                            : '******',
+                        textAlign: TextAlign.end,
+                        style: AppTheme.h1.copyWith(
+                          color: Colors.white,
+                          fontSize: isCompact ? 28 : 32,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: isCompact ? 6 : 8),
                 Text(
                   _t('screens_home_screen.094'),
+                  textAlign: TextAlign.start,
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white.withValues(alpha: 0.86),
-                    height: 1.45,
+                    height: 1.4,
+                    fontSize: isCompact ? 14 : 15,
                   ),
                 ),
               ],
             ),
           );
 
+          final compactHeader = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      greeting,
+                      style: AppTheme.bodyAction.copyWith(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (displayName.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        displayName,
+                        style: AppTheme.h2.copyWith(
+                          color: Colors.white,
+                          fontSize: 20,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    metaBlock,
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              logo,
+            ],
+          );
+
           final textBlock = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isCompact) ...[
-                metaBlock,
-                const SizedBox(height: 14),
-              ],
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isCompact) ...[
+              if (isCompact)
+                compactHeader
+              else ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     logo,
                     const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          greeting,
-                          style: AppTheme.bodyAction.copyWith(
-                            color: Colors.white.withValues(alpha: 0.88),
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        if (displayName.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            displayName,
-                            style: AppTheme.h2.copyWith(
-                              fontSize: 22,
-                              color: Colors.white,
+                            greeting,
+                            style: AppTheme.bodyAction.copyWith(
+                              color: Colors.white.withValues(alpha: 0.88),
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
+                          if (displayName.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              displayName,
+                              style: AppTheme.h2.copyWith(
+                                fontSize: 22,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              if (isCompact) ...[
-                const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: logo,
+                  ],
                 ),
-              ],
-              if (!isCompact) ...[
                 const SizedBox(height: 8),
                 metaBlock,
               ],
-              const SizedBox(height: 16),
+              SizedBox(height: isCompact ? 12 : 16),
               balanceCard,
             ],
           );
@@ -1042,7 +1080,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         crossAxisSpacing: 12,
         childAspectRatio: childAspectRatio,
       ),
-      itemBuilder: (context, index) => _buildCompactServiceTile(services[index]),
+      itemBuilder: (context, index) =>
+          _buildCompactServiceTile(services[index]),
     );
   }
 

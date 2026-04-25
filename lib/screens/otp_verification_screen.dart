@@ -57,6 +57,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   Timer? _timer;
 
   bool get _isRegisterFlow => widget.purpose == 'register';
+  String get _postAuthRoute => widget.redirectRoute?.trim().isNotEmpty == true
+      ? widget.redirectRoute!.trim()
+      : '/home';
 
   @override
   void initState() {
@@ -176,7 +179,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           return;
         }
       }
-      navigator.pushNamedAndRemoveUntil('/app-shell', (route) => false);
+      navigator.pushNamedAndRemoveUntil(_postAuthRoute, (route) => false);
     } catch (error) {
       if (!mounted) {
         return;
@@ -251,8 +254,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       await AppAlertService.showSuccess(
         context,
         title: l.tr('screens_otp_verification_screen.004'),
-        message:
-            response.message?.toString().trim().isNotEmpty == true
+        message: response.message?.toString().trim().isNotEmpty == true
             ? response.message!.trim()
             : l.tr('screens_otp_verification_screen.017'),
       );

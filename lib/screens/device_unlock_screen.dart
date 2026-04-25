@@ -22,6 +22,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   bool _biometricEnabled = false;
   bool _isLoading = true;
   bool _isUnlocking = false;
+  bool _didAutoPromptBiometric = false;
   int _pinRetryAfterSeconds = 0;
 
   @override
@@ -51,7 +52,24 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
         _pinRetryAfterSeconds = pinRetryAfterSeconds;
         _isLoading = false;
       });
+      _maybeAutoPromptBiometric();
     }
+  }
+
+  void _maybeAutoPromptBiometric() {
+    if (_didAutoPromptBiometric ||
+        _isLoading ||
+        _isUnlocking ||
+        !_biometricEnabled) {
+      return;
+    }
+    _didAutoPromptBiometric = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isUnlocking) {
+        return;
+      }
+      _unlockBiometric();
+    });
   }
 
   Future<void> _unlockPin() async {
@@ -138,7 +156,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     if (!mounted) {
       return;
     }
-    Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
   }
 
   String _subtitle(AppLocalizer l) {
