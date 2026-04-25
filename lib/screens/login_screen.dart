@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
-import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
@@ -202,6 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _finishLogin(String username) async {
     await LocalSecurityService.clearRelockRequirement();
+    await LocalSecurityService.clearSecuritySetupRequirement();
     await LocalSecurityService.skipNextUnlock();
     if (!widget.offlineMode) {
       await RealtimeNotificationService.start();
@@ -218,11 +218,6 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       return;
     }
-    final currentUser = await _authService.currentUser();
-    if (!mounted) {
-      return;
-    }
-    final permissions = AppPermissions.fromUser(currentUser);
     final shouldOpenSecuritySettings =
         await _shouldPromptForLocalSecuritySetup();
     setState(() => _isLoading = false);
@@ -244,20 +239,16 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
     if (widget.redirectRoute?.trim().isNotEmpty == true) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        widget.redirectRoute!,
-        (route) => false,
-      );
-      return;
+      if (widget.offlineMode) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          widget.redirectRoute!,
+          (route) => false,
+        );
+        return;
+      }
     }
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      permissions.shouldOpenAdminWorkspaceByDefault
-          ? '/admin-dashboard'
-          : '/app-shell',
-      (route) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
   }
 
   Future<bool> _isTrustedDeviceForUsername(String username) async {

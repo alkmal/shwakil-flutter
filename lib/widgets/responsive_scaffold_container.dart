@@ -24,13 +24,16 @@ class ResponsiveScaffoldContainer extends StatelessWidget {
             ? 32.0
             : width >= 720
             ? 24.0
-            : 16.0;
+            : 14.0;
+        final verticalPadding = width >= 720 ? padding : padding.add(
+          const EdgeInsets.symmetric(vertical: 2),
+        );
         return Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxWidth),
             child: Padding(
-              padding: padding.add(
+              padding: verticalPadding.add(
                 EdgeInsets.symmetric(horizontal: horizontalPadding),
               ),
               child: child,
@@ -63,6 +66,20 @@ class ResponsiveScaffoldContainer extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 32,
+            left: -48,
+            child: IgnorePointer(
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: AppTheme.secondary.withValues(alpha: 0.035),
+                  borderRadius: BorderRadius.circular(42),
                 ),
               ),
             ),

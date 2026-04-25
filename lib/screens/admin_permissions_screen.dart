@@ -168,6 +168,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
           actions: const [AppNotificationAction(), QuickLogoutAction()],
           bottom: TabBar(
             isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: _roles
                 .map((role) => Tab(text: role['label']?.toString() ?? '-'))
                 .toList(),

@@ -28,6 +28,7 @@ class LocalSecurityService {
 
   static bool _relockRequired = false;
   static bool _skipNextUnlock = false;
+  static bool _securitySetupRequired = false;
 
   static const List<int> relockTimeoutOptionsInSeconds = [0, 30, 60, 300];
   static const int _pinMaxFailedAttempts = 5;
@@ -59,6 +60,7 @@ class LocalSecurityService {
   static ValueListenable<int> get securityStateListenable =>
       _securityStateVersion;
   static bool get relockRequired => _relockRequired;
+  static bool get securitySetupRequired => _securitySetupRequired;
 
   static void _notifySecurityStateChanged() {
     _securityStateVersion.value++;
@@ -114,6 +116,7 @@ class LocalSecurityService {
     await _secureStorage.delete(key: _pinHashKey);
     _relockRequired = false;
     _skipNextUnlock = false;
+    _securitySetupRequired = false;
     _notifySecurityStateChanged();
   }
 
@@ -161,6 +164,7 @@ class LocalSecurityService {
     await prefs.remove(_legacyPinKey);
     await prefs.remove(_pinFailedAttemptsKey);
     await prefs.remove(_pinLockoutUntilKey);
+    _securitySetupRequired = false;
     _notifySecurityStateChanged();
   }
 
@@ -170,6 +174,7 @@ class LocalSecurityService {
     await prefs.remove(_pinFailedAttemptsKey);
     await prefs.remove(_pinLockoutUntilKey);
     await _secureStorage.delete(key: _pinHashKey);
+    _securitySetupRequired = false;
     _notifySecurityStateChanged();
   }
 
@@ -219,7 +224,22 @@ class LocalSecurityService {
   static Future<void> setBiometricEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_biometricEnabledKey, value);
+    if (value) {
+      _securitySetupRequired = false;
+    }
     _notifySecurityStateChanged();
+  }
+
+  static Future<bool> hasConfiguredLocalSecurity() async {
+    final hasPin = await LocalSecurityService.hasPin();
+    if (hasPin) {
+      return true;
+    }
+    final biometricEnabled = await isBiometricEnabled();
+    if (!biometricEnabled) {
+      return false;
+    }
+    return canUseBiometrics();
   }
 
   static Future<bool> isBiometricEnabled() async {
@@ -299,6 +319,12 @@ class LocalSecurityService {
     if (backgroundedAt == null) {
       return;
     }
+    final hasLocalSecurity = await hasConfiguredLocalSecurity();
+    if (!hasLocalSecurity) {
+      _securitySetupRequired = true;
+      _notifySecurityStateChanged();
+      return;
+    }
     final relockTimeout = await relockTimeoutInSeconds();
     final elapsed = DateTime.now().millisecondsSinceEpoch - backgroundedAt;
     final canUseUnlock = await canUseTrustedUnlock();
@@ -313,6 +339,11 @@ class LocalSecurityService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_backgroundedAtKey);
     _relockRequired = false;
+    _notifySecurityStateChanged();
+  }
+
+  static Future<void> clearSecuritySetupRequirement() async {
+    _securitySetupRequired = false;
     _notifySecurityStateChanged();
   }
 

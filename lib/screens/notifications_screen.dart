@@ -191,27 +191,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         else if (_notifications.isEmpty)
           _buildEmptyState()
         else ...[
-          ShwakelCard(
-            padding: const EdgeInsets.all(18),
-            borderRadius: BorderRadius.circular(24),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.notifications_active_rounded,
-                  color: AppTheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _t('screens_notifications_screen.037'),
-                    style: AppTheme.bodyAction,
-                  ),
-                ),
-                _UnreadPill(count: _unreadCount),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
           ..._notifications.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -304,6 +283,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .where(_isFinancialNotification)
         .length;
     final accountCount = _notifications.where(_isAccountNotification).length;
+    final adminCount = _notifications.where(_isAdminNotification).length;
     final readCount = _notifications
         .where((item) => item['isRead'] == true)
         .length;
@@ -328,6 +308,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         hint: context.loc.tr('screens_notifications_screen.048'),
         icon: Icons.verified_user_rounded,
         color: AppTheme.secondary,
+      ),
+      _NotificationStat(
+        label: 'الإشعارات الإدارية',
+        value: '$adminCount',
+        hint: 'الإشعارات القادمة من الإدارة',
+        icon: Icons.admin_panel_settings_rounded,
+        color: AppTheme.warning,
       ),
       _NotificationStat(
         label: context.loc.tr('screens_notifications_screen.031'),
@@ -387,6 +374,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _filterChip(_t('screens_notifications_screen.027'), 'unread'),
       _filterChip(_t('screens_notifications_screen.029'), 'financial'),
       _filterChip(_t('screens_notifications_screen.047'), 'account'),
+      _filterChip('إدارية', 'admin'),
     ];
 
     return ShwakelCard(
@@ -535,6 +523,10 @@ class _NotificationCard extends StatelessWidget {
     final type =
         data['transactionType']?.toString() ?? item['type']?.toString() ?? '';
     final categoryColor = _notificationCategoryColor(categoryKind);
+    final notificationIcon = _notificationVisualIcon(item);
+    final actor = _notificationActorLabel(data);
+    final createdAt = item['createdAt']?.toString() ?? '';
+    final isFinancial = categoryKind == _NotificationKind.financial;
 
     return ShwakelCard(
       onTap: onTap,
@@ -555,7 +547,7 @@ class _NotificationCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Icon(
-                  _notificationCategoryIcon(categoryKind),
+                  notificationIcon,
                   color: categoryColor,
                 ),
               ),
@@ -604,10 +596,58 @@ class _NotificationCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            item['body']?.toString() ?? '',
-            style: AppTheme.bodyAction.copyWith(height: 1.5),
-          ),
+          if (isFinancial && amount != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: categoryColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: categoryColor.withValues(alpha: 0.12)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.82),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(notificationIcon, color: categoryColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          CurrencyFormatter.ils(amount),
+                          style: AppTheme.h3.copyWith(
+                            color: categoryColor,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        if ((item['body']?.toString() ?? '').trim().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            item['body']?.toString() ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.bodyAction.copyWith(height: 1.4),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Text(
+              item['body']?.toString() ?? '',
+              style: AppTheme.bodyAction.copyWith(height: 1.5),
+            ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -615,9 +655,9 @@ class _NotificationCard extends StatelessWidget {
             children: [
               _InfoChip(
                 icon: Icons.schedule_rounded,
-                label: item['createdAt']?.toString() ?? '',
+                label: createdAt,
               ),
-              if (amount != null)
+              if (amount != null && !isFinancial)
                 _InfoChip(
                   icon: Icons.payments_rounded,
                   label: CurrencyFormatter.ils(amount),
@@ -626,6 +666,11 @@ class _NotificationCard extends StatelessWidget {
                 _InfoChip(
                   icon: Icons.percent_rounded,
                   label: CurrencyFormatter.ils(fee),
+                ),
+              if (actor != null)
+                _InfoChip(
+                  icon: Icons.person_rounded,
+                  label: actor,
                 ),
               ..._notificationCardContextChips(
                 context,
@@ -662,6 +707,7 @@ class _NotificationDetailsSheet extends StatelessWidget {
         data['sentByDisplayName']?.toString().trim().isNotEmpty == true
         ? data['sentByDisplayName'].toString().trim()
         : data['sentByUsername']?.toString().trim() ?? '';
+    final actor = _notificationActorLabel(data);
     final priority = data['priority']?.toString().trim() ?? '';
     final actionRoute = data['actionRoute']?.toString().trim() ?? '';
     final actionLabel = data['actionLabel']?.toString().trim() ?? '';
@@ -715,11 +761,13 @@ class _NotificationDetailsSheet extends StatelessWidget {
                   ),
                   if (sentBy.isNotEmpty)
                     _InfoChip(
-                      icon: Icons.campaign_rounded,
-                      label: context.loc.tr(
-                        'screens_notifications_screen.058',
-                        params: {'name': sentBy},
-                      ),
+                      icon: Icons.admin_panel_settings_rounded,
+                      label: 'مرسل الإشعار: $sentBy',
+                    ),
+                  if (actor != null && actor != sentBy)
+                    _InfoChip(
+                      icon: Icons.person_pin_circle_rounded,
+                      label: 'المستخدم المتسبب: $actor',
                     ),
                   if (priority.isNotEmpty)
                     _InfoChip(
@@ -865,7 +913,7 @@ class _NotificationStat {
   final Color color;
 }
 
-enum _NotificationKind { financial, account, general }
+enum _NotificationKind { financial, account, admin, general }
 
 _NotificationKind _notificationKind(Map<String, dynamic> item) {
   final category = item['category']?.toString().trim().toLowerCase() ?? '';
@@ -874,6 +922,10 @@ _NotificationKind _notificationKind(Map<String, dynamic> item) {
   }
   if (category == 'account') {
     return _NotificationKind.account;
+  }
+  if ((item['sourceType']?.toString().trim().toLowerCase() ?? '') ==
+      'admin_custom_notification') {
+    return _NotificationKind.admin;
   }
 
   final type = item['type']?.toString().trim().toLowerCase() ?? '';
@@ -899,10 +951,14 @@ bool _isFinancialNotification(Map<String, dynamic> item) =>
 bool _isAccountNotification(Map<String, dynamic> item) =>
     _notificationKind(item) == _NotificationKind.account;
 
+bool _isAdminNotification(Map<String, dynamic> item) =>
+    _notificationKind(item) == _NotificationKind.admin;
+
 Color _notificationCategoryColor(_NotificationKind kind) {
   return switch (kind) {
     _NotificationKind.financial => AppTheme.primary,
     _NotificationKind.account => AppTheme.secondary,
+    _NotificationKind.admin => AppTheme.warning,
     _NotificationKind.general => AppTheme.accent,
   };
 }
@@ -911,6 +967,7 @@ IconData _notificationCategoryIcon(_NotificationKind kind) {
   return switch (kind) {
     _NotificationKind.financial => Icons.account_balance_wallet_rounded,
     _NotificationKind.account => Icons.verified_user_rounded,
+    _NotificationKind.admin => Icons.admin_panel_settings_rounded,
     _NotificationKind.general => Icons.notifications_rounded,
   };
 }
@@ -926,10 +983,53 @@ String _notificationCategoryLabel(
     _NotificationKind.account => context.loc.tr(
       'screens_notifications_screen.049',
     ),
+    _NotificationKind.admin => 'إداري',
     _NotificationKind.general => context.loc.tr(
       'screens_notifications_screen.046',
     ),
   };
+}
+
+IconData _notificationVisualIcon(Map<String, dynamic> item) {
+  final data = item['data'] is Map<String, dynamic>
+      ? item['data'] as Map<String, dynamic>
+      : item['data'] is Map
+      ? Map<String, dynamic>.from(item['data'] as Map)
+      : const <String, dynamic>{};
+  final type =
+      (data['transactionType']?.toString() ?? item['type']?.toString() ?? '')
+          .trim()
+          .toLowerCase();
+
+  return switch (type) {
+    'topup' || 'balance_credit' || 'transfer_in' || 'withdrawal_refund' =>
+      Icons.south_west_rounded,
+    'transfer_out' || 'manual_deduction' || 'withdrawal' =>
+      Icons.north_east_rounded,
+    'issue_cards' || 'printed_cards_received' || 'card_print_request_completed' =>
+      Icons.style_rounded,
+    _ => _notificationCategoryIcon(_notificationKind(item)),
+  };
+}
+
+String? _notificationActorLabel(Map<String, dynamic> data) {
+  return _displayUser(
+    data,
+    displayKeys: const [
+      'actorDisplayName',
+      'sentByDisplayName',
+      'fromDisplayName',
+      'senderDisplayName',
+    ],
+    usernameKeys: const [
+      'actorUsername',
+      'sentByUsername',
+      'fromUsername',
+      'senderUsername',
+    ],
+    metadataDisplayKeys: const ['actorDisplayName', 'byDisplayName'],
+    metadataUsernameKeys: const ['actorUsername', 'byUsername'],
+  );
 }
 
 String _notificationPriorityLabel(BuildContext context, String priority) {

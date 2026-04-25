@@ -202,6 +202,8 @@ class _AppLifecycleShell extends StatefulWidget {
 
 class _AppLifecycleShellState extends State<_AppLifecycleShell>
     with WidgetsBindingObserver {
+  int _appLifecycleVersion = 0;
+
   @override
   void initState() {
     super.initState();
@@ -224,16 +226,24 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
       case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.resumed:
-        unawaited(LocalSecurityService.handleAppResumed());
+        unawaited(_handleAppResumed());
         break;
       case AppLifecycleState.detached:
         break;
     }
   }
 
+  Future<void> _handleAppResumed() async {
+    await LocalSecurityService.handleAppResumed();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _appLifecycleVersion++);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const AppEntryPoint();
+    return AppEntryPoint(key: ValueKey(_appLifecycleVersion));
   }
 }
 
@@ -242,6 +252,7 @@ enum _LaunchState {
   login,
   unlock,
   home,
+  securitySetup,
   loginOffline,
   scanOffline,
   updateRequired,
@@ -304,7 +315,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   Future<_LaunchDecision> _resolveLaunchState() async {
     final updateRequirement = await AppVersionService.fetchRequiredUpdate()
         .timeout(const Duration(seconds: 2), onTimeout: () => null);
-    if (updateRequirement != null) {
+    if (updateRequirement != null && updateRequirement.isForced) {
       return _LaunchDecision(
         state: _LaunchState.updateRequired,
         updateRequirement: updateRequirement,
@@ -329,6 +340,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       _localUnlockSatisfiedThisSession = false;
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
+    }
+    if (LocalSecurityService.securitySetupRequired) {
+      return const _LaunchDecision(state: _LaunchState.securitySetup);
     }
     final skipNextUnlock = await LocalSecurityService.consumeSkipNextUnlock();
     if (skipNextUnlock) {
@@ -405,6 +419,10 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       return const _LaunchDecision(state: _LaunchState.login);
     }
 
+    if (LocalSecurityService.securitySetupRequired) {
+      return const _LaunchDecision(state: _LaunchState.securitySetup);
+    }
+
     final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
         .timeout(const Duration(seconds: 1), onTimeout: () => false);
     if (LocalSecurityService.relockRequired && canUseTrustedUnlock) {
@@ -451,6 +469,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
           case _LaunchState.home:
             OfflineSessionService.setOfflineMode(false);
             return const HomeScreen();
+          case _LaunchState.securitySetup:
+            OfflineSessionService.setOfflineMode(false);
+            return const SecuritySettingsScreen();
           case _LaunchState.loginOffline:
             OfflineSessionService.setOfflineMode(true);
             return const LoginScreen(
@@ -565,60 +586,73 @@ class _ForcedUpdateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.pageBackgroundGradient,
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(28),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const ShwakelLogo(size: 78, framed: true),
-                      const SizedBox(height: 20),
-                      Text(
-                        'تحديث مطلوب',
-                        style: AppTheme.h1,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'يجب تحديث التطبيق للمتابعة بشكل آمن.',
-                        style: AppTheme.bodyAction.copyWith(height: 1.5),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      _versionRow('نسختك الحالية', requirement.currentVersion),
-                      const SizedBox(height: 10),
-                      _versionRow(
-                        'أقل نسخة مسموحة',
-                        requirement.minSupportedVersion,
-                      ),
-                      const SizedBox(height: 10),
-                      _versionRow('أحدث نسخة', requirement.latestVersion),
-                      const SizedBox(height: 24),
-                      ShwakelButton(
-                        label: requirement.hasStoreUrl
-                            ? 'فتح صفحة التحديث'
-                            : 'رابط التحديث غير متوفر',
-                        icon: Icons.system_update_rounded,
-                        onPressed: requirement.hasStoreUrl ? _openStore : null,
-                      ),
-                      const SizedBox(height: 12),
-                      ShwakelButton(
-                        label: 'إعادة التحقق',
-                        isSecondary: true,
-                        icon: Icons.refresh_rounded,
-                        onPressed: onRetry,
-                      ),
-                    ],
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.pageBackgroundGradient,
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const ShwakelLogo(size: 78, framed: true),
+                        const SizedBox(height: 20),
+                        Text(
+                          requirement.isForced
+                              ? 'تحديث إجباري للتطبيق'
+                              : 'يوجد تحديث جديد',
+                          style: AppTheme.h1,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          requirement.isForced
+                              ? 'نسختك الحالية لم تعد مدعومة. يجب تحديث التطبيق قبل المتابعة واستخدام أي شاشة داخل النظام.'
+                              : 'يتوفر إصدار أحدث من التطبيق. ننصح بالتحديث للحصول على أفضل أداء وتحسينات الأمان.',
+                          style: AppTheme.bodyAction.copyWith(height: 1.6),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        _versionRow('نسختك الحالية', requirement.currentVersion),
+                        const SizedBox(height: 10),
+                        _versionRow(
+                          requirement.isForced
+                              ? 'أقل نسخة مسموحة'
+                              : 'النسخة المدعومة حاليًا',
+                          requirement.minSupportedVersion.isEmpty
+                              ? '-'
+                              : requirement.minSupportedVersion,
+                        ),
+                        const SizedBox(height: 10),
+                        _versionRow('أحدث نسخة', requirement.latestVersion),
+                        const SizedBox(height: 24),
+                        ShwakelButton(
+                          label: requirement.hasStoreUrl
+                              ? 'فتح صفحة التحديث'
+                              : 'رابط التحديث غير متوفر',
+                          icon: Icons.system_update_rounded,
+                          onPressed: requirement.hasStoreUrl ? _openStore : null,
+                        ),
+                        const SizedBox(height: 12),
+                        ShwakelButton(
+                          label: requirement.isForced
+                              ? 'تحققت بعد التحديث'
+                              : 'إعادة التحقق',
+                          isSecondary: true,
+                          icon: Icons.refresh_rounded,
+                          onPressed: onRetry,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

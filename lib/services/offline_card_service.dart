@@ -17,6 +17,7 @@ class OfflineCardService {
   static const _offlineKeyName = 'offline_cards_aes_key_v1';
   static const double _defaultMaxPendingAmount = 500;
   static const int _defaultMaxPendingCount = 50;
+  static const int _defaultSyncIntervalMinutes = 60;
   static final AesGcm _cipher = AesGcm.with256bits();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
@@ -49,18 +50,20 @@ class OfflineCardService {
           (localCard.status == CardStatus.used ||
               pendingBarcodes.contains(card.barcode));
       byBarcode[card.barcode] = shouldPreserveLocalUsedState
-          ? localCard.copyWith(
-              ownerId: card.ownerId,
-              ownerUsername: card.ownerUsername,
-              issuedById: card.issuedById,
-              issuedByUsername: card.issuedByUsername,
-              allowedUserIds: card.allowedUserIds,
-              allowedUsernames: card.allowedUsernames,
-              value: card.value,
-              issueCost: card.issueCost,
-              visibilityScope: card.visibilityScope,
-              cardType: card.cardType,
-            ).toMap()
+          ? localCard
+                .copyWith(
+                  ownerId: card.ownerId,
+                  ownerUsername: card.ownerUsername,
+                  issuedById: card.issuedById,
+                  issuedByUsername: card.issuedByUsername,
+                  allowedUserIds: card.allowedUserIds,
+                  allowedUsernames: card.allowedUsernames,
+                  value: card.value,
+                  issueCost: card.issueCost,
+                  visibilityScope: card.visibilityScope,
+                  cardType: card.cardType,
+                )
+                .toMap()
           : card.toMap();
     }
 
@@ -130,6 +133,11 @@ class OfflineCardService {
     );
   }
 
+  Future<void> clearCachedCards(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('$_cardsKeyPrefix$userId');
+  }
+
   Future<List<Map<String, dynamic>>> getRedeemQueue(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     return _decodeStoredList(prefs.getString('$_redeemKeyPrefix$userId'));
@@ -145,7 +153,9 @@ class OfflineCardService {
     return _decodeStoredList(prefs.getString('$_historyKeyPrefix$userId'));
   }
 
-  Future<List<Map<String, dynamic>>> getUnknownCardLookups(String userId) async {
+  Future<List<Map<String, dynamic>>> getUnknownCardLookups(
+    String userId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     return _decodeStoredList(prefs.getString('$_unknownCardsKeyPrefix$userId'));
   }
@@ -283,6 +293,9 @@ class OfflineCardService {
       'maxPendingCount':
           (decoded['maxPendingCount'] as num?)?.toInt() ??
           _defaultMaxPendingCount,
+      'syncIntervalMinutes':
+          (decoded['syncIntervalMinutes'] as num?)?.toInt() ??
+          _defaultSyncIntervalMinutes,
       ...decoded,
     };
   }
@@ -388,7 +401,13 @@ class OfflineCardService {
   Future<List<VirtualCard>> _loadCards(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     final key = '$_cardsKeyPrefix$userId';
-    final raw = await _decodeStoredList(prefs.getString(key));
+    final stored = prefs.getString(key);
+    final raw = await _decodeStoredList(stored);
+    if (stored != null &&
+        stored.trim().isNotEmpty &&
+        !_isEncryptedPayload(stored)) {
+      await prefs.setString(key, await _encodeStoredList(raw));
+    }
     return raw.map((item) => VirtualCard.fromMap(item)).toList();
   }
 
@@ -453,6 +472,17 @@ class OfflineCardService {
       return decoded;
     } catch (_) {
       return null;
+    }
+  }
+
+  bool _isEncryptedPayload(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map &&
+          decoded['v'] == 1 &&
+          decoded['alg'] == 'AES-256-GCM';
+    } catch (_) {
+      return false;
     }
   }
 

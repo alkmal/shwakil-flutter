@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -40,6 +40,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardRedeemFeeController = TextEditingController();
   final _cardResellFeeController = TextEditingController();
   final _cardPrintRequestFeeController = TextEditingController();
+  final _offlineMaxPendingAmountController = TextEditingController();
+  final _offlineMaxPendingCountController = TextEditingController();
+  final _offlineCacheLimitController = TextEditingController();
+  final _offlineSyncIntervalController = TextEditingController();
   final _affiliateRewardAmountController = TextEditingController();
   final _affiliateFirstTopupMinAmountController = TextEditingController();
   final _affiliateMarketerDebtLimitController = TextEditingController();
@@ -78,6 +82,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardRedeemFeeController.dispose();
     _cardResellFeeController.dispose();
     _cardPrintRequestFeeController.dispose();
+    _offlineMaxPendingAmountController.dispose();
+    _offlineMaxPendingCountController.dispose();
+    _offlineCacheLimitController.dispose();
+    _offlineSyncIntervalController.dispose();
     _affiliateRewardAmountController.dispose();
     _affiliateFirstTopupMinAmountController.dispose();
     _affiliateMarketerDebtLimitController.dispose();
@@ -103,6 +111,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       final contactSettings = await _apiService.getContactInfo();
       final authSettings = await _apiService.getAuthSettings();
       final transferSettings = await _apiService.getTransferSettings();
+      final offlineCardSettings = await _apiService.getOfflineCardSettings();
       final feeSettings = await _apiService.getFeeSettings();
       final topupRequestSettings = await _apiService
           .getAdminTopupRequestSettings();
@@ -125,12 +134,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           authSettings['minSupportedVersion']?.toString().trim() ?? '';
       final latestVersion =
           authSettings['latestVersion']?.toString().trim() ?? '';
-      _minSupportedVersionController.text =
-          minSupportedVersion.isNotEmpty
-              ? minSupportedVersion
-              : currentAppVersion;
-      _latestVersionController.text =
-          latestVersion.isNotEmpty ? latestVersion : currentAppVersion;
+      _minSupportedVersionController.text = minSupportedVersion.isNotEmpty
+          ? minSupportedVersion
+          : currentAppVersion;
+      _latestVersionController.text = latestVersion.isNotEmpty
+          ? latestVersion
+          : currentAppVersion;
       _androidStoreUrlController.text =
           authSettings['androidStoreUrl']?.toString() ?? '';
       _iosStoreUrlController.text =
@@ -151,6 +160,16 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (feeSettings['cardResellPercent'] as num?)?.toString() ?? '1';
       _cardPrintRequestFeeController.text =
           (feeSettings['cardPrintRequestPercent'] as num?)?.toString() ?? '1';
+      _offlineMaxPendingAmountController.text =
+          (offlineCardSettings['maxPendingAmount'] as num?)?.toString() ??
+          '500';
+      _offlineMaxPendingCountController.text =
+          (offlineCardSettings['maxPendingCount'] as num?)?.toString() ?? '50';
+      _offlineCacheLimitController.text =
+          (offlineCardSettings['maxCachedCards'] as num?)?.toString() ?? '1000';
+      _offlineSyncIntervalController.text =
+          (offlineCardSettings['syncIntervalMinutes'] as num?)?.toString() ??
+          '60';
       _topupRequestEnabled = topupRequestSettings['enabled'] == true;
       _topupRequestInstructionsController.text =
           topupRequestSettings['instructions']?.toString() ?? '';
@@ -218,6 +237,16 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           cardPrintRequestPercent:
               double.tryParse(_cardPrintRequestFeeController.text) ?? 1,
         ),
+        _apiService.updateAdminOfflineCardSettings(
+          maxPendingAmount:
+              double.tryParse(_offlineMaxPendingAmountController.text) ?? 500,
+          maxPendingCount:
+              int.tryParse(_offlineMaxPendingCountController.text) ?? 50,
+          maxCachedCards:
+              int.tryParse(_offlineCacheLimitController.text) ?? 1000,
+          syncIntervalMinutes:
+              int.tryParse(_offlineSyncIntervalController.text) ?? 60,
+        ),
         _apiService.updateAdminTopupRequestSettings(
           enabled: _topupRequestEnabled,
           instructions: _topupRequestInstructionsController.text,
@@ -230,8 +259,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               double.tryParse(_affiliateFirstTopupMinAmountController.text) ??
               100,
           marketerDebtLimit:
-              double.tryParse(_affiliateMarketerDebtLimitController.text) ??
-              50,
+              double.tryParse(_affiliateMarketerDebtLimitController.text) ?? 50,
         ),
         _apiService.updateUsagePolicy(
           title: _policyTitleController.text,
@@ -352,7 +380,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     TextField(
                       controller: accountNumberController,
                       decoration: InputDecoration(
-                        labelText: l.tr('screens_admin_system_settings_screen.037'),
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.037',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -486,7 +516,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 6,
+      length: 7,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -526,6 +556,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 shadowLevel: ShwakelShadowLevel.soft,
                 child: TabBar(
                   isScrollable: true,
+                  tabAlignment: TabAlignment.start,
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: const EdgeInsets.all(4),
@@ -541,6 +572,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     Tab(
                       icon: const Icon(Icons.add_card_rounded),
                       text: l.tr('screens_admin_system_settings_screen.055'),
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.cloud_off_rounded),
+                      text: l.tr('screens_admin_system_settings_screen.075'),
                     ),
                     Tab(
                       icon: Icon(Icons.campaign_rounded),
@@ -564,6 +599,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     _buildContactTab(),
                     _buildAppTab(),
                     _buildTopupTab(),
+                    _buildOfflineCardsTab(),
                     _buildAffiliateTab(),
                     _buildPolicyTab(),
                     _buildFeesTab(),
@@ -812,6 +848,50 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     );
   }
 
+  Widget _buildOfflineCardsTab() {
+    final l = context.loc;
+    return _tabScroll(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AdminSectionHeader(
+            title: l.tr('screens_admin_system_settings_screen.075'),
+            subtitle: l.tr('screens_admin_system_settings_screen.076'),
+            icon: Icons.cloud_off_rounded,
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                _buildNumberField(
+                  l.tr('screens_admin_system_settings_screen.077'),
+                  _offlineSyncIntervalController,
+                  suffixText: l.tr('screens_admin_system_settings_screen.081'),
+                ),
+                _buildNumberField(
+                  l.tr('screens_admin_system_settings_screen.078'),
+                  _offlineCacheLimitController,
+                ),
+                _buildNumberField(
+                  l.tr('screens_admin_system_settings_screen.079'),
+                  _offlineMaxPendingCountController,
+                ),
+                _buildNumberField(
+                  l.tr('screens_admin_system_settings_screen.080'),
+                  _offlineMaxPendingAmountController,
+                  suffixText: '₪',
+                  decimal: true,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPolicyTab() {
     final l = context.loc;
     return _tabScroll(
@@ -921,9 +1001,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: Text(
-                    context.loc.tr(
-                      'screens_admin_system_settings_screen.074',
-                    ),
+                    context.loc.tr('screens_admin_system_settings_screen.074'),
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),
@@ -987,10 +1065,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       onRefresh: _load,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: child,
-        ),
+        child: Padding(padding: const EdgeInsets.only(bottom: 8), child: child),
       ),
     );
   }
@@ -1005,5 +1080,20 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       ),
     );
   }
-}
 
+  Widget _buildNumberField(
+    String label,
+    TextEditingController controller, {
+    String? suffixText,
+    bool decimal = false,
+  }) {
+    return SizedBox(
+      width: 220,
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+        decoration: InputDecoration(labelText: label, suffixText: suffixText),
+      ),
+    );
+  }
+}

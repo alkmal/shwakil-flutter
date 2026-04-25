@@ -41,7 +41,6 @@ class AdminPaginationFooter extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final stacked = constraints.maxWidth < 560;
             final previousButton = ShwakelButton(
               label:
                   previousLabel ??
@@ -78,26 +77,14 @@ class AdminPaginationFooter extends StatelessWidget {
               ),
             );
 
-            if (stacked) {
-              return Column(
-                children: [
-                  SizedBox(width: double.infinity, child: previousButton),
-                  const SizedBox(height: 12),
-                  pageBadge,
-                  const SizedBox(height: 12),
-                  SizedBox(width: double.infinity, child: nextButton),
-                ],
-              );
-            }
-
             return Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(child: previousButton),
-                const SizedBox(width: 16),
+                Flexible(child: previousButton),
+                const SizedBox(width: 10),
                 pageBadge,
-                const SizedBox(width: 16),
-                Expanded(child: nextButton),
+                const SizedBox(width: 10),
+                Flexible(child: nextButton),
               ],
             );
           },
