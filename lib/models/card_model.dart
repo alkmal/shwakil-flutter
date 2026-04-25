@@ -94,6 +94,8 @@ class VirtualCard {
   bool get isLoadedAsDeliveryForDriver =>
       isDelivery && resolvedOriginalCardType != 'delivery';
   bool get isPrivate => visibilityScope == 'restricted';
+  bool get isTrial => details['isTrial'] == true;
+  String? get trialLabel => details['trialLabel']?.toString();
   String? get title => details['title']?.toString();
   String? get description => details['description']?.toString();
   String? get location => details['location']?.toString();
