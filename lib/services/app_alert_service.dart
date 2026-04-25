@@ -30,6 +30,8 @@ class AppAlertService {
   static bool _isShowingGlobalError = false;
   static String? _lastGlobalErrorFingerprint;
   static DateTime? _lastGlobalErrorAt;
+  static String? _lastVisibleErrorFingerprint;
+  static DateTime? _lastVisibleErrorAt;
 
   static Future<void> showSuccess(
     BuildContext context, {
@@ -160,13 +162,16 @@ class AppAlertService {
 
       await _client
           .post(
-        AppConfig.apiUri('app/report-crash'),
-        headers: {
-          ...await AppVersionService.publicHeaders(includeJsonContentType: true),
-          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(payload),
-      )
+            AppConfig.apiUri('app/report-crash'),
+            headers: {
+              ...await AppVersionService.publicHeaders(
+                includeJsonContentType: true,
+              ),
+              if (token != null && token.isNotEmpty)
+                'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(payload),
+          )
           .timeout(const Duration(seconds: 4));
     } catch (_) {}
   }
@@ -181,6 +186,16 @@ class AppAlertService {
     final style = _styleFor(type);
     final cleanTitle = ErrorMessageService.sanitize(title);
     final cleanMessage = ErrorMessageService.sanitize(message);
+    if (type == AppAlertType.error) {
+      unawaited(
+        _reportVisibleError(
+          title: cleanTitle,
+          message: cleanMessage,
+          route: _currentRouteName(context),
+          extraContext: extraContext,
+        ),
+      );
+    }
     final supportNumber = _extractWhatsAppNumber(cleanMessage);
     final returnToHomeOnAcknowledge =
         type == AppAlertType.error &&
@@ -338,9 +353,100 @@ class AppAlertService {
     return _messageContainsAny(message, 'services_app_alert_service.007');
   }
 
+  static Future<void> _reportVisibleError({
+    required String title,
+    required String message,
+    String? route,
+    Map<String, dynamic>? extraContext,
+  }) async {
+    final fingerprint =
+        '${title.trim()}|${message.trim()}|${route?.trim() ?? ''}';
+    final lastAt = _lastVisibleErrorAt;
+    final isDuplicate =
+        _lastVisibleErrorFingerprint == fingerprint &&
+        lastAt != null &&
+        DateTime.now().difference(lastAt) < const Duration(seconds: 8);
+    if (isDuplicate) {
+      return;
+    }
+
+    _lastVisibleErrorFingerprint = fingerprint;
+    _lastVisibleErrorAt = DateTime.now();
+
+    try {
+      final authService = AuthService();
+      final token = await authService.token();
+      final currentUser = await authService.currentUser();
+
+      final payload = <String, dynamic>{
+        'title': title,
+        'message': message,
+        'appName':
+            navigatorKey.currentContext?.loc.tr(
+              'services_app_alert_service.004',
+            ) ??
+            'Shwakil',
+        'platform': defaultTargetPlatform.name,
+        'route': route ?? '',
+        'errorKind': 'client_visible_error',
+      };
+
+      if (currentUser != null) {
+        payload['accountId'] = currentUser['id']?.toString();
+        payload['username'] = currentUser['username']?.toString();
+        payload['fullName'] = currentUser['fullName']?.toString();
+        payload['whatsapp'] = currentUser['whatsapp']?.toString();
+        payload['role'] = (currentUser['roleLabel'] ?? currentUser['role'])
+            ?.toString();
+        payload['balance'] = currentUser['balance']?.toString();
+      }
+
+      (extraContext ?? const <String, dynamic>{}).forEach((key, value) {
+        if (value == null) {
+          return;
+        }
+        final text = value.toString().trim();
+        if (text.isEmpty) {
+          return;
+        }
+        payload[key] = text;
+      });
+
+      await _client
+          .post(
+            AppConfig.apiUri('app/report-crash'),
+            headers: {
+              ...await AppVersionService.publicHeaders(
+                includeJsonContentType: true,
+              ),
+              if (token != null && token.isNotEmpty)
+                'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {}
+  }
+
   static bool _shouldOfferRelogin(String message) {
     return _messageContainsAny(message, 'services_error_message_service.010') ||
         _messageContainsAny(message, 'services_error_message_service.011');
+  }
+
+  static String? _currentRouteName(BuildContext context) {
+    final route = ModalRoute.of(context);
+    final name = route?.settings.name?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+
+    final navigatorContext = navigatorKey.currentContext;
+    final fallbackName = ModalRoute.of(
+      navigatorContext ?? context,
+    )?.settings.name?.trim();
+    return (fallbackName != null && fallbackName.isNotEmpty)
+        ? fallbackName
+        : null;
   }
 
   static Future<void> _restartLoginFlow() async {
@@ -379,7 +485,10 @@ class AppAlertService {
     final arabic = appStringsAr[key];
     final english = appStringsEn[key];
     return [current, arabic, english].any(
-      (candidate) => candidate != null && candidate.isNotEmpty && message.contains(candidate),
+      (candidate) =>
+          candidate != null &&
+          candidate.isNotEmpty &&
+          message.contains(candidate),
     );
   }
 

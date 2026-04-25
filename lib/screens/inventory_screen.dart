@@ -11,6 +11,7 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/thermal_card_ticket.dart';
 import '../widgets/tool_toggle_hint.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
+  final OfflineCardService _offlineCardService = OfflineCardService();
   final PDFService _pdfService = PDFService();
   final TextEditingController _creatorController = TextEditingController();
   final TextEditingController _valueMinController = TextEditingController();
@@ -33,6 +35,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   bool _isAuthorized = false;
   bool _canRequestCardPrinting = false;
   bool _canUseAdminInventory = false;
+  bool _canMonitorOfflineWorkflow = false;
   int _page = 1;
   static const int _perPage = 12;
   static const int _adminPerPage = 24;
@@ -40,6 +43,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   int _totalCards = 0;
   DateTime? _issuedFrom;
   DateTime? _issuedTo;
+  bool _isOfflineData = false;
+  Set<String> _revealedBarcodes = const <String>{};
+  Map<String, dynamic>? _offlineOverview;
 
   @override
   void initState() {
@@ -63,6 +69,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final permissions = AppPermissions.fromUser(user);
       final canUseAdminInventory =
           permissions.canManageUsers || permissions.canManageCardPrintRequests;
+      final canMonitorOfflineWorkflow = permissions.canMonitorOfflineCards;
       if (!permissions.canViewInventory && !canUseAdminInventory) {
         if (!mounted) {
           return;
@@ -73,33 +80,73 @@ class _InventoryScreenState extends State<InventoryScreen> {
         });
         return;
       }
+      final userId = user?['id']?.toString() ?? '';
       final statusMap = {
         CardStatus.used: 'used',
         CardStatus.archived: 'archived',
         CardStatus.unused: 'unused',
       };
-      final payload = canUseAdminInventory
-          ? await _apiService.getAdminCards(
-              status: statusMap[_filter] ?? 'unused',
-              creator: _creatorController.text,
-              valueMin: _parseDouble(_valueMinController.text),
-              valueMax: _parseDouble(_valueMaxController.text),
-              issuedFrom: _formatDate(_issuedFrom),
-              issuedTo: _formatDate(_issuedTo),
-              page: requestedPage,
-              perPage: _adminPerPage,
-            )
-          : await _apiService.getMyCards(
-              status: statusMap[_filter] ?? 'unused',
-              page: requestedPage,
-              perPage: _perPage,
-            );
-      final cards = List<VirtualCard>.from(
-        payload['cards'] as List? ?? const [],
-      );
-      final pagination = Map<String, dynamic>.from(
-        payload['pagination'] as Map? ?? const {},
-      );
+      final isOnline = await ConnectivityService.instance.checkNow();
+      late final List<VirtualCard> cards;
+      late final Map<String, dynamic> pagination;
+      late final Set<String> revealedBarcodes;
+      Map<String, dynamic>? offlineOverview;
+      var isOfflineData = false;
+
+      if (!canUseAdminInventory && userId.isNotEmpty && !isOnline) {
+        final cachedCards = await _offlineCardService.getCachedCards(userId);
+        revealedBarcodes = (await _offlineCardService.getRevealedCards(
+          userId,
+        )).toSet();
+        cards = cachedCards.where((card) {
+          switch (_filter) {
+            case CardStatus.used:
+              return card.status == CardStatus.used;
+            case CardStatus.archived:
+              return card.status == CardStatus.archived;
+            case CardStatus.unused:
+              return card.status == CardStatus.unused;
+          }
+        }).toList();
+        pagination = {'lastPage': 1, 'currentPage': 1, 'total': cards.length};
+        isOfflineData = true;
+      } else {
+        final payload = canUseAdminInventory
+            ? await _apiService.getAdminCards(
+                status: statusMap[_filter] ?? 'unused',
+                creator: _creatorController.text,
+                valueMin: _parseDouble(_valueMinController.text),
+                valueMax: _parseDouble(_valueMaxController.text),
+                issuedFrom: _formatDate(_issuedFrom),
+                issuedTo: _formatDate(_issuedTo),
+                page: requestedPage,
+                perPage: _adminPerPage,
+              )
+            : await _apiService.getMyCards(
+                status: statusMap[_filter] ?? 'unused',
+                page: requestedPage,
+                perPage: _perPage,
+              );
+        cards = List<VirtualCard>.from(payload['cards'] as List? ?? const []);
+        pagination = Map<String, dynamic>.from(
+          payload['pagination'] as Map? ?? const {},
+        );
+        revealedBarcodes = <String>{};
+        if (!canUseAdminInventory && userId.isNotEmpty) {
+          await _offlineCardService.cacheCards(userId: userId, cards: cards);
+          await _offlineCardService.clearRevealedCards(userId);
+        }
+      }
+
+      if (userId.isNotEmpty && canMonitorOfflineWorkflow) {
+        offlineOverview = await _offlineCardService.offlineOverview(userId);
+        final settings = Map<String, dynamic>.from(
+          offlineOverview['settings'] as Map? ?? const {},
+        );
+        settings['revealedCount'] = revealedBarcodes.length;
+        offlineOverview = {...offlineOverview, 'settings': settings};
+      }
+
       final lastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
       final currentPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
       final normalizedPage = currentPage.clamp(1, lastPage);
@@ -118,10 +165,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _isAuthorized = true;
         _canRequestCardPrinting = permissions.canRequestCardPrinting;
         _canUseAdminInventory = canUseAdminInventory;
+        _canMonitorOfflineWorkflow = canMonitorOfflineWorkflow;
         _cards = cards;
         _page = normalizedPage;
         _lastPage = lastPage;
         _totalCards = (pagination['total'] as num?)?.toInt() ?? _cards.length;
+        _isOfflineData = isOfflineData;
+        _revealedBarcodes = revealedBarcodes;
+        _offlineOverview = offlineOverview;
         _isLoading = false;
       });
     } catch (_) {
@@ -205,6 +256,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
+              if (_isOfflineData)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: ShwakelCard(
+                    padding: const EdgeInsets.all(16),
+                    color: AppTheme.warning.withValues(alpha: 0.08),
+                    borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                    child: Text(
+                      'أنت تعرض بطاقات محفوظة محليًا. يمكن فتح البطاقة غير المستخدمة واستخدامها حتى بدون إنترنت.',
+                      style: AppTheme.bodyAction.copyWith(fontSize: 14),
+                    ),
+                  ),
+                ),
+              if (_canMonitorOfflineWorkflow &&
+                  _offlineOverview != null &&
+                  !_canUseAdminInventory)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildOfflineFollowupCard(),
+                ),
               if (_canUseAdminInventory && _cards.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -374,6 +445,209 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildOfflineFollowupCard() {
+    final overview = _offlineOverview ?? const <String, dynamic>{};
+    final summary = Map<String, dynamic>.from(
+      overview['summary'] as Map? ?? const {},
+    );
+    final settings = Map<String, dynamic>.from(
+      overview['settings'] as Map? ?? const {},
+    );
+    final history = List<Map<String, dynamic>>.from(
+      overview['history'] as List? ?? const [],
+    );
+    final unknownLookups = List<Map<String, dynamic>>.from(
+      overview['unknownLookups'] as List? ?? const [],
+    );
+    final lastSyncAt = settings['lastSyncAt']?.toString().trim() ?? '';
+    final syncSource = settings['lastSyncSource']?.toString().trim() ?? '';
+    final revealedCount = (settings['revealedCount'] as num?)?.toInt() ?? 0;
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.cloud_sync_rounded,
+                  color: AppTheme.warning,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('متابعة البطاقات الأوفلاين', style: AppTheme.bodyBold),
+                    const SizedBox(height: 4),
+                    Text(
+                      'هذه اللوحة تظهر فقط للحسابات المصرح لها بمتابعة المسار الأوفلاين على هذا الجهاز.',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildOverviewChip(
+                'المحفوظة',
+                '${(overview['cachedCount'] as num?)?.toInt() ?? 0}',
+                AppTheme.primary,
+              ),
+              _buildOverviewChip(
+                'بانتظار المزامنة',
+                '${(summary['count'] as num?)?.toInt() ?? 0}',
+                AppTheme.warning,
+              ),
+              _buildOverviewChip(
+                'بطاقات عُرضت',
+                '$revealedCount',
+                AppTheme.secondary,
+              ),
+              _buildOverviewChip(
+                'بطاقات غير معروفة',
+                '${unknownLookups.length}',
+                AppTheme.error,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildInfoChip(
+                Icons.account_balance_wallet_rounded,
+                'قيمة المعلّق ${CurrencyFormatter.ils((summary['amount'] as num?)?.toDouble() ?? 0)}',
+              ),
+              _buildInfoChip(
+                Icons.tune_rounded,
+                'حد المعلّق ${(settings['maxPendingCount'] as num?)?.toInt() ?? 0} بطاقة',
+              ),
+              _buildInfoChip(
+                Icons.hourglass_bottom_rounded,
+                'كل ${(settings['syncIntervalMinutes'] as num?)?.toInt() ?? 0} دقيقة',
+              ),
+              if (lastSyncAt.isNotEmpty)
+                _buildInfoChip(
+                  Icons.history_rounded,
+                  'آخر مزامنة ${_formatIsoString(lastSyncAt)}',
+                ),
+              if (syncSource.isNotEmpty)
+                _buildInfoChip(
+                  Icons.info_outline_rounded,
+                  'المصدر: $syncSource',
+                ),
+            ],
+          ),
+          if (history.isNotEmpty || unknownLookups.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            if (unknownLookups.isNotEmpty) ...[
+              Text('تنبيهات تحتاج متابعة', style: AppTheme.bodyBold),
+              const SizedBox(height: 8),
+              ...unknownLookups
+                  .take(3)
+                  .map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildOfflineFollowupRow(
+                        icon: Icons.help_outline_rounded,
+                        color: AppTheme.error,
+                        title: item['barcode']?.toString() ?? '-',
+                        subtitle:
+                            item['message']?.toString() ??
+                            'بانتظار التحقق عند توفر الإنترنت.',
+                      ),
+                    ),
+                  ),
+            ],
+            if (history.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('آخر نشاط مزامنة', style: AppTheme.bodyBold),
+              const SizedBox(height: 8),
+              ...history
+                  .take(3)
+                  .map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildOfflineFollowupRow(
+                        icon: Icons.sync_rounded,
+                        color: AppTheme.success,
+                        title: item['barcode']?.toString() ?? 'دفعة مزامنة',
+                        subtitle:
+                            item['message']?.toString() ??
+                            item['status']?.toString() ??
+                            'تمت مزامنة نشاط أوفلاين.',
+                      ),
+                    ),
+                  ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOfflineFollowupRow({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTheme.bodyBold.copyWith(fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -583,6 +857,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Widget _buildCardTile(VirtualCard card) {
     final isUnused = card.status == CardStatus.unused;
+    final isRevealed = _revealedBarcodes.contains(card.barcode);
     final color = isUnused ? AppTheme.success : AppTheme.error;
     final l = context.loc;
     final scope = card.visibilityScope.trim().toLowerCase();
@@ -605,73 +880,84 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ? l.tr('screens_scan_card_screen.066')
               : l.tr('screens_scan_card_screen.067'));
 
-    return ShwakelCard(
-      borderRadius: BorderRadius.circular(22),
-      padding: const EdgeInsets.all(20),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 560;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isCompact)
-                Align(
-                  alignment: AlignmentDirectional.topEnd,
-                  child: _buildPopup(card),
+    return GestureDetector(
+      onTap: isUnused ? () => _showCardPreview(card) : null,
+      child: ShwakelCard(
+        borderRadius: BorderRadius.circular(22),
+        padding: const EdgeInsets.all(20),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 560;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isCompact)
+                  Align(
+                    alignment: AlignmentDirectional.topEnd,
+                    child: _buildPopup(card),
+                  ),
+                Flex(
+                  direction: isCompact ? Axis.vertical : Axis.horizontal,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        isUnused
+                            ? Icons.credit_card_rounded
+                            : Icons.check_circle_rounded,
+                        color: color,
+                        size: 28,
+                      ),
+                    ),
+                    SizedBox(
+                      width: isCompact ? 0 : 16,
+                      height: isCompact ? 12 : 0,
+                    ),
+                    if (isCompact)
+                      _buildCardTileBody(card, categoryLabel, l)
+                    else
+                      Expanded(
+                        child: _buildCardTileBody(card, categoryLabel, l),
+                      ),
+                    if (!isCompact) _buildPopup(card),
+                  ],
                 ),
-              Flex(
-                direction: isCompact ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildInfoChip(
+                      Icons.schedule_rounded,
+                      '${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}',
                     ),
-                    child: Icon(
-                      isUnused
-                          ? Icons.credit_card_rounded
-                          : Icons.check_circle_rounded,
-                      color: color,
-                      size: 28,
-                    ),
-                  ),
-                  SizedBox(
-                    width: isCompact ? 0 : 16,
-                    height: isCompact ? 12 : 0,
-                  ),
-                  if (isCompact)
-                    _buildCardTileBody(card, categoryLabel, l)
-                  else
-                    Expanded(child: _buildCardTileBody(card, categoryLabel, l)),
-                  if (!isCompact) _buildPopup(card),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildInfoChip(
-                    Icons.schedule_rounded,
-                    '${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}',
-                  ),
-                  if (card.usedBy != null && card.usedBy!.trim().isNotEmpty)
-                    _buildInfoChip(Icons.person_rounded, card.usedBy!),
-                ],
-              ),
-            ],
-          );
-        },
+                    if (isUnused)
+                      _buildInfoChip(
+                        Icons.touch_app_rounded,
+                        isRevealed ? 'تم عرض البطاقة' : 'اضغط لعرض البطاقة',
+                      ),
+                    if (card.usedBy != null && card.usedBy!.trim().isNotEmpty)
+                      _buildInfoChip(Icons.person_rounded, card.usedBy!),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildCardTileBody(VirtualCard card, String categoryLabel, dynamic l) {
+    final isRevealed = _revealedBarcodes.contains(card.barcode);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -700,6 +986,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ),
         ),
+        if (isRevealed) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.12),
+              borderRadius: AppTheme.radiusMd,
+              border: Border.all(
+                color: AppTheme.warning.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Text(
+              'تم عرضها',
+              style: AppTheme.caption.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.warning,
+              ),
+            ),
+          ),
+        ],
         if (card.isDelivery) ...[
           const SizedBox(height: 8),
           Text(
@@ -808,6 +1114,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$year/$month/$day $hour:$minute';
+  }
+
+  String _formatIsoString(String value) {
+    final parsed = DateTime.tryParse(value);
+    return _formatDateTime(parsed);
   }
 
   Future<void> _showSummarySheet() async {
@@ -952,6 +1263,79 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
+  Future<void> _showCardPreview(VirtualCard card) async {
+    if (card.status != CardStatus.unused || !mounted) {
+      return;
+    }
+    final user = await _authService.currentUser();
+    if (!mounted) {
+      return;
+    }
+    final userId = user?['id']?.toString() ?? '';
+    if (userId.isNotEmpty) {
+      final alreadyRevealed = await _offlineCardService.isCardRevealed(
+        userId,
+        card.barcode,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (alreadyRevealed) {
+        await AppAlertService.showInfo(
+          context,
+          title: 'تم عرض البطاقة مسبقًا',
+          message:
+              'هذه البطاقة تم فتحها مرة واحدة بالفعل. أعد الاتصال بالإنترنت أولًا حتى يمكن فتحها مرة أخرى.',
+        );
+        return;
+      }
+      await _offlineCardService.markCardRevealed(userId, card.barcode);
+      if (mounted) {
+        setState(() {
+          _revealedBarcodes = {..._revealedBarcodes, card.barcode};
+        });
+      }
+      if (!mounted) {
+        return;
+      }
+    }
+    final issuerName = user?['fullName']?.toString().trim().isNotEmpty == true
+        ? user!['fullName'].toString().trim()
+        : (user?['username']?.toString() ?? 'Shwakel');
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ThermalCardTicket(
+                  card: card,
+                  issuerName: issuerName,
+                  title: issuerName,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ShwakelButton(
+                    label: 'إغلاق',
+                    icon: Icons.close_rounded,
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    isSecondary: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _delete(String id) async {
     final l = context.loc;
     final confirmed = await showDialog<bool>(
@@ -960,14 +1344,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
         title: Text(l.tr('screens_inventory_screen.011')),
         content: Text(l.tr('screens_inventory_screen.017')),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.tr('screens_inventory_screen.012')),
-          ),
-          ShwakelButton(
-            label: l.tr('screens_inventory_screen.013'),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            isSecondary: true,
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: Text(l.tr('screens_inventory_screen.012')),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ShwakelButton(
+                    label: l.tr('screens_inventory_screen.013'),
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    isSecondary: true,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

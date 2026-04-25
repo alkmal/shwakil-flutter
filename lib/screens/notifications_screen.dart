@@ -712,6 +712,8 @@ class _NotificationDetailsSheet extends StatelessWidget {
     final priority = data['priority']?.toString().trim() ?? '';
     final actionRoute = data['actionRoute']?.toString().trim() ?? '';
     final actionLabel = data['actionLabel']?.toString().trim() ?? '';
+    final resolvedActionRoute =
+        NotificationNavigationService.actionRouteForNotificationItem(item);
     final type =
         data['transactionType']?.toString() ?? item['type']?.toString() ?? '';
 
@@ -785,14 +787,16 @@ class _NotificationDetailsSheet extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(details, style: AppTheme.bodyAction.copyWith(height: 1.5)),
               ],
-              if (actionRoute.isNotEmpty) ...[
+              if ((actionRoute.isNotEmpty || resolvedActionRoute != null)) ...[
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
-                      Navigator.pushNamed(context, actionRoute);
+                      await NotificationNavigationService.openFromNotificationItem(
+                        item,
+                      );
                     },
                     icon: const Icon(Icons.open_in_new_rounded),
                     label: Text(

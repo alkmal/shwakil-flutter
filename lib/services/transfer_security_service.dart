@@ -21,6 +21,18 @@ class TransferSecurityResult {
 class TransferSecurityService {
   TransferSecurityService._();
 
+  static Widget _buildDialogActionBar(List<Widget> children) {
+    return SizedBox(
+      width: double.infinity,
+      child: OverflowBar(
+        alignment: MainAxisAlignment.end,
+        spacing: 12,
+        overflowSpacing: 12,
+        children: children,
+      ),
+    );
+  }
+
   static Future<TransferSecurityResult> confirmTransfer(
     BuildContext context, {
     bool requireOtpAfterLocalAuth = false,
@@ -166,14 +178,18 @@ class TransferSecurityService {
           }
 
           return AlertDialog(
-            title: Text(context.loc.tr('services_transfer_security_service.003')),
+            title: Text(
+              context.loc.tr('services_transfer_security_service.003'),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   canUseBiometrics
                       ? context.loc.tr('services_transfer_security_service.004')
-                      : context.loc.tr('services_transfer_security_service.005'),
+                      : context.loc.tr(
+                          'services_transfer_security_service.005',
+                        ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -206,25 +222,33 @@ class TransferSecurityService {
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: isChecking
-                    ? null
-                    : () => Navigator.pop(
+              _buildDialogActionBar([
+                TextButton(
+                  onPressed: isChecking
+                      ? null
+                      : () => Navigator.pop(
                           dialogContext,
                           const TransferSecurityResult(isVerified: false),
                         ),
-                child: Text(context.loc.tr('services_transfer_security_service.007')),
-              ),
-              if (canUseBiometrics)
-                OutlinedButton.icon(
-                  onPressed: isChecking ? null : submitBiometric,
-                  icon: const Icon(Icons.fingerprint_rounded),
-                  label: Text(context.loc.tr('services_transfer_security_service.008')),
+                  child: Text(
+                    context.loc.tr('services_transfer_security_service.007'),
+                  ),
                 ),
-              ElevatedButton(
-                onPressed: isChecking ? null : submitPin,
-                child: Text(context.loc.tr('services_transfer_security_service.009')),
-              ),
+                if (canUseBiometrics)
+                  OutlinedButton.icon(
+                    onPressed: isChecking ? null : submitBiometric,
+                    icon: const Icon(Icons.fingerprint_rounded),
+                    label: Text(
+                      context.loc.tr('services_transfer_security_service.008'),
+                    ),
+                  ),
+                ElevatedButton(
+                  onPressed: isChecking ? null : submitPin,
+                  child: Text(
+                    context.loc.tr('services_transfer_security_service.009'),
+                  ),
+                ),
+              ]),
             ],
           );
         },
@@ -241,8 +265,8 @@ class TransferSecurityService {
   }) async {
     final apiService = ApiService();
     final codeController = TextEditingController();
-    var infoText = introText ??
-        context.loc.tr('services_transfer_security_service.010');
+    var infoText =
+        introText ?? context.loc.tr('services_transfer_security_service.010');
     var isSending = false;
     var hasSentOtp = false;
     var resendCooldown = 0;
@@ -300,7 +324,9 @@ class TransferSecurityService {
           }
 
           return AlertDialog(
-            title: Text(context.loc.tr('services_transfer_security_service.013')),
+            title: Text(
+              context.loc.tr('services_transfer_security_service.013'),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -310,68 +336,78 @@ class TransferSecurityService {
                   controller: codeController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: context.loc.tr('services_transfer_security_service.014'),
+                    labelText: context.loc.tr(
+                      'services_transfer_security_service.014',
+                    ),
                     prefixIcon: const Icon(Icons.sms_rounded),
                   ),
                 ),
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: isSending
-                    ? null
-                    : () => Navigator.pop(
+              _buildDialogActionBar([
+                TextButton(
+                  onPressed: isSending
+                      ? null
+                      : () => Navigator.pop(
                           dialogContext,
                           const TransferSecurityResult(isVerified: false),
                         ),
-                child: Text(context.loc.tr('services_transfer_security_service.007')),
-              ),
-              if (!hasSentOtp || resendCooldown == 0)
-                OutlinedButton(
-                  onPressed: isSending ? null : sendOtp,
                   child: Text(
-                    isSending
-                        ? context.loc.tr('services_transfer_security_service.015')
-                        : hasSentOtp
-                            ? context.loc.tr(
-                                'services_transfer_security_service.016',
-                              )
-                            : context.loc.tr(
-                                'services_transfer_security_service.017',
-                              ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: Text(
-                    context.loc.tr(
-                      'services_transfer_security_service.018',
-                      params: {'seconds': '$resendCooldown'},
-                    ),
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
-                    ),
+                    context.loc.tr('services_transfer_security_service.007'),
                   ),
                 ),
-              ElevatedButton(
-                onPressed: () {
-                  final code = codeController.text.trim();
-                  if (code.isEmpty) {
-                    return;
-                  }
-                  Navigator.pop(
-                    dialogContext,
-                    TransferSecurityResult(
-                      isVerified: true,
-                      method: 'otp',
-                      otpCode: code,
+                if (!hasSentOtp || resendCooldown == 0)
+                  OutlinedButton(
+                    onPressed: isSending ? null : sendOtp,
+                    child: Text(
+                      isSending
+                          ? context.loc.tr(
+                              'services_transfer_security_service.015',
+                            )
+                          : hasSentOtp
+                          ? context.loc.tr(
+                              'services_transfer_security_service.016',
+                            )
+                          : context.loc.tr(
+                              'services_transfer_security_service.017',
+                            ),
                     ),
-                  );
-                },
-                child: Text(context.loc.tr('services_transfer_security_service.009')),
-              ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: Text(
+                      context.loc.tr(
+                        'services_transfer_security_service.018',
+                        params: {'seconds': '$resendCooldown'},
+                      ),
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ElevatedButton(
+                  onPressed: () {
+                    final code = codeController.text.trim();
+                    if (code.isEmpty) {
+                      return;
+                    }
+                    Navigator.pop(
+                      dialogContext,
+                      TransferSecurityResult(
+                        isVerified: true,
+                        method: 'otp',
+                        otpCode: code,
+                      ),
+                    );
+                  },
+                  child: Text(
+                    context.loc.tr('services_transfer_security_service.009'),
+                  ),
+                ),
+              ]),
             ],
           );
         },

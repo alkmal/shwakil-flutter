@@ -1,5 +1,25 @@
 enum CardStatus { unused, used, archived }
 
+List<String> _stringListFromDynamic(dynamic value) {
+  if (value is List) {
+    return value.map((item) => item.toString()).toList();
+  }
+
+  if (value is String && value.trim().isNotEmpty) {
+    return value
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  return const [];
+}
+
+Map<String, dynamic> _mapFromDynamic(dynamic value) {
+  return value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
+}
+
 class VirtualCard {
   final String id;
   final String barcode;
@@ -105,10 +125,7 @@ class VirtualCard {
     final createdAtValue =
         map['createdAt'] ?? map['issuedAt'] ?? map['created_at'];
     final usedAtValue = map['usedAt'] ?? map['redeemedAt'] ?? map['used_at'];
-    final rawDetails = map['details'];
-    final details = rawDetails is Map
-        ? Map<String, dynamic>.from(rawDetails)
-        : <String, dynamic>{};
+    final details = _mapFromDynamic(map['details']);
     return VirtualCard(
       id: map['id']?.toString() ?? '',
       barcode: map['barcode']?.toString() ?? '',
@@ -132,15 +149,11 @@ class VirtualCard {
       issuedByUsername: (map['issuedByUsername'] ?? map['issued_by_username'])
           ?.toString(),
       redeemedById: (map['redeemedById'] ?? map['redeemed_by_id'])?.toString(),
-      allowedUserIds: List<String>.from(
-        ((map['allowedUserIds'] ?? map['allowed_user_ids']) as List? ??
-                const [])
-            .map((item) => item.toString()),
+      allowedUserIds: _stringListFromDynamic(
+        map['allowedUserIds'] ?? map['allowed_user_ids'],
       ),
-      allowedUsernames: List<String>.from(
-        ((map['allowedUsernames'] ?? map['allowed_usernames']) as List? ??
-                const [])
-            .map((item) => item.toString()),
+      allowedUsernames: _stringListFromDynamic(
+        map['allowedUsernames'] ?? map['allowed_usernames'],
       ),
       customerName: (map['customerName'] ?? map['customer_name'])?.toString(),
       validFrom: (map['validFrom'] ?? map['valid_from']) == null

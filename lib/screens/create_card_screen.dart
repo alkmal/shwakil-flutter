@@ -26,6 +26,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
+  final OfflineCardService _offlineCardService = OfflineCardService();
   final PDFService _pdfService = PDFService();
   final ThermalPrinterService _thermalPrinterService = ThermalPrinterService();
   final ScreenshotController _thermalTicketScreenshot = ScreenshotController();
@@ -326,14 +327,25 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.tr('screens_create_card_screen.016')),
-          ),
-          ShwakelButton(
-            label: l.tr('screens_create_card_screen.017'),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            width: 140,
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: Text(l.tr('screens_create_card_screen.016')),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ShwakelButton(
+                    label: l.tr('screens_create_card_screen.017'),
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -370,7 +382,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     for (var attempt = 0; attempt < 2; attempt++) {
       setState(() => _isLoading = true);
       try {
-        return await _apiService.issueCards(
+        final cards = await _apiService.issueCards(
           value: amount,
           quantity: quantity,
           cardType: _cardType,
@@ -383,6 +395,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           localAuthMethod: securityResult.method,
           allowedUserIds: _selectedAllowedUserIds(),
         );
+        final userId = _user?['id']?.toString();
+        if (userId != null && userId.isNotEmpty) {
+          await _offlineCardService.cacheCards(userId: userId, cards: cards);
+        }
+        return cards;
       } catch (error) {
         if (!mounted) {
           return null;

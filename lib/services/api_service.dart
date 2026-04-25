@@ -21,7 +21,9 @@ class ApiService {
   static const Duration _publicRequestTimeout = Duration(seconds: 8);
   static const Duration _authenticatedRequestTimeout = Duration(seconds: 12);
   static const Duration _authSettingsCacheLifetime = Duration(minutes: 5);
-  static const Duration _notificationSummaryCacheLifetime = Duration(seconds: 20);
+  static const Duration _notificationSummaryCacheLifetime = Duration(
+    seconds: 20,
+  );
   static Map<String, dynamic>? _cachedAuthSettings;
   static DateTime? _cachedAuthSettingsAt;
   static Future<Map<String, dynamic>>? _pendingAuthSettingsRequest;
@@ -1712,17 +1714,18 @@ class ApiService {
       'cardType': cardType,
       if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
       if (visibilityScope.trim().isNotEmpty) 'visibilityScope': visibilityScope,
-      if (printDesign != null) 'printDesign': printDesign,
-      if (validFrom != null && validFrom.trim().isNotEmpty) 'validFrom': validFrom,
+      ...?printDesign == null ? null : {'printDesign': printDesign},
+      if (validFrom != null && validFrom.trim().isNotEmpty)
+        'validFrom': validFrom,
       if (validUntil != null && validUntil.trim().isNotEmpty)
         'validUntil': validUntil,
-      if (cardDetails != null) 'cardDetails': cardDetails,
+      ...?cardDetails == null ? null : {'cardDetails': cardDetails},
+      if (otpCode != null && otpCode.trim().isNotEmpty)
+        'otpCode': otpCode.trim(),
+      if (otpCode == null || otpCode.trim().isEmpty)
+        if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
     };
-    if (otpCode != null && otpCode.trim().isNotEmpty) {
-      payload['otpCode'] = otpCode.trim();
-    } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
-      payload['localAuthMethod'] = localAuthMethod.trim();
-    }
     final response = await http.post(
       AppConfig.apiUri('cards/issue'),
       headers: await _headers(),
@@ -2104,9 +2107,16 @@ class ApiService {
         trimmedBody.startsWith('<html') ||
         trimmedBody.startsWith('<');
     final fallbackMessage = _tr('services_api_service.001');
+    final payloadTooLargeMessage = _tr('services_api_service.002');
+
+    if (response.statusCode == 413) {
+      throw Exception(payloadTooLargeMessage);
+    }
 
     if (!contentType.contains('application/json') && looksLikeHtml) {
-      throw Exception(fallbackMessage);
+      throw Exception(
+        response.statusCode == 413 ? payloadTooLargeMessage : fallbackMessage,
+      );
     }
 
     Map<String, dynamic> body;

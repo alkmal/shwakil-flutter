@@ -100,6 +100,12 @@ const Map<String, String> appStringsEn = {
   'screens_account_verification_screen.024': 'National ID',
   'screens_account_verification_screen.025': 'Birth date',
   'screens_account_verification_screen.026': 'Please enter a valid birth date.',
+  'screens_account_verification_screen.027':
+      'You can choose reasonably large images and the app will automatically optimize and compress them before upload.',
+  'screens_account_verification_screen.029':
+      'The selected image could not be read. Please choose a clear JPG, PNG, or WEBP image.',
+  'screens_account_verification_screen.030':
+      'The selected file is too large. Please choose an image smaller than 15 MB and try again.',
   'screens_admin_card_print_requests_screen.001': 'Card Print Requests',
   'screens_admin_card_print_requests_screen.002': 'Request tracking',
   'screens_admin_card_print_requests_screen.003': 'Status',
@@ -1983,6 +1989,8 @@ const Map<String, String> appStringsEn = {
   'services_contact_info_service.001': 'Contact',
   'services_contact_info_service.002': 'Palestine',
   'services_api_service.001': 'Please verify all entered data and try again.',
+  'services_api_service.002':
+      'The uploaded files are too large. Please choose smaller images and try again.',
   'screens_login_screen.023': 'Secure sign in',
   'screens_login_screen.024': 'Fast access',
   'screens_login_screen.025': 'Mobile friendly',

@@ -3,8 +3,7 @@ import 'package:flutter/foundation.dart';
 class OfflineSessionService {
   OfflineSessionService._();
 
-  static final ValueNotifier<bool> _isOfflineMode =
-      ValueNotifier<bool>(false);
+  static final ValueNotifier<bool> _isOfflineMode = ValueNotifier<bool>(false);
 
   static ValueListenable<bool> get listenable => _isOfflineMode;
 
@@ -21,6 +20,7 @@ class OfflineSessionService {
     '/scan-card-offline',
     '/scan-card-offline-camera',
     '/debt-book',
+    '/inventory',
     '/login-offline',
     '/unlock',
   };

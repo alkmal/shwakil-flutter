@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -20,6 +22,10 @@ class AccountVerificationScreen extends StatefulWidget {
 }
 
 class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
+  static const int _maxSelectedImageBytes = 15 * 1024 * 1024;
+  static const int _targetUploadImageBytes = 2 * 1024 * 1024;
+  static const int _maxImageDimension = 2200;
+
   final ApiService _apiService = ApiService();
   final TextEditingController _nationalIdController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
@@ -31,6 +37,10 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   String _requestedRole = 'verified_member';
   String? _identityBase64;
   String? _selfieBase64;
+  String? _identityFileLabel;
+  String? _selfieFileLabel;
+  Uint8List? _identityPreviewBytes;
+  Uint8List? _selfiePreviewBytes;
   Map<String, dynamic>? _verification;
 
   @override
@@ -91,24 +101,53 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   }
 
   Future<void> _pickImage(bool identity) async {
+    final l = context.loc;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
     );
-    final bytes = result?.files.single.bytes;
-    if (bytes == null) {
+    final file = result?.files.single;
+    final bytes = file?.bytes;
+    if (file == null || bytes == null || bytes.isEmpty) {
       return;
     }
-    final extension = (result?.files.single.extension ?? 'png').toLowerCase();
-    final mimeType = extension == 'jpg' || extension == 'jpeg'
-        ? 'image/jpeg'
-        : 'image/png';
-    final base64 = 'data:$mimeType;base64,${base64Encode(bytes)}';
+    if (!mounted) {
+      return;
+    }
+
+    if (bytes.length > _maxSelectedImageBytes) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_account_verification_screen.003'),
+        message: l.tr('screens_account_verification_screen.030'),
+      );
+      return;
+    }
+
+    final prepared = _prepareImageForVerification(bytes);
+    if (prepared == null) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_account_verification_screen.003'),
+        message: l.tr('screens_account_verification_screen.029'),
+      );
+      return;
+    }
+
     setState(() {
       if (identity) {
-        _identityBase64 = base64;
+        _identityBase64 = prepared.dataUri;
+        _identityFileLabel =
+            '${file.name} - ${_formatBytes(prepared.bytes.length)}';
+        _identityPreviewBytes = prepared.bytes;
       } else {
-        _selfieBase64 = base64;
+        _selfieBase64 = prepared.dataUri;
+        _selfieFileLabel =
+            '${file.name} - ${_formatBytes(prepared.bytes.length)}';
+        _selfiePreviewBytes = prepared.bytes;
       }
     });
   }
@@ -174,6 +213,46 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  bool get _hasIdentityImage => (_identityBase64 ?? '').isNotEmpty;
+
+  bool get _hasSelfieImage => (_selfieBase64 ?? '').isNotEmpty;
+
+  bool get _hasNationalId => _nationalIdController.text.trim().isNotEmpty;
+
+  bool get _hasValidBirthDate =>
+      DateTime.tryParse(_birthDateController.text.trim()) != null;
+
+  List<_VerificationRequirement> _requirementsForStatus(String status) {
+    final needsRefreshUploads = status == 'rejected';
+
+    return [
+      _VerificationRequirement(
+        label: 'رفع صورة الهوية',
+        completed: _hasIdentityImage,
+        highlighted: needsRefreshUploads || !_hasIdentityImage,
+        icon: Icons.badge_rounded,
+      ),
+      _VerificationRequirement(
+        label: 'رفع صورة السيلفي مع الهوية',
+        completed: _hasSelfieImage,
+        highlighted: needsRefreshUploads || !_hasSelfieImage,
+        icon: Icons.face_rounded,
+      ),
+      _VerificationRequirement(
+        label: 'إدخال رقم الهوية',
+        completed: _hasNationalId,
+        highlighted: !_hasNationalId,
+        icon: Icons.credit_card_rounded,
+      ),
+      _VerificationRequirement(
+        label: 'اختيار تاريخ ميلاد صحيح',
+        completed: _hasValidBirthDate,
+        highlighted: !_hasValidBirthDate,
+        icon: Icons.cake_rounded,
+      ),
+    ];
   }
 
   @override
@@ -408,6 +487,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   Widget _buildUploadSection(String status) {
     final l = context.loc;
+    final requirements = _requirementsForStatus(status);
     return ShwakelCard(
       padding: const EdgeInsets.all(28),
       child: Column(
@@ -422,6 +502,30 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             l.tr('screens_account_verification_screen.022'),
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
+          const SizedBox(height: 8),
+          Text(
+            l.tr('screens_account_verification_screen.027'),
+            style: AppTheme.caption.copyWith(
+              height: 1.5,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _requirementChip(Icons.badge_rounded, 'الهوية واضحة وكاملة'),
+              _requirementChip(
+                Icons.face_rounded,
+                'السيلفي يظهر الوجه والهوية',
+              ),
+              _requirementChip(Icons.image_rounded, 'JPG / PNG / WEBP'),
+              _requirementChip(Icons.speed_rounded, 'الضغط يتم تلقائيًا'),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _buildSubmissionChecklist(status, requirements),
           const SizedBox(height: 22),
           Text(
             context.loc.tr('account_verification.post_verification_role'),
@@ -479,21 +583,28 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           _docPicker(
             l.tr('screens_account_verification_screen.010'),
             _identityBase64,
+            _identityFileLabel,
+            _identityPreviewBytes,
+            () => _clearPickedImage(true),
             () => _pickImage(true),
           ),
           const SizedBox(height: 16),
           _docPicker(
             l.tr('screens_account_verification_screen.011'),
             _selfieBase64,
+            _selfieFileLabel,
+            _selfiePreviewBytes,
+            () => _clearPickedImage(false),
             () => _pickImage(false),
           ),
           const SizedBox(height: 22),
           TextField(
             controller: _nationalIdController,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(
+            decoration: _verificationInputDecoration(
+              highlight: !_hasNationalId,
               labelText: l.tr('screens_account_verification_screen.024'),
-              prefixIcon: Icon(Icons.credit_card_rounded),
+              prefixIcon: const Icon(Icons.credit_card_rounded),
             ),
           ),
           const SizedBox(height: 16),
@@ -501,9 +612,12 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             controller: _birthDateController,
             readOnly: true,
             onTap: _pickBirthDate,
-            decoration: InputDecoration(
+            decoration: _verificationInputDecoration(
+              highlight:
+                  _birthDateController.text.trim().isNotEmpty &&
+                  !_hasValidBirthDate,
               labelText: l.tr('screens_account_verification_screen.025'),
-              prefixIcon: Icon(Icons.cake_rounded),
+              prefixIcon: const Icon(Icons.cake_rounded),
             ),
           ),
           const SizedBox(height: 22),
@@ -539,9 +653,19 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     );
   }
 
-  Widget _docPicker(String label, String? base64, VoidCallback onTap) {
+  Widget _docPicker(
+    String label,
+    String? base64,
+    String? fileLabel,
+    Uint8List? previewBytes,
+    VoidCallback onClear,
+    VoidCallback onTap,
+  ) {
     final l = context.loc;
     final hasFile = base64 != null && base64.isNotEmpty;
+    final borderColor = hasFile
+        ? AppTheme.success.withValues(alpha: 0.30)
+        : AppTheme.error.withValues(alpha: 0.22);
     return InkWell(
       onTap: onTap,
       borderRadius: AppTheme.radiusMd,
@@ -551,39 +675,223 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           color: hasFile
               ? AppTheme.success.withValues(alpha: 0.05)
               : AppTheme.background,
+          border: Border.all(color: borderColor),
+          borderRadius: AppTheme.radiusMd,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: hasFile ? Colors.white : AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: hasFile
+                      ? AppTheme.success.withValues(alpha: 0.20)
+                      : AppTheme.border,
+                ),
+              ),
+              child: hasFile && previewBytes != null
+                  ? Image.memory(previewBytes, fit: BoxFit.cover)
+                  : const Icon(
+                      Icons.camera_alt_rounded,
+                      color: AppTheme.textTertiary,
+                    ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppTheme.bodyText.copyWith(
+                      color: hasFile ? AppTheme.success : AppTheme.textPrimary,
+                    ),
+                  ),
+                  if (hasFile && fileLabel != null && fileLabel.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      fileLabel,
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  hasFile
+                      ? l.tr('screens_account_verification_screen.014')
+                      : l.tr('screens_account_verification_screen.015'),
+                  style: TextStyle(
+                    color: hasFile ? AppTheme.success : AppTheme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (hasFile) ...[
+                  const SizedBox(height: 8),
+                  IconButton(
+                    onPressed: onClear,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                    color: AppTheme.error,
+                    tooltip: 'حذف الصورة',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _requirementChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(color: AppTheme.textPrimary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmissionChecklist(
+    String status,
+    List<_VerificationRequirement> requirements,
+  ) {
+    final pendingCount = requirements.where((item) => !item.completed).length;
+    final title = pendingCount == 0
+        ? 'الطلب جاهز للإرسال'
+        : 'المتبقي قبل الإرسال: $pendingCount';
+    final accent = pendingCount == 0 ? AppTheme.success : AppTheme.warning;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            status == 'rejected' ? 'راجع هذه العناصر قبل إعادة الإرسال' : title,
+            style: AppTheme.bodyBold.copyWith(color: accent),
+          ),
+          const SizedBox(height: 10),
+          ...requirements.map(_buildRequirementRow),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequirementRow(_VerificationRequirement item) {
+    final color = item.completed ? AppTheme.success : AppTheme.textSecondary;
+    final bgColor = item.completed
+        ? AppTheme.success.withValues(alpha: 0.08)
+        : item.highlighted
+        ? AppTheme.error.withValues(alpha: 0.08)
+        : AppTheme.surfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: hasFile
-                ? AppTheme.success.withValues(alpha: 0.30)
+            color: item.completed
+                ? AppTheme.success.withValues(alpha: 0.18)
+                : item.highlighted
+                ? AppTheme.error.withValues(alpha: 0.20)
                 : AppTheme.border,
           ),
-          borderRadius: AppTheme.radiusMd,
         ),
         child: Row(
           children: [
             Icon(
-              hasFile ? Icons.check_circle_rounded : Icons.camera_alt_rounded,
-              color: hasFile ? AppTheme.success : AppTheme.textTertiary,
+              item.completed ? Icons.check_circle_rounded : item.icon,
+              color: item.completed
+                  ? AppTheme.success
+                  : item.highlighted
+                  ? AppTheme.error
+                  : color,
+              size: 18,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                label,
-                style: AppTheme.bodyText.copyWith(
-                  color: hasFile ? AppTheme.success : AppTheme.textPrimary,
+                item.label,
+                style: AppTheme.bodyAction.copyWith(
+                  color: item.completed
+                      ? AppTheme.success
+                      : item.highlighted
+                      ? AppTheme.error
+                      : AppTheme.textPrimary,
+                  fontWeight: item.highlighted ? FontWeight.w700 : null,
                 ),
               ),
             ),
             Text(
-              hasFile
-                  ? l.tr('screens_account_verification_screen.014')
-                  : l.tr('screens_account_verification_screen.015'),
-              style: TextStyle(
-                color: hasFile ? AppTheme.success : AppTheme.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+              item.completed ? 'مكتمل' : 'مطلوب',
+              style: AppTheme.caption.copyWith(
+                color: item.completed
+                    ? AppTheme.success
+                    : item.highlighted
+                    ? AppTheme.error
+                    : AppTheme.textSecondary,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _verificationInputDecoration({
+    required bool highlight,
+    required String labelText,
+    required Widget prefixIcon,
+  }) {
+    final borderColor = highlight ? AppTheme.error : AppTheme.border;
+    return InputDecoration(
+      labelText: labelText,
+      prefixIcon: prefixIcon,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: highlight ? AppTheme.error : AppTheme.primary,
+          width: 1.4,
         ),
       ),
     );
@@ -647,4 +955,97 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     _birthDateController.text = picked.toIso8601String().split('T').first;
     setState(() {});
   }
+
+  void _clearPickedImage(bool identity) {
+    setState(() {
+      if (identity) {
+        _identityBase64 = null;
+        _identityFileLabel = null;
+        _identityPreviewBytes = null;
+      } else {
+        _selfieBase64 = null;
+        _selfieFileLabel = null;
+        _selfiePreviewBytes = null;
+      }
+    });
+  }
+
+  _PreparedVerificationImage? _prepareImageForVerification(Uint8List bytes) {
+    final decodedImage = img.decodeImage(bytes);
+    if (decodedImage == null) {
+      return null;
+    }
+    var decoded = decodedImage;
+
+    if (decoded.width > _maxImageDimension ||
+        decoded.height > _maxImageDimension) {
+      decoded = img.copyResize(
+        decoded,
+        width: decoded.width >= decoded.height ? _maxImageDimension : null,
+        height: decoded.height > decoded.width ? _maxImageDimension : null,
+        interpolation: img.Interpolation.average,
+      );
+    }
+
+    var quality = 86;
+    Uint8List encoded = Uint8List.fromList(
+      img.encodeJpg(decoded, quality: quality),
+    );
+
+    while (encoded.length > _targetUploadImageBytes && quality > 48) {
+      quality -= 8;
+      encoded = Uint8List.fromList(img.encodeJpg(decoded, quality: quality));
+    }
+
+    while (encoded.length > _targetUploadImageBytes &&
+        decoded.width > 1200 &&
+        decoded.height > 1200) {
+      decoded = img.copyResize(
+        decoded,
+        width: (decoded.width * 0.88).round(),
+        height: (decoded.height * 0.88).round(),
+        interpolation: img.Interpolation.average,
+      );
+      encoded = Uint8List.fromList(img.encodeJpg(decoded, quality: quality));
+    }
+
+    return _PreparedVerificationImage(
+      bytes: encoded,
+      dataUri: 'data:image/jpeg;base64,${base64Encode(encoded)}',
+    );
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    if (bytes >= 1024) {
+      return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    }
+    return '$bytes B';
+  }
+}
+
+class _PreparedVerificationImage {
+  const _PreparedVerificationImage({
+    required this.bytes,
+    required this.dataUri,
+  });
+
+  final Uint8List bytes;
+  final String dataUri;
+}
+
+class _VerificationRequirement {
+  const _VerificationRequirement({
+    required this.label,
+    required this.completed,
+    required this.highlighted,
+    required this.icon,
+  });
+
+  final String label;
+  final bool completed;
+  final bool highlighted;
+  final IconData icon;
 }

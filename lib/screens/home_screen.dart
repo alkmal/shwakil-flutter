@@ -526,7 +526,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Future<void> _openOnlineOnlyRoute(String routeName) async {
-    if (OfflineSessionService.isOfflineMode) {
+    if (OfflineSessionService.isOfflineMode && routeName != '/inventory') {
       await _showOfflineBlockedMessage();
       return;
     }
@@ -613,6 +613,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             color: AppTheme.success,
             kind: _HomeServiceKind.scan,
             onTap: _openScanScreen,
+          ),
+        if (canViewInventory && canIssueCards && _hasOfflineWorkspace)
+          _HomeServiceItem(
+            title: l.tr('screens_home_screen.023'),
+            subtitle:
+                'افتح بطاقاتك المحفوظة محليًا واعرض غير المستخدمة مباشرة.',
+            icon: Icons.inventory_2_rounded,
+            color: AppTheme.textSecondary,
+            kind: _HomeServiceKind.inventory,
+            onTap: () => unawaited(_openOnlineOnlyRoute('/inventory')),
           ),
       ];
     }
@@ -773,6 +783,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         : _roleLabel;
     final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
     final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
+    final balanceTextColor = balance < 0
+        ? const Color(0xFFFCA5A5)
+        : Colors.white;
 
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
@@ -923,7 +936,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             : '******',
                         textAlign: TextAlign.end,
                         style: AppTheme.h1.copyWith(
-                          color: Colors.white,
+                          color: balanceTextColor,
                           fontSize: isCompact ? 28 : 32,
                         ),
                       ),

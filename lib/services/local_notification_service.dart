@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -5,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../localization/app_localization.dart';
 import '../localization/app_strings_ar.dart';
 import '../localization/app_strings_en.dart';
+import 'notification_navigation_service.dart';
 
 class LocalNotificationService {
   LocalNotificationService._();
@@ -25,7 +29,16 @@ class LocalNotificationService {
       macOS: DarwinInitializationSettings(),
     );
 
-    await _plugin.initialize(settings);
+    await _plugin.initialize(
+      settings,
+      onDidReceiveNotificationResponse: (response) {
+        unawaited(
+          NotificationNavigationService.openFromLocalNotificationPayload(
+            response.payload,
+          ),
+        );
+      },
+    );
 
     final androidPlugin = _plugin
         .resolvePlatformSpecificImplementation<
@@ -119,6 +132,7 @@ class LocalNotificationService {
     required String body,
     String channelId = 'account_updates',
     String? channelName,
+    Map<String, dynamic>? payload,
   }) async {
     if (kIsWeb) {
       return;
@@ -145,6 +159,7 @@ class LocalNotificationService {
       title,
       body,
       details,
+      payload: payload == null ? null : jsonEncode(payload),
     );
   }
 

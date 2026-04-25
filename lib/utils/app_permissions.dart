@@ -46,6 +46,7 @@ class AppPermissions {
     'canRequestCardPrinting',
     'canScanCards',
     'canOfflineCardScan',
+    'canMonitorOfflineCards',
     'canTransfer',
     'canWithdraw',
     'canReviewCards',
@@ -108,6 +109,11 @@ class AppPermissions {
   bool get canRequestCardPrinting => _isEnabled('canRequestCardPrinting');
   bool get canScanCards => _isEnabled('canScanCards');
   bool get canOfflineCardScan => _isEnabled('canOfflineCardScan');
+  bool get canMonitorOfflineCards =>
+      _isEnabled('canMonitorOfflineCards') ||
+      canManageUsers ||
+      canManageCardPrintRequests ||
+      canReviewDevices;
   bool get canTransfer => _isEnabled('canTransfer');
   bool get canWithdraw => _isEnabled('canWithdraw');
   bool get canReviewCards => _isEnabled('canReviewCards');
@@ -115,7 +121,8 @@ class AppPermissions {
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageUsers => _isEnabled('canManageUsers');
-  bool get canManageMarketingAccounts => _isEnabled('canManageMarketingAccounts');
+  bool get canManageMarketingAccounts =>
+      _isEnabled('canManageMarketingAccounts');
   bool get canManageDebtBook => _isEnabled('canManageDebtBook');
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
@@ -157,7 +164,8 @@ class AppPermissions {
       canManageSystemSettings;
 
   bool get shouldOpenAdminWorkspaceByDefault =>
-      hasAdminWorkspaceAccess && (isAdminRole || isSupportRole || isMarketerRole);
+      hasAdminWorkspaceAccess &&
+      (isAdminRole || isSupportRole || isMarketerRole);
 
   bool get canOpenCardTools =>
       canScanCards ||

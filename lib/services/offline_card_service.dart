@@ -12,6 +12,7 @@ class OfflineCardService {
   static const _rejectedKeyPrefix = 'offline_redeem_rejected_';
   static const _historyKeyPrefix = 'offline_redeem_history_';
   static const _unknownCardsKeyPrefix = 'offline_unknown_cards_';
+  static const _revealedCardsKeyPrefix = 'offline_revealed_cards_';
   static const _settingsKeyPrefix = 'offline_cards_settings_';
   static const _scanAttemptsKeyPrefix = 'offline_scan_attempts_';
   static const _offlineKeyName = 'offline_cards_aes_key_v1';
@@ -239,6 +240,47 @@ class OfflineCardService {
 
   Future<List<VirtualCard>> getCachedCards(String userId) async {
     return _loadCards(userId);
+  }
+
+  Future<List<String>> getRevealedCards(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final entries = await _decodeStoredList(
+      prefs.getString('$_revealedCardsKeyPrefix$userId'),
+    );
+    return entries
+        .map((item) => item['barcode']?.toString() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  Future<bool> isCardRevealed(String userId, String barcode) async {
+    final revealed = await getRevealedCards(userId);
+    return revealed.contains(barcode);
+  }
+
+  Future<void> markCardRevealed(String userId, String barcode) async {
+    if (barcode.trim().isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_revealedCardsKeyPrefix$userId';
+    final entries = await _decodeStoredList(prefs.getString(key));
+    final exists = entries.any(
+      (item) => item['barcode']?.toString() == barcode,
+    );
+    if (exists) {
+      return;
+    }
+    entries.add({
+      'barcode': barcode.trim(),
+      'revealedAt': DateTime.now().toIso8601String(),
+    });
+    await prefs.setString(key, await _encodeStoredList(entries));
+  }
+
+  Future<void> clearRevealedCards(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('$_revealedCardsKeyPrefix$userId');
   }
 
   Future<bool> hasOfflineWorkspace(String userId) async {

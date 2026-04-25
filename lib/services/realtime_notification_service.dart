@@ -16,6 +16,7 @@ import 'auth_service.dart';
 import 'app_version_service.dart';
 import 'local_notification_service.dart';
 import 'local_security_service.dart';
+import 'notification_navigation_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -193,6 +194,7 @@ class RealtimeNotificationService {
         LocalNotificationService.showPushNotification(
           title: title.isEmpty ? _tr('services_app_alert_service.004') : title,
           body: body,
+          payload: payload,
         ),
       );
     }
@@ -205,6 +207,7 @@ class RealtimeNotificationService {
     }
     if (payload.isNotEmpty) {
       notifyNotificationsUpdated(payload);
+      unawaited(NotificationNavigationService.openFromPushPayload(payload));
     }
   }
 
@@ -237,7 +240,9 @@ class RealtimeNotificationService {
     }.contains(type);
   }
 
-  static Future<void> _waitForApplePushToken(FirebaseMessaging messaging) async {
+  static Future<void> _waitForApplePushToken(
+    FirebaseMessaging messaging,
+  ) async {
     if (kIsWeb || !Platform.isIOS) {
       return;
     }

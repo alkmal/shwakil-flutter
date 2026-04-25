@@ -96,6 +96,12 @@ const Map<String, String> appStringsAr = {
   'screens_account_verification_screen.025': 'تاريخ الميلاد',
   'screens_account_verification_screen.026':
       'يرجى إدخال تاريخ الميلاد بصيغة صحيحة.',
+  'screens_account_verification_screen.027':
+      'يمكنك اختيار صور كبيرة نسبيًا، وسيقوم التطبيق بتهيئتها وضغطها تلقائيًا لتسهيل الإرسال وتسريع المراجعة.',
+  'screens_account_verification_screen.029':
+      'تعذر قراءة الصورة المختارة. اختر صورة واضحة بصيغة JPG أو PNG أو WEBP.',
+  'screens_account_verification_screen.030':
+      'حجم الملف كبير جدًا. اختر صورة أقل من 15 ميجابايت أو التقط صورة أوضح ثم أعد المحاولة.',
   'screens_admin_card_print_requests_screen.001': 'طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.002': 'متابعة الطلبات',
   'screens_admin_card_print_requests_screen.003': 'الحالة',
@@ -1915,6 +1921,8 @@ const Map<String, String> appStringsAr = {
   'services_contact_info_service.001': 'التواصل',
   'services_contact_info_service.002': 'فلسطين',
   'services_api_service.001': 'تأكد من جميع البيانات وحاول مرة أخرى.',
+  'services_api_service.002':
+      'حجم الملفات المرفوعة كبير جدًا. اختر صورًا أوضح بحجم أصغر ثم أعد المحاولة.',
   'screens_login_screen.023': 'تسجيل دخول آمن',
   'screens_login_screen.024': 'وصول سريع',
   'screens_login_screen.025': 'متوافق مع الجوال',
