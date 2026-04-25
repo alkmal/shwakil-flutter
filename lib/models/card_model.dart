@@ -105,6 +105,10 @@ class VirtualCard {
     final createdAtValue =
         map['createdAt'] ?? map['issuedAt'] ?? map['created_at'];
     final usedAtValue = map['usedAt'] ?? map['redeemedAt'] ?? map['used_at'];
+    final rawDetails = map['details'];
+    final details = rawDetails is Map
+        ? Map<String, dynamic>.from(rawDetails)
+        : <String, dynamic>{};
     return VirtualCard(
       id: map['id']?.toString() ?? '',
       barcode: map['barcode']?.toString() ?? '',
@@ -149,9 +153,7 @@ class VirtualCard {
           : DateTime.tryParse(
               (map['validUntil'] ?? map['valid_until']).toString(),
             ),
-      details: Map<String, dynamic>.from(
-        (map['details'] as Map?) ?? const <String, dynamic>{},
-      ),
+      details: details,
       createdAt:
           DateTime.tryParse(createdAtValue?.toString() ?? '') ?? DateTime.now(),
       lastResoldAt: (map['lastResoldAt'] ?? map['last_resold_at']) == null

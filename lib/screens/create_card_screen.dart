@@ -96,7 +96,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         _useAccountLogo =
             user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
         final issuableCardTypes = _issuableCardTypesFromUser(user);
-        if (!issuableCardTypes.contains(_cardType) && issuableCardTypes.isNotEmpty) {
+        if (!issuableCardTypes.contains(_cardType) &&
+            issuableCardTypes.isNotEmpty) {
           _cardType = issuableCardTypes.first;
         }
         _isLoadingUser = false;
@@ -127,6 +128,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool get _isQueueCard => _cardType == 'queue';
 
   bool get _isBalanceCard => _cardType == 'standard' || _cardType == 'delivery';
+  bool get _needsTypeDetails => _isAppointmentCard || _isQueueCard;
 
   List<String> get _issuableCardTypes => _issuableCardTypesFromUser(_user);
 
@@ -170,6 +172,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
   }
 
+  String? _validateAmountForCardType(double amount) {
+    if (_isBalanceCard) {
+      return amount > 0 ? null : 'أدخل قيمة بطاقة صحيحة أكبر من صفر.';
+    }
+
+    if (_isAppointmentCard && amount < 0) {
+      return 'قيمة تذكرة الموعد لا يمكن أن تكون سالبة.';
+    }
+
+    return null;
+  }
+
   Future<void> _create() async {
     final l = context.loc;
     if (!_isAuthorized) {
@@ -184,11 +198,21 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final quantity = int.tryParse(_qtyC.text) ?? 0;
     final isPrivate = _visibilityScope == 'restricted';
 
-    if (quantity <= 0 || (_isBalanceCard && amount <= 0)) {
+    if (quantity <= 0) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
-        message: l.tr('screens_create_card_screen.005'),
+        message: 'أدخل عدد بطاقات صحيح.',
+      );
+      return;
+    }
+
+    final amountValidationMessage = _validateAmountForCardType(amount);
+    if (amountValidationMessage != null) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_create_card_screen.004'),
+        message: amountValidationMessage,
       );
       return;
     }
@@ -431,7 +455,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   String _cardValueLabel(AppLocalizer l, double amount) {
     if (_cardType == 'single_use' || _isQueueCard) {
-      return amount <= 0 ? 'تذكرة استخدام تنظيمي' : CurrencyFormatter.ils(amount);
+      return amount <= 0
+          ? 'تذكرة استخدام تنظيمي'
+          : CurrencyFormatter.ils(amount);
     }
     if (_isAppointmentCard && amount <= 0) {
       return 'بدون قيمة مالية';
@@ -472,6 +498,42 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$year/$month/$day $hour:$minute';
+  }
+
+  ({List<Color> colors, IconData icon, Color accent})
+  _previewThemeForCardType() {
+    switch (_cardType) {
+      case 'delivery':
+        return (
+          colors: const [Color(0xFFFFF7ED), Color(0xFFECFDF5)],
+          icon: Icons.local_shipping_rounded,
+          accent: const Color(0xFFB45309),
+        );
+      case 'single_use':
+        return (
+          colors: const [Color(0xFFFDF4FF), Color(0xFFFAF5FF)],
+          icon: Icons.confirmation_number_rounded,
+          accent: const Color(0xFFA21CAF),
+        );
+      case 'appointment':
+        return (
+          colors: const [Color(0xFFEFF6FF), Color(0xFFF0FDFA)],
+          icon: Icons.event_available_rounded,
+          accent: const Color(0xFF0F766E),
+        );
+      case 'queue':
+        return (
+          colors: const [Color(0xFFFEFCE8), Color(0xFFFFF7ED)],
+          icon: Icons.people_alt_rounded,
+          accent: const Color(0xFFB45309),
+        );
+      default:
+        return (
+          colors: const [Color(0xFFFFFBF2), Color(0xFFF2FFFC)],
+          icon: Icons.credit_card_rounded,
+          accent: AppTheme.primary,
+        );
+    }
   }
 
   Widget _buildDateTimeField({
@@ -1107,7 +1169,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 2,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -1120,10 +1182,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               Tab(
                 icon: const Icon(Icons.add_card_rounded),
                 text: l.tr('screens_create_card_screen.066'),
-              ),
-              Tab(
-                icon: const Icon(Icons.tune_rounded),
-                text: l.tr('screens_create_card_screen.067'),
               ),
               Tab(
                 icon: const Icon(Icons.history_rounded),
@@ -1144,19 +1202,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     _buildHero(),
                     const SizedBox(height: 24),
                     _buildForm(),
-                  ],
-                ),
-              ),
-            ),
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHero(),
-                    const SizedBox(height: 24),
-                    _buildDesignSettings(),
                   ],
                 ),
               ),
@@ -1273,6 +1318,23 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             style: AppTheme.bodyAction.copyWith(fontSize: 14),
           ),
           const SizedBox(height: 24),
+          ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            color: AppTheme.primary.withValues(alpha: 0.05),
+            borderColor: AppTheme.primary.withValues(alpha: 0.12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('البيانات الأساسية', style: AppTheme.bodyBold),
+                const SizedBox(height: 6),
+                Text(
+                  'ابدأ بنوع البطاقة ثم أدخل القيمة والعدد. ستظهر التفاصيل الإضافية فقط عند الحاجة.',
+                  style: AppTheme.caption.copyWith(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           if (_cardTypeItems(l).length > 1) ...[
             DropdownButtonFormField<String>(
               initialValue: _cardType,
@@ -1302,7 +1364,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
             const SizedBox(height: 16),
           ],
-          if (_isBalanceCard || _isAppointmentCard)
+          if (_isBalanceCard || _isAppointmentCard) ...[
             TextField(
               controller: _amountC,
               keyboardType: const TextInputType.numberWithOptions(
@@ -1316,180 +1378,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 prefixIcon: const Icon(Icons.money_rounded),
               ),
             ),
-          if (_cardType == 'single_use')
-            ShwakelCard(
-              padding: const EdgeInsets.all(16),
-              color: AppTheme.secondary.withValues(alpha: 0.06),
-              borderColor: AppTheme.secondary.withValues(alpha: 0.15),
-              child: Text(
-                l.tr('screens_create_card_screen.036'),
-                style: AppTheme.bodyText.copyWith(fontSize: 14),
-              ),
-            ),
-          if (_cardType == 'delivery')
-            ShwakelCard(
-              padding: const EdgeInsets.all(16),
-              color: AppTheme.warning.withValues(alpha: 0.06),
-              borderColor: AppTheme.warning.withValues(alpha: 0.15),
-              child: Text(
-                l.tr('shared.delivery_card_create_note'),
-                style: AppTheme.bodyText.copyWith(fontSize: 14),
-              ),
-            ),
-          if (_isQueueCard) ...[
             const SizedBox(height: 16),
-            ShwakelCard(
-              padding: const EdgeInsets.all(16),
-              color: AppTheme.secondary.withValues(alpha: 0.05),
-              borderColor: AppTheme.secondary.withValues(alpha: 0.15),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('تفاصيل تذكرة الطابور', style: AppTheme.bodyBold),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _detailsTitleC,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'اسم الخدمة أو الطابور',
-                      prefixIcon: Icon(Icons.confirmation_number_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _appointmentLocationC,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'الموقع أو القسم',
-                      prefixIcon: Icon(Icons.place_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _detailsDescriptionC,
-                    minLines: 2,
-                    maxLines: 4,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'ملاحظات إضافية',
-                      prefixIcon: Icon(Icons.notes_rounded),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
-          if (_isAppointmentCard) ...[
-            const SizedBox(height: 16),
-            ShwakelCard(
-              padding: const EdgeInsets.all(16),
-              color: AppTheme.primary.withValues(alpha: 0.05),
-              borderColor: AppTheme.primary.withValues(alpha: 0.15),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('تفاصيل الموعد', style: AppTheme.bodyBold),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _detailsTitleC,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'عنوان الموعد',
-                      prefixIcon: Icon(Icons.event_note_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _appointmentLocationC,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'الموقع',
-                      prefixIcon: Icon(Icons.place_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _detailsDescriptionC,
-                    minLines: 2,
-                    maxLines: 4,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'ملاحظات أو تعليمات',
-                      prefixIcon: Icon(Icons.notes_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDateTimeField(
-                    label: 'بداية الموعد',
-                    value: _appointmentStartsAt,
-                    icon: Icons.schedule_rounded,
-                    onPick: () => _pickDateTime(
-                      initialValue: _appointmentStartsAt,
-                      onChanged: (value) {
-                        setState(() {
-                          _appointmentStartsAt = value;
-                          _validFrom ??= value;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDateTimeField(
-                    label: 'نهاية الموعد',
-                    value: _appointmentEndsAt,
-                    icon: Icons.event_available_rounded,
-                    onPick: () => _pickDateTime(
-                      initialValue: _appointmentEndsAt ?? _appointmentStartsAt,
-                      onChanged: (value) {
-                        setState(() {
-                          _appointmentEndsAt = value;
-                          _validUntil ??= value;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          ShwakelCard(
-            padding: const EdgeInsets.all(16),
-            color: AppTheme.surfaceVariant,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('نافذة الصلاحية', style: AppTheme.bodyBold),
-                const SizedBox(height: 8),
-                Text(
-                  'يمكن تحديد بداية ونهاية لاستخدام البطاقة. إذا تُركت فارغة تبقى البطاقة دون تقييد زمني.',
-                  style: AppTheme.caption.copyWith(fontSize: 12),
-                ),
-                const SizedBox(height: 12),
-                _buildDateTimeField(
-                  label: 'فعالة من',
-                  value: _validFrom,
-                  icon: Icons.login_rounded,
-                  onPick: () => _pickDateTime(
-                    initialValue: _validFrom ?? _appointmentStartsAt,
-                    onChanged: (value) => setState(() => _validFrom = value),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildDateTimeField(
-                  label: 'تنتهي في',
-                  value: _validUntil,
-                  icon: Icons.timer_off_rounded,
-                  onPick: () => _pickDateTime(
-                    initialValue:
-                        _validUntil ?? _appointmentEndsAt ?? _validFrom,
-                    onChanged: (value) => setState(() => _validUntil = value),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
           TextField(
             controller: _qtyC,
             keyboardType: TextInputType.number,
@@ -1501,110 +1391,288 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   'أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
             ),
           ),
-          if (_canIssuePrivateCards && _cardType != 'delivery') ...[
-            const SizedBox(height: 24),
-            Text(
-              l.tr('screens_create_card_screen.038'),
-              style: AppTheme.bodyBold,
-            ),
-            const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 520;
-                if (isCompact) {
-                  return Column(
-                    children: [
-                      _buildVisibilityChoiceCard(
-                        value: 'general',
-                        icon: Icons.public_rounded,
-                        label: l.tr('screens_create_card_screen.011'),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildVisibilityChoiceCard(
-                        value: 'restricted',
-                        icon: Icons.lock_rounded,
-                        label: l.tr('screens_create_card_screen.010'),
-                      ),
-                    ],
-                  );
-                }
-                return SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment<String>(
-                      value: 'general',
-                      icon: const Icon(Icons.public_rounded),
-                      label: Text(l.tr('screens_create_card_screen.011')),
-                    ),
-                    ButtonSegment<String>(
-                      value: 'restricted',
-                      icon: const Icon(Icons.lock_rounded),
-                      label: Text(l.tr('screens_create_card_screen.010')),
-                    ),
-                  ],
-                  selected: {_visibilityScope},
-                  onSelectionChanged: (selection) {
-                    setState(() {
-                      _visibilityScope = selection.first;
-                      if (_visibilityScope != 'restricted') {
-                        _selectedUsers = [];
-                      }
-                    });
-                  },
-                );
-              },
+          if (_cardType == 'single_use') ...[
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(16),
+              color: AppTheme.secondary.withValues(alpha: 0.06),
+              borderColor: AppTheme.secondary.withValues(alpha: 0.15),
+              child: Text(
+                l.tr('screens_create_card_screen.036'),
+                style: AppTheme.bodyText.copyWith(fontSize: 14),
+              ),
             ),
           ],
-          if (_canIssuePrivateCards && _visibilityScope == 'restricted') ...[
-            const SizedBox(height: 20),
+          if (_cardType == 'delivery') ...[
+            const SizedBox(height: 16),
             ShwakelCard(
-              padding: const EdgeInsets.all(20),
-              color: AppTheme.warning.withValues(alpha: 0.05),
+              padding: const EdgeInsets.all(16),
+              color: AppTheme.warning.withValues(alpha: 0.06),
               borderColor: AppTheme.warning.withValues(alpha: 0.15),
+              child: Text(
+                l.tr('shared.delivery_card_create_note'),
+                style: AppTheme.bodyText.copyWith(fontSize: 14),
+              ),
+            ),
+          ],
+          if (_needsTypeDetails) ...[
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(16),
+              color:
+                  (_isAppointmentCard ? AppTheme.primary : AppTheme.secondary)
+                      .withValues(alpha: 0.05),
+              borderColor:
+                  (_isAppointmentCard ? AppTheme.primary : AppTheme.secondary)
+                      .withValues(alpha: 0.15),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    l.tr('screens_create_card_screen.039'),
+                    _isAppointmentCard
+                        ? 'تفاصيل الموعد المطلوبة'
+                        : 'تفاصيل تذكرة الطابور',
                     style: AppTheme.bodyBold,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l.tr('screens_create_card_screen.040'),
-                    style: AppTheme.caption.copyWith(fontSize: 13),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_selectedUsers.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _selectedUsers.map((user) {
-                        return Chip(
-                          label: Text('@${user['username'] ?? user['id']}'),
-                          onDeleted: () {
-                            setState(() {
-                              _selectedUsers.removeWhere(
-                                (item) =>
-                                    item['id']?.toString() ==
-                                    user['id']?.toString(),
-                              );
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
                   const SizedBox(height: 12),
-                  ShwakelButton(
-                    label: _selectedUsers.isEmpty
-                        ? l.tr('screens_create_card_screen.041')
-                        : l.tr('screens_create_card_screen.042'),
-                    icon: Icons.group_add_rounded,
-                    isSecondary: true,
-                    onPressed: _pickPrivateUsers,
+                  TextField(
+                    controller: _detailsTitleC,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: _isAppointmentCard
+                          ? 'عنوان الموعد'
+                          : 'اسم الخدمة أو الطابور',
+                      prefixIcon: Icon(
+                        _isAppointmentCard
+                            ? Icons.event_note_rounded
+                            : Icons.confirmation_number_rounded,
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _appointmentLocationC,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: _isAppointmentCard
+                          ? 'الموقع'
+                          : 'الموقع أو القسم',
+                      prefixIcon: const Icon(Icons.place_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _detailsDescriptionC,
+                    minLines: 2,
+                    maxLines: 4,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: _isAppointmentCard
+                          ? 'ملاحظات أو تعليمات'
+                          : 'ملاحظات إضافية',
+                      prefixIcon: const Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                  if (_isAppointmentCard) ...[
+                    const SizedBox(height: 12),
+                    _buildDateTimeField(
+                      label: 'بداية الموعد',
+                      value: _appointmentStartsAt,
+                      icon: Icons.schedule_rounded,
+                      onPick: () => _pickDateTime(
+                        initialValue: _appointmentStartsAt,
+                        onChanged: (value) {
+                          setState(() {
+                            _appointmentStartsAt = value;
+                            _validFrom ??= value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDateTimeField(
+                      label: 'نهاية الموعد',
+                      value: _appointmentEndsAt,
+                      icon: Icons.event_available_rounded,
+                      onPick: () => _pickDateTime(
+                        initialValue:
+                            _appointmentEndsAt ?? _appointmentStartsAt,
+                        onChanged: (value) {
+                          setState(() {
+                            _appointmentEndsAt = value;
+                            _validUntil ??= value;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
+          const SizedBox(height: 16),
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              title: Text('إعدادات متقدمة', style: AppTheme.bodyBold),
+              subtitle: Text(
+                'الصلاحية والخصوصية والتصميم والمعاينة. يمكنك تجاهلها إذا كنت تريد إصدارًا سريعًا.',
+                style: AppTheme.caption.copyWith(fontSize: 12),
+              ),
+              children: [
+                const SizedBox(height: 12),
+                ShwakelCard(
+                  padding: const EdgeInsets.all(16),
+                  color: AppTheme.surfaceVariant,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('نافذة الصلاحية', style: AppTheme.bodyBold),
+                      const SizedBox(height: 8),
+                      Text(
+                        'يمكن تحديد بداية ونهاية لاستخدام البطاقة. إذا تُركت فارغة تبقى البطاقة دون تقييد زمني.',
+                        style: AppTheme.caption.copyWith(fontSize: 12),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDateTimeField(
+                        label: 'فعالة من',
+                        value: _validFrom,
+                        icon: Icons.login_rounded,
+                        onPick: () => _pickDateTime(
+                          initialValue: _validFrom ?? _appointmentStartsAt,
+                          onChanged: (value) =>
+                              setState(() => _validFrom = value),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDateTimeField(
+                        label: 'تنتهي في',
+                        value: _validUntil,
+                        icon: Icons.timer_off_rounded,
+                        onPick: () => _pickDateTime(
+                          initialValue:
+                              _validUntil ?? _appointmentEndsAt ?? _validFrom,
+                          onChanged: (value) =>
+                              setState(() => _validUntil = value),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_canIssuePrivateCards && _cardType != 'delivery') ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    l.tr('screens_create_card_screen.038'),
+                    style: AppTheme.bodyBold,
+                  ),
+                  const SizedBox(height: 12),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 520;
+                      if (isCompact) {
+                        return Column(
+                          children: [
+                            _buildVisibilityChoiceCard(
+                              value: 'general',
+                              icon: Icons.public_rounded,
+                              label: l.tr('screens_create_card_screen.011'),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildVisibilityChoiceCard(
+                              value: 'restricted',
+                              icon: Icons.lock_rounded,
+                              label: l.tr('screens_create_card_screen.010'),
+                            ),
+                          ],
+                        );
+                      }
+                      return SegmentedButton<String>(
+                        segments: [
+                          ButtonSegment<String>(
+                            value: 'general',
+                            icon: const Icon(Icons.public_rounded),
+                            label: Text(l.tr('screens_create_card_screen.011')),
+                          ),
+                          ButtonSegment<String>(
+                            value: 'restricted',
+                            icon: const Icon(Icons.lock_rounded),
+                            label: Text(l.tr('screens_create_card_screen.010')),
+                          ),
+                        ],
+                        selected: {_visibilityScope},
+                        onSelectionChanged: (selection) {
+                          setState(() {
+                            _visibilityScope = selection.first;
+                            if (_visibilityScope != 'restricted') {
+                              _selectedUsers = [];
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ],
+                if (_canIssuePrivateCards &&
+                    _visibilityScope == 'restricted') ...[
+                  const SizedBox(height: 20),
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(20),
+                    color: AppTheme.warning.withValues(alpha: 0.05),
+                    borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l.tr('screens_create_card_screen.039'),
+                          style: AppTheme.bodyBold,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l.tr('screens_create_card_screen.040'),
+                          style: AppTheme.caption.copyWith(fontSize: 13),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_selectedUsers.isNotEmpty)
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _selectedUsers.map((user) {
+                              return Chip(
+                                label: Text(
+                                  '@${user['username'] ?? user['id']}',
+                                ),
+                                onDeleted: () {
+                                  setState(() {
+                                    _selectedUsers.removeWhere(
+                                      (item) =>
+                                          item['id']?.toString() ==
+                                          user['id']?.toString(),
+                                    );
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        const SizedBox(height: 12),
+                        ShwakelButton(
+                          label: _selectedUsers.isEmpty
+                              ? l.tr('screens_create_card_screen.041')
+                              : l.tr('screens_create_card_screen.042'),
+                          icon: Icons.group_add_rounded,
+                          isSecondary: true,
+                          onPressed: _pickPrivateUsers,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                _buildDesignSettings(),
+              ],
+            ),
+          ),
           const SizedBox(height: 28),
           ShwakelButton(
             label: l.tr('screens_create_card_screen.043'),
@@ -1702,13 +1770,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final amount = double.tryParse(_amountC.text) ?? 0;
     final valueLabel = _cardValueLabel(l, amount);
     final detailTitle = _detailsTitleC.text.trim();
+    final previewTheme = _previewThemeForCardType();
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFFBF2), Color(0xFFF2FFFC)],
+        gradient: LinearGradient(
+          colors: previewTheme.colors,
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
@@ -1727,10 +1796,41 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       title,
                       style: AppTheme.bodyBold.copyWith(
                         fontSize: 16,
-                        color: AppTheme.primary,
+                        color: previewTheme.accent,
                       ),
                     ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          previewTheme.icon,
+                          size: 14,
+                          color: previewTheme.accent,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _cardTypeLabel(l, _cardType),
+                          style: AppTheme.caption.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: previewTheme.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   if (_showLogo)
                     Container(
                       width: 38,
@@ -1745,7 +1845,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                             ? Icons.image_rounded
                             : Icons.shield_rounded,
                         size: 18,
-                        color: AppTheme.primary,
+                        color: previewTheme.accent,
                       ),
                     ),
                 ],
@@ -1765,7 +1865,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 valueLabel,
                 style: AppTheme.h2.copyWith(
                   fontSize: 20,
-                  color: AppTheme.secondary,
+                  color: previewTheme.accent,
                 ),
               ),
               const SizedBox(height: 12),
@@ -1806,7 +1906,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       _buildPreviewFooterLabel(l),
                       style: AppTheme.caption.copyWith(
                         fontSize: 11,
-                        color: AppTheme.primary,
+                        color: previewTheme.accent,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1834,7 +1934,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   ),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: AppTheme.error.withValues(alpha: 0.55),
+                      color: previewTheme.accent.withValues(alpha: 0.45),
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -1842,7 +1942,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     stamp,
                     style: AppTheme.caption.copyWith(
                       fontSize: 10,
-                      color: AppTheme.error.withValues(alpha: 0.82),
+                      color: previewTheme.accent.withValues(alpha: 0.82),
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1891,7 +1991,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           const SizedBox(height: 8),
           _buildRecentRow(
             'النوع',
-            _recent.isNotEmpty ? _cardTypeLabel(l, _recent.first.cardType) : '-',
+            _recent.isNotEmpty
+                ? _cardTypeLabel(l, _recent.first.cardType)
+                : '-',
           ),
           const SizedBox(height: 8),
           _buildRecentRow(
@@ -1902,16 +2004,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       : CurrencyFormatter.ils(_recent.first.value))
                 : CurrencyFormatter.ils(0),
           ),
-          if (_recent.isNotEmpty && _recent.first.title?.trim().isNotEmpty == true) ...[
+          if (_recent.isNotEmpty &&
+              _recent.first.title?.trim().isNotEmpty == true) ...[
             const SizedBox(height: 8),
             _buildRecentRow('العنوان', _recent.first.title!.trim()),
           ],
           if (_recent.isNotEmpty && _recent.first.validUntil != null) ...[
             const SizedBox(height: 8),
-            _buildRecentRow(
-              'تنتهي',
-              _formatDateTime(_recent.first.validUntil),
-            ),
+            _buildRecentRow('تنتهي', _formatDateTime(_recent.first.validUntil)),
           ],
           if (_recent.isNotEmpty) ...[
             const SizedBox(height: 20),
