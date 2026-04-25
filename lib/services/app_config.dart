@@ -15,6 +15,18 @@ class AppConfig {
     return _productionApiUrl;
   }
 
+  static List<String> get apiBaseUrls {
+    const env = String.fromEnvironment('API_BASE_URL');
+    if (env.isNotEmpty) {
+      return [env];
+    }
+
+    return {
+      _productionApiUrl,
+      _localDebugApiUrl,
+    }.toList();
+  }
+
   static Uri get baseUri => Uri.parse(baseUrl);
   static String get trustedClientKey => _trustedClientKey.trim();
   static bool get hasTrustedClientKey => trustedClientKey.isNotEmpty;
@@ -40,15 +52,23 @@ class AppConfig {
   }
 
   static Uri apiUri(String path, [Map<String, dynamic>? queryParameters]) {
+    return apiCandidateUris(path, queryParameters).first;
+  }
+
+  static List<Uri> apiCandidateUris(
+    String path, [
+    Map<String, dynamic>? queryParameters,
+  ]) {
     final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-    final basePath = baseUri.path.endsWith('/')
-        ? baseUri.path
-        : '${baseUri.path}/';
-    return baseUri.replace(
-      path: '$basePath$normalizedPath',
-      queryParameters: queryParameters?.map(
-        (key, value) => MapEntry(key, value?.toString()),
-      ),
-    );
+    return apiBaseUrls.map((url) {
+      final uri = Uri.parse(url);
+      final basePath = uri.path.endsWith('/') ? uri.path : '${uri.path}/';
+      return uri.replace(
+        path: '$basePath$normalizedPath',
+        queryParameters: queryParameters?.map(
+          (key, value) => MapEntry(key, value?.toString()),
+        ),
+      );
+    }).toList(growable: false);
   }
 }
