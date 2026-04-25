@@ -31,6 +31,8 @@ class LocalSecurityService {
   static bool _relockRequired = false;
   static bool _skipNextUnlock = false;
   static bool _securitySetupRequired = false;
+  static bool _biometricPromptActive = false;
+  static int _ignoreLifecycleEventsUntilMs = 0;
 
   static const List<int> relockTimeoutOptionsInSeconds = [0, 30, 60, 300];
   static const int _pinMaxFailedAttempts = 5;
@@ -303,6 +305,7 @@ class LocalSecurityService {
       return false;
     }
     try {
+      _biometricPromptActive = true;
       final authenticated = await _localAuth.authenticate(
         localizedReason: 'Authenticate with biometrics to continue in shwakil',
         options: const AuthenticationOptions(
@@ -317,6 +320,12 @@ class LocalSecurityService {
       return authenticated;
     } catch (_) {
       return false;
+    } finally {
+      _biometricPromptActive = false;
+      _ignoreLifecycleEventsUntilMs =
+          DateTime.now()
+              .add(const Duration(milliseconds: 1500))
+              .millisecondsSinceEpoch;
     }
   }
 
@@ -332,6 +341,9 @@ class LocalSecurityService {
   }
 
   static Future<void> markAppBackgrounded() async {
+    if (_shouldIgnoreLifecycleRelock()) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
       _backgroundedAtKey,
@@ -340,6 +352,9 @@ class LocalSecurityService {
   }
 
   static Future<void> handleAppResumed() async {
+    if (_shouldIgnoreLifecycleRelock()) {
+      return;
+    }
     await _evaluateRelockRequirement(
       forceOnNextLaunch: false,
       consumeEvent: true,
@@ -426,6 +441,14 @@ class LocalSecurityService {
       value: await _hashPin(legacyPin),
     );
     await legacyPrefs.remove(_legacyPinKey);
+  }
+
+  static bool _shouldIgnoreLifecycleRelock() {
+    if (_biometricPromptActive) {
+      return true;
+    }
+    return DateTime.now().millisecondsSinceEpoch <
+        _ignoreLifecycleEventsUntilMs;
   }
 
   static Future<String> _hashPin(String pin) async {

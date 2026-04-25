@@ -149,8 +149,8 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   }
 
   Future<void> _completeUnlock() async {
-    await LocalSecurityService.clearRelockRequirement();
     await LocalSecurityService.skipNextUnlock();
+    await LocalSecurityService.clearRelockRequirement();
     await RealtimeNotificationService.start();
     await LocalSecurityService.clearSecuritySetupRequirement();
     if (!mounted) {

@@ -271,22 +271,16 @@ class AppEntryPoint extends StatefulWidget {
 
 class _AppEntryPointState extends State<AppEntryPoint> {
   static const String _onboardingSeenKey = 'onboarding_seen_v1';
-  static const Duration _launchDecisionTimeout = Duration(seconds: 4);
+  static const Duration _launchDecisionTimeout = Duration(seconds: 3);
   late Future<_LaunchDecision> _launchStateFuture;
   @override
   void initState() {
     super.initState();
     _launchStateFuture = _safeResolveLaunchState();
-    LocalSecurityService.securityStateListenable.addListener(
-      _refreshLaunchState,
-    );
   }
 
   @override
   void dispose() {
-    LocalSecurityService.securityStateListenable.removeListener(
-      _refreshLaunchState,
-    );
     super.dispose();
   }
 
@@ -311,8 +305,14 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
   Future<_LaunchDecision> _resolveLaunchState() async {
     await LocalSecurityService.syncRelockStateForLaunch();
-    final updateRequirement = await AppVersionService.fetchRequiredUpdate()
-        .timeout(const Duration(seconds: 2), onTimeout: () => null);
+    final updateRequirementFuture = AppVersionService.fetchRequiredUpdate()
+        .timeout(const Duration(milliseconds: 1200), onTimeout: () => null);
+    final prefsFuture = SharedPreferences.getInstance();
+    final authService = AuthService();
+    final cachedUserFuture = authService.currentUser();
+    final isLoggedInFuture = authService.isLoggedIn();
+
+    final updateRequirement = await updateRequirementFuture;
     if (updateRequirement != null && updateRequirement.isForced) {
       return _LaunchDecision(
         state: _LaunchState.updateRequired,
@@ -320,15 +320,14 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       );
     }
 
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await prefsFuture;
     final hasSeenOnboarding = prefs.getBool(_onboardingSeenKey) ?? false;
     if (!hasSeenOnboarding) {
       return const _LaunchDecision(state: _LaunchState.onboarding);
     }
 
-    final authService = AuthService();
-    final cachedUser = await authService.currentUser();
-    final isLoggedIn = await authService.isLoggedIn();
+    final cachedUser = await cachedUserFuture;
+    final isLoggedIn = await isLoggedInFuture;
     if (!isLoggedIn) {
       if (await _canOpenOfflineWorkspace(cachedUser)) {
         unawaited(RealtimeNotificationService.stop());
@@ -361,19 +360,20 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       await authService.logout();
       return const _LaunchDecision(state: _LaunchState.login);
     }
+    if (cachedUser != null) {
+      unawaited(
+        authService.refreshCurrentUser().timeout(
+          const Duration(milliseconds: 1500),
+        ),
+      );
+      unawaited(RealtimeNotificationService.start());
+      return const _LaunchDecision(state: _LaunchState.home);
+    }
     try {
       await authService.refreshCurrentUser().timeout(
-        const Duration(seconds: 2),
+        const Duration(milliseconds: 1500),
       );
     } catch (_) {
-      if (cachedUser != null) {
-        if (await _canOpenOfflineWorkspace(cachedUser)) {
-          unawaited(RealtimeNotificationService.stop());
-          return const _LaunchDecision(state: _LaunchState.scanOffline);
-        }
-        unawaited(RealtimeNotificationService.start());
-        return const _LaunchDecision(state: _LaunchState.home);
-      }
       await authService.logout();
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
