@@ -34,7 +34,8 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   Future<void> _load() async {
     final l = context.loc;
     try {
-      final currentUser = await _authService.currentUser();
+      final currentUser =
+          AuthService.peekCurrentUser() ?? await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
       if (!permissions.canViewAffiliateCenter) {
         if (!mounted) {

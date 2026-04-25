@@ -71,7 +71,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _load() async {
-    final user = await _authService.currentUser();
+    final user = AuthService.peekCurrentUser() ?? await _authService.currentUser();
     if (!mounted) {
       return;
     }

@@ -38,7 +38,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _loadUser() async {
-    final user = await _authService.currentUser();
+    final user = AuthService.peekCurrentUser() ?? await _authService.currentUser();
     final permissions = AppPermissions.fromUser(user);
     final isAuthorized = permissions.hasAdminWorkspaceAccess;
     if (!mounted) {

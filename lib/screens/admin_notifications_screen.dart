@@ -155,7 +155,8 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final currentUser = await _authService.currentUser();
+      final currentUser =
+          AuthService.peekCurrentUser() ?? await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
       if (!permissions.canManageSystemSettings) {
         if (!mounted) {
