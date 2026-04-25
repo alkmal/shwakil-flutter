@@ -219,16 +219,14 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
+      case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
         unawaited(LocalSecurityService.markAppBackgrounded());
-        break;
-      case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.resumed:
         unawaited(_handleAppResumed());
-        break;
-      case AppLifecycleState.detached:
         break;
     }
   }
@@ -312,6 +310,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   }
 
   Future<_LaunchDecision> _resolveLaunchState() async {
+    await LocalSecurityService.syncRelockStateForLaunch();
     final updateRequirement = await AppVersionService.fetchRequiredUpdate()
         .timeout(const Duration(seconds: 2), onTimeout: () => null);
     if (updateRequirement != null && updateRequirement.isForced) {
@@ -338,9 +337,11 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
-    final hasLocalSecurity = await LocalSecurityService
-        .hasConfiguredLocalSecurity()
-        .timeout(const Duration(seconds: 1), onTimeout: () => false);
+    final hasLocalSecurity =
+        await LocalSecurityService.hasConfiguredLocalSecurity().timeout(
+          const Duration(seconds: 1),
+          onTimeout: () => false,
+        );
     final skipNextUnlock = await LocalSecurityService.consumeSkipNextUnlock();
     if (skipNextUnlock) {
       unawaited(RealtimeNotificationService.start());
@@ -382,6 +383,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   }
 
   Future<_LaunchDecision> _resolveCachedLaunchState() async {
+    await LocalSecurityService.syncRelockStateForLaunch();
     final prefs = await SharedPreferences.getInstance();
     final hasSeenOnboarding = prefs.getBool(_onboardingSeenKey) ?? false;
     if (!hasSeenOnboarding) {
@@ -403,9 +405,11 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
-    final hasLocalSecurity = await LocalSecurityService
-        .hasConfiguredLocalSecurity()
-        .timeout(const Duration(seconds: 1), onTimeout: () => false);
+    final hasLocalSecurity =
+        await LocalSecurityService.hasConfiguredLocalSecurity().timeout(
+          const Duration(seconds: 1),
+          onTimeout: () => false,
+        );
     final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
         .timeout(const Duration(seconds: 1), onTimeout: () => false);
     if (hasLocalSecurity &&

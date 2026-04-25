@@ -556,17 +556,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 children: [
                   ResponsiveScaffoldContainer(
                     padding: const EdgeInsets.fromLTRB(0, 20, 0, 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildWelcomeCard(),
-                        if (scanShortcut != null) ...[
-                          const SizedBox(height: 14),
-                          _buildScanShortcut(scanShortcut),
-                        ],
-                        const SizedBox(height: 18),
-                        _buildServicesSection(listServices),
-                      ],
+                    child: _buildHomeContent(
+                      context,
+                      scanShortcut: scanShortcut,
+                      listServices: listServices,
                     ),
                   ),
                 ],
@@ -757,9 +750,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget _buildWelcomeCard() {
-    final title = _displayName.isEmpty
-        ? _t('screens_home_screen.084')
-        : '${_t('screens_home_screen.084')}، $_displayName';
+    final greeting = _t('screens_home_screen.084');
+    final displayName = _displayName;
     final roleLabel = _roleLabel.isEmpty
         ? _t('screens_home_screen.085')
         : _roleLabel;
@@ -932,18 +924,43 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (!isCompact) ...[
+                    logo,
+                    const SizedBox(width: 12),
+                  ],
                   Expanded(
-                    child: Text(
-                      title,
-                      style: AppTheme.h2.copyWith(
-                        fontSize: 20,
-                        color: Colors.white,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greeting,
+                          style: AppTheme.bodyAction.copyWith(
+                            color: Colors.white.withValues(alpha: 0.88),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (displayName.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            displayName,
+                            style: AppTheme.h2.copyWith(
+                              fontSize: 22,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 10),
                 ],
               ),
+              if (isCompact) ...[
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: logo,
+                ),
+              ],
               if (!isCompact) ...[
                 const SizedBox(height: 8),
                 metaBlock,
@@ -955,20 +972,77 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
           return ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 144),
-            child: Flex(
-              direction: isCompact ? Axis.vertical : Axis.horizontal,
-              crossAxisAlignment: isCompact
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.center,
-              children: [
-                logo,
-                SizedBox(width: isCompact ? 0 : 18, height: isCompact ? 16 : 0),
-                if (isCompact) textBlock else Expanded(child: textBlock),
-              ],
-            ),
+            child: textBlock,
           );
         },
       ),
+    );
+  }
+
+  Widget _buildHomeContent(
+    BuildContext context, {
+    required _HomeServiceItem? scanShortcut,
+    required List<_HomeServiceItem> listServices,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mediaQuery = MediaQuery.of(context);
+        final isLandscapePhone =
+            mediaQuery.orientation == Orientation.landscape &&
+            constraints.maxWidth < 1100;
+
+        if (!isLandscapePhone) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeCard(),
+              if (scanShortcut != null) ...[
+                const SizedBox(height: 14),
+                _buildScanShortcut(scanShortcut),
+              ],
+              const SizedBox(height: 18),
+              _buildServicesSection(listServices),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 11, child: _buildWelcomeCard()),
+                if (scanShortcut != null) ...[
+                  const SizedBox(width: 14),
+                  Expanded(flex: 9, child: _buildScanShortcut(scanShortcut)),
+                ],
+              ],
+            ),
+            const SizedBox(height: 18),
+            _buildServicesSection(listServices),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildServicesGrid(
+    List<_HomeServiceItem> services, {
+    required int crossAxisCount,
+    required double childAspectRatio,
+  }) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: services.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: childAspectRatio,
+      ),
+      itemBuilder: (context, index) => _buildCompactServiceTile(services[index]),
     );
   }
 
@@ -1220,7 +1294,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final l = context.loc;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useCompactGrid = constraints.maxWidth < 640;
+        final mediaQuery = MediaQuery.of(context);
+        final isLandscapePhone =
+            mediaQuery.orientation == Orientation.landscape &&
+            constraints.maxWidth < 1100;
+        final useCompactGrid = constraints.maxWidth < 640 || isLandscapePhone;
         final sectionHeader = Row(
           children: [
             Container(
@@ -1279,18 +1357,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             if (services.isEmpty)
               emptyState
             else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: services.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.92,
-                ),
-                itemBuilder: (context, index) =>
-                    _buildCompactServiceTile(services[index]),
+              _buildServicesGrid(
+                services,
+                crossAxisCount: isLandscapePhone ? 4 : 3,
+                childAspectRatio: isLandscapePhone ? 1.15 : 0.92,
               ),
           ],
         );

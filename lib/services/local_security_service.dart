@@ -340,12 +340,33 @@ class LocalSecurityService {
   }
 
   static Future<void> handleAppResumed() async {
+    await _evaluateRelockRequirement(
+      forceOnNextLaunch: false,
+      consumeEvent: true,
+    );
+  }
+
+  static Future<void> syncRelockStateForLaunch() async {
+    await _evaluateRelockRequirement(
+      forceOnNextLaunch: true,
+      consumeEvent: false,
+    );
+  }
+
+  static Future<void> _evaluateRelockRequirement({
+    required bool forceOnNextLaunch,
+    required bool consumeEvent,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final backgroundedAt = prefs.getInt(_backgroundedAtKey);
-    await prefs.remove(_backgroundedAtKey);
     if (backgroundedAt == null) {
       return;
     }
+
+    if (consumeEvent) {
+      await prefs.remove(_backgroundedAtKey);
+    }
+
     final hasLocalSecurity = await hasConfiguredLocalSecurity();
     if (!hasLocalSecurity) {
       _securitySetupRequired = true;
@@ -355,8 +376,11 @@ class LocalSecurityService {
     final relockTimeout = await relockTimeoutInSeconds();
     final elapsed = DateTime.now().millisecondsSinceEpoch - backgroundedAt;
     final canUseUnlock = await canUseTrustedUnlock();
-    if (canUseUnlock &&
-        elapsed >= Duration(seconds: relockTimeout).inMilliseconds) {
+    final shouldRelock =
+        canUseUnlock &&
+        (forceOnNextLaunch ||
+            elapsed >= Duration(seconds: relockTimeout).inMilliseconds);
+    if (shouldRelock) {
       _relockRequired = true;
       _notifySecurityStateChanged();
     }
@@ -406,7 +430,9 @@ class LocalSecurityService {
 
   static Future<String> _hashPin(String pin) async {
     final digest = await _sha256.hash(pin.codeUnits);
-    return digest.bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+    return digest.bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
   }
 
   static String _normalizePin(String pin) {

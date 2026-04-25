@@ -995,6 +995,8 @@ class _BalanceScreenState extends State<BalanceScreen>
     final availablePrintingBalance = _userAmount('availablePrintingBalance');
     final printingDebtLimit = _userAmount('printingDebtLimit');
     final outstandingDebt = _userAmount('outstandingDebt');
+    final showAvailablePrintingBalance =
+        (availablePrintingBalance - balance).abs() > 0.0001;
     final showPrintingDebtLimit = printingDebtLimit > 0;
     final showOutstandingDebt = outstandingDebt > 0;
     final roleLabel = _user?['roleLabel']?.toString().trim() ?? '';
@@ -1002,12 +1004,13 @@ class _BalanceScreenState extends State<BalanceScreen>
         ? l.tr('screens_balance_screen.036')
         : l.tr('screens_balance_screen.037');
     final details = <_BalanceOverviewItem>[
-      _BalanceOverviewItem(
-        icon: Icons.print_rounded,
-        label: l.tr('screens_balance_screen.117'),
-        value: CurrencyFormatter.ils(availablePrintingBalance),
-        color: AppTheme.accent,
-      ),
+      if (showAvailablePrintingBalance)
+        _BalanceOverviewItem(
+          icon: Icons.print_rounded,
+          label: l.tr('screens_balance_screen.117'),
+          value: CurrencyFormatter.ils(availablePrintingBalance),
+          color: AppTheme.accent,
+        ),
       if (showPrintingDebtLimit)
         _BalanceOverviewItem(
           icon: Icons.credit_score_rounded,

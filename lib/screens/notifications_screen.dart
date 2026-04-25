@@ -543,9 +543,6 @@ class _NotificationCard extends StatelessWidget {
         ? Map<String, dynamic>.from(item['data'] as Map)
         : const <String, dynamic>{};
     final amount = (data['amount'] as num?)?.toDouble();
-    final fee = (data['fee'] as num?)?.toDouble();
-    final type =
-        data['transactionType']?.toString() ?? item['type']?.toString() ?? '';
     final categoryColor = _notificationCategoryColor(categoryKind);
     final notificationIcon = _notificationVisualIcon(item);
     final actor = _notificationActorLabel(data);
@@ -678,25 +675,10 @@ class _NotificationCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _InfoChip(icon: Icons.schedule_rounded, label: createdAt),
-              if (amount != null && !isFinancial)
-                _InfoChip(
-                  icon: Icons.payments_rounded,
-                  label: CurrencyFormatter.ils(amount),
-                ),
-              if (fee != null && fee > 0)
-                _InfoChip(
-                  icon: Icons.percent_rounded,
-                  label: CurrencyFormatter.ils(fee),
-                ),
+              if (createdAt.trim().isNotEmpty)
+                _InfoChip(icon: Icons.schedule_rounded, label: createdAt),
               if (actor != null)
                 _InfoChip(icon: Icons.person_rounded, label: actor),
-              ..._notificationCardContextChips(
-                context,
-                data,
-                type,
-                includeCardBarcode: false,
-              ),
             ],
           ),
         ],
