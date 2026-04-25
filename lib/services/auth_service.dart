@@ -110,7 +110,7 @@ class AuthService {
         )
         .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
-      throw Exception(_extractMessage(response.body));
+      throw Exception(_extractRegistrationMessage(response.body));
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -156,7 +156,7 @@ class AuthService {
         )
         .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
-      throw Exception(_extractMessage(response.body));
+      throw Exception(_extractRegistrationMessage(response.body));
     }
   }
 
@@ -193,7 +193,7 @@ class AuthService {
         )
         .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
-      throw Exception(_extractMessage(response.body));
+      throw Exception(_extractRegistrationMessage(response.body));
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -245,7 +245,7 @@ class AuthService {
         )
         .timeout(_requestTimeout);
     if (response.statusCode >= 400) {
-      throw Exception(_extractMessage(response.body));
+      throw Exception(_extractRegistrationMessage(response.body));
     }
     return Map<String, dynamic>.from(
       jsonDecode(response.body) as Map<String, dynamic>,
@@ -516,5 +516,9 @@ class AuthService {
 
   String _extractMessage(String body) {
     return ErrorMessageService.fromResponseBody(body);
+  }
+
+  String _extractRegistrationMessage(String body) {
+    return ErrorMessageService.fromRegistrationResponseBody(body);
   }
 }

@@ -86,6 +86,34 @@ class ErrorMessageService {
     return cleaned;
   }
 
+  static String sanitizeRegistration(Object? error) {
+    final text = (error?.toString() ?? '').trim();
+    if (text.isEmpty) {
+      return _tr('services_error_message_service.012');
+    }
+
+    final lower = text.toLowerCase();
+    if (lower.contains('registration is currently disabled') ||
+        lower.contains('registration disabled') ||
+        lower.contains('could not start registration') ||
+        lower.contains('required permission to continue') ||
+        lower.contains('please sign in with an account that has the required permission') ||
+        lower.contains('trusted client key') ||
+        lower.contains('client key') ||
+        lower.contains('unauthorized') ||
+        lower.contains('forbidden') ||
+        lower.contains('401') ||
+        lower.contains('403') ||
+        lower.contains('التسجيل الجديد متوقف') ||
+        lower.contains('التسجيل متوقف') ||
+        lower.contains('الصلاحية المطلوبة') ||
+        lower.contains('الطلب العام غير موثق')) {
+      return _tr('services_error_message_service.012');
+    }
+
+    return sanitize(text);
+  }
+
   static String fromResponseBody(String body) {
     try {
       final decoded = jsonDecode(body);
@@ -98,6 +126,20 @@ class ErrorMessageService {
     } catch (_) {}
 
     return sanitize(body);
+  }
+
+  static String fromRegistrationResponseBody(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final message = decoded['message']?.toString();
+        if (message != null && message.trim().isNotEmpty) {
+          return sanitizeRegistration(message);
+        }
+      }
+    } catch (_) {}
+
+    return sanitizeRegistration(body);
   }
 
   static String _tr(String key) {

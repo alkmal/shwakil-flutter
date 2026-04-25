@@ -1980,6 +1980,8 @@ const Map<String, String> appStringsEn = {
       'This device is not approved for this account. Sign in from an approved device or ask the admin to approve this one.',
   'services_error_message_service.011':
       'Your session has expired or is no longer valid on this device. Sign in again, then try scanning the card once more.',
+  'services_error_message_service.012':
+      'Registration is currently unavailable. Please try again later and contact support for more details.',
   'services_local_notification_service.001': 'Account updates',
   'services_local_notification_service.002':
       'Account, request, and important alert notifications',
