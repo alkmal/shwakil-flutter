@@ -132,6 +132,15 @@ class ApiService {
     return Map<String, dynamic>.from(body['fees'] as Map? ?? const {});
   }
 
+  Future<Map<String, dynamic>> getOfflineCardSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/offline-cards'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(body['offlineCards'] as Map? ?? const {});
+  }
+
   Future<Map<String, dynamic>> getPermissionTemplates() async {
     final response = await http.get(
       AppConfig.apiUri('admin/settings/permissions'),
@@ -958,6 +967,25 @@ class ApiService {
       AppConfig.apiUri('admin/settings/transfer'),
       headers: await _headers(),
       body: jsonEncode({'unverifiedTransferLimit': unverifiedTransferLimit}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateAdminOfflineCardSettings({
+    required double maxPendingAmount,
+    required int maxPendingCount,
+    required int maxCachedCards,
+    required int syncIntervalMinutes,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/offline-cards'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'maxPendingAmount': maxPendingAmount,
+        'maxPendingCount': maxPendingCount,
+        'maxCachedCards': maxCachedCards,
+        'syncIntervalMinutes': syncIntervalMinutes,
+      }),
     );
     return _decodeObject(response);
   }
@@ -1919,6 +1947,14 @@ class ApiService {
   Future<void> _patchCachedBalanceFromPayload(Map<String, dynamic> body) async {
     final balance = body['balance'];
     if (balance is num) {
+      final currentUser = await _authService.currentUser();
+      final currentUserId = currentUser?['id']?.toString();
+      final balanceOwnerId = body['balanceOwnerId']?.toString();
+      if (balanceOwnerId != null &&
+          balanceOwnerId.isNotEmpty &&
+          currentUserId != balanceOwnerId) {
+        return;
+      }
       await _authService.patchCurrentUser({'balance': balance.toDouble()});
     }
   }

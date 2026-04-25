@@ -14,6 +14,7 @@ class AppUpdateRequirement {
     required this.latestVersion,
     required this.storeUrl,
     required this.platformLabel,
+    required this.isForced,
   });
 
   final String currentVersion;
@@ -21,6 +22,7 @@ class AppUpdateRequirement {
   final String latestVersion;
   final String storeUrl;
   final String platformLabel;
+  final bool isForced;
 
   bool get hasStoreUrl => storeUrl.trim().isNotEmpty;
 }
@@ -77,19 +79,26 @@ class AppVersionService {
     final auth = Map<String, dynamic>.from(body['auth'] as Map? ?? const {});
     final minSupportedVersion =
         auth['minSupportedVersion']?.toString().trim() ?? '';
-    if (minSupportedVersion.isEmpty) {
-      return null;
-    }
-
-    final currentVersion = info.version.trim();
-    if (_compareVersions(currentVersion, minSupportedVersion) >= 0) {
-      return null;
-    }
-
     final latestVersion =
         auth['latestVersion']?.toString().trim().isNotEmpty == true
         ? auth['latestVersion'].toString().trim()
         : minSupportedVersion;
+
+    if (minSupportedVersion.isEmpty && latestVersion.isEmpty) {
+      return null;
+    }
+
+    final currentVersion = info.version.trim();
+    final forced =
+        minSupportedVersion.isNotEmpty &&
+        _compareVersions(currentVersion, minSupportedVersion) < 0;
+    final newerAvailable =
+        latestVersion.isNotEmpty &&
+        _compareVersions(currentVersion, latestVersion) < 0;
+
+    if (!forced && !newerAvailable) {
+      return null;
+    }
 
     return AppUpdateRequirement(
       currentVersion: currentVersion,
@@ -97,6 +106,7 @@ class AppVersionService {
       latestVersion: latestVersion,
       storeUrl: _storeUrlForPlatform(auth),
       platformLabel: _platformLabel,
+      isForced: forced,
     );
   }
 

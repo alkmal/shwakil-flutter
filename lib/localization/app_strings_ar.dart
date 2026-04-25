@@ -990,6 +990,14 @@ const Map<String, String> appStringsAr = {
       'راجع نص السياسة المعروض داخل التطبيق.',
   'screens_admin_system_settings_screen.065':
       'اضبط نسب الرسوم الخاصة بحركات الرصيد والبطاقات.',
+  'screens_admin_system_settings_screen.075': 'الأوفلاين',
+  'screens_admin_system_settings_screen.076':
+      'اضبط مهلة الاتصال الإجباري وحدود مخزون البطاقات المحلي.',
+  'screens_admin_system_settings_screen.077': 'مهلة المزامنة الإجباري',
+  'screens_admin_system_settings_screen.078': 'أقصى عدد بطاقات محفوظة',
+  'screens_admin_system_settings_screen.079': 'أقصى عدد بطاقات معلقة',
+  'screens_admin_system_settings_screen.080': 'أقصى قيمة بطاقات معلقة',
+  'screens_admin_system_settings_screen.081': 'دقيقة',
   'screens_admin_customers_screen.038': 'لا تملك صلاحية عرض العملاء',
   'screens_admin_customers_screen.039': 'إخفاء البحث',
   'screens_admin_customers_screen.040': 'إظهار البحث',
@@ -1539,6 +1547,14 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.115': 'ابدأ بمسح الكود أو إدخال الرقم يدويًا',
   'screens_scan_card_screen.116': 'ستظهر هنا نتيجة الفحص فقط عند توفرها',
   'screens_scan_card_screen.117': 'فتح دفتر الديون',
+  'screens_scan_card_screen.118': 'المزامنة مطلوبة',
+  'screens_scan_card_screen.119':
+      'انتهت مهلة العمل أوفلاين المحددة بـ {minutes} دقيقة. تم حذف مخزون البطاقات المحلي للاستخدام، ويجب الاتصال بالإنترنت وتحديث المزامنة قبل متابعة الفحص.',
+  'screens_scan_card_screen.120':
+      'البطاقات المتاحة أوفلاين: {count}. آخر مزامنة: {date}.',
+  'screens_scan_card_screen.121':
+      'انتهت مهلة الأوفلاين ({minutes} دقيقة). اتصل بالإنترنت لتحديث المزامنة قبل استخدام فحص البطاقات.',
+  'screens_scan_card_screen.122': 'لم تتم المزامنة بعد',
   'screens_admin_dashboard_screen.020':
       'لا تملك صلاحية الوصول إلى لوحة الإدارة',
   'screens_admin_dashboard_screen.021': 'طلبات',
@@ -2248,6 +2264,14 @@ const Map<String, String> appStringsAr = {
       'بعد اعتماد الطلب سيضاف الرصيد مباشرة إلى حسابك مع إشعار مناسب داخل التطبيق.',
   'screens_balance_screen.126': 'اختيار التاريخ',
   'screens_balance_screen.127': 'اختيار الوقت',
+  'screens_balance_screen.128':
+      'ابحث باسم المستخدم أو أرسل مباشرة باستخدام رقم هاتف المستلم.',
+  'screens_balance_screen.129':
+      'أدخل رقم هاتف المستلم وتحقق منه قبل إرسال الرصيد.',
+  'screens_balance_screen.130': 'نتائج البحث',
+  'screens_balance_screen.131': 'تم الاختيار',
+  'screens_balance_screen.132': 'بحث عن مستخدم',
+  'screens_balance_screen.133': 'إرسال برقم الهاتف',
   'screens_admin_pending_registrations_screen.001':
       'بحث بالاسم أو اسم المستخدم أو الجوال',
   'screens_admin_pending_registrations_screen.002':
@@ -2405,9 +2429,9 @@ const Map<String, String> appStringsAr = {
   'shared.delivery_card_badge': 'توصيل',
   'shared.delivery_card_payments_note': 'بطاقة توصيل يمكن استخدامها للمدفوعات',
   'shared.delivery_card_create_note':
-      'بطاقة توصيل غير مالية، وتُستخدم للمسح والمزامنة في وضع الأوف لاين، ويمكن استخدامها للمدفوعات.',
+      'بطاقة توصيل مالية تظهر للسائقين في مزامنة الأوفلاين ويمكن استخدامها للمدفوعات.',
   'shared.delivery_card_print_note':
-      'بطاقات التوصيل غير مالية، وتُطبع للسائقين مع توضيح أنها بطاقات توصيل.',
+      'بطاقات التوصيل تُطبع للسائقين مع توضيح أنها بطاقات توصيل ويمكن استخدامها كرصيد.',
   'shared.usage_label': 'الاستخدام',
   'shared.role_marketer': 'مسوق',
   'shared.rejection_reason_label': 'سبب الرفض',
@@ -2431,8 +2455,7 @@ const Map<String, String> appStringsAr = {
       'سيتم تطبيق سقف مديونية المسوق تلقائيًا بحسب إعدادات التسويق.',
   'screens_admin_customer_screen.080':
       'لا يمكن للمسوق تعديل حسابات الإدارة أو الدعم أو المسوقين.',
-  'screens_admin_system_settings_screen.073':
-      'سقف مديونية الطباعة للمسوق',
+  'screens_admin_system_settings_screen.073': 'سقف مديونية الطباعة للمسوق',
   'screens_admin_system_settings_screen.074':
       'هذا السقف يحدد الحد الأعلى الذي يستطيع المسوق منحه للمستخدم كمديونية طباعة.',
   'screens_admin_permissions_screen.048': 'عرض مركز التسويق بالعمولة',

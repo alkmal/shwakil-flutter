@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
-import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -135,18 +134,11 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     await LocalSecurityService.clearRelockRequirement();
     await LocalSecurityService.skipNextUnlock();
     await RealtimeNotificationService.start();
-    final currentUser = await _auth.currentUser();
+    await LocalSecurityService.clearSecuritySetupRequirement();
     if (!mounted) {
       return;
     }
-    final permissions = AppPermissions.fromUser(currentUser);
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      permissions.shouldOpenAdminWorkspaceByDefault
-          ? '/admin-dashboard'
-          : '/home',
-      (route) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
   }
 
   String _subtitle(AppLocalizer l) {

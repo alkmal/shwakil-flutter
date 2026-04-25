@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
-import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -140,6 +139,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         otpCode: _otpController.text.trim(),
       );
       await LocalSecurityService.clearRelockRequirement();
+      await LocalSecurityService.clearSecuritySetupRequirement();
       await LocalSecurityService.skipNextUnlock();
       await LocalSecurityService.markDeviceTrusted(
         widget.username.trim().toLowerCase(),
@@ -151,26 +151,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) {
         return;
       }
-      final currentUser = await _authService.currentUser();
-      if (!mounted) {
-        return;
-      }
-      final permissions = AppPermissions.fromUser(currentUser);
       if (widget.redirectRoute?.trim().isNotEmpty == true) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          widget.redirectRoute!,
-          (route) => false,
-        );
-        return;
+        if (widget.offlineMode) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            widget.redirectRoute!,
+            (route) => false,
+          );
+          return;
+        }
       }
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        permissions.shouldOpenAdminWorkspaceByDefault
-            ? '/admin-dashboard'
-            : '/app-shell',
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
     } catch (error) {
       if (!mounted) {
         return;

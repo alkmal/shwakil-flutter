@@ -152,6 +152,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   border: Border.all(color: AppTheme.borderLight),
                 ),
                 child: TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: const EdgeInsets.all(6),

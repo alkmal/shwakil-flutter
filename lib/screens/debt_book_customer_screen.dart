@@ -890,22 +890,27 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                             builder: (context, constraints) {
                               final isCompact = constraints.maxWidth < 720;
                               return Flex(
-                                direction: isCompact ? Axis.vertical : Axis.horizontal,
+                                direction: isCompact
+                                    ? Axis.vertical
+                                    : Axis.horizontal,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
                                     flex: isCompact ? 0 : 1,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          customer['fullName']?.toString() ?? '-',
+                                          customer['fullName']?.toString() ??
+                                              '-',
                                           style: AppTheme.h3,
                                         ),
                                         const SizedBox(height: 10),
                                         _customerInfoPill(
                                           icon: Icons.phone_rounded,
-                                          text: customer['phone']
+                                          text:
+                                              customer['phone']
                                                       ?.toString()
                                                       .trim()
                                                       .isNotEmpty ==
@@ -926,7 +931,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                             padding: const EdgeInsets.all(14),
                                             decoration: BoxDecoration(
                                               color: AppTheme.surfaceVariant,
-                                              borderRadius: BorderRadius.circular(16),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
                                             ),
                                             child: Text(
                                               customer['notes'].toString(),
@@ -942,18 +948,18 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                     height: isCompact ? 14 : 0,
                                   ),
                                   Wrap(
-                                    spacing: 10,
-                                    runSpacing: 10,
+                                    spacing: 8,
+                                    runSpacing: 8,
                                     children: [
-                                      ShwakelButton(
-                                        label: _t(
+                                      _smallActionIconButton(
+                                        tooltip: _t(
                                           'screens_debt_book_customer_screen.053',
                                         ),
                                         icon: Icons.edit_rounded,
                                         onPressed: _showEditCustomerDialog,
                                       ),
-                                      ShwakelButton(
-                                        label: _t(
+                                      _smallActionIconButton(
+                                        tooltip: _t(
                                           'screens_debt_book_customer_screen.054',
                                         ),
                                         icon: Icons.delete_outline_rounded,
@@ -1156,33 +1162,27 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                     ],
                                   ),
                                 ),
-                                PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    if (value == 'edit') {
-                                      _showEntryDialog(
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _smallActionIconButton(
+                                      tooltip: _t(
+                                        'screens_debt_book_customer_screen.065',
+                                      ),
+                                      icon: Icons.edit_rounded,
+                                      onPressed: () => _showEntryDialog(
                                         entry['type']?.toString() ?? 'debt',
                                         entry: entry,
-                                      );
-                                    } else if (value == 'delete') {
-                                      _deleteEntry(entry);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text(
-                                        _t(
-                                          'screens_debt_book_customer_screen.065',
-                                        ),
                                       ),
                                     ),
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text(
-                                        _t(
-                                          'screens_debt_book_customer_screen.045',
-                                        ),
+                                    const SizedBox(width: 6),
+                                    _smallActionIconButton(
+                                      tooltip: _t(
+                                        'screens_debt_book_customer_screen.045',
                                       ),
+                                      icon: Icons.delete_outline_rounded,
+                                      isDanger: true,
+                                      onPressed: () => _deleteEntry(entry),
                                     ),
                                   ],
                                 ),
@@ -1195,6 +1195,31 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _smallActionIconButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onPressed,
+    bool isDanger = false,
+  }) {
+    final color = isDanger ? AppTheme.error : AppTheme.primary;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onPressed,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: Icon(icon, size: 19, color: color),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1236,10 +1261,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     );
   }
 
-  Widget _customerInfoPill({
-    required IconData icon,
-    required String text,
-  }) {
+  Widget _customerInfoPill({required IconData icon, required String text}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(

@@ -375,8 +375,9 @@ class _BalanceScreenState extends State<BalanceScreen>
               );
               setDialogState(() {
                 selectedTransferredAt = merged;
-                transferredAtController.text =
-                    _formatTopupRequestDateTime(merged);
+                transferredAtController.text = _formatTopupRequestDateTime(
+                  merged,
+                );
               });
             }
 
@@ -397,8 +398,9 @@ class _BalanceScreenState extends State<BalanceScreen>
               );
               setDialogState(() {
                 selectedTransferredAt = merged;
-                transferredAtController.text =
-                    _formatTopupRequestDateTime(merged);
+                transferredAtController.text = _formatTopupRequestDateTime(
+                  merged,
+                );
               });
             }
 
@@ -664,14 +666,22 @@ class _BalanceScreenState extends State<BalanceScreen>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        tooltip: l.tr('screens_balance_screen.126'),
+                                        tooltip: l.tr(
+                                          'screens_balance_screen.126',
+                                        ),
                                         onPressed: pickTransferDate,
-                                        icon: const Icon(Icons.calendar_today_rounded),
+                                        icon: const Icon(
+                                          Icons.calendar_today_rounded,
+                                        ),
                                       ),
                                       IconButton(
-                                        tooltip: l.tr('screens_balance_screen.127'),
+                                        tooltip: l.tr(
+                                          'screens_balance_screen.127',
+                                        ),
                                         onPressed: pickTransferTime,
-                                        icon: const Icon(Icons.access_time_rounded),
+                                        icon: const Icon(
+                                          Icons.access_time_rounded,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -920,6 +930,8 @@ class _BalanceScreenState extends State<BalanceScreen>
       shadowLevel: ShwakelShadowLevel.soft,
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
         dividerColor: Colors.transparent,
         indicatorSize: TabBarIndicatorSize.tab,
         indicatorPadding: const EdgeInsets.all(4),
@@ -1835,6 +1847,7 @@ class _BalanceScreenState extends State<BalanceScreen>
     String? searchError;
     String? phoneLookupMessage;
     String countryCode = PhoneNumberService.countries.first.dialCode;
+    int recipientLookupTab = enablePhoneLookup ? 1 : 0;
 
     Future<void> performSearch(StateSetter setDialogState) async {
       final query = queryController.text.trim();
@@ -1959,7 +1972,7 @@ class _BalanceScreenState extends State<BalanceScreen>
                               const SizedBox(height: 4),
                               Text(
                                 enablePhoneLookup
-                                    ? l.tr('screens_balance_screen.104')
+                                    ? l.tr('screens_balance_screen.128')
                                     : l.tr('screens_balance_screen.079'),
                                 style: AppTheme.bodyAction.copyWith(
                                   height: 1.45,
@@ -1971,7 +1984,20 @@ class _BalanceScreenState extends State<BalanceScreen>
                       ],
                     ),
                   ),
-                  if (!enablePhoneLookup) ...[
+                  if (enablePhoneLookup) ...[
+                    const SizedBox(height: 18),
+                    _buildRecipientLookupTabs(
+                      selectedIndex: recipientLookupTab,
+                      onChanged: (index) {
+                        setDialogState(() {
+                          recipientLookupTab = index;
+                          searchError = null;
+                          phoneLookupMessage = null;
+                        });
+                      },
+                    ),
+                  ],
+                  if (!enablePhoneLookup || recipientLookupTab == 0) ...[
                     const SizedBox(height: 18),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -2044,7 +2070,7 @@ class _BalanceScreenState extends State<BalanceScreen>
                       ),
                     ],
                   ],
-                  if (enablePhoneLookup) ...[
+                  if (enablePhoneLookup && recipientLookupTab == 1) ...[
                     const SizedBox(height: 18),
                     ShwakelCard(
                       padding: const EdgeInsets.all(18),
@@ -2080,7 +2106,7 @@ class _BalanceScreenState extends State<BalanceScreen>
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      l.tr('screens_balance_screen.105'),
+                                      l.tr('screens_balance_screen.129'),
                                       style: AppTheme.caption.copyWith(
                                         color: AppTheme.textSecondary,
                                         height: 1.45,
@@ -2237,7 +2263,7 @@ class _BalanceScreenState extends State<BalanceScreen>
                   if (searchResults.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(
-                      l.tr('screens_balance_screen.106'),
+                      l.tr('screens_balance_screen.130'),
                       style: AppTheme.bodyBold,
                     ),
                     const SizedBox(height: 10),
@@ -2393,7 +2419,7 @@ class _BalanceScreenState extends State<BalanceScreen>
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
-                                  l.tr('screens_balance_screen.107'),
+                                  l.tr('screens_balance_screen.131'),
                                   style: AppTheme.caption.copyWith(
                                     color: AppTheme.success,
                                     fontWeight: FontWeight.w800,
@@ -2483,7 +2509,8 @@ class _BalanceScreenState extends State<BalanceScreen>
               onPressed: () {
                 if (selectedUser == null) {
                   setDialogState(
-                    () => searchError = enablePhoneLookup
+                    () => searchError =
+                        enablePhoneLookup && recipientLookupTab == 1
                         ? l.tr('screens_balance_screen.094')
                         : l.tr('screens_balance_screen.095'),
                   );
@@ -2499,6 +2526,88 @@ class _BalanceScreenState extends State<BalanceScreen>
                 );
               },
               child: Text(confirmLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecipientLookupTabs({
+    required int selectedIndex,
+    required ValueChanged<int> onChanged,
+  }) {
+    final l = context.loc;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(6),
+      borderRadius: BorderRadius.circular(18),
+      shadowLevel: ShwakelShadowLevel.none,
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildRecipientLookupTab(
+              selected: selectedIndex == 0,
+              icon: Icons.search_rounded,
+              label: l.tr('screens_balance_screen.132'),
+              onTap: () => onChanged(0),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _buildRecipientLookupTab(
+              selected: selectedIndex == 1,
+              icon: Icons.phone_iphone_rounded,
+              label: l.tr('screens_balance_screen.133'),
+              onTap: () => onChanged(1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecipientLookupTab({
+    required bool selected,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 46),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primary.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? AppTheme.primary.withValues(alpha: 0.24)
+                : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.caption.copyWith(
+                  color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),

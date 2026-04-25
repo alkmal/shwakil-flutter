@@ -397,6 +397,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: EdgeInsets.all(6),

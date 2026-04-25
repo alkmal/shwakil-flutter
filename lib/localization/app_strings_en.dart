@@ -1146,6 +1146,14 @@ const Map<String, String> appStringsEn = {
       'Review the policy text shown inside the app.',
   'screens_admin_system_settings_screen.065':
       'Adjust fee percentages for wallet and card operations.',
+  'screens_admin_system_settings_screen.075': 'Offline',
+  'screens_admin_system_settings_screen.076':
+      'Set the forced reconnect interval and local card inventory limits.',
+  'screens_admin_system_settings_screen.077': 'Required sync interval',
+  'screens_admin_system_settings_screen.078': 'Maximum cached cards',
+  'screens_admin_system_settings_screen.079': 'Maximum pending cards',
+  'screens_admin_system_settings_screen.080': 'Maximum pending amount',
+  'screens_admin_system_settings_screen.081': 'minutes',
   'screens_admin_customers_screen.038':
       'You do not have permission to view customers.',
   'screens_admin_customers_screen.039': 'Hide search',
@@ -1598,6 +1606,14 @@ const Map<String, String> appStringsEn = {
       'Start by scanning the code or entering it manually',
   'screens_scan_card_screen.116': 'The result will appear here when available',
   'screens_scan_card_screen.117': 'Open debt book',
+  'screens_scan_card_screen.118': 'Sync required',
+  'screens_scan_card_screen.119':
+      'The offline work window of {minutes} minutes has expired. Local usable card inventory was cleared, and you must connect to the internet and sync before scanning again.',
+  'screens_scan_card_screen.120':
+      'Offline cards available: {count}. Last sync: {date}.',
+  'screens_scan_card_screen.121':
+      'The offline window ({minutes} minutes) has expired. Connect to the internet and sync before using card scanning.',
+  'screens_scan_card_screen.122': 'Not synced yet',
   'screens_admin_dashboard_screen.020':
       'You do not have access to the admin dashboard',
   'screens_admin_dashboard_screen.021': 'Requests',
@@ -2331,6 +2347,14 @@ const Map<String, String> appStringsEn = {
       'After approval, the balance will be added directly to your account with a suitable in-app notification.',
   'screens_balance_screen.126': 'Choose date',
   'screens_balance_screen.127': 'Choose time',
+  'screens_balance_screen.128':
+      'Search by username, or send directly using the recipient phone number.',
+  'screens_balance_screen.129':
+      'Enter the recipient phone number and verify it before sending.',
+  'screens_balance_screen.130': 'Search results',
+  'screens_balance_screen.131': 'Selected',
+  'screens_balance_screen.132': 'Search user',
+  'screens_balance_screen.133': 'Send by phone',
   'screens_admin_pending_registrations_screen.001':
       'Search by name, username, or phone',
   'screens_admin_pending_registrations_screen.002':
@@ -2498,9 +2522,9 @@ const Map<String, String> appStringsEn = {
   'shared.delivery_card_payments_note':
       'Delivery card can be used for payments',
   'shared.delivery_card_create_note':
-      'This is a non-financial delivery card for offline scanning and syncing, and it can be used for payments.',
+      'This is a balance delivery card that syncs to drivers for offline scanning and can be used for payments.',
   'shared.delivery_card_print_note':
-      'Delivery cards are non-financial and are printed for drivers with a clear delivery label.',
+      'Delivery cards are printed for drivers with a clear delivery label and can be used as balance cards.',
   'shared.usage_label': 'Usage',
   'shared.role_marketer': 'Marketer',
   'shared.rejection_reason_label': 'Rejection reason',
@@ -2525,8 +2549,7 @@ const Map<String, String> appStringsEn = {
       'The marketer debt cap is applied automatically from the marketing settings.',
   'screens_admin_customer_screen.080':
       'Marketers cannot edit admin, support, or marketer accounts.',
-  'screens_admin_system_settings_screen.073':
-      'Marketer printing debt cap',
+  'screens_admin_system_settings_screen.073': 'Marketer printing debt cap',
   'screens_admin_system_settings_screen.074':
       'This cap controls the maximum printing debt a marketer can grant to a user.',
   'screens_admin_permissions_screen.048': 'View affiliate center',

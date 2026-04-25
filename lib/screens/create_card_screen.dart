@@ -129,10 +129,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
-    final isStandard = _cardType == 'standard';
+    final isBalanceCard = _cardType == 'standard' || _cardType == 'delivery';
     final isPrivate = _visibilityScope == 'restricted';
 
-    if (quantity <= 0 || (isStandard && amount <= 0)) {
+    if (quantity <= 0 || (isBalanceCard && amount <= 0)) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
@@ -158,7 +158,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final visibilityLabel = isPrivate
         ? l.tr('screens_create_card_screen.010')
         : l.tr('screens_create_card_screen.011');
-    final valueLabel = isStandard
+    final valueLabel = isBalanceCard
         ? CurrencyFormatter.ils(amount)
         : l.tr('screens_create_card_screen.012');
 
@@ -565,6 +565,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           title: Text(l.tr('screens_create_card_screen.029')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
           bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(
                 icon: const Icon(Icons.add_card_rounded),
@@ -735,7 +737,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
             const SizedBox(height: 16),
           ],
-          if (_cardType == 'standard')
+          if (_cardType == 'standard' || _cardType == 'delivery')
             TextField(
               controller: _amountC,
               keyboardType: const TextInputType.numberWithOptions(

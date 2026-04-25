@@ -155,10 +155,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       : l.tr('screens_onboarding_screen.003'),
                   icon: _currentPage == _slides.length - 1
                       ? (l.isArabic
-                            ? Icons.arrow_back_rounded
+                            ? Icons.arrow_forward_rounded
                             : Icons.arrow_forward_rounded)
                       : (l.isArabic
-                            ? Icons.chevron_left_rounded
+                            ? Icons.chevron_right_rounded
                             : Icons.chevron_right_rounded),
                   iconAtEnd: true,
                   isLoading: _isFinishing,

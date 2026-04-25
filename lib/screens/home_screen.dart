@@ -277,7 +277,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         );
 
         final updatedBalance = (result['balance'] as num?)?.toDouble();
-        if (updatedBalance != null) {
+        final balanceOwnerId = result['balanceOwnerId']?.toString();
+        if (updatedBalance != null &&
+            (balanceOwnerId == null ||
+                balanceOwnerId.isEmpty ||
+                balanceOwnerId == userId)) {
           await _authService.patchCurrentUser({'balance': updatedBalance});
         }
       }
@@ -993,73 +997,164 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Widget _buildServicesSection(List<_HomeServiceItem> services) {
     final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(28),
-      shadowLevel: ShwakelShadowLevel.medium,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useCompactGrid = constraints.maxWidth < 640;
+        final sectionHeader = Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppTheme.primarySoft,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.dashboard_customize_rounded,
+                color: AppTheme.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.tr('screens_home_screen.004'), style: AppTheme.h2),
+                  const SizedBox(height: 4),
+                  Text(
+                    services.isEmpty
+                        ? l.tr('screens_home_screen.005')
+                        : l.tr(
+                            'screens_home_screen.034',
+                            params: {'count': services.length.toString()},
+                          ),
+                    style: AppTheme.bodyAction,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+        final emptyState = Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Text(
+            l.tr('screens_home_screen.005'),
+            style: AppTheme.bodyAction,
+          ),
+        );
+
+        final compactBody = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            sectionHeader,
+            const SizedBox(height: 16),
+            if (services.isEmpty)
+              emptyState
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: services.length,
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.92,
+                    ),
+                itemBuilder: (context, index) =>
+                    _buildCompactServiceTile(services[index]),
+              ),
+          ],
+        );
+
+        if (useCompactGrid) {
+          return compactBody;
+        }
+
+        return ShwakelCard(
+          padding: const EdgeInsets.all(20),
+          borderRadius: BorderRadius.circular(28),
+          shadowLevel: ShwakelShadowLevel.medium,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              sectionHeader,
+              const SizedBox(height: 18),
+              if (services.isEmpty)
+                emptyState
+              else
+                Column(
+                  children: services.asMap().entries.map((entry) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: entry.key == services.length - 1 ? 0 : 12,
+                      ),
+                      child: _buildServiceListItem(entry.value),
+                    );
+                  }).toList(growable: false),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompactServiceTile(_HomeServiceItem item) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: item.onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppTheme.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: AppTheme.primarySoft,
+                  color: item.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(
-                  Icons.dashboard_customize_rounded,
-                  color: AppTheme.primary,
-                ),
+                child: Icon(item.icon, color: item.color, size: 24),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.tr('screens_home_screen.004'), style: AppTheme.h2),
-                    const SizedBox(height: 4),
-                    Text(
-                      services.isEmpty
-                          ? l.tr('screens_home_screen.005')
-                          : l.tr(
-                              'screens_home_screen.034',
-                              params: {'count': services.length.toString()},
-                            ),
-                      style: AppTheme.bodyAction,
-                    ),
-                  ],
+              const SizedBox(height: 10),
+              Text(
+                item.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.caption.copyWith(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  height: 1.35,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          if (services.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceVariant,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: Text(
-                l.tr('screens_home_screen.005'),
-                style: AppTheme.bodyAction,
-              ),
-            )
-          else
-            ...services.asMap().entries.map(
-              (entry) => Padding(
-                padding: EdgeInsets.only(
-                  bottom: entry.key == services.length - 1 ? 0 : 12,
-                ),
-                child: _buildServiceListItem(entry.value),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

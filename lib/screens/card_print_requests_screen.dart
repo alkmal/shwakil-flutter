@@ -116,7 +116,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           Future<void> submit() async {
             final value = double.tryParse(valueController.text.trim()) ?? 0;
             final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
-            if (quantity <= 0 || (cardType == 'standard' && value <= 0)) {
+            if (quantity <= 0 ||
+                ((cardType == 'standard' || cardType == 'delivery') &&
+                    value <= 0)) {
               await AppAlertService.showError(
                 dialogContext,
                 title: l.tr('screens_card_print_requests_screen.002'),
@@ -131,10 +133,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 (_user?['customCardPrintRequestFeePercent'] as num?)
                     ?.toDouble() ??
                 0;
-            final unitAmount =
-                (cardType == 'single_use' || cardType == 'delivery')
-                ? 0.01
-                : value;
+            final unitAmount = cardType == 'single_use' ? 0.01 : value;
             final baseAmount = unitAmount * quantity;
             final feeAmount = baseAmount * (feePercent / 100);
             final totalAmount = baseAmount + feeAmount;
@@ -293,10 +292,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      enabled: cardType == 'standard',
+                      enabled: cardType == 'standard' || cardType == 'delivery',
                       decoration: InputDecoration(
-                        labelText:
-                            cardType == 'single_use' || cardType == 'delivery'
+                        labelText: cardType == 'single_use'
                             ? l.tr('screens_card_print_requests_screen.011')
                             : l.tr('screens_card_print_requests_screen.012'),
                       ),
