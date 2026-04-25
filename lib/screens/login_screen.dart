@@ -218,20 +218,19 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       return;
     }
-    final shouldOpenSecuritySettings =
-        await _shouldPromptForLocalSecuritySetup();
     setState(() => _isLoading = false);
     if (!mounted) {
       return;
     }
-    if (shouldOpenSecuritySettings) {
-      final wantsSetupNow = await _promptForLocalSecuritySetup();
+    final navigator = Navigator.of(context);
+    if (!await LocalSecurityService.hasConfiguredLocalSecurity()) {
+      final shouldOpenSecuritySetup = await _showLocalSecurityWarning();
+      await LocalSecurityService.markLocalSecuritySetupReminderShown();
       if (!mounted) {
         return;
       }
-      if (wantsSetupNow == true) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
+      if (shouldOpenSecuritySetup == true) {
+        navigator.pushNamedAndRemoveUntil(
           '/security-settings',
           (route) => false,
           arguments: const {'showSetupHint': true},
@@ -241,15 +240,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     if (widget.redirectRoute?.trim().isNotEmpty == true) {
       if (widget.offlineMode) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
+        navigator.pushNamedAndRemoveUntil(
           widget.redirectRoute!,
           (route) => false,
         );
         return;
       }
     }
-    Navigator.pushNamedAndRemoveUntil(context, '/app-shell', (route) => false);
+    navigator.pushNamedAndRemoveUntil('/app-shell', (route) => false);
   }
 
   Future<bool> _isTrustedDeviceForUsername(String username) async {
@@ -273,21 +271,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return true;
   }
 
-  Future<bool> _shouldPromptForLocalSecuritySetup() async {
-    final hasPin = await LocalSecurityService.hasPin();
-    final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
-    return !hasPin && !biometricEnabled;
-  }
-
-  Future<bool?> _promptForLocalSecuritySetup() async {
+  Future<bool?> _showLocalSecurityWarning() async {
     final l = context.loc;
-    final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
-    final methodLabel = l.tr(
-      canUseBiometrics
-          ? 'screens_login_screen.021'
-          : 'screens_login_screen.022',
-    );
-
     if (!mounted) {
       return false;
     }
@@ -295,10 +280,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l.tr('screens_login_screen.017')),
-        content: Text(
-          l.tr('screens_login_screen.018', params: {'method': methodLabel}),
-        ),
+        title: Text(l.tr('screens_security_settings_screen.072')),
+        content: Text(l.tr('screens_security_settings_screen.073')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

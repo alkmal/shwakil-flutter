@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _hasOfflineWorkspace = false;
   bool _isSyncingOfflineWorkspace = false;
   bool _didSuggestOfflineWorkspace = false;
+  bool _didPromptLocalSecuritySetup = false;
   bool _isBalanceVisible = true;
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
   int _pendingOfflineCount = 0;
@@ -105,6 +106,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         '';
   }
 
+  bool get _isVerifiedUser {
+    final verificationStatus =
+        _user?['transferVerificationStatus']?.toString().trim().toLowerCase() ??
+        '';
+    return _user?['isVerified'] == true || verificationStatus == 'approved';
+  }
+
+  String get _verificationLabel {
+    return _isVerifiedUser
+        ? context.loc.tr('screens_balance_screen.036')
+        : context.loc.tr('screens_balance_screen.037');
+  }
+
   Future<void> _loadUser() async {
     setState(() => _isLoading = true);
     try {
@@ -124,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _isLoading = false;
       });
       _maybeSuggestOfflineWorkspace();
+      unawaited(_maybePromptLocalSecuritySetup());
     } catch (_) {
       final user = await _authService.currentUser();
       final hasOfflineWorkspace = await _resolveOfflineWorkspace(user);
@@ -140,7 +155,50 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _isLoading = false;
       });
       _maybeSuggestOfflineWorkspace();
+      unawaited(_maybePromptLocalSecuritySetup());
     }
+  }
+
+  Future<void> _maybePromptLocalSecuritySetup() async {
+    if (!mounted || _didPromptLocalSecuritySetup) {
+      return;
+    }
+    if (await LocalSecurityService.hasConfiguredLocalSecurity()) {
+      return;
+    }
+    final shouldPrompt =
+        await LocalSecurityService.shouldPromptLocalSecuritySetupReminder();
+    if (!mounted || !shouldPrompt) {
+      return;
+    }
+    _didPromptLocalSecuritySetup = true;
+    final l = context.loc;
+    final shouldOpenSecuritySetup = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('screens_security_settings_screen.072')),
+        content: Text(l.tr('screens_security_settings_screen.073')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.tr('screens_login_screen.019')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.tr('screens_login_screen.020')),
+          ),
+        ],
+      ),
+    );
+    await LocalSecurityService.markLocalSecuritySetupReminderShown();
+    if (!mounted || shouldOpenSecuritySetup != true) {
+      return;
+    }
+    Navigator.pushNamed(
+      context,
+      '/security-settings',
+      arguments: const {'showSetupHint': true},
+    );
   }
 
   Future<Map<String, dynamic>> _resolveOfflinePendingSummary(
@@ -702,7 +760,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final title = _displayName.isEmpty
         ? _t('screens_home_screen.084')
         : '${_t('screens_home_screen.084')}، $_displayName';
-    final subtitle = _roleLabel.isEmpty
+    final roleLabel = _roleLabel.isEmpty
         ? _t('screens_home_screen.085')
         : _roleLabel;
     final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
@@ -720,22 +778,56 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 520;
-          final statChip = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Text(
-              subtitle,
-              style: AppTheme.caption.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
+          Widget infoChip({
+            required IconData icon,
+            required String label,
+            required Color color,
+          }) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white24),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 16, color: color),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: AppTheme.caption.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final metaBlock = Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              infoChip(
+                icon: Icons.badge_rounded,
+                label: roleLabel,
+                color: Colors.white,
+              ),
+              infoChip(
+                icon: _isVerifiedUser
+                    ? Icons.verified_rounded
+                    : Icons.pending_outlined,
+                label: _verificationLabel,
+                color: _isVerifiedUser
+                    ? const Color(0xFFA7F3D0)
+                    : const Color(0xFFFDE68A),
+              ),
+            ],
           );
           final logo = Container(
             width: 72,
@@ -833,6 +925,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           final textBlock = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isCompact) ...[
+                metaBlock,
+                const SizedBox(height: 14),
+              ],
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -848,20 +944,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   const SizedBox(width: 10),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: AppTheme.bodyAction.copyWith(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  height: 1.5,
-                ),
-                maxLines: isCompact ? 2 : 1,
-                overflow: isCompact
-                    ? TextOverflow.visible
-                    : TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 14),
-              Wrap(spacing: 10, runSpacing: 10, children: [statChip]),
+              if (!isCompact) ...[
+                const SizedBox(height: 8),
+                metaBlock,
+              ],
               const SizedBox(height: 16),
               balanceCard,
             ],

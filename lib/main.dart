@@ -275,7 +275,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   static const String _onboardingSeenKey = 'onboarding_seen_v1';
   static const Duration _launchDecisionTimeout = Duration(seconds: 4);
   late Future<_LaunchDecision> _launchStateFuture;
-  bool _localUnlockSatisfiedThisSession = false;
   @override
   void initState() {
     super.initState();
@@ -333,36 +332,31 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final isLoggedIn = await authService.isLoggedIn();
     if (!isLoggedIn) {
       if (await _canOpenOfflineWorkspace(cachedUser)) {
-        _localUnlockSatisfiedThisSession = true;
         unawaited(RealtimeNotificationService.stop());
         return const _LaunchDecision(state: _LaunchState.loginOffline);
       }
-      _localUnlockSatisfiedThisSession = false;
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
-    if (LocalSecurityService.securitySetupRequired) {
-      return const _LaunchDecision(state: _LaunchState.securitySetup);
-    }
+    final hasLocalSecurity = await LocalSecurityService
+        .hasConfiguredLocalSecurity()
+        .timeout(const Duration(seconds: 1), onTimeout: () => false);
     final skipNextUnlock = await LocalSecurityService.consumeSkipNextUnlock();
     if (skipNextUnlock) {
-      _localUnlockSatisfiedThisSession = true;
       unawaited(RealtimeNotificationService.start());
       return const _LaunchDecision(state: _LaunchState.home);
     }
     final relockRequired = LocalSecurityService.relockRequired;
     final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
         .timeout(const Duration(seconds: 1), onTimeout: () => false);
-    if (relockRequired) {
+    if (relockRequired && hasLocalSecurity) {
       unawaited(RealtimeNotificationService.stop());
       if (canUseTrustedUnlock) {
         return const _LaunchDecision(state: _LaunchState.unlock);
       }
       if (await _canOpenOfflineWorkspace(cachedUser)) {
-        _localUnlockSatisfiedThisSession = true;
         return const _LaunchDecision(state: _LaunchState.scanOffline);
       }
-      _localUnlockSatisfiedThisSession = false;
       await authService.logout();
       return const _LaunchDecision(state: _LaunchState.login);
     }
@@ -372,7 +366,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       );
     } catch (_) {
       if (cachedUser != null) {
-        _localUnlockSatisfiedThisSession = true;
         if (await _canOpenOfflineWorkspace(cachedUser)) {
           unawaited(RealtimeNotificationService.stop());
           return const _LaunchDecision(state: _LaunchState.scanOffline);
@@ -380,12 +373,10 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         unawaited(RealtimeNotificationService.start());
         return const _LaunchDecision(state: _LaunchState.home);
       }
-      _localUnlockSatisfiedThisSession = false;
       await authService.logout();
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
-    _localUnlockSatisfiedThisSession = true;
     unawaited(RealtimeNotificationService.start());
     return const _LaunchDecision(state: _LaunchState.home);
   }
@@ -402,7 +393,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final isLoggedIn = await authService.isLoggedIn();
 
     if (await _canOpenOfflineWorkspace(cachedUser)) {
-      _localUnlockSatisfiedThisSession = true;
       unawaited(RealtimeNotificationService.stop());
       return isLoggedIn
           ? const _LaunchDecision(state: _LaunchState.scanOffline)
@@ -410,22 +400,20 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     }
 
     if (!isLoggedIn || cachedUser == null) {
-      _localUnlockSatisfiedThisSession = false;
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
-
-    if (LocalSecurityService.securitySetupRequired) {
-      return const _LaunchDecision(state: _LaunchState.securitySetup);
-    }
-
+    final hasLocalSecurity = await LocalSecurityService
+        .hasConfiguredLocalSecurity()
+        .timeout(const Duration(seconds: 1), onTimeout: () => false);
     final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
         .timeout(const Duration(seconds: 1), onTimeout: () => false);
-    if (LocalSecurityService.relockRequired && canUseTrustedUnlock) {
+    if (hasLocalSecurity &&
+        LocalSecurityService.relockRequired &&
+        canUseTrustedUnlock) {
       return const _LaunchDecision(state: _LaunchState.unlock);
     }
 
-    _localUnlockSatisfiedThisSession = true;
     return const _LaunchDecision(state: _LaunchState.home);
   }
 
@@ -467,7 +455,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
             return const HomeScreen();
           case _LaunchState.securitySetup:
             OfflineSessionService.setOfflineMode(false);
-            return const SecuritySettingsScreen();
+            return const SecuritySettingsScreen(showSetupHint: true);
           case _LaunchState.loginOffline:
             OfflineSessionService.setOfflineMode(true);
             return const LoginScreen(
@@ -515,13 +503,13 @@ class _SplashScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(34),
+                  borderRadius: BorderRadius.circular(30),
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.24),
                   ),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                   child: Image.asset(
                     'assets/images/shwakel_app_icon.png',
                     fit: BoxFit.cover,

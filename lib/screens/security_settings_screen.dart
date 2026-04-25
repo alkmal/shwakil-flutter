@@ -9,7 +9,9 @@ import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
-  const SecuritySettingsScreen({super.key});
+  const SecuritySettingsScreen({super.key, this.showSetupHint = false});
+
+  final bool showSetupHint;
 
   @override
   State<SecuritySettingsScreen> createState() => _SecuritySettingsScreenState();
@@ -33,6 +35,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   bool _isUpdatingPin = false;
   bool _showSetupHint = false;
   bool _routeArgsApplied = false;
+  bool _hintDialogShown = false;
 
   @override
   void initState() {
@@ -131,10 +134,37 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       return;
     }
     _routeArgsApplied = true;
+    _showSetupHint = widget.showSetupHint;
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map && args['showSetupHint'] == true) {
       _showSetupHint = true;
     }
+    if (_showSetupHint && !_hintDialogShown) {
+      _hintDialogShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _showSetupWarningDialog();
+      });
+    }
+  }
+
+  Future<void> _showSetupWarningDialog() async {
+    final l = context.loc;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('screens_security_settings_screen.072')),
+        content: Text(l.tr('screens_security_settings_screen.073')),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l.tr('screens_login_screen.020')),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -146,73 +176,89 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          title: Text(l.tr('screens_security_settings_screen.001')),
-          actions: const [AppNotificationAction(), QuickLogoutAction()],
-        ),
-        drawer: const AppSidebar(),
-        body: ResponsiveScaffoldContainer(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_showSetupHint) ...[
-                _buildSetupHintCard(),
-                const SizedBox(height: 18),
-              ],
-              _buildPageHeader(),
-              const SizedBox(height: 18),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppTheme.borderLight),
+      child: Builder(
+        builder: (context) {
+          final tabController = DefaultTabController.of(context);
+          return AnimatedBuilder(
+            animation: tabController,
+            builder: (context, _) {
+              Widget currentTab;
+              switch (tabController.index) {
+                case 1:
+                  currentTab = _buildPinTab();
+                  break;
+                case 2:
+                  currentTab = _buildDevicesTab();
+                  break;
+                case 0:
+                default:
+                  currentTab = Column(
+                    children: [
+                      _buildStatusOverview(),
+                      const SizedBox(height: 16),
+                      _buildTimeoutSection(),
+                    ],
+                  );
+              }
+
+              return Scaffold(
+                backgroundColor: AppTheme.background,
+                appBar: AppBar(
+                  title: Text(l.tr('screens_security_settings_screen.001')),
+                  actions: const [AppNotificationAction(), QuickLogoutAction()],
                 ),
-                child: TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.all(6),
-                  tabs: [
-                    Tab(
-                      text: l.tr('screens_security_settings_screen.065'),
-                      icon: const Icon(Icons.shield_rounded),
-                    ),
-                    Tab(
-                      text: l.tr('screens_security_settings_screen.066'),
-                      icon: const Icon(Icons.pin_rounded),
-                    ),
-                    Tab(
-                      text: l.tr('screens_security_settings_screen.067'),
-                      icon: const Icon(Icons.devices_rounded),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _buildStatusOverview(),
-                          const SizedBox(height: 16),
-                          _buildTimeoutSection(),
+                drawer: const AppSidebar(),
+                body: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  child: ResponsiveScaffoldContainer(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_showSetupHint) ...[
+                          _buildSetupHintCard(),
+                          const SizedBox(height: 18),
                         ],
-                      ),
+                        _buildPageHeader(),
+                        const SizedBox(height: 18),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: AppTheme.borderLight),
+                          ),
+                          child: TabBar(
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.start,
+                            dividerColor: Colors.transparent,
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            indicatorPadding: const EdgeInsets.all(6),
+                            tabs: [
+                              Tab(
+                                text: l.tr('screens_security_settings_screen.065'),
+                                icon: const Icon(Icons.shield_rounded),
+                              ),
+                              Tab(
+                                text: l.tr('screens_security_settings_screen.066'),
+                                icon: const Icon(Icons.pin_rounded),
+                              ),
+                              Tab(
+                                text: l.tr('screens_security_settings_screen.067'),
+                                icon: const Icon(Icons.devices_rounded),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        currentTab,
+                      ],
                     ),
-                    SingleChildScrollView(child: _buildPinTab()),
-                    SingleChildScrollView(child: _buildDevicesTab()),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              );
+            },
+          );
+        },
       ),
     );
   }

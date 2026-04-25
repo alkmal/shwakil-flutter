@@ -19,6 +19,8 @@ class LocalSecurityService {
   static const _relockTimeoutSecondsKey = 'relock_timeout_seconds';
   static const _pinFailedAttemptsKey = 'pin_failed_attempts';
   static const _pinLockoutUntilKey = 'pin_lockout_until';
+  static const _localSecurityReminderShownAtKey =
+      'local_security_reminder_shown_at';
 
   static final LocalAuthentication _localAuth = LocalAuthentication();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
@@ -33,6 +35,7 @@ class LocalSecurityService {
   static const List<int> relockTimeoutOptionsInSeconds = [0, 30, 60, 300];
   static const int _pinMaxFailedAttempts = 5;
   static const int _pinLockoutSeconds = 60;
+  static const Duration _localSecurityReminderInterval = Duration(hours: 24);
 
   static const Map<String, String> _digitMap = {
     '٠': '0',
@@ -113,6 +116,7 @@ class LocalSecurityService {
     await prefs.remove(_backgroundedAtKey);
     await prefs.remove(_pinFailedAttemptsKey);
     await prefs.remove(_pinLockoutUntilKey);
+    await prefs.remove(_localSecurityReminderShownAtKey);
     await _secureStorage.delete(key: _pinHashKey);
     _relockRequired = false;
     _skipNextUnlock = false;
@@ -164,6 +168,7 @@ class LocalSecurityService {
     await prefs.remove(_legacyPinKey);
     await prefs.remove(_pinFailedAttemptsKey);
     await prefs.remove(_pinLockoutUntilKey);
+    await prefs.remove(_localSecurityReminderShownAtKey);
     _securitySetupRequired = false;
     _notifySecurityStateChanged();
   }
@@ -226,8 +231,30 @@ class LocalSecurityService {
     await prefs.setBool(_biometricEnabledKey, value);
     if (value) {
       _securitySetupRequired = false;
+      await prefs.remove(_localSecurityReminderShownAtKey);
     }
     _notifySecurityStateChanged();
+  }
+
+  static Future<bool> shouldPromptLocalSecuritySetupReminder() async {
+    if (await hasConfiguredLocalSecurity()) {
+      return false;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final lastShownAt = prefs.getInt(_localSecurityReminderShownAtKey);
+    if (lastShownAt == null) {
+      return true;
+    }
+    final elapsed = DateTime.now().millisecondsSinceEpoch - lastShownAt;
+    return elapsed >= _localSecurityReminderInterval.inMilliseconds;
+  }
+
+  static Future<void> markLocalSecuritySetupReminderShown() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      _localSecurityReminderShownAtKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   static Future<bool> hasConfiguredLocalSecurity() async {
