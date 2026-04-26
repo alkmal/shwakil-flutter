@@ -13,6 +13,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/barcode_scanner_dialog.dart';
+import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
@@ -1542,10 +1543,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           title: const SizedBox.shrink(),
           actions: widget.offlineMode
               ? [
+                  _buildOfflineStatusAction(),
+                  Builder(
+                    builder: (context) => IconButton(
+                      tooltip: 'القائمة',
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                      icon: const Icon(Icons.menu_rounded),
+                    ),
+                  ),
                   IconButton(
                     tooltip: _t('screens_scan_card_screen.117'),
-                    onPressed: () =>
-                        Navigator.pushReplacementNamed(context, '/debt-book'),
+                    onPressed: () => Navigator.pushNamed(context, '/debt-book'),
                     icon: const Icon(Icons.menu_book_rounded),
                   ),
                 ]
@@ -1578,10 +1586,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         title: const SizedBox.shrink(),
         actions: widget.offlineMode
             ? [
+                _buildOfflineStatusAction(),
+                Builder(
+                  builder: (context) => IconButton(
+                    tooltip: 'القائمة',
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                    icon: const Icon(Icons.menu_rounded),
+                  ),
+                ),
                 IconButton(
                   tooltip: _t('screens_scan_card_screen.117'),
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, '/debt-book'),
+                  onPressed: () => Navigator.pushNamed(context, '/debt-book'),
                   icon: const Icon(Icons.menu_book_rounded),
                 ),
               ]
@@ -1617,6 +1632,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 const QuickLogoutAction(),
               ],
       ),
+      drawer: widget.offlineMode ? const AppSidebar() : null,
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
           padding: AppTheme.pagePadding(context, top: 18),
@@ -1625,6 +1641,80 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             children: [_buildScannerPanel()],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOfflineStatusAction() {
+    final color = _offlineAccessExpired ? AppTheme.error : AppTheme.success;
+    return TextButton.icon(
+      onPressed: _showOfflineStatusSheet,
+      icon: Icon(Icons.inventory_2_rounded, color: color, size: 18),
+      label: Text(
+        '$_availableOfflineCardCount',
+        style: AppTheme.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showOfflineStatusSheet() async {
+    final lastSync = _offlineLastSyncAt == null
+        ? _t('screens_scan_card_screen.122')
+        : _formatDate(_offlineLastSyncAt);
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('حالة بطاقات الأوفلاين', style: AppTheme.h3),
+              const SizedBox(height: 14),
+              _statusSheetRow('البطاقات المتزامنة', '$_availableOfflineCardCount'),
+              _statusSheetRow('آخر تحديث', lastSync),
+              _statusSheetRow('مدة السماح', '$_offlineSyncIntervalMinutes دقيقة'),
+              _statusSheetRow(
+                'الحالة',
+                _offlineAccessExpired
+                    ? 'انتهت المدة. يجب الاتصال بالإنترنت والتحديث.'
+                    : 'جاهزة للفحص أوفلاين.',
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _isSyncingOfflineCards || _isDeviceOffline
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                          unawaited(_syncOfflineCardsForCurrentUser());
+                        },
+                  icon: const Icon(Icons.cloud_sync_rounded),
+                  label: const Text('تحديث الآن'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statusSheetRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTheme.caption),
+          const SizedBox(height: 4),
+          Text(value, style: AppTheme.bodyBold),
+        ],
       ),
     );
   }

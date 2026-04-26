@@ -29,6 +29,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _page = 1;
   int _lastPage = 1;
   int _total = 0;
+  String? _loadErrorMessage;
   static const int _perPage = 20;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
   int _loadRequestId = 0;
@@ -94,6 +95,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       setState(() {
         _notifications = notifications;
+        _loadErrorMessage = null;
         _unreadCount = (summary['unreadCount'] as num?)?.toInt() ?? 0;
         _page = normalizedPage;
         _lastPage = lastPage;
@@ -108,15 +110,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _isLoading = false;
         _isRefreshing = false;
+        _loadErrorMessage = ErrorMessageService.sanitize(error);
       });
-      if (silent) {
-        return;
-      }
-      await AppAlertService.showError(
-        context,
-        title: context.loc.tr('screens_login_screen.002'),
-        message: ErrorMessageService.sanitize(error),
-      );
     }
   }
 
@@ -212,6 +207,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             padding: EdgeInsets.all(48),
             child: Center(child: CircularProgressIndicator()),
           )
+        else if (_loadErrorMessage != null && _notifications.isEmpty)
+          _buildLoadErrorState(_loadErrorMessage!)
         else if (_notifications.isEmpty)
           _buildEmptyState()
         else ...[
@@ -470,6 +467,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Text(
               _t('screens_notifications_screen.044'),
               style: AppTheme.bodyText,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18),
+            ShwakelButton(
+              label: _t('screens_transactions_screen.011'),
+              icon: Icons.refresh_rounded,
+              isSecondary: true,
+              onPressed: _loadNotifications,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadErrorState(String message) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(28),
+      child: Center(
+        child: Column(
+          children: [
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 64,
+              color: AppTheme.warning,
+            ),
+            const SizedBox(height: 16),
+            Text('تعذر تحميل الإشعارات', style: AppTheme.h3),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: AppTheme.bodyAction.copyWith(height: 1.5),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 18),

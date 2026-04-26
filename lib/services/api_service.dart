@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:http/http.dart' as http;
@@ -716,6 +717,8 @@ class ApiService {
     required bool canOfflineCardScan,
     required bool canManageDebtBook,
     required bool canManageUsers,
+    required bool canUsePrepaidMultipayCards,
+    required bool canAcceptPrepaidMultipayPayments,
   }) async {
     final response = await http.put(
       AppConfig.apiUri('admin/users/$userId/card-permissions'),
@@ -734,6 +737,8 @@ class ApiService {
         'canOfflineCardScan': canOfflineCardScan,
         'canManageDebtBook': canManageDebtBook,
         'canManageUsers': canManageUsers,
+        'canUsePrepaidMultipayCards': canUsePrepaidMultipayCards,
+        'canAcceptPrepaidMultipayPayments': canAcceptPrepaidMultipayPayments,
       }),
     );
     return _decodeObject(response);
@@ -1773,8 +1778,8 @@ class ApiService {
         'trialCardsOutstandingAmount':
             (body['trialCardsOutstandingAmount'] as num).toDouble(),
       if (body['trialCardsRemainingAmount'] is num)
-        'trialCardsAvailableAmount':
-            (body['trialCardsRemainingAmount'] as num).toDouble(),
+        'trialCardsAvailableAmount': (body['trialCardsRemainingAmount'] as num)
+            .toDouble(),
     });
     final rawCards = List<dynamic>.from(body['cards'] as List? ?? const []);
     return rawCards
@@ -1891,8 +1896,8 @@ class ApiService {
         'trialCardsOutstandingAmount':
             (body['trialCardsOutstandingAmount'] as num).toDouble(),
       if (body['trialCardsRemainingAmount'] is num)
-        'trialCardsAvailableAmount':
-            (body['trialCardsRemainingAmount'] as num).toDouble(),
+        'trialCardsAvailableAmount': (body['trialCardsRemainingAmount'] as num)
+            .toDouble(),
     });
   }
 
@@ -1931,8 +1936,8 @@ class ApiService {
         'trialCardsOutstandingAmount':
             (body['trialCardsOutstandingAmount'] as num).toDouble(),
       if (body['trialCardsRemainingAmount'] is num)
-        'trialCardsAvailableAmount':
-            (body['trialCardsRemainingAmount'] as num).toDouble(),
+        'trialCardsAvailableAmount': (body['trialCardsRemainingAmount'] as num)
+            .toDouble(),
     });
     return body;
   }
@@ -1972,6 +1977,214 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getAdminPrepaidMultipaySettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/prepaid-multipay'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(
+      body['prepaidMultipay'] as Map? ?? const {},
+    );
+  }
+
+  Future<Map<String, dynamic>> updateAdminPrepaidMultipaySettings({
+    required double maxCardAmount,
+    required double maxPaymentAmount,
+    required int maxActiveCards,
+    required int maxExpiryDays,
+    required double dailyPaymentAmountLimit,
+    required int dailyPaymentCountLimit,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/prepaid-multipay'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'maxCardAmount': maxCardAmount,
+        'maxPaymentAmount': maxPaymentAmount,
+        'maxActiveCards': maxActiveCards,
+        'maxExpiryDays': maxExpiryDays,
+        'dailyPaymentAmountLimit': dailyPaymentAmountLimit,
+        'dailyPaymentCountLimit': dailyPaymentCountLimit,
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminPrepaidMultipayPayments({
+    String? buyerUserId,
+    String? merchantUserId,
+    String? dateFrom,
+    String? dateTo,
+    String? query,
+    String? cardStatus,
+    int perPage = 50,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/prepaid-multipay/payments', {
+        if (buyerUserId != null && buyerUserId.trim().isNotEmpty)
+          'buyerUserId': buyerUserId.trim(),
+        if (merchantUserId != null && merchantUserId.trim().isNotEmpty)
+          'merchantUserId': merchantUserId.trim(),
+        if (dateFrom != null && dateFrom.trim().isNotEmpty)
+          'dateFrom': dateFrom.trim(),
+        if (dateTo != null && dateTo.trim().isNotEmpty) 'dateTo': dateTo.trim(),
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        if (cardStatus != null &&
+            cardStatus.trim().isNotEmpty &&
+            cardStatus.trim() != 'all')
+          'cardStatus': cardStatus.trim(),
+        'perPage': perPage.toString(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<void> exportAdminPrepaidMultipayPaymentsCsv({
+    required List<Map<String, dynamic>> payments,
+  }) async {
+    final buffer = StringBuffer();
+    buffer.writeln(
+      '\uFEFFid,buyer,merchant,card_label,card_number,card_status,amount,status,note,created_at',
+    );
+    for (final item in payments) {
+      String csv(String value) => '"${value.replaceAll('"', '""')}"';
+      buffer.writeln(
+        [
+          csv(item['id']?.toString() ?? ''),
+          csv(item['buyerUsername']?.toString() ?? ''),
+          csv(item['merchantUsername']?.toString() ?? ''),
+          csv(item['cardLabel']?.toString() ?? ''),
+          csv(item['cardNumber']?.toString() ?? ''),
+          csv(item['cardStatus']?.toString() ?? ''),
+          item['amount']?.toString() ?? '',
+          csv(item['status']?.toString() ?? ''),
+          csv(item['note']?.toString() ?? ''),
+          csv(item['createdAt']?.toString() ?? ''),
+        ].join(','),
+      );
+    }
+
+    final bytes = Uint8List.fromList(utf8.encode(buffer.toString()));
+    await FileSaver.instance.saveFile(
+      name: 'prepaid_multipay_payments',
+      bytes: bytes,
+      fileExtension: 'csv',
+      mimeType: MimeType.csv,
+    );
+  }
+
+  Future<Map<String, dynamic>> getPrepaidMultipayCards() async {
+    final response = await http.get(
+      AppConfig.apiUri('prepaid-multipay-cards'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createPrepaidMultipayCard({
+    required String label,
+    required double amount,
+    required String pin,
+    required String expiresAt,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'label': label.trim(),
+        'amount': amount,
+        'pin': pin.trim(),
+        'expiresAt': expiresAt,
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['balance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['balance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
+  Future<Map<String, dynamic>> updatePrepaidMultipayCardStatus({
+    required String cardId,
+    required String action,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/status'),
+      headers: await _headers(),
+      body: jsonEncode({'action': action}),
+    );
+    final body = _decodeObject(response);
+    if (body['balance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['balance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
+  Future<Map<String, dynamic>> changePrepaidMultipayCardPin({
+    required String cardId,
+    required String currentPin,
+    required String newPin,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/pin'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'currentPin': currentPin.trim(),
+        'newPin': newPin.trim(),
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> acceptPrepaidMultipayCardPayment({
+    required String cardNumber,
+    required double amount,
+    required String pin,
+    required String idempotencyKey,
+    String? note,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/payments'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'cardNumber': cardNumber.trim(),
+        'amount': amount,
+        'pin': pin.trim(),
+        'idempotencyKey': idempotencyKey,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['merchantBalance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['merchantBalance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
   Future<Map<String, dynamic>> getNotificationSummary() async {
     final cached = _cachedNotificationSummary;
     final cachedAt = _cachedNotificationSummaryAt;
@@ -1997,12 +2210,9 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> _fetchNotificationSummary() async {
-    final response = await _client
-        .get(
-          AppConfig.apiUri('notifications/summary'),
-          headers: await _headers(),
-        )
-        .timeout(_authenticatedRequestTimeout);
+    final response = await _getNotificationWithFallback(
+      'notifications/summary',
+    );
     final payload = _decodeObject(response);
     _cachedNotificationSummary = Map<String, dynamic>.from(payload);
     _cachedNotificationSummaryAt = DateTime.now();
@@ -2014,16 +2224,14 @@ class ApiService {
     int page = 1,
     int perPage = 20,
   }) async {
-    final response = await http
-        .get(
-          AppConfig.apiUri('notifications', {
-            'filter': filter,
-            'page': page.toString(),
-            'perPage': perPage.toString(),
-          }),
-          headers: await _headers(),
-        )
-        .timeout(_authenticatedRequestTimeout);
+    final response = await _getNotificationWithFallback(
+      'notifications',
+      query: {
+        'filter': filter,
+        'page': page.toString(),
+        'perPage': perPage.toString(),
+      },
+    );
     return _decodeObject(response);
   }
 
@@ -2067,23 +2275,58 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
-    final response = await http
-        .post(
-          AppConfig.apiUri('notifications/$id/read'),
-          headers: await _headers(),
-        )
-        .timeout(_authenticatedRequestTimeout);
+    final response = await _postNotificationWithFallback(
+      'notifications/$id/read',
+    );
     return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> markAllNotificationsAsRead() async {
-    final response = await http
-        .post(
-          AppConfig.apiUri('notifications/read-all'),
-          headers: await _headers(),
-        )
-        .timeout(_authenticatedRequestTimeout);
+    final response = await _postNotificationWithFallback(
+      'notifications/read-all',
+    );
     return _decodeObject(response);
+  }
+
+  Future<http.Response> _getNotificationWithFallback(
+    String path, {
+    Map<String, dynamic>? query,
+  }) async {
+    Object? lastError;
+    final headers = await _headers();
+    for (final uri in AppConfig.apiCandidateUris(path, query)) {
+      try {
+        return await _client
+            .get(uri, headers: headers)
+            .timeout(_authenticatedRequestTimeout);
+      } on TimeoutException catch (error) {
+        lastError = error;
+      } on SocketException catch (error) {
+        lastError = error;
+      } on http.ClientException catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  Future<http.Response> _postNotificationWithFallback(String path) async {
+    Object? lastError;
+    final headers = await _headers();
+    for (final uri in AppConfig.apiCandidateUris(path)) {
+      try {
+        return await _client
+            .post(uri, headers: headers)
+            .timeout(_authenticatedRequestTimeout);
+      } on TimeoutException catch (error) {
+        lastError = error;
+      } on SocketException catch (error) {
+        lastError = error;
+      } on http.ClientException catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError ?? Exception(_tr('services_api_service.001'));
   }
 
   Future<Map<String, dynamic>> resellCard({

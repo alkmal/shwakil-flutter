@@ -17,10 +17,12 @@ class OfflineSessionService {
   }
 
   static const Set<String> _offlineAllowedRoutes = {
+    '/home',
     '/scan-card-offline',
     '/scan-card-offline-camera',
     '/debt-book',
     '/inventory',
+    '/affiliate-center',
     '/login-offline',
     '/unlock',
   };
@@ -47,7 +49,7 @@ class OfflineSessionService {
       case '/forgot-password':
         return '/login-offline';
       default:
-        return '/scan-card-offline';
+        return '/home';
     }
   }
 

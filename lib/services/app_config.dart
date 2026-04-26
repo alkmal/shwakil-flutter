@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 class AppConfig {
   static const String _productionApiUrl = 'https://shwakil.alkmal.com/api';
   static const String _localDebugApiUrl = 'https://wa.alkmal.com/api';

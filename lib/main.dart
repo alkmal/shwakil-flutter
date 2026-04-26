@@ -20,11 +20,12 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/home': (context) => const HomeScreen(),
   '/login': (context) => const LoginScreen(),
   '/login-offline': (context) =>
-      const LoginScreen(redirectRoute: '/scan-card-offline', offlineMode: true),
+      const LoginScreen(redirectRoute: '/home', offlineMode: true),
   '/register': (context) => const RegisterScreen(),
   '/unlock': (context) => const DeviceUnlockScreen(),
   '/balance': (context) => const BalanceScreen(),
   '/create-card': (context) => const CreateCardScreen(),
+  '/prepaid-multipay-cards': (context) => const PrepaidMultipayCardsScreen(),
   '/quick-transfer': (context) => const QuickTransferScreen(),
   '/card-print-requests': (context) => const CardPrintRequestsScreen(),
   '/scan-card': (context) => const ScanCardScreen(),
@@ -282,6 +283,7 @@ enum _LaunchState {
   securitySetup,
   loginOffline,
   scanOffline,
+  homeOffline,
   updateRequired,
 }
 
@@ -360,6 +362,10 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
     final cachedUser = await cachedUserFuture;
     final isLoggedIn = await isLoggedInFuture;
+    final isOnline = await ConnectivityService.instance.checkNow().timeout(
+      const Duration(milliseconds: 900),
+      onTimeout: () => ConnectivityService.instance.isOnline.value,
+    );
     if (!isLoggedIn) {
       if (await _canOpenOfflineWorkspace(cachedUser)) {
         unawaited(RealtimeNotificationService.stop());
@@ -369,6 +375,11 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       unawaited(RealtimeNotificationService.stop());
       _debugLaunchDecision('login', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
+    }
+    if (!isOnline && await _canOpenOfflineWorkspace(cachedUser)) {
+      unawaited(RealtimeNotificationService.stop());
+      _debugLaunchDecision('homeOffline(noConnection)', stopwatch.elapsed);
+      return const _LaunchDecision(state: _LaunchState.homeOffline);
     }
     final hasLocalSecurity =
         await LocalSecurityService.hasConfiguredLocalSecurity().timeout(
@@ -391,8 +402,8 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         return const _LaunchDecision(state: _LaunchState.unlock);
       }
       if (await _canOpenOfflineWorkspace(cachedUser)) {
-        _debugLaunchDecision('scanOffline', stopwatch.elapsed);
-        return const _LaunchDecision(state: _LaunchState.scanOffline);
+        _debugLaunchDecision('homeOffline(relock)', stopwatch.elapsed);
+        return const _LaunchDecision(state: _LaunchState.homeOffline);
       }
       await authService.logout();
       _debugLaunchDecision('login(relock)', stopwatch.elapsed);
@@ -438,7 +449,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     if (await _canOpenOfflineWorkspace(cachedUser)) {
       unawaited(RealtimeNotificationService.stop());
       return isLoggedIn
-          ? const _LaunchDecision(state: _LaunchState.scanOffline)
+          ? const _LaunchDecision(state: _LaunchState.homeOffline)
           : const _LaunchDecision(state: _LaunchState.loginOffline);
     }
 
@@ -511,12 +522,15 @@ class _AppEntryPointState extends State<AppEntryPoint> {
           case _LaunchState.loginOffline:
             OfflineSessionService.setOfflineMode(true);
             return const LoginScreen(
-              redirectRoute: '/scan-card-offline',
+              redirectRoute: '/home',
               offlineMode: true,
             );
           case _LaunchState.scanOffline:
             OfflineSessionService.setOfflineMode(true);
             return const ScanCardScreen(offlineMode: true);
+          case _LaunchState.homeOffline:
+            OfflineSessionService.setOfflineMode(true);
+            return const HomeScreen();
           case _LaunchState.login:
             OfflineSessionService.setOfflineMode(false);
             return const LoginScreen();

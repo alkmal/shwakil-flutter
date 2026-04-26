@@ -158,6 +158,12 @@ class _AppSidebarState extends State<AppSidebar> {
                 children: [
                   if (isOfflineMode) ...[
                     _buildSectionLabel(l.tr('widgets_app_sidebar.037')),
+                    _buildItem(
+                      context,
+                      icon: Icons.home_rounded,
+                      title: l.tr('widgets_app_sidebar.003'),
+                      routeName: '/home',
+                    ),
                     if (canScanCards)
                       _buildItem(
                         context,
@@ -173,6 +179,13 @@ class _AppSidebarState extends State<AppSidebar> {
                         icon: Icons.menu_book_rounded,
                         title: l.tr('widgets_app_sidebar.040'),
                         routeName: '/debt-book',
+                      ),
+                    if (canViewAffiliateCenter)
+                      _buildItem(
+                        context,
+                        icon: Icons.campaign_rounded,
+                        title: l.tr('widgets_app_sidebar.041'),
+                        routeName: '/affiliate-center',
                       ),
                     const Divider(indent: 8, endIndent: 8, height: 28),
                   ] else ...[
@@ -210,6 +223,13 @@ class _AppSidebarState extends State<AppSidebar> {
                         icon: Icons.inventory_2_rounded,
                         title: l.tr('widgets_app_sidebar.006'),
                         routeName: '/inventory',
+                      ),
+                    if (permissions.canOpenPrepaidMultipayCards)
+                      _buildItem(
+                        context,
+                        icon: Icons.credit_card_rounded,
+                        title: 'بطاقات دفع مسبق',
+                        routeName: '/prepaid-multipay-cards',
                       ),
                     if (canRequestCardPrinting)
                       _buildItem(

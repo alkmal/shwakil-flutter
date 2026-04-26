@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -47,6 +50,17 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _offlineMaxPendingCountController = TextEditingController();
   final _offlineCacheLimitController = TextEditingController();
   final _offlineSyncIntervalController = TextEditingController();
+  final _prepaidMaxCardAmountController = TextEditingController();
+  final _prepaidMaxPaymentAmountController = TextEditingController();
+  final _prepaidMaxActiveCardsController = TextEditingController();
+  final _prepaidMaxExpiryDaysController = TextEditingController();
+  final _prepaidDailyAmountLimitController = TextEditingController();
+  final _prepaidDailyCountLimitController = TextEditingController();
+  final _prepaidReportBuyerIdController = TextEditingController();
+  final _prepaidReportMerchantIdController = TextEditingController();
+  final _prepaidReportDateFromController = TextEditingController();
+  final _prepaidReportDateToController = TextEditingController();
+  final _prepaidReportSearchController = TextEditingController();
   final _affiliateRewardAmountController = TextEditingController();
   final _affiliateFirstTopupMinAmountController = TextEditingController();
   final _affiliateMarketerDebtLimitController = TextEditingController();
@@ -57,7 +71,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _registrationEnabled = true;
   bool _topupRequestEnabled = true;
   bool _affiliateEnabled = true;
+  bool _isLoadingPrepaidReport = false;
+  String _prepaidReportCardStatus = 'all';
   List<Map<String, dynamic>> _topupPaymentMethods = const [];
+  List<Map<String, dynamic>> _prepaidReportPayments = const [];
+  Map<String, dynamic> _prepaidReportSummary = const {};
 
   @override
   void initState() {
@@ -92,6 +110,17 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _offlineMaxPendingCountController.dispose();
     _offlineCacheLimitController.dispose();
     _offlineSyncIntervalController.dispose();
+    _prepaidMaxCardAmountController.dispose();
+    _prepaidMaxPaymentAmountController.dispose();
+    _prepaidMaxActiveCardsController.dispose();
+    _prepaidMaxExpiryDaysController.dispose();
+    _prepaidDailyAmountLimitController.dispose();
+    _prepaidDailyCountLimitController.dispose();
+    _prepaidReportBuyerIdController.dispose();
+    _prepaidReportMerchantIdController.dispose();
+    _prepaidReportDateFromController.dispose();
+    _prepaidReportDateToController.dispose();
+    _prepaidReportSearchController.dispose();
     _affiliateRewardAmountController.dispose();
     _affiliateFirstTopupMinAmountController.dispose();
     _affiliateMarketerDebtLimitController.dispose();
@@ -125,6 +154,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _apiService.getAdminAffiliateSettings(),
         _apiService.getAdminTopupPaymentMethods(),
         _apiService.getUsagePolicy(),
+        _apiService.getAdminPrepaidMultipaySettings(),
       ]);
 
       if (!mounted) {
@@ -140,9 +170,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       final topupRequestSettings = Map<String, dynamic>.from(results[6] as Map);
       final affiliateSettings = Map<String, dynamic>.from(results[7] as Map);
       final topupPaymentMethods = List<Map<String, dynamic>>.from(
-        (results[8] as List).map((item) => Map<String, dynamic>.from(item as Map)),
+        (results[8] as List).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
       );
       final usagePolicy = Map<String, dynamic>.from(results[9] as Map);
+      final prepaidMultipaySettings = Map<String, dynamic>.from(
+        results[10] as Map,
+      );
 
       _contactTitleController.text = contactSettings['title'] ?? '';
       _contactWhatsappController.text =
@@ -198,6 +233,26 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _offlineSyncIntervalController.text =
           (offlineCardSettings['syncIntervalMinutes'] as num?)?.toString() ??
           '60';
+      _prepaidMaxCardAmountController.text =
+          (prepaidMultipaySettings['maxCardAmount'] as num?)?.toString() ??
+          '500';
+      _prepaidMaxPaymentAmountController.text =
+          (prepaidMultipaySettings['maxPaymentAmount'] as num?)?.toString() ??
+          '250';
+      _prepaidMaxActiveCardsController.text =
+          (prepaidMultipaySettings['maxActiveCards'] as num?)?.toString() ??
+          '5';
+      _prepaidMaxExpiryDaysController.text =
+          (prepaidMultipaySettings['maxExpiryDays'] as num?)?.toString() ??
+          '365';
+      _prepaidDailyAmountLimitController.text =
+          (prepaidMultipaySettings['dailyPaymentAmountLimit'] as num?)
+              ?.toString() ??
+          '500';
+      _prepaidDailyCountLimitController.text =
+          (prepaidMultipaySettings['dailyPaymentCountLimit'] as num?)
+              ?.toString() ??
+          '20';
       _topupRequestEnabled = topupRequestSettings['enabled'] == true;
       _topupRequestInstructionsController.text =
           topupRequestSettings['instructions']?.toString() ?? '';
@@ -217,6 +272,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _topupPaymentMethods = topupPaymentMethods;
         _isLoading = false;
       });
+      unawaited(_loadPrepaidReport());
     } catch (error) {
       if (!mounted) {
         return;
@@ -225,6 +281,82 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       await AppAlertService.showError(
         context,
         title: context.loc.tr('screens_admin_system_settings_screen.066'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _loadPrepaidReport() async {
+    if (!_isAuthorized) {
+      return;
+    }
+    setState(() => _isLoadingPrepaidReport = true);
+    try {
+      final payload = await _apiService.getAdminPrepaidMultipayPayments(
+        buyerUserId: _prepaidReportBuyerIdController.text,
+        merchantUserId: _prepaidReportMerchantIdController.text,
+        dateFrom: _prepaidReportDateFromController.text,
+        dateTo: _prepaidReportDateToController.text,
+        query: _prepaidReportSearchController.text,
+        cardStatus: _prepaidReportCardStatus,
+        perPage: 50,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _prepaidReportPayments = List<Map<String, dynamic>>.from(
+          (payload['payments'] as List? ?? const []).map(
+            (item) => Map<String, dynamic>.from(item as Map),
+          ),
+        );
+        _prepaidReportSummary = Map<String, dynamic>.from(
+          payload['summary'] as Map? ?? const {},
+        );
+        _isLoadingPrepaidReport = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isLoadingPrepaidReport = false);
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحميل تقرير البطاقات',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _exportPrepaidReport() async {
+    if (_prepaidReportPayments.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'لا توجد بيانات',
+        message: 'لا توجد مدفوعات في التقرير الحالي لتصديرها.',
+      );
+      return;
+    }
+
+    try {
+      await _apiService.exportAdminPrepaidMultipayPaymentsCsv(
+        payments: _prepaidReportPayments,
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم التصدير',
+        message: 'تم تصدير تقرير مدفوعات البطاقات بنجاح.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر التصدير',
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -265,8 +397,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           cardPrintRequestPercent:
               double.tryParse(_cardPrintRequestFeeController.text) ?? 1,
           singleUseTicketIssueCost:
-              double.tryParse(_singleUseTicketIssueCostController.text) ??
-              0.01,
+              double.tryParse(_singleUseTicketIssueCostController.text) ?? 0.01,
           appointmentTicketIssueCost:
               double.tryParse(_appointmentTicketIssueCostController.text) ??
               0.5,
@@ -282,6 +413,20 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               int.tryParse(_offlineCacheLimitController.text) ?? 1000,
           syncIntervalMinutes:
               int.tryParse(_offlineSyncIntervalController.text) ?? 60,
+        ),
+        _apiService.updateAdminPrepaidMultipaySettings(
+          maxCardAmount:
+              double.tryParse(_prepaidMaxCardAmountController.text) ?? 500,
+          maxPaymentAmount:
+              double.tryParse(_prepaidMaxPaymentAmountController.text) ?? 250,
+          maxActiveCards:
+              int.tryParse(_prepaidMaxActiveCardsController.text) ?? 5,
+          maxExpiryDays:
+              int.tryParse(_prepaidMaxExpiryDaysController.text) ?? 365,
+          dailyPaymentAmountLimit:
+              double.tryParse(_prepaidDailyAmountLimitController.text) ?? 500,
+          dailyPaymentCountLimit:
+              int.tryParse(_prepaidDailyCountLimitController.text) ?? 20,
         ),
         _apiService.updateAdminTopupRequestSettings(
           enabled: _topupRequestEnabled,
@@ -552,7 +697,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 7,
+      length: 8,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -613,6 +758,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       icon: const Icon(Icons.cloud_off_rounded),
                       text: l.tr('screens_admin_system_settings_screen.075'),
                     ),
+                    const Tab(
+                      icon: Icon(Icons.credit_card_rounded),
+                      text: 'بطاقات الدفع',
+                    ),
                     Tab(
                       icon: Icon(Icons.campaign_rounded),
                       text: l.tr('screens_admin_system_settings_screen.066'),
@@ -636,6 +785,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     _buildAppTab(),
                     _buildTopupTab(),
                     _buildOfflineCardsTab(),
+                    _buildPrepaidMultipayTab(),
                     _buildAffiliateTab(),
                     _buildPolicyTab(),
                     _buildFeesTab(),
@@ -928,6 +1078,255 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     );
   }
 
+  Widget _buildPrepaidMultipayTab() {
+    final reportCount = (_prepaidReportSummary['count'] as num?)?.toInt() ?? 0;
+    final reportTotal =
+        (_prepaidReportSummary['totalAmount'] as num?)?.toDouble() ?? 0;
+
+    return _tabScroll(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AdminSectionHeader(
+            title: 'إعدادات بطاقات الدفع',
+            subtitle:
+                'حدود تشغيل داخلية للبطاقات متعددة الدفع بدون أي تكامل خارجي.',
+            icon: Icons.credit_card_rounded,
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                _buildNumberField(
+                  'أعلى قيمة للبطاقة',
+                  _prepaidMaxCardAmountController,
+                  suffixText: '₪',
+                  decimal: true,
+                ),
+                _buildNumberField(
+                  'أعلى مبلغ للدفع الواحد',
+                  _prepaidMaxPaymentAmountController,
+                  suffixText: '₪',
+                  decimal: true,
+                ),
+                _buildNumberField(
+                  'عدد البطاقات النشطة',
+                  _prepaidMaxActiveCardsController,
+                ),
+                _buildNumberField(
+                  'أقصى صلاحية بالأيام',
+                  _prepaidMaxExpiryDaysController,
+                ),
+                _buildNumberField(
+                  'حد المبلغ اليومي',
+                  _prepaidDailyAmountLimitController,
+                  suffixText: '₪',
+                  decimal: true,
+                ),
+                _buildNumberField(
+                  'حد عدد العمليات اليومي',
+                  _prepaidDailyCountLimitController,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          AdminSectionHeader(
+            title: 'تقرير مدفوعات البطاقات',
+            subtitle:
+                'عرض داخلي للمدفوعات المنفذة عبر البطاقات متعددة الدفع مع فلاتر سريعة وتصدير CSV.',
+            icon: Icons.receipt_long_rounded,
+            trailing: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _isLoadingPrepaidReport
+                      ? null
+                      : _loadPrepaidReport,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('تحديث'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _isLoadingPrepaidReport
+                      ? null
+                      : _exportPrepaidReport,
+                  icon: const Icon(Icons.file_download_rounded),
+                  label: const Text('CSV'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _buildTextField(
+                      'بحث بالاسم أو البطاقة',
+                      _prepaidReportSearchController,
+                      hintText: 'اسم مستخدم، بطاقة، ملاحظة',
+                    ),
+                    _buildNumberField(
+                      'ID المشتري',
+                      _prepaidReportBuyerIdController,
+                    ),
+                    _buildNumberField(
+                      'ID التاجر',
+                      _prepaidReportMerchantIdController,
+                    ),
+                    _buildTextField(
+                      'من تاريخ',
+                      _prepaidReportDateFromController,
+                      hintText: '2026-04-26',
+                    ),
+                    _buildTextField(
+                      'إلى تاريخ',
+                      _prepaidReportDateToController,
+                      hintText: '2026-04-26',
+                    ),
+                    SizedBox(
+                      width: 220,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _prepaidReportCardStatus,
+                        decoration: const InputDecoration(
+                          labelText: 'حالة البطاقة',
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('الكل')),
+                          DropdownMenuItem(
+                            value: 'active',
+                            child: Text('نشطة'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'frozen',
+                            child: Text('مجمدة'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'spent',
+                            child: Text('مستهلكة'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'expired',
+                            child: Text('منتهية'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'cancelled',
+                            child: Text('ملغاة'),
+                          ),
+                        ],
+                        onChanged: (value) => setState(
+                          () => _prepaidReportCardStatus = value ?? 'all',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _reportPill(
+                      Icons.format_list_numbered_rounded,
+                      'عدد العمليات',
+                      '$reportCount',
+                    ),
+                    _reportPill(
+                      Icons.payments_rounded,
+                      'الإجمالي',
+                      CurrencyFormatter.ils(reportTotal),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (_isLoadingPrepaidReport)
+                  const Center(child: CircularProgressIndicator())
+                else if (_prepaidReportPayments.isEmpty)
+                  Text(
+                    'لا توجد مدفوعات مطابقة للفلاتر الحالية.',
+                    style: AppTheme.bodyAction,
+                  )
+                else
+                  ..._prepaidReportPayments.map(
+                    (payment) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildPrepaidReportRow(payment),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportPill(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 8),
+          Text('$label: $value', style: AppTheme.caption),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrepaidReportRow(Map<String, dynamic> payment) {
+    final amount = (payment['amount'] as num?)?.toDouble() ?? 0;
+    final buyer = payment['buyerUsername']?.toString() ?? '-';
+    final merchant = payment['merchantUsername']?.toString() ?? '-';
+    final note = payment['note']?.toString() ?? '';
+    final createdAt = payment['createdAt']?.toString() ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$buyer ← $merchant', style: AppTheme.bodyBold),
+                const SizedBox(height: 4),
+                Text(
+                  note.isEmpty ? createdAt : '$note · $createdAt',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption,
+                ),
+              ],
+            ),
+          ),
+          Text(
+            CurrencyFormatter.ils(amount),
+            style: AppTheme.bodyBold.copyWith(color: AppTheme.success),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPolicyTab() {
     final l = context.loc;
     return _tabScroll(
@@ -1148,6 +1547,20 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         controller: controller,
         keyboardType: TextInputType.numberWithOptions(decimal: decimal),
         decoration: InputDecoration(labelText: label, suffixText: suffixText),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    String? hintText,
+  }) {
+    return SizedBox(
+      width: 220,
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(labelText: label, hintText: hintText),
       ),
     );
   }

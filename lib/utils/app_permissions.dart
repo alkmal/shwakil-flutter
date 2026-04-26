@@ -51,6 +51,8 @@ class AppPermissions {
     'canWithdraw',
     'canReviewCards',
     'canResellCards',
+    'canUsePrepaidMultipayCards',
+    'canAcceptPrepaidMultipayPayments',
     'canRedeemCards',
     'canViewCustomers',
     'canManageUsers',
@@ -118,6 +120,12 @@ class AppPermissions {
   bool get canWithdraw => _isEnabled('canWithdraw');
   bool get canReviewCards => _isEnabled('canReviewCards');
   bool get canResellCards => _isEnabled('canResellCards');
+  bool get canUsePrepaidMultipayCards =>
+      _isEnabled('canUsePrepaidMultipayCards');
+  bool get canAcceptPrepaidMultipayPayments =>
+      _isEnabled('canAcceptPrepaidMultipayPayments');
+  bool get canOpenPrepaidMultipayCards =>
+      canUsePrepaidMultipayCards || canAcceptPrepaidMultipayPayments;
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageUsers => _isEnabled('canManageUsers');

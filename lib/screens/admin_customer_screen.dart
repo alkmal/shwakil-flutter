@@ -863,6 +863,16 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 perms,
               ),
               _permItem(
+                'استخدام بطاقات الدفع المسبق',
+                'canUsePrepaidMultipayCards',
+                perms,
+              ),
+              _permItem(
+                'قبول دفع البطاقات المسبقة',
+                'canAcceptPrepaidMultipayPayments',
+                perms,
+              ),
+              _permItem(
                 _t('screens_admin_customer_screen.056'),
                 'canManageCardPrintRequests',
                 perms,
@@ -1112,6 +1122,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canOfflineCardScan: p['canOfflineCardScan'] == true,
         canManageDebtBook: p['canManageDebtBook'] == true,
         canManageUsers: p['canManageUsers'] == true,
+        canUsePrepaidMultipayCards: p['canUsePrepaidMultipayCards'] == true,
+        canAcceptPrepaidMultipayPayments:
+            p['canAcceptPrepaidMultipayPayments'] == true,
       );
       setState(() {
         _customer = Map<String, dynamic>.from(res['user']);

@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -18,11 +21,13 @@ class AffiliateCenterScreen extends StatefulWidget {
 }
 
 class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
+  static const String _cacheKeyPrefix = 'affiliate_center_cache_';
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
 
   bool _isLoading = true;
   bool _isAuthorized = true;
+  bool _usingOfflineCache = false;
   Map<String, dynamic> _affiliate = const {};
 
   @override
@@ -48,18 +53,50 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
         return;
       }
 
+      if (OfflineSessionService.isOfflineMode ||
+          !ConnectivityService.instance.isOnline.value) {
+        final cached = await _loadCachedAffiliate(currentUser);
+        if (cached != null) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _isAuthorized = true;
+            _affiliate = cached;
+            _usingOfflineCache = true;
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
       final payload = await _apiService.getAffiliateDashboard();
+      final affiliate = Map<String, dynamic>.from(
+        payload['affiliate'] as Map? ?? const {},
+      );
+      await _cacheAffiliate(currentUser, affiliate);
       if (!mounted) {
         return;
       }
       setState(() {
         _isAuthorized = true;
-        _affiliate = Map<String, dynamic>.from(
-          payload['affiliate'] as Map? ?? const {},
-        );
+        _affiliate = affiliate;
+        _usingOfflineCache = false;
         _isLoading = false;
       });
     } catch (error) {
+      final currentUser =
+          AuthService.peekCurrentUser() ?? await _authService.currentUser();
+      final cached = await _loadCachedAffiliate(currentUser);
+      if (cached != null && mounted) {
+        setState(() {
+          _isAuthorized = true;
+          _affiliate = cached;
+          _usingOfflineCache = true;
+          _isLoading = false;
+        });
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -70,6 +107,37 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
         message: ErrorMessageService.sanitize(error),
       );
     }
+  }
+
+  Future<Map<String, dynamic>?> _loadCachedAffiliate(
+    Map<String, dynamic>? user,
+  ) async {
+    final userId = user?['id']?.toString().trim();
+    if (userId == null || userId.isEmpty) {
+      return null;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('$_cacheKeyPrefix$userId');
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _cacheAffiliate(
+    Map<String, dynamic>? user,
+    Map<String, dynamic> affiliate,
+  ) async {
+    final userId = user?['id']?.toString().trim();
+    if (userId == null || userId.isEmpty || affiliate.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('$_cacheKeyPrefix$userId', jsonEncode(affiliate));
   }
 
   Future<void> _copyValue(String label, String value) async {
@@ -158,10 +226,11 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
         actions: [
           IconButton(
             tooltip: l.tr('screens_affiliate_center_screen.005'),
-            onPressed: _load,
+            onPressed: OfflineSessionService.isOfflineMode ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
-          const AppNotificationAction(),
+          if (!OfflineSessionService.isOfflineMode)
+            const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
       ),
@@ -177,6 +246,10 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHero(enabled),
+                  if (_usingOfflineCache) ...[
+                    const SizedBox(height: 12),
+                    _buildOfflineCacheNotice(),
+                  ],
                   const SizedBox(height: 20),
                   _buildShareCard(),
                   const SizedBox(height: 20),
@@ -206,6 +279,27 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOfflineCacheNotice() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_rounded, color: AppTheme.warning),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'يتم عرض بيانات التسويق المحفوظة محليًا. ستتحدث الأرقام عند الاتصال والمزامنة.',
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.warning,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

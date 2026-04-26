@@ -6,6 +6,7 @@ export 'register_screen.dart';
 export 'otp_verification_screen.dart';
 export 'device_unlock_screen.dart';
 export 'create_card_screen.dart';
+export 'prepaid_multipay_cards_screen.dart';
 export 'quick_transfer_screen.dart';
 export 'card_print_requests_screen.dart';
 export 'scan_card_screen.dart';

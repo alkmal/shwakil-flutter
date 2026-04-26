@@ -37,7 +37,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _isBalanceVisible = true;
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
   int _pendingOfflineCount = 0;
+  int _availableOfflineCount = 0;
+  int _cachedOfflineCount = 0;
+  int _rejectedOfflineCount = 0;
+  int _offlineSyncIntervalMinutes = 60;
   String? _lastOfflineSyncAt;
+  bool _offlineAccessExpired = false;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
 
@@ -151,13 +156,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     required bool isLoading,
   }) async {
     final hasOfflineWorkspaceFuture = _resolveOfflineWorkspace(user);
-    final pendingSummaryFuture = _resolveOfflinePendingSummary(user);
-    final lastSyncAtFuture = _resolveLastOfflineSyncAt(user);
+    final offlineOverviewFuture = _resolveOfflineOverview(user);
     final isBalanceVisibleFuture = _resolveBalanceVisibility(user);
 
     final hasOfflineWorkspace = await hasOfflineWorkspaceFuture;
-    final pendingSummary = await pendingSummaryFuture;
-    final lastSyncAt = await lastSyncAtFuture;
+    final offlineOverview = await offlineOverviewFuture;
     final isBalanceVisible = await isBalanceVisibleFuture;
 
     if (!mounted) {
@@ -167,8 +170,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _user = user;
       _hasOfflineWorkspace = hasOfflineWorkspace;
       _isBalanceVisible = isBalanceVisible;
-      _pendingOfflineCount = (pendingSummary['count'] as num?)?.toInt() ?? 0;
-      _lastOfflineSyncAt = lastSyncAt;
+      _pendingOfflineCount =
+          (offlineOverview['pendingCount'] as num?)?.toInt() ?? 0;
+      _availableOfflineCount =
+          (offlineOverview['availableCount'] as num?)?.toInt() ?? 0;
+      _cachedOfflineCount =
+          (offlineOverview['cachedCount'] as num?)?.toInt() ?? 0;
+      _rejectedOfflineCount =
+          (offlineOverview['rejectedCount'] as num?)?.toInt() ?? 0;
+      _offlineSyncIntervalMinutes =
+          (offlineOverview['syncIntervalMinutes'] as num?)?.toInt() ?? 60;
+      _lastOfflineSyncAt = offlineOverview['lastSyncAt']?.toString();
+      _offlineAccessExpired = offlineOverview['expired'] == true;
       _isLoading = isLoading;
     });
     _maybeSuggestOfflineWorkspace();
@@ -217,25 +230,50 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Future<Map<String, dynamic>> _resolveOfflinePendingSummary(
+  Future<Map<String, dynamic>> _resolveOfflineOverview(
     Map<String, dynamic>? user,
   ) async {
     final permissions = AppPermissions.fromUser(user);
     if (user == null || user['id'] == null || !permissions.canOfflineCardScan) {
-      return const {'count': 0, 'amount': 0.0};
+      return const {
+        'pendingCount': 0,
+        'availableCount': 0,
+        'cachedCount': 0,
+        'rejectedCount': 0,
+        'syncIntervalMinutes': 60,
+        'lastSyncAt': null,
+        'expired': false,
+      };
     }
-    return _offlineCardService.pendingRedeemSummary(user['id'].toString());
-  }
-
-  Future<String?> _resolveLastOfflineSyncAt(Map<String, dynamic>? user) async {
-    final permissions = AppPermissions.fromUser(user);
-    if (user == null || user['id'] == null || !permissions.canOfflineCardScan) {
-      return null;
-    }
-    final settings = await _offlineCardService.offlineSettings(
+    final overview = await _offlineCardService.offlineOverview(
       user['id'].toString(),
     );
-    return settings['lastSyncAt']?.toString();
+    final summary = Map<String, dynamic>.from(
+      overview['summary'] as Map? ?? const {},
+    );
+    final settings = Map<String, dynamic>.from(
+      overview['settings'] as Map? ?? const {},
+    );
+    final interval =
+        (((settings['syncIntervalMinutes'] as num?)?.toInt() ?? 60).clamp(
+          5,
+          1440,
+        )).toInt();
+    final lastSyncAt = settings['lastSyncAt']?.toString();
+    final parsedLastSync = DateTime.tryParse(lastSyncAt ?? '');
+    final expired =
+        parsedLastSync == null ||
+        DateTime.now().difference(parsedLastSync.toLocal()).inMinutes >=
+            interval;
+    return {
+      'pendingCount': (summary['count'] as num?)?.toInt() ?? 0,
+      'availableCount': (overview['availableCount'] as num?)?.toInt() ?? 0,
+      'cachedCount': (overview['cachedCount'] as num?)?.toInt() ?? 0,
+      'rejectedCount': (summary['rejectedCount'] as num?)?.toInt() ?? 0,
+      'syncIntervalMinutes': interval,
+      'lastSyncAt': lastSyncAt,
+      'expired': expired,
+    };
   }
 
   void _handleConnectivityChanged() {
@@ -246,10 +284,44 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final regainedConnection = !_lastKnownDeviceOnline && isOnline;
     _lastKnownDeviceOnline = isOnline;
     if (regainedConnection) {
-      OfflineSessionService.setOfflineMode(false);
-      unawaited(_syncOfflineWorkspace(triggeredAutomatically: true));
+      unawaited(_showReconnectSyncPrompt());
     }
     setState(() {});
+  }
+
+  Future<void> _showReconnectSyncPrompt() async {
+    if (!mounted || !_canOfflineScan) {
+      return;
+    }
+    final shouldSync = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_t('screens_home_screen.065')),
+        content: Text(
+          _pendingOfflineCount > 0
+              ? _t(
+                  'screens_home_screen.077',
+                  params: {'count': '$_pendingOfflineCount'},
+                )
+              : _t('screens_home_screen.078'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_t('screens_home_screen.059')),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            icon: const Icon(Icons.cloud_sync_rounded),
+            label: const Text('تحديث الآن'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || shouldSync != true) {
+      return;
+    }
+    await _syncOfflineWorkspace();
   }
 
   Future<void> _syncOfflineWorkspace({
@@ -378,6 +450,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         userId,
         source: queuedBeforeSync.isNotEmpty ? 'queue' : 'inventory',
       );
+      OfflineSessionService.setOfflineMode(false);
 
       await _loadUser();
       if (!mounted) {
@@ -514,7 +587,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       : '/scan-card-camera';
 
   void _openScanScreen() {
+    if (OfflineSessionService.isOfflineMode && _offlineAccessExpired) {
+      unawaited(_showExpiredOfflineSyncRequired());
+      return;
+    }
     Navigator.pushNamed(context, _scanCameraRoute);
+  }
+
+  Future<void> _showExpiredOfflineSyncRequired() {
+    return AppAlertService.showError(
+      context,
+      title: _t('screens_scan_card_screen.118'),
+      message: _t('screens_scan_card_screen.119', params: {
+        'minutes': _offlineSyncIntervalMinutes.toString(),
+      }),
+    );
   }
 
   Future<void> _showOfflineBlockedMessage() {
@@ -555,14 +642,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       appBar: AppBar(
         title: const SizedBox.shrink(),
         actions: [
-          if (_canOfflineScan && !OfflineSessionService.isOfflineMode)
+          if (_canOfflineScan)
             _buildSyncStatusAction(),
           if (!OfflineSessionService.isOfflineMode)
             const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
       ),
-      drawer: OfflineSessionService.isOfflineMode ? null : const AppSidebar(),
+      drawer: const AppSidebar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -597,6 +684,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
+    final canOpenPrepaidMultipayCards = permissions.canOpenPrepaidMultipayCards;
     final l = context.loc;
     final showOfflineSyncAction =
         _canOfflineScan &&
@@ -605,14 +693,48 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
     if (OfflineSessionService.isOfflineMode) {
       return [
+        if (_canOfflineScan && (_isDeviceOnline || _offlineAccessExpired))
+          _HomeServiceItem(
+            title: _isSyncingOfflineWorkspace
+                ? _t('screens_home_screen.064')
+                : 'تحديث الأوفلاين الآن',
+            subtitle: _offlineAccessExpired
+                ? 'انتهت مدة العمل أوفلاين. اتصل بالإنترنت ثم حدّث البطاقات قبل الفحص.'
+                : _t('screens_home_screen.078'),
+            icon: Icons.cloud_sync_rounded,
+            color: _offlineAccessExpired ? AppTheme.error : AppTheme.primary,
+            kind: _HomeServiceKind.sync,
+            onTap: () => unawaited(_syncOfflineWorkspace()),
+          ),
         if (canScanCards)
           _HomeServiceItem(
-            title: l.tr('screens_home_screen.015'),
-            subtitle: l.tr('screens_home_screen.016'),
+            title:
+                '${l.tr('screens_home_screen.015')} ($_availableOfflineCount)',
+            subtitle: _offlineAccessExpired
+                ? 'الفحص متوقف حتى تتم المزامنة.'
+                : 'البطاقات المتزامنة أوفلاين: $_availableOfflineCount. آخر تحديث: ${_formatSyncTimestamp(_lastOfflineSyncAt)}',
             icon: Icons.qr_code_scanner_rounded,
-            color: AppTheme.success,
+            color: _offlineAccessExpired ? AppTheme.error : AppTheme.success,
             kind: _HomeServiceKind.scan,
             onTap: _openScanScreen,
+          ),
+        if (canManageDebtBook)
+          _HomeServiceItem(
+            title: _t('screens_home_screen.071'),
+            subtitle: _t('screens_home_screen.076'),
+            icon: Icons.menu_book_rounded,
+            color: const Color(0xFF7C3AED),
+            kind: _HomeServiceKind.debtBook,
+            onTap: () => Navigator.pushNamed(context, '/debt-book'),
+          ),
+        if (canViewAffiliateCenter)
+          _HomeServiceItem(
+            title: l.tr('screens_home_screen.082'),
+            subtitle: 'بيانات التسويق محفوظة محليًا عند آخر فتح ناجح.',
+            icon: Icons.campaign_rounded,
+            color: const Color(0xFF0F766E),
+            kind: _HomeServiceKind.affiliate,
+            onTap: () => Navigator.pushNamed(context, '/affiliate-center'),
           ),
         if (canViewInventory && canIssueCards && _hasOfflineWorkspace)
           _HomeServiceItem(
@@ -708,6 +830,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           color: const Color(0xFF0B75B7),
           kind: _HomeServiceKind.createCard,
           onTap: () => unawaited(_openOnlineOnlyRoute('/create-card')),
+        ),
+      if (canOpenPrepaidMultipayCards)
+        _HomeServiceItem(
+          title: 'بطاقات دفع مسبق',
+          subtitle: permissions.canUsePrepaidMultipayCards
+              ? 'أنشئ أكثر من بطاقة متعددة الدفع برصيد محجوز وتاريخ انتهاء.'
+              : 'اقبل دفعات البطاقات المسبقة من العملاء المصرح لهم.',
+          icon: Icons.credit_card_rounded,
+          color: const Color(0xFF334155),
+          kind: _HomeServiceKind.prepaidMultipay,
+          onTap: () =>
+              unawaited(_openOnlineOnlyRoute('/prepaid-multipay-cards')),
         ),
       if (canViewQuickTransfer && _canTransfer)
         _HomeServiceItem(
@@ -953,6 +1087,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     fontSize: isCompact ? 14 : 15,
                   ),
                 ),
+                if (_canOfflineScan) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'آخر تحديث للبيانات: ${_formatSyncTimestamp(_lastOfflineSyncAt)}'
+                    '${OfflineSessionService.isOfflineMode ? ' - الرصيد لا يتغير حتى تتم المزامنة' : ''}',
+                    style: AppTheme.caption.copyWith(
+                      color: Colors.white.withValues(alpha: 0.82),
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ],
             ),
           );
@@ -1323,6 +1469,37 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               const SizedBox(height: 14),
               _syncInfoRow(_t('screens_home_screen.090'), statusText),
               _syncInfoRow(_t('screens_home_screen.091'), lastSync),
+              _syncInfoRow(
+                'البطاقات المتاحة أوفلاين',
+                '$_availableOfflineCount من $_cachedOfflineCount',
+              ),
+              _syncInfoRow('بطاقات تنتظر الرفع', '$_pendingOfflineCount'),
+              if (_rejectedOfflineCount > 0)
+                _syncInfoRow('عمليات تحتاج مراجعة', '$_rejectedOfflineCount'),
+              _syncInfoRow(
+                'مدة صلاحية الأوفلاين',
+                '$_offlineSyncIntervalMinutes دقيقة',
+              ),
+              if (_offlineAccessExpired)
+                _syncInfoRow(
+                  'الحالة',
+                  'انتهت المدة. يجب الاتصال بالإنترنت والمزامنة قبل الفحص.',
+                ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed:
+                      _isSyncingOfflineWorkspace || !_isDeviceOnline
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                          unawaited(_syncOfflineWorkspace());
+                        },
+                  icon: const Icon(Icons.cloud_sync_rounded),
+                  label: const Text('تحديث الآن'),
+                ),
+              ),
             ],
           ),
         ),
@@ -1635,6 +1812,7 @@ enum _HomeServiceKind {
   sync,
   balance,
   createCard,
+  prepaidMultipay,
   quickTransfer,
   inventory,
   printRequests,
