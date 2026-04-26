@@ -154,28 +154,30 @@ class RealtimeNotificationService {
       ...await AppVersionService.publicHeaders(includeJsonContentType: true),
       'Authorization': 'Bearer $authToken',
     };
+    final body = jsonEncode({
+      'token': token,
+      'platform': defaultTargetPlatform.name,
+      'deviceId': deviceId,
+      'appVersion': '${packageInfo.version}+${packageInfo.buildNumber}',
+    });
 
-    try {
-      await http
-          .post(
-            AppConfig.apiUri('notifications/push-token'),
-            headers: headers,
-            body: jsonEncode({
-              'token': token,
-              'platform': defaultTargetPlatform.name,
-              'deviceId': deviceId,
-              'appVersion': '${packageInfo.version}+${packageInfo.buildNumber}',
-            }),
-          )
-          .timeout(const Duration(seconds: 5));
-    } on SocketException {
-      // No internet / DNS issue: keep the app running and retry later.
-    } on http.ClientException {
-      // Network client errors should not surface to the user here.
-    } on TimeoutException {
-      // Slow networks should not block app startup or navigation.
-    } catch (_) {
-      // Token registration is best-effort only.
+    for (final uri in AppConfig.apiCandidateUris('notifications/push-token')) {
+      try {
+        final response = await http
+            .post(uri, headers: headers, body: body)
+            .timeout(const Duration(seconds: 5));
+        if (response.statusCode != 401 && response.statusCode != 403) {
+          return;
+        }
+      } on SocketException {
+        // No internet / DNS issue: keep the app running and retry later.
+      } on http.ClientException {
+        // Network client errors should not surface to the user here.
+      } on TimeoutException {
+        // Slow networks should not block app startup or navigation.
+      } catch (_) {
+        // Token registration is best-effort only.
+      }
     }
   }
 
