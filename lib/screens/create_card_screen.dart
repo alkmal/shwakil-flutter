@@ -1252,7 +1252,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -1270,41 +1270,28 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 icon: const Icon(Icons.history_rounded),
                 text: l.tr('screens_create_card_screen.068'),
               ),
+              const Tab(
+                icon: Icon(Icons.visibility_rounded),
+                text: 'المعاينة والطباعة',
+              ),
             ],
           ),
         ),
         drawer: const AppSidebar(),
         body: TabBarView(
           children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 620;
-                final previewHeight = isCompact ? 360.0 : 430.0;
-                return Stack(
+            SingleChildScrollView(
+              child: ResponsiveScaffoldContainer(
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SingleChildScrollView(
-                      padding: EdgeInsets.only(top: previewHeight),
-                      child: ResponsiveScaffoldContainer(
-                        padding: const EdgeInsets.all(AppTheme.spacingLg),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildHero(),
-                            const SizedBox(height: 24),
-                            _buildForm(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    PositionedDirectional(
-                      top: AppTheme.spacingLg,
-                      start: AppTheme.spacingLg,
-                      end: AppTheme.spacingLg,
-                      child: _buildFloatingDesignPreview(isCompact: isCompact),
-                    ),
+                    _buildHero(),
+                    const SizedBox(height: 24),
+                    _buildForm(),
                   ],
-                );
-              },
+                ),
+              ),
             ),
             SingleChildScrollView(
               child: ResponsiveScaffoldContainer(
@@ -1316,6 +1303,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     const SizedBox(height: 24),
                     _buildRecent(),
                   ],
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              child: ResponsiveScaffoldContainer(
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [_buildPreviewAndPrintWorkspace()],
                 ),
               ),
             ),
@@ -1624,8 +1620,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               title: Text('إعدادات متقدمة', style: AppTheme.bodyBold),
               subtitle: Text(
                 _isTrialMode
-                    ? 'في الوضع التجريبي تكون البطاقة خاصة بحسابك تلقائيًا، ويمكنك فقط تعديل الصلاحية والتصميم.'
-                    : 'الصلاحية والخصوصية والتصميم والمعاينة. يمكنك تجاهلها إذا كنت تريد إصدارًا سريعًا.',
+                    ? 'في الوضع التجريبي تكون البطاقة خاصة بحسابك تلقائيًا، ويمكنك تعديل الصلاحية من هنا والتصميم من تبويب المعاينة.'
+                    : 'الصلاحية والخصوصية. إعدادات التصميم والمعاينة موجودة في تبويب المعاينة والطباعة.',
                 style: AppTheme.caption.copyWith(fontSize: 12),
               ),
               children: [
@@ -1790,8 +1786,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
-                _buildDesignSettings(),
               ],
             ),
           ),
@@ -1807,7 +1801,96 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
-  Widget _buildDesignSettings() {
+  Widget _buildPreviewAndPrintWorkspace() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 820;
+        final preview = _buildPrintPreviewPanel(isCompact: isCompact);
+        final settings = _buildPreviewSettingsPanel();
+        if (isCompact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              preview,
+              const SizedBox(height: 16),
+              settings,
+              const SizedBox(height: 16),
+              _buildPreviewActionPanel(),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 6, child: preview),
+            const SizedBox(width: 18),
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  settings,
+                  const SizedBox(height: 16),
+                  _buildPreviewActionPanel(),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPrintPreviewPanel({required bool isCompact}) {
+    return ShwakelCard(
+      padding: EdgeInsets.all(isCompact ? 18 : 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primarySoft,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.preview_rounded,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('معاينة البطاقة', style: AppTheme.h3),
+                    const SizedBox(height: 4),
+                    Text(
+                      'الشكل الأقرب للطباعة قبل إصدار البطاقات.',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isCompact ? 18 : 24),
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: isCompact ? 260 : 320),
+              child: _buildPreviewCard(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewSettingsPanel() {
     final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
@@ -1879,6 +1962,87 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
+  Widget _buildPreviewActionPanel() {
+    final l = context.loc;
+    final amount = double.tryParse(_amountC.text) ?? 0;
+    final quantity = int.tryParse(_qtyC.text) ?? 0;
+    final canPreviewPrint = _recent.isNotEmpty;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      color: AppTheme.secondary.withValues(alpha: 0.05),
+      borderColor: AppTheme.secondary.withValues(alpha: 0.12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('جاهزية الطباعة', style: AppTheme.h3),
+          const SizedBox(height: 12),
+          _buildPreviewSummaryRow('النوع', _cardTypeLabel(l, _cardType)),
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow('القيمة', _cardValueLabel(l, amount)),
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow(
+            'العدد المطلوب',
+            quantity > 0 ? '$quantity' : '-',
+          ),
+          if (_formatValidityWindow().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _buildPreviewSummaryRow('الصلاحية', _formatValidityWindow()),
+          ],
+          const SizedBox(height: 18),
+          ShwakelButton(
+            label: l.tr('screens_create_card_screen.043'),
+            icon: Icons.verified_user_rounded,
+            onPressed: _create,
+            isLoading: _isLoading,
+          ),
+          if (canPreviewPrint) ...[
+            const SizedBox(height: 10),
+            if (_canUseThermalPrinting) ...[
+              ShwakelButton(
+                label: 'طباعة حرارية للبطاقات الأخيرة',
+                icon: Icons.local_printshop_rounded,
+                isSecondary: true,
+                isLoading: _isThermalPrinting,
+                onPressed: () => _quickThermalPrintCards(_recent),
+              ),
+              const SizedBox(height: 10),
+            ],
+            ShwakelButton(
+              label: l.tr('screens_create_card_screen.065'),
+              icon: Icons.print_rounded,
+              isSecondary: true,
+              onPressed: () => _printCards(_recent),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewSummaryRow(String label, String value) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTheme.bodyAction.copyWith(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: AppTheme.bodyBold.copyWith(fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTrialInfoCard() {
     return ShwakelCard(
       padding: const EdgeInsets.all(18),
@@ -1932,64 +2096,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           const SizedBox(width: 6),
           Text(label, style: AppTheme.caption),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingDesignPreview({required bool isCompact}) {
-    return Material(
-      elevation: 12,
-      shadowColor: Colors.black.withValues(alpha: 0.14),
-      color: Colors.transparent,
-      borderRadius: AppTheme.radiusLg,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(isCompact ? 12 : 16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: AppTheme.radiusLg,
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primarySoft,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.visibility_rounded,
-                    color: AppTheme.primary,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'معاينة البطاقة قبل الإصدار',
-                    style: AppTheme.bodyBold,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: isCompact ? 10 : 12),
-            SizedBox(
-              height: isCompact ? 285 : 345,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: isCompact ? 210 : 252),
-                  child: _buildPreviewCard(),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
