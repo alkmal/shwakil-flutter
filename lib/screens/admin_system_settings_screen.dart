@@ -69,7 +69,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _isSaving = false;
   bool _isAuthorized = false;
   bool _registrationEnabled = true;
-  bool _loginOtpRequired = true;
+  bool _loginOtpRequired = false;
   bool _topupRequestEnabled = true;
   bool _affiliateEnabled = true;
   bool _isLoadingPrepaidReport = false;
