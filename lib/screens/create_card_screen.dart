@@ -307,7 +307,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (! _isTrialMode && isPrivate && _selectedUsers.isEmpty) {
+    if (!_isTrialMode && isPrivate && _selectedUsers.isEmpty) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.006'),
@@ -437,7 +437,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         );
         final userId = _user?['id']?.toString();
         if (userId != null && userId.isNotEmpty) {
-          await _offlineCardService.cacheCards(userId: userId, cards: cards);
+          await _cacheIssuedCards(userId: userId, cards: cards);
         }
         return cards;
       } catch (error) {
@@ -497,7 +497,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         );
         final userId = _user?['id']?.toString();
         if (userId != null && userId.isNotEmpty) {
-          await _offlineCardService.cacheCards(userId: userId, cards: cards);
+          await _cacheIssuedCards(userId: userId, cards: cards);
         }
         return cards;
       } catch (error) {
@@ -527,6 +527,17 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     return null;
+  }
+
+  Future<void> _cacheIssuedCards({
+    required String userId,
+    required List<VirtualCard> cards,
+  }) async {
+    try {
+      await _offlineCardService.cacheCards(userId: userId, cards: cards);
+    } catch (_) {
+      // Offline cache should never make a successful card issue look failed.
+    }
   }
 
   Map<String, dynamic> _currentPrintDesign() {
@@ -1265,18 +1276,35 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         drawer: const AppSidebar(),
         body: TabBarView(
           children: [
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 620;
+                final previewHeight = isCompact ? 360.0 : 430.0;
+                return Stack(
                   children: [
-                    _buildHero(),
-                    const SizedBox(height: 24),
-                    _buildForm(),
+                    SingleChildScrollView(
+                      padding: EdgeInsets.only(top: previewHeight),
+                      child: ResponsiveScaffoldContainer(
+                        padding: const EdgeInsets.all(AppTheme.spacingLg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHero(),
+                            const SizedBox(height: 24),
+                            _buildForm(),
+                          ],
+                        ),
+                      ),
+                    ),
+                    PositionedDirectional(
+                      top: AppTheme.spacingLg,
+                      start: AppTheme.spacingLg,
+                      end: AppTheme.spacingLg,
+                      child: _buildFloatingDesignPreview(isCompact: isCompact),
+                    ),
                   ],
-                ),
-              ),
+                );
+              },
             ),
             SingleChildScrollView(
               child: ResponsiveScaffoldContainer(
@@ -1463,8 +1491,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             decoration: InputDecoration(
               labelText: l.tr('screens_create_card_screen.037'),
               prefixIcon: const Icon(Icons.pin_rounded),
-              helperText:
-                  _isTrialMode
+              helperText: _isTrialMode
                   ? 'يمكنك إنشاء أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.ils(_trialCardsRemainingAmount)}.'
                   : 'أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
             ),
@@ -1847,8 +1874,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
             onChanged: (value) => setState(() => _showStamp = value),
           ),
-          const SizedBox(height: 14),
-          _buildDesignPreview(),
         ],
       ),
     );
@@ -1911,7 +1936,65 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
-  Widget _buildDesignPreview() {
+  Widget _buildFloatingDesignPreview({required bool isCompact}) {
+    return Material(
+      elevation: 12,
+      shadowColor: Colors.black.withValues(alpha: 0.14),
+      color: Colors.transparent,
+      borderRadius: AppTheme.radiusLg,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(isCompact ? 12 : 16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: AppTheme.radiusLg,
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.visibility_rounded,
+                    color: AppTheme.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'معاينة البطاقة قبل الإصدار',
+                    style: AppTheme.bodyBold,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: isCompact ? 10 : 12),
+            SizedBox(
+              height: isCompact ? 285 : 345,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: isCompact ? 210 : 252),
+                  child: _buildPreviewCard(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewCard() {
     final l = context.loc;
     final amount = double.tryParse(_amountC.text) ?? 0;
     final previewCard = VirtualCard(
@@ -1937,35 +2020,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ? (_user?['printLogoUrl'])?.toString()
         : null;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: AppTheme.radiusLg,
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'هذه هي البطاقة بشكل الطباعة الفعلي قبل الإصدار',
-            style: AppTheme.caption.copyWith(
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: PrintCardPreview(
-              card: previewCard,
-              serialNumber: 1,
-              printedBy: _resolvedIssuerName(l),
-              designSettings: settings,
-            ),
-          ),
-        ],
-      ),
+    return PrintCardPreview(
+      card: previewCard,
+      serialNumber: 1,
+      printedBy: _resolvedIssuerName(l),
+      designSettings: settings,
     );
   }
 
