@@ -2236,10 +2236,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminNotificationComposer() async {
-    final response = await http.get(
-      AppConfig.apiUri('admin/notifications'),
-      headers: await _headers(),
-    );
+    final response = await _authenticatedGetWithFallback('admin/notifications');
     return _decodeObject(response);
   }
 
@@ -2255,9 +2252,8 @@ class ApiService {
     String actionRoute = '',
     String actionLabel = '',
   }) async {
-    final response = await http.post(
-      AppConfig.apiUri('admin/notifications'),
-      headers: await _headers(),
+    final response = await _authenticatedPostWithFallback(
+      'admin/notifications',
       body: jsonEncode({
         'targetType': targetType,
         'targetValue': targetValue,
@@ -2275,30 +2271,37 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
-    final response = await _postNotificationWithFallback(
+    final response = await _authenticatedPostWithFallback(
       'notifications/$id/read',
     );
     return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> markAllNotificationsAsRead() async {
-    final response = await _postNotificationWithFallback(
+    final response = await _authenticatedPostWithFallback(
       'notifications/read-all',
     );
     return _decodeObject(response);
   }
 
-  Future<http.Response> _getNotificationWithFallback(
+  Future<http.Response> _authenticatedGetWithFallback(
     String path, {
     Map<String, dynamic>? query,
   }) async {
     Object? lastError;
+    http.Response? lastAuthFailure;
     final headers = await _headers();
     for (final uri in AppConfig.apiCandidateUris(path, query)) {
       try {
-        return await _client
+        final response = await _client
             .get(uri, headers: headers)
             .timeout(_authenticatedRequestTimeout);
+        if ((response.statusCode == 401 || response.statusCode == 403) &&
+            AppConfig.apiBaseUrls.length > 1) {
+          lastAuthFailure = response;
+          continue;
+        }
+        return response;
       } on TimeoutException catch (error) {
         lastError = error;
       } on SocketException catch (error) {
@@ -2306,18 +2309,31 @@ class ApiService {
       } on http.ClientException catch (error) {
         lastError = error;
       }
+    }
+    if (lastAuthFailure != null) {
+      return lastAuthFailure;
     }
     throw lastError ?? Exception(_tr('services_api_service.001'));
   }
 
-  Future<http.Response> _postNotificationWithFallback(String path) async {
+  Future<http.Response> _authenticatedPostWithFallback(
+    String path, {
+    Object? body,
+  }) async {
     Object? lastError;
+    http.Response? lastAuthFailure;
     final headers = await _headers();
     for (final uri in AppConfig.apiCandidateUris(path)) {
       try {
-        return await _client
-            .post(uri, headers: headers)
+        final response = await _client
+            .post(uri, headers: headers, body: body)
             .timeout(_authenticatedRequestTimeout);
+        if ((response.statusCode == 401 || response.statusCode == 403) &&
+            AppConfig.apiBaseUrls.length > 1) {
+          lastAuthFailure = response;
+          continue;
+        }
+        return response;
       } on TimeoutException catch (error) {
         lastError = error;
       } on SocketException catch (error) {
@@ -2326,7 +2342,17 @@ class ApiService {
         lastError = error;
       }
     }
+    if (lastAuthFailure != null) {
+      return lastAuthFailure;
+    }
     throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  Future<http.Response> _getNotificationWithFallback(
+    String path, {
+    Map<String, dynamic>? query,
+  }) {
+    return _authenticatedGetWithFallback(path, query: query);
   }
 
   Future<Map<String, dynamic>> resellCard({
