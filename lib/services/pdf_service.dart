@@ -108,8 +108,7 @@ class PDFService {
         _accountLogoImage != null) {
       return;
     }
-    if (logoUrl.isEmpty &&
-        _loadedLogoSource == 'none') {
+    if (logoUrl.isEmpty && _loadedLogoSource == 'none') {
       return;
     }
 
@@ -140,6 +139,7 @@ class PDFService {
       fontSize: fontSize,
       color: color ?? _titleColor,
       font: font ?? (bold ? _boldFont : _regularFont),
+      fontFallback: [?_regularFont, ?_boldFont],
       fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
     );
   }
@@ -406,12 +406,12 @@ class PDFService {
                       ),
                     ),
                     pw.SizedBox(height: compact ? 1.2 : 2.5),
-                      pw.Text(
-                        card.isDelivery
-                            ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
-                            : card.isSingleUse
-                                ? 'بطاقة استخدام داخلية'
-                                : 'بطاقة مالية رقمية',
+                    pw.Text(
+                      card.isDelivery
+                          ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
+                          : card.isSingleUse
+                          ? 'بطاقة استخدام داخلية'
+                          : 'بطاقة مالية رقمية',
                       textDirection: pw.TextDirection.rtl,
                       textAlign: pw.TextAlign.right,
                       style: _textStyle(
@@ -505,11 +505,18 @@ class PDFService {
           100 * PdfPageFormat.mm,
           65 * PdfPageFormat.mm,
         ),
-        theme: pw.ThemeData.withFont(base: _regularFont!, bold: _boldFont!),
-        build: (context) => _buildCardContainer(
-          card,
-          printedBy: printedBy,
-          serialNumber: serialNumber,
+        theme: pw.ThemeData.withFont(
+          base: _regularFont!,
+          bold: _boldFont!,
+          fontFallback: [_regularFont!, _boldFont!],
+        ),
+        build: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: _buildCardContainer(
+            card,
+            printedBy: printedBy,
+            serialNumber: serialNumber,
+          ),
         ),
       ),
     );
@@ -531,14 +538,21 @@ class PDFService {
         pw.Page(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          theme: pw.ThemeData.withFont(base: _regularFont!, bold: _boldFont!),
-          build: (context) => pw.Container(
-            color: _pageBackground,
-            child: pw.Column(
-              children: _buildCardRows(
-                pageCards,
-                printedBy: printedBy,
-                startSerialNumber: i + 1,
+          theme: pw.ThemeData.withFont(
+            base: _regularFont!,
+            bold: _boldFont!,
+            fontFallback: [_regularFont!, _boldFont!],
+          ),
+          build: (context) => pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: pw.Container(
+              color: _pageBackground,
+              child: pw.Column(
+                children: _buildCardRows(
+                  pageCards,
+                  printedBy: printedBy,
+                  startSerialNumber: i + 1,
+                ),
               ),
             ),
           ),
@@ -950,8 +964,8 @@ class PDFService {
                         card.isDelivery
                             ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
                             : card.isSingleUse
-                                ? 'صالحة للدخول أو التسليم داخل النظام'
-                                : 'قيمة داخلية صالحة للاستخدام داخل النظام',
+                            ? 'صالحة للدخول أو التسليم داخل النظام'
+                            : 'قيمة داخلية صالحة للاستخدام داخل النظام',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 8.2, color: _titleColor),

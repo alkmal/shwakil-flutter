@@ -120,12 +120,15 @@ class ThermalPrinterService {
         styles: const PosStyles(align: PosAlign.center, bold: true),
       ),
     );
-    bytes.addAll(
-      generator.text(
-        'ISSUER: $issuerName',
-        styles: const PosStyles(align: PosAlign.center),
-      ),
-    );
+    final asciiIssuer = _asciiSafe(issuerName);
+    if (asciiIssuer.isNotEmpty) {
+      bytes.addAll(
+        generator.text(
+          'ISSUER: $asciiIssuer',
+          styles: const PosStyles(align: PosAlign.center),
+        ),
+      );
+    }
     bytes.addAll(
       generator.text(
         'DATE: ${card.createdAt.toLocal().toString().split('.').first}',
@@ -137,5 +140,15 @@ class ThermalPrinterService {
       bytes.addAll(generator.cut());
     }
     return PrintBluetoothThermal.writeBytes(bytes);
+  }
+
+  String _asciiSafe(String value) {
+    return value
+        .trim()
+        .runes
+        .where((rune) => rune >= 32 && rune <= 126)
+        .map(String.fromCharCode)
+        .join()
+        .trim();
   }
 }
