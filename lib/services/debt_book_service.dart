@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -556,7 +557,7 @@ class DebtBookService {
   }
 
   Future<SecretKey> _getOrCreateSecretKey() async {
-    final existing = await _secureStorage.read(key: _offlineKeyName);
+    final existing = await _readSecureValue(_offlineKeyName);
     if (existing != null && existing.isNotEmpty) {
       return SecretKey(base64Decode(existing));
     }
@@ -566,6 +567,26 @@ class DebtBookService {
       value: base64Encode(await key.extractBytes()),
     );
     return key;
+  }
+
+  Future<String?> _readSecureValue(String key) async {
+    try {
+      return await _secureStorage.read(key: key);
+    } on PlatformException catch (error) {
+      if (_isSecureStorageDecryptError(error)) {
+        await _secureStorage.delete(key: key);
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  bool _isSecureStorageDecryptError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('badpaddingexception') ||
+        message.contains('bad_decrypt') ||
+        message.contains('failed to unwrap key') ||
+        message.contains('invalidkeyexception');
   }
 
   List<Map<String, dynamic>> _coerceList(dynamic decoded) {

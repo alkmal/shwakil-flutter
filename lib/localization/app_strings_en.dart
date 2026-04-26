@@ -614,7 +614,7 @@ const Map<String, String> appStringsEn = {
   'screens_login_screen.011': 'Username contains unsupported characters.',
   'screens_login_screen.012': 'For user {username}: {message}',
   'screens_login_screen.013':
-      'Enter your credentials and move directly to verification.',
+      'Enter your credentials to continue securely into your account.',
   'screens_login_screen.014': 'Registration is currently disabled',
   'screens_login_screen.015':
       'To create a new account, contact admin on WhatsApp: {whatsapp}',
@@ -1982,6 +1982,8 @@ const Map<String, String> appStringsEn = {
       'Your session has expired or is no longer valid on this device. Sign in again, then try scanning the card once more.',
   'services_error_message_service.012':
       'Registration is currently unavailable. Please try again later and contact support for more details.',
+  'services_error_message_service.013':
+      'The offline data stored on this device needs a fresh update. Connect to the internet and refresh offline data again.',
   'services_local_notification_service.001': 'Account updates',
   'services_local_notification_service.002':
       'Account, request, and important alert notifications',

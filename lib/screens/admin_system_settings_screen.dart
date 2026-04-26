@@ -69,6 +69,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _isSaving = false;
   bool _isAuthorized = false;
   bool _registrationEnabled = true;
+  bool _loginOtpRequired = true;
   bool _topupRequestEnabled = true;
   bool _affiliateEnabled = true;
   bool _isLoadingPrepaidReport = false;
@@ -185,6 +186,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _contactEmailController.text = contactSettings['supportEmail'] ?? '';
       _contactAddressController.text = contactSettings['address'] ?? '';
       _registrationEnabled = authSettings['registrationEnabled'] == true;
+      _loginOtpRequired = authSettings['loginOtpRequired'] != false;
       final minSupportedVersion =
           authSettings['minSupportedVersion']?.toString().trim() ?? '';
       final latestVersion =
@@ -375,6 +377,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         ),
         _apiService.updateAuthSettings(
           registrationEnabled: _registrationEnabled,
+          loginOtpRequired: _loginOtpRequired,
           minSupportedVersion: _minSupportedVersionController.text,
           latestVersion: _latestVersionController.text,
           androidStoreUrl: _androidStoreUrlController.text,
@@ -881,6 +884,16 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   onChanged: (value) =>
                       setState(() => _registrationEnabled = value),
                   title: Text(l.tr('screens_admin_system_settings_screen.042')),
+                ),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _loginOtpRequired,
+                  onChanged: (value) =>
+                      setState(() => _loginOtpRequired = value),
+                  title: const Text('طلب OTP عند تسجيل الدخول'),
+                  subtitle: const Text(
+                    'عند إيقافه يمكن للمستخدم تسجيل الدخول من داخل التطبيق بدون كود واتساب.',
+                  ),
                 ),
                 TextField(
                   controller: _unverifiedTransferLimitController,

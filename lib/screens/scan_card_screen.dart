@@ -582,6 +582,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final barcode = _bcC.text.trim();
     if (barcode.isEmpty) return;
 
+    final prepaidPayload = _tryParsePrepaidMultipayPayload(barcode);
+    if (prepaidPayload != null) {
+      setState(() {
+        _card = null;
+        _isSearching = false;
+      });
+      await _handlePrepaidMultipayScan(prepaidPayload);
+      return;
+    }
+
     setState(() => _isSearching = true);
     final result = await _lookupCard(barcode);
     if (!mounted) return;
@@ -1013,6 +1023,296 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
   }
 
+  Future<BarcodeScannerDialogResult?> _resolvePrepaidMultipayDialogResult(
+    _PrepaidMultipayScanPayload payload,
+  ) async {
+    if (widget.offlineMode) {
+      return BarcodeScannerDialogResult.error(
+        headline: 'بطاقة دفع مسبق',
+        message: 'سحب البطاقات المسبقة يحتاج اتصالًا مباشرًا بالإنترنت.',
+      );
+    }
+
+    return BarcodeScannerDialogResult(
+      headline: 'بطاقة دفع مسبق',
+      description:
+          'تمت قراءة البطاقة. أدخل قيمة السحب وكود الحماية المكوّن من 3 أرقام لإتمام العملية.',
+      color: AppTheme.primary,
+      icon: Icons.credit_card_rounded,
+      items: [
+        BarcodeScannerDialogResultItem(
+          label: 'رقم البطاقة',
+          value: payload.maskedCardNumber,
+          icon: Icons.credit_card_rounded,
+        ),
+        if (payload.expiryLabel.isNotEmpty)
+          BarcodeScannerDialogResultItem(
+            label: 'الانتهاء',
+            value: payload.expiryLabel,
+            icon: Icons.event_rounded,
+          ),
+      ],
+      primaryActionLabel: 'متابعة السحب',
+      primaryActionIcon: Icons.payments_rounded,
+      onPrimaryAction: () =>
+          _handlePrepaidMultipayScan(payload, showErrorAlert: false),
+    );
+  }
+
+  Future<BarcodeScannerDialogResult?> _handlePrepaidMultipayScan(
+    _PrepaidMultipayScanPayload payload, {
+    bool showErrorAlert = true,
+  }
+  ) async {
+    if (widget.offlineMode) {
+      if (showErrorAlert) {
+        await AppAlertService.showError(
+          context,
+          title: 'بطاقة دفع مسبق',
+          message: 'سحب البطاقات المسبقة يحتاج اتصالًا مباشرًا بالإنترنت.',
+        );
+      }
+      return null;
+    }
+
+    final amountController = TextEditingController();
+    final codeController = TextEditingController();
+    final monthController = TextEditingController(
+      text: payload.expiryMonth?.toString().padLeft(2, '0') ?? '',
+    );
+    final yearController = TextEditingController(
+      text: payload.expiryYear == null
+          ? ''
+          : (payload.expiryYear! % 100).toString().padLeft(2, '0'),
+    );
+
+    try {
+      final submission = await showDialog<_PrepaidPaymentSubmission>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('سحب من بطاقة مسبقة'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                payload.label?.isNotEmpty == true
+                    ? payload.label!
+                    : payload.maskedCardNumber,
+                style: AppTheme.bodyBold,
+              ),
+              if (payload.expiryLabel.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'الانتهاء: ${payload.expiryLabel}',
+                  style: AppTheme.caption,
+                ),
+              ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'القيمة',
+                  hintText: 'مثال: 25',
+                  prefixIcon: Icon(Icons.payments_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (!payload.hasExpiry) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: monthController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'الشهر',
+                          counterText: '',
+                          prefixIcon: Icon(Icons.calendar_month_rounded),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: yearController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'السنة',
+                          counterText: '',
+                          prefixIcon: Icon(Icons.event_rounded),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 3,
+                decoration: const InputDecoration(
+                  labelText: 'الرقم السري من 3 أرقام',
+                  counterText: '',
+                  prefixIcon: Icon(Icons.pin_rounded),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(dialogContext).pop(
+                _PrepaidPaymentSubmission(
+                  amount: double.tryParse(amountController.text.trim()) ?? 0,
+                  code: codeController.text.trim(),
+                  expiryMonth: monthController.text.trim(),
+                  expiryYear: yearController.text.trim(),
+                ),
+              ),
+              icon: const Icon(Icons.payments_rounded),
+              label: const Text('سحب'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted || submission == null) {
+        return null;
+      }
+
+      if (submission.amount <= 0 ||
+          !RegExp(r'^\d{3}$').hasMatch(submission.code)) {
+        await AppAlertService.showError(
+          context,
+          title: 'بيانات غير مكتملة',
+          message: 'أدخل القيمة والرقم السري المكوّن من 3 أرقام.',
+        );
+        return null;
+      }
+
+      final month = submission.expiryMonth.trim();
+      final year = submission.expiryYear.trim();
+      if (!RegExp(r'^\d{1,2}$').hasMatch(month) ||
+          !RegExp(r'^\d{2,4}$').hasMatch(year)) {
+        await AppAlertService.showError(
+          context,
+          title: 'بيانات البطاقة غير مكتملة',
+          message: 'تعذر تحديد شهر وسنة الانتهاء لهذه البطاقة.',
+        );
+        return null;
+      }
+
+      final response = await _api.acceptPrepaidMultipayCardPayment(
+        cardNumber: payload.cardNumber,
+        amount: submission.amount,
+        expiryMonth: month,
+        expiryYear: year,
+        securityCode: submission.code,
+        idempotencyKey: _newPrepaidPaymentKey(),
+      );
+      if (!mounted) {
+        return null;
+      }
+
+      final merchantBalance = (response['merchantBalance'] as num?)?.toDouble();
+      if (merchantBalance != null) {
+        await _auth.cacheCurrentUser({...?_user, 'balance': merchantBalance});
+        setState(() {
+          _user = {...?_user, 'balance': merchantBalance};
+        });
+      }
+
+      final payment = Map<String, dynamic>.from(
+        response['payment'] as Map? ?? const {},
+      );
+      final remaining = (payment['remainingCardBalance'] as num?)?.toDouble();
+
+      return BarcodeScannerDialogResult(
+        headline: 'تم السحب بنجاح',
+        description: remaining == null
+            ? 'تم تنفيذ العملية بنجاح.'
+            : 'تم سحب ${CurrencyFormatter.ils(submission.amount)} وبقي في البطاقة ${CurrencyFormatter.ils(remaining)}.',
+        color: AppTheme.success,
+        icon: Icons.check_circle_rounded,
+        items: [
+          BarcodeScannerDialogResultItem(
+            label: 'رقم البطاقة',
+            value: payload.maskedCardNumber,
+            icon: Icons.credit_card_rounded,
+          ),
+          BarcodeScannerDialogResultItem(
+            label: 'المبلغ',
+            value: CurrencyFormatter.ils(submission.amount),
+            icon: Icons.payments_rounded,
+          ),
+          if (remaining != null)
+            BarcodeScannerDialogResultItem(
+              label: 'المتبقي',
+              value: CurrencyFormatter.ils(remaining),
+              icon: Icons.account_balance_wallet_rounded,
+            ),
+        ],
+      );
+    } catch (error) {
+      if (!mounted) {
+        return null;
+      }
+      final message = ErrorMessageService.sanitize(error);
+      if (showErrorAlert) {
+        await AppAlertService.showError(
+          context,
+          title: 'تعذر تنفيذ السحب',
+          message: message,
+        );
+      }
+      return BarcodeScannerDialogResult.error(
+        headline: 'تعذر تنفيذ السحب',
+        message: message,
+      );
+    } finally {
+      amountController.dispose();
+      codeController.dispose();
+      monthController.dispose();
+      yearController.dispose();
+    }
+  }
+
+  String _newPrepaidPaymentKey() {
+    final now = DateTime.now().toUtc().microsecondsSinceEpoch;
+    return 'scan-prepaid:$now:${identityHashCode(this)}';
+  }
+
+  _PrepaidMultipayScanPayload? _tryParsePrepaidMultipayPayload(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is! Map || decoded['type'] != 'prepaid_multipay_card') {
+        return null;
+      }
+      final payload = _PrepaidMultipayScanPayload.fromMap(
+        Map<String, dynamic>.from(decoded),
+      );
+      return payload.cardNumber.isEmpty ? null : payload;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _openScannerDialog() async {
     if (widget.offlineMode && !await _ensureOfflineAccessReady()) {
       return;
@@ -1048,6 +1348,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final temporaryPayload = _tryParseTemporaryTransferPayload(scannedValue);
     if (temporaryPayload != null) {
       return _resolveTemporaryTransferDialogResult(temporaryPayload);
+    }
+
+    final prepaidPayload = _tryParsePrepaidMultipayPayload(scannedValue);
+    if (prepaidPayload != null) {
+      return _resolvePrepaidMultipayDialogResult(prepaidPayload);
     }
 
     final lookup = await _lookupCard(scannedValue);
@@ -2001,7 +2306,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Widget _offlineInventoryStatusCard() {
-    final color = _isOfflineUseBlocked ? AppTheme.error : AppTheme.success;
+    final needsRefresh =
+        _isOfflineUseBlocked || _isSyncingOfflineCards || _availableOfflineCardCount == 0;
+    final color = _isOfflineUseBlocked
+        ? AppTheme.error
+        : needsRefresh
+        ? AppTheme.warning
+        : AppTheme.success;
+    final statusLabel = _isOfflineUseBlocked
+        ? 'يحتاج تحديث'
+        : _isSyncingOfflineCards
+        ? 'جاري التحديث'
+        : _availableOfflineCardCount == 0
+        ? 'غير محدث'
+        : 'جاهز';
     final lastSyncLabel = _offlineLastSyncAt == null
         ? _t('screens_scan_card_screen.122')
         : _formatDate(_offlineLastSyncAt);
@@ -2015,24 +2333,64 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       ),
       child: Row(
         children: [
-          Icon(
-            _isOfflineUseBlocked
-                ? Icons.lock_clock_rounded
-                : Icons.inventory_2_rounded,
-            color: color,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.inventory_2_rounded, color: color),
+              ),
+              Positioned(
+                top: -4,
+                left: -4,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Icon(
+                    _isOfflineUseBlocked
+                        ? Icons.priority_high_rounded
+                        : _isSyncingOfflineCards
+                        ? Icons.sync_rounded
+                        : _availableOfflineCardCount == 0
+                        ? Icons.sync_problem_rounded
+                        : Icons.check_rounded,
+                    size: 14,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              _isOfflineUseBlocked
-                  ? _t('screens_scan_card_screen.121', {
-                      'minutes': _offlineSyncIntervalMinutes.toString(),
-                    })
-                  : _t('screens_scan_card_screen.120', {
-                      'count': _availableOfflineCardCount.toString(),
-                      'date': lastSyncLabel,
-                    }),
-              style: AppTheme.bodyAction.copyWith(color: color, height: 1.45),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'الأوفلاين: $statusLabel',
+                  style: AppTheme.bodyBold.copyWith(color: color),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'آخر تحديث: $lastSyncLabel',
+                  style: AppTheme.bodyAction.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.35,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -3110,6 +3468,68 @@ class _CardLookupResult {
 
   final VirtualCard? card;
   final String? errorMessage;
+}
+
+class _PrepaidPaymentSubmission {
+  const _PrepaidPaymentSubmission({
+    required this.amount,
+    required this.code,
+    required this.expiryMonth,
+    required this.expiryYear,
+  });
+
+  final double amount;
+  final String code;
+  final String expiryMonth;
+  final String expiryYear;
+}
+
+class _PrepaidMultipayScanPayload {
+  const _PrepaidMultipayScanPayload({
+    required this.cardNumber,
+    required this.expiryMonth,
+    required this.expiryYear,
+    required this.label,
+  });
+
+  factory _PrepaidMultipayScanPayload.fromMap(Map<String, dynamic> map) {
+    final cardNumber = map['cardNumber']?.toString().replaceAll(
+          RegExp(r'\D+'),
+          '',
+        ) ??
+        '';
+    final expiryMonth = (map['expiryMonth'] as num?)?.toInt();
+    final expiryYear = (map['expiryYear'] as num?)?.toInt();
+
+    return _PrepaidMultipayScanPayload(
+      cardNumber: cardNumber,
+      expiryMonth: expiryMonth,
+      expiryYear: expiryYear,
+      label: map['label']?.toString(),
+    );
+  }
+
+  final String cardNumber;
+  final int? expiryMonth;
+  final int? expiryYear;
+  final String? label;
+
+  bool get hasExpiry => expiryMonth != null && expiryYear != null;
+
+  String get maskedCardNumber {
+    if (cardNumber.length < 4) {
+      return cardNumber;
+    }
+    final visible = cardNumber.substring(cardNumber.length - 4);
+    return '**** **** **** $visible';
+  }
+
+  String get expiryLabel {
+    if (!hasExpiry) {
+      return '';
+    }
+    return '${expiryMonth.toString().padLeft(2, '0')}/${(expiryYear! % 100).toString().padLeft(2, '0')}';
+  }
 }
 
 class _TemporaryTransferPayload {

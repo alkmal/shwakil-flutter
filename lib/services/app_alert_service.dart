@@ -32,6 +32,8 @@ class AppAlertService {
   static DateTime? _lastGlobalErrorAt;
   static String? _lastVisibleErrorFingerprint;
   static DateTime? _lastVisibleErrorAt;
+  static String? _lastSnackFingerprint;
+  static DateTime? _lastSnackAt;
 
   static Future<void> showSuccess(
     BuildContext context, {
@@ -72,6 +74,81 @@ class AppAlertService {
       title: title ?? context.loc.tr('services_app_alert_service.003'),
       message: message,
     );
+  }
+
+  static void showSnack(
+    BuildContext context, {
+    required String message,
+    AppAlertType type = AppAlertType.info,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    final cleanMessage = ErrorMessageService.sanitize(message);
+    final fingerprint = '${type.name}|${cleanMessage.trim()}';
+    final lastAt = _lastSnackAt;
+    if (_lastSnackFingerprint == fingerprint &&
+        lastAt != null &&
+        DateTime.now().difference(lastAt) < const Duration(seconds: 4)) {
+      return;
+    }
+    _lastSnackFingerprint = fingerprint;
+    _lastSnackAt = DateTime.now();
+
+    final style = _styleFor(type);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) {
+      return;
+    }
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: duration,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          content: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: style.color.withValues(alpha: 0.16)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x200F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: style.softColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(style.icon, color: style.color, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    cleanMessage,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
   }
 
   static Future<void> showGlobalError({

@@ -1019,6 +1019,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateAdminAuthSettings({
     required bool registrationEnabled,
+    required bool loginOtpRequired,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1030,6 +1031,7 @@ class ApiService {
       headers: await _headers(),
       body: jsonEncode({
         'registrationEnabled': registrationEnabled,
+        'loginOtpRequired': loginOtpRequired,
         'minSupportedVersion': minSupportedVersion.trim(),
         'latestVersion': latestVersion.trim(),
         'androidStoreUrl': androidStoreUrl.trim(),
@@ -1238,6 +1240,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateAuthSettings({
     required bool registrationEnabled,
+    required bool loginOtpRequired,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1246,6 +1249,7 @@ class ApiService {
   }) {
     return updateAdminAuthSettings(
       registrationEnabled: registrationEnabled,
+      loginOtpRequired: loginOtpRequired,
       minSupportedVersion: minSupportedVersion,
       latestVersion: latestVersion,
       androidStoreUrl: androidStoreUrl,
@@ -2041,6 +2045,34 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getAdminPendingPrepaidMultipayApprovals({
+    int perPage = 50,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/prepaid-multipay/approvals', {
+        'perPage': perPage.toString(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> reviewAdminPrepaidMultipayApproval({
+    required String cardId,
+    required String action,
+    String? note,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/prepaid-multipay/approvals/$cardId'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'action': action.trim(),
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
   Future<void> exportAdminPrepaidMultipayPaymentsCsv({
     required List<Map<String, dynamic>> payments,
   }) async {
@@ -2116,6 +2148,34 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> reloadPrepaidMultipayCard({
+    required String cardId,
+    required double amount,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/reload'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'amount': amount,
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['balance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['balance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
   Future<Map<String, dynamic>> updatePrepaidMultipayCardStatus({
     required String cardId,
     required String action,
@@ -2161,20 +2221,24 @@ class ApiService {
   Future<Map<String, dynamic>> acceptPrepaidMultipayCardPayment({
     required String cardNumber,
     required double amount,
-    required String pin,
+    required String expiryMonth,
+    required String expiryYear,
+    required String securityCode,
     required String idempotencyKey,
     String? note,
   }) async {
     final response = await http.post(
       AppConfig.apiUri('prepaid-multipay-cards/payments'),
       headers: await _headers(),
-      body: jsonEncode({
-        'cardNumber': cardNumber.trim(),
-        'amount': amount,
-        'pin': pin.trim(),
-        'idempotencyKey': idempotencyKey,
-        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
-      }),
+        body: jsonEncode({
+          'cardNumber': cardNumber.trim(),
+          'amount': amount,
+          'expiryMonth': expiryMonth.trim(),
+          'expiryYear': expiryYear.trim(),
+          'securityCode': securityCode.trim(),
+          'idempotencyKey': idempotencyKey,
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        }),
     );
     final body = _decodeObject(response);
     if (body['merchantBalance'] is num) {
