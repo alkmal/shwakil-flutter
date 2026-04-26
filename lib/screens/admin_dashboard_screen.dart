@@ -426,6 +426,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       if (permissions.canManageSystemSettings)
         _AdminEntry(
+          title: 'موافقات البطاقات المسبقة',
+          subtitle: 'اعتماد أو رفض البطاقات الجديدة قبل تفعيلها',
+          icon: Icons.approval_rounded,
+          color: AppTheme.warning,
+          routeName: '/admin-prepaid-multipay-approvals',
+          badge: 'البطاقات المعلقة',
+        ),
+      if (permissions.canManageSystemSettings)
+        _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.018'),
           subtitle: l.tr('screens_admin_dashboard_screen.019'),
           icon: Icons.rule_folder_rounded,

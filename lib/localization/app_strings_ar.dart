@@ -481,7 +481,7 @@ const Map<String, String> appStringsAr = {
   'screens_login_screen.010': 'يجب أن يكون اسم المستخدم بين 3 و64 حرفًا.',
   'screens_login_screen.011': 'يحتوي اسم المستخدم على أحرف غير مدعومة.',
   'screens_login_screen.012': 'للمستخدم {username}: {message}',
-  'screens_login_screen.013': 'أدخل بياناتك وانتقل مباشرة إلى التحقق.',
+  'screens_login_screen.013': 'أدخل بياناتك للمتابعة بشكل آمن إلى حسابك.',
   'screens_login_screen.014': 'التسجيل معطّل حاليًا',
   'screens_login_screen.015':
       'لإنشاء حساب جديد، تواصل مع الإدارة عبر واتساب: {whatsapp}',
@@ -1914,6 +1914,8 @@ const Map<String, String> appStringsAr = {
       'انتهت الجلسة أو لم يعد تسجيل الدخول صالحًا على هذا الجهاز. أعد تسجيل الدخول ثم جرّب فحص البطاقة مرة أخرى.',
   'services_error_message_service.012':
       'التسجيل متوقف حاليًا، يرجى المحاولة فيما بعد. تواصل مع الدعم لمزيد من التفاصيل.',
+  'services_error_message_service.013':
+      'بيانات الأوفلاين المحفوظة على هذا الجهاز تحتاج تحديثًا جديدًا. اتصل بالإنترنت ثم حدّث الأوفلاين مرة أخرى.',
   'services_local_notification_service.001': 'تحديثات الحساب',
   'services_local_notification_service.002':
       'إشعارات الحساب والطلبات والتنبيهات المهمة',

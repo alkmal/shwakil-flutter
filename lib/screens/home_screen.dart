@@ -346,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final unknownLookups = await _offlineCardService.getUnknownCardLookups(
       userId,
     );
+    var rejectedSyncCount = 0;
     if (mounted) {
       setState(() => _isSyncingOfflineWorkspace = true);
     }
@@ -407,6 +408,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         final rejectedHistoryEntries = historyEntries
             .where((item) => item['status'] == 'rejected')
             .toList();
+        rejectedSyncCount = rejectedHistoryEntries.length;
 
         await _offlineCardService.replaceRedeemQueue(
           userId,
@@ -456,14 +458,32 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       if (!mounted) {
         return;
       }
+      if (!triggeredAutomatically) {
+        final successMessage = queuedBeforeSync.isNotEmpty
+            ? _t(
+                'screens_home_screen.052',
+                params: {
+                  'accepted': '${queuedBeforeSync.length - rejectedSyncCount}',
+                  'rejected': '$rejectedSyncCount',
+                },
+              )
+            : _t('screens_home_screen.053');
+        AppAlertService.showSnack(
+          context,
+          message: successMessage,
+          type: AppAlertType.success,
+        );
+      }
     } catch (error) {
       if (!mounted || triggeredAutomatically) {
         return;
       }
-      AppAlertService.showError(
+      AppAlertService.showSnack(
         context,
-        title: _t('screens_home_screen.054'),
-        message: ErrorMessageService.sanitize(error),
+        message:
+            '${_t('screens_home_screen.054')}: ${ErrorMessageService.sanitize(error)}',
+        type: AppAlertType.error,
+        duration: const Duration(seconds: 4),
       );
     } finally {
       if (mounted) {
@@ -699,24 +719,34 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ? _t('screens_home_screen.064')
                 : 'تحديث الأوفلاين الآن',
             subtitle: _offlineAccessExpired
-                ? 'انتهت مدة العمل أوفلاين. اتصل بالإنترنت ثم حدّث البطاقات قبل الفحص.'
-                : _t('screens_home_screen.078'),
+                ? 'مطلوب تحديث'
+                : 'جاهز للتحديث',
             icon: Icons.cloud_sync_rounded,
             color: _offlineAccessExpired ? AppTheme.error : AppTheme.primary,
             kind: _HomeServiceKind.sync,
             onTap: () => unawaited(_syncOfflineWorkspace()),
+            badgeIcon: _isSyncingOfflineWorkspace
+                ? Icons.sync_rounded
+                : _offlineAccessExpired
+                ? Icons.priority_high_rounded
+                : Icons.check_rounded,
+            badgeColor: _offlineAccessExpired ? AppTheme.error : AppTheme.success,
           ),
         if (canScanCards)
           _HomeServiceItem(
             title:
                 '${l.tr('screens_home_screen.015')} ($_availableOfflineCount)',
             subtitle: _offlineAccessExpired
-                ? 'الفحص متوقف حتى تتم المزامنة.'
-                : 'البطاقات المتزامنة أوفلاين: $_availableOfflineCount. آخر تحديث: ${_formatSyncTimestamp(_lastOfflineSyncAt)}',
+                ? 'يلزم تحديث الأوفلاين'
+                : 'الأوفلاين جاهز',
             icon: Icons.qr_code_scanner_rounded,
             color: _offlineAccessExpired ? AppTheme.error : AppTheme.success,
             kind: _HomeServiceKind.scan,
             onTap: _openScanScreen,
+            badgeIcon: _offlineAccessExpired
+                ? Icons.priority_high_rounded
+                : Icons.check_rounded,
+            badgeColor: _offlineAccessExpired ? AppTheme.error : AppTheme.success,
           ),
         if (canManageDebtBook)
           _HomeServiceItem(
@@ -756,16 +786,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             title: _isSyncingOfflineWorkspace
                 ? _t('screens_home_screen.064')
                 : _t('screens_home_screen.065'),
-            subtitle: _pendingOfflineCount > 0
-                ? _t(
-                    'screens_home_screen.073',
-                    params: {'count': '$_pendingOfflineCount'},
-                  )
-                : _t('screens_home_screen.074'),
+            subtitle: _pendingOfflineCount > 0 ? 'مطلوب تحديث' : 'جاهز',
             icon: Icons.cloud_sync_rounded,
             color: AppTheme.primary,
             kind: _HomeServiceKind.sync,
             onTap: () => unawaited(_syncOfflineWorkspace()),
+            badgeIcon: _isSyncingOfflineWorkspace
+                ? Icons.sync_rounded
+                : _pendingOfflineCount > 0
+                ? Icons.priority_high_rounded
+                : Icons.check_rounded,
+            badgeColor: _pendingOfflineCount > 0
+                ? AppTheme.warning
+                : AppTheme.success,
           ),
         _HomeServiceItem(
           title: l.tr('screens_home_screen.015'),
@@ -793,16 +826,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           title: _isSyncingOfflineWorkspace
               ? _t('screens_home_screen.064')
               : _t('screens_home_screen.065'),
-          subtitle: _pendingOfflineCount > 0
-              ? _t(
-                  'screens_home_screen.077',
-                  params: {'count': '$_pendingOfflineCount'},
-                )
-              : _t('screens_home_screen.078'),
+          subtitle: _pendingOfflineCount > 0 ? 'مطلوب تحديث' : 'جاهز',
           icon: Icons.cloud_sync_rounded,
           color: AppTheme.primary,
           kind: _HomeServiceKind.sync,
           onTap: () => unawaited(_syncOfflineWorkspace()),
+          badgeIcon: _isSyncingOfflineWorkspace
+              ? Icons.sync_rounded
+              : _pendingOfflineCount > 0
+              ? Icons.priority_high_rounded
+              : Icons.check_rounded,
+          badgeColor: _pendingOfflineCount > 0
+              ? AppTheme.warning
+              : AppTheme.success,
         ),
       if (canScanCards)
         _HomeServiceItem(
@@ -1670,14 +1706,42 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(item.icon, color: item.color, size: 24),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: item.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(item.icon, color: item.color, size: 24),
+                  ),
+                  if (item.badgeIcon != null)
+                    Positioned(
+                      top: -4,
+                      left: -4,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: (item.badgeColor ?? item.color).withValues(
+                              alpha: 0.24,
+                            ),
+                          ),
+                        ),
+                        child: Icon(
+                          item.badgeIcon,
+                          size: 12,
+                          color: item.badgeColor ?? item.color,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 10),
               Text(
@@ -1727,14 +1791,41 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ? CrossAxisAlignment.start
                     : CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: item.color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Icon(item.icon, color: item.color, size: 26),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: item.color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Icon(item.icon, color: item.color, size: 26),
+                      ),
+                      if (item.badgeIcon != null)
+                        Positioned(
+                          top: -4,
+                          left: -4,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: (item.badgeColor ?? item.color)
+                                    .withValues(alpha: 0.24),
+                              ),
+                            ),
+                            child: Icon(
+                              item.badgeIcon,
+                              size: 14,
+                              color: item.badgeColor ?? item.color,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   SizedBox(
                     width: isCompact ? 0 : 14,
@@ -1797,6 +1888,8 @@ class _HomeServiceItem {
     required this.color,
     required this.kind,
     required this.onTap,
+    this.badgeIcon,
+    this.badgeColor,
   });
 
   final String title;
@@ -1805,6 +1898,8 @@ class _HomeServiceItem {
   final Color color;
   final _HomeServiceKind kind;
   final VoidCallback onTap;
+  final IconData? badgeIcon;
+  final Color? badgeColor;
 }
 
 enum _HomeServiceKind {

@@ -49,6 +49,8 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/admin-device-requests': (context) => const AdminDeviceRequestsScreen(),
   '/admin-locations': (context) => const AdminLocationsScreen(),
   '/admin-notifications': (context) => const AdminNotificationsScreen(),
+  '/admin-prepaid-multipay-approvals': (context) =>
+      const AdminPrepaidMultipayApprovalsScreen(),
   '/admin-system-settings': (context) => const AdminSystemSettingsScreen(),
   '/admin-permissions': (context) => const AdminPermissionsScreen(),
   '/withdrawal-requests': (context) => const WithdrawalRequestsScreen(),

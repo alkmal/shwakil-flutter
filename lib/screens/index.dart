@@ -25,6 +25,7 @@ export 'admin_pending_registrations_screen.dart';
 export 'admin_device_requests_screen.dart';
 export 'admin_locations_screen.dart';
 export 'admin_notifications_screen.dart';
+export 'admin_prepaid_multipay_approvals_screen.dart';
 export 'admin_system_settings_screen.dart';
 export 'admin_permissions_screen.dart';
 export 'withdrawal_requests_screen.dart';

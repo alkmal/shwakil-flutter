@@ -62,6 +62,13 @@ class ErrorMessageService {
       return _tr('services_error_message_service.005');
     }
 
+    if (lower.contains('badpaddingexception') ||
+        lower.contains('bad_decrypt') ||
+        lower.contains('failed to unwrap key') ||
+        (lower.contains('platformexception') && lower.contains('read'))) {
+      return _tr('services_error_message_service.013');
+    }
+
     final withoutUrls = text.replaceAll(RegExp(r'https?://\S+'), '').trim();
     final cleaned = withoutUrls
         .replaceFirst(
