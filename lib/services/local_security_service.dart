@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -187,7 +188,7 @@ class LocalSecurityService {
 
   static Future<bool> hasPin() async {
     await _migrateLegacyPinIfNeeded();
-    final storedHash = await _secureStorage.read(key: _pinHashKey);
+    final storedHash = await _readSecureValue(_pinHashKey);
     return (storedHash ?? '').isNotEmpty;
   }
 
@@ -201,7 +202,7 @@ class LocalSecurityService {
     }
 
     final normalizedPin = _normalizePin(pin);
-    final storedHash = await _secureStorage.read(key: _pinHashKey);
+    final storedHash = await _readSecureValue(_pinHashKey);
     final isValid =
         normalizedPin.length == 4 &&
         (storedHash ?? '').isNotEmpty &&
@@ -322,10 +323,9 @@ class LocalSecurityService {
       return false;
     } finally {
       _biometricPromptActive = false;
-      _ignoreLifecycleEventsUntilMs =
-          DateTime.now()
-              .add(const Duration(milliseconds: 1500))
-              .millisecondsSinceEpoch;
+      _ignoreLifecycleEventsUntilMs = DateTime.now()
+          .add(const Duration(milliseconds: 1500))
+          .millisecondsSinceEpoch;
     }
   }
 
@@ -434,7 +434,7 @@ class LocalSecurityService {
 
   static Future<void> _migrateLegacyPinIfNeeded() async {
     final legacyPrefs = await SharedPreferences.getInstance();
-    final existingHash = await _secureStorage.read(key: _pinHashKey);
+    final existingHash = await _readSecureValue(_pinHashKey);
     if ((existingHash ?? '').isNotEmpty) {
       return;
     }
@@ -449,6 +449,28 @@ class LocalSecurityService {
       value: await _hashPin(legacyPin),
     );
     await legacyPrefs.remove(_legacyPinKey);
+  }
+
+  static Future<String?> _readSecureValue(String key) async {
+    try {
+      return await _secureStorage.read(key: key);
+    } on PlatformException catch (error) {
+      if (_isSecureStorageDecryptError(error)) {
+        await _secureStorage.delete(key: key);
+        _securitySetupRequired = true;
+        _notifySecurityStateChanged();
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  static bool _isSecureStorageDecryptError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('badpaddingexception') ||
+        message.contains('bad_decrypt') ||
+        message.contains('failed to unwrap key') ||
+        message.contains('invalidkeyexception');
   }
 
   static bool _shouldIgnoreLifecycleRelock() {
