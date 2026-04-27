@@ -1,7 +1,8 @@
 {
     "name": "شواكل",
     "short_name": "شواكل",
-    "start_url": ".",
+    "start_url": "/app/",
+    "scope": "/app/",
     "display": "standalone",
     "background_color": "#F8FAFC",
     "theme_color": "#0F766E",
