@@ -2164,7 +2164,7 @@ class ApiService {
     required String label,
     required double amount,
     required String pin,
-    required String expiresAt,
+    required int validityYears,
     String? otpCode,
     String? localAuthMethod,
   }) async {
@@ -2175,7 +2175,7 @@ class ApiService {
         'label': label.trim(),
         'amount': amount,
         'pin': pin.trim(),
-        'expiresAt': expiresAt,
+        'validityYears': validityYears,
         if (otpCode != null && otpCode.trim().isNotEmpty)
           'otpCode': otpCode.trim(),
         if ((otpCode == null || otpCode.trim().isEmpty) &&
@@ -2224,7 +2224,7 @@ class ApiService {
   Future<Map<String, dynamic>> updatePrepaidMultipayCard({
     required String cardId,
     required String label,
-    required String expiresAt,
+    required int validityYears,
     String? otpCode,
     String? localAuthMethod,
   }) async {
@@ -2233,7 +2233,7 @@ class ApiService {
       headers: await _headers(),
       body: jsonEncode({
         'label': label.trim(),
-        'expiresAt': expiresAt,
+        'validityYears': validityYears,
         if (otpCode != null && otpCode.trim().isNotEmpty)
           'otpCode': otpCode.trim(),
         if ((otpCode == null || otpCode.trim().isEmpty) &&

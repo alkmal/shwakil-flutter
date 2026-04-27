@@ -49,11 +49,12 @@ class _PrepaidMultipayCardsScreenState
   bool _isAuthorized = true;
   bool _canUsePrepaidCards = false;
   bool _canAcceptPrepaidPayments = false;
+  static const List<int> _validityYearOptions = [1, 2, 3, 4, 5];
   List<Map<String, dynamic>> _cards = const [];
   List<Map<String, dynamic>> _payments = const [];
   Map<String, dynamic> _summary = const {};
   final Set<String> _revealedCardIds = <String>{};
-  DateTime _expiresAt = DateTime.now().add(const Duration(days: 30));
+  int _validityYears = 1;
   String? _selectedCardId;
   String _activityFilter = 'all';
 
@@ -183,14 +184,14 @@ class _PrepaidMultipayCardsScreenState
         label: label,
         amount: amount,
         pin: code,
-        expiresAt: _expiresAt.toUtc().toIso8601String(),
+        validityYears: _validityYears,
         otpCode: security.otpCode,
         localAuthMethod: security.method,
       );
       _labelC.clear();
       _amountC.clear();
       _codeC.clear();
-      _expiresAt = DateTime.now().add(const Duration(days: 30));
+      _validityYears = 1;
       _selectedCardId = (payload['card'] as Map?)?['id']?.toString();
       await _load();
       if (!mounted) {
@@ -346,9 +347,7 @@ class _PrepaidMultipayCardsScreenState
 
   Future<void> _editCardDetails(Map<String, dynamic> card) async {
     final labelC = TextEditingController(text: card['label']?.toString() ?? '');
-    DateTime selectedExpiry =
-        DateTime.tryParse(card['expiresAt']?.toString() ?? '') ??
-        DateTime.now().add(const Duration(days: 30));
+    var selectedValidityYears = _validityYearsFromCard(card);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -366,39 +365,26 @@ class _PrepaidMultipayCardsScreenState
                 ),
               ),
               const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final firstDate = DateTime.now().add(const Duration(days: 2));
-                  final lastDate = DateTime.now().add(
-                    const Duration(days: 365 * 3),
-                  );
-                  final initialDate = selectedExpiry.isBefore(firstDate)
-                      ? firstDate
-                      : selectedExpiry.isAfter(lastDate)
-                      ? lastDate
-                      : selectedExpiry;
-                  final picked = await showDatePicker(
-                    context: dialogContext,
-                    firstDate: firstDate,
-                    lastDate: lastDate,
-                    initialDate: initialDate,
-                  );
-                  if (picked != null) {
-                    setDialogState(
-                      () => selectedExpiry = DateTime(
-                        picked.year,
-                        picked.month,
-                        picked.day,
-                        23,
-                        59,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.event_rounded),
-                label: Text(
-                  'الانتهاء: ${selectedExpiry.year}/${selectedExpiry.month.toString().padLeft(2, '0')}/${selectedExpiry.day.toString().padLeft(2, '0')}',
+              DropdownButtonFormField<int>(
+                initialValue: selectedValidityYears,
+                decoration: const InputDecoration(
+                  labelText: 'مدة البطاقة',
+                  prefixIcon: Icon(Icons.event_available_rounded),
                 ),
+                items: _validityYearOptions
+                    .map(
+                      (years) => DropdownMenuItem<int>(
+                        value: years,
+                        child: Text(_validityYearsLabel(years)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setDialogState(() => selectedValidityYears = value);
+                },
               ),
             ],
           ),
@@ -443,7 +429,7 @@ class _PrepaidMultipayCardsScreenState
       final payload = await _api.updatePrepaidMultipayCard(
         cardId: card['id']?.toString() ?? '',
         label: label,
-        expiresAt: selectedExpiry.toUtc().toIso8601String(),
+        validityYears: selectedValidityYears,
         otpCode: security.otpCode,
         localAuthMethod: security.method,
       );
@@ -456,7 +442,7 @@ class _PrepaidMultipayCardsScreenState
       await AppAlertService.showSuccess(
         context,
         title: 'تم تعديل البطاقة',
-        message: 'تم حفظ اسم البطاقة وتاريخ الانتهاء.',
+        message: 'تم حفظ اسم البطاقة ومدة الصلاحية.',
       );
     } catch (error) {
       if (!mounted) {
@@ -1203,20 +1189,31 @@ class _PrepaidMultipayCardsScreenState
     await _ensureCardRevealed(card);
   }
 
-  Future<void> _pickExpiry() async {
-    final date = await showDatePicker(
-      context: context,
-      firstDate: DateTime.now().add(const Duration(days: 2)),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
-      initialDate: _expiresAt,
-    );
-    if (date == null || !mounted) {
-      return;
+  static String _validityYearsLabel(int years) {
+    return switch (years) {
+      1 => 'سنة واحدة',
+      2 => 'سنتان',
+      3 => 'ثلاث سنوات',
+      4 => 'أربع سنوات',
+      5 => 'خمس سنوات',
+      _ => '$years سنوات',
+    };
+  }
+
+  int _validityYearsFromCard(Map<String, dynamic> card) {
+    final expiresAt = DateTime.tryParse(card['expiresAt']?.toString() ?? '');
+    if (expiresAt == null) {
+      return _validityYears;
     }
 
-    setState(
-      () => _expiresAt = DateTime(date.year, date.month, date.day, 23, 59),
-    );
+    final now = DateTime.now();
+    var years = expiresAt.year - now.year;
+    final anniversary = DateTime(now.year + years, now.month, now.day);
+    if (expiresAt.isAfter(anniversary)) {
+      years += 1;
+    }
+
+    return years.clamp(1, 5).toInt();
   }
 
   void _openPaymentsTab() {
@@ -1651,15 +1648,6 @@ class _PrepaidMultipayCardsScreenState
                     icon: const Icon(Icons.password_rounded),
                     label: const Text('تغيير الكود'),
                   ),
-                OutlinedButton.icon(
-                  onPressed: () => _updateStatus(card, 'cancel'),
-                  icon: const Icon(Icons.cancel_rounded),
-                  label: Text(
-                    status == 'pending_approval'
-                        ? 'إلغاء الطلب وإرجاع الرصيد'
-                        : 'تعطيل نهائي وإرجاع الرصيد',
-                  ),
-                ),
               ],
             ),
           ],
@@ -1790,7 +1778,7 @@ class _PrepaidMultipayCardsScreenState
           Text('إضافة بطاقة جديدة', style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'أنشئ بطاقة جديدة برصيد مبدئي، وتاريخ انتهاء، وكود أمان من 3 أرقام.',
+            'أنشئ بطاقة جديدة برصيد مبدئي، ومدة صلاحية محددة، وكود أمان من 3 أرقام.',
             style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 16),
@@ -1823,12 +1811,26 @@ class _PrepaidMultipayCardsScreenState
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _pickExpiry,
-            icon: const Icon(Icons.event_rounded),
-            label: Text(
-              'تنتهي في ${_expiresAt.month.toString().padLeft(2, '0')}/${(_expiresAt.year % 100).toString().padLeft(2, '0')}',
+          DropdownButtonFormField<int>(
+            initialValue: _validityYears,
+            decoration: const InputDecoration(
+              labelText: 'مدة البطاقة',
+              prefixIcon: Icon(Icons.event_available_rounded),
             ),
+            items: _validityYearOptions
+                .map(
+                  (years) => DropdownMenuItem<int>(
+                    value: years,
+                    child: Text(_validityYearsLabel(years)),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() => _validityYears = value);
+            },
           ),
           const SizedBox(height: 16),
           ShwakelButton(
