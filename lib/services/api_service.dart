@@ -2028,8 +2028,7 @@ class ApiService {
       payload['nfcMaxDevicesPerCard'] = nfcMaxDevicesPerCard;
     }
     if (nfcOfflineMerchantAmountLimit != null) {
-      payload['nfcOfflineMerchantAmountLimit'] =
-          nfcOfflineMerchantAmountLimit;
+      payload['nfcOfflineMerchantAmountLimit'] = nfcOfflineMerchantAmountLimit;
     }
     if (nfcOfflineMerchantCountLimit != null) {
       payload['nfcOfflineMerchantCountLimit'] = nfcOfflineMerchantCountLimit;
@@ -2400,6 +2399,38 @@ class ApiService {
     } finally {
       client.close();
     }
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> preparePrepaidMultipayNfcPayment({
+    required String cardId,
+    required double amount,
+    required String pin,
+    required String deviceId,
+    String? merchantId,
+    String? appVersion,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/prepare'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'amount': amount,
+        'pin': pin.trim(),
+        'deviceId': deviceId.trim(),
+        if (merchantId != null && merchantId.trim().isNotEmpty)
+          'merchantId': merchantId.trim(),
+        if (appVersion != null && appVersion.trim().isNotEmpty)
+          'appVersion': appVersion.trim(),
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
     return _decodeObject(response);
   }
 

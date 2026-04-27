@@ -41,8 +41,11 @@ class _PrepaidMultipayCardsScreenState
   bool _isSubmitting = false;
   bool _isReloading = false;
   bool _isAcceptingPayment = false;
+  bool _isRegisteringNfc = false;
   bool _isWritingNfc = false;
+  bool _isWritingNfcPayment = false;
   bool _isReadingNfc = false;
+  bool _isAcceptingNfcPayment = false;
   bool _isAuthorized = true;
   bool _canUsePrepaidCards = false;
   bool _canAcceptPrepaidPayments = false;
@@ -726,6 +729,345 @@ class _PrepaidMultipayCardsScreenState
     }
   }
 
+  Future<void> _activateNfcPayment(Map<String, dynamic> card) async {
+    final status = card['status']?.toString() ?? '';
+    if (status != 'active') {
+      await AppAlertService.showError(
+        context,
+        title: 'بطاقة غير نشطة',
+        message: 'يمكن تفعيل دفع NFC للبطاقات النشطة فقط.',
+      );
+      return;
+    }
+
+    final available = await _nfc.isAvailable();
+    if (!mounted) {
+      return;
+    }
+    if (!available) {
+      await AppAlertService.showError(
+        context,
+        title: 'NFC غير متاح',
+        message: 'فعّل NFC على الجهاز ثم حاول مرة أخرى.',
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تفعيل دفع NFC'),
+        content: const Text(
+          'سيتم ربط هذه البطاقة بهذا الجهاز وإنشاء مفتاح توقيع محفوظ محليًا. البطاقة داخلية لشواكل وليست بطاقة دولية.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('تفعيل'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(context);
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    setState(() => _isRegisteringNfc = true);
+    try {
+      final cardId = card['id']?.toString() ?? '';
+      final keys = await _nfc.getOrCreateSigningKeyPair(cardId);
+      final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+      final deviceName = await LocalSecurityService.currentDeviceDisplayName();
+      await _api.registerPrepaidMultipayNfcDevice(
+        cardId: cardId,
+        deviceId: deviceId,
+        deviceName: deviceName,
+        publicKey: keys['publicKey'] ?? '',
+        keyAlgorithm: 'ed25519',
+        otpCode: security.otpCode,
+        localAuthMethod: security.method,
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم تفعيل NFC',
+        message: 'أصبح هذا الجهاز مخولًا بإنشاء أذونات دفع NFC لهذه البطاقة.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تفعيل NFC',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isRegisteringNfc = false);
+      }
+    }
+  }
+
+  Future<void> _revokeThisNfcDevice(Map<String, dynamic> card) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إلغاء ربط NFC'),
+        content: const Text(
+          'سيتم منع هذا الجهاز من إنشاء أذونات دفع NFC جديدة لهذه البطاقة.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('إلغاء الربط'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(context);
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    setState(() => _isRegisteringNfc = true);
+    try {
+      final cardId = card['id']?.toString() ?? '';
+      final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+      await _api.revokePrepaidMultipayNfcDevice(
+        cardId: cardId,
+        deviceId: deviceId,
+        otpCode: security.otpCode,
+        localAuthMethod: security.method,
+      );
+      await _nfc.deleteSigningKeyPair(cardId);
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم إلغاء الربط',
+        message: 'تم إيقاف NFC لهذه البطاقة على هذا الجهاز.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إلغاء NFC',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isRegisteringNfc = false);
+      }
+    }
+  }
+
+  Future<void> _writeNfcPaymentAuthorization(Map<String, dynamic> card) async {
+    final input = await _showNfcPaymentInput();
+    if (!mounted || input == null) {
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(context);
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    setState(() => _isWritingNfcPayment = true);
+    try {
+      final cardId = card['id']?.toString() ?? '';
+      final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+      final appVersion = await AppVersionService.currentVersion();
+      final prepared = await _api.preparePrepaidMultipayNfcPayment(
+        cardId: cardId,
+        amount: input.amount,
+        pin: input.pin,
+        deviceId: deviceId,
+        appVersion: appVersion,
+        otpCode: security.otpCode,
+        localAuthMethod: security.method,
+      );
+      final authorization = await _nfc.signAuthorization(
+        cardId: cardId,
+        authorization: Map<String, dynamic>.from(
+          prepared['authorization'] as Map? ?? const {},
+        ),
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showInfo(
+        context,
+        title: 'قرّب وسم NFC',
+        message:
+            'سيتم كتابة إذن دفع صالح حتى ${_formatDateTime(authorization.expiresAt.toLocal())}.',
+      );
+      await _nfc.writePaymentAuthorization(authorization);
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم تجهيز دفع NFC',
+        message:
+            'تمت كتابة إذن دفع بقيمة ${CurrencyFormatter.ils(input.amount)}. يستطيع التاجر قراءته واعتماده الآن.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تجهيز دفع NFC',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isWritingNfcPayment = false);
+      }
+    }
+  }
+
+  Future<void> _acceptNfcPaymentAuthorization() async {
+    setState(() => _isAcceptingNfcPayment = true);
+    try {
+      final authorization = await _nfc.readPaymentAuthorization();
+      if (DateTime.now().toUtc().isAfter(authorization.expiresAt.toUtc())) {
+        throw Exception(
+          'انتهت صلاحية إذن NFC. اطلب من المشتري إنشاء إذن جديد.',
+        );
+      }
+
+      final payload = await _api.acceptPrepaidMultipayNfcPayment(
+        signedPayload: authorization.signedPayload,
+        signature: authorization.signature,
+        idempotencyKey: _newPaymentKey(),
+        merchantDeviceId: await LocalSecurityService.getOrCreateDeviceId(),
+      );
+      await _load();
+      if (!mounted) {
+        return;
+      }
+      final status = payload['status']?.toString() ?? '';
+      if (status == 'approved') {
+        await AppAlertService.showSuccess(
+          context,
+          title: 'تم قبول NFC',
+          message:
+              'تم استلام ${CurrencyFormatter.ils(authorization.amount)} عبر NFC.',
+        );
+      } else {
+        await AppAlertService.showError(
+          context,
+          title: 'لم يتم اعتماد NFC',
+          message: payload['message']?.toString() ?? 'تعذر اعتماد العملية.',
+        );
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر قبول NFC',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isAcceptingNfcPayment = false);
+      }
+    }
+  }
+
+  Future<_NfcPaymentInput?> _showNfcPaymentInput() async {
+    final amountC = TextEditingController();
+    final pinC = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('دفع NFC'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountC,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'المبلغ',
+                prefixIcon: Icon(Icons.payments_rounded),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: pinC,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 3,
+              decoration: const InputDecoration(
+                labelText: 'كود البطاقة',
+                counterText: '',
+                prefixIcon: Icon(Icons.pin_rounded),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('تجهيز'),
+          ),
+        ],
+      ),
+    );
+
+    final amount = double.tryParse(amountC.text.trim()) ?? 0;
+    final pin = pinC.text.trim();
+    amountC.dispose();
+    pinC.dispose();
+
+    if (confirmed != true) {
+      return null;
+    }
+    if (!mounted) {
+      return null;
+    }
+    if (amount <= 0 || !RegExp(r'^\d{3}$').hasMatch(pin)) {
+      await AppAlertService.showError(
+        context,
+        title: 'بيانات غير مكتملة',
+        message: 'أدخل مبلغًا صحيحًا وكود البطاقة من 3 أرقام.',
+      );
+      return null;
+    }
+    return _NfcPaymentInput(amount: amount, pin: pin);
+  }
+
   Future<void> _changeSecurityCode(Map<String, dynamic> card) async {
     final currentCodeC = TextEditingController();
     final newCodeC = TextEditingController();
@@ -1234,6 +1576,32 @@ class _PrepaidMultipayCardsScreenState
                   icon: const Icon(Icons.nfc_rounded),
                   label: Text(_isWritingNfc ? 'جاري الكتابة' : 'كتابة NFC'),
                 ),
+              if (status == 'active' && _canUsePrepaidCards)
+                OutlinedButton.icon(
+                  onPressed: _isRegisteringNfc
+                      ? null
+                      : () => _activateNfcPayment(card),
+                  icon: const Icon(Icons.phonelink_lock_rounded),
+                  label: Text(_isRegisteringNfc ? 'جاري الربط' : 'تفعيل NFC'),
+                ),
+              if (status == 'active' && _canUsePrepaidCards)
+                FilledButton.icon(
+                  onPressed: _isWritingNfcPayment
+                      ? null
+                      : () => _writeNfcPaymentAuthorization(card),
+                  icon: const Icon(Icons.tap_and_play_rounded),
+                  label: Text(
+                    _isWritingNfcPayment ? 'جاري التجهيز' : 'دفع NFC',
+                  ),
+                ),
+              if (_canUsePrepaidCards)
+                OutlinedButton.icon(
+                  onPressed: _isRegisteringNfc
+                      ? null
+                      : () => _revokeThisNfcDevice(card),
+                  icon: const Icon(Icons.link_off_rounded),
+                  label: const Text('إلغاء NFC للجهاز'),
+                ),
               if (canUseForPayment)
                 OutlinedButton.icon(
                   onPressed: () {
@@ -1584,6 +1952,15 @@ class _PrepaidMultipayCardsScreenState
                 onPressed: _isReadingNfc ? null : _readPaymentCardFromNfc,
                 icon: const Icon(Icons.nfc_rounded),
                 label: Text(_isReadingNfc ? 'جاري القراءة' : 'قراءة NFC'),
+              ),
+              FilledButton.icon(
+                onPressed: _isAcceptingNfcPayment
+                    ? null
+                    : _acceptNfcPaymentAuthorization,
+                icon: const Icon(Icons.tap_and_play_rounded),
+                label: Text(
+                  _isAcceptingNfcPayment ? 'جاري الاعتماد' : 'قبول NFC',
+                ),
               ),
               if (_selectedCard != null)
                 OutlinedButton.icon(
@@ -2137,4 +2514,11 @@ class _PrepaidMultipayCardsScreenState
 
     return trimmed.replaceAll(RegExp(r'\D+'), '');
   }
+}
+
+class _NfcPaymentInput {
+  const _NfcPaymentInput({required this.amount, required this.pin});
+
+  final double amount;
+  final String pin;
 }
