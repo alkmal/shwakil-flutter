@@ -32,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _isLoading = true;
   bool _hasOfflineWorkspace = false;
   bool _isSyncingOfflineWorkspace = false;
-  bool _didSuggestOfflineWorkspace = false;
   bool _didPromptLocalSecuritySetup = false;
   bool _isBalanceVisible = true;
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
@@ -184,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _offlineAccessExpired = offlineOverview['expired'] == true;
       _isLoading = isLoading;
     });
-    _maybeSuggestOfflineWorkspace();
+    _maybeSyncOfflineWorkspaceInBackground();
     unawaited(_maybePromptLocalSecuritySetup());
   }
 
@@ -284,44 +283,23 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final regainedConnection = !_lastKnownDeviceOnline && isOnline;
     _lastKnownDeviceOnline = isOnline;
     if (regainedConnection) {
-      unawaited(_showReconnectSyncPrompt());
+      _maybeSyncOfflineWorkspaceInBackground();
     }
     setState(() {});
   }
 
-  Future<void> _showReconnectSyncPrompt() async {
-    if (!mounted || !_canOfflineScan) {
+  void _maybeSyncOfflineWorkspaceInBackground() {
+    if (!mounted ||
+        !_canOfflineScan ||
+        !_isDeviceOnline ||
+        _isSyncingOfflineWorkspace) {
       return;
     }
-    final shouldSync = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(_t('screens_home_screen.065')),
-        content: Text(
-          _pendingOfflineCount > 0
-              ? _t(
-                  'screens_home_screen.077',
-                  params: {'count': '$_pendingOfflineCount'},
-                )
-              : _t('screens_home_screen.078'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(_t('screens_home_screen.059')),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            icon: const Icon(Icons.cloud_sync_rounded),
-            label: const Text('تحديث الآن'),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || shouldSync != true) {
+    final needsSync = _pendingOfflineCount > 0 || _offlineAccessExpired;
+    if (!needsSync) {
       return;
     }
-    await _syncOfflineWorkspace();
+    unawaited(_syncOfflineWorkspace(triggeredAutomatically: true));
   }
 
   Future<void> _syncOfflineWorkspace({
@@ -533,46 +511,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     await _offlineCardService.replaceUnknownCardLookups(userId, unresolved);
   }
 
-  void _maybeSuggestOfflineWorkspace() {
-    if (!mounted ||
-        _didSuggestOfflineWorkspace ||
-        OfflineSessionService.isOfflineMode ||
-        !_hasOfflineWorkspace ||
-        _isDeviceOnline) {
-      return;
-    }
-    final permissions = AppPermissions.fromUser(_user);
-    if (!permissions.canOfflineCardScan) {
-      return;
-    }
-    _didSuggestOfflineWorkspace = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        return;
-      }
-      final openOffline = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(_t('screens_home_screen.057')),
-          content: Text(_t('screens_home_screen.058')),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(_t('screens_home_screen.059')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(_t('screens_home_screen.060')),
-            ),
-          ],
-        ),
-      );
-      if (openOffline == true && mounted) {
-        Navigator.pushNamed(context, '/scan-card-offline');
-      }
-    });
-  }
-
   Future<bool> _resolveOfflineWorkspace(Map<String, dynamic>? user) async {
     final permissions = AppPermissions.fromUser(user);
     if (user == null || user['id'] == null || !permissions.canOfflineCardScan) {
@@ -618,9 +556,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return AppAlertService.showError(
       context,
       title: _t('screens_scan_card_screen.118'),
-      message: _t('screens_scan_card_screen.119', params: {
-        'minutes': _offlineSyncIntervalMinutes.toString(),
-      }),
+      message: _t(
+        'screens_scan_card_screen.119',
+        params: {'minutes': _offlineSyncIntervalMinutes.toString()},
+      ),
     );
   }
 
@@ -662,8 +601,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       appBar: AppBar(
         title: const SizedBox.shrink(),
         actions: [
-          if (_canOfflineScan)
-            _buildSyncStatusAction(),
+          if (_canOfflineScan) _buildSyncStatusAction(),
           if (!OfflineSessionService.isOfflineMode)
             const AppNotificationAction(),
           const QuickLogoutAction(),
@@ -718,9 +656,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             title: _isSyncingOfflineWorkspace
                 ? _t('screens_home_screen.064')
                 : 'تحديث الأوفلاين الآن',
-            subtitle: _offlineAccessExpired
-                ? 'مطلوب تحديث'
-                : 'جاهز للتحديث',
+            subtitle: _offlineAccessExpired ? 'مطلوب تحديث' : 'جاهز للتحديث',
             icon: Icons.cloud_sync_rounded,
             color: _offlineAccessExpired ? AppTheme.error : AppTheme.primary,
             kind: _HomeServiceKind.sync,
@@ -730,7 +666,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 : _offlineAccessExpired
                 ? Icons.priority_high_rounded
                 : Icons.check_rounded,
-            badgeColor: _offlineAccessExpired ? AppTheme.error : AppTheme.success,
+            badgeColor: _offlineAccessExpired
+                ? AppTheme.error
+                : AppTheme.success,
           ),
         if (canScanCards)
           _HomeServiceItem(
@@ -746,7 +684,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             badgeIcon: _offlineAccessExpired
                 ? Icons.priority_high_rounded
                 : Icons.check_rounded,
-            badgeColor: _offlineAccessExpired ? AppTheme.error : AppTheme.success,
+            badgeColor: _offlineAccessExpired
+                ? AppTheme.error
+                : AppTheme.success,
           ),
         if (canManageDebtBook)
           _HomeServiceItem(
@@ -1525,8 +1465,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed:
-                      _isSyncingOfflineWorkspace || !_isDeviceOnline
+                  onPressed: _isSyncingOfflineWorkspace || !_isDeviceOnline
                       ? null
                       : () {
                           Navigator.of(context).pop();
