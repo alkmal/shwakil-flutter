@@ -42,7 +42,8 @@ class _BalanceScreenState extends State<BalanceScreen>
 
   bool get _canTransferAction => _appPermissions.canTransfer;
   bool get _canWithdrawAction => _appPermissions.canWithdraw;
-  bool get _canManageUsersAction => _appPermissions.canManageUsers;
+  bool get _canManageUsersAction =>
+      _appPermissions.canManageUsers || _appPermissions.canFinanceTopup;
   bool get _isVerifiedAccount =>
       _user?['transferVerificationStatus']?.toString() == 'approved';
 

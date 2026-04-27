@@ -893,6 +893,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   'canManageUsers',
                   perms,
                 ),
+              if (widget.canManageUsers)
+                _permItem(
+                  'شحن أرصدة المستخدمين من حساب المالية',
+                  'canFinanceTopup',
+                  perms,
+                ),
             ],
           ),
         ),
@@ -1122,6 +1128,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canOfflineCardScan: p['canOfflineCardScan'] == true,
         canManageDebtBook: p['canManageDebtBook'] == true,
         canManageUsers: p['canManageUsers'] == true,
+        canFinanceTopup: p['canFinanceTopup'] == true,
         canUsePrepaidMultipayCards: p['canUsePrepaidMultipayCards'] == true,
         canAcceptPrepaidMultipayPayments:
             p['canAcceptPrepaidMultipayPayments'] == true,

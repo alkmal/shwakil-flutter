@@ -717,6 +717,7 @@ class ApiService {
     required bool canOfflineCardScan,
     required bool canManageDebtBook,
     required bool canManageUsers,
+    required bool canFinanceTopup,
     required bool canUsePrepaidMultipayCards,
     required bool canAcceptPrepaidMultipayPayments,
   }) async {
@@ -737,6 +738,7 @@ class ApiService {
         'canOfflineCardScan': canOfflineCardScan,
         'canManageDebtBook': canManageDebtBook,
         'canManageUsers': canManageUsers,
+        'canFinanceTopup': canFinanceTopup,
         'canUsePrepaidMultipayCards': canUsePrepaidMultipayCards,
         'canAcceptPrepaidMultipayPayments': canAcceptPrepaidMultipayPayments,
       }),
@@ -892,6 +894,27 @@ class ApiService {
     final response = await http.get(
       AppConfig.apiUri('admin/card-print-requests', params),
       headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createAdminCardPrintRequest({
+    required String userId,
+    required double value,
+    required int quantity,
+    required String cardType,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'userId': userId,
+        'value': value,
+        'quantity': quantity,
+        'cardType': cardType,
+        'notes': notes.trim(),
+      }),
     );
     return _decodeObject(response);
   }

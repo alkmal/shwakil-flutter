@@ -56,6 +56,7 @@ class AppPermissions {
     'canRedeemCards',
     'canViewCustomers',
     'canManageUsers',
+    'canFinanceTopup',
     'canManageMarketingAccounts',
     'canManageDebtBook',
     'canManageLocations',
@@ -74,6 +75,7 @@ class AppPermissions {
     'canOpenCardTools',
     'isAdmin',
     'isSupport',
+    'isFinance',
   ];
 
   static Map<String, dynamic> _coerceMap(dynamic value) {
@@ -129,6 +131,7 @@ class AppPermissions {
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageUsers => _isEnabled('canManageUsers');
+  bool get canFinanceTopup => _isEnabled('canFinanceTopup');
   bool get canManageMarketingAccounts =>
       _isEnabled('canManageMarketingAccounts');
   bool get canManageDebtBook => _isEnabled('canManageDebtBook');
@@ -157,11 +160,13 @@ class AppPermissions {
       role == 'super_admin' ||
       role == 'technical_admin';
   bool get isSupportRole => _raw['isSupport'] == true || role == 'support';
+  bool get isFinanceRole => _raw['isFinance'] == true || role == 'finance';
   bool get isMarketerRole => role == 'marketer';
 
   bool get hasAdminWorkspaceAccess =>
       canViewCustomers ||
       canManageUsers ||
+      canFinanceTopup ||
       canManageMarketingAccounts ||
       canManageDebtBook ||
       canReviewWithdrawals ||
@@ -173,7 +178,7 @@ class AppPermissions {
 
   bool get shouldOpenAdminWorkspaceByDefault =>
       hasAdminWorkspaceAccess &&
-      (isAdminRole || isSupportRole || isMarketerRole);
+      (isAdminRole || isSupportRole || isMarketerRole || isFinanceRole);
 
   bool get canOpenCardTools =>
       canScanCards ||
