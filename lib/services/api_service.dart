@@ -2333,6 +2333,32 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> renewPrepaidMultipayCard({
+    required String cardId,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/renew'),
+      headers: await _headers(),
+      body: jsonEncode({
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['balance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['balance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
   Future<Map<String, dynamic>> updatePrepaidMultipayCard({
     required String cardId,
     required String label,

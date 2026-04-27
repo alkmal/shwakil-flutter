@@ -571,7 +571,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Future<void> _openOnlineOnlyRoute(String routeName) async {
+  Future<void> _openOnlineOnlyRoute(
+    String routeName, {
+    Object? arguments,
+  }) async {
     if (OfflineSessionService.isOfflineMode && routeName != '/inventory') {
       await _showOfflineBlockedMessage();
       return;
@@ -579,7 +582,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     if (!mounted) {
       return;
     }
-    Navigator.pushNamed(context, routeName);
+    Navigator.pushNamed(context, routeName, arguments: arguments);
   }
 
   @override
@@ -643,6 +646,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final canOpenPrepaidMultipayCards = permissions.canOpenPrepaidMultipayCards;
+    final canAcceptNfcPayments = permissions.canAcceptPrepaidMultipayPayments;
     final l = context.loc;
     final showOfflineSyncAction =
         _canOfflineScan &&
@@ -818,6 +822,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           kind: _HomeServiceKind.prepaidMultipay,
           onTap: () =>
               unawaited(_openOnlineOnlyRoute('/prepaid-multipay-cards')),
+        ),
+      if (canAcceptNfcPayments)
+        _HomeServiceItem(
+          title: 'قبول NFC',
+          subtitle: 'اقرأ إذن الدفع من هاتف العميل واعتمد العملية مباشرة.',
+          icon: Icons.nfc_rounded,
+          color: const Color(0xFF0F766E),
+          kind: _HomeServiceKind.prepaidMultipay,
+          onTap: () => unawaited(
+            _openOnlineOnlyRoute(
+              '/prepaid-multipay-cards',
+              arguments: const {'openPaymentsTab': true, 'autoAcceptNfc': true},
+            ),
+          ),
+          badgeIcon: Icons.contactless_rounded,
+          badgeColor: AppTheme.success,
         ),
       if (canViewQuickTransfer && _canTransfer)
         _HomeServiceItem(

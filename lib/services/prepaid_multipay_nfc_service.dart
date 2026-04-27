@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/ndef_record.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+// ignore: implementation_imports
+import 'package:nfc_manager/src/nfc_manager_android/tags/ndef_formatable.dart';
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
 
 class PrepaidMultipayNfcPayload {
@@ -157,7 +159,15 @@ class PrepaidMultipayNfcService {
         try {
           final ndef = Ndef.from(tag);
           if (ndef == null) {
-            throw Exception('هذا الوسم لا يدعم NDEF.');
+            await _formatWritableTag(
+              tag,
+              message: _messageFromPayload(payload),
+            );
+            await NfcManager.instance.stopSession();
+            if (!completer.isCompleted) {
+              completer.complete();
+            }
+            return;
           }
           if (!ndef.isWritable) {
             throw Exception('وسم NFC غير قابل للكتابة.');
@@ -309,7 +319,15 @@ class PrepaidMultipayNfcService {
         try {
           final ndef = Ndef.from(tag);
           if (ndef == null) {
-            throw Exception('هذا الوسم لا يدعم NDEF.');
+            await _formatWritableTag(
+              tag,
+              message: _paymentMessageFromAuthorization(authorization),
+            );
+            await NfcManager.instance.stopSession();
+            if (!completer.isCompleted) {
+              completer.complete();
+            }
+            return;
           }
           if (!ndef.isWritable) {
             throw Exception('وسم NFC غير قابل للكتابة.');
@@ -397,6 +415,20 @@ class PrepaidMultipayNfcService {
     if (!await isAvailable()) {
       throw Exception('NFC غير متاح أو غير مفعل على هذا الجهاز.');
     }
+  }
+
+  Future<void> _formatWritableTag(
+    NfcTag tag, {
+    required NdefMessage message,
+  }) async {
+    final formatable = NdefFormatableAndroid.from(tag);
+    if (formatable == null) {
+      throw Exception(
+        'هذا الوسم لا يدعم NDEF ولا يمكن تهيئته تلقائيًا. استخدم وسم NTAG213 أو NTAG215 أو NTAG216 قابل للكتابة.',
+      );
+    }
+
+    await formatable.format(message);
   }
 
   NdefMessage _messageFromPayload(PrepaidMultipayNfcPayload payload) {
