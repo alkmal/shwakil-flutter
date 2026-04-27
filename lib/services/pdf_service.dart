@@ -1095,10 +1095,51 @@ class PDFService {
   }
 
   Future<File> savePDF(pw.Document pdf, String filename) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/$filename.pdf');
+    final dir = await _documentsExportDirectory();
+    final safeName = _safeFileName(filename);
+    final file = File('${dir.path}/$safeName.pdf');
     await file.writeAsBytes(await pdf.save());
     return file;
+  }
+
+  Future<Directory> _documentsExportDirectory() async {
+    final candidates = <Directory>[];
+
+    if (Platform.isAndroid) {
+      candidates.add(Directory('/storage/emulated/0/Documents/shwakil'));
+    } else {
+      final documentsDir = await getApplicationDocumentsDirectory();
+      candidates.add(Directory('${documentsDir.path}/shwakil'));
+    }
+
+    final fallbackDir = await getApplicationDocumentsDirectory();
+    candidates.add(Directory('${fallbackDir.path}/shwakil'));
+
+    for (final candidate in candidates) {
+      try {
+        if (!await candidate.exists()) {
+          await candidate.create(recursive: true);
+        }
+        final probe = File(
+          '${candidate.path}/.write_test_${DateTime.now().microsecondsSinceEpoch}',
+        );
+        await probe.writeAsString('ok');
+        await probe.delete();
+        return candidate;
+      } catch (_) {}
+    }
+
+    return fallbackDir;
+  }
+
+  String _safeFileName(String filename) {
+    final normalized = filename
+        .trim()
+        .replaceAll(RegExp(r'[\\/:*?"<>|]+'), '_')
+        .replaceAll(RegExp(r'\s+'), '_');
+    return normalized.isEmpty
+        ? 'shwakil_cards_${DateTime.now().millisecondsSinceEpoch}'
+        : normalized;
   }
 
   void setDesignSettings(CardDesignSettings settings) {

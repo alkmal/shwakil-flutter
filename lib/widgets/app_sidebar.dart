@@ -362,6 +362,13 @@ class _AppSidebarState extends State<AppSidebar> {
                       if (canManageSystemSettings)
                         _buildItem(
                           context,
+                          icon: Icons.approval_rounded,
+                          title: l.tr('widgets_app_sidebar.045'),
+                          routeName: '/admin-prepaid-multipay-approvals',
+                        ),
+                      if (canManageSystemSettings)
+                        _buildItem(
+                          context,
                           icon: Icons.settings_applications_rounded,
                           title: l.tr('widgets_app_sidebar.019'),
                           routeName: '/admin-system-settings',

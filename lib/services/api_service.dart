@@ -717,6 +717,7 @@ class ApiService {
     required bool canOfflineCardScan,
     required bool canManageDebtBook,
     required bool canManageUsers,
+    required bool canFinanceTopup,
     required bool canUsePrepaidMultipayCards,
     required bool canAcceptPrepaidMultipayPayments,
   }) async {
@@ -737,6 +738,7 @@ class ApiService {
         'canOfflineCardScan': canOfflineCardScan,
         'canManageDebtBook': canManageDebtBook,
         'canManageUsers': canManageUsers,
+        'canFinanceTopup': canFinanceTopup,
         'canUsePrepaidMultipayCards': canUsePrepaidMultipayCards,
         'canAcceptPrepaidMultipayPayments': canAcceptPrepaidMultipayPayments,
       }),
@@ -892,6 +894,27 @@ class ApiService {
     final response = await http.get(
       AppConfig.apiUri('admin/card-print-requests', params),
       headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createAdminCardPrintRequest({
+    required String userId,
+    required double value,
+    required int quantity,
+    required String cardType,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'userId': userId,
+        'value': value,
+        'quantity': quantity,
+        'cardType': cardType,
+        'notes': notes.trim(),
+      }),
     );
     return _decodeObject(response);
   }
@@ -1999,18 +2022,48 @@ class ApiService {
     required int maxExpiryDays,
     required double dailyPaymentAmountLimit,
     required int dailyPaymentCountLimit,
+    bool? nfcEnabled,
+    bool? nfcPilotOnly,
+    double? nfcMaxPaymentAmount,
+    int? nfcAuthorizationTtlSeconds,
+    int? nfcMaxDevicesPerCard,
+    double? nfcOfflineMerchantAmountLimit,
+    int? nfcOfflineMerchantCountLimit,
+    bool? nfcRequireBiometrics,
   }) async {
+    final payload = <String, dynamic>{
+      'maxCardAmount': maxCardAmount,
+      'maxPaymentAmount': maxPaymentAmount,
+      'maxActiveCards': maxActiveCards,
+      'maxExpiryDays': maxExpiryDays,
+      'dailyPaymentAmountLimit': dailyPaymentAmountLimit,
+      'dailyPaymentCountLimit': dailyPaymentCountLimit,
+    };
+    if (nfcEnabled != null) payload['nfcEnabled'] = nfcEnabled;
+    if (nfcPilotOnly != null) payload['nfcPilotOnly'] = nfcPilotOnly;
+    if (nfcMaxPaymentAmount != null) {
+      payload['nfcMaxPaymentAmount'] = nfcMaxPaymentAmount;
+    }
+    if (nfcAuthorizationTtlSeconds != null) {
+      payload['nfcAuthorizationTtlSeconds'] = nfcAuthorizationTtlSeconds;
+    }
+    if (nfcMaxDevicesPerCard != null) {
+      payload['nfcMaxDevicesPerCard'] = nfcMaxDevicesPerCard;
+    }
+    if (nfcOfflineMerchantAmountLimit != null) {
+      payload['nfcOfflineMerchantAmountLimit'] = nfcOfflineMerchantAmountLimit;
+    }
+    if (nfcOfflineMerchantCountLimit != null) {
+      payload['nfcOfflineMerchantCountLimit'] = nfcOfflineMerchantCountLimit;
+    }
+    if (nfcRequireBiometrics != null) {
+      payload['nfcRequireBiometrics'] = nfcRequireBiometrics;
+    }
+
     final response = await http.put(
       AppConfig.apiUri('admin/settings/prepaid-multipay'),
       headers: await _headers(),
-      body: jsonEncode({
-        'maxCardAmount': maxCardAmount,
-        'maxPaymentAmount': maxPaymentAmount,
-        'maxActiveCards': maxActiveCards,
-        'maxExpiryDays': maxExpiryDays,
-        'dailyPaymentAmountLimit': dailyPaymentAmountLimit,
-        'dailyPaymentCountLimit': dailyPaymentCountLimit,
-      }),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -2050,6 +2103,21 @@ class ApiService {
   }) async {
     final response = await http.get(
       AppConfig.apiUri('admin/prepaid-multipay/approvals', {
+        'perPage': perPage.toString(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminPrepaidMultipayNfcAttempts({
+    String? status,
+    int perPage = 50,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/prepaid-multipay/nfc/attempts', {
+        if (status != null && status.trim().isNotEmpty && status != 'all')
+          'status': status.trim(),
         'perPage': perPage.toString(),
       }),
       headers: await _headers(),
@@ -2119,7 +2187,7 @@ class ApiService {
     required String label,
     required double amount,
     required String pin,
-    required String expiresAt,
+    required int validityYears,
     String? otpCode,
     String? localAuthMethod,
   }) async {
@@ -2130,7 +2198,7 @@ class ApiService {
         'label': label.trim(),
         'amount': amount,
         'pin': pin.trim(),
-        'expiresAt': expiresAt,
+        'validityYears': validityYears,
         if (otpCode != null && otpCode.trim().isNotEmpty)
           'otpCode': otpCode.trim(),
         if ((otpCode == null || otpCode.trim().isEmpty) &&
@@ -2176,14 +2244,84 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> updatePrepaidMultipayCard({
+    required String cardId,
+    required String label,
+    required int validityYears,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'label': label.trim(),
+        'validityYears': validityYears,
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> deletePrepaidMultipayCard({
+    required String cardId,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final request = http.Request(
+      'DELETE',
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId'),
+    );
+    request.headers.addAll(await _headers());
+    request.body = jsonEncode({
+      if (otpCode != null && otpCode.trim().isNotEmpty)
+        'otpCode': otpCode.trim(),
+      if ((otpCode == null || otpCode.trim().isEmpty) &&
+          localAuthMethod != null &&
+          localAuthMethod.trim().isNotEmpty)
+        'localAuthMethod': localAuthMethod.trim(),
+    });
+
+    final client = http.Client();
+    late final http.Response response;
+    try {
+      final streamed = await client.send(request);
+      response = await http.Response.fromStream(streamed);
+    } finally {
+      client.close();
+    }
+    final body = _decodeObject(response);
+    if (body['balance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['balance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
   Future<Map<String, dynamic>> updatePrepaidMultipayCardStatus({
     required String cardId,
     required String action,
+    String? otpCode,
+    String? localAuthMethod,
   }) async {
     final response = await http.post(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/status'),
       headers: await _headers(),
-      body: jsonEncode({'action': action}),
+      body: jsonEncode({
+        'action': action,
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
     );
     final body = _decodeObject(response);
     if (body['balance'] is num) {
@@ -2218,6 +2356,151 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getPrepaidMultipayNfcDevices({
+    required String cardId,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/devices'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> registerPrepaidMultipayNfcDevice({
+    required String cardId,
+    required String deviceId,
+    required String deviceName,
+    required String publicKey,
+    String keyAlgorithm = 'ed25519',
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/devices'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'deviceId': deviceId.trim(),
+        'deviceName': deviceName.trim(),
+        'publicKey': publicKey.trim(),
+        'keyAlgorithm': keyAlgorithm.trim(),
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> revokePrepaidMultipayNfcDevice({
+    required String cardId,
+    required String deviceId,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final request = http.Request(
+      'DELETE',
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/devices/$deviceId'),
+    );
+    request.headers.addAll(await _headers());
+    request.body = jsonEncode({
+      if (otpCode != null && otpCode.trim().isNotEmpty)
+        'otpCode': otpCode.trim(),
+      if ((otpCode == null || otpCode.trim().isEmpty) &&
+          localAuthMethod != null &&
+          localAuthMethod.trim().isNotEmpty)
+        'localAuthMethod': localAuthMethod.trim(),
+    });
+
+    final client = http.Client();
+    late final http.Response response;
+    try {
+      final streamed = await client.send(request);
+      response = await http.Response.fromStream(streamed);
+    } finally {
+      client.close();
+    }
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> preparePrepaidMultipayNfcPayment({
+    required String cardId,
+    required double amount,
+    required String pin,
+    required String deviceId,
+    String? merchantId,
+    String? appVersion,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/prepare'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'amount': amount,
+        'pin': pin.trim(),
+        'deviceId': deviceId.trim(),
+        if (merchantId != null && merchantId.trim().isNotEmpty)
+          'merchantId': merchantId.trim(),
+        if (appVersion != null && appVersion.trim().isNotEmpty)
+          'appVersion': appVersion.trim(),
+        if (otpCode != null && otpCode.trim().isNotEmpty)
+          'otpCode': otpCode.trim(),
+        if ((otpCode == null || otpCode.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
+          'localAuthMethod': localAuthMethod.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> acceptPrepaidMultipayNfcPayment({
+    required String signedPayload,
+    required String signature,
+    required String idempotencyKey,
+    String? merchantDeviceId,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('prepaid-multipay-cards/nfc/payments'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'signedPayload': signedPayload,
+        'signature': signature,
+        'idempotencyKey': idempotencyKey,
+        if (merchantDeviceId != null && merchantDeviceId.trim().isNotEmpty)
+          'merchantDeviceId': merchantDeviceId.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['merchantBalance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['merchantBalance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
+  Future<Map<String, dynamic>> getPrepaidMultipayNfcPaymentStatus({
+    required String idempotencyKey,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri(
+        'prepaid-multipay-cards/nfc/payments/status/${Uri.encodeComponent(idempotencyKey.trim())}',
+      ),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    if (body['merchantBalance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['merchantBalance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
   Future<Map<String, dynamic>> acceptPrepaidMultipayCardPayment({
     required String cardNumber,
     required double amount,
@@ -2230,15 +2513,15 @@ class ApiService {
     final response = await http.post(
       AppConfig.apiUri('prepaid-multipay-cards/payments'),
       headers: await _headers(),
-        body: jsonEncode({
-          'cardNumber': cardNumber.trim(),
-          'amount': amount,
-          'expiryMonth': expiryMonth.trim(),
-          'expiryYear': expiryYear.trim(),
-          'securityCode': securityCode.trim(),
-          'idempotencyKey': idempotencyKey,
-          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
-        }),
+      body: jsonEncode({
+        'cardNumber': cardNumber.trim(),
+        'amount': amount,
+        'expiryMonth': expiryMonth.trim(),
+        'expiryYear': expiryYear.trim(),
+        'securityCode': securityCode.trim(),
+        'idempotencyKey': idempotencyKey,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      }),
     );
     final body = _decodeObject(response);
     if (body['merchantBalance'] is num) {
