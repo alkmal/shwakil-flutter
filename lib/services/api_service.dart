@@ -2483,6 +2483,24 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> getPrepaidMultipayNfcPaymentStatus({
+    required String idempotencyKey,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri(
+        'prepaid-multipay-cards/nfc/payments/status/${Uri.encodeComponent(idempotencyKey.trim())}',
+      ),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    if (body['merchantBalance'] is num) {
+      await _authService.patchCurrentUser({
+        'balance': (body['merchantBalance'] as num).toDouble(),
+      });
+    }
+    return body;
+  }
+
   Future<Map<String, dynamic>> acceptPrepaidMultipayCardPayment({
     required String cardNumber,
     required double amount,
