@@ -43,6 +43,15 @@ class ApiService {
     return headers;
   }
 
+  Future<Map<String, String>> authenticatedHeaders() => _headers();
+
+  Uri adminVerificationFileUri({
+    required String requestId,
+    required String fileType,
+  }) {
+    return AppConfig.apiUri('admin/verifications/$requestId/files/$fileType');
+  }
+
   Future<Map<String, String>> _publicHeaders() {
     return AppVersionService.publicHeaders();
   }
@@ -656,6 +665,40 @@ class ApiService {
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
     );
     return _decodeObject(response);
+  }
+
+  Future<void> downloadAdminVerificationFile({
+    required String requestId,
+    required String fileType,
+    required String fileName,
+  }) async {
+    final response = await http.get(
+      adminVerificationFileUri(requestId: requestId, fileType: fileType),
+      headers: await _headers(),
+    );
+
+    if (response.statusCode >= 400) {
+      _decodeObject(response);
+    }
+
+    final contentType = response.headers['content-type'] ?? '';
+    final extension = contentType.contains('png')
+        ? 'png'
+        : contentType.contains('webp')
+        ? 'webp'
+        : 'jpg';
+    final mimeType = extension == 'png'
+        ? MimeType.png
+        : extension == 'webp'
+        ? MimeType.other
+        : MimeType.jpeg;
+
+    await FileSaver.instance.saveFile(
+      name: fileName,
+      bytes: response.bodyBytes,
+      fileExtension: extension,
+      mimeType: mimeType,
+    );
   }
 
   Future<Map<String, dynamic>> approvePendingWithdrawalRequest(

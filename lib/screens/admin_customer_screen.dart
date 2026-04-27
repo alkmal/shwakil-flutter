@@ -46,6 +46,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   List<Map<String, dynamic>> _transactions = const [];
   List<Map<String, dynamic>> _devices = const [];
   Map<String, dynamic>? _verificationRequest;
+  Map<String, String> _verificationImageHeaders = const {};
   bool _firstLoad = true;
   bool _busy = false;
   String _role = 'restricted';
@@ -131,19 +132,24 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           : (_auditFilter == AdminTransactionAuditFilter.outsideBranches
                 ? 'outside_branches'
                 : 'all');
-      final results = await Future.wait([
+      final results = await Future.wait<dynamic>([
         _api.getAdminCustomerTransactions(id, locationFilter: filter),
         widget.canManageUsers
             ? _api.getAdminUserDevices(id)
             : Future.value(const <String, dynamic>{'devices': []}),
         widget.canManageUsers
             ? _api.getAdminUserVerification(id)
-            : Future.value(const <String, dynamic>{'verificationRequest': null}),
+            : Future.value(const <String, dynamic>{
+                'verificationRequest': null,
+              }),
+        widget.canManageUsers
+            ? _api.authenticatedHeaders()
+            : Future.value(const <String, String>{}),
       ]);
       if (!mounted) return;
-      final txData = results[0];
-      final dvData = results[1];
-      final verificationData = results[2];
+      final txData = Map<String, dynamic>.from(results[0] as Map);
+      final dvData = Map<String, dynamic>.from(results[1] as Map);
+      final verificationData = Map<String, dynamic>.from(results[2] as Map);
       setState(() {
         _customer = Map<String, dynamic>.from(
           txData['customer'] as Map? ?? _customer,
@@ -155,11 +161,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             ? List<Map<String, dynamic>>.from(dvData['devices'] as List? ?? [])
             : const [];
         _verificationRequest =
-            widget.canManageUsers && verificationData['verificationRequest'] is Map
+            widget.canManageUsers &&
+                verificationData['verificationRequest'] is Map
             ? Map<String, dynamic>.from(
                 verificationData['verificationRequest'] as Map,
               )
             : null;
+        _verificationImageHeaders = widget.canManageUsers
+            ? Map<String, String>.from(results[3] as Map)
+            : const {};
         _txPage = 1;
         _syncFields();
         _firstLoad = false;
@@ -1185,6 +1195,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   Widget _buildVerificationTab() {
     final request = _verificationRequest;
     final isPending = request?['status']?.toString() == 'pending';
+    final requestId = request?['id']?.toString() ?? '';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -1285,7 +1296,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                         width: imageWidth,
                         child: _verificationImageCard(
                           title: 'صورة الهوية',
-                          url: request['identityUrl']?.toString() ?? '',
+                          url: requestId.isEmpty
+                              ? ''
+                              : _api
+                                    .adminVerificationFileUri(
+                                      requestId: requestId,
+                                      fileType: 'identity',
+                                    )
+                                    .toString(),
+                          fileType: 'identity',
                           icon: Icons.badge_outlined,
                         ),
                       ),
@@ -1293,7 +1312,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                         width: imageWidth,
                         child: _verificationImageCard(
                           title: 'صورة السيلفي',
-                          url: request['selfieUrl']?.toString() ?? '',
+                          url: requestId.isEmpty
+                              ? ''
+                              : _api
+                                    .adminVerificationFileUri(
+                                      requestId: requestId,
+                                      fileType: 'selfie',
+                                    )
+                                    .toString(),
+                          fileType: 'selfie',
                           icon: Icons.face_retouching_natural_rounded,
                         ),
                       ),
@@ -1339,6 +1366,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   Widget _verificationImageCard({
     required String title,
     required String url,
+    required String fileType,
     required IconData icon,
   }) {
     return ShwakelCard(
@@ -1351,6 +1379,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               Icon(icon, color: AppTheme.primary),
               const SizedBox(width: 8),
               Text(title, style: AppTheme.bodyBold),
+              const Spacer(),
+              IconButton(
+                tooltip: 'تحميل الملف',
+                onPressed: url.isEmpty
+                    ? null
+                    : () => _downloadVerificationFile(fileType, title),
+                icon: const Icon(Icons.download_rounded),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1368,16 +1404,16 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       onTap: () => _openVerificationImage(title, url),
                       child: Image.network(
                         url,
+                        headers: _verificationImageHeaders,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Container(
-                              color: AppTheme.surfaceVariant,
-                              alignment: Alignment.center,
-                              child: Text(
-                                'تعذر تحميل الصورة',
-                                style: AppTheme.caption,
-                              ),
-                            ),
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: AppTheme.surfaceVariant,
+                          alignment: Alignment.center,
+                          child: Text(
+                            'تعذر تحميل الصورة',
+                            style: AppTheme.caption,
+                          ),
+                        ),
                       ),
                     ),
             ),
@@ -1424,10 +1460,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 child: InteractiveViewer(
                   child: Image.network(
                     url,
+                    headers: _verificationImageHeaders,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) => Padding(
                       padding: const EdgeInsets.all(32),
-                      child: Text('تعذر تحميل الصورة', style: AppTheme.bodyText),
+                      child: Text(
+                        'تعذر تحميل الصورة',
+                        style: AppTheme.bodyText,
+                      ),
                     ),
                   ),
                 ),
@@ -1437,6 +1477,43 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _downloadVerificationFile(String fileType, String title) async {
+    final requestId = _verificationRequest?['id']?.toString() ?? '';
+    if (requestId.isEmpty) {
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      await _api.downloadAdminVerificationFile(
+        requestId: requestId,
+        fileType: fileType,
+        fileName: fileType == 'selfie'
+            ? 'verification_selfie_$requestId'
+            : 'verification_identity_$requestId',
+      );
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showSuccess(
+        context,
+        message: 'تم تحميل ملف $title بنجاح.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showError(
+        context,
+        message: ErrorMessageService.sanitize(e),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
   }
 
   Widget _buildDeviceTile(Map<String, dynamic> d) {
@@ -1677,8 +1754,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       AppAlertService.showSuccess(
         context,
         message:
-            response['message']?.toString() ??
-            'تم اعتماد توثيق الحساب بنجاح.',
+            response['message']?.toString() ?? 'تم اعتماد توثيق الحساب بنجاح.',
       );
     } catch (e) {
       if (!mounted) {
