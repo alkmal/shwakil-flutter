@@ -45,6 +45,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   late Map<String, dynamic> _customer;
   List<Map<String, dynamic>> _transactions = const [];
   List<Map<String, dynamic>> _devices = const [];
+  Map<String, dynamic>? _verificationRequest;
   bool _firstLoad = true;
   bool _busy = false;
   String _role = 'restricted';
@@ -135,10 +136,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         widget.canManageUsers
             ? _api.getAdminUserDevices(id)
             : Future.value(const <String, dynamic>{'devices': []}),
+        widget.canManageUsers
+            ? _api.getAdminUserVerification(id)
+            : Future.value(const <String, dynamic>{'verificationRequest': null}),
       ]);
       if (!mounted) return;
       final txData = results[0];
       final dvData = results[1];
+      final verificationData = results[2];
       setState(() {
         _customer = Map<String, dynamic>.from(
           txData['customer'] as Map? ?? _customer,
@@ -147,10 +152,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           txData['transactions'] as List? ?? [],
         );
         _devices = widget.canManageUsers
-            ? List<Map<String, dynamic>>.from(
-                dvData['devices'] as List? ?? [],
-              )
+            ? List<Map<String, dynamic>>.from(dvData['devices'] as List? ?? [])
             : const [];
+        _verificationRequest =
+            widget.canManageUsers && verificationData['verificationRequest'] is Map
+            ? Map<String, dynamic>.from(
+                verificationData['verificationRequest'] as Map,
+              )
+            : null;
         _txPage = 1;
         _syncFields();
         _firstLoad = false;
@@ -258,6 +267,147 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     }
   }
 
+  Future<void> _showBalanceAdjustmentDialog({required bool isCredit}) async {
+    if (!widget.canManageUsers) {
+      return;
+    }
+
+    final amountController = TextEditingController();
+    final notesController = TextEditingController(
+      text: isCredit
+          ? 'إضافة رصيد من صفحة المستخدم'
+          : 'سحب رصيد من صفحة المستخدم',
+    );
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(isCredit ? 'إضافة رصيد' : 'سحب رصيد'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _customer['username']?.toString() ?? '',
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ',
+                    prefixText: '₪ ',
+                  ),
+                  validator: (value) {
+                    final amount = double.tryParse(
+                      (value ?? '').trim().replaceAll(',', '.'),
+                    );
+                    if (amount == null || amount <= 0) {
+                      return 'أدخل مبلغًا صحيحًا';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: notesController,
+                  maxLength: 250,
+                  minLines: 2,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'ملاحظات'),
+                ),
+                if (!isCredit) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'سيتم خصم الرصيد إداريًا، وقد يصبح الحساب بالسالب إذا كان المبلغ أكبر من الرصيد الحالي.',
+                    style: AppTheme.caption.copyWith(color: AppTheme.warning),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                if (formKey.currentState?.validate() != true) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop(true);
+              },
+              icon: Icon(
+                isCredit
+                    ? Icons.add_card_rounded
+                    : Icons.remove_circle_outline_rounded,
+              ),
+              label: Text(isCredit ? 'إضافة الرصيد' : 'سحب الرصيد'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      amountController.dispose();
+      notesController.dispose();
+      return;
+    }
+
+    final amount =
+        double.tryParse(amountController.text.trim().replaceAll(',', '.')) ?? 0;
+    final notes = notesController.text.trim();
+    amountController.dispose();
+    notesController.dispose();
+
+    setState(() => _busy = true);
+    try {
+      final response = isCredit
+          ? await _api.addAdminUserBalance(
+              userId: _customer['id'].toString(),
+              amount: amount,
+              notes: notes,
+            )
+          : await _api.deductAdminUserBalance(
+              userId: _customer['id'].toString(),
+              amount: amount,
+              notes: notes,
+            );
+
+      if (!mounted) {
+        return;
+      }
+      await _loadCustomer(full: true);
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showSuccess(
+        context,
+        message:
+            response['message']?.toString() ??
+            (isCredit ? 'تمت إضافة الرصيد بنجاح.' : 'تم سحب الرصيد بنجاح.'),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      AppAlertService.showError(
+        context,
+        message: ErrorMessageService.sanitize(e),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_firstLoad) {
@@ -287,6 +437,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           text: _t('screens_admin_customer_screen.011'),
           icon: const Icon(Icons.devices_rounded, size: 20),
         ),
+      if (widget.canManageUsers)
+        const Tab(
+          text: 'توثيق الحساب',
+          icon: Icon(Icons.verified_user_rounded, size: 20),
+        ),
     ];
     final views = <Widget>[
       _buildOverviewTab(),
@@ -294,6 +449,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       if (_canManageAccountControls) _buildManagementTab(),
       if (widget.canManageUsers) _buildPermissionsTab(),
       if (widget.canManageUsers) _buildDevicesTab(),
+      if (widget.canManageUsers) _buildVerificationTab(),
     ];
 
     return DefaultTabController(
@@ -442,8 +598,81 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 ],
               ),
             ),
+            if (widget.canManageUsers) ...[
+              const SizedBox(height: 24),
+              _buildBalanceManagementCard(),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBalanceManagementCard() {
+    final balance = ((_customer['balance'] as num?) ?? 0).toDouble();
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppTheme.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('إدارة الرصيد', style: AppTheme.h3),
+                    const SizedBox(height: 2),
+                    Text(
+                      'الرصيد الحالي: ${CurrencyFormatter.ils(balance)}',
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ShwakelButton(
+                width: 180,
+                height: 48,
+                label: 'إضافة رصيد',
+                icon: Icons.add_card_rounded,
+                onPressed: _busy
+                    ? null
+                    : () => _showBalanceAdjustmentDialog(isCredit: true),
+              ),
+              ShwakelButton(
+                width: 180,
+                height: 48,
+                label: 'سحب رصيد',
+                icon: Icons.remove_circle_outline_rounded,
+                isDanger: true,
+                onPressed: _busy
+                    ? null
+                    : () => _showBalanceAdjustmentDialog(isCredit: false),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -646,10 +875,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         value: 'basic',
         child: Text(_t('screens_admin_customer_screen.038')),
       ),
-      DropdownMenuItem(
-        value: 'driver',
-        child: Text(_t('shared.role_driver')),
-      ),
+      DropdownMenuItem(value: 'driver', child: Text(_t('shared.role_driver'))),
       DropdownMenuItem(
         value: 'verified_member',
         child: Text(_t('screens_admin_customer_screen.031')),
@@ -695,9 +921,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           : _t('screens_admin_customer_screen.016'),
                     ),
                     value: _customer['isDisabled'] != true,
-                    onChanged: (value) => setState(
-                      () => _customer['isDisabled'] = !value,
-                    ),
+                    onChanged: (value) =>
+                        setState(() => _customer['isDisabled'] = !value),
                   ),
                   const SizedBox(height: 16),
                   if (widget.canManageUsers) ...[
@@ -847,11 +1072,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 'canIssueAppointmentTickets',
                 perms,
               ),
-              _permItem(
-                'إنشاء تذاكر طوابير',
-                'canIssueQueueTickets',
-                perms,
-              ),
+              _permItem('إنشاء تذاكر طوابير', 'canIssueQueueTickets', perms),
               _permItem(
                 _t('screens_admin_customer_screen.054'),
                 'canIssueHighValueCards',
@@ -956,6 +1177,263 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             else
               ..._devices.map(_buildDeviceTile),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerificationTab() {
+    final request = _verificationRequest;
+    final isPending = request?['status']?.toString() == 'pending';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      child: ResponsiveScaffoldContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AdminSectionHeader(
+              title: 'توثيق الحساب',
+              subtitle: 'مراجعة مرفقات الهوية والسيلفي الخاصة بهذا المستخدم',
+              icon: Icons.verified_user_rounded,
+              trailing: IconButton(
+                tooltip: 'تحديث',
+                onPressed: _busy ? null : () => _loadCustomer(),
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (request == null)
+              ShwakelCard(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'لا يوجد طلب توثيق مرسل لهذا الحساب.',
+                  style: AppTheme.bodyText,
+                ),
+              )
+            else ...[
+              ShwakelCard(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _verificationChip(
+                          'الحالة',
+                          _verificationStatusLabel(
+                            request['status']?.toString() ?? '',
+                          ),
+                          Icons.fact_check_rounded,
+                        ),
+                        _verificationChip(
+                          'النوع المطلوب',
+                          request['requestedRoleLabel']?.toString() ?? '-',
+                          Icons.badge_rounded,
+                        ),
+                        _verificationChip(
+                          'رقم الهوية',
+                          request['nationalId']?.toString() ?? '-',
+                          Icons.credit_card_rounded,
+                        ),
+                        _verificationChip(
+                          'تاريخ الميلاد',
+                          request['birthDate']?.toString() ?? '-',
+                          Icons.cake_rounded,
+                        ),
+                      ],
+                    ),
+                    if ((request['notes']?.toString() ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      Text('ملاحظات المستخدم', style: AppTheme.bodyBold),
+                      const SizedBox(height: 6),
+                      Text(
+                        request['notes'].toString(),
+                        style: AppTheme.bodyText,
+                      ),
+                    ],
+                    if (isPending) ...[
+                      const SizedBox(height: 24),
+                      ShwakelButton(
+                        label: 'اعتماد التوثيق كمستخدم',
+                        icon: Icons.verified_rounded,
+                        onPressed: _busy ? null : _approveVerificationRequest,
+                        isLoading: _busy,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'بعد الاعتماد يصبح الحساب موثقًا ونوع الحساب مستخدم، ويصل للمستخدم إشعار بإمكانية الترقية إلى تاجر أو سائق عبر التواصل.',
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final imageWidth = constraints.maxWidth < 760
+                      ? double.infinity
+                      : (constraints.maxWidth - 16) / 2;
+                  return Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      SizedBox(
+                        width: imageWidth,
+                        child: _verificationImageCard(
+                          title: 'صورة الهوية',
+                          url: request['identityUrl']?.toString() ?? '',
+                          icon: Icons.badge_outlined,
+                        ),
+                      ),
+                      SizedBox(
+                        width: imageWidth,
+                        child: _verificationImageCard(
+                          title: 'صورة السيلفي',
+                          url: request['selfieUrl']?.toString() ?? '',
+                          icon: Icons.face_retouching_natural_rounded,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _verificationChip(String label, String value, IconData icon) {
+    return Container(
+      width: AppTheme.isPhone(context) ? double.infinity : 230,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.primary, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppTheme.caption),
+                const SizedBox(height: 2),
+                Text(value, style: AppTheme.bodyBold),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _verificationImageCard({
+    required String title,
+    required String url,
+    required IconData icon,
+  }) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              Text(title, style: AppTheme.bodyBold),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: AspectRatio(
+              aspectRatio: 4 / 3,
+              child: url.isEmpty
+                  ? Container(
+                      color: AppTheme.surfaceVariant,
+                      alignment: Alignment.center,
+                      child: Text('لا توجد صورة', style: AppTheme.caption),
+                    )
+                  : InkWell(
+                      onTap: () => _openVerificationImage(title, url),
+                      child: Image.network(
+                        url,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Container(
+                              color: AppTheme.surfaceVariant,
+                              alignment: Alignment.center,
+                              child: Text(
+                                'تعذر تحميل الصورة',
+                                style: AppTheme.caption,
+                              ),
+                            ),
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _verificationStatusLabel(String status) {
+    return switch (status) {
+      'pending' => 'قيد المراجعة',
+      'approved' => 'معتمد',
+      'rejected' => 'مرفوض',
+      'replaced' => 'مستبدل',
+      _ => 'غير موثق',
+    };
+  }
+
+  void _openVerificationImage(String title, String url) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 720),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(title, style: AppTheme.bodyBold)),
+                    IconButton(
+                      tooltip: 'إغلاق',
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: InteractiveViewer(
+                  child: Image.network(
+                    url,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text('تعذر تحميل الصورة', style: AppTheme.bodyText),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1168,5 +1646,49 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       );
       _loadCustomer();
     } catch (_) {}
+  }
+
+  Future<void> _approveVerificationRequest() async {
+    final requestId = _verificationRequest?['id']?.toString() ?? '';
+    if (requestId.isEmpty) {
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final response = await _api.approvePendingVerificationRequest(
+        requestId,
+        notes: 'تم اعتماد التوثيق من صفحة المستخدم.',
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (response['user'] is Map) {
+          _customer = Map<String, dynamic>.from(response['user'] as Map);
+        }
+        _busy = false;
+        _syncFields();
+      });
+      await _loadCustomer();
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showSuccess(
+        context,
+        message:
+            response['message']?.toString() ??
+            'تم اعتماد توثيق الحساب بنجاح.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      AppAlertService.showError(
+        context,
+        message: ErrorMessageService.sanitize(e),
+      );
+    }
   }
 }

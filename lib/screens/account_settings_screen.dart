@@ -43,6 +43,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isSaving = false;
   bool _isUploadingLogo = false;
   bool _profileLocked = false;
+  bool _hasPin = false;
+  bool _biometricEnabled = false;
+  bool _canUseBiometrics = false;
   Set<String> _editableProfileFields = const <String>{};
   Uint8List? _printLogoPreview;
   String? _printLogoFileName;
@@ -71,7 +74,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _load() async {
-    final user = AuthService.peekCurrentUser() ?? await _authService.currentUser();
+    final user =
+        AuthService.peekCurrentUser() ?? await _authService.currentUser();
+    final hasPin = await LocalSecurityService.hasPin();
+    final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
+    final biometricEnabled =
+        await LocalSecurityService.isBiometricEnabled() && canUseBiometrics;
     if (!mounted) {
       return;
     }
@@ -91,6 +99,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _nationalIdController.text = user['nationalId']?.toString() ?? '';
       _birthDateController.text = user['birthDate']?.toString() ?? '';
       _referralPhoneController.text = user['referralPhone']?.toString() ?? '';
+      _hasPin = hasPin;
+      _canUseBiometrics = canUseBiometrics;
+      _biometricEnabled = biometricEnabled;
 
       final verification =
           user['transferVerificationStatus']?.toString() ?? 'unverified';
@@ -280,6 +291,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     return verification == 'approved' && _editableProfileFields.isNotEmpty;
   }
 
+  bool get _hasLocalSecuritySetup => _hasPin || _biometricEnabled;
+
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
@@ -371,7 +384,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -402,6 +415,20 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     indicatorPadding: const EdgeInsets.all(6),
                     labelPadding: EdgeInsets.zero,
                     tabs: [
+                      Tab(
+                        height: 56,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.security_rounded, size: 20),
+                              const SizedBox(width: 8),
+                              Text(l.tr('screens_account_settings_screen.069')),
+                            ],
+                          ),
+                        ),
+                      ),
                       Tab(
                         height: 56,
                         child: FittedBox(
@@ -457,6 +484,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         drawer: const AppSidebar(),
         body: TabBarView(
           children: [
+            _buildSecurityTab(),
             _buildProfileTab(),
             _buildPasswordTab(),
             _buildAccountActionsTab(),
@@ -464,6 +492,143 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildSecurityTab() {
+    final l = context.loc;
+    final warningColor = _hasLocalSecuritySetup
+        ? AppTheme.success
+        : AppTheme.warning;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      child: ResponsiveScaffoldContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              color: _hasLocalSecuritySetup
+                  ? AppTheme.success.withValues(alpha: 0.05)
+                  : AppTheme.warning.withValues(alpha: 0.07),
+              borderColor: warningColor.withValues(alpha: 0.18),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: warningColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _hasLocalSecuritySetup
+                          ? Icons.verified_user_rounded
+                          : Icons.lock_person_rounded,
+                      color: warningColor,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _hasLocalSecuritySetup
+                              ? l.tr('screens_account_settings_screen.070')
+                              : l.tr('screens_account_settings_screen.071'),
+                          style: AppTheme.h3.copyWith(color: warningColor),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _hasLocalSecuritySetup
+                              ? l.tr('screens_account_settings_screen.072')
+                              : l.tr('screens_account_settings_screen.073'),
+                          style: AppTheme.bodyAction.copyWith(height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.tr('screens_account_settings_screen.074'),
+                    style: AppTheme.h3,
+                  ),
+                  const SizedBox(height: 18),
+                  _securityStatusRow(
+                    l.tr('screens_account_settings_screen.075'),
+                    _hasPin
+                        ? l.tr('screens_security_settings_screen.020')
+                        : l.tr('screens_security_settings_screen.021'),
+                    _hasPin ? AppTheme.success : AppTheme.warning,
+                    Icons.pin_rounded,
+                  ),
+                  _securityStatusRow(
+                    l.tr('screens_account_settings_screen.076'),
+                    _biometricEnabled
+                        ? l.tr('screens_security_settings_screen.020')
+                        : (_canUseBiometrics
+                              ? l.tr('screens_security_settings_screen.021')
+                              : l.tr('screens_account_settings_screen.077')),
+                    _biometricEnabled
+                        ? AppTheme.success
+                        : (_canUseBiometrics
+                              ? AppTheme.warning
+                              : AppTheme.textTertiary),
+                    Icons.fingerprint_rounded,
+                  ),
+                  const SizedBox(height: 22),
+                  ShwakelButton(
+                    label: l.tr('screens_account_settings_screen.078'),
+                    icon: Icons.security_rounded,
+                    onPressed: _openSecuritySettings,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _securityStatusRow(
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: AppTheme.bodyAction)),
+          const SizedBox(width: 12),
+          Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openSecuritySettings() async {
+    await Navigator.of(context).pushNamed(
+      '/security-settings',
+      arguments: {'showSetupHint': !_hasLocalSecuritySetup},
+    );
+    if (mounted) {
+      await _load();
+    }
   }
 
   Widget _buildProfileTab() {

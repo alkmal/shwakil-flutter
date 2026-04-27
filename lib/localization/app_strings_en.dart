@@ -1190,6 +1190,18 @@ const Map<String, String> appStringsEn = {
   'screens_account_settings_screen.067':
       'This section is for updating account details and password. Important notices appear above the form only when needed.',
   'screens_account_settings_screen.068': 'Account',
+  'screens_account_settings_screen.069': 'Security',
+  'screens_account_settings_screen.070': 'Security settings are enabled',
+  'screens_account_settings_screen.071': 'Security settings must be enabled',
+  'screens_account_settings_screen.072':
+      'Your account uses local protection on this device. You can review PIN or biometrics from Security Settings.',
+  'screens_account_settings_screen.073':
+      'Enable PIN or biometrics to protect account access and confirm sensitive actions quickly and safely.',
+  'screens_account_settings_screen.074': 'Current protection status',
+  'screens_account_settings_screen.075': 'PIN code',
+  'screens_account_settings_screen.076': 'Biometrics',
+  'screens_account_settings_screen.077': 'Unsupported',
+  'screens_account_settings_screen.078': 'Open security settings',
   'screens_admin_card_print_requests_screen.037':
       'You do not have permission to manage card print requests',
   'screens_admin_card_print_requests_screen.038': 'Hide search and filters',

@@ -1033,6 +1033,18 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.067':
       'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
   'screens_account_settings_screen.068': 'الحساب',
+  'screens_account_settings_screen.069': 'الأمان',
+  'screens_account_settings_screen.070': 'إعدادات الأمان مفعّلة',
+  'screens_account_settings_screen.071': 'يجب تفعيل إعدادات الأمان',
+  'screens_account_settings_screen.072':
+      'حسابك يستخدم قفلًا محليًا لهذا الجهاز. يمكنك مراجعة PIN أو البصمة من شاشة إعدادات الأمان.',
+  'screens_account_settings_screen.073':
+      'فعّل PIN أو البصمة لحماية الدخول للحساب وتأكيد العمليات الحساسة بسرعة وأمان.',
+  'screens_account_settings_screen.074': 'حالة الحماية الحالية',
+  'screens_account_settings_screen.075': 'رمز PIN',
+  'screens_account_settings_screen.076': 'البصمة',
+  'screens_account_settings_screen.077': 'غير مدعومة',
+  'screens_account_settings_screen.078': 'فتح إعدادات الأمان',
   'screens_admin_card_print_requests_screen.037':
       'لا تملك صلاحية إدارة طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.038': 'إخفاء البحث والفلاتر',

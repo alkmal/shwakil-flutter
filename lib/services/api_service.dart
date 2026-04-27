@@ -516,6 +516,14 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getAdminUserVerification(String userId) async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/users/$userId/verification'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<List<Map<String, dynamic>>> getPendingDeviceAccessRequests() async {
     final response = await http.get(
       AppConfig.apiUri('admin/devices/pending'),
@@ -632,6 +640,18 @@ class ApiService {
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/devices/$requestId/reject'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> approvePendingVerificationRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/verifications/$requestId/approve'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
     );
@@ -1506,6 +1526,32 @@ class ApiService {
       AppConfig.apiUri('wallet/topup'),
       headers: await _headers(),
       body: jsonEncode(payload),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> addAdminUserBalance({
+    required String userId,
+    required double amount,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users/$userId/add-balance'),
+      headers: await _headers(),
+      body: jsonEncode({'amount': amount, 'notes': notes}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> deductAdminUserBalance({
+    required String userId,
+    required double amount,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users/$userId/deduct-balance'),
+      headers: await _headers(),
+      body: jsonEncode({'amount': amount, 'notes': notes}),
     );
     return _decodeObject(response);
   }
