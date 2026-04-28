@@ -11,10 +11,16 @@ import '../widgets/support_contact_card.dart';
 import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.redirectRoute, this.offlineMode = false});
+  const LoginScreen({
+    super.key,
+    this.redirectRoute,
+    this.offlineMode = false,
+    this.initialIdentifier,
+  });
 
   final String? redirectRoute;
   final bool offlineMode;
+  final String? initialIdentifier;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -28,9 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
-  final TextEditingController _usernameController = TextEditingController(
-    text: kDebugMode ? 'debug_admin' : '',
-  );
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController(
     text: kDebugMode ? '1234' : '',
   );
@@ -49,6 +53,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _usernameController.text =
+        widget.initialIdentifier?.trim().isNotEmpty == true
+        ? widget.initialIdentifier!.trim()
+        : (kDebugMode ? 'debug_admin' : '');
     OfflineSessionService.setOfflineMode(widget.offlineMode);
     _loadAuthSettings();
   }

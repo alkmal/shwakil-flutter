@@ -137,6 +137,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
+      if (otp.loginRequired == true) {
+        await AppAlertService.showInfo(
+          context,
+          title: l.tr('screens_register_screen.028'),
+          message: otp.message ?? 'هذا الرقم مرتبط مسبقًا، انتقل إلى تسجيل الدخول.',
+        );
+        if (!mounted) {
+          return;
+        }
+        Navigator.pushReplacementNamed(
+          context,
+          '/login',
+          arguments: {
+            'initialIdentifier': otp.loginIdentifier ?? whatsapp,
+          },
+        );
+        return;
+      }
+
       if (otp.otpRequired == false) {
         await AppAlertService.showSuccess(
           context,

@@ -18,6 +18,8 @@ class OtpRequestResult {
     this.debugOtpCode,
     this.otpRequired,
     this.pendingRegistrationId,
+    this.loginRequired,
+    this.loginIdentifier,
   });
 
   final String? message;
@@ -25,6 +27,8 @@ class OtpRequestResult {
   final String? debugOtpCode;
   final bool? otpRequired;
   final String? pendingRegistrationId;
+  final bool? loginRequired;
+  final String? loginIdentifier;
 }
 
 class AuthService {
@@ -120,6 +124,10 @@ class AuthService {
           ? body['otpRequired'] as bool
           : null,
       pendingRegistrationId: body['pendingRegistrationId']?.toString(),
+      loginRequired: body['loginRequired'] is bool
+          ? body['loginRequired'] as bool
+          : null,
+      loginIdentifier: body['loginIdentifier']?.toString(),
     );
   }
 
@@ -197,6 +205,10 @@ class AuthService {
           ? body['otpRequired'] as bool
           : null,
       pendingRegistrationId: body['pendingRegistrationId']?.toString(),
+      loginRequired: body['loginRequired'] is bool
+          ? body['loginRequired'] as bool
+          : null,
+      loginIdentifier: body['loginIdentifier']?.toString(),
     );
   }
 
