@@ -708,13 +708,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         }
         payload = offlinePayload;
       } else {
-        final hasLocalSecurity = await _hasLocalTransferSecurity();
-        if (!mounted) {
-          return;
-        }
         final security = await TransferSecurityService.confirmTransfer(
           context,
-          allowOtpFallback: !hasLocalSecurity,
+          allowOtpFallback: false,
         );
         if (!mounted || !security.isVerified) {
           return;

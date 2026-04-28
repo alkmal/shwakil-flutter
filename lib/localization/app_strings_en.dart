@@ -639,7 +639,7 @@ const Map<String, String> appStringsEn = {
   'screens_otp_verification_screen.005': 'Could not resend',
   'screens_otp_verification_screen.006': 'Verify Code',
   'screens_otp_verification_screen.007': 'Username',
-  'screens_otp_verification_screen.008': 'WhatsApp',
+  'screens_otp_verification_screen.008': 'Phone number',
   'screens_otp_verification_screen.009': 'Verification code',
   'screens_otp_verification_screen.010': 'Debug code: {debugCode}',
   'screens_otp_verification_screen.011': 'Complete registration',
@@ -717,7 +717,7 @@ const Map<String, String> appStringsEn = {
       'Complete only the basic registration details. A username will be generated automatically, and you can edit the username and referral number later from the profile before verification.',
   'screens_register_screen.040': 'Already have an account? Log in',
   'screens_register_screen.041':
-      'You do not need to create a password now. After the admin approves your registration, your password will be sent to your WhatsApp so you can sign in and continue account verification.',
+      'You do not need to create a password now. After the admin approves your registration, your password will be sent by SMS so you can sign in and continue account verification.',
   'screens_register_screen.042':
       'I agree to the displayed terms, policies, and fees.',
   'screens_register_screen.043': 'Registration is currently unavailable',
@@ -1067,11 +1067,11 @@ const Map<String, String> appStringsEn = {
   'screens_otp_verification_screen.016':
       'Your account has been created successfully. You can log in now.',
   'screens_otp_verification_screen.017':
-      'A new verification code has been sent to WhatsApp.',
+      'A new verification code has been sent by SMS.',
   'screens_otp_verification_screen.018':
-      'Enter the code sent to your WhatsApp to complete registration.',
+      'Enter the code sent by SMS to complete registration.',
   'screens_otp_verification_screen.019':
-      'Enter the code sent to your WhatsApp to sign in securely.',
+      'Enter the code sent by SMS to sign in securely.',
   'screens_otp_verification_screen.020':
       'You can resend the code in {count} seconds',
   'screens_otp_verification_screen.021':
@@ -2288,6 +2288,10 @@ const Map<String, String> appStringsEn = {
   'services_transfer_security_service.017': 'Send code',
   'services_transfer_security_service.018':
       'You can resend after {seconds} seconds',
+  'services_transfer_security_service.019': 'Local security required',
+  'services_transfer_security_service.020':
+      'This action cannot continue until biometrics or a PIN is enabled on this device from Security Settings.',
+  'services_transfer_security_service.021': 'Security settings',
   'widgets_app_sidebar.041': 'Affiliate marketing',
   'widgets_app_sidebar.042': 'Registration requests',
   'widgets_app_sidebar.043': 'Send notifications',

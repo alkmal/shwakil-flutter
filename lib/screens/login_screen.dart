@@ -161,6 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
             redirectRoute: widget.redirectRoute,
             offlineMode: widget.offlineMode,
             initialDebugOtpCode: otpResult.debugOtpCode,
+            statusMessage: otpResult.message,
           ),
         ),
       );

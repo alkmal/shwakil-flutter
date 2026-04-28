@@ -36,7 +36,7 @@ class TransferSecurityService {
   static Future<TransferSecurityResult> confirmTransfer(
     BuildContext context, {
     bool requireOtpAfterLocalAuth = false,
-    bool allowOtpFallback = true,
+    bool allowOtpFallback = false,
   }) async {
     final hasPin = await LocalSecurityService.hasPin();
     final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
@@ -89,10 +89,40 @@ class TransferSecurityService {
     }
 
     if (!allowOtpFallback) {
+      await _showLocalSecurityRequiredDialog(context);
       return const TransferSecurityResult(isVerified: false);
     }
 
     return _confirmWithOtp(context);
+  }
+
+  static Future<void> _showLocalSecurityRequiredDialog(
+    BuildContext context,
+  ) async {
+    final l = context.loc;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('services_transfer_security_service.019')),
+        content: Text(l.tr('services_transfer_security_service.020')),
+        actions: [
+          _buildDialogActionBar([
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l.tr('services_transfer_security_service.007')),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                Navigator.of(context).pushNamed('/security-settings');
+              },
+              child: Text(l.tr('services_transfer_security_service.021')),
+            ),
+          ]),
+        ],
+      ),
+    );
   }
 
   static Future<TransferSecurityResult> _confirmWithPin(

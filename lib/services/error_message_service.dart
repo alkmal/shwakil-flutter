@@ -99,29 +99,6 @@ class ErrorMessageService {
       return _tr('services_error_message_service.012');
     }
 
-    final lower = text.toLowerCase();
-    if (lower.contains('registration is currently disabled') ||
-        lower.contains('registration disabled') ||
-        lower.contains('could not start registration') ||
-        lower.contains('required permission to continue') ||
-        lower.contains('please sign in with an account that has the required permission') ||
-        lower.contains('trusted client key') ||
-        lower.contains('client key') ||
-        lower.contains('unauthorized') ||
-        lower.contains('forbidden') ||
-        lower.contains('401') ||
-        lower.contains('403') ||
-        lower.contains('تعذر إرسال الرسالة عبر واتساب') ||
-        lower.contains('whatsapp') ||
-        lower.contains('واتساب') ||
-        lower.contains('التسجيل متوقف حاليا') ||
-        lower.contains('التسجيل الجديد متوقف') ||
-        lower.contains('التسجيل متوقف') ||
-        lower.contains('الصلاحية المطلوبة') ||
-        lower.contains('الطلب العام غير موثق')) {
-      return _tr('services_error_message_service.012');
-    }
-
     return sanitize(text);
   }
 

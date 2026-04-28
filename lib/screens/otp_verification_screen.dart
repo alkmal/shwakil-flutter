@@ -24,6 +24,7 @@ class OtpVerificationScreen extends StatefulWidget {
     this.redirectRoute,
     this.offlineMode = false,
     this.initialDebugOtpCode,
+    this.statusMessage,
   });
 
   final String fullName;
@@ -40,6 +41,7 @@ class OtpVerificationScreen extends StatefulWidget {
   final String? redirectRoute;
   final bool offlineMode;
   final String? initialDebugOtpCode;
+  final String? statusMessage;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -53,6 +55,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   bool _isLoading = false;
   bool _isResending = false;
   String? _debugCode;
+  String? _statusMessage;
   int _cooldown = 60;
   Timer? _timer;
 
@@ -66,6 +69,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.initState();
     _pendingRegistrationId = widget.pendingRegistrationId;
     _debugCode = widget.initialDebugOtpCode;
+    _statusMessage = widget.statusMessage?.trim();
     _startTimer();
   }
 
@@ -219,6 +223,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
       setState(() {
         _debugCode = response.debugOtpCode;
+        _statusMessage = response.message?.trim();
         if ((response.pendingRegistrationId ?? '').trim().isNotEmpty) {
           _pendingRegistrationId = response.pendingRegistrationId!.trim();
         }
@@ -320,6 +325,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             textAlign: TextAlign.center,
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
+          if ((_statusMessage ?? '').isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                borderRadius: AppTheme.radiusMd,
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Text(
+                _statusMessage!,
+                textAlign: TextAlign.center,
+                style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(14),

@@ -164,6 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             pendingRegistrationId: otp.pendingRegistrationId,
             purpose: 'register',
             initialDebugOtpCode: otp.debugOtpCode,
+            statusMessage: otp.message,
           ),
         ),
       );

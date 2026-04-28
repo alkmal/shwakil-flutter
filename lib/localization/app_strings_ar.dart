@@ -506,7 +506,7 @@ const Map<String, String> appStringsAr = {
   'screens_otp_verification_screen.005': 'تعذر إعادة الإرسال',
   'screens_otp_verification_screen.006': 'التحقق من الرمز',
   'screens_otp_verification_screen.007': 'اسم المستخدم',
-  'screens_otp_verification_screen.008': 'واتساب',
+  'screens_otp_verification_screen.008': 'رقم الجوال',
   'screens_otp_verification_screen.009': 'رمز التحقق',
   'screens_otp_verification_screen.010': 'رمز التصحيح: {debugCode}',
   'screens_otp_verification_screen.011': 'إكمال التسجيل',
@@ -581,7 +581,7 @@ const Map<String, String> appStringsAr = {
       'أكمل البيانات الأساسية فقط، وسيتم إنشاء اسم المستخدم تلقائيًا ويمكنك تعديل اسم المستخدم ورقم الإحالة لاحقًا من الملف الشخصي قبل التوثيق.',
   'screens_register_screen.040': 'لديك حساب بالفعل؟ سجّل الدخول',
   'screens_register_screen.041':
-      'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور على واتساب لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
+      'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور عبر SMS لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
   'screens_register_screen.042': 'أوافق على الشروط والسياسات والرسوم المعروضة.',
   'screens_register_screen.043': 'التسجيل متوقف حاليا',
   'screens_register_screen.044': 'تواصل معنا لمزيد من التفاصيل.',
@@ -921,11 +921,11 @@ const Map<String, String> appStringsAr = {
   'screens_otp_verification_screen.016':
       'تم إنشاء حسابك بنجاح. يمكنك تسجيل الدخول الآن.',
   'screens_otp_verification_screen.017':
-      'تم إرسال رمز تحقق جديد إلى رقم واتساب المرتبط بالحساب.',
+      'تم إرسال رمز تحقق جديد عبر SMS إلى الرقم المرتبط بالحساب.',
   'screens_otp_verification_screen.018':
-      'أدخل الرمز المرسل إلى رقم واتساب المرتبط بالحساب لإكمال التسجيل.',
+      'أدخل الرمز المرسل عبر SMS إلى الرقم المرتبط بالحساب لإكمال التسجيل.',
   'screens_otp_verification_screen.019':
-      'أدخل الرمز المرسل إلى رقم واتساب المرتبط بالحساب لتسجيل الدخول بأمان.',
+      'أدخل الرمز المرسل عبر SMS إلى الرقم المرتبط بالحساب لتسجيل الدخول بأمان.',
   'screens_otp_verification_screen.020':
       'يمكنك إعادة إرسال الرمز خلال {count} ثانية',
   'screens_otp_verification_screen.021': 'لم يصلك الرمز بعد؟',
@@ -2211,6 +2211,10 @@ const Map<String, String> appStringsAr = {
   'services_transfer_security_service.017': 'إرسال الرمز',
   'services_transfer_security_service.018':
       'يمكنك إعادة الإرسال بعد {seconds} ثانية',
+  'services_transfer_security_service.019': 'حماية محلية مطلوبة',
+  'services_transfer_security_service.020':
+      'لا يمكن تنفيذ هذه العملية قبل تفعيل البصمة أو رمز PIN على هذا الجهاز من إعدادات الأمان.',
+  'services_transfer_security_service.021': 'إعدادات الأمان',
   'widgets_app_sidebar.041': 'التسويق بالعمولة',
   'widgets_app_sidebar.042': 'طلبات التسجيل',
   'widgets_app_sidebar.043': 'إرسال الإشعارات',
