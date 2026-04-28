@@ -65,15 +65,13 @@ class NotificationNavigationService {
       return;
     }
 
-    final navigator = AppAlertService.navigatorKey.currentState;
-    final context = AppAlertService.navigatorKey.currentContext;
-    if (navigator == null || context == null) {
+    if (AppAlertService.navigatorKey.currentState == null ||
+        AppAlertService.navigatorKey.currentContext == null) {
       _queuePayload(payload);
       return;
     }
 
     final handled = await _openCustomDestination(
-      navigator,
       payload,
       includeDefaultNotificationsRoute: includeDefaultNotificationsRoute,
     );
@@ -81,8 +79,10 @@ class NotificationNavigationService {
       return;
     }
 
-    final currentRoute = ModalRoute.of(context)?.settings.name?.trim();
-    if (currentRoute == route) {
+    final navigator = AppAlertService.navigatorKey.currentState;
+    final context = AppAlertService.navigatorKey.currentContext;
+    if (navigator == null || context == null) {
+      _queuePayload(payload);
       return;
     }
 
@@ -90,7 +90,6 @@ class NotificationNavigationService {
   }
 
   static Future<bool> _openCustomDestination(
-    NavigatorState navigator,
     Map<String, dynamic> payload, {
     required bool includeDefaultNotificationsRoute,
   }) async {
@@ -100,12 +99,13 @@ class NotificationNavigationService {
 
     final pendingRequest = await _findPendingRegistration(payload);
     if (pendingRequest != null) {
-      final currentContext = AppAlertService.navigatorKey.currentContext;
-      final currentRoute = currentContext == null
-          ? null
-          : ModalRoute.of(currentContext)?.settings.name?.trim();
       final route = _normalizeRouteName('/admin-pending-registrations');
-      if (route != null && currentRoute != route) {
+      if (route != null) {
+        final navigator = AppAlertService.navigatorKey.currentState;
+        if (navigator == null) {
+          _queuePayload(payload);
+          return true;
+        }
         await navigator.pushNamed(route);
       }
       return true;
@@ -120,12 +120,22 @@ class NotificationNavigationService {
       if (fallbackRoute == null || fallbackRoute.isEmpty) {
         return true;
       }
+      final navigator = AppAlertService.navigatorKey.currentState;
+      if (navigator == null) {
+        _queuePayload(payload);
+        return true;
+      }
       await navigator.pushNamed(fallbackRoute);
       return true;
     }
 
     final currentUser = await AuthService().currentUser();
     final permissions = AppPermissions.fromUser(currentUser);
+    final navigator = AppAlertService.navigatorKey.currentState;
+    if (navigator == null) {
+      _queuePayload(payload);
+      return true;
+    }
     await navigator.push(
       MaterialPageRoute<void>(
         builder: (_) => AdminCustomerScreen(
@@ -288,7 +298,9 @@ class NotificationNavigationService {
             request['username']?.toString().trim().toLowerCase() ?? '';
         final candidateWhatsapp = request['whatsapp']?.toString().trim() ?? '';
 
-        if (requestId != null && requestId.isNotEmpty && candidateId == requestId) {
+        if (requestId != null &&
+            requestId.isNotEmpty &&
+            candidateId == requestId) {
           return request;
         }
         if (username != null &&

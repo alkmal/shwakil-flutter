@@ -749,15 +749,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
   }
 
-  Future<bool> _hasLocalTransferSecurity() async {
-    final hasPin = await LocalSecurityService.hasPin();
-    if (hasPin) {
-      return true;
-    }
-
-    return LocalSecurityService.isBiometricEnabled();
-  }
-
   Future<_TemporaryTransferPayload?> _createOfflineTemporaryTransferPayload(
     double amount,
   ) async {
