@@ -156,6 +156,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
+      final pendingRegistrationId = otp.pendingRegistrationId?.trim() ?? '';
+      if (pendingRegistrationId.isNotEmpty && otp.otpRequired != false) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtpVerificationScreen(
+              fullName: _fullNameC.text.trim(),
+              username: '',
+              whatsapp: otp.whatsapp?.trim().isNotEmpty == true
+                  ? otp.whatsapp!.trim()
+                  : whatsapp,
+              countryCode: _selectedCountry.dialCode,
+              termsAccepted: true,
+              referralPhone: _pendingReferralCode,
+              pendingRegistrationId: pendingRegistrationId,
+              purpose: 'register',
+              initialDebugOtpCode: otp.debugOtpCode,
+              statusMessage: otp.message,
+            ),
+          ),
+        );
+        return;
+      }
+
       if (otp.otpRequired == false) {
         await AppAlertService.showSuccess(
           context,
@@ -180,7 +204,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             countryCode: _selectedCountry.dialCode,
             termsAccepted: true,
             referralPhone: _pendingReferralCode,
-            pendingRegistrationId: otp.pendingRegistrationId,
+            pendingRegistrationId: pendingRegistrationId,
             purpose: 'register',
             initialDebugOtpCode: otp.debugOtpCode,
             statusMessage: otp.message,
