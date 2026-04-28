@@ -34,7 +34,7 @@ class ScanCardScreen extends StatefulWidget {
 
   @override
   State<ScanCardScreen> createState() => _ScanCardScreenState();
-} 
+}
 
 class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   final TextEditingController _bcC = TextEditingController();
@@ -49,8 +49,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _isSearching = false;
   bool _isSubmitting = false;
   bool _routeSubscribed = false;
-  bool _hasShownOfflineIntro = false;
-  bool _hasShownReconnectPrompt = false;
   bool _autoScannerOpened = false;
   int _availableOfflineTransferSlots = 0;
   int _availableOfflineCardCount = 0;
@@ -148,7 +146,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         _loadOfflineTransferSlotCount(),
         _ensureOfflineTemporaryTransferSlots(),
       ]);
-      _maybeShowOfflineIntro();
       _maybeOpenScannerAutomatically();
     } catch (_) {
       if (!mounted) {
@@ -214,60 +211,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       unawaited(_ensureOfflineTemporaryTransferSlots());
       unawaited(_syncOfflineCardsForCurrentUser());
     }
-    if (!widget.offlineMode) {
-      return;
-    }
-    if (!ConnectivityService.instance.isOnline.value ||
-        _hasShownReconnectPrompt) {
-      return;
-    }
-    _hasShownReconnectPrompt = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        return;
-      }
-      final moveOnline = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(_t('screens_scan_card_screen.068')),
-          content: Text(_t('screens_scan_card_screen.069')),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(_t('screens_scan_card_screen.070')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(_t('screens_scan_card_screen.071')),
-            ),
-          ],
-        ),
-      );
-      if (moveOnline == true && mounted) {
-        OfflineSessionService.setOfflineMode(false);
-        Navigator.pushReplacementNamed(context, '/scan-card');
-      }
-    });
-  }
-
-  void _maybeShowOfflineIntro() {
-    if (!mounted ||
-        !widget.offlineMode ||
-        _hasShownOfflineIntro ||
-        !_isDeviceOffline) {
-      return;
-    }
-    _hasShownOfflineIntro = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      AppAlertService.showInfo(
-        context,
-        title: _t('screens_scan_card_screen.072'),
-        message: _t('screens_scan_card_screen.073'),
-      );
-    });
   }
 
   Future<void> _loadOfflineTransferSlotCount() async {
@@ -670,6 +613,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       if (decoded is! Map) {
         return null;
       }
+      final type = decoded['type']?.toString() ?? '';
+      if (type != 'temporary_transfer_code' &&
+          type != 'shwakel_temp_transfer' &&
+          type != 'shwakel_temp_transfer_offline') {
+        return null;
+      }
       return _TemporaryTransferPayload.fromMap(
         Map<String, dynamic>.from(decoded),
       );
@@ -1036,7 +985,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return BarcodeScannerDialogResult(
       headline: 'بطاقة دفع مسبق',
       description:
-          'تمت قراءة البطاقة. أدخل قيمة السحب وكود الحماية المكوّن من 3 أرقام لإتمام العملية.',
+          'تمت قراءة بطاقة دفع مسبق. أدخل التاجر مبلغ الدفع وكود التحقق المكوّن من 3 أرقام لاعتماد العملية.',
       color: AppTheme.primary,
       icon: Icons.credit_card_rounded,
       items: [
@@ -1052,7 +1001,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             icon: Icons.event_rounded,
           ),
       ],
-      primaryActionLabel: 'متابعة السحب',
+      primaryActionLabel: 'اعتماد الدفع',
       primaryActionIcon: Icons.payments_rounded,
       onPrimaryAction: () =>
           _handlePrepaidMultipayScan(payload, showErrorAlert: false),
@@ -1062,8 +1011,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Future<BarcodeScannerDialogResult?> _handlePrepaidMultipayScan(
     _PrepaidMultipayScanPayload payload, {
     bool showErrorAlert = true,
-  }
-  ) async {
+  }) async {
     if (widget.offlineMode) {
       if (showErrorAlert) {
         await AppAlertService.showError(
@@ -1090,7 +1038,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final submission = await showDialog<_PrepaidPaymentSubmission>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('سحب من بطاقة مسبقة'),
+          title: const Text('اعتماد دفع بطاقة مسبقة'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1115,7 +1063,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   decimal: true,
                 ),
                 decoration: const InputDecoration(
-                  labelText: 'القيمة',
+                  labelText: 'مبلغ الدفع',
                   hintText: 'مثال: 25',
                   prefixIcon: Icon(Icons.payments_rounded),
                 ),
@@ -1159,7 +1107,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 obscureText: true,
                 maxLength: 3,
                 decoration: const InputDecoration(
-                  labelText: 'الرقم السري من 3 أرقام',
+                  labelText: 'كود التحقق من 3 أرقام',
                   counterText: '',
                   prefixIcon: Icon(Icons.pin_rounded),
                 ),
@@ -1181,7 +1129,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
               ),
               icon: const Icon(Icons.payments_rounded),
-              label: const Text('سحب'),
+              label: const Text('اعتماد'),
             ),
           ],
         ),
@@ -1196,7 +1144,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         await AppAlertService.showError(
           context,
           title: 'بيانات غير مكتملة',
-          message: 'أدخل القيمة والرقم السري المكوّن من 3 أرقام.',
+          message: 'أدخل مبلغ الدفع وكود التحقق المكوّن من 3 أرقام.',
         );
         return null;
       }
@@ -1239,10 +1187,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final remaining = (payment['remainingCardBalance'] as num?)?.toDouble();
 
       return BarcodeScannerDialogResult(
-        headline: 'تم السحب بنجاح',
+        headline: 'تم اعتماد الدفع بنجاح',
         description: remaining == null
             ? 'تم تنفيذ العملية بنجاح.'
-            : 'تم سحب ${CurrencyFormatter.ils(submission.amount)} وبقي في البطاقة ${CurrencyFormatter.ils(remaining)}.',
+            : 'تم اعتماد دفع بقيمة ${CurrencyFormatter.ils(submission.amount)} وبقي في البطاقة ${CurrencyFormatter.ils(remaining)}.',
         color: AppTheme.success,
         icon: Icons.check_circle_rounded,
         items: [
@@ -1345,14 +1293,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Future<BarcodeScannerDialogResult?> _resolveScannerDialogResult(
     String scannedValue,
   ) async {
-    final temporaryPayload = _tryParseTemporaryTransferPayload(scannedValue);
-    if (temporaryPayload != null) {
-      return _resolveTemporaryTransferDialogResult(temporaryPayload);
-    }
-
     final prepaidPayload = _tryParsePrepaidMultipayPayload(scannedValue);
     if (prepaidPayload != null) {
       return _resolvePrepaidMultipayDialogResult(prepaidPayload);
+    }
+
+    final temporaryPayload = _tryParseTemporaryTransferPayload(scannedValue);
+    if (temporaryPayload != null) {
+      return _resolveTemporaryTransferDialogResult(temporaryPayload);
     }
 
     final lookup = await _lookupCard(scannedValue);
@@ -1386,7 +1334,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final isUsed = card.status == CardStatus.used;
     final permissions = AppPermissions.fromUser(_user);
     final canRedeemCards = permissions.canRedeemCards && !isUsed;
-    final canResellCards = !widget.offlineMode && permissions.canResellCards && isUsed;
+    final canResellCards =
+        !widget.offlineMode && permissions.canResellCards && isUsed;
 
     return BarcodeScannerDialogResult(
       headline: '',
@@ -1980,9 +1929,15 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             children: [
               Text('حالة بطاقات الأوفلاين', style: AppTheme.h3),
               const SizedBox(height: 14),
-              _statusSheetRow('البطاقات المتزامنة', '$_availableOfflineCardCount'),
+              _statusSheetRow(
+                'البطاقات المتزامنة',
+                '$_availableOfflineCardCount',
+              ),
               _statusSheetRow('آخر تحديث', lastSync),
-              _statusSheetRow('مدة السماح', '$_offlineSyncIntervalMinutes دقيقة'),
+              _statusSheetRow(
+                'مدة السماح',
+                '$_offlineSyncIntervalMinutes دقيقة',
+              ),
               _statusSheetRow(
                 'الحالة',
                 _offlineAccessExpired
@@ -2307,7 +2262,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   Widget _offlineInventoryStatusCard() {
     final needsRefresh =
-        _isOfflineUseBlocked || _isSyncingOfflineCards || _availableOfflineCardCount == 0;
+        _isOfflineUseBlocked ||
+        _isSyncingOfflineCards ||
+        _availableOfflineCardCount == 0;
     final color = _isOfflineUseBlocked
         ? AppTheme.error
         : needsRefresh
@@ -2354,9 +2311,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: color.withValues(alpha: 0.24),
-                    ),
+                    border: Border.all(color: color.withValues(alpha: 0.24)),
                   ),
                   child: Icon(
                     _isOfflineUseBlocked
@@ -2842,9 +2797,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             const SizedBox(height: 6),
             Text(
               card.barcode,
-              style: AppTheme.bodyBold.copyWith(
-                color: AppTheme.textPrimary,
-              ),
+              style: AppTheme.bodyBold.copyWith(color: AppTheme.textPrimary),
             ),
           ],
         );
@@ -3390,7 +3343,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         _detailTile(
                           'الصلاحية',
                           '${card.validFrom != null ? _formatDate(card.validFrom) : 'غير محدد'}'
-                          '${card.validUntil != null ? ' -> ${_formatDate(card.validUntil)}' : ''}',
+                              '${card.validUntil != null ? ' -> ${_formatDate(card.validUntil)}' : ''}',
                           spanTwo: true,
                         ),
                       if (card.isAppointment &&
@@ -3398,7 +3351,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         _detailTile(
                           'الموعد',
                           '${_formatDate(card.appointmentStartsAt)}'
-                          '${card.appointmentEndsAt != null ? ' -> ${_formatDate(card.appointmentEndsAt)}' : ''}',
+                              '${card.appointmentEndsAt != null ? ' -> ${_formatDate(card.appointmentEndsAt)}' : ''}',
                           spanTwo: true,
                         ),
                       if (card.location?.trim().isNotEmpty == true)
@@ -3493,11 +3446,8 @@ class _PrepaidMultipayScanPayload {
   });
 
   factory _PrepaidMultipayScanPayload.fromMap(Map<String, dynamic> map) {
-    final cardNumber = map['cardNumber']?.toString().replaceAll(
-          RegExp(r'\D+'),
-          '',
-        ) ??
-        '';
+    final cardNumber =
+        map['cardNumber']?.toString().replaceAll(RegExp(r'\D+'), '') ?? '';
     final expiryMonth = (map['expiryMonth'] as num?)?.toInt();
     final expiryYear = (map['expiryYear'] as num?)?.toInt();
 

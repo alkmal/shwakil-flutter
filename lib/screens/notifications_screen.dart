@@ -936,6 +936,13 @@ _NotificationKind _notificationKind(Map<String, dynamic> item) {
       'admin_custom_notification') {
     return _NotificationKind.admin;
   }
+  if ((item['sourceType']?.toString().trim().toLowerCase() ?? '') ==
+      'admin_alert') {
+    return _NotificationKind.admin;
+  }
+  if (category == 'admin') {
+    return _NotificationKind.admin;
+  }
 
   final type = item['type']?.toString().trim().toLowerCase() ?? '';
   if (type == 'financial_transaction') {

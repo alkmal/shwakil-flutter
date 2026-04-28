@@ -40,7 +40,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     {
       'titleKey': 'admin_followup',
       'keys':
-          'canViewCustomers,canLookupMembers,canManageUsers,canManageMarketingAccounts,canViewSubUsers,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canManageCardPrintRequests,canExportCustomerTransactions',
+          'canViewCustomers,canLookupMembers,canManageUsers,canFinanceTopup,canManageMarketingAccounts,canViewSubUsers,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canManageCardPrintRequests,canExportCustomerTransactions',
     },
   ];
 
@@ -306,6 +306,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),
       'canLookupMembers' => l.tr('screens_admin_permissions_screen.030'),
       'canManageUsers' => l.tr('screens_admin_permissions_screen.031'),
+      'canFinanceTopup' => 'شحن أرصدة المستخدمين من حساب المالية',
       'canManageMarketingAccounts' => l.tr(
         'screens_admin_permissions_screen.049',
       ),

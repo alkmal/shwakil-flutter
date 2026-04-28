@@ -111,6 +111,10 @@ class ErrorMessageService {
         lower.contains('forbidden') ||
         lower.contains('401') ||
         lower.contains('403') ||
+        lower.contains('تعذر إرسال الرسالة عبر واتساب') ||
+        lower.contains('whatsapp') ||
+        lower.contains('واتساب') ||
+        lower.contains('التسجيل متوقف حاليا') ||
         lower.contains('التسجيل الجديد متوقف') ||
         lower.contains('التسجيل متوقف') ||
         lower.contains('الصلاحية المطلوبة') ||

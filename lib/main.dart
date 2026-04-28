@@ -25,7 +25,14 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/unlock': (context) => const DeviceUnlockScreen(),
   '/balance': (context) => const BalanceScreen(),
   '/create-card': (context) => const CreateCardScreen(),
-  '/prepaid-multipay-cards': (context) => const PrepaidMultipayCardsScreen(),
+  '/prepaid-multipay-cards': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return PrepaidMultipayCardsScreen(
+      openPaymentsTab: options['openPaymentsTab'] == true,
+      autoAcceptNfc: options['autoAcceptNfc'] == true,
+    );
+  },
   '/quick-transfer': (context) => const QuickTransferScreen(),
   '/card-print-requests': (context) => const CardPrintRequestsScreen(),
   '/scan-card': (context) => const ScanCardScreen(),
@@ -523,10 +530,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
             return const SecuritySettingsScreen(showSetupHint: true);
           case _LaunchState.loginOffline:
             OfflineSessionService.setOfflineMode(true);
-            return const LoginScreen(
-              redirectRoute: '/home',
-              offlineMode: true,
-            );
+            return const LoginScreen(redirectRoute: '/home', offlineMode: true);
           case _LaunchState.scanOffline:
             OfflineSessionService.setOfflineMode(true);
             return const ScanCardScreen(offlineMode: true);

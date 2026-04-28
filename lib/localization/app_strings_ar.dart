@@ -580,9 +580,9 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.041':
       'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور على واتساب لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
   'screens_register_screen.042': 'أوافق على الشروط والسياسات والرسوم المعروضة.',
-  'screens_register_screen.043': 'التسجيل معطّل حاليًا',
+  'screens_register_screen.043': 'التسجيل متوقف حاليا',
   'screens_register_screen.044':
-      'يمكنك التواصل مع الإدارة لطلب حساب جديد أو لطلب إعادة تفعيل التسجيل.',
+      'تواصل معنا لمزيد من التفاصيل.',
   'screens_register_screen.045':
       'راسل الإدارة مباشرة عبر واتساب لطلب إنشاء حساب أو السماح بالتسجيل.',
   'screens_register_screen.046': 'العودة إلى تسجيل الدخول',
@@ -1033,6 +1033,18 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.067':
       'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
   'screens_account_settings_screen.068': 'الحساب',
+  'screens_account_settings_screen.069': 'الأمان',
+  'screens_account_settings_screen.070': 'إعدادات الأمان مفعّلة',
+  'screens_account_settings_screen.071': 'يجب تفعيل إعدادات الأمان',
+  'screens_account_settings_screen.072':
+      'حسابك يستخدم قفلًا محليًا لهذا الجهاز. يمكنك مراجعة PIN أو البصمة من شاشة إعدادات الأمان.',
+  'screens_account_settings_screen.073':
+      'فعّل PIN أو البصمة لحماية الدخول للحساب وتأكيد العمليات الحساسة بسرعة وأمان.',
+  'screens_account_settings_screen.074': 'حالة الحماية الحالية',
+  'screens_account_settings_screen.075': 'رمز PIN',
+  'screens_account_settings_screen.076': 'البصمة',
+  'screens_account_settings_screen.077': 'غير مدعومة',
+  'screens_account_settings_screen.078': 'فتح إعدادات الأمان',
   'screens_admin_card_print_requests_screen.037':
       'لا تملك صلاحية إدارة طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.038': 'إخفاء البحث والفلاتر',
@@ -1913,7 +1925,7 @@ const Map<String, String> appStringsAr = {
   'services_error_message_service.011':
       'انتهت الجلسة أو لم يعد تسجيل الدخول صالحًا على هذا الجهاز. أعد تسجيل الدخول ثم جرّب فحص البطاقة مرة أخرى.',
   'services_error_message_service.012':
-      'التسجيل متوقف حاليًا، يرجى المحاولة فيما بعد. تواصل مع الدعم لمزيد من التفاصيل.',
+      'التسجيل متوقف حاليا\nتواصل معنا لمزيد من التفاصيل',
   'services_error_message_service.013':
       'بيانات الأوفلاين المحفوظة على هذا الجهاز تحتاج تحديثًا جديدًا. اتصل بالإنترنت ثم حدّث الأوفلاين مرة أخرى.',
   'services_local_notification_service.001': 'تحديثات الحساب',
@@ -2201,6 +2213,7 @@ const Map<String, String> appStringsAr = {
   'widgets_app_sidebar.042': 'طلبات التسجيل',
   'widgets_app_sidebar.043': 'إرسال الإشعارات',
   'widgets_app_sidebar.044': 'الإشعارات',
+  'widgets_app_sidebar.045': 'طلبات البطاقات المسبقة',
   'screens_admin_notifications_screen.001': 'تعذر تحميل الإشعارات',
   'screens_admin_notifications_screen.002': 'إرسال الإشعارات',
   'screens_admin_notifications_screen.003': 'إشعار جديد',
