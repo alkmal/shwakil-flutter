@@ -493,6 +493,9 @@ const Map<String, String> appStringsAr = {
   'screens_login_screen.020': 'إعداد الآن',
   'screens_login_screen.021': 'PIN أو البصمة',
   'screens_login_screen.022': 'PIN',
+  'screens_login_screen.027': 'طرق التواصل',
+  'screens_login_screen.028':
+      'للمساعدة في الدخول أو متابعة التسجيل، تواصل معنا عبر واتساب.',
   'screens_onboarding_screen.001': 'تخطي',
   'screens_onboarding_screen.002': 'ابدأ الآن',
   'screens_onboarding_screen.003': 'التالي',
@@ -554,7 +557,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.020': 'كلمة المرور',
   'screens_register_screen.021': 'تأكيد كلمة المرور',
   'screens_register_screen.022': 'السابق',
-  'screens_register_screen.023': 'إرسال رمز التحقق',
+  'screens_register_screen.023': 'تسجيل البيانات',
   'screens_register_screen.024': 'التالي',
   'screens_register_screen.025': 'البيانات',
   'screens_register_screen.026': 'التواصل',
@@ -581,8 +584,7 @@ const Map<String, String> appStringsAr = {
       'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور على واتساب لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
   'screens_register_screen.042': 'أوافق على الشروط والسياسات والرسوم المعروضة.',
   'screens_register_screen.043': 'التسجيل متوقف حاليا',
-  'screens_register_screen.044':
-      'تواصل معنا لمزيد من التفاصيل.',
+  'screens_register_screen.044': 'تواصل معنا لمزيد من التفاصيل.',
   'screens_register_screen.045':
       'راسل الإدارة مباشرة عبر واتساب لطلب إنشاء حساب أو السماح بالتسجيل.',
   'screens_register_screen.046': 'العودة إلى تسجيل الدخول',
@@ -2317,7 +2319,7 @@ const Map<String, String> appStringsAr = {
       'اختر المستلم من تبويب البحث أو الهاتف ليظهر هنا.',
   'screens_security_settings_screen.072': 'فعّل القفل المحلي لحماية حسابك',
   'screens_security_settings_screen.073':
-      'ننصح بتفعيل رقم PIN أو البصمة لزيادة الأمان على حسابك وتسهيل الدخول السريع واستخدام العمليات الحساسة لاحقًا.',
+      'يجب تفعيل رقم PIN أو البصمة أو كليهما قبل استخدام باقي ميزات التطبيق والعمليات الحساسة.',
   'screens_admin_pending_registrations_screen.001':
       'بحث بالاسم أو اسم المستخدم أو الجوال',
   'screens_admin_pending_registrations_screen.002':

@@ -63,7 +63,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _loadPendingReferral() async {
-    final referralCode = await ReferralAttributionService.getPendingReferralCode();
+    final referralCode =
+        await ReferralAttributionService.getPendingReferralCode();
     if (!mounted) {
       return;
     }
@@ -141,8 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           context,
           title: l.tr('screens_register_screen.009'),
           message:
-              otp.message ??
-              'تم استلام بياناتك وسيتم التواصل معك في أقرب وقت ممكن.',
+              otp.message ?? 'تم تسجيل بياناتكم، وسيتم التواصل معكم للتفاصيل.',
         );
         if (!mounted) {
           return;
@@ -228,6 +228,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Navigator.pushReplacementNamed(context, '/login'),
                         child: Text(l.tr('screens_register_screen.040')),
                       ),
+                      if ((_supportWhatsapp ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: SupportContactCard(
+                            phoneNumber: _supportWhatsapp!,
+                            title: l.tr('screens_register_screen.028'),
+                            message: l.tr('screens_register_screen.045'),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -320,7 +331,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             label: l.tr('screens_register_screen.023'),
             onPressed: _register,
             isLoading: _isLoading,
-            icon: Icons.sms_rounded,
+            icon: Icons.assignment_turned_in_rounded,
             iconAtEnd: true,
           ),
         ],
@@ -461,10 +472,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            _pendingReferralCode ?? '',
-            style: AppTheme.bodyBold,
-          ),
+          Text(_pendingReferralCode ?? '', style: AppTheme.bodyBold),
         ],
       ),
     );

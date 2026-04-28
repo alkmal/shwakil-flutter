@@ -626,6 +626,9 @@ const Map<String, String> appStringsEn = {
   'screens_login_screen.020': 'Set up now',
   'screens_login_screen.021': 'PIN or biometrics',
   'screens_login_screen.022': 'PIN',
+  'screens_login_screen.027': 'Contact options',
+  'screens_login_screen.028':
+      'For sign-in help or registration follow-up, contact us on WhatsApp.',
   'screens_onboarding_screen.001': 'Skip',
   'screens_onboarding_screen.002': 'Get Started',
   'screens_onboarding_screen.003': 'Next',
@@ -687,7 +690,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.020': 'Password',
   'screens_register_screen.021': 'Confirm password',
   'screens_register_screen.022': 'Previous',
-  'screens_register_screen.023': 'Send verification code',
+  'screens_register_screen.023': 'Submit details',
   'screens_register_screen.024': 'Next',
   'screens_register_screen.025': 'Details',
   'screens_register_screen.026': 'Contact',
@@ -718,8 +721,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.042':
       'I agree to the displayed terms, policies, and fees.',
   'screens_register_screen.043': 'Registration is currently unavailable',
-  'screens_register_screen.044':
-      'Contact us for more details.',
+  'screens_register_screen.044': 'Contact us for more details.',
   'screens_register_screen.045':
       'Message the administration directly on WhatsApp to request account creation or registration access.',
   'screens_register_screen.046': 'Back to login',
@@ -2401,7 +2403,7 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.072':
       'Enable local lock to protect your account',
   'screens_security_settings_screen.073':
-      'We recommend enabling a PIN or biometrics to strengthen your account security and make future sign-in and sensitive actions easier.',
+      'You must enable a PIN, biometrics, or both before using the rest of the app and sensitive actions.',
   'screens_admin_pending_registrations_screen.001':
       'Search by name, username, or phone',
   'screens_admin_pending_registrations_screen.002':
