@@ -3,7 +3,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../screens/admin_customer_screen.dart';
+import '../utils/app_permissions.dart';
+import 'api_service.dart';
 import 'app_alert_service.dart';
+import 'auth_service.dart';
 import 'offline_session_service.dart';
 
 class NotificationNavigationService {
@@ -68,12 +72,70 @@ class NotificationNavigationService {
       return;
     }
 
+    final handled = await _openCustomDestination(
+      navigator,
+      payload,
+      includeDefaultNotificationsRoute: includeDefaultNotificationsRoute,
+    );
+    if (handled) {
+      return;
+    }
+
     final currentRoute = ModalRoute.of(context)?.settings.name?.trim();
     if (currentRoute == route) {
       return;
     }
 
     await navigator.pushNamed(route);
+  }
+
+  static Future<bool> _openCustomDestination(
+    NavigatorState navigator,
+    Map<String, dynamic> payload, {
+    required bool includeDefaultNotificationsRoute,
+  }) async {
+    if (!_isNewUserRequestNotification(payload)) {
+      return false;
+    }
+
+    final pendingRequest = await _findPendingRegistration(payload);
+    if (pendingRequest != null) {
+      final currentContext = AppAlertService.navigatorKey.currentContext;
+      final currentRoute = currentContext == null
+          ? null
+          : ModalRoute.of(currentContext)?.settings.name?.trim();
+      final route = _normalizeRouteName('/admin-pending-registrations');
+      if (route != null && currentRoute != route) {
+        await navigator.pushNamed(route);
+      }
+      return true;
+    }
+
+    final customer = await _findCustomerForRegistrationNotification(payload);
+    if (customer == null) {
+      final fallbackRoute = _resolveRoute(
+        payload,
+        includeDefaultNotificationsRoute: includeDefaultNotificationsRoute,
+      );
+      if (fallbackRoute == null || fallbackRoute.isEmpty) {
+        return true;
+      }
+      await navigator.pushNamed(fallbackRoute);
+      return true;
+    }
+
+    final currentUser = await AuthService().currentUser();
+    final permissions = AppPermissions.fromUser(currentUser);
+    await navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => AdminCustomerScreen(
+          customer: customer,
+          canManageUsers: permissions.canManageUsers,
+          canManageMarketingAccounts: permissions.canManageMarketingAccounts,
+        ),
+      ),
+    );
+    return true;
   }
 
   static void _queuePayload(Map<String, dynamic> payload) {
@@ -199,6 +261,104 @@ class NotificationNavigationService {
     return null;
   }
 
+  static bool _isNewUserRequestNotification(Map<String, dynamic> payload) {
+    final type = _normalizedText(payload['type']);
+    final messageType = _normalizedText(payload['messageType']);
+
+    return type == 'admin_pending_registration_request' ||
+        messageType == 'admin_pending_registration_request';
+  }
+
+  static Future<Map<String, dynamic>?> _findPendingRegistration(
+    Map<String, dynamic> payload,
+  ) async {
+    final requestId = _firstNonEmptyString(payload, const [
+      'requestId',
+      'pendingRegistrationId',
+      'sourceId',
+    ]);
+    final username = _firstNonEmptyString(payload, const ['username']);
+    final whatsapp = _firstNonEmptyString(payload, const ['whatsapp']);
+
+    try {
+      final requests = await ApiService().getPendingRegistrationRequests();
+      for (final request in requests) {
+        final candidateId = request['id']?.toString().trim() ?? '';
+        final candidateUsername =
+            request['username']?.toString().trim().toLowerCase() ?? '';
+        final candidateWhatsapp = request['whatsapp']?.toString().trim() ?? '';
+
+        if (requestId != null && requestId.isNotEmpty && candidateId == requestId) {
+          return request;
+        }
+        if (username != null &&
+            username.isNotEmpty &&
+            candidateUsername == username.toLowerCase()) {
+          return request;
+        }
+        if (whatsapp != null &&
+            whatsapp.isNotEmpty &&
+            candidateWhatsapp == whatsapp) {
+          return request;
+        }
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> _findCustomerForRegistrationNotification(
+    Map<String, dynamic> payload,
+  ) async {
+    final userId = _firstNonEmptyString(payload, const ['userId']);
+    final username = _firstNonEmptyString(payload, const ['username']);
+    final whatsapp = _firstNonEmptyString(payload, const ['whatsapp']);
+
+    for (final query in [userId, username, whatsapp]) {
+      if (query == null || query.isEmpty) {
+        continue;
+      }
+
+      try {
+        final response = await ApiService().getAdminCustomers(
+          query: query,
+          page: 1,
+          perPage: 20,
+        );
+        final customers = List<Map<String, dynamic>>.from(
+          response['customers'] as List? ?? const [],
+        );
+        for (final customer in customers) {
+          final candidateId = customer['id']?.toString().trim() ?? '';
+          final candidateUsername =
+              customer['username']?.toString().trim().toLowerCase() ?? '';
+          final candidateWhatsapp =
+              customer['whatsapp']?.toString().trim() ?? '';
+
+          if (userId != null && userId.isNotEmpty && candidateId == userId) {
+            return customer;
+          }
+          if (username != null &&
+              username.isNotEmpty &&
+              candidateUsername == username.toLowerCase()) {
+            return customer;
+          }
+          if (whatsapp != null &&
+              whatsapp.isNotEmpty &&
+              candidateWhatsapp == whatsapp) {
+            return customer;
+          }
+        }
+      } catch (_) {
+        // Fall through to the next query candidate.
+      }
+    }
+
+    return null;
+  }
+
   static Map<String, dynamic> _payloadFromNotificationItem(
     Map<String, dynamic> item,
   ) {
@@ -302,5 +462,19 @@ class NotificationNavigationService {
 
   static String _normalizedText(dynamic value) {
     return value?.toString().trim().toLowerCase() ?? '';
+  }
+
+  static String? _firstNonEmptyString(
+    Map<String, dynamic> payload,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = payload[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return null;
   }
 }
