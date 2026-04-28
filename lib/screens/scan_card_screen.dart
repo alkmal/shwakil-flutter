@@ -613,6 +613,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       if (decoded is! Map) {
         return null;
       }
+      final type = decoded['type']?.toString() ?? '';
+      if (type != 'temporary_transfer_code' &&
+          type != 'shwakel_temp_transfer' &&
+          type != 'shwakel_temp_transfer_offline') {
+        return null;
+      }
       return _TemporaryTransferPayload.fromMap(
         Map<String, dynamic>.from(decoded),
       );
@@ -979,7 +985,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return BarcodeScannerDialogResult(
       headline: 'بطاقة دفع مسبق',
       description:
-          'تمت قراءة البطاقة. أدخل قيمة السحب وكود الحماية المكوّن من 3 أرقام لإتمام العملية.',
+          'تمت قراءة بطاقة دفع مسبق. أدخل التاجر مبلغ الدفع وكود التحقق المكوّن من 3 أرقام لاعتماد العملية.',
       color: AppTheme.primary,
       icon: Icons.credit_card_rounded,
       items: [
@@ -995,7 +1001,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             icon: Icons.event_rounded,
           ),
       ],
-      primaryActionLabel: 'متابعة السحب',
+      primaryActionLabel: 'اعتماد الدفع',
       primaryActionIcon: Icons.payments_rounded,
       onPrimaryAction: () =>
           _handlePrepaidMultipayScan(payload, showErrorAlert: false),
@@ -1032,7 +1038,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final submission = await showDialog<_PrepaidPaymentSubmission>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('سحب من بطاقة مسبقة'),
+          title: const Text('اعتماد دفع بطاقة مسبقة'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1057,7 +1063,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   decimal: true,
                 ),
                 decoration: const InputDecoration(
-                  labelText: 'القيمة',
+                  labelText: 'مبلغ الدفع',
                   hintText: 'مثال: 25',
                   prefixIcon: Icon(Icons.payments_rounded),
                 ),
@@ -1101,7 +1107,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 obscureText: true,
                 maxLength: 3,
                 decoration: const InputDecoration(
-                  labelText: 'الرقم السري من 3 أرقام',
+                  labelText: 'كود التحقق من 3 أرقام',
                   counterText: '',
                   prefixIcon: Icon(Icons.pin_rounded),
                 ),
@@ -1123,7 +1129,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
               ),
               icon: const Icon(Icons.payments_rounded),
-              label: const Text('سحب'),
+              label: const Text('اعتماد'),
             ),
           ],
         ),
@@ -1138,7 +1144,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         await AppAlertService.showError(
           context,
           title: 'بيانات غير مكتملة',
-          message: 'أدخل القيمة والرقم السري المكوّن من 3 أرقام.',
+          message: 'أدخل مبلغ الدفع وكود التحقق المكوّن من 3 أرقام.',
         );
         return null;
       }
@@ -1181,10 +1187,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final remaining = (payment['remainingCardBalance'] as num?)?.toDouble();
 
       return BarcodeScannerDialogResult(
-        headline: 'تم السحب بنجاح',
+        headline: 'تم اعتماد الدفع بنجاح',
         description: remaining == null
             ? 'تم تنفيذ العملية بنجاح.'
-            : 'تم سحب ${CurrencyFormatter.ils(submission.amount)} وبقي في البطاقة ${CurrencyFormatter.ils(remaining)}.',
+            : 'تم اعتماد دفع بقيمة ${CurrencyFormatter.ils(submission.amount)} وبقي في البطاقة ${CurrencyFormatter.ils(remaining)}.',
         color: AppTheme.success,
         icon: Icons.check_circle_rounded,
         items: [
@@ -1287,14 +1293,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Future<BarcodeScannerDialogResult?> _resolveScannerDialogResult(
     String scannedValue,
   ) async {
-    final temporaryPayload = _tryParseTemporaryTransferPayload(scannedValue);
-    if (temporaryPayload != null) {
-      return _resolveTemporaryTransferDialogResult(temporaryPayload);
-    }
-
     final prepaidPayload = _tryParsePrepaidMultipayPayload(scannedValue);
     if (prepaidPayload != null) {
       return _resolvePrepaidMultipayDialogResult(prepaidPayload);
+    }
+
+    final temporaryPayload = _tryParseTemporaryTransferPayload(scannedValue);
+    if (temporaryPayload != null) {
+      return _resolveTemporaryTransferDialogResult(temporaryPayload);
     }
 
     final lookup = await _lookupCard(scannedValue);

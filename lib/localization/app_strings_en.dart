@@ -717,9 +717,9 @@ const Map<String, String> appStringsEn = {
       'You do not need to create a password now. After the admin approves your registration, your password will be sent to your WhatsApp so you can sign in and continue account verification.',
   'screens_register_screen.042':
       'I agree to the displayed terms, policies, and fees.',
-  'screens_register_screen.043': 'Registration is currently disabled',
+  'screens_register_screen.043': 'Registration is currently unavailable',
   'screens_register_screen.044':
-      'You can contact the administration to request a new account or ask them to re-enable registration.',
+      'Contact us for more details.',
   'screens_register_screen.045':
       'Message the administration directly on WhatsApp to request account creation or registration access.',
   'screens_register_screen.046': 'Back to login',
@@ -1993,7 +1993,7 @@ const Map<String, String> appStringsEn = {
   'services_error_message_service.011':
       'Your session has expired or is no longer valid on this device. Sign in again, then try scanning the card once more.',
   'services_error_message_service.012':
-      'Registration is currently unavailable. Please try again later and contact support for more details.',
+      'Registration is currently unavailable.\nContact us for more details.',
   'services_error_message_service.013':
       'The offline data stored on this device needs a fresh update. Connect to the internet and refresh offline data again.',
   'services_local_notification_service.001': 'Account updates',
