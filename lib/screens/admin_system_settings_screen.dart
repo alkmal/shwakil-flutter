@@ -70,6 +70,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _isAuthorized = false;
   bool _registrationEnabled = true;
   bool _loginOtpRequired = false;
+  bool _registrationWhatsappVerificationRequired = true;
   bool _topupRequestEnabled = true;
   bool _affiliateEnabled = true;
   bool _isLoadingPrepaidReport = false;
@@ -187,6 +188,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _contactAddressController.text = contactSettings['address'] ?? '';
       _registrationEnabled = authSettings['registrationEnabled'] == true;
       _loginOtpRequired = authSettings['loginOtpRequired'] != false;
+      _registrationWhatsappVerificationRequired =
+          authSettings['registrationWhatsappVerificationRequired'] != false;
       final minSupportedVersion =
           authSettings['minSupportedVersion']?.toString().trim() ?? '';
       final latestVersion =
@@ -378,6 +381,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _apiService.updateAuthSettings(
           registrationEnabled: _registrationEnabled,
           loginOtpRequired: _loginOtpRequired,
+          registrationWhatsappVerificationRequired:
+              _registrationWhatsappVerificationRequired,
           minSupportedVersion: _minSupportedVersionController.text,
           latestVersion: _latestVersionController.text,
           androidStoreUrl: _androidStoreUrlController.text,
@@ -641,9 +646,19 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
 
   Future<void> _deleteTopupMethod(Map<String, dynamic> method) async {
     final l = context.loc;
+    final methodId = method['id']?.toString().trim() ?? '';
+    if (methodId.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_admin_system_settings_screen.015'),
+        message: 'تعذر تحديد طريقة الشحن المطلوبة.',
+      );
+      return;
+    }
+
     try {
       final methods = await _apiService.deleteAdminTopupPaymentMethod(
-        method['id'].toString(),
+        methodId,
       );
       if (!mounted) {
         return;
@@ -893,6 +908,17 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   title: const Text('طلب OTP عند تسجيل الدخول'),
                   subtitle: const Text(
                     'عند إيقافه يمكن للمستخدم تسجيل الدخول من داخل التطبيق بدون كود واتساب.',
+                  ),
+                ),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _registrationWhatsappVerificationRequired,
+                  onChanged: (value) => setState(
+                    () => _registrationWhatsappVerificationRequired = value,
+                  ),
+                  title: const Text('طلب تحقق واتساب عند التسجيل'),
+                  subtitle: const Text(
+                    'عند إيقافه يتم استلام طلب التسجيل مباشرة ويمكن للإدارة التواصل مع المستخدم وتسليم البيانات يدويًا.',
                   ),
                 ),
                 TextField(

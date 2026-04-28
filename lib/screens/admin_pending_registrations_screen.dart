@@ -91,6 +91,7 @@ class _AdminPendingRegistrationsScreenState
     try {
       final response = await _apiService.approvePendingRegistrationRequest(
         requestId,
+        allowUnverifiedWhatsapp: true,
       );
       if (!mounted) {
         return;
@@ -385,9 +386,7 @@ class _AdminPendingRegistrationsScreenState
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: (isBusy || !otpVerified)
-                      ? null
-                      : () => _approve(request),
+                  onPressed: isBusy ? null : () => _approve(request),
                   icon: isBusy
                       ? const SizedBox(
                           width: 16,

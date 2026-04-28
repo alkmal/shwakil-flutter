@@ -169,6 +169,12 @@ class ApiService {
     _cachedNotificationSummaryAt = null;
   }
 
+  static void invalidateAuthSettingsCache() {
+    _cachedAuthSettings = null;
+    _cachedAuthSettingsAt = null;
+    _pendingAuthSettingsRequest = null;
+  }
+
   Future<Map<String, dynamic>> getTopupRequestSettings() async {
     final response = await http.get(
       AppConfig.apiUri('app/topup-request-settings'),
@@ -1106,6 +1112,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateAdminAuthSettings({
     required bool registrationEnabled,
     required bool loginOtpRequired,
+    required bool registrationWhatsappVerificationRequired,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1118,6 +1125,8 @@ class ApiService {
       body: jsonEncode({
         'registrationEnabled': registrationEnabled,
         'loginOtpRequired': loginOtpRequired,
+        'registrationWhatsappVerificationRequired':
+            registrationWhatsappVerificationRequired,
         'minSupportedVersion': minSupportedVersion.trim(),
         'latestVersion': latestVersion.trim(),
         'androidStoreUrl': androidStoreUrl.trim(),
@@ -1125,7 +1134,15 @@ class ApiService {
         'webStoreUrl': webStoreUrl.trim(),
       }),
     );
-    return _decodeObject(response);
+    final body = _decodeObject(response);
+    final auth = body['auth'];
+    if (auth is Map) {
+      _cachedAuthSettings = Map<String, dynamic>.from(auth);
+      _cachedAuthSettingsAt = DateTime.now();
+    } else {
+      invalidateAuthSettingsCache();
+    }
+    return body;
   }
 
   Future<Map<String, dynamic>> updateAdminTransferSettings({
@@ -1327,6 +1344,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateAuthSettings({
     required bool registrationEnabled,
     required bool loginOtpRequired,
+    required bool registrationWhatsappVerificationRequired,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1336,6 +1354,8 @@ class ApiService {
     return updateAdminAuthSettings(
       registrationEnabled: registrationEnabled,
       loginOtpRequired: loginOtpRequired,
+      registrationWhatsappVerificationRequired:
+          registrationWhatsappVerificationRequired,
       minSupportedVersion: minSupportedVersion,
       latestVersion: latestVersion,
       androidStoreUrl: androidStoreUrl,
@@ -1650,11 +1670,13 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> approvePendingRegistrationRequest(
-    String requestId,
-  ) async {
+    String requestId, {
+    bool allowUnverifiedWhatsapp = false,
+  }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/registrations/$requestId/approve'),
       headers: await _headers(),
+      body: jsonEncode({'allowUnverifiedWhatsapp': allowUnverifiedWhatsapp}),
     );
     return _decodeObject(response);
   }

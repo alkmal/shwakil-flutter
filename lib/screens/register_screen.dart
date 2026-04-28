@@ -136,6 +136,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
+      if (otp.otpRequired == false) {
+        await AppAlertService.showSuccess(
+          context,
+          title: l.tr('screens_register_screen.009'),
+          message:
+              otp.message ??
+              'تم استلام بياناتك وسيتم التواصل معك في أقرب وقت ممكن.',
+        );
+        if (!mounted) {
+          return;
+        }
+        Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(
