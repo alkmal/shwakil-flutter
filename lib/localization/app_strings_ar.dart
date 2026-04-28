@@ -2362,6 +2362,13 @@ const Map<String, String> appStringsAr = {
       'تمت إعادة إرسال رمز التحقق.',
   'screens_admin_pending_registrations_screen.027':
       'تعذر إعادة إرسال رمز التحقق. حاول مرة أخرى لاحقًا.',
+  'screens_admin_pending_registrations_screen.028': 'تأكيد بدون OTP',
+  'screens_admin_pending_registrations_screen.029':
+      'سيتم اعتبار رقم صاحب الطلب مؤكدًا من الإدارة بدون إدخال رمز التحقق. هل تريد المتابعة؟',
+  'screens_admin_pending_registrations_screen.030': 'تأكيد بدون OTP',
+  'screens_admin_pending_registrations_screen.031':
+      'تم تأكيد الطلب بدون OTP ويمكن اعتماده الآن.',
+  'screens_admin_pending_registrations_screen.032': 'تعذر تأكيد الطلب',
   'screens_admin_system_settings_screen.066': 'التسويق بالعمولة',
   'screens_admin_system_settings_screen.067': 'إعدادات التسويق بالعمولة',
   'screens_admin_system_settings_screen.068':

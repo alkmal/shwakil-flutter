@@ -2452,6 +2452,13 @@ const Map<String, String> appStringsEn = {
       'Verification code resent successfully.',
   'screens_admin_pending_registrations_screen.027':
       'Failed to resend verification code. Please try again later.',
+  'screens_admin_pending_registrations_screen.028': 'Confirm without OTP',
+  'screens_admin_pending_registrations_screen.029':
+      'This will mark the requester phone as confirmed by admin without entering the verification code. Continue?',
+  'screens_admin_pending_registrations_screen.030': 'Confirm without OTP',
+  'screens_admin_pending_registrations_screen.031':
+      'The request was confirmed without OTP and can now be approved.',
+  'screens_admin_pending_registrations_screen.032': 'Could not confirm request',
   'screens_admin_system_settings_screen.066': 'Affiliate marketing',
   'screens_admin_system_settings_screen.067': 'Affiliate marketing settings',
   'screens_admin_system_settings_screen.068':

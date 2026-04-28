@@ -1685,6 +1685,16 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> confirmPendingRegistrationWithoutOtp(
+    String requestId,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/registrations/$requestId/confirm-without-otp'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> rejectPendingRegistrationRequest(
     String requestId, {
     String reason = '',
