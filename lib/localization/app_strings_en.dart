@@ -162,12 +162,12 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.025':
       'The user has been created successfully.',
   'screens_admin_customers_screen.026':
-      'A temporary password will be generated and sent automatically to the provided WhatsApp number.',
+      'A temporary password will be generated and sent automatically by SMS to the provided number.',
   'screens_admin_customers_screen.047':
       'Username must be 3-32 characters using English letters, numbers, and only . _ @ + - symbols.',
   'screens_admin_customers_screen.027': 'Unable to determine the user account.',
   'screens_admin_customers_screen.028':
-      'A new password and account details will be sent over WhatsApp to the linked number.',
+      'A new password and account details will be sent by SMS to the linked number.',
   'screens_admin_customers_screen.029':
       'Search customers, add new users, and open each customer profile independently.',
   'screens_admin_customers_screen.030': '{count} customers',
@@ -241,11 +241,11 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.065':
       'Customer details were updated successfully.',
   'screens_admin_customer_screen.066':
-      'A new password will be generated, then the login details will be sent to the account WhatsApp. Continue?',
+      'A new password will be generated, then the login details will be sent by SMS to the linked number. Continue?',
   'screens_admin_customer_screen.067':
-      'A new password was created and the user details were sent via WhatsApp.',
+      'A new password was created and the user details were sent by SMS.',
   'screens_admin_customer_screen.068':
-      'Resending user details through WhatsApp will automatically generate a new password before sending.',
+      'Resending user details by SMS will automatically generate a new password before sending.',
   'screens_admin_customer_screen.069':
       'Review financial transactions and activity related to this customer.',
   'screens_admin_customer_screen.070': 'No devices are linked to this account.',
