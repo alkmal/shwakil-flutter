@@ -2353,6 +2353,11 @@ const Map<String, String> appStringsAr = {
   'screens_admin_pending_registrations_screen.023': 'اعتماد وإنشاء الحساب',
   'screens_admin_pending_registrations_screen.024':
       'لن يظهر زر الاعتماد إلا بعد أن يؤكد صاحب الطلب رمز التحقق من واتساب.',
+  'screens_admin_pending_registrations_screen.025': 'إعادة إرسال رمز التحقق',
+  'screens_admin_pending_registrations_screen.026':
+      'تمت إعادة إرسال رمز التحقق.',
+  'screens_admin_pending_registrations_screen.027':
+      'تعذر إعادة إرسال رمز التحقق. حاول مرة أخرى لاحقًا.',
   'screens_admin_system_settings_screen.066': 'التسويق بالعمولة',
   'screens_admin_system_settings_screen.067': 'إعدادات التسويق بالعمولة',
   'screens_admin_system_settings_screen.068':

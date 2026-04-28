@@ -2443,6 +2443,11 @@ const Map<String, String> appStringsEn = {
       'Approve and create account',
   'screens_admin_pending_registrations_screen.024':
       'The approve button will not appear until the requester confirms the WhatsApp verification code.',
+  'screens_admin_pending_registrations_screen.025': 'Resend verification code',
+  'screens_admin_pending_registrations_screen.026':
+      'Verification code resent successfully.',
+  'screens_admin_pending_registrations_screen.027':
+      'Failed to resend verification code. Please try again later.',
   'screens_admin_system_settings_screen.066': 'Affiliate marketing',
   'screens_admin_system_settings_screen.067': 'Affiliate marketing settings',
   'screens_admin_system_settings_screen.068':

@@ -170,6 +170,46 @@ class _AdminPendingRegistrationsScreenState
     }
   }
 
+  Future<void> _resendOtp(Map<String, dynamic> request) async {
+    final l = context.loc;
+    final requestId = request['id']?.toString() ?? '';
+    if (requestId.isEmpty) {
+      return;
+    }
+
+    setState(() => _busyId = requestId);
+    try {
+      final result = await _authService.requestOtp(
+        purpose: 'register',
+        pendingRegistrationId: requestId,
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: l.tr('screens_admin_pending_registrations_screen.025'),
+        message:
+            result.message ??
+            l.tr('screens_admin_pending_registrations_screen.026'),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_admin_pending_registrations_screen.027'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
+    }
+  }
+
   List<Map<String, dynamic>> get _filteredRequests {
     final query = _searchQuery.trim().toLowerCase();
     if (query.isEmpty) {
@@ -253,7 +293,9 @@ class _AdminPendingRegistrationsScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l.tr('screens_admin_pending_registrations_screen.018'),
+                          l.tr(
+                            'screens_admin_pending_registrations_screen.018',
+                          ),
                           style: AppTheme.bodyAction.copyWith(
                             color: AppTheme.textSecondary,
                             height: 1.5,
@@ -312,8 +354,8 @@ class _AdminPendingRegistrationsScreenState
     final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     final isBusy = _busyId == requestId;
-    final otpVerified = (request['otpVerifiedAt']?.toString().trim().isNotEmpty ??
-        false);
+    final otpVerified =
+        (request['otpVerifiedAt']?.toString().trim().isNotEmpty ?? false);
     final createdAt = request['createdAt']?.toString() ?? '';
 
     return ShwakelCard(
@@ -331,7 +373,9 @@ class _AdminPendingRegistrationsScreenState
                     Text(
                       request['fullName']?.toString().trim().isNotEmpty == true
                           ? request['fullName'].toString()
-                          : l.tr('screens_admin_pending_registrations_screen.019'),
+                          : l.tr(
+                              'screens_admin_pending_registrations_screen.019',
+                            ),
                       style: AppTheme.h3,
                     ),
                     const SizedBox(height: 4),
@@ -357,9 +401,16 @@ class _AdminPendingRegistrationsScreenState
             spacing: 10,
             runSpacing: 10,
             children: [
-              _infoChip(Icons.call_rounded, request['whatsapp']?.toString() ?? '-'),
-              if ((request['nationalId']?.toString().trim().isNotEmpty ?? false))
-                _infoChip(Icons.badge_rounded, request['nationalId'].toString()),
+              _infoChip(
+                Icons.call_rounded,
+                request['whatsapp']?.toString() ?? '-',
+              ),
+              if ((request['nationalId']?.toString().trim().isNotEmpty ??
+                  false))
+                _infoChip(
+                  Icons.badge_rounded,
+                  request['nationalId'].toString(),
+                ),
               if (createdAt.isNotEmpty)
                 _infoChip(Icons.schedule_rounded, createdAt),
             ],
@@ -380,26 +431,50 @@ class _AdminPendingRegistrationsScreenState
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.error,
                   ),
-                  label: Text(l.tr('screens_admin_pending_registrations_screen.022')),
+                  label: Text(
+                    l.tr('screens_admin_pending_registrations_screen.022'),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: isBusy ? null : () => _approve(request),
-                  icon: isBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.check_rounded),
-                  label: Text(l.tr('screens_admin_pending_registrations_screen.023')),
+              if (!otpVerified)
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: isBusy ? null : () => _resendOtp(request),
+                    icon: isBusy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.refresh_rounded),
+                    label: Text(
+                      l.tr('screens_admin_pending_registrations_screen.025'),
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: isBusy ? null : () => _approve(request),
+                    icon: isBusy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.check_rounded),
+                    label: Text(
+                      l.tr('screens_admin_pending_registrations_screen.023'),
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
           if (!otpVerified) ...[
