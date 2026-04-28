@@ -71,6 +71,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _registrationEnabled = true;
   bool _loginOtpRequired = false;
   bool _registrationWhatsappVerificationRequired = true;
+  String _whatsappUsageMode = 'all';
   bool _topupRequestEnabled = true;
   bool _affiliateEnabled = true;
   bool _isLoadingPrepaidReport = false;
@@ -190,6 +191,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _loginOtpRequired = authSettings['loginOtpRequired'] != false;
       _registrationWhatsappVerificationRequired =
           authSettings['registrationWhatsappVerificationRequired'] != false;
+      _whatsappUsageMode = _normalizeWhatsappUsageMode(
+        authSettings['whatsappUsageMode'],
+      );
       final minSupportedVersion =
           authSettings['minSupportedVersion']?.toString().trim() ?? '';
       final latestVersion =
@@ -383,6 +387,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           loginOtpRequired: _loginOtpRequired,
           registrationWhatsappVerificationRequired:
               _registrationWhatsappVerificationRequired,
+          whatsappUsageMode: _whatsappUsageMode,
           minSupportedVersion: _minSupportedVersionController.text,
           latestVersion: _latestVersionController.text,
           androidStoreUrl: _androidStoreUrlController.text,
@@ -828,6 +833,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     return ShwakelCard(padding: const EdgeInsets.all(20), child: child);
   }
 
+  String _normalizeWhatsappUsageMode(Object? value) {
+    final mode = value?.toString().trim().toLowerCase();
+    if (mode == 'registration' || mode == 'financial' || mode == 'all') {
+      return mode!;
+    }
+    return 'all';
+  }
+
   Widget _buildContactTab() {
     final l = context.loc;
     return _tabScroll(
@@ -921,6 +934,33 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     'عند إيقافه يتم استلام طلب التسجيل مباشرة ويمكن للإدارة التواصل مع المستخدم وتسليم البيانات يدويًا.',
                   ),
                 ),
+                DropdownButtonFormField<String>(
+                  initialValue: _whatsappUsageMode,
+                  decoration: const InputDecoration(
+                    labelText: 'استخدام واتساب',
+                    helperText:
+                        'اختر الحالات التي يسمح النظام بإرسال رسائل واتساب لها.',
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'registration',
+                      child: Text('التسجيل فقط'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'financial',
+                      child: Text('الحركات المالية فقط'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text('الجميع'),
+                    ),
+                  ],
+                  onChanged: (value) => setState(
+                    () => _whatsappUsageMode =
+                        _normalizeWhatsappUsageMode(value),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _unverifiedTransferLimitController,
                   decoration: InputDecoration(

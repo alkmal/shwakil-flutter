@@ -1113,6 +1113,7 @@ class ApiService {
     required bool registrationEnabled,
     required bool loginOtpRequired,
     required bool registrationWhatsappVerificationRequired,
+    required String whatsappUsageMode,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1127,6 +1128,7 @@ class ApiService {
         'loginOtpRequired': loginOtpRequired,
         'registrationWhatsappVerificationRequired':
             registrationWhatsappVerificationRequired,
+        'whatsappUsageMode': whatsappUsageMode.trim(),
         'minSupportedVersion': minSupportedVersion.trim(),
         'latestVersion': latestVersion.trim(),
         'androidStoreUrl': androidStoreUrl.trim(),
@@ -1345,6 +1347,7 @@ class ApiService {
     required bool registrationEnabled,
     required bool loginOtpRequired,
     required bool registrationWhatsappVerificationRequired,
+    required String whatsappUsageMode,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1356,6 +1359,7 @@ class ApiService {
       loginOtpRequired: loginOtpRequired,
       registrationWhatsappVerificationRequired:
           registrationWhatsappVerificationRequired,
+      whatsappUsageMode: whatsappUsageMode,
       minSupportedVersion: minSupportedVersion,
       latestVersion: latestVersion,
       androidStoreUrl: androidStoreUrl,
