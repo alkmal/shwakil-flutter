@@ -1088,11 +1088,15 @@ class ApiService {
   Future<Map<String, dynamic>> resendAdminUserAccountDetails({
     required String userId,
     bool regeneratePassword = true,
+    String deliveryMethod = 'sms',
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/users/$userId/resend-account-details'),
       headers: await _headers(),
-      body: jsonEncode({'regeneratePassword': regeneratePassword}),
+      body: jsonEncode({
+        'regeneratePassword': regeneratePassword,
+        'deliveryMethod': deliveryMethod.trim(),
+      }),
     );
     return _decodeObject(response);
   }

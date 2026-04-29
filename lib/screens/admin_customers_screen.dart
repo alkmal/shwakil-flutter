@@ -353,6 +353,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   Future<void> _resendCustomerCredentials(Map<String, dynamic> customer) async {
     final l = context.loc;
     final userId = customer['id']?.toString() ?? '';
+    String deliveryMethod = 'whatsapp';
 
     if (userId.isEmpty) {
       await AppAlertService.showError(
@@ -368,20 +369,47 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.tr('screens_admin_customers_screen.013')),
-        content: Text(l.tr('screens_admin_customers_screen.028')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.tr('screens_admin_customers_screen.014')),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(l.tr('screens_admin_customers_screen.013')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.tr('screens_admin_customers_screen.028')),
+              const SizedBox(height: 14),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment<String>(
+                    value: 'whatsapp',
+                    icon: Icon(Icons.chat_rounded),
+                    label: Text('واتساب'),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'sms',
+                    icon: Icon(Icons.sms_rounded),
+                    label: Text('رسالة نصية'),
+                  ),
+                ],
+                selected: {deliveryMethod},
+                onSelectionChanged: (selection) {
+                  setDialogState(() => deliveryMethod = selection.first);
+                },
+              ),
+            ],
           ),
-          ShwakelButton(
-            label: l.tr('screens_admin_customers_screen.015'),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            width: 120,
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l.tr('screens_admin_customers_screen.014')),
+            ),
+            ShwakelButton(
+              label: l.tr('screens_admin_customers_screen.015'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              width: 120,
+            ),
+          ],
+        ),
       ),
     );
 
@@ -394,6 +422,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       final response = await _apiService.resendAdminUserAccountDetails(
         userId: userId,
         regeneratePassword: true,
+        deliveryMethod: deliveryMethod,
       );
       if (!mounted) {
         return;

@@ -233,21 +233,49 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _resendAccountDetails() async {
+    String deliveryMethod = 'whatsapp';
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(_t('screens_admin_customer_screen.001')),
-        content: Text(context.loc.tr('screens_admin_customer_screen.066')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(_t('screens_admin_customer_screen.002')),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(_t('screens_admin_customer_screen.001')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(context.loc.tr('screens_admin_customer_screen.066')),
+              const SizedBox(height: 14),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment<String>(
+                    value: 'whatsapp',
+                    icon: Icon(Icons.chat_rounded),
+                    label: Text('واتساب'),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'sms',
+                    icon: Icon(Icons.sms_rounded),
+                    label: Text('رسالة نصية'),
+                  ),
+                ],
+                selected: {deliveryMethod},
+                onSelectionChanged: (selection) {
+                  setDialogState(() => deliveryMethod = selection.first);
+                },
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(_t('screens_admin_customer_screen.003')),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(_t('screens_admin_customer_screen.002')),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(_t('screens_admin_customer_screen.003')),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true) return;
@@ -255,6 +283,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     try {
       final response = await _api.resendAdminUserAccountDetails(
         userId: _customer['id'].toString(),
+        deliveryMethod: deliveryMethod,
       );
       if (!mounted) return;
       setState(() => _busy = false);
