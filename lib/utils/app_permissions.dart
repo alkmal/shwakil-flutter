@@ -131,6 +131,14 @@ class AppPermissions {
       _isEnabled('canUsePrepaidMultipayNfc');
   bool get canOpenPrepaidMultipayCards =>
       canUsePrepaidMultipayCards || canAcceptPrepaidMultipayPayments;
+  bool get canAccessRegulatedWalletFeatures =>
+      canViewBalance ||
+      canViewTransactions ||
+      canOpenQuickTransfer ||
+      canTransfer ||
+      canWithdraw ||
+      canFinanceTopup ||
+      canOpenPrepaidMultipayCards;
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageUsers => _isEnabled('canManageUsers');

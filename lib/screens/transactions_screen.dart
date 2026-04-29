@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
+import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
@@ -22,6 +23,7 @@ class TransactionsScreen extends StatefulWidget {
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _transactions = const [];
@@ -39,6 +41,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Timer? _searchDebounce;
   int _loadRequestId = 0;
   String _lastSubmittedQuery = '';
+  bool _isAuthorized = true;
 
   String _t(String key, {Map<String, String>? params}) =>
       context.loc.tr(key, params: params);
@@ -57,6 +60,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Future<void> _loadTransactions({bool preserveContent = false}) async {
+    final currentUser = await _authService.currentUser();
+    if (!AppPermissions.fromUser(currentUser).canViewTransactions) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isAuthorized = false;
+        _transactions = const [];
+        _isLoading = false;
+        _isRefreshing = false;
+      });
+      return;
+    }
+
     final requestId = ++_loadRequestId;
     final shouldKeepVisible = preserveContent && _transactions.isNotEmpty;
     setState(() {
@@ -105,6 +122,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }
 
       setState(() {
+        _isAuthorized = true;
         _transactions = transactions;
         _currentBalance = (summary['currentBalance'] as num?)?.toDouble() ?? 0;
         _totalCredits = (summary['totalCredits'] as num?)?.toDouble() ?? 0;
@@ -187,6 +205,29 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isLoading && !_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(_t('screens_transactions_screen.005')),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          child: Center(
+            child: ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'عرض الحركات المالية غير مفعل لهذا الحساب حالياً.',
+                style: AppTheme.bodyAction,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(

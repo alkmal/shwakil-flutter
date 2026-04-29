@@ -44,6 +44,8 @@ class _BalanceScreenState extends State<BalanceScreen>
   bool get _canWithdrawAction => _appPermissions.canWithdraw;
   bool get _canManageUsersAction =>
       _appPermissions.canManageUsers || _appPermissions.canFinanceTopup;
+  bool get _canOpenBalanceWorkspace =>
+      _appPermissions.canAccessRegulatedWalletFeatures;
   bool get _isVerifiedAccount =>
       _user?['transferVerificationStatus']?.toString() == 'approved';
 
@@ -87,6 +89,20 @@ class _BalanceScreenState extends State<BalanceScreen>
   void didPopNext() => _loadBalance();
 
   Future<void> _loadBalance() async {
+    final cachedUser = await AuthService().currentUser();
+    final cachedPermissions = AppPermissions.fromUser(cachedUser);
+    if (!cachedPermissions.canAccessRegulatedWalletFeatures) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _user = cachedUser;
+        _transactions = const [];
+        _isLoading = false;
+      });
+      return;
+    }
+
     setState(() => _isLoading = true);
     final requestedPage = _page;
     try {
@@ -812,6 +828,29 @@ class _BalanceScreenState extends State<BalanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (!_isLoading && !_canOpenBalanceWorkspace) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: const Text('الرصيد والحركات'),
+          actions: const [AppNotificationAction(), QuickLogoutAction()],
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          child: Center(
+            child: ShwakelCard(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'الميزات المالية غير مفعلة لهذا الحساب حالياً.',
+                style: AppTheme.bodyAction,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppTheme.background,
