@@ -21,7 +21,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.019': 'المعلومات الأساسية',
   'screens_account_settings_screen.020': 'الاسم الكامل',
   'screens_account_settings_screen.021': 'اسم المستخدم',
-  'screens_account_settings_screen.022': 'الهاتف أو واتساب',
+  'screens_account_settings_screen.022': 'رقم الهاتف',
   'screens_account_settings_screen.023': 'البريد الإلكتروني',
   'screens_account_settings_screen.024': 'العنوان',
   'screens_account_settings_screen.025': 'الهوية والتفاصيل الإضافية',
@@ -138,11 +138,11 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.006': 'اسم المستخدم',
   'screens_admin_customers_screen.007': 'الاسم الكامل',
   'screens_admin_customers_screen.008': 'رمز الدولة',
-  'screens_admin_customers_screen.009': 'واتساب',
+  'screens_admin_customers_screen.009': 'رقم الهاتف',
   'screens_admin_customers_screen.010': 'إلغاء',
   'screens_admin_customers_screen.011': 'جارٍ الحفظ...',
   'screens_admin_customers_screen.012': 'إنشاء',
-  'screens_admin_customers_screen.013': 'إعادة إرسال بيانات واتساب',
+  'screens_admin_customers_screen.013': 'إعادة إرسال بيانات الحساب',
   'screens_admin_customers_screen.014': 'إلغاء',
   'screens_admin_customers_screen.015': 'إرسال',
   'screens_admin_customers_screen.016': 'تمت إعادة إرسال بيانات الحساب.',
@@ -153,15 +153,15 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.021': 'العملاء',
   'screens_admin_customers_screen.022': 'إضافة مستخدم',
   'screens_admin_customers_screen.023': 'ابحث عن عميل...',
-  'screens_admin_customers_screen.024': 'اسم المستخدم ورقم واتساب مطلوبان.',
+  'screens_admin_customers_screen.024': 'اسم المستخدم ورقم الهاتف مطلوبان.',
   'screens_admin_customers_screen.025': 'تم إنشاء المستخدم بنجاح.',
   'screens_admin_customers_screen.026':
-      'سيتم إنشاء كلمة مرور مؤقتة وإرسالها تلقائيًا إلى رقم واتساب المدخل.',
+      'سيتم إنشاء كلمة مرور مؤقتة وإرسالها تلقائيًا عبر SMS إلى الرقم المدخل.',
   'screens_admin_customers_screen.047':
       'اسم المستخدم يجب أن يكون بين 3 و32 حرفًا وبالأحرف الإنجليزية والأرقام والرموز . _ @ + - فقط.',
   'screens_admin_customers_screen.027': 'تعذر تحديد حساب المستخدم.',
   'screens_admin_customers_screen.028':
-      'سيتم إرسال كلمة مرور جديدة وبيانات الحساب عبر واتساب إلى الرقم المرتبط.',
+      'سيتم إرسال كلمة مرور جديدة وبيانات الحساب عبر SMS إلى الرقم المرتبط.',
   'screens_admin_customers_screen.029':
       'ابحث عن العملاء، أضف مستخدمين جددًا، وافتح ملف كل عميل بشكل مستقل.',
   'screens_admin_customers_screen.030': '{count} عميل',
@@ -187,7 +187,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customer_screen.017': 'بيانات التواصل',
   'screens_admin_customer_screen.018': 'اسم المستخدم',
   'screens_admin_customer_screen.019': 'الاسم الكامل',
-  'screens_admin_customer_screen.020': 'واتساب',
+  'screens_admin_customer_screen.020': 'رقم الهاتف',
   'screens_admin_customer_screen.021': 'تاريخ الانضمام',
   'screens_admin_customer_screen.022': 'مستخدم',
   'screens_admin_customer_screen.023': 'حركات العميل',
@@ -234,11 +234,11 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customer_screen.064': 'جهاز غير معروف',
   'screens_admin_customer_screen.065': 'تم تحديث بيانات العميل بنجاح.',
   'screens_admin_customer_screen.066':
-      'سيتم إنشاء كلمة مرور جديدة ثم إرسال بيانات الدخول إلى رقم واتساب المرتبط بالحساب. هل تريد المتابعة؟',
+      'سيتم إنشاء كلمة مرور جديدة ثم إرسال بيانات الدخول عبر SMS إلى الرقم المرتبط بالحساب. هل تريد المتابعة؟',
   'screens_admin_customer_screen.067':
-      'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر واتساب.',
+      'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر SMS.',
   'screens_admin_customer_screen.068':
-      'إعادة إرسال بيانات المستخدم عبر واتساب ستؤدي تلقائيًا إلى إنشاء كلمة مرور جديدة قبل الإرسال.',
+      'إعادة إرسال بيانات المستخدم عبر SMS ستؤدي تلقائيًا إلى إنشاء كلمة مرور جديدة قبل الإرسال.',
   'screens_admin_customer_screen.069':
       'راجع الحركات المالية والنشاط المرتبط بهذا العميل.',
   'screens_admin_customer_screen.070': 'لا توجد أجهزة مرتبطة بهذا الحساب.',
@@ -389,7 +389,7 @@ const Map<String, String> appStringsAr = {
   'screens_forgot_password_screen.037':
       'يجب أن تحتوي كلمة المرور على أحرف وأرقام معًا.',
   'screens_forgot_password_screen.038':
-      'تم إرسال رمز الاستعادة إلى رقم واتساب المرتبط بالحساب. لن تتغير كلمة المرور بدون هذا الرمز.',
+      'تم إرسال رمز الاستعادة إلى رقم الهاتف المرتبط بالحساب. لن تتغير كلمة المرور بدون هذا الرمز.',
   'screens_forgot_password_screen.039':
       'تم العثور على تطابق. اسم المستخدم: {username}',
   'screens_forgot_password_screen.040':
@@ -493,6 +493,9 @@ const Map<String, String> appStringsAr = {
   'screens_login_screen.020': 'إعداد الآن',
   'screens_login_screen.021': 'PIN أو البصمة',
   'screens_login_screen.022': 'PIN',
+  'screens_login_screen.027': 'طرق التواصل',
+  'screens_login_screen.028':
+      'للمساعدة في الدخول أو متابعة التسجيل، تواصل معنا عبر واتساب.',
   'screens_onboarding_screen.001': 'تخطي',
   'screens_onboarding_screen.002': 'ابدأ الآن',
   'screens_onboarding_screen.003': 'التالي',
@@ -503,7 +506,7 @@ const Map<String, String> appStringsAr = {
   'screens_otp_verification_screen.005': 'تعذر إعادة الإرسال',
   'screens_otp_verification_screen.006': 'التحقق من الرمز',
   'screens_otp_verification_screen.007': 'اسم المستخدم',
-  'screens_otp_verification_screen.008': 'واتساب',
+  'screens_otp_verification_screen.008': 'رقم الجوال',
   'screens_otp_verification_screen.009': 'رمز التحقق',
   'screens_otp_verification_screen.010': 'رمز التصحيح: {debugCode}',
   'screens_otp_verification_screen.011': 'إكمال التسجيل',
@@ -548,13 +551,13 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.014': 'تاريخ الميلاد',
   'screens_register_screen.015': 'بيانات التواصل',
   'screens_register_screen.016': 'الدولة',
-  'screens_register_screen.017': 'رقم واتساب',
+  'screens_register_screen.017': 'رقم الهاتف',
   'screens_register_screen.018': 'رقم الإحالة',
   'screens_register_screen.019': 'متابعة الحساب',
   'screens_register_screen.020': 'كلمة المرور',
   'screens_register_screen.021': 'تأكيد كلمة المرور',
   'screens_register_screen.022': 'السابق',
-  'screens_register_screen.023': 'إرسال رمز التحقق',
+  'screens_register_screen.023': 'تسجيل البيانات',
   'screens_register_screen.024': 'التالي',
   'screens_register_screen.025': 'البيانات',
   'screens_register_screen.026': 'التواصل',
@@ -563,7 +566,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.029': 'يرجى إدخال اسمك الكامل بشكل صحيح.',
   'screens_register_screen.030':
       'يجب أن يتكون اسم المستخدم من أحرف أو أرقام إنجليزية فقط، مع السماح بالرموز . _ - + و @.',
-  'screens_register_screen.031': 'يرجى إدخال رقم واتساب صحيح.',
+  'screens_register_screen.031': 'يرجى إدخال رقم هاتف صحيح.',
   'screens_register_screen.032': 'رقم الإحالة غير صالح.',
   'screens_register_screen.033': 'لا حاجة لإدخال كلمة مرور أثناء التسجيل.',
   'screens_register_screen.034':
@@ -578,11 +581,10 @@ const Map<String, String> appStringsAr = {
       'أكمل البيانات الأساسية فقط، وسيتم إنشاء اسم المستخدم تلقائيًا ويمكنك تعديل اسم المستخدم ورقم الإحالة لاحقًا من الملف الشخصي قبل التوثيق.',
   'screens_register_screen.040': 'لديك حساب بالفعل؟ سجّل الدخول',
   'screens_register_screen.041':
-      'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور على واتساب لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
+      'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور عبر SMS لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
   'screens_register_screen.042': 'أوافق على الشروط والسياسات والرسوم المعروضة.',
   'screens_register_screen.043': 'التسجيل متوقف حاليا',
-  'screens_register_screen.044':
-      'تواصل معنا لمزيد من التفاصيل.',
+  'screens_register_screen.044': 'تواصل معنا لمزيد من التفاصيل.',
   'screens_register_screen.045':
       'راسل الإدارة مباشرة عبر واتساب لطلب إنشاء حساب أو السماح بالتسجيل.',
   'screens_register_screen.046': 'العودة إلى تسجيل الدخول',
@@ -919,11 +921,11 @@ const Map<String, String> appStringsAr = {
   'screens_otp_verification_screen.016':
       'تم إنشاء حسابك بنجاح. يمكنك تسجيل الدخول الآن.',
   'screens_otp_verification_screen.017':
-      'تم إرسال رمز تحقق جديد إلى رقم واتساب المرتبط بالحساب.',
+      'تم إرسال رمز تحقق جديد عبر SMS إلى الرقم المرتبط بالحساب.',
   'screens_otp_verification_screen.018':
-      'أدخل الرمز المرسل إلى رقم واتساب المرتبط بالحساب لإكمال التسجيل.',
+      'أدخل الرمز المرسل عبر SMS إلى الرقم المرتبط بالحساب لإكمال التسجيل.',
   'screens_otp_verification_screen.019':
-      'أدخل الرمز المرسل إلى رقم واتساب المرتبط بالحساب لتسجيل الدخول بأمان.',
+      'أدخل الرمز المرسل عبر SMS إلى الرقم المرتبط بالحساب لتسجيل الدخول بأمان.',
   'screens_otp_verification_screen.020':
       'يمكنك إعادة إرسال الرمز خلال {count} ثانية',
   'screens_otp_verification_screen.021': 'لم يصلك الرمز بعد؟',
@@ -1467,7 +1469,7 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.089': 'معرّف المستخدم: {id}',
   'screens_balance_screen.090': 'معرّف المستخدم: {id} • الرصيد: {balance}',
   'screens_balance_screen.091': 'الحساب المحدد',
-  'screens_balance_screen.092': 'رقم واتساب',
+  'screens_balance_screen.092': 'رقم الهاتف',
   'screens_balance_screen.093': 'المبلغ',
   'screens_balance_screen.094': 'حدّد الحساب أولًا باستخدام البحث عبر الهاتف.',
   'screens_balance_screen.095': 'حدّد الحساب أولًا من نتائج البحث.',
@@ -2185,9 +2187,9 @@ const Map<String, String> appStringsAr = {
   'screens_debt_book_screen.049':
       'ملخص سريع ومباشر لدفتر الديون بدون تعقيد في العرض.',
   'services_transfer_security_service.001':
-      'تم التحقق المحلي بالبصمة بنجاح. أكمل الآن بإدخال رمز التحقق المرسل إلى رقم واتساب المرتبط بالحساب.',
+      'تم التحقق المحلي بالبصمة بنجاح. أكمل الآن بإدخال رمز التحقق المرسل إلى رقم الهاتف المرتبط بالحساب.',
   'services_transfer_security_service.002':
-      'تم التحقق المحلي عبر PIN بنجاح. أدخل الآن رمز التحقق المرسل إلى رقم واتساب المرتبط بالحساب لإكمال العملية.',
+      'تم التحقق المحلي عبر PIN بنجاح. أدخل الآن رمز التحقق المرسل إلى رقم الهاتف المرتبط بالحساب لإكمال العملية.',
   'services_transfer_security_service.003': 'تأكيد العملية',
   'services_transfer_security_service.004':
       'تمت محاولة التحقق بالبصمة أولًا. يمكنك الآن المتابعة باستخدام PIN إذا رغبت.',
@@ -2197,11 +2199,11 @@ const Map<String, String> appStringsAr = {
   'services_transfer_security_service.008': 'البصمة',
   'services_transfer_security_service.009': 'تأكيد',
   'services_transfer_security_service.010':
-      'هذا الجهاز لا يملك بصمة مفعّلة ولا PIN محفوظًا، لذلك سنستخدم رمز تحقق يُرسل إلى رقم واتساب المرتبط بالحساب.',
+      'هذا الجهاز لا يملك بصمة مفعّلة ولا PIN محفوظًا، لذلك سنستخدم رمز تحقق يُرسل إلى رقم الهاتف المرتبط بالحساب.',
   'services_transfer_security_service.011':
-      'تم إرسال الرمز إلى رقم واتساب المرتبط بالحساب. أدخله لإتمام العملية.',
+      'تم إرسال الرمز إلى رقم الهاتف المرتبط بالحساب. أدخله لإتمام العملية.',
   'services_transfer_security_service.012':
-      'تم إرسال الرمز إلى رقم واتساب المرتبط بالحساب. رمز التصحيح: {code}',
+      'تم إرسال الرمز إلى رقم الهاتف المرتبط بالحساب. رمز التصحيح: {code}',
   'services_transfer_security_service.013': 'التحقق عبر رمز التحقق',
   'services_transfer_security_service.014': 'رمز التحقق',
   'services_transfer_security_service.015': 'جارٍ الإرسال...',
@@ -2209,6 +2211,10 @@ const Map<String, String> appStringsAr = {
   'services_transfer_security_service.017': 'إرسال الرمز',
   'services_transfer_security_service.018':
       'يمكنك إعادة الإرسال بعد {seconds} ثانية',
+  'services_transfer_security_service.019': 'حماية محلية مطلوبة',
+  'services_transfer_security_service.020':
+      'لا يمكن تنفيذ هذه العملية قبل تفعيل البصمة أو رمز PIN على هذا الجهاز من إعدادات الأمان.',
+  'services_transfer_security_service.021': 'إعدادات الأمان',
   'widgets_app_sidebar.041': 'التسويق بالعمولة',
   'widgets_app_sidebar.042': 'طلبات التسجيل',
   'widgets_app_sidebar.043': 'إرسال الإشعارات',
@@ -2317,7 +2323,7 @@ const Map<String, String> appStringsAr = {
       'اختر المستلم من تبويب البحث أو الهاتف ليظهر هنا.',
   'screens_security_settings_screen.072': 'فعّل القفل المحلي لحماية حسابك',
   'screens_security_settings_screen.073':
-      'ننصح بتفعيل رقم PIN أو البصمة لزيادة الأمان على حسابك وتسهيل الدخول السريع واستخدام العمليات الحساسة لاحقًا.',
+      'يجب تفعيل رقم PIN أو البصمة أو كليهما قبل استخدام باقي ميزات التطبيق والعمليات الحساسة.',
   'screens_admin_pending_registrations_screen.001':
       'بحث بالاسم أو اسم المستخدم أو الجوال',
   'screens_admin_pending_registrations_screen.002':
@@ -2346,11 +2352,23 @@ const Map<String, String> appStringsAr = {
       'راجع طلبات التسجيل التي أكملت خطوة التسجيل وتنتظر قرار الإدارة.',
   'screens_admin_pending_registrations_screen.019': 'بدون اسم',
   'screens_admin_pending_registrations_screen.020': 'جاهز للمراجعة',
-  'screens_admin_pending_registrations_screen.021': 'بانتظار تأكيد الواتساب',
+  'screens_admin_pending_registrations_screen.021': 'بانتظار تأكيد رقم الهاتف',
   'screens_admin_pending_registrations_screen.022': 'رفض وحذف الطلب',
   'screens_admin_pending_registrations_screen.023': 'اعتماد وإنشاء الحساب',
   'screens_admin_pending_registrations_screen.024':
-      'لن يظهر زر الاعتماد إلا بعد أن يؤكد صاحب الطلب رمز التحقق من واتساب.',
+      'لن يظهر زر الاعتماد إلا بعد أن يؤكد صاحب الطلب رمز التحقق المرسل إلى رقم الهاتف.',
+  'screens_admin_pending_registrations_screen.025': 'إعادة إرسال رمز التحقق',
+  'screens_admin_pending_registrations_screen.026':
+      'تمت إعادة إرسال رمز التحقق.',
+  'screens_admin_pending_registrations_screen.027':
+      'تعذر إعادة إرسال رمز التحقق. حاول مرة أخرى لاحقًا.',
+  'screens_admin_pending_registrations_screen.028': 'تأكيد بدون OTP',
+  'screens_admin_pending_registrations_screen.029':
+      'سيتم اعتبار رقم صاحب الطلب مؤكدًا من الإدارة بدون إدخال رمز التحقق. هل تريد المتابعة؟',
+  'screens_admin_pending_registrations_screen.030': 'تأكيد بدون OTP',
+  'screens_admin_pending_registrations_screen.031':
+      'تم تأكيد الطلب بدون OTP ويمكن اعتماده الآن.',
+  'screens_admin_pending_registrations_screen.032': 'تعذر تأكيد الطلب',
   'screens_admin_system_settings_screen.066': 'التسويق بالعمولة',
   'screens_admin_system_settings_screen.067': 'إعدادات التسويق بالعمولة',
   'screens_admin_system_settings_screen.068':
@@ -2385,9 +2403,9 @@ const Map<String, String> appStringsAr = {
   'screens_affiliate_center_screen.019': 'متوقف',
   'screens_affiliate_center_screen.020': 'بيانات الإحالة الخاصة بك',
   'screens_affiliate_center_screen.021':
-      'يمكن للعميل إدخال اسم المستخدم أو رقم الواتساب الخاص بك أثناء التسجيل.',
+      'يمكن للعميل إدخال اسم المستخدم أو رقم الهاتف الخاص بك أثناء التسجيل.',
   'screens_affiliate_center_screen.022': 'اسم المستخدم',
-  'screens_affiliate_center_screen.023': 'رقم الواتساب',
+  'screens_affiliate_center_screen.023': 'رقم الهاتف',
   'screens_affiliate_center_screen.024': 'غير متوفر',
   'screens_affiliate_center_screen.025': 'نسخ',
   'screens_affiliate_center_screen.026': 'إجمالي الإحالات',

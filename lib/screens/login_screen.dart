@@ -7,13 +7,20 @@ import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_logo.dart';
+import '../widgets/support_contact_card.dart';
 import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.redirectRoute, this.offlineMode = false});
+  const LoginScreen({
+    super.key,
+    this.redirectRoute,
+    this.offlineMode = false,
+    this.initialIdentifier,
+  });
 
   final String? redirectRoute;
   final bool offlineMode;
+  final String? initialIdentifier;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -27,9 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
-  final TextEditingController _usernameController = TextEditingController(
-    text: kDebugMode ? 'debug_admin' : '',
-  );
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController(
     text: kDebugMode ? '1234' : '',
   );
@@ -48,6 +53,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _usernameController.text =
+        widget.initialIdentifier?.trim().isNotEmpty == true
+        ? widget.initialIdentifier!.trim()
+        : (kDebugMode ? 'debug_admin' : '');
     OfflineSessionService.setOfflineMode(widget.offlineMode);
     _loadAuthSettings();
   }
@@ -160,6 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
             redirectRoute: widget.redirectRoute,
             offlineMode: widget.offlineMode,
             initialDebugOtpCode: otpResult.debugOtpCode,
+            statusMessage: otpResult.message,
           ),
         ),
       );
@@ -232,19 +242,16 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     final navigator = Navigator.of(context);
     if (!await LocalSecurityService.hasConfiguredLocalSecurity()) {
-      final shouldOpenSecuritySetup = await _showLocalSecurityWarning();
       await LocalSecurityService.markLocalSecuritySetupReminderShown();
       if (!mounted) {
         return;
       }
-      if (shouldOpenSecuritySetup == true) {
-        navigator.pushNamedAndRemoveUntil(
-          '/security-settings',
-          (route) => false,
-          arguments: const {'showSetupHint': true},
-        );
-        return;
-      }
+      navigator.pushNamedAndRemoveUntil(
+        '/security-settings',
+        (route) => false,
+        arguments: const {'showSetupHint': true},
+      );
+      return;
     }
     if (widget.redirectRoute?.trim().isNotEmpty == true) {
       if (widget.offlineMode) {
@@ -277,31 +284,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     await LocalSecurityService.markDeviceTrusted(username.trim().toLowerCase());
     return true;
-  }
-
-  Future<bool?> _showLocalSecurityWarning() async {
-    final l = context.loc;
-    if (!mounted) {
-      return false;
-    }
-
-    return showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.tr('screens_security_settings_screen.072')),
-        content: Text(l.tr('screens_security_settings_screen.073')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.tr('screens_login_screen.019')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.tr('screens_login_screen.020')),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _showMessage(
@@ -435,6 +417,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: () => Navigator.pushNamed(context, '/register'),
                 isSecondary: true,
               ),
+            ),
+          ],
+          if ((_supportWhatsapp ?? '').isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SupportContactCard(
+              phoneNumber: _supportWhatsapp!,
+              title: l.tr('screens_login_screen.027'),
+              message: l.tr('screens_login_screen.028'),
             ),
           ],
           if (!_registrationEnabled) ...[

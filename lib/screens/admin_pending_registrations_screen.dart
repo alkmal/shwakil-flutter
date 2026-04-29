@@ -170,6 +170,107 @@ class _AdminPendingRegistrationsScreenState
     }
   }
 
+  Future<void> _resendOtp(Map<String, dynamic> request) async {
+    final l = context.loc;
+    final requestId = request['id']?.toString() ?? '';
+    if (requestId.isEmpty) {
+      return;
+    }
+
+    setState(() => _busyId = requestId);
+    try {
+      final result = await _authService.requestOtp(
+        purpose: 'register',
+        pendingRegistrationId: requestId,
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: l.tr('screens_admin_pending_registrations_screen.025'),
+        message:
+            result.message ??
+            l.tr('screens_admin_pending_registrations_screen.026'),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_admin_pending_registrations_screen.027'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
+    }
+  }
+
+  Future<void> _confirmWithoutOtp(Map<String, dynamic> request) async {
+    final l = context.loc;
+    final requestId = request['id']?.toString() ?? '';
+    if (requestId.isEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('screens_admin_pending_registrations_screen.028')),
+        content: Text(l.tr('screens_admin_pending_registrations_screen.029')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l.tr('screens_admin_pending_registrations_screen.010')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l.tr('screens_admin_pending_registrations_screen.030')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _busyId = requestId);
+    try {
+      final response = await _apiService.confirmPendingRegistrationWithoutOtp(
+        requestId,
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: l.tr('screens_admin_pending_registrations_screen.028'),
+        message:
+            response['message']?.toString() ??
+            l.tr('screens_admin_pending_registrations_screen.031'),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_admin_pending_registrations_screen.032'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
+    }
+  }
+
   List<Map<String, dynamic>> get _filteredRequests {
     final query = _searchQuery.trim().toLowerCase();
     if (query.isEmpty) {
@@ -253,7 +354,9 @@ class _AdminPendingRegistrationsScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l.tr('screens_admin_pending_registrations_screen.018'),
+                          l.tr(
+                            'screens_admin_pending_registrations_screen.018',
+                          ),
                           style: AppTheme.bodyAction.copyWith(
                             color: AppTheme.textSecondary,
                             height: 1.5,
@@ -312,8 +415,8 @@ class _AdminPendingRegistrationsScreenState
     final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     final isBusy = _busyId == requestId;
-    final otpVerified = (request['otpVerifiedAt']?.toString().trim().isNotEmpty ??
-        false);
+    final otpVerified =
+        (request['otpVerifiedAt']?.toString().trim().isNotEmpty ?? false);
     final createdAt = request['createdAt']?.toString() ?? '';
 
     return ShwakelCard(
@@ -331,7 +434,9 @@ class _AdminPendingRegistrationsScreenState
                     Text(
                       request['fullName']?.toString().trim().isNotEmpty == true
                           ? request['fullName'].toString()
-                          : l.tr('screens_admin_pending_registrations_screen.019'),
+                          : l.tr(
+                              'screens_admin_pending_registrations_screen.019',
+                            ),
                       style: AppTheme.h3,
                     ),
                     const SizedBox(height: 4),
@@ -357,49 +462,54 @@ class _AdminPendingRegistrationsScreenState
             spacing: 10,
             runSpacing: 10,
             children: [
-              _infoChip(Icons.call_rounded, request['whatsapp']?.toString() ?? '-'),
-              if ((request['nationalId']?.toString().trim().isNotEmpty ?? false))
-                _infoChip(Icons.badge_rounded, request['nationalId'].toString()),
+              _infoChip(
+                Icons.call_rounded,
+                request['whatsapp']?.toString() ?? '-',
+              ),
+              if ((request['nationalId']?.toString().trim().isNotEmpty ??
+                  false))
+                _infoChip(
+                  Icons.badge_rounded,
+                  request['nationalId'].toString(),
+                ),
               if (createdAt.isNotEmpty)
                 _infoChip(Icons.schedule_rounded, createdAt),
             ],
           ),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isBusy ? null : () => _reject(request),
-                  icon: isBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.close_rounded),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.error,
-                  ),
-                  label: Text(l.tr('screens_admin_pending_registrations_screen.022')),
-                ),
+              _actionButton(
+                onPressed: isBusy ? null : () => _reject(request),
+                icon: Icons.close_rounded,
+                label: l.tr('screens_admin_pending_registrations_screen.022'),
+                isBusy: isBusy,
+                outlined: true,
+                foregroundColor: AppTheme.error,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
+              if (!otpVerified) ...[
+                _actionButton(
+                  onPressed: isBusy ? null : () => _resendOtp(request),
+                  icon: Icons.refresh_rounded,
+                  label: l.tr('screens_admin_pending_registrations_screen.025'),
+                  isBusy: isBusy,
+                ),
+                _actionButton(
+                  onPressed: isBusy ? null : () => _confirmWithoutOtp(request),
+                  icon: Icons.verified_user_rounded,
+                  label: l.tr('screens_admin_pending_registrations_screen.030'),
+                  isBusy: isBusy,
+                  outlined: true,
+                ),
+              ] else
+                _actionButton(
                   onPressed: isBusy ? null : () => _approve(request),
-                  icon: isBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.check_rounded),
-                  label: Text(l.tr('screens_admin_pending_registrations_screen.023')),
+                  icon: Icons.check_rounded,
+                  label: l.tr('screens_admin_pending_registrations_screen.023'),
+                  isBusy: isBusy,
                 ),
-              ),
             ],
           ),
           if (!otpVerified) ...[
@@ -411,6 +521,43 @@ class _AdminPendingRegistrationsScreenState
           ],
         ],
       ),
+    );
+  }
+
+  Widget _actionButton({
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    required bool isBusy,
+    bool outlined = false,
+    Color? foregroundColor,
+  }) {
+    final buttonIcon = isBusy
+        ? SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: outlined ? foregroundColor : Colors.white,
+            ),
+          )
+        : Icon(icon);
+    final child = Text(label);
+
+    return SizedBox(
+      width: 210,
+      child: outlined
+          ? OutlinedButton.icon(
+              onPressed: onPressed,
+              icon: buttonIcon,
+              style: OutlinedButton.styleFrom(foregroundColor: foregroundColor),
+              label: child,
+            )
+          : FilledButton.icon(
+              onPressed: onPressed,
+              icon: buttonIcon,
+              label: child,
+            ),
     );
   }
 

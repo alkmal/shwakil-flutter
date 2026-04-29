@@ -18,6 +18,8 @@ class OtpRequestResult {
     this.debugOtpCode,
     this.otpRequired,
     this.pendingRegistrationId,
+    this.loginRequired,
+    this.loginIdentifier,
   });
 
   final String? message;
@@ -25,6 +27,20 @@ class OtpRequestResult {
   final String? debugOtpCode;
   final bool? otpRequired;
   final String? pendingRegistrationId;
+  final bool? loginRequired;
+  final String? loginIdentifier;
+}
+
+class PendingRegistrationLookupResult {
+  const PendingRegistrationLookupResult({
+    required this.hasPendingRegistration,
+    this.message,
+    this.pendingRegistration,
+  });
+
+  final bool hasPendingRegistration;
+  final String? message;
+  final Map<String, dynamic>? pendingRegistration;
 }
 
 class AuthService {
@@ -120,6 +136,10 @@ class AuthService {
           ? body['otpRequired'] as bool
           : null,
       pendingRegistrationId: body['pendingRegistrationId']?.toString(),
+      loginRequired: body['loginRequired'] is bool
+          ? body['loginRequired'] as bool
+          : null,
+      loginIdentifier: body['loginIdentifier']?.toString(),
     );
   }
 
@@ -197,6 +217,35 @@ class AuthService {
           ? body['otpRequired'] as bool
           : null,
       pendingRegistrationId: body['pendingRegistrationId']?.toString(),
+      loginRequired: body['loginRequired'] is bool
+          ? body['loginRequired'] as bool
+          : null,
+      loginIdentifier: body['loginIdentifier']?.toString(),
+    );
+  }
+
+  Future<PendingRegistrationLookupResult>
+  getPendingRegistrationForCurrentDevice() async {
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final response = await _postWithFallback(
+      'auth/register/pending',
+      body: {
+        'deviceId': deviceId,
+      },
+    );
+    if (response.statusCode >= 400) {
+      throw Exception(_extractRegistrationMessage(response.body));
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final pendingRegistrationValue = body['pendingRegistration'];
+
+    return PendingRegistrationLookupResult(
+      hasPendingRegistration: body['hasPendingRegistration'] == true,
+      message: body['message']?.toString(),
+      pendingRegistration: pendingRegistrationValue is Map
+          ? Map<String, dynamic>.from(pendingRegistrationValue)
+          : null,
     );
   }
 

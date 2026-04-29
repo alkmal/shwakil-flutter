@@ -24,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _whatsappC = TextEditingController();
 
   bool _isLoading = false;
+  bool _isCheckingPendingRegistration = true;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
@@ -35,6 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.initState();
     _loadSettings();
     _loadPendingReferral();
+    _checkPendingRegistrationForDevice();
   }
 
   @override
@@ -63,12 +65,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _loadPendingReferral() async {
-    final referralCode = await ReferralAttributionService.getPendingReferralCode();
+    final referralCode =
+        await ReferralAttributionService.getPendingReferralCode();
     if (!mounted) {
       return;
     }
 
     setState(() => _pendingReferralCode = referralCode);
+  }
+
+  Future<void> _checkPendingRegistrationForDevice() async {
+    try {
+      final result = await _authService.getPendingRegistrationForCurrentDevice();
+      if (!mounted) {
+        return;
+      }
+
+      final pendingRegistration = result.pendingRegistration;
+      if (result.hasPendingRegistration && pendingRegistration != null) {
+        final whatsapp = pendingRegistration['whatsapp']?.toString().trim() ?? '';
+        final fullName =
+            pendingRegistration['fullName']?.toString().trim() ?? '';
+        final countryCode =
+            pendingRegistration['countryCode']?.toString().trim() ?? '';
+        final pendingRegistrationId =
+            pendingRegistration['id']?.toString().trim() ?? '';
+
+        if (whatsapp.isNotEmpty && pendingRegistrationId.isNotEmpty) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => OtpVerificationScreen(
+                fullName: fullName,
+                username: pendingRegistration['username']?.toString() ?? '',
+                whatsapp: whatsapp,
+                countryCode: countryCode,
+                termsAccepted: true,
+                referralPhone: _pendingReferralCode,
+                pendingRegistrationId: pendingRegistrationId,
+                purpose: 'register',
+                statusMessage: result.message,
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    } catch (_) {
+      // Do not block registration if the pending lookup fails.
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingPendingRegistration = false);
+      }
+    }
   }
 
   String? _validatePersonalStep() {
@@ -136,13 +184,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
+      if (otp.loginRequired == true) {
+        await AppAlertService.showInfo(
+          context,
+          title: l.tr('screens_register_screen.028'),
+          message: otp.message ?? 'هذا الرقم مرتبط مسبقًا، انتقل إلى تسجيل الدخول.',
+        );
+        if (!mounted) {
+          return;
+        }
+        Navigator.pushReplacementNamed(
+          context,
+          '/login',
+          arguments: {
+            'initialIdentifier': otp.loginIdentifier ?? whatsapp,
+          },
+        );
+        return;
+      }
+
+      final pendingRegistrationId = otp.pendingRegistrationId?.trim() ?? '';
+      if (pendingRegistrationId.isNotEmpty && otp.otpRequired != false) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtpVerificationScreen(
+              fullName: _fullNameC.text.trim(),
+              username: '',
+              whatsapp: otp.whatsapp?.trim().isNotEmpty == true
+                  ? otp.whatsapp!.trim()
+                  : whatsapp,
+              countryCode: _selectedCountry.dialCode,
+              termsAccepted: true,
+              referralPhone: _pendingReferralCode,
+              pendingRegistrationId: pendingRegistrationId,
+              purpose: 'register',
+              initialDebugOtpCode: otp.debugOtpCode,
+              statusMessage: otp.message,
+            ),
+          ),
+        );
+        return;
+      }
+
       if (otp.otpRequired == false) {
         await AppAlertService.showSuccess(
           context,
           title: l.tr('screens_register_screen.009'),
           message:
-              otp.message ??
-              'تم استلام بياناتك وسيتم التواصل معك في أقرب وقت ممكن.',
+              otp.message ?? 'تم تسجيل بياناتكم، وسيتم التواصل معكم للتفاصيل.',
         );
         if (!mounted) {
           return;
@@ -161,9 +251,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             countryCode: _selectedCountry.dialCode,
             termsAccepted: true,
             referralPhone: _pendingReferralCode,
-            pendingRegistrationId: otp.pendingRegistrationId,
+            pendingRegistrationId: pendingRegistrationId,
             purpose: 'register',
             initialDebugOtpCode: otp.debugOtpCode,
+            statusMessage: otp.message,
           ),
         ),
       );
@@ -185,6 +276,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingPendingRegistration) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (!_registrationEnabled) {
       return _buildDisabledState();
     }
@@ -228,6 +326,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Navigator.pushReplacementNamed(context, '/login'),
                         child: Text(l.tr('screens_register_screen.040')),
                       ),
+                      if ((_supportWhatsapp ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: SupportContactCard(
+                            phoneNumber: _supportWhatsapp!,
+                            title: l.tr('screens_register_screen.028'),
+                            message: l.tr('screens_register_screen.045'),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -320,7 +429,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             label: l.tr('screens_register_screen.023'),
             onPressed: _register,
             isLoading: _isLoading,
-            icon: Icons.sms_rounded,
+            icon: Icons.assignment_turned_in_rounded,
             iconAtEnd: true,
           ),
         ],
@@ -461,10 +570,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            _pendingReferralCode ?? '',
-            style: AppTheme.bodyBold,
-          ),
+          Text(_pendingReferralCode ?? '', style: AppTheme.bodyBold),
         ],
       ),
     );

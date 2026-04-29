@@ -1088,11 +1088,15 @@ class ApiService {
   Future<Map<String, dynamic>> resendAdminUserAccountDetails({
     required String userId,
     bool regeneratePassword = true,
+    String deliveryMethod = 'sms',
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/users/$userId/resend-account-details'),
       headers: await _headers(),
-      body: jsonEncode({'regeneratePassword': regeneratePassword}),
+      body: jsonEncode({
+        'regeneratePassword': regeneratePassword,
+        'deliveryMethod': deliveryMethod.trim(),
+      }),
     );
     return _decodeObject(response);
   }
@@ -1681,6 +1685,16 @@ class ApiService {
       AppConfig.apiUri('admin/registrations/$requestId/approve'),
       headers: await _headers(),
       body: jsonEncode({'allowUnverifiedWhatsapp': allowUnverifiedWhatsapp}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> confirmPendingRegistrationWithoutOtp(
+    String requestId,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/registrations/$requestId/confirm-without-otp'),
+      headers: await _headers(),
     );
     return _decodeObject(response);
   }

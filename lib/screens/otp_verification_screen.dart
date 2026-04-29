@@ -24,6 +24,7 @@ class OtpVerificationScreen extends StatefulWidget {
     this.redirectRoute,
     this.offlineMode = false,
     this.initialDebugOtpCode,
+    this.statusMessage,
   });
 
   final String fullName;
@@ -40,6 +41,7 @@ class OtpVerificationScreen extends StatefulWidget {
   final String? redirectRoute;
   final bool offlineMode;
   final String? initialDebugOtpCode;
+  final String? statusMessage;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -53,6 +55,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   bool _isLoading = false;
   bool _isResending = false;
   String? _debugCode;
+  String? _statusMessage;
   int _cooldown = 60;
   Timer? _timer;
 
@@ -66,6 +69,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.initState();
     _pendingRegistrationId = widget.pendingRegistrationId;
     _debugCode = widget.initialDebugOtpCode;
+    _statusMessage = widget.statusMessage?.trim();
     _startTimer();
   }
 
@@ -156,19 +160,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
       final navigator = Navigator.of(context);
       if (!await LocalSecurityService.hasConfiguredLocalSecurity()) {
-        final shouldOpenSecuritySetup = await _showLocalSecurityWarning();
         await LocalSecurityService.markLocalSecuritySetupReminderShown();
         if (!mounted) {
           return;
         }
-        if (shouldOpenSecuritySetup == true) {
-          navigator.pushNamedAndRemoveUntil(
-            '/security-settings',
-            (route) => false,
-            arguments: const {'showSetupHint': true},
-          );
-          return;
-        }
+        navigator.pushNamedAndRemoveUntil(
+          '/security-settings',
+          (route) => false,
+          arguments: const {'showSetupHint': true},
+        );
+        return;
       }
       if (widget.redirectRoute?.trim().isNotEmpty == true) {
         if (widget.offlineMode) {
@@ -194,30 +195,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  Future<bool?> _showLocalSecurityWarning() async {
-    final l = context.loc;
-    if (!mounted) {
-      return false;
-    }
-    return showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.tr('screens_security_settings_screen.072')),
-        content: Text(l.tr('screens_security_settings_screen.073')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.tr('screens_login_screen.019')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.tr('screens_login_screen.020')),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _resend() async {
@@ -246,6 +223,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
       setState(() {
         _debugCode = response.debugOtpCode;
+        _statusMessage = response.message?.trim();
         if ((response.pendingRegistrationId ?? '').trim().isNotEmpty) {
           _pendingRegistrationId = response.pendingRegistrationId!.trim();
         }
@@ -347,6 +325,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             textAlign: TextAlign.center,
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
+          if ((_statusMessage ?? '').isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                borderRadius: AppTheme.radiusMd,
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Text(
+                _statusMessage!,
+                textAlign: TextAlign.center,
+                style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(14),

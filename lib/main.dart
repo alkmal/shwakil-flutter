@@ -18,9 +18,22 @@ final RouteObserver<ModalRoute<void>> appRouteObserver =
 final Map<String, WidgetBuilder> _appRoutes = {
   '/app-shell': (context) => const _AppLifecycleShell(),
   '/home': (context) => const HomeScreen(),
-  '/login': (context) => const LoginScreen(),
-  '/login-offline': (context) =>
-      const LoginScreen(redirectRoute: '/home', offlineMode: true),
+  '/login': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return LoginScreen(
+      initialIdentifier: options['initialIdentifier']?.toString(),
+    );
+  },
+  '/login-offline': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return LoginScreen(
+      redirectRoute: '/home',
+      offlineMode: true,
+      initialIdentifier: options['initialIdentifier']?.toString(),
+    );
+  },
   '/register': (context) => const RegisterScreen(),
   '/unlock': (context) => const DeviceUnlockScreen(),
   '/balance': (context) => const BalanceScreen(),

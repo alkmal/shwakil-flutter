@@ -680,7 +680,7 @@ class _PrepaidMultipayCardsScreenState
   }
 
   String _prepaidCardBarcodePayload(Map<String, dynamic> card) {
-    final rawNumber = card['rawCardNumber']?.toString() ?? '';
+    final rawNumber = _resolvedRawCardNumber(card);
     return jsonEncode({
       'type': 'prepaid_multipay_card',
       'cardNumber': rawNumber,
@@ -705,8 +705,14 @@ class _PrepaidMultipayCardsScreenState
       return;
     }
 
-    final rawNumber = card['rawCardNumber']?.toString() ?? '';
+    final rawNumber = _resolvedRawCardNumber(card);
     if (rawNumber.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'بيانات البطاقة غير متاحة',
+        message:
+            'تعذر تحميل رقم البطاقة الكامل لهذه البطاقة حاليًا. حدّث الصفحة ثم حاول مرة أخرى.',
+      );
       return;
     }
 
@@ -752,15 +758,21 @@ class _PrepaidMultipayCardsScreenState
       return;
     }
 
-    final rawNumber = card['rawCardNumber']?.toString() ?? '';
+    final rawNumber = _resolvedRawCardNumber(card);
     if (rawNumber.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'بيانات البطاقة غير متاحة',
+        message:
+            'تعذر تحميل رقم البطاقة الكامل للطباعة. حدّث الصفحة ثم حاول مرة أخرى.',
+      );
       return;
     }
 
     try {
       await _ensurePdfFonts();
       final balance = (card['balance'] as num?)?.toDouble() ?? 0;
-      final cardNumber = card['cardNumber']?.toString() ?? rawNumber;
+      final cardNumber = _resolvedDisplayCardNumber(card);
       final label = card['label']?.toString() ?? 'بطاقة دفع مسبق';
       final expiry = card['expiryLabel']?.toString() ?? '-';
       final ownerName = _cardOwnerName();
@@ -942,6 +954,30 @@ class _PrepaidMultipayCardsScreenState
         setState(() => _isWritingNfc = false);
       }
     }
+  }
+
+  String _resolvedRawCardNumber(Map<String, dynamic> card) {
+    final rawNumber = card['rawCardNumber']?.toString().trim() ?? '';
+    if (rawNumber.isNotEmpty) {
+      return rawNumber;
+    }
+
+    final formatted = card['cardNumber']?.toString() ?? '';
+    return formatted.replaceAll(RegExp(r'\D+'), '');
+  }
+
+  String _resolvedDisplayCardNumber(Map<String, dynamic> card) {
+    final display = card['cardNumber']?.toString().trim() ?? '';
+    if (display.isNotEmpty) {
+      return display;
+    }
+
+    final raw = _resolvedRawCardNumber(card);
+    if (raw.length != 16) {
+      return raw;
+    }
+
+    return '${raw.substring(0, 4)} ${raw.substring(4, 8)} ${raw.substring(8, 12)} ${raw.substring(12)}';
   }
 
   Future<void> _readPaymentCardFromNfc() async {
@@ -1470,7 +1506,7 @@ class _PrepaidMultipayCardsScreenState
 
     final security = await TransferSecurityService.confirmTransfer(
       context,
-      allowOtpFallback: false,
+      allowOtpFallback: true,
     );
     if (!mounted || !security.isVerified) {
       return false;

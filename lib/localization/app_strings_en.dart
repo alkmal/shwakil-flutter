@@ -21,7 +21,7 @@ const Map<String, String> appStringsEn = {
   'screens_account_settings_screen.019': 'Basic information',
   'screens_account_settings_screen.020': 'Full name',
   'screens_account_settings_screen.021': 'Username',
-  'screens_account_settings_screen.022': 'Phone / WhatsApp',
+  'screens_account_settings_screen.022': 'Phone number',
   'screens_account_settings_screen.023': 'Email',
   'screens_account_settings_screen.024': 'Address',
   'screens_account_settings_screen.025': 'Identity & extra details',
@@ -142,11 +142,11 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.006': 'Username',
   'screens_admin_customers_screen.007': 'Full name',
   'screens_admin_customers_screen.008': 'Country code',
-  'screens_admin_customers_screen.009': 'WhatsApp',
+  'screens_admin_customers_screen.009': 'Phone number',
   'screens_admin_customers_screen.010': 'Cancel',
   'screens_admin_customers_screen.011': 'Saving...',
   'screens_admin_customers_screen.012': 'Create',
-  'screens_admin_customers_screen.013': 'Resend WhatsApp credentials',
+  'screens_admin_customers_screen.013': 'Resend account details',
   'screens_admin_customers_screen.014': 'Cancel',
   'screens_admin_customers_screen.015': 'Send',
   'screens_admin_customers_screen.016': 'Account details resent.',
@@ -158,16 +158,16 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.022': 'Add user',
   'screens_admin_customers_screen.023': 'Search for a customer...',
   'screens_admin_customers_screen.024':
-      'Username and WhatsApp number are required.',
+      'Username and phone number are required.',
   'screens_admin_customers_screen.025':
       'The user has been created successfully.',
   'screens_admin_customers_screen.026':
-      'A temporary password will be generated and sent automatically to the provided WhatsApp number.',
+      'A temporary password will be generated and sent automatically by SMS to the provided number.',
   'screens_admin_customers_screen.047':
       'Username must be 3-32 characters using English letters, numbers, and only . _ @ + - symbols.',
   'screens_admin_customers_screen.027': 'Unable to determine the user account.',
   'screens_admin_customers_screen.028':
-      'A new password and account details will be sent over WhatsApp to the linked number.',
+      'A new password and account details will be sent by SMS to the linked number.',
   'screens_admin_customers_screen.029':
       'Search customers, add new users, and open each customer profile independently.',
   'screens_admin_customers_screen.030': '{count} customers',
@@ -193,7 +193,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.017': 'Contact details',
   'screens_admin_customer_screen.018': 'Username',
   'screens_admin_customer_screen.019': 'Full name',
-  'screens_admin_customer_screen.020': 'WhatsApp',
+  'screens_admin_customer_screen.020': 'Phone number',
   'screens_admin_customer_screen.021': 'Join date',
   'screens_admin_customer_screen.022': 'User',
   'screens_admin_customer_screen.023': 'Customer transactions',
@@ -241,11 +241,11 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.065':
       'Customer details were updated successfully.',
   'screens_admin_customer_screen.066':
-      'A new password will be generated, then the login details will be sent to the account WhatsApp. Continue?',
+      'A new password will be generated, then the login details will be sent by SMS to the linked number. Continue?',
   'screens_admin_customer_screen.067':
-      'A new password was created and the user details were sent via WhatsApp.',
+      'A new password was created and the user details were sent by SMS.',
   'screens_admin_customer_screen.068':
-      'Resending user details through WhatsApp will automatically generate a new password before sending.',
+      'Resending user details by SMS will automatically generate a new password before sending.',
   'screens_admin_customer_screen.069':
       'Review financial transactions and activity related to this customer.',
   'screens_admin_customer_screen.070': 'No devices are linked to this account.',
@@ -357,7 +357,7 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.089': 'User ID: {id}',
   'screens_balance_screen.090': 'User ID: {id} • Balance: {balance}',
   'screens_balance_screen.091': 'Selected account',
-  'screens_balance_screen.092': 'WhatsApp number',
+  'screens_balance_screen.092': 'Phone number',
   'screens_balance_screen.093': 'Amount',
   'screens_balance_screen.094':
       'Select an account first using the phone lookup.',
@@ -522,7 +522,7 @@ const Map<String, String> appStringsEn = {
   'screens_forgot_password_screen.037':
       'Password must contain both letters and numbers.',
   'screens_forgot_password_screen.038':
-      'A recovery code has been sent to the account WhatsApp. The password will not change without the code.',
+      'A recovery code has been sent to the account phone number. The password will not change without the code.',
   'screens_forgot_password_screen.039': 'Match found. Username: {username}',
   'screens_forgot_password_screen.040':
       'Your password has been reset. You can log in now.',
@@ -626,6 +626,9 @@ const Map<String, String> appStringsEn = {
   'screens_login_screen.020': 'Set up now',
   'screens_login_screen.021': 'PIN or biometrics',
   'screens_login_screen.022': 'PIN',
+  'screens_login_screen.027': 'Contact options',
+  'screens_login_screen.028':
+      'For sign-in help or registration follow-up, contact us on WhatsApp.',
   'screens_onboarding_screen.001': 'Skip',
   'screens_onboarding_screen.002': 'Get Started',
   'screens_onboarding_screen.003': 'Next',
@@ -636,7 +639,7 @@ const Map<String, String> appStringsEn = {
   'screens_otp_verification_screen.005': 'Could not resend',
   'screens_otp_verification_screen.006': 'Verify Code',
   'screens_otp_verification_screen.007': 'Username',
-  'screens_otp_verification_screen.008': 'WhatsApp',
+  'screens_otp_verification_screen.008': 'Phone number',
   'screens_otp_verification_screen.009': 'Verification code',
   'screens_otp_verification_screen.010': 'Debug code: {debugCode}',
   'screens_otp_verification_screen.011': 'Complete registration',
@@ -681,13 +684,13 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.014': 'Birth date',
   'screens_register_screen.015': 'Contact Details',
   'screens_register_screen.016': 'Country',
-  'screens_register_screen.017': 'WhatsApp number',
+  'screens_register_screen.017': 'Phone number',
   'screens_register_screen.018': 'Referral phone number',
   'screens_register_screen.019': 'Account follow-up',
   'screens_register_screen.020': 'Password',
   'screens_register_screen.021': 'Confirm password',
   'screens_register_screen.022': 'Previous',
-  'screens_register_screen.023': 'Send verification code',
+  'screens_register_screen.023': 'Submit details',
   'screens_register_screen.024': 'Next',
   'screens_register_screen.025': 'Details',
   'screens_register_screen.026': 'Contact',
@@ -696,14 +699,14 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.029': 'Please enter your full name correctly.',
   'screens_register_screen.030':
       'Username must use English letters or numbers only, with . _ - + and @ allowed.',
-  'screens_register_screen.031': 'Please enter a valid WhatsApp number.',
+  'screens_register_screen.031': 'Please enter a valid phone number.',
   'screens_register_screen.032': 'Referral phone number is invalid.',
   'screens_register_screen.033':
       'You do not need to enter a password during registration.',
   'screens_register_screen.034':
       'A password will be created automatically after the admin approves your registration.',
   'screens_register_screen.035':
-      'Your password will be sent in the approval message to your WhatsApp number.',
+      'Your password will be sent in the approval message to your phone number.',
   'screens_register_screen.036':
       'You do not need to confirm a password at this stage.',
   'screens_register_screen.037':
@@ -714,12 +717,11 @@ const Map<String, String> appStringsEn = {
       'Complete only the basic registration details. A username will be generated automatically, and you can edit the username and referral number later from the profile before verification.',
   'screens_register_screen.040': 'Already have an account? Log in',
   'screens_register_screen.041':
-      'You do not need to create a password now. After the admin approves your registration, your password will be sent to your WhatsApp so you can sign in and continue account verification.',
+      'You do not need to create a password now. After the admin approves your registration, your password will be sent by SMS so you can sign in and continue account verification.',
   'screens_register_screen.042':
       'I agree to the displayed terms, policies, and fees.',
   'screens_register_screen.043': 'Registration is currently unavailable',
-  'screens_register_screen.044':
-      'Contact us for more details.',
+  'screens_register_screen.044': 'Contact us for more details.',
   'screens_register_screen.045':
       'Message the administration directly on WhatsApp to request account creation or registration access.',
   'screens_register_screen.046': 'Back to login',
@@ -1065,11 +1067,11 @@ const Map<String, String> appStringsEn = {
   'screens_otp_verification_screen.016':
       'Your account has been created successfully. You can log in now.',
   'screens_otp_verification_screen.017':
-      'A new verification code has been sent to WhatsApp.',
+      'A new verification code has been sent by SMS.',
   'screens_otp_verification_screen.018':
-      'Enter the code sent to your WhatsApp to complete registration.',
+      'Enter the code sent by SMS to complete registration.',
   'screens_otp_verification_screen.019':
-      'Enter the code sent to your WhatsApp to sign in securely.',
+      'Enter the code sent by SMS to sign in securely.',
   'screens_otp_verification_screen.020':
       'You can resend the code in {count} seconds',
   'screens_otp_verification_screen.021':
@@ -2262,9 +2264,9 @@ const Map<String, String> appStringsEn = {
   'screens_debt_book_screen.049':
       'A quick and direct debt book summary without unnecessary visual complexity.',
   'services_transfer_security_service.001':
-      'Biometric verification succeeded. Enter the OTP sent to the account WhatsApp to continue.',
+      'Biometric verification succeeded. Enter the verification code sent to the account phone number to continue.',
   'services_transfer_security_service.002':
-      'PIN verification succeeded. Enter the OTP sent to the account WhatsApp to continue.',
+      'PIN verification succeeded. Enter the verification code sent to the account phone number to continue.',
   'services_transfer_security_service.003': 'Confirm action',
   'services_transfer_security_service.004':
       'Biometric verification was attempted first. You can continue with PIN if you prefer.',
@@ -2274,11 +2276,11 @@ const Map<String, String> appStringsEn = {
   'services_transfer_security_service.008': 'Biometrics',
   'services_transfer_security_service.009': 'Confirm',
   'services_transfer_security_service.010':
-      'This device does not have biometrics or a saved PIN, so OTP will be used through the account WhatsApp.',
+      'This device does not have biometrics or a saved PIN, so a verification code will be sent to the account phone number.',
   'services_transfer_security_service.011':
-      'The code was sent to the account WhatsApp. Enter it to continue.',
+      'The code was sent to the account phone number. Enter it to continue.',
   'services_transfer_security_service.012':
-      'The code was sent to the account WhatsApp. Debug OTP: {code}',
+      'The code was sent to the account phone number. Debug code: {code}',
   'services_transfer_security_service.013': 'OTP verification',
   'services_transfer_security_service.014': 'Verification code',
   'services_transfer_security_service.015': 'Sending...',
@@ -2286,6 +2288,10 @@ const Map<String, String> appStringsEn = {
   'services_transfer_security_service.017': 'Send code',
   'services_transfer_security_service.018':
       'You can resend after {seconds} seconds',
+  'services_transfer_security_service.019': 'Local security required',
+  'services_transfer_security_service.020':
+      'This action cannot continue until biometrics or a PIN is enabled on this device from Security Settings.',
+  'services_transfer_security_service.021': 'Security settings',
   'widgets_app_sidebar.041': 'Affiliate marketing',
   'widgets_app_sidebar.042': 'Registration requests',
   'widgets_app_sidebar.043': 'Send notifications',
@@ -2401,7 +2407,7 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.072':
       'Enable local lock to protect your account',
   'screens_security_settings_screen.073':
-      'We recommend enabling a PIN or biometrics to strengthen your account security and make future sign-in and sensitive actions easier.',
+      'You must enable a PIN, biometrics, or both before using the rest of the app and sensitive actions.',
   'screens_admin_pending_registrations_screen.001':
       'Search by name, username, or phone',
   'screens_admin_pending_registrations_screen.002':
@@ -2435,12 +2441,24 @@ const Map<String, String> appStringsEn = {
   'screens_admin_pending_registrations_screen.019': 'No name',
   'screens_admin_pending_registrations_screen.020': 'Ready for review',
   'screens_admin_pending_registrations_screen.021':
-      'Waiting for WhatsApp confirmation',
+      'Waiting for phone confirmation',
   'screens_admin_pending_registrations_screen.022': 'Reject and delete request',
   'screens_admin_pending_registrations_screen.023':
       'Approve and create account',
   'screens_admin_pending_registrations_screen.024':
-      'The approve button will not appear until the requester confirms the WhatsApp verification code.',
+      'The approve button will not appear until the requester confirms the verification code sent to the phone number.',
+  'screens_admin_pending_registrations_screen.025': 'Resend verification code',
+  'screens_admin_pending_registrations_screen.026':
+      'Verification code resent successfully.',
+  'screens_admin_pending_registrations_screen.027':
+      'Failed to resend verification code. Please try again later.',
+  'screens_admin_pending_registrations_screen.028': 'Confirm without OTP',
+  'screens_admin_pending_registrations_screen.029':
+      'This will mark the requester phone as confirmed by admin without entering the verification code. Continue?',
+  'screens_admin_pending_registrations_screen.030': 'Confirm without OTP',
+  'screens_admin_pending_registrations_screen.031':
+      'The request was confirmed without OTP and can now be approved.',
+  'screens_admin_pending_registrations_screen.032': 'Could not confirm request',
   'screens_admin_system_settings_screen.066': 'Affiliate marketing',
   'screens_admin_system_settings_screen.067': 'Affiliate marketing settings',
   'screens_admin_system_settings_screen.068':
@@ -2477,9 +2495,9 @@ const Map<String, String> appStringsEn = {
   'screens_affiliate_center_screen.019': 'Disabled',
   'screens_affiliate_center_screen.020': 'Your referral details',
   'screens_affiliate_center_screen.021':
-      'The customer can enter your username or WhatsApp number during registration.',
+      'The customer can enter your username or phone number during registration.',
   'screens_affiliate_center_screen.022': 'Username',
-  'screens_affiliate_center_screen.023': 'WhatsApp number',
+  'screens_affiliate_center_screen.023': 'Phone number',
   'screens_affiliate_center_screen.024': 'Unavailable',
   'screens_affiliate_center_screen.025': 'Copy',
   'screens_affiliate_center_screen.026': 'Total referrals',
@@ -2494,7 +2512,7 @@ const Map<String, String> appStringsEn = {
   'screens_affiliate_center_screen.035': 'First qualifying top-up: {amount}',
   'screens_admin_dashboard_screen.087': 'Registration requests',
   'screens_admin_dashboard_screen.088':
-      'Approve or reject pending registration requests after WhatsApp confirmation.',
+      'Approve or reject pending registration requests after phone confirmation.',
   'screens_admin_dashboard_screen.089': 'Pending',
   'screens_inventory_screen.020': 'Cards summary',
   'screens_inventory_screen.021': 'Reprint results',

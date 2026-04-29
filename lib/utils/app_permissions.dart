@@ -94,8 +94,8 @@ class AppPermissions {
     return value == true;
   }
 
-  bool get canViewBalance => _raw['canViewBalance'] != false;
-  bool get canViewTransactions => _raw['canViewTransactions'] != false;
+  bool get canViewBalance => _isEnabled('canViewBalance');
+  bool get canViewTransactions => _isEnabled('canViewTransactions');
   bool get canViewInventory => _isEnabled('canViewInventory');
   bool get canViewQuickTransfer => _isEnabled('canViewQuickTransfer');
   bool get canViewContact => _raw['canViewContact'] != false;
@@ -110,7 +110,7 @@ class AppPermissions {
   bool get canIssueAppointmentTickets =>
       _isEnabled('canIssueAppointmentTickets');
   bool get canIssueQueueTickets => _isEnabled('canIssueQueueTickets');
-  bool get canViewPrivateCards => _raw['canViewPrivateCards'] != false;
+  bool get canViewPrivateCards => _isEnabled('canViewPrivateCards');
   bool get canRequestCardPrinting => _isEnabled('canRequestCardPrinting');
   bool get canScanCards => _isEnabled('canScanCards');
   bool get canOfflineCardScan => _isEnabled('canOfflineCardScan');
@@ -131,6 +131,14 @@ class AppPermissions {
       _isEnabled('canUsePrepaidMultipayNfc');
   bool get canOpenPrepaidMultipayCards =>
       canUsePrepaidMultipayCards || canAcceptPrepaidMultipayPayments;
+  bool get canAccessRegulatedWalletFeatures =>
+      canViewBalance ||
+      canViewTransactions ||
+      canOpenQuickTransfer ||
+      canTransfer ||
+      canWithdraw ||
+      canFinanceTopup ||
+      canOpenPrepaidMultipayCards;
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canManageUsers => _isEnabled('canManageUsers');
