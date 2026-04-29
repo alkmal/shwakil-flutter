@@ -290,50 +290,71 @@ class PDFService {
 
   bool _isLocationSpecific(VirtualCard card) {
     final scope = card.visibilityScope.trim().toLowerCase();
-    return card.isSingleUse ||
-        card.isDelivery ||
-        scope == 'location' ||
+    return scope == 'location' ||
         scope == 'place' ||
         scope == 'branch' ||
         scope == 'specific';
   }
 
-  String _cardTypeLabel(VirtualCard card) {
+  bool _isTicketCard(VirtualCard card) =>
+      card.isSingleUse || card.isAppointment || card.isQueueTicket;
+
+  String _privacyLabel(VirtualCard card) => card.isPrivate ? 'خاصة' : 'عامة';
+
+  String _cardKindLabel(VirtualCard card) {
     if (card.isDelivery) {
-      return 'بطاقة توصيل';
+      return 'بطاقة رصيد توصيل';
     }
+    if (card.isSingleUse) {
+      return 'تذكرة دخول';
+    }
+    if (card.isAppointment) {
+      return 'تذكرة موعد';
+    }
+    if (card.isQueueTicket) {
+      return 'تذكرة طابور';
+    }
+    return 'بطاقة رصيد';
+  }
+
+  String _cardTypeLabel(VirtualCard card) {
     if (_isLocationSpecific(card)) {
-      return 'مخصصة لمكان محدد';
+      return '${_cardKindLabel(card)} مخصصة لمكان محدد';
     }
-    return card.isPrivate ? 'مالية خاصة' : 'مالية عامة';
+    return '${_cardKindLabel(card)} ${_privacyLabel(card)}';
   }
 
   String _cardBadgeLabel(VirtualCard card) {
-    if (card.isDelivery) {
-      return 'توصيل';
-    }
     if (_isLocationSpecific(card)) {
-      return 'مكان محدد';
+      return 'مكان محدد - ${_cardKindLabel(card)}';
     }
-    return card.isPrivate ? 'مالية خاصة' : 'مالية عامة';
+    return '${_privacyLabel(card)} - ${_cardKindLabel(card)}';
   }
 
   String _cardTitle(VirtualCard card) {
-    if (card.isDelivery) {
-      return 'بطاقة توصيل';
+    if (_isTicketCard(card)) {
+      final title = card.title?.trim() ?? '';
+      return title.isNotEmpty ? title : _cardKindLabel(card);
     }
-    return card.isSingleUse
-        ? 'بطاقة دخول أو تسليم'
-        : '${card.value.toStringAsFixed(2)} شيكل';
+    return '${card.value.toStringAsFixed(2)} شيكل';
   }
 
   String _cardSubtitle(VirtualCard card) {
     if (card.isDelivery) {
-      return 'بطاقة توصيل يمكن استخدامها للمدفوعات';
+      return 'بطاقة رصيد عامة للتوصيل والمدفوعات';
     }
-    return card.isSingleUse
-        ? 'مخصصة للدخول أو التسليم داخل النظام'
-        : _valueInArabicWords(card.value);
+    if (card.isSingleUse) {
+      return 'تذكرة خاصة لاستخدام واحد داخل النظام';
+    }
+    if (card.isAppointment) {
+      return 'تذكرة موعد خاصة لمستفيدين محددين';
+    }
+    if (card.isQueueTicket) {
+      return 'تذكرة طابور خاصة لمستفيدين محددين';
+    }
+    return card.isPrivate
+        ? 'بطاقة رصيد خاصة لمستفيدين محددين'
+        : 'بطاقة رصيد عامة - ${_valueInArabicWords(card.value)}';
   }
 
   pw.Widget _topHeader(
@@ -354,8 +375,16 @@ class PDFService {
             vertical: compact ? 1.3 : 3,
           ),
           decoration: pw.BoxDecoration(
-            color: palette.soft,
+            color: card.isPrivate
+                ? const PdfColor.fromInt(0xFFFFE4E6)
+                : palette.soft,
             borderRadius: pw.BorderRadius.circular(compact ? 6 : 10),
+            border: pw.Border.all(
+              color: card.isPrivate
+                  ? const PdfColor.fromInt(0xFFFB7185)
+                  : palette.border,
+              width: compact ? 0.45 : 0.9,
+            ),
           ),
           child: pw.Text(
             _cardBadgeLabel(card),
@@ -363,7 +392,9 @@ class PDFService {
             style: _textStyle(
               fontSize: badgeFont,
               bold: true,
-              color: palette.primary,
+              color: card.isPrivate
+                  ? const PdfColor.fromInt(0xFFBE123C)
+                  : palette.primary,
             ),
           ),
         ),
@@ -408,10 +439,10 @@ class PDFService {
                     pw.SizedBox(height: compact ? 1.2 : 2.5),
                     pw.Text(
                       card.isDelivery
-                          ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
-                          : card.isSingleUse
-                          ? 'بطاقة استخدام داخلية'
-                          : 'بطاقة مالية رقمية',
+                          ? 'بطاقة رصيد عامة للتوصيل والمدفوعات'
+                          : _isTicketCard(card)
+                          ? 'تذكرة خاصة داخل النظام'
+                          : 'بطاقة رصيد رقمية',
                       textDirection: pw.TextDirection.rtl,
                       textAlign: pw.TextAlign.right,
                       style: _textStyle(
@@ -676,7 +707,7 @@ class PDFService {
                   _topHeader(palette, compact: true, card: card),
                   pw.Column(
                     children: [
-                      if (card.isSingleUse)
+                      if (_isTicketCard(card))
                         pw.Text(
                           _cardTitle(card),
                           textAlign: pw.TextAlign.center,
@@ -688,14 +719,14 @@ class PDFService {
                           ),
                         ),
                       pw.Text(
-                        card.isSingleUse
+                        _isTicketCard(card)
                             ? _cardSubtitle(card)
                             : 'بطاقة رقمية للاستخدام الداخلي',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 5.2, color: _mutedColor),
                       ),
-                      if (!card.isSingleUse) ...[
+                      if (!_isTicketCard(card)) ...[
                         pw.SizedBox(height: 1.5),
                         pw.Text(
                           _cardTitle(card),
@@ -812,6 +843,16 @@ class PDFService {
                           color: palette.primary,
                         ),
                       ),
+                      if (card.issueCost > 0)
+                        pw.Text(
+                          'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                          textAlign: pw.TextAlign.right,
+                          textDirection: pw.TextDirection.rtl,
+                          style: _textStyle(
+                            fontSize: 4.0,
+                            color: palette.primary,
+                          ),
+                        ),
                       pw.SizedBox(height: 0.3),
                       pw.Text(
                         'shwakil.alkmal.com',
@@ -916,7 +957,7 @@ class PDFService {
                   _topHeader(palette, compact: false, card: card),
                   pw.Column(
                     children: [
-                      if (card.isSingleUse)
+                      if (_isTicketCard(card))
                         pw.Text(
                           _cardTitle(card),
                           textAlign: pw.TextAlign.center,
@@ -928,14 +969,14 @@ class PDFService {
                           ),
                         ),
                       pw.Text(
-                        card.isSingleUse
+                        _isTicketCard(card)
                             ? _cardSubtitle(card)
                             : 'بطاقة رقمية للاستخدام الداخلي',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.rtl,
                         style: _textStyle(fontSize: 9.2, color: _mutedColor),
                       ),
-                      if (!card.isSingleUse) ...[
+                      if (!_isTicketCard(card)) ...[
                         pw.SizedBox(height: 7),
                         pw.Text(
                           _cardTitle(card),
@@ -962,9 +1003,9 @@ class PDFService {
                       pw.SizedBox(height: 4),
                       pw.Text(
                         card.isDelivery
-                            ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
-                            : card.isSingleUse
-                            ? 'صالحة للدخول أو التسليم داخل النظام'
+                            ? 'بطاقة رصيد عامة يمكن استخدامها للمدفوعات'
+                            : _isTicketCard(card)
+                            ? 'صالحة للمستفيدين المحددين فقط'
                             : 'قيمة داخلية صالحة للاستخدام داخل النظام',
                         textAlign: pw.TextAlign.center,
                         textDirection: pw.TextDirection.rtl,
@@ -1050,6 +1091,16 @@ class PDFService {
                           color: palette.primary,
                         ),
                       ),
+                      if (card.issueCost > 0)
+                        pw.Text(
+                          'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                          textAlign: pw.TextAlign.right,
+                          textDirection: pw.TextDirection.rtl,
+                          style: _textStyle(
+                            fontSize: 7.6,
+                            color: palette.primary,
+                          ),
+                        ),
                       pw.SizedBox(height: 2),
                       pw.Text(
                         'تاريخ الإصدار: ${DateFormat('yyyy-MM-dd').format(card.createdAt)}',

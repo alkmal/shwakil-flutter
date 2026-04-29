@@ -872,6 +872,9 @@ class ApiService {
     required double cardRedeemPercent,
     required double cardResellPercent,
     required double cardPrintRequestPercent,
+    required double standardCardIssueCost,
+    required double deliveryCardIssueCost,
+    required double privateCardIssueCost,
     required double singleUseTicketIssueCost,
     required double appointmentTicketIssueCost,
     required double queueTicketIssueCost,
@@ -885,6 +888,9 @@ class ApiService {
         'cardRedeemPercent': cardRedeemPercent,
         'cardResellPercent': cardResellPercent,
         'cardPrintRequestPercent': cardPrintRequestPercent,
+        'standardCardIssueCost': standardCardIssueCost,
+        'deliveryCardIssueCost': deliveryCardIssueCost,
+        'privateCardIssueCost': privateCardIssueCost,
         'singleUseTicketIssueCost': singleUseTicketIssueCost,
         'appointmentTicketIssueCost': appointmentTicketIssueCost,
         'queueTicketIssueCost': queueTicketIssueCost,
@@ -922,6 +928,10 @@ class ApiService {
     required int quantity,
     required String cardType,
     String notes = '',
+    List<String> allowedUserIds = const [],
+    String? validFrom,
+    String? validUntil,
+    Map<String, dynamic> cardDetails = const {},
   }) async {
     final response = await http.post(
       AppConfig.apiUri('cards/print-requests'),
@@ -931,6 +941,11 @@ class ApiService {
         'quantity': quantity,
         'cardType': cardType,
         'notes': notes.trim(),
+        if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
+        if ((validFrom ?? '').trim().isNotEmpty) 'validFrom': validFrom!.trim(),
+        if ((validUntil ?? '').trim().isNotEmpty)
+          'validUntil': validUntil!.trim(),
+        if (cardDetails.isNotEmpty) 'cardDetails': cardDetails,
       }),
     );
     final body = _decodeObject(response);
@@ -973,6 +988,10 @@ class ApiService {
     required int quantity,
     required String cardType,
     String notes = '',
+    List<String> allowedUserIds = const [],
+    String? validFrom,
+    String? validUntil,
+    Map<String, dynamic> cardDetails = const {},
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/card-print-requests'),
@@ -983,6 +1002,11 @@ class ApiService {
         'quantity': quantity,
         'cardType': cardType,
         'notes': notes.trim(),
+        if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
+        if ((validFrom ?? '').trim().isNotEmpty) 'validFrom': validFrom!.trim(),
+        if ((validUntil ?? '').trim().isNotEmpty)
+          'validUntil': validUntil!.trim(),
+        if (cardDetails.isNotEmpty) 'cardDetails': cardDetails,
       }),
     );
     return _decodeObject(response);

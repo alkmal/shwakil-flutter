@@ -67,6 +67,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     return switch (cardType) {
       'single_use' => l.tr('screens_card_print_requests_screen.027'),
       'delivery' => l.tr('shared.delivery_card_label'),
+      'appointment' => 'تذكرة موعد',
+      'queue' => 'تذكرة طابور',
       _ => l.tr('screens_card_print_requests_screen.028'),
     };
   }
@@ -75,6 +77,36 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     return cardType == 'delivery'
         ? context.loc.tr('shared.delivery_card_payments_note')
         : '';
+  }
+
+  bool _isBalanceCardType(String cardType) =>
+      cardType == 'standard' || cardType == 'delivery';
+
+  List<String> _issuablePrintCardTypes() {
+    final raw = _user?['cardIssuanceOptions'];
+    if (raw is List) {
+      final values = raw
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+      if (values.isNotEmpty) {
+        return values;
+      }
+    }
+    if (_isDriverAccount) {
+      return const ['delivery'];
+    }
+    return const ['standard', 'delivery', 'single_use', 'appointment', 'queue'];
+  }
+
+  double _cardRequestFeeAmount(double baseAmount, double feePercent) {
+    if (baseAmount <= 0 || feePercent <= 0) {
+      return 0;
+    }
+    final rounded = double.parse(
+      (baseAmount * (feePercent / 100)).toStringAsFixed(2),
+    );
+    return rounded > 0 ? rounded : 0.01;
   }
 
   @override
@@ -136,23 +168,73 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final valueController = TextEditingController();
     final quantityController = TextEditingController(text: '10');
     final notesController = TextEditingController();
-    var cardType = _isDriverAccount ? 'delivery' : 'standard';
+    final detailsTitleController = TextEditingController();
+    final detailsDescriptionController = TextEditingController();
+    final detailsLocationController = TextEditingController();
+    final startsAtController = TextEditingController();
+    final endsAtController = TextEditingController();
+    final validFromController = TextEditingController();
+    final validUntilController = TextEditingController();
+    final selectedUsers = <Map<String, dynamic>>[];
+    final availableTypes = _issuablePrintCardTypes();
+    var cardType =
+        availableTypes.contains(_isDriverAccount ? 'delivery' : 'standard')
+        ? (_isDriverAccount ? 'delivery' : 'standard')
+        : (availableTypes.isNotEmpty ? availableTypes.first : 'standard');
 
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
+          final isBalanceCard = _isBalanceCardType(cardType);
+          final requiresTargetedUsers = !isBalanceCard;
+          final selectedUserIds = selectedUsers
+              .map((item) => item['id']?.toString() ?? '')
+              .where((item) => item.isNotEmpty)
+              .toList();
+
           Future<void> submit() async {
             final value = double.tryParse(valueController.text.trim()) ?? 0;
             final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
-            if (quantity <= 0 ||
-                ((cardType == 'standard' || cardType == 'delivery') &&
-                    value <= 0)) {
+            if (quantity <= 0 || (isBalanceCard && value <= 0)) {
               await AppAlertService.showError(
                 dialogContext,
                 title: l.tr('screens_card_print_requests_screen.002'),
                 message: l.tr('screens_card_print_requests_screen.003'),
+              );
+              return;
+            }
+
+            if (requiresTargetedUsers && selectedUserIds.isEmpty) {
+              await AppAlertService.showError(
+                dialogContext,
+                title: 'المستفيدون مطلوبون',
+                message:
+                    'التذاكر وبطاقات الخدمات يجب أن تكون خاصة ومحددة لمستخدمين مستهدفين.',
+              );
+              return;
+            }
+
+            if (cardType == 'appointment' &&
+                (detailsTitleController.text.trim().isEmpty ||
+                    startsAtController.text.trim().isEmpty)) {
+              await AppAlertService.showError(
+                dialogContext,
+                title: 'بيانات الموعد ناقصة',
+                message:
+                    'أدخل عنوان الموعد ووقت البداية قبل إرسال طلب الطباعة.',
+              );
+              return;
+            }
+
+            if (cardType == 'queue' &&
+                detailsTitleController.text.trim().isEmpty) {
+              await AppAlertService.showError(
+                dialogContext,
+                title: 'بيانات الطابور ناقصة',
+                message:
+                    'أدخل عنوان أو اسم خدمة الطابور قبل إرسال طلب الطباعة.',
               );
               return;
             }
@@ -163,9 +245,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 (_user?['customCardPrintRequestFeePercent'] as num?)
                     ?.toDouble() ??
                 0;
-            final unitAmount = cardType == 'single_use' ? 0.01 : value;
+            final unitAmount = isBalanceCard ? value : 0.01;
             final baseAmount = unitAmount * quantity;
-            final feeAmount = baseAmount * (feePercent / 100);
+            final feeAmount = _cardRequestFeeAmount(baseAmount, feePercent);
             final totalAmount = baseAmount + feeAmount;
             if (totalAmount > availableBalance) {
               final contact = await ContactInfoService.getContactInfo();
@@ -184,11 +266,27 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
             setDialogState(() => _isSubmitting = true);
             try {
+              final details = <String, dynamic>{
+                if (detailsTitleController.text.trim().isNotEmpty)
+                  'title': detailsTitleController.text.trim(),
+                if (detailsDescriptionController.text.trim().isNotEmpty)
+                  'description': detailsDescriptionController.text.trim(),
+                if (detailsLocationController.text.trim().isNotEmpty)
+                  'location': detailsLocationController.text.trim(),
+                if (startsAtController.text.trim().isNotEmpty)
+                  'startsAt': startsAtController.text.trim(),
+                if (endsAtController.text.trim().isNotEmpty)
+                  'endsAt': endsAtController.text.trim(),
+              };
               final response = await _apiService.requestCardPrint(
-                value: value,
+                value: isBalanceCard ? value : 0,
                 quantity: quantity,
                 cardType: cardType,
                 notes: notesController.text,
+                allowedUserIds: selectedUserIds,
+                validFrom: validFromController.text,
+                validUntil: validUntilController.text,
+                cardDetails: details,
               );
               if (!dialogContext.mounted) {
                 return;
@@ -254,36 +352,31 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           'screens_card_print_requests_screen.008',
                         ),
                       ),
-                      items: _isDriverAccount
-                          ? [
-                              DropdownMenuItem(
-                                value: 'delivery',
-                                child: Text(l.tr('shared.delivery_card_label')),
-                              ),
-                            ]
-                          : [
-                              DropdownMenuItem(
-                                value: 'standard',
-                                child: Text(
-                                  l.tr(
-                                    'screens_card_print_requests_screen.009',
-                                  ),
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: 'single_use',
-                                child: Text(
-                                  l.tr(
-                                    'screens_card_print_requests_screen.010',
-                                  ),
-                                ),
-                              ),
-                            ],
+                      items: availableTypes
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(_cardTypeLabel(dialogContext, type)),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         if (value == null) {
                           return;
                         }
-                        setDialogState(() => cardType = value);
+                        setDialogState(() {
+                          cardType = value;
+                          if (_isBalanceCardType(value)) {
+                            selectedUsers.clear();
+                            detailsTitleController.clear();
+                            detailsDescriptionController.clear();
+                            detailsLocationController.clear();
+                            startsAtController.clear();
+                            endsAtController.clear();
+                            validFromController.clear();
+                            validUntilController.clear();
+                          }
+                        });
                       },
                     ),
                     const SizedBox(height: 12),
@@ -312,14 +405,159 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      enabled: cardType == 'standard' || cardType == 'delivery',
+                      enabled: isBalanceCard,
                       decoration: InputDecoration(
-                        labelText: cardType == 'single_use'
+                        labelText: !isBalanceCard
                             ? l.tr('screens_card_print_requests_screen.011')
                             : l.tr('screens_card_print_requests_screen.012'),
                       ),
                     ),
                     const SizedBox(height: 12),
+                    if (requiresTargetedUsers) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF1F2),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFFFCDD5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'بطاقة خاصة',
+                              style: AppTheme.bodyBold.copyWith(
+                                color: const Color(0xFFBE123C),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'هذا النوع يطبع لمستفيدين محددين فقط، وستظهر تكلفة الإصدار ضمن طلب الطباعة.',
+                              style: AppTheme.caption.copyWith(
+                                color: const Color(0xFF9F1239),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            if (selectedUsers.isNotEmpty)
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: selectedUsers.map((user) {
+                                  final id = user['id']?.toString() ?? '';
+                                  final label =
+                                      user['fullName']
+                                              ?.toString()
+                                              .trim()
+                                              .isNotEmpty ==
+                                          true
+                                      ? user['fullName'].toString()
+                                      : (user['username']?.toString() ?? id);
+                                  return InputChip(
+                                    label: Text(label),
+                                    onDeleted: () {
+                                      setDialogState(
+                                        () => selectedUsers.removeWhere(
+                                          (item) =>
+                                              item['id']?.toString() == id,
+                                        ),
+                                      );
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: TextButton.icon(
+                                onPressed: () async {
+                                  final results = await _pickPrintTargetUsers(
+                                    dialogContext,
+                                    selectedUsers,
+                                  );
+                                  if (results != null) {
+                                    setDialogState(() {
+                                      selectedUsers
+                                        ..clear()
+                                        ..addAll(results);
+                                    });
+                                  }
+                                },
+                                icon: const Icon(Icons.group_add_rounded),
+                                label: Text(
+                                  selectedUsers.isEmpty
+                                      ? 'اختيار المستفيدين'
+                                      : 'تعديل المستفيدين',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: detailsTitleController,
+                        decoration: InputDecoration(
+                          labelText: cardType == 'appointment'
+                              ? 'عنوان الموعد'
+                              : cardType == 'queue'
+                              ? 'اسم خدمة الطابور'
+                              : 'عنوان التذكرة',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (cardType == 'appointment') ...[
+                        TextField(
+                          controller: startsAtController,
+                          decoration: const InputDecoration(
+                            labelText: 'وقت بداية الموعد',
+                            hintText: '2026-05-01 09:00',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: endsAtController,
+                          decoration: const InputDecoration(
+                            labelText: 'وقت نهاية الموعد',
+                            hintText: '2026-05-01 09:30',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (cardType == 'appointment' || cardType == 'queue') ...[
+                        TextField(
+                          controller: detailsLocationController,
+                          decoration: const InputDecoration(
+                            labelText: 'الموقع أو الفرع',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      TextField(
+                        controller: validFromController,
+                        decoration: const InputDecoration(
+                          labelText: 'بداية الصلاحية',
+                          hintText: 'اختياري - 2026-05-01 08:00',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: validUntilController,
+                        decoration: const InputDecoration(
+                          labelText: 'نهاية الصلاحية',
+                          hintText: 'اختياري - 2026-05-01 18:00',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: detailsDescriptionController,
+                        minLines: 2,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'تفاصيل إضافية',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     TextField(
                       controller: quantityController,
                       keyboardType: TextInputType.number,
@@ -368,8 +606,167 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     valueController.dispose();
     quantityController.dispose();
     notesController.dispose();
+    detailsTitleController.dispose();
+    detailsDescriptionController.dispose();
+    detailsLocationController.dispose();
+    startsAtController.dispose();
+    endsAtController.dispose();
+    validFromController.dispose();
+    validUntilController.dispose();
     if (mounted) {
       setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>?> _pickPrintTargetUsers(
+    BuildContext dialogContext,
+    List<Map<String, dynamic>> current,
+  ) async {
+    final searchController = TextEditingController();
+    final selected = List<Map<String, dynamic>>.from(current);
+    var results = <Map<String, dynamic>>[];
+    var isSearching = false;
+
+    try {
+      return await showModalBottomSheet<List<Map<String, dynamic>>>(
+        context: dialogContext,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> searchUsers(String query) async {
+              setModalState(() => isSearching = true);
+              try {
+                results = query.trim().isEmpty
+                    ? <Map<String, dynamic>>[]
+                    : await _apiService.searchUsers(query.trim());
+              } catch (_) {
+                results = <Map<String, dynamic>>[];
+              }
+              if (context.mounted) {
+                setModalState(() => isSearching = false);
+              }
+            }
+
+            bool isSelected(Map<String, dynamic> user) {
+              final id = user['id']?.toString();
+              return selected.any((item) => item['id']?.toString() == id);
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 8,
+                  bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('اختيار المستفيدين', style: AppTheme.h3),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'ابحث بالاسم أو رقم الهاتف',
+                        prefixIcon: Icon(Icons.search_rounded),
+                      ),
+                      onChanged: searchUsers,
+                    ),
+                    const SizedBox(height: 12),
+                    if (selected.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: selected.map((user) {
+                          final id = user['id']?.toString() ?? '';
+                          return InputChip(
+                            label: Text(
+                              user['fullName']?.toString().trim().isNotEmpty ==
+                                      true
+                                  ? user['fullName'].toString()
+                                  : (user['username']?.toString() ?? id),
+                            ),
+                            onDeleted: () => setModalState(
+                              () => selected.removeWhere(
+                                (item) => item['id']?.toString() == id,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
+                      child: isSearching
+                          ? const Center(child: CircularProgressIndicator())
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: results.length,
+                              itemBuilder: (context, index) {
+                                final user = results[index];
+                                final checked = isSelected(user);
+                                final id = user['id']?.toString() ?? '';
+                                final title =
+                                    user['fullName']
+                                            ?.toString()
+                                            .trim()
+                                            .isNotEmpty ==
+                                        true
+                                    ? user['fullName'].toString()
+                                    : (user['username']?.toString() ?? id);
+                                final subtitle =
+                                    user['whatsapp']?.toString() ??
+                                    user['username']?.toString() ??
+                                    '';
+                                return CheckboxListTile(
+                                  value: checked,
+                                  title: Text(title),
+                                  subtitle: subtitle.isNotEmpty
+                                      ? Text(subtitle)
+                                      : null,
+                                  onChanged: (value) {
+                                    setModalState(() {
+                                      if (value == true && !checked) {
+                                        selected.add(user);
+                                      } else if (value != true) {
+                                        selected.removeWhere(
+                                          (item) =>
+                                              item['id']?.toString() == id,
+                                        );
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('إلغاء'),
+                        ),
+                        const Spacer(),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, selected),
+                          child: const Text('اعتماد'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } finally {
+      searchController.dispose();
     }
   }
 
@@ -873,6 +1270,22 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         (request['cardValue'] as num?)?.toDouble() ?? 0,
                       ),
                     ),
+                    if (((request['issueCostAmount'] as num?)?.toDouble() ??
+                            0) >
+                        0)
+                      _metaItem(
+                        'تكلفة الإصدار',
+                        CurrencyFormatter.ils(
+                          (request['issueCostAmount'] as num?)?.toDouble() ?? 0,
+                        ),
+                      ),
+                    if (((request['feeAmount'] as num?)?.toDouble() ?? 0) > 0)
+                      _metaItem(
+                        'رسوم طلب الطباعة',
+                        CurrencyFormatter.ils(
+                          (request['feeAmount'] as num?)?.toDouble() ?? 0,
+                        ),
+                      ),
                     _metaItem(
                       l.tr('screens_card_print_requests_screen.032'),
                       CurrencyFormatter.ils(

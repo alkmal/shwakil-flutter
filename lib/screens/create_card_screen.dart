@@ -113,6 +113,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               (int.tryParse(_qtyC.text.trim()) ?? 0) % _cardsPerA4Page == 0) {
             _qtyC.text = '1';
           }
+        } else if (!_isBalanceCard) {
+          _visibilityScope = 'restricted';
         }
         _isLoadingUser = false;
       });
@@ -126,6 +128,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   AppPermissions get _appPermissions => AppPermissions.fromUser(_user);
 
   bool get _canIssuePrivateCards => _appPermissions.canIssuePrivateCards;
+  bool get _canPickTargetedUsers =>
+      _canIssuePrivateCards || _requiresTargetedPrivateCard;
 
   bool get _canRequestCardPrinting => _appPermissions.canRequestCardPrinting;
 
@@ -142,6 +146,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool get _isQueueCard => _cardType == 'queue';
 
   bool get _isBalanceCard => _cardType == 'standard' || _cardType == 'delivery';
+  bool get _requiresTargetedPrivateCard => !_isBalanceCard;
+  String get _effectiveVisibilityScope =>
+      _isTrialMode || _requiresTargetedPrivateCard
+      ? 'restricted'
+      : _visibilityScope;
   bool get _needsTypeDetails => _isAppointmentCard || _isQueueCard;
   bool get _isTrialMode =>
       (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
@@ -172,7 +181,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (user?['role']?.toString() == 'driver') {
       return const ['delivery'];
     }
-    return const ['standard', 'single_use', 'appointment', 'queue'];
+    return const ['standard', 'delivery', 'single_use', 'appointment', 'queue'];
   }
 
   List<DropdownMenuItem<String>> _cardTypeItems(AppLocalizer l) =>
@@ -222,7 +231,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
-    final isPrivate = _isTrialMode || _visibilityScope == 'restricted';
+    final isPrivate = _effectiveVisibilityScope == 'restricted';
 
     if (quantity <= 0) {
       await AppAlertService.showError(
@@ -426,7 +435,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           value: amount,
           quantity: quantity,
           cardType: _cardType,
-          visibilityScope: _visibilityScope,
+          visibilityScope: _effectiveVisibilityScope,
           printDesign: _currentPrintDesign(),
           validFrom: _validFrom?.toUtc().toIso8601String(),
           validUntil: _validUntil?.toUtc().toIso8601String(),
@@ -1446,7 +1455,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               onChanged: (value) {
                 setState(() {
                   _cardType = value ?? 'standard';
-                  if (_cardType == 'delivery') {
+                  if (_requiresTargetedPrivateCard) {
+                    _visibilityScope = 'restricted';
+                  } else if (_cardType == 'delivery') {
                     _visibilityScope = 'general';
                     _selectedUsers = [];
                   }
@@ -1666,6 +1677,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ),
                 if (!_isTrialMode &&
                     _canIssuePrivateCards &&
+                    _isBalanceCard &&
                     _cardType != 'delivery') ...[
                   const SizedBox(height: 16),
                   Text(
@@ -1719,9 +1731,21 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     },
                   ),
                 ],
+                if (!_isTrialMode && _requiresTargetedPrivateCard) ...[
+                  const SizedBox(height: 16),
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(16),
+                    color: AppTheme.warning.withValues(alpha: 0.05),
+                    borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                    child: Text(
+                      'هذا النوع من التذاكر خاص دائمًا. اختر المستفيدين المحددين قبل الإصدار، ولن تظهر التذكرة للعامة.',
+                      style: AppTheme.bodyText.copyWith(fontSize: 13),
+                    ),
+                  ),
+                ],
                 if (!_isTrialMode &&
-                    _canIssuePrivateCards &&
-                    _visibilityScope == 'restricted') ...[
+                    _canPickTargetedUsers &&
+                    _effectiveVisibilityScope == 'restricted') ...[
                   const SizedBox(height: 20),
                   ShwakelCard(
                     padding: const EdgeInsets.all(20),
@@ -1841,52 +1865,41 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildPrintPreviewPanel({required bool isCompact}) {
-    return ShwakelCard(
-      padding: EdgeInsets.all(isCompact ? 18 : 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppTheme.primarySoft,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.preview_rounded,
-                  color: AppTheme.primary,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppTheme.primarySoft,
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('معاينة البطاقة', style: AppTheme.h3),
-                    const SizedBox(height: 4),
-                    Text(
-                      'الشكل الأقرب للطباعة قبل إصدار البطاقات.',
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isCompact ? 18 : 24),
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: isCompact ? 260 : 320),
-              child: _buildPreviewCard(),
+              child: const Icon(Icons.preview_rounded, color: AppTheme.primary),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('معاينة البطاقة', style: AppTheme.h3),
+                  const SizedBox(height: 4),
+                  Text(
+                    'مطابقة لتصميم الطباعة على صفحة A4 بواقع 30 بطاقة.',
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: isCompact ? 14 : 18),
+        SizedBox(width: double.infinity, child: _buildPreviewCard()),
+      ],
     );
   }
 
@@ -2108,7 +2121,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       barcode: 'SHW-0001-2026',
       value: amount,
       cardType: _cardType,
-      visibilityScope: _isTrialMode ? 'restricted' : _visibilityScope,
+      visibilityScope: _effectiveVisibilityScope,
       createdAt: DateTime.now(),
       details: _currentCardDetails() ?? const {},
     );

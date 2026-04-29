@@ -74,12 +74,31 @@ class PrintCardPreview extends StatelessWidget {
 
   bool get _isLocationSpecific {
     final scope = card.visibilityScope.trim().toLowerCase();
-    return card.isSingleUse ||
-        card.isDelivery ||
-        scope == 'location' ||
+    return scope == 'location' ||
         scope == 'place' ||
         scope == 'branch' ||
         scope == 'specific';
+  }
+
+  bool get _isTicketCard =>
+      card.isSingleUse || card.isAppointment || card.isQueueTicket;
+
+  String get _privacyLabel => card.isPrivate ? 'خاصة' : 'عامة';
+
+  String get _cardKindLabel {
+    if (card.isDelivery) {
+      return 'بطاقة رصيد توصيل';
+    }
+    if (card.isSingleUse) {
+      return 'تذكرة دخول';
+    }
+    if (card.isAppointment) {
+      return 'تذكرة موعد';
+    }
+    if (card.isQueueTicket) {
+      return 'تذكرة طابور';
+    }
+    return 'بطاقة رصيد';
   }
 
   String get _logoText {
@@ -93,41 +112,43 @@ class PrintCardPreview extends StatelessWidget {
   }
 
   String get _cardTypeLabel {
-    if (card.isDelivery) {
-      return 'بطاقة توصيل';
-    }
     if (_isLocationSpecific) {
-      return 'مخصصة لمكان محدد';
+      return '$_cardKindLabel مخصصة لمكان محدد';
     }
-    return card.isPrivate ? 'مالية خاصة' : 'مالية عامة';
+    return '$_cardKindLabel $_privacyLabel';
   }
 
   String get _cardBadgeLabel {
-    if (card.isDelivery) {
-      return 'توصيل';
-    }
     if (_isLocationSpecific) {
-      return 'مكان محدد';
+      return 'مكان محدد - $_cardKindLabel';
     }
-    return card.isPrivate ? 'مالية خاصة' : 'مالية عامة';
+    return '$_privacyLabel - $_cardKindLabel';
   }
 
   String get _cardTitle {
-    if (card.isDelivery) {
-      return 'بطاقة توصيل';
+    if (_isTicketCard) {
+      final title = card.title?.trim() ?? '';
+      return title.isNotEmpty ? title : _cardKindLabel;
     }
-    return card.isSingleUse
-        ? 'بطاقة دخول أو تسليم'
-        : '${card.value.toStringAsFixed(2)} شيكل';
+    return '${card.value.toStringAsFixed(2)} شيكل';
   }
 
   String get _cardSubtitle {
     if (card.isDelivery) {
-      return 'بطاقة توصيل يمكن استخدامها للمدفوعات';
+      return 'بطاقة رصيد عامة للتوصيل والمدفوعات';
     }
-    return card.isSingleUse
-        ? 'مخصصة للدخول أو التسليم داخل النظام'
-        : _valueInArabicWords(card.value);
+    if (card.isSingleUse) {
+      return 'تذكرة خاصة لاستخدام واحد داخل النظام';
+    }
+    if (card.isAppointment) {
+      return 'تذكرة موعد خاصة لمستفيدين محددين';
+    }
+    if (card.isQueueTicket) {
+      return 'تذكرة طابور خاصة لمستفيدين محددين';
+    }
+    return card.isPrivate
+        ? 'بطاقة رصيد خاصة لمستفيدين محددين'
+        : 'بطاقة رصيد عامة - ${_valueInArabicWords(card.value)}';
   }
 
   String _valueInArabicWords(double value) {
@@ -225,7 +246,7 @@ class PrintCardPreview extends StatelessWidget {
         '${card.createdAt.year.toString().padLeft(4, '0')}-${card.createdAt.month.toString().padLeft(2, '0')}-${card.createdAt.day.toString().padLeft(2, '0')}';
 
     return AspectRatio(
-      aspectRatio: 0.73,
+      aspectRatio: 0.814,
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFFFFF8EC),
@@ -304,11 +325,12 @@ class PrintCardPreview extends StatelessWidget {
                     logoText: _logoText,
                     badgeText: _cardBadgeLabel,
                     logoUrl: designSettings.logoUrl,
+                    isPrivate: card.isPrivate,
                   ),
                   const Spacer(),
                   Column(
                     children: [
-                      if (card.isSingleUse)
+                      if (_isTicketCard)
                         Text(
                           _cardTitle,
                           textAlign: TextAlign.center,
@@ -318,7 +340,7 @@ class PrintCardPreview extends StatelessWidget {
                           ),
                         ),
                       Text(
-                        card.isSingleUse
+                        _isTicketCard
                             ? _cardSubtitle
                             : 'بطاقة رقمية للاستخدام الداخلي',
                         textAlign: TextAlign.center,
@@ -327,7 +349,7 @@ class PrintCardPreview extends StatelessWidget {
                           color: const Color(0xFF64748B),
                         ),
                       ),
-                      if (!card.isSingleUse) ...[
+                      if (!_isTicketCard) ...[
                         const SizedBox(height: 10),
                         Text(
                           _cardTitle,
@@ -351,9 +373,9 @@ class PrintCardPreview extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         card.isDelivery
-                            ? 'بطاقة توصيل يمكن استخدامها للمدفوعات'
-                            : card.isSingleUse
-                            ? 'صالحة للدخول أو التسليم داخل النظام'
+                            ? 'بطاقة رصيد عامة يمكن استخدامها للمدفوعات'
+                            : _isTicketCard
+                            ? 'صالحة للمستفيدين المحددين فقط'
                             : 'قيمة داخلية صالحة للاستخدام داخل النظام',
                         textAlign: TextAlign.center,
                         style: AppTheme.caption.copyWith(
@@ -434,6 +456,16 @@ class PrintCardPreview extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                      if (card.issueCost > 0)
+                        Text(
+                          'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                          textAlign: TextAlign.right,
+                          style: AppTheme.caption.copyWith(
+                            fontSize: 10,
+                            color: palette.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       const SizedBox(height: 3),
                       Text(
                         'تاريخ الإصدار: $dateText',
@@ -508,6 +540,7 @@ class _Header extends StatelessWidget {
     required this.logoText,
     required this.badgeText,
     required this.logoUrl,
+    required this.isPrivate,
   });
 
   final _PrintPreviewPalette palette;
@@ -515,6 +548,7 @@ class _Header extends StatelessWidget {
   final String logoText;
   final String badgeText;
   final String? logoUrl;
+  final bool isPrivate;
 
   @override
   Widget build(BuildContext context) {
@@ -524,15 +558,18 @@ class _Header extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: palette.soft,
+            color: isPrivate ? const Color(0xFFFFE4E6) : palette.soft,
             borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isPrivate ? const Color(0xFFFB7185) : palette.border,
+            ),
           ),
           child: Text(
             badgeText,
             style: AppTheme.caption.copyWith(
-              fontSize: 10,
+              fontSize: 10.5,
               fontWeight: FontWeight.w800,
-              color: palette.primary,
+              color: isPrivate ? const Color(0xFFBE123C) : palette.primary,
             ),
           ),
         ),

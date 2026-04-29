@@ -48,6 +48,8 @@ class _AdminCardPrintRequestsScreenState
     return switch (cardType) {
       'single_use' => l.tr('screens_admin_card_print_requests_screen.018'),
       'delivery' => l.tr('shared.delivery_card_label'),
+      'appointment' => 'تذكرة موعد',
+      'queue' => 'تذكرة طابور',
       _ => l.tr('screens_admin_card_print_requests_screen.019'),
     };
   }
@@ -832,6 +834,20 @@ class _AdminCardPrintRequestsScreenState
                     (request['cardValue'] as num?)?.toDouble() ?? 0,
                   ),
                 ),
+                if (((request['issueCostAmount'] as num?)?.toDouble() ?? 0) > 0)
+                  _metaItem(
+                    'تكلفة الإصدار',
+                    CurrencyFormatter.ils(
+                      (request['issueCostAmount'] as num?)?.toDouble() ?? 0,
+                    ),
+                  ),
+                if (((request['feeAmount'] as num?)?.toDouble() ?? 0) > 0)
+                  _metaItem(
+                    'رسوم طلب الطباعة',
+                    CurrencyFormatter.ils(
+                      (request['feeAmount'] as num?)?.toDouble() ?? 0,
+                    ),
+                  ),
                 _metaItem(
                   l.tr('screens_admin_card_print_requests_screen.022'),
                   CurrencyFormatter.ils(

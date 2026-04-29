@@ -43,6 +43,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardRedeemFeeController = TextEditingController();
   final _cardResellFeeController = TextEditingController();
   final _cardPrintRequestFeeController = TextEditingController();
+  final _standardCardIssueCostController = TextEditingController();
+  final _deliveryCardIssueCostController = TextEditingController();
+  final _privateCardIssueCostController = TextEditingController();
   final _singleUseTicketIssueCostController = TextEditingController();
   final _appointmentTicketIssueCostController = TextEditingController();
   final _queueTicketIssueCostController = TextEditingController();
@@ -106,6 +109,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardRedeemFeeController.dispose();
     _cardResellFeeController.dispose();
     _cardPrintRequestFeeController.dispose();
+    _standardCardIssueCostController.dispose();
+    _deliveryCardIssueCostController.dispose();
+    _privateCardIssueCostController.dispose();
     _singleUseTicketIssueCostController.dispose();
     _appointmentTicketIssueCostController.dispose();
     _queueTicketIssueCostController.dispose();
@@ -224,14 +230,20 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (feeSettings['cardResellPercent'] as num?)?.toString() ?? '1';
       _cardPrintRequestFeeController.text =
           (feeSettings['cardPrintRequestPercent'] as num?)?.toString() ?? '1';
+      _standardCardIssueCostController.text =
+          (feeSettings['standardCardIssueCost'] as num?)?.toString() ?? '0';
+      _deliveryCardIssueCostController.text =
+          (feeSettings['deliveryCardIssueCost'] as num?)?.toString() ?? '0';
+      _privateCardIssueCostController.text =
+          (feeSettings['privateCardIssueCost'] as num?)?.toString() ?? '0.01';
       _singleUseTicketIssueCostController.text =
           (feeSettings['singleUseTicketIssueCost'] as num?)?.toString() ??
           '0.01';
       _appointmentTicketIssueCostController.text =
           (feeSettings['appointmentTicketIssueCost'] as num?)?.toString() ??
-          '0.5';
+          '0.25';
       _queueTicketIssueCostController.text =
-          (feeSettings['queueTicketIssueCost'] as num?)?.toString() ?? '0.25';
+          (feeSettings['queueTicketIssueCost'] as num?)?.toString() ?? '0.10';
       _offlineMaxPendingAmountController.text =
           (offlineCardSettings['maxPendingAmount'] as num?)?.toString() ??
           '500';
@@ -409,13 +421,19 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               double.tryParse(_cardResellFeeController.text) ?? 1,
           cardPrintRequestPercent:
               double.tryParse(_cardPrintRequestFeeController.text) ?? 1,
+          standardCardIssueCost:
+              double.tryParse(_standardCardIssueCostController.text) ?? 0,
+          deliveryCardIssueCost:
+              double.tryParse(_deliveryCardIssueCostController.text) ?? 0,
+          privateCardIssueCost:
+              double.tryParse(_privateCardIssueCostController.text) ?? 0.01,
           singleUseTicketIssueCost:
               double.tryParse(_singleUseTicketIssueCostController.text) ?? 0.01,
           appointmentTicketIssueCost:
               double.tryParse(_appointmentTicketIssueCostController.text) ??
-              0.5,
+              0.25,
           queueTicketIssueCost:
-              double.tryParse(_queueTicketIssueCostController.text) ?? 0.25,
+              double.tryParse(_queueTicketIssueCostController.text) ?? 0.10,
         ),
         _apiService.updateAdminOfflineCardSettings(
           maxPendingAmount:
@@ -662,9 +680,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
 
     try {
-      final methods = await _apiService.deleteAdminTopupPaymentMethod(
-        methodId,
-      );
+      final methods = await _apiService.deleteAdminTopupPaymentMethod(methodId);
       if (!mounted) {
         return;
       }
@@ -950,14 +966,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       value: 'financial',
                       child: Text('الحركات المالية فقط'),
                     ),
-                    DropdownMenuItem(
-                      value: 'all',
-                      child: Text('الجميع'),
-                    ),
+                    DropdownMenuItem(value: 'all', child: Text('الجميع')),
                   ],
                   onChanged: (value) => setState(
-                    () => _whatsappUsageMode =
-                        _normalizeWhatsappUsageMode(value),
+                    () =>
+                        _whatsappUsageMode = _normalizeWhatsappUsageMode(value),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1565,6 +1578,21 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 _buildFeeField(
                   l.tr('screens_admin_system_settings_screen.033'),
                   _cardPrintRequestFeeController,
+                ),
+                _buildFeeField(
+                  'تكلفة بطاقة رصيد عامة',
+                  _standardCardIssueCostController,
+                  suffixText: '₪',
+                ),
+                _buildFeeField(
+                  'تكلفة بطاقة توصيل',
+                  _deliveryCardIssueCostController,
+                  suffixText: '₪',
+                ),
+                _buildFeeField(
+                  'تكلفة البطاقة الخاصة',
+                  _privateCardIssueCostController,
+                  suffixText: '₪',
                 ),
                 _buildFeeField(
                   'رسوم إصدار تذكرة دخول',
