@@ -24,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _whatsappC = TextEditingController();
 
   bool _isLoading = false;
+  bool _isCheckingPendingRegistration = true;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
   CountryOption _selectedCountry = PhoneNumberService.countries.first;
@@ -35,6 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.initState();
     _loadSettings();
     _loadPendingReferral();
+    _checkPendingRegistrationForDevice();
   }
 
   @override
@@ -70,6 +72,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     setState(() => _pendingReferralCode = referralCode);
+  }
+
+  Future<void> _checkPendingRegistrationForDevice() async {
+    try {
+      final result = await _authService.getPendingRegistrationForCurrentDevice();
+      if (!mounted) {
+        return;
+      }
+
+      final pendingRegistration = result.pendingRegistration;
+      if (result.hasPendingRegistration && pendingRegistration != null) {
+        final whatsapp = pendingRegistration['whatsapp']?.toString().trim() ?? '';
+        final fullName =
+            pendingRegistration['fullName']?.toString().trim() ?? '';
+        final countryCode =
+            pendingRegistration['countryCode']?.toString().trim() ?? '';
+        final pendingRegistrationId =
+            pendingRegistration['id']?.toString().trim() ?? '';
+
+        if (whatsapp.isNotEmpty && pendingRegistrationId.isNotEmpty) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => OtpVerificationScreen(
+                fullName: fullName,
+                username: pendingRegistration['username']?.toString() ?? '',
+                whatsapp: whatsapp,
+                countryCode: countryCode,
+                termsAccepted: true,
+                referralPhone: _pendingReferralCode,
+                pendingRegistrationId: pendingRegistrationId,
+                purpose: 'register',
+                statusMessage: result.message,
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    } catch (_) {
+      // Do not block registration if the pending lookup fails.
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingPendingRegistration = false);
+      }
+    }
   }
 
   String? _validatePersonalStep() {
@@ -229,6 +276,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingPendingRegistration) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (!_registrationEnabled) {
       return _buildDisabledState();
     }
