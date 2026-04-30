@@ -1677,7 +1677,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 Text('حماية فحص البطاقات', style: AppTheme.bodyBold),
                 const SizedBox(height: 8),
                 Text(
-                  '0 يعني غير محدود. يتم تصفير عداد المستخدم بعد سحب ناجح أو من صفحة المستخدم في الإدارة.',
+                  '0 يعني غير محدود. عند الوصول للحد يتم فرض السحب التلقائي عند الفحص، ويُصفّر العداد بعد سحب ناجح أو من صفحة المستخدم في الإدارة.',
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.textSecondary,
                   ),
