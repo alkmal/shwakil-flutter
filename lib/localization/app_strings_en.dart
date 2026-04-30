@@ -461,7 +461,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_system_settings_screen.017': 'System settings',
   'screens_admin_system_settings_screen.018': 'Contact Details',
   'screens_admin_system_settings_screen.019': 'Title',
-  'screens_admin_system_settings_screen.020': 'Support WhatsApp',
+  'screens_admin_system_settings_screen.020': 'Support phone number',
   'screens_admin_system_settings_screen.021': 'Email',
   'screens_admin_system_settings_screen.022': 'Address',
   'screens_admin_system_settings_screen.023': 'Web URL',
@@ -617,7 +617,7 @@ const Map<String, String> appStringsEn = {
       'Enter your credentials to continue securely into your account.',
   'screens_login_screen.014': 'Registration is currently disabled',
   'screens_login_screen.015':
-      'To create a new account, contact admin on WhatsApp: {whatsapp}',
+      'To create a new account, contact admin at: {whatsapp}',
   'screens_login_screen.016': 'To create a new account, contact admin.',
   'screens_login_screen.017': 'Enable local protection',
   'screens_login_screen.018':
@@ -628,7 +628,7 @@ const Map<String, String> appStringsEn = {
   'screens_login_screen.022': 'PIN',
   'screens_login_screen.027': 'Contact options',
   'screens_login_screen.028':
-      'For sign-in help or registration follow-up, contact us on WhatsApp.',
+      'For sign-in help or registration follow-up, contact us using the support number.',
   'screens_onboarding_screen.001': 'Skip',
   'screens_onboarding_screen.002': 'Get Started',
   'screens_onboarding_screen.003': 'Next',
@@ -723,7 +723,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.043': 'Registration is currently unavailable',
   'screens_register_screen.044': 'Contact us for more details.',
   'screens_register_screen.045':
-      'Message the administration directly on WhatsApp to request account creation or registration access.',
+      'Contact the administration directly using the support number to request account creation or registration access.',
   'screens_register_screen.046': 'Back to login',
   'screens_topup_requests_screen.001': 'Top-up Requests',
   'screens_topup_requests_screen.002': 'Top-up Requests',
@@ -1145,7 +1145,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_system_settings_screen.060':
       'Update and download links for each platform',
   'screens_admin_system_settings_screen.061':
-      'Set the app title, support WhatsApp, email, and public address.',
+      'Set the app title, support phone number, email, and public address.',
   'screens_admin_system_settings_screen.062':
       'Enter valid store links and check version numbers before saving.',
   'screens_admin_system_settings_screen.063':
@@ -1465,7 +1465,7 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.066': 'Issue',
   'screens_create_card_screen.067': 'Customize',
   'screens_create_card_screen.068': 'Latest batch',
-  'screens_contact_us_screen.001': 'Support WhatsApp',
+  'screens_contact_us_screen.001': 'Support phone number',
   'screens_contact_us_screen.002': 'Official email',
   'screens_contact_us_screen.003': 'Head office',
   'screens_contact_us_screen.004': 'Working hours: 9:00 AM - 9:00 PM',
@@ -1943,7 +1943,7 @@ const Map<String, String> appStringsEn = {
   'services_app_alert_service.002': 'Error',
   'services_app_alert_service.003': 'Info',
   'services_app_alert_service.004': 'Shwakil',
-  'services_app_alert_service.005': 'Contact on WhatsApp',
+  'services_app_alert_service.005': 'Contact support',
   'services_app_alert_service.006': 'OK',
   'services_app_alert_service.007': 'Failed to reach the server',
   'services_app_alert_service.008': 'WhatsApp',
@@ -2221,6 +2221,8 @@ const Map<String, String> appStringsEn = {
   'screens_sub_users_screen.128': 'Active',
   'screens_sub_users_screen.129': 'Show statistics',
   'screens_sub_users_screen.130': 'Hide statistics',
+  'screens_sub_users_screen.131': 'Read only own private cards',
+  'screens_sub_users_screen.132': 'Own private only',
   'screens_quick_transfer_screen.040': 'Hide search',
   'screens_quick_transfer_screen.041': 'Show search',
   'screens_quick_transfer_screen.042':

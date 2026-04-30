@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -35,7 +35,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     {
       'titleKey': 'cards_and_ops',
       'keys':
-          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canIssueSingleUseTickets,canIssueAppointmentTickets,canIssueQueueTickets,canViewPrivateCards,canDeleteCards,canResellCards,canUsePrepaidMultipayCards,canAcceptPrepaidMultipayPayments,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
+          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canIssueSingleUseTickets,canIssueAppointmentTickets,canIssueQueueTickets,canViewPrivateCards,canReadOwnPrivateCardsOnly,canDeleteCards,canResellCards,canUsePrepaidMultipayCards,canAcceptPrepaidMultipayPayments,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
     },
     {
       'titleKey': 'admin_followup',
@@ -294,6 +294,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canIssueAppointmentTickets' => 'إنشاء تذاكر مواعيد',
       'canIssueQueueTickets' => 'إنشاء تذاكر طوابير',
       'canViewPrivateCards' => l.tr('screens_admin_permissions_screen.050'),
+      'canReadOwnPrivateCardsOnly' => 'قراءة بطاقاته الخاصة فقط',
       'canDeleteCards' => l.tr('screens_admin_permissions_screen.023'),
       'canResellCards' => l.tr('screens_admin_permissions_screen.024'),
       'canUsePrepaidMultipayCards' => 'استخدام بطاقات الدفع المسبق',
@@ -327,4 +328,3 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     };
   }
 }
-

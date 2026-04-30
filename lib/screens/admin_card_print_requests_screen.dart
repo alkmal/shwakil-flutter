@@ -249,6 +249,10 @@ class _AdminCardPrintRequestsScreenState
           item['allowed_user_ids'] ?? item['allowedUserIds'] ?? const [],
       'allowed_usernames':
           item['allowed_usernames'] ?? item['allowedUsernames'] ?? const [],
+      'allowed_phone_numbers':
+          item['allowed_phone_numbers'] ??
+          item['allowedPhoneNumbers'] ??
+          const [],
       'customer_name': item['customer_name'] ?? item['customerName'],
       'created_at': item['created_at'] ?? item['issuedAt'] ?? item['createdAt'],
       'last_resold_at': item['last_resold_at'] ?? item['lastResoldAt'],
@@ -836,7 +840,11 @@ class _AdminCardPrintRequestsScreenState
                 ),
                 if (((request['issueCostAmount'] as num?)?.toDouble() ?? 0) > 0)
                   _metaItem(
-                    'تكلفة الإصدار',
+                    ['standard', 'delivery'].contains(
+                          request['cardType']?.toString() ?? 'standard',
+                        )
+                        ? 'رسوم عند الاستخدام'
+                        : 'تكلفة الإصدار',
                     CurrencyFormatter.ils(
                       (request['issueCostAmount'] as num?)?.toDouble() ?? 0,
                     ),

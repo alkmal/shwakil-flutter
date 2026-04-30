@@ -328,7 +328,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_system_settings_screen.017': 'إعدادات النظام',
   'screens_admin_system_settings_screen.018': 'بيانات التواصل',
   'screens_admin_system_settings_screen.019': 'العنوان',
-  'screens_admin_system_settings_screen.020': 'واتساب الدعم',
+  'screens_admin_system_settings_screen.020': 'رقم هاتف الدعم',
   'screens_admin_system_settings_screen.021': 'البريد الإلكتروني',
   'screens_admin_system_settings_screen.022': 'العنوان',
   'screens_admin_system_settings_screen.023': 'رابط الموقع',
@@ -484,7 +484,7 @@ const Map<String, String> appStringsAr = {
   'screens_login_screen.013': 'أدخل بياناتك للمتابعة بشكل آمن إلى حسابك.',
   'screens_login_screen.014': 'التسجيل معطّل حاليًا',
   'screens_login_screen.015':
-      'لإنشاء حساب جديد، تواصل مع الإدارة عبر واتساب: {whatsapp}',
+      'لإنشاء حساب جديد، تواصل مع الإدارة على رقم الدعم: {whatsapp}',
   'screens_login_screen.016': 'لإنشاء حساب جديد، تواصل مع الإدارة.',
   'screens_login_screen.017': 'فعّل الحماية المحلية',
   'screens_login_screen.018':
@@ -495,7 +495,7 @@ const Map<String, String> appStringsAr = {
   'screens_login_screen.022': 'PIN',
   'screens_login_screen.027': 'طرق التواصل',
   'screens_login_screen.028':
-      'للمساعدة في الدخول أو متابعة التسجيل، تواصل معنا عبر واتساب.',
+      'للمساعدة في الدخول أو متابعة التسجيل، تواصل معنا عبر رقم الدعم.',
   'screens_onboarding_screen.001': 'تخطي',
   'screens_onboarding_screen.002': 'ابدأ الآن',
   'screens_onboarding_screen.003': 'التالي',
@@ -572,7 +572,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.034':
       'سيتم إنشاء كلمة المرور تلقائيًا بعد اعتماد التسجيل من الإدارة.',
   'screens_register_screen.035':
-      'ستصلك كلمة المرور في رسالة الاعتماد على واتساب المرتبط بالحساب.',
+      'ستصلك كلمة المرور في رسالة الاعتماد على رقم الهاتف المرتبط بالحساب.',
   'screens_register_screen.036': 'لا حاجة لتأكيد كلمة المرور في هذه المرحلة.',
   'screens_register_screen.037':
       'سيتم إرسال كلمة المرور لك بعد اعتماد التسجيل.',
@@ -586,7 +586,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.043': 'التسجيل متوقف حاليا',
   'screens_register_screen.044': 'تواصل معنا لمزيد من التفاصيل.',
   'screens_register_screen.045':
-      'راسل الإدارة مباشرة عبر واتساب لطلب إنشاء حساب أو السماح بالتسجيل.',
+      'تواصل مع الإدارة مباشرة عبر رقم الدعم لطلب إنشاء حساب أو السماح بالتسجيل.',
   'screens_register_screen.046': 'العودة إلى تسجيل الدخول',
   'screens_topup_requests_screen.001': 'طلبات الشحن',
   'screens_topup_requests_screen.002': 'طلبات الشحن',
@@ -989,7 +989,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_system_settings_screen.059': 'رابط الويب أو ملف APK المباشر',
   'screens_admin_system_settings_screen.060': 'روابط التحديث والتنزيل لكل منصة',
   'screens_admin_system_settings_screen.061':
-      'اضبط العنوان وواتساب الدعم والبريد والعنوان العام للتطبيق.',
+      'اضبط العنوان ورقم هاتف الدعم والبريد والعنوان العام للتطبيق.',
   'screens_admin_system_settings_screen.062':
       'أدخل روابط المتاجر الصحيحة وتأكد من أرقام الإصدارات قبل الحفظ.',
   'screens_admin_system_settings_screen.063':
@@ -1079,7 +1079,8 @@ const Map<String, String> appStringsAr = {
       'لا توجد طلبات سحب مطابقة للفلاتر الحالية.',
   'screens_withdrawal_requests_screen.028': 'تحديث حالة طلب السحب',
   'widgets_support_contact_card.001': 'هل تحتاج إلى مساعدة؟',
-  'widgets_support_contact_card.002': 'تواصل مع فريق الدعم مباشرة عبر واتساب.',
+  'widgets_support_contact_card.002':
+      'تواصل مع فريق الدعم مباشرة عبر رقم الدعم.',
   'widgets_support_contact_card.003': 'الدعم المباشر',
   'widgets_support_contact_card.004': 'فتح واتساب',
   'widgets_support_contact_card.005': 'نسخ الرقم',
@@ -1303,7 +1304,7 @@ const Map<String, String> appStringsAr = {
   'screens_create_card_screen.066': 'الإصدار',
   'screens_create_card_screen.067': 'التخصيص',
   'screens_create_card_screen.068': 'آخر دفعة',
-  'screens_contact_us_screen.001': 'واتساب الدعم',
+  'screens_contact_us_screen.001': 'رقم هاتف الدعم',
   'screens_contact_us_screen.002': 'البريد الإلكتروني الرسمي',
   'screens_contact_us_screen.003': 'المكتب الرئيسي',
   'screens_contact_us_screen.004': 'ساعات العمل: 9:00 ص - 9:00 م',
@@ -1877,7 +1878,7 @@ const Map<String, String> appStringsAr = {
   'services_app_alert_service.002': 'خطأ',
   'services_app_alert_service.003': 'معلومة',
   'services_app_alert_service.004': 'شواكل',
-  'services_app_alert_service.005': 'تواصل عبر واتساب',
+  'services_app_alert_service.005': 'تواصل مع الدعم',
   'services_app_alert_service.006': 'موافق',
   'services_app_alert_service.007': 'تعذر الاتصال بالخادم',
   'services_app_alert_service.008': 'واتساب',
@@ -2144,6 +2145,8 @@ const Map<String, String> appStringsAr = {
   'screens_sub_users_screen.128': 'نشط',
   'screens_sub_users_screen.129': 'عرض الإحصائيات',
   'screens_sub_users_screen.130': 'إخفاء الإحصائيات',
+  'screens_sub_users_screen.131': 'قراءة بطاقاته الخاصة فقط',
+  'screens_sub_users_screen.132': 'بطاقاته الخاصة فقط',
   'screens_quick_transfer_screen.040': 'إخفاء البحث',
   'screens_quick_transfer_screen.041': 'إظهار البحث',
   'screens_quick_transfer_screen.042':
@@ -2420,7 +2423,7 @@ const Map<String, String> appStringsAr = {
   'screens_affiliate_center_screen.035': 'أول شحن مؤهل: {amount}',
   'screens_admin_dashboard_screen.087': 'طلبات التسجيل',
   'screens_admin_dashboard_screen.088':
-      'قبول أو رفض طلبات التسجيل المعلقة بعد تأكيد الواتساب.',
+      'قبول أو رفض طلبات التسجيل المعلقة بعد تأكيد رقم الهاتف.',
   'screens_admin_dashboard_screen.089': 'معلّق',
   'screens_inventory_screen.020': 'ملخص البطاقات',
   'screens_inventory_screen.021': 'إعادة طباعة النتائج',

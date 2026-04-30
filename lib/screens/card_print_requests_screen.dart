@@ -175,7 +175,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final endsAtController = TextEditingController();
     final validFromController = TextEditingController();
     final validUntilController = TextEditingController();
+    final allowedPhoneController = TextEditingController();
     final selectedUsers = <Map<String, dynamic>>[];
+    final selectedPhoneNumbers = <String>[];
     final availableTypes = _issuablePrintCardTypes();
     var cardType =
         availableTypes.contains(_isDriverAccount ? 'delivery' : 'standard')
@@ -193,6 +195,23 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               .map((item) => item['id']?.toString() ?? '')
               .where((item) => item.isNotEmpty)
               .toList();
+          final selectedPhones = selectedPhoneNumbers
+              .map((item) => item.trim())
+              .where((item) => item.isNotEmpty)
+              .toList();
+
+          void addAllowedPhone() {
+            final raw = allowedPhoneController.text.trim();
+            final digits = raw.replaceAll(RegExp(r'\D'), '');
+            if (digits.length < 6) {
+              return;
+            }
+            final normalized = raw.startsWith('+') ? '+$digits' : digits;
+            if (!selectedPhoneNumbers.contains(normalized)) {
+              setDialogState(() => selectedPhoneNumbers.add(normalized));
+            }
+            allowedPhoneController.clear();
+          }
 
           Future<void> submit() async {
             final value = double.tryParse(valueController.text.trim()) ?? 0;
@@ -206,7 +225,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               return;
             }
 
-            if (requiresTargetedUsers && selectedUserIds.isEmpty) {
+            if (requiresTargetedUsers &&
+                selectedUserIds.isEmpty &&
+                selectedPhones.isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
                 title: 'المستفيدون مطلوبون',
@@ -284,6 +305,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 cardType: cardType,
                 notes: notesController.text,
                 allowedUserIds: selectedUserIds,
+                allowedUserPhones: selectedPhones,
                 validFrom: validFromController.text,
                 validUntil: validUntilController.text,
                 cardDetails: details,
@@ -439,6 +461,44 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                               ),
                             ),
                             const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: allowedPhoneController,
+                                    keyboardType: TextInputType.phone,
+                                    decoration: const InputDecoration(
+                                      labelText: 'رقم هاتف المستفيد',
+                                      prefixIcon: Icon(Icons.phone_rounded),
+                                    ),
+                                    onSubmitted: (_) => addAllowedPhone(),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                IconButton.filledTonal(
+                                  onPressed: addAllowedPhone,
+                                  icon: const Icon(Icons.add_rounded),
+                                  tooltip: 'إضافة الرقم',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            if (selectedPhoneNumbers.isNotEmpty)
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: selectedPhoneNumbers.map((phone) {
+                                  return InputChip(
+                                    avatar: const Icon(Icons.phone_rounded),
+                                    label: Text(phone),
+                                    onDeleted: () => setDialogState(
+                                      () => selectedPhoneNumbers.remove(phone),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            if (selectedPhoneNumbers.isNotEmpty)
+                              const SizedBox(height: 10),
                             if (selectedUsers.isNotEmpty)
                               Wrap(
                                 spacing: 8,
@@ -1274,7 +1334,11 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                             0) >
                         0)
                       _metaItem(
-                        'تكلفة الإصدار',
+                        ['standard', 'delivery'].contains(
+                              request['cardType']?.toString() ?? 'standard',
+                            )
+                            ? 'رسوم عند الاستخدام'
+                            : 'تكلفة الإصدار',
                         CurrencyFormatter.ils(
                           (request['issueCostAmount'] as num?)?.toDouble() ?? 0,
                         ),

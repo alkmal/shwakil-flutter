@@ -59,6 +59,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _isSyncingOfflineCards = false;
   bool _showUserBalance = true;
   bool _isPreparingScreen = true;
+  bool _autoRedeemOnScan = false;
+  bool _autoRedeemOnScanForced = false;
+  bool _isUpdatingAutoRedeemOnScan = false;
 
   bool get _canAccessScanScreen {
     final permissions = AppPermissions.fromUser(_user);
@@ -133,6 +136,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       if (mounted) {
         setState(() {
           _user = user;
+          _syncAutoRedeemState(user);
         });
       }
       final showUserBalance = await showUserBalanceFuture;
@@ -162,6 +166,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
   }
 
+  void _syncAutoRedeemState(Map<String, dynamic>? user) {
+    _autoRedeemOnScanForced =
+        user?['cardAutoRedeemOnScanForced'] == true ||
+        user?['cardAutoRedeemOnScanGlobalForced'] == true;
+    _autoRedeemOnScan =
+        _autoRedeemOnScanForced || user?['cardAutoRedeemOnScanEnabled'] == true;
+  }
+
   String _balanceVisibilityKey(Map<String, dynamic>? user) {
     final userId = user?['id']?.toString().trim();
     if (userId == null || userId.isEmpty) {
@@ -185,6 +197,106 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
     setState(() => _showUserBalance = nextValue);
+  }
+
+  Future<void> _toggleAutoRedeemOnScan() async {
+    if (widget.offlineMode || _isUpdatingAutoRedeemOnScan) {
+      return;
+    }
+
+    final nextValue = !_autoRedeemOnScan;
+    if (_autoRedeemOnScanForced && !nextValue) {
+      await AppAlertService.showInfo(
+        context,
+        title: 'السحب التلقائي مفعل من الإدارة',
+        message: 'لا يمكن تعطيله إلا بعد مراجعة الإدارة.',
+      );
+      return;
+    }
+
+    if (nextValue) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('تفعيل السحب التلقائي'),
+          content: const Text(
+            'بعد التفعيل سيتم استرداد أي بطاقة مباشرة بمجرد قراءتها، وستتحول إلى مستخدمة بدون خطوة تأكيد إضافية.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              icon: const Icon(Icons.fingerprint_rounded),
+              label: const Text('تأكيد بالبصمة'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) {
+        return;
+      }
+
+      final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
+      if (!canUseBiometrics) {
+        if (!mounted) return;
+        await AppAlertService.showError(
+          context,
+          title: 'البصمة غير متاحة',
+          message: 'يجب تفعيل البصمة على الجهاز قبل استخدام السحب التلقائي.',
+        );
+        return;
+      }
+
+      final authenticated =
+          await LocalSecurityService.authenticateWithBiometrics();
+      if (!authenticated) {
+        if (!mounted) return;
+        await AppAlertService.showError(
+          context,
+          title: 'لم يتم التفعيل',
+          message: 'لم يتم تأكيد البصمة، وبقي السحب اليدوي مفعلاً.',
+        );
+        return;
+      }
+    }
+
+    setState(() => _isUpdatingAutoRedeemOnScan = true);
+    try {
+      final response = await _api.updateCardAutoRedeemOnScanPreference(
+        enabled: nextValue,
+      );
+      final rawUser = response['user'];
+      final fallbackUser = rawUser is Map ? null : await _auth.currentUser();
+      final updatedUser = rawUser is Map
+          ? Map<String, dynamic>.from(rawUser)
+          : Map<String, dynamic>.from(fallbackUser ?? const {});
+      if (!mounted) return;
+      setState(() {
+        _user = updatedUser.isEmpty ? _user : updatedUser;
+        _syncAutoRedeemState(_user);
+      });
+      AppAlertService.showSnack(
+        context,
+        message: nextValue
+            ? 'تم تفعيل السحب التلقائي عند الفحص.'
+            : 'تم تعطيل السحب التلقائي عند الفحص.',
+        type: AppAlertType.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppAlertService.showError(
+        context,
+        title: 'تعذر تحديث السحب التلقائي',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingAutoRedeemOnScan = false);
+      }
+    }
   }
 
   void _maybeOpenScannerAutomatically() {
@@ -557,7 +669,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return _lookupOfflineCard(barcode);
     }
     try {
-      final result = await _api.getCardByBarcode(barcode);
+      final result = await _api.getCardByBarcode(
+        barcode,
+        autoRedeem: _autoRedeemOnScan || _autoRedeemOnScanForced,
+      );
+      final updatedUser = await _auth.currentUser();
+      if (mounted && updatedUser != null) {
+        setState(() {
+          _user = updatedUser;
+          _syncAutoRedeemState(updatedUser);
+        });
+      }
       if (result == null) {
         return _CardLookupResult.error(notFoundMessage);
       }
@@ -1686,6 +1808,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         : l.tr('screens_scan_card_screen.067');
   }
 
+  bool _isBalanceCard(VirtualCard card) =>
+      !card.isSingleUse && !card.isAppointment && !card.isQueueTicket;
+
   String _rawCardTypeLabel(String type) {
     switch (type.trim().toLowerCase()) {
       case 'delivery':
@@ -2035,6 +2160,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ),
           const SizedBox(height: 14),
           _buildUserBalanceCard(),
+          if (!widget.offlineMode) ...[
+            const SizedBox(height: 12),
+            _buildAutoRedeemControl(),
+          ],
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(14),
@@ -2400,6 +2529,91 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAutoRedeemControl() {
+    final active = _autoRedeemOnScan || _autoRedeemOnScanForced;
+    final color = _autoRedeemOnScanForced
+        ? AppTheme.warning
+        : active
+        ? AppTheme.success
+        : AppTheme.textSecondary;
+    final title = _autoRedeemOnScanForced
+        ? 'السحب التلقائي مفروض من الإدارة'
+        : active
+        ? 'السحب التلقائي مفعل'
+        : 'السحب اليدوي مفعل';
+    final subtitle = active
+        ? 'أي بطاقة تقرأها سيتم استردادها مباشرة وتحويلها إلى مستخدمة.'
+        : 'سيتم عرض البطاقة أولاً، ثم تختار السحب يدوياً.';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: _isUpdatingAutoRedeemOnScan ? null : _toggleAutoRedeemOnScan,
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.18)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: _isUpdatingAutoRedeemOnScan
+                    ? Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(color),
+                        ),
+                      )
+                    : Icon(
+                        active
+                            ? Icons.download_done_rounded
+                            : Icons.fingerprint_rounded,
+                        color: color,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTheme.bodyBold.copyWith(color: color),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: active,
+                onChanged: _isUpdatingAutoRedeemOnScan
+                    ? null
+                    : (_) => _toggleAutoRedeemOnScan(),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -3283,7 +3497,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         _cardAmountLabel(card),
                       ),
                       _detailTile(
-                        l.tr('screens_scan_card_screen.027'),
+                        _isBalanceCard(card)
+                            ? 'رسوم عند الاستخدام'
+                            : l.tr('screens_scan_card_screen.027'),
                         CurrencyFormatter.ils(card.issueCost),
                       ),
                       _detailTile(

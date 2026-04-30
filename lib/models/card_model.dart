@@ -36,6 +36,7 @@ class VirtualCard {
   final String? redeemedById;
   final List<String> allowedUserIds;
   final List<String> allowedUsernames;
+  final List<String> allowedPhoneNumbers;
   final String? customerName;
   final DateTime? validFrom;
   final DateTime? validUntil;
@@ -65,6 +66,7 @@ class VirtualCard {
     this.redeemedById,
     this.allowedUserIds = const [],
     this.allowedUsernames = const [],
+    this.allowedPhoneNumbers = const [],
     this.customerName,
     this.validFrom,
     this.validUntil,
@@ -121,6 +123,7 @@ class VirtualCard {
       'redeemed_by_id': redeemedById,
       'allowed_user_ids': allowedUserIds,
       'allowed_usernames': allowedUsernames,
+      'allowed_phone_numbers': allowedPhoneNumbers,
       'customer_name': customerName,
       'valid_from': validFrom?.toIso8601String(),
       'valid_until': validUntil?.toIso8601String(),
@@ -149,8 +152,8 @@ class VirtualCard {
           map['cardType']?.toString() ??
           map['card_type']?.toString() ??
           'standard',
-      originalCardType:
-          (map['originalCardType'] ?? map['original_card_type'])?.toString(),
+      originalCardType: (map['originalCardType'] ?? map['original_card_type'])
+          ?.toString(),
       visibilityScope:
           map['visibilityScope']?.toString() ??
           map['visibility_scope']?.toString() ??
@@ -171,6 +174,9 @@ class VirtualCard {
       ),
       allowedUsernames: _stringListFromDynamic(
         map['allowedUsernames'] ?? map['allowed_usernames'],
+      ),
+      allowedPhoneNumbers: _stringListFromDynamic(
+        map['allowedPhoneNumbers'] ?? map['allowed_phone_numbers'],
       ),
       customerName: (map['customerName'] ?? map['customer_name'])?.toString(),
       validFrom: (map['validFrom'] ?? map['valid_from']) == null
@@ -227,6 +233,7 @@ class VirtualCard {
     String? redeemedById,
     List<String>? allowedUserIds,
     List<String>? allowedUsernames,
+    List<String>? allowedPhoneNumbers,
     String? customerName,
     DateTime? validFrom,
     DateTime? validUntil,
@@ -256,6 +263,7 @@ class VirtualCard {
       redeemedById: redeemedById ?? this.redeemedById,
       allowedUserIds: allowedUserIds ?? this.allowedUserIds,
       allowedUsernames: allowedUsernames ?? this.allowedUsernames,
+      allowedPhoneNumbers: allowedPhoneNumbers ?? this.allowedPhoneNumbers,
       customerName: customerName ?? this.customerName,
       validFrom: validFrom ?? this.validFrom,
       validUntil: validUntil ?? this.validUntil,

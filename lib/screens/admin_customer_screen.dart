@@ -41,6 +41,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   final _redeemFeeController = TextEditingController();
   final _resellFeeController = TextEditingController();
   final _cardPrintRequestFeeController = TextEditingController();
+  final _cardScanLimitController = TextEditingController();
 
   late Map<String, dynamic> _customer;
   List<Map<String, dynamic>> _transactions = const [];
@@ -55,6 +56,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   static const _perPage = 10;
   AdminTransactionAuditFilter _auditFilter = AdminTransactionAuditFilter.all;
   bool _showTransactionFilters = false;
+  bool _cardScanLimitExempt = false;
+  bool _resetCardScanCounter = false;
+  bool _cardAutoRedeemOnScanForced = false;
 
   bool get _canManageAccountControls =>
       widget.canManageUsers || widget.canManageMarketingAccounts;
@@ -85,6 +89,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     _redeemFeeController.dispose();
     _resellFeeController.dispose();
     _cardPrintRequestFeeController.dispose();
+    _cardScanLimitController.dispose();
     super.dispose();
   }
 
@@ -115,6 +120,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     _cardPrintRequestFeeController.text = _formatPct(
       _customer['customCardPrintRequestFeePercent'],
     );
+    _cardScanLimitController.text =
+        _customer['customCardScanLimit']?.toString() ?? '';
+    _cardScanLimitExempt = _customer['cardScanLimitExempt'] == true;
+    _cardAutoRedeemOnScanForced =
+        _customer['cardAutoRedeemOnScanUserForced'] == true;
+    _resetCardScanCounter = false;
   }
 
   String _formatPct(Object? v) {
@@ -211,6 +222,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         customCardPrintRequestFeePercent: double.tryParse(
           _cardPrintRequestFeeController.text,
         ),
+        customCardScanLimit: int.tryParse(_cardScanLimitController.text),
+        cardScanLimitExempt: _cardScanLimitExempt,
+        resetCardScanCounter: _resetCardScanCounter,
+        cardAutoRedeemOnScanForced: _cardAutoRedeemOnScanForced,
       );
       if (!mounted) return;
       setState(() {
@@ -603,6 +618,17 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     _customer['isDisabled'] == true
                         ? AppTheme.error
                         : AppTheme.success,
+                  ),
+                ),
+                SizedBox(
+                  width: isPhone ? double.infinity : 420,
+                  child: _buildMetricCard(
+                    'فحوصات بدون سحب',
+                    '${(_customer['cardScanChecksWithoutRedeem'] as num?)?.toInt() ?? 0} / ${((_customer['effectiveCardScanLimit'] as num?)?.toInt() ?? 0) == 0 ? '∞' : ((_customer['effectiveCardScanLimit'] as num?)?.toInt() ?? 0)}',
+                    Icons.qr_code_scanner_rounded,
+                    _customer['cardScanLimitBlockedAt'] != null
+                        ? AppTheme.error
+                        : AppTheme.warning,
                   ),
                 ),
               ],
@@ -1025,6 +1051,65 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     ),
                     const SizedBox(height: 16),
                     _feeGrid(),
+                    const SizedBox(height: 24),
+                    Text('حماية فحص البطاقات', style: AppTheme.bodyBold),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 220,
+                          child: TextField(
+                            controller: _cardScanLimitController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'حد فحص خاص',
+                              hintText: 'الحد العام',
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 260,
+                          child: SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('إعفاء من حد الفحص'),
+                            value: _cardScanLimitExempt,
+                            onChanged: (value) =>
+                                setState(() => _cardScanLimitExempt = value),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 280,
+                          child: CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('تصفير العداد عند الحفظ'),
+                            subtitle: Text(
+                              'الحالي: ${(_customer['cardScanChecksWithoutRedeem'] as num?)?.toInt() ?? 0}',
+                            ),
+                            value: _resetCardScanCounter,
+                            onChanged: (value) => setState(
+                              () => _resetCardScanCounter = value == true,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 320,
+                          child: SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('فرض السحب التلقائي عند الفحص'),
+                            subtitle: const Text(
+                              'يتم استخدام أي بطاقة مباشرة بعد قراءتها ولا يستطيع المستخدم تعطيله.',
+                            ),
+                            value: _cardAutoRedeemOnScanForced,
+                            onChanged: (value) => setState(
+                              () => _cardAutoRedeemOnScanForced = value,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                   const SizedBox(height: 40),
                   ShwakelButton(
@@ -1101,6 +1186,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 'canIssueSubShekelCards',
                 perms,
               ),
+              _permItem('إصدار بطاقات خاصة', 'canIssuePrivateCards', perms),
               _permItem(
                 'إنشاء تذاكر دخول لمرة واحدة',
                 'canIssueSingleUseTickets',
@@ -1115,6 +1201,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               _permItem(
                 _t('screens_admin_customer_screen.054'),
                 'canIssueHighValueCards',
+                perms,
+              ),
+              _permItem(
+                'قراءة بطاقاته الخاصة فقط',
+                'canReadOwnPrivateCardsOnly',
                 perms,
               ),
               _permItem(
@@ -1706,6 +1797,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canIssueSingleUseTickets: p['canIssueSingleUseTickets'] == true,
         canIssueAppointmentTickets: p['canIssueAppointmentTickets'] == true,
         canIssueQueueTickets: p['canIssueQueueTickets'] == true,
+        canReadOwnPrivateCardsOnly: p['canReadOwnPrivateCardsOnly'] == true,
         canResellCards: p['canResellCards'] == true,
         canRequestCardPrinting: p['canRequestCardPrinting'] == true,
         canManageCardPrintRequests: p['canManageCardPrintRequests'] == true,

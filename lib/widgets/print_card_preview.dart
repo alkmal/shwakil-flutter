@@ -35,6 +35,10 @@ class PrintCardPreview extends StatelessWidget {
   final String printedBy;
   final CardDesignSettings designSettings;
 
+  static const double _a4CardAspectRatio = 42 / 49.5;
+  static const double _printCardBaseWidth = 119.06;
+  static const double _printCardBaseHeight = 140.32;
+
   static const List<_PrintPreviewPalette> _palettes = [
     _PrintPreviewPalette(
       primary: Color(0xFF0F766E),
@@ -83,7 +87,12 @@ class PrintCardPreview extends StatelessWidget {
   bool get _isTicketCard =>
       card.isSingleUse || card.isAppointment || card.isQueueTicket;
 
-  String get _privacyLabel => card.isPrivate ? 'خاصة' : 'عامة';
+  bool get _isBalanceCard => !_isTicketCard;
+
+  bool get _isVisuallyPrivate =>
+      card.isPrivate || _isLocationSpecific || _isTicketCard;
+
+  String get _privacyLabel => _isVisuallyPrivate ? 'خاصة' : 'عامة';
 
   String get _cardKindLabel {
     if (card.isDelivery) {
@@ -135,7 +144,9 @@ class PrintCardPreview extends StatelessWidget {
 
   String get _cardSubtitle {
     if (card.isDelivery) {
-      return 'بطاقة رصيد عامة للتوصيل والمدفوعات';
+      return _isVisuallyPrivate
+          ? 'بطاقة توصيل خاصة لمستفيدين محددين'
+          : 'بطاقة رصيد عامة للتوصيل والمدفوعات';
     }
     if (card.isSingleUse) {
       return 'تذكرة خاصة لاستخدام واحد داخل النظام';
@@ -146,7 +157,7 @@ class PrintCardPreview extends StatelessWidget {
     if (card.isQueueTicket) {
       return 'تذكرة طابور خاصة لمستفيدين محددين';
     }
-    return card.isPrivate
+    return _isVisuallyPrivate
         ? 'بطاقة رصيد خاصة لمستفيدين محددين'
         : 'بطاقة رصيد عامة - ${_valueInArabicWords(card.value)}';
   }
@@ -243,290 +254,303 @@ class PrintCardPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = _palette;
     final dateText =
-        '${card.createdAt.year.toString().padLeft(4, '0')}-${card.createdAt.month.toString().padLeft(2, '0')}-${card.createdAt.day.toString().padLeft(2, '0')}';
+        '${card.createdAt.day.toString().padLeft(2, '0')}/${card.createdAt.month.toString().padLeft(2, '0')}/${card.createdAt.year.toString().padLeft(4, '0')}';
 
-    return AspectRatio(
-      aspectRatio: 0.814,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF8EC),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: palette.border, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: palette.accent.withValues(alpha: 0.12),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: palette.soft, width: 1),
-                ),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: AspectRatio(
+        aspectRatio: _a4CardAspectRatio,
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: SizedBox(
+            width: _printCardBaseWidth,
+            height: _printCardBaseHeight,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8EC),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: palette.border),
               ),
-            ),
-            Positioned(
-              top: 0,
-              right: 0,
-              left: 0,
-              child: Container(
-                height: 10,
-                decoration: BoxDecoration(
-                  color: palette.primary,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 22,
-              left: 14,
-              child: Opacity(
-                opacity: 0.10,
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: palette.primary, width: 1.2),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 16,
-              bottom: 22,
-              child: Opacity(
-                opacity: 0.10,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: palette.accent, width: 1.2),
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Stack(
                 children: [
-                  _Header(
-                    palette: palette,
-                    showLogo: designSettings.showLogo,
-                    logoText: _logoText,
-                    badgeText: _cardBadgeLabel,
-                    logoUrl: designSettings.logoUrl,
-                    isPrivate: card.isPrivate,
-                  ),
-                  const Spacer(),
-                  Column(
-                    children: [
-                      if (_isTicketCard)
-                        Text(
-                          _cardTitle,
-                          textAlign: TextAlign.center,
-                          style: AppTheme.bodyBold.copyWith(
-                            fontSize: 18,
-                            color: palette.primary,
-                          ),
-                        ),
-                      Text(
-                        _isTicketCard
-                            ? _cardSubtitle
-                            : 'بطاقة رقمية للاستخدام الداخلي',
-                        textAlign: TextAlign.center,
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 12,
-                          color: const Color(0xFF64748B),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    left: 0,
+                    child: Container(
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: palette.primary,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(4),
                         ),
                       ),
-                      if (!_isTicketCard) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          _cardTitle,
-                          textAlign: TextAlign.center,
-                          style: AppTheme.h1.copyWith(
-                            fontSize: 32,
-                            color: palette.value,
-                            fontWeight: FontWeight.w900,
-                          ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 4,
+                    child: Opacity(
+                      opacity: 0.12,
+                      child: Container(
+                        width: 15,
+                        height: 15,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: palette.primary),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _cardSubtitle,
-                          textAlign: TextAlign.center,
-                          style: AppTheme.bodyBold.copyWith(
-                            fontSize: 13,
-                            color: palette.primary,
-                          ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 4,
+                    bottom: 6,
+                    child: Opacity(
+                      opacity: 0.10,
+                      child: Container(
+                        width: 13,
+                        height: 13,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: palette.accent),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(3.4, 5.5, 3.4, 2.8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _Header(
+                          palette: palette,
+                          showLogo: designSettings.showLogo,
+                          logoText: _logoText,
+                          subtitleText: card.isDelivery
+                              ? _cardSubtitle
+                              : _isTicketCard
+                              ? 'تذكرة خاصة داخل النظام'
+                              : 'بطاقة رصيد رقمية',
+                          badgeText: _cardBadgeLabel,
+                          logoUrl: designSettings.logoUrl,
+                          isPrivate: _isVisuallyPrivate,
+                        ),
+                        const SizedBox(height: 2.6),
+                        Column(
+                          children: [
+                            if (_isTicketCard)
+                              Text(
+                                _cardTitle,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.bodyBold.copyWith(
+                                  fontSize: 5.7,
+                                  color: palette.primary,
+                                ),
+                              ),
+                            Text(
+                              _isTicketCard
+                                  ? _cardSubtitle
+                                  : 'بطاقة رقمية للاستخدام الداخلي',
+                              textAlign: TextAlign.center,
+                              style: AppTheme.caption.copyWith(
+                                fontSize: 5.2,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                            if (!_isTicketCard) ...[
+                              const SizedBox(height: 1.5),
+                              Text(
+                                _cardTitle,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.h1.copyWith(
+                                  fontSize: 14.5,
+                                  color: palette.value,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                _cardSubtitle,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.bodyBold.copyWith(
+                                  fontSize: 5,
+                                  color: palette.primary,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 1.5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2.2,
+                                vertical: 1.4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: palette.border,
+                                  width: 0.9,
+                                ),
+                              ),
+                              child: SizedBox(
+                                height: 15,
+                                child: BarcodeWidget(
+                                  barcode: Barcode.code128(),
+                                  data: card.barcode,
+                                  drawText: false,
+                                  color: const Color(0xFF16302B),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              card.barcode,
+                              textAlign: TextAlign.center,
+                              textDirection: TextDirection.ltr,
+                              style: AppTheme.bodyBold.copyWith(
+                                fontSize: 5.7,
+                                color: const Color(0xFF16302B),
+                                fontFamily: 'monospace',
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                                vertical: 1.2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: palette.soft,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'التسلسل: $_serialLabel',
+                                textAlign: TextAlign.center,
+                                style: AppTheme.bodyBold.copyWith(
+                                  fontSize: 4.4,
+                                  color: palette.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 0.7),
+                            Text(
+                              _printedByLabel,
+                              textAlign: TextAlign.right,
+                              style: AppTheme.bodyBold.copyWith(
+                                fontSize: 4.2,
+                                color: palette.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 0.4),
+                            Text(
+                              'تاريخ الإصدار: $dateText',
+                              textAlign: TextAlign.right,
+                              style: AppTheme.caption.copyWith(
+                                fontSize: 4.1,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                            Text(
+                              'منشأ البطاقة: $_originLabel',
+                              textAlign: TextAlign.right,
+                              style: AppTheme.caption.copyWith(
+                                fontSize: 4.1,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                            Text(
+                              'نوع البطاقة: $_cardTypeLabel',
+                              textAlign: TextAlign.right,
+                              style: AppTheme.caption.copyWith(
+                                fontSize: 4.1,
+                                color: palette.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (card.issueCost > 0)
+                              Text(
+                                _isBalanceCard
+                                    ? 'رسوم عند الاستخدام: ${card.issueCost.toStringAsFixed(2)} شيكل'
+                                    : 'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                                textAlign: TextAlign.right,
+                                style: AppTheme.caption.copyWith(
+                                  fontSize: 4,
+                                  color: palette.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            const SizedBox(height: 0.3),
+                            Text(
+                              'shwakil.alkmal.com',
+                              textAlign: TextAlign.center,
+                              textDirection: TextDirection.ltr,
+                              style: AppTheme.caption.copyWith(
+                                fontSize: 4.2,
+                                color: palette.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                      const SizedBox(height: 6),
-                      Text(
-                        card.isDelivery
-                            ? 'بطاقة رصيد عامة يمكن استخدامها للمدفوعات'
-                            : _isTicketCard
-                            ? 'صالحة للمستفيدين المحددين فقط'
-                            : 'قيمة داخلية صالحة للاستخدام داخل النظام',
-                        textAlign: TextAlign.center,
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 11,
-                          color: const Color(0xFF16302B),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: palette.border),
-                        ),
-                        child: SizedBox(
-                          height: 56,
-                          child: BarcodeWidget(
-                            barcode: Barcode.code128(),
-                            data: card.barcode,
-                            drawText: false,
-                            color: const Color(0xFF16302B),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        card.barcode,
-                        textAlign: TextAlign.center,
-                        style: AppTheme.bodyBold.copyWith(
-                          fontSize: 13,
-                          color: const Color(0xFF16302B),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: palette.soft,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          'الرقم المتسلسل: $_serialLabel',
-                          textAlign: TextAlign.center,
-                          style: AppTheme.bodyBold.copyWith(
-                            fontSize: 12,
-                            color: palette.primary,
+                  if (designSettings.showStamp)
+                    Positioned(
+                      top: 20,
+                      left: 1,
+                      child: Transform.rotate(
+                        angle: -0.22,
+                        child: Opacity(
+                          opacity: 0.38,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 3.6,
+                              vertical: 1.8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color(0xFFDC2626),
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2.2,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: const Color(0xFFDC2626),
+                                  width: 0.45,
+                                ),
+                                borderRadius: BorderRadius.circular(2.4),
+                              ),
+                              child: Text(
+                                _stampText,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.caption.copyWith(
+                                  fontSize: 4.2,
+                                  color: const Color(0xFFDC2626),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _printedByLabel,
-                        textAlign: TextAlign.right,
-                        style: AppTheme.bodyBold.copyWith(
-                          fontSize: 11,
-                          color: palette.primary,
-                        ),
-                      ),
-                      Text(
-                        'نوع البطاقة: $_cardTypeLabel',
-                        textAlign: TextAlign.right,
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 10.5,
-                          color: palette.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (card.issueCost > 0)
-                        Text(
-                          'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
-                          textAlign: TextAlign.right,
-                          style: AppTheme.caption.copyWith(
-                            fontSize: 10,
-                            color: palette.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'تاريخ الإصدار: $dateText',
-                        textAlign: TextAlign.right,
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 10.5,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      Text(
-                        'منشأ البطاقة: $_originLabel',
-                        textAlign: TextAlign.right,
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 10.5,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'shwakil.alkmal.com',
-                        textAlign: TextAlign.center,
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 11,
-                          color: palette.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
-            if (designSettings.showStamp)
-              Positioned(
-                top: 74,
-                left: 10,
-                child: Transform.rotate(
-                  angle: -0.22,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFFDC2626).withValues(alpha: 0.40),
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _stampText,
-                      style: AppTheme.caption.copyWith(
-                        fontSize: 10,
-                        color: const Color(0xFFDC2626).withValues(alpha: 0.84),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -538,6 +562,7 @@ class _Header extends StatelessWidget {
     required this.palette,
     required this.showLogo,
     required this.logoText,
+    required this.subtitleText,
     required this.badgeText,
     required this.logoUrl,
     required this.isPrivate,
@@ -546,52 +571,80 @@ class _Header extends StatelessWidget {
   final _PrintPreviewPalette palette;
   final bool showLogo;
   final String logoText;
+  final String subtitleText;
   final String badgeText;
   final String? logoUrl;
   final bool isPrivate;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedLogoUrl = logoUrl?.trim() ?? '';
+    final hasNetworkLogo = resolvedLogoUrl.isNotEmpty;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 3.8, vertical: 1.3),
           decoration: BoxDecoration(
             color: isPrivate ? const Color(0xFFFFE4E6) : palette.soft,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: isPrivate ? const Color(0xFFFB7185) : palette.border,
+              width: 0.45,
             ),
           ),
           child: Text(
             badgeText,
             style: AppTheme.caption.copyWith(
-              fontSize: 10.5,
+              fontSize: 4.8,
               fontWeight: FontWeight.w800,
               color: isPrivate ? const Color(0xFFBE123C) : palette.primary,
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 4),
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (showLogo) ...[
-                _LogoBox(logoUrl: logoUrl),
-                const SizedBox(width: 8),
+                if (hasNetworkLogo) ...[
+                  _LogoBox(logoUrl: resolvedLogoUrl),
+                  const SizedBox(width: 4),
+                ],
+                const _LogoBox(logoUrl: null),
+                const SizedBox(width: 5),
               ],
               Flexible(
-                child: Text(
-                  logoText,
-                  textAlign: TextAlign.right,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyBold.copyWith(
-                    fontSize: 18,
-                    color: const Color(0xFF16302B),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      logoText,
+                      textAlign: TextAlign.right,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.bodyBold.copyWith(
+                        fontSize: 7.2,
+                        height: 1.15,
+                        color: palette.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 1.2),
+                    Text(
+                      subtitleText,
+                      textAlign: TextAlign.right,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.caption.copyWith(
+                        fontSize: 4.2,
+                        height: 1.25,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -612,20 +665,22 @@ class _LogoBox extends StatelessWidget {
     final resolvedUrl = logoUrl?.trim() ?? '';
     final hasNetworkLogo = resolvedUrl.isNotEmpty;
     return Container(
-      width: 54,
-      height: 54,
+      width: 24,
+      height: 24,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(3),
       ),
       clipBehavior: Clip.antiAlias,
       child: hasNetworkLogo
-          ? Image.network(
-              resolvedUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  const _FallbackLogo(),
+          ? Padding(
+              padding: const EdgeInsets.all(1.8),
+              child: Image.network(
+                resolvedUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const _FallbackLogo(),
+              ),
             )
           : const _FallbackLogo(),
     );
@@ -638,7 +693,7 @@ class _FallbackLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(1.8),
       child: Image.asset('assets/images/shwakel_app_icon.png'),
     );
   }

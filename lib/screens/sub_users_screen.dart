@@ -41,6 +41,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canRedeemCards': true,
     'canWithdraw': false,
     'canReviewCards': false,
+    'canReadOwnPrivateCardsOnly': false,
     'canRequestCardPrinting': true,
   };
 
@@ -52,6 +53,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canOfflineCardScan': 'screens_sub_users_screen.077',
     'canRequestCardPrinting': 'screens_sub_users_screen.078',
     'canReviewCards': 'screens_sub_users_screen.079',
+    'canReadOwnPrivateCardsOnly': 'screens_sub_users_screen.131',
   };
 
   @override
@@ -392,10 +394,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           _buildInlineGuideCard(),
           const SizedBox(height: 18),
         ],
-        if (_showStats) ...[
-          _buildStatsRow(),
-          const SizedBox(height: 18),
-        ],
+        if (_showStats) ...[_buildStatsRow(), const SizedBox(height: 18)],
         if (!_canManageSubUsers) ...[
           ShwakelCard(
             padding: const EdgeInsets.all(18),
@@ -733,7 +732,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.loc.tr('screens_sub_users_screen.115'), style: AppTheme.h3),
+          Text(
+            context.loc.tr('screens_sub_users_screen.115'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 8),
           Text(
             context.loc.tr('screens_sub_users_screen.116'),
@@ -1047,6 +1049,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         context.loc.tr('screens_sub_users_screen.070'),
       if (permissions['canReviewCards'] == true)
         context.loc.tr('screens_sub_users_screen.071'),
+      if (permissions['canReadOwnPrivateCardsOnly'] == true)
+        context.loc.tr('screens_sub_users_screen.132'),
     ];
     final fullName = user['fullName']?.toString().trim();
     final displayName = (fullName?.isNotEmpty ?? false)

@@ -69,35 +69,18 @@ class _AppSidebarState extends State<AppSidebar> {
         _user?['transferVerificationStatus']?.toString() ?? 'unverified';
     final permissions = AppPermissions.fromUser(_user);
 
-    final canViewBalance = permissions.canViewBalance;
-    final canViewTransactions = permissions.canViewTransactions;
-    final canViewInventory = permissions.canViewInventory;
-    final canViewQuickTransfer = permissions.canOpenQuickTransfer;
     final canViewContact = permissions.canViewContact;
     final canViewLocations = permissions.canViewLocations;
-    final canViewNotifications = permissions.canViewTransactions || canViewBalance;
+    final canViewNotifications =
+        permissions.canViewTransactions || permissions.canViewBalance;
     final canViewUsagePolicy = permissions.canViewUsagePolicy;
-    final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canViewSubUsers = permissions.canViewSubUsers;
-    final canManageDebtBook = permissions.canManageDebtBook;
     final canViewAccountSettings = permissions.canViewAccountSettings;
     final canRequestVerification = permissions.canRequestVerification;
-    final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
-    final canIssueCards = permissions.canIssueCards;
-    final canRequestCardPrinting = permissions.canRequestCardPrinting;
-    final canScanCards = permissions.canOpenCardTools;
     final hasAdminWorkspaceAccess = permissions.hasAdminWorkspaceAccess;
-    final canViewCustomers = permissions.canViewCustomers;
-    final canManageUsers = permissions.canManageUsers;
-    final canManageMarketingAccounts = permissions.canManageMarketingAccounts;
-    final canManageLocations = permissions.canManageLocations;
-    final canManageSystemSettings = permissions.canManageSystemSettings;
-    final canReviewWithdrawals = permissions.canReviewWithdrawals;
-    final canReviewTopups = permissions.canReviewTopups;
-    final canHandleCardPrintRequests = permissions.canManageCardPrintRequests;
-    final canReviewDevices = permissions.canReviewDevices;
     final isOfflineMode = OfflineSessionService.isOfflineMode;
     return Drawer(
+      width: MediaQuery.of(context).size.width >= 480 ? 360 : null,
       backgroundColor: AppTheme.sidebarSurface,
       child: SafeArea(
         child: Column(
@@ -154,295 +137,99 @@ class _AppSidebarState extends State<AppSidebar> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
                 children: [
-                  if (isOfflineMode) ...[
-                    _buildSectionLabel(l.tr('widgets_app_sidebar.037')),
-                    _buildItem(
-                      context,
-                      icon: Icons.home_rounded,
-                      title: l.tr('widgets_app_sidebar.003'),
-                      routeName: '/home',
-                    ),
-                    if (canScanCards)
+                  _buildMenuSection(
+                    label: isOfflineMode
+                        ? l.tr('widgets_app_sidebar.037')
+                        : l.tr('widgets_app_sidebar.002'),
+                    children: [
                       _buildItem(
                         context,
-                        icon: Icons.qr_code_scanner_rounded,
-                        title: l.tr('widgets_app_sidebar.008'),
-                        routeName: isOfflineMode
-                            ? '/scan-card-offline'
-                            : '/scan-card',
+                        icon: Icons.home_rounded,
+                        title: l.tr('widgets_app_sidebar.003'),
+                        routeName: '/home',
                       ),
-                    if (canManageDebtBook)
-                      _buildItem(
-                        context,
-                        icon: Icons.menu_book_rounded,
-                        title: l.tr('widgets_app_sidebar.040'),
-                        routeName: '/debt-book',
-                      ),
-                    if (canViewAffiliateCenter)
-                      _buildItem(
-                        context,
-                        icon: Icons.campaign_rounded,
-                        title: l.tr('widgets_app_sidebar.041'),
-                        routeName: '/affiliate-center',
-                      ),
-                    const Divider(indent: 8, endIndent: 8, height: 28),
-                  ] else ...[
-                    _buildSectionLabel(l.tr('widgets_app_sidebar.002')),
-                    _buildItem(
-                      context,
-                      icon: Icons.home_rounded,
-                      title: l.tr('widgets_app_sidebar.003'),
-                      routeName: '/home',
-                    ),
-                    if (canViewBalance)
-                      _buildItem(
-                        context,
-                        icon: Icons.account_balance_wallet_rounded,
-                        title: l.tr('widgets_app_sidebar.004'),
-                        routeName: '/balance',
-                      ),
-                    if (canViewTransactions)
-                      _buildItem(
-                        context,
-                        icon: Icons.receipt_long_rounded,
-                        title: l.tr('widgets_app_sidebar.005'),
-                        routeName: '/transactions',
-                      ),
-                    if (canViewNotifications)
-                      _buildItem(
-                        context,
-                        icon: Icons.notifications_active_rounded,
-                        title: l.tr('widgets_app_sidebar.044'),
-                        routeName: '/notifications',
-                      ),
-                    if (canViewInventory && canIssueCards)
-                      _buildItem(
-                        context,
-                        icon: Icons.inventory_2_rounded,
-                        title: l.tr('widgets_app_sidebar.006'),
-                        routeName: '/inventory',
-                      ),
-                    if (permissions.canOpenPrepaidMultipayCards)
-                      _buildItem(
-                        context,
-                        icon: Icons.credit_card_rounded,
-                        title: 'بطاقات دفع مسبق',
-                        routeName: '/prepaid-multipay-cards',
-                      ),
-                    if (canRequestCardPrinting)
-                      _buildItem(
-                        context,
-                        icon: Icons.print_rounded,
-                        title: l.tr('widgets_app_sidebar.007'),
-                        routeName: '/card-print-requests',
-                      ),
-                    if (canScanCards)
-                      _buildItem(
-                        context,
-                        icon: Icons.qr_code_scanner_rounded,
-                        title: l.tr('widgets_app_sidebar.008'),
-                        routeName: isOfflineMode
-                            ? '/scan-card-offline'
-                            : '/scan-card',
-                      ),
-                    const Divider(indent: 8, endIndent: 8, height: 28),
-                  ],
-                  if (!isOfflineMode) ...[
-                    _buildSectionLabel(l.tr('widgets_app_sidebar.009')),
-                    if (canViewAccountSettings)
-                      _buildItem(
-                        context,
-                        icon: Icons.person_rounded,
-                        title: l.tr('widgets_app_sidebar.010'),
-                        routeName: '/account-settings',
-                      ),
-                    if (canViewQuickTransfer)
-                      _buildItem(
-                        context,
-                        icon: Icons.send_to_mobile_rounded,
-                        title: l.tr('widgets_app_sidebar.011'),
-                        routeName: '/quick-transfer',
-                      ),
-                    if (verificationStatus != 'approved' &&
-                        canRequestVerification)
-                      _buildItem(
-                        context,
-                        icon: Icons.verified_user_rounded,
-                        title: l.tr('widgets_app_sidebar.012'),
-                        routeName: '/account-verification',
-                      ),
-                    if (canViewSecuritySettings)
-                      _buildItem(
-                        context,
-                        icon: Icons.security_rounded,
-                        title: l.tr('widgets_app_sidebar.013'),
-                        routeName: '/security-settings',
-                      ),
-                    if (canViewAffiliateCenter)
-                      _buildItem(
-                        context,
-                        icon: Icons.campaign_rounded,
-                        title: l.tr('widgets_app_sidebar.041'),
-                        routeName: '/affiliate-center',
-                      ),
-                    if (canViewSubUsers)
-                      _buildItem(
-                        context,
-                        icon: Icons.supervised_user_circle_rounded,
-                        title: l.tr('widgets_app_sidebar.039'),
-                        routeName: '/sub-users',
-                      ),
-                    if (canManageDebtBook)
-                      _buildItem(
-                        context,
-                        icon: Icons.menu_book_rounded,
-                        title: l.tr('widgets_app_sidebar.040'),
-                        routeName: '/debt-book',
-                      ),
-                    if (hasAdminWorkspaceAccess) ...[
-                      const Divider(indent: 8, endIndent: 8, height: 28),
-                      _buildSectionLabel(l.tr('widgets_app_sidebar.014')),
-                      _buildItem(
-                        context,
-                        icon: Icons.dashboard_customize_rounded,
-                        title: l.tr('widgets_app_sidebar.015'),
-                        routeName: '/admin-dashboard',
-                      ),
-                      if (canViewCustomers)
+                      if (!isOfflineMode && canViewNotifications)
                         _buildItem(
                           context,
-                          icon: Icons.people_alt_rounded,
-                          title: l.tr('widgets_app_sidebar.030'),
-                          routeName: '/admin-customers',
-                        ),
-                      if (canManageUsers || canManageMarketingAccounts)
-                        _buildItem(
-                          context,
-                          icon: Icons.person_add_alt_1_rounded,
-                          title: l.tr('widgets_app_sidebar.042'),
-                          routeName: '/admin-pending-registrations',
-                        ),
-                      if (canReviewDevices)
-                        _buildItem(
-                          context,
-                          icon: Icons.devices_other_rounded,
-                          title: l.tr('widgets_app_sidebar.016'),
-                          routeName: '/admin-device-requests',
-                        ),
-                      if (canReviewWithdrawals)
-                        _buildItem(
-                          context,
-                          icon: Icons.outbox_rounded,
-                          title: l.tr('widgets_app_sidebar.031'),
-                          routeName: '/withdrawal-requests',
-                        ),
-                      if (canReviewTopups)
-                        _buildItem(
-                          context,
-                          icon: Icons.add_card_rounded,
-                          title: l.tr('widgets_app_sidebar.017'),
-                          routeName: '/topup-requests',
-                        ),
-                      if (canHandleCardPrintRequests)
-                        _buildItem(
-                          context,
-                          icon: Icons.print_rounded,
-                          title: l.tr('widgets_app_sidebar.032'),
-                          routeName: '/admin-card-print-requests',
-                        ),
-                      if (canManageLocations)
-                        _buildItem(
-                          context,
-                          icon: Icons.map_rounded,
-                          title: l.tr('widgets_app_sidebar.018'),
-                          routeName: '/admin-locations',
-                        ),
-                      if (canManageSystemSettings)
-                        _buildItem(
-                          context,
-                          icon: Icons.approval_rounded,
-                          title: l.tr('widgets_app_sidebar.045'),
-                          routeName: '/admin-prepaid-multipay-approvals',
-                        ),
-                      if (canManageSystemSettings)
-                        _buildItem(
-                          context,
-                          icon: Icons.settings_applications_rounded,
-                          title: l.tr('widgets_app_sidebar.019'),
-                          routeName: '/admin-system-settings',
-                        ),
-                      if (canManageSystemSettings)
-                        _buildItem(
-                          context,
-                          icon: Icons.campaign_rounded,
-                          title: l.tr('widgets_app_sidebar.043'),
-                          routeName: '/admin-notifications',
-                        ),
-                      if (canManageSystemSettings)
-                        _buildItem(
-                          context,
-                          icon: Icons.rule_folder_rounded,
-                          title: l.tr('widgets_app_sidebar.033'),
-                          routeName: '/admin-permissions',
+                          icon: Icons.notifications_active_rounded,
+                          title: l.tr('widgets_app_sidebar.044'),
+                          routeName: '/notifications',
                         ),
                     ],
-                    const Divider(indent: 8, endIndent: 8, height: 28),
-                    _buildSectionLabel(l.tr('widgets_app_sidebar.020')),
-                    if (canViewUsagePolicy)
-                      _buildItem(
-                        context,
-                        icon: Icons.policy_rounded,
-                        title: l.tr('widgets_app_sidebar.021'),
-                        routeName: '/usage-policy',
+                  ),
+                  if (!isOfflineMode) ...[
+                    _buildMenuSection(
+                      label: l.tr('widgets_app_sidebar.009'),
+                      children: [
+                        if (canViewAccountSettings)
+                          _buildItem(
+                            context,
+                            icon: Icons.person_rounded,
+                            title: l.tr('widgets_app_sidebar.010'),
+                            routeName: '/account-settings',
+                          ),
+                        if (verificationStatus != 'approved' &&
+                            canRequestVerification)
+                          _buildItem(
+                            context,
+                            icon: Icons.verified_user_rounded,
+                            title: l.tr('widgets_app_sidebar.012'),
+                            routeName: '/account-verification',
+                          ),
+                        if (canViewSubUsers)
+                          _buildItem(
+                            context,
+                            icon: Icons.supervised_user_circle_rounded,
+                            title: l.tr('widgets_app_sidebar.039'),
+                            routeName: '/sub-users',
+                          ),
+                      ],
+                    ),
+                    if (hasAdminWorkspaceAccess) ...[
+                      _buildMenuSection(
+                        label: l.tr('widgets_app_sidebar.014'),
+                        children: [
+                          _buildItem(
+                            context,
+                            icon: Icons.dashboard_customize_rounded,
+                            title: l.tr('widgets_app_sidebar.015'),
+                            routeName: '/admin-dashboard',
+                          ),
+                        ],
                       ),
-                    if (canViewContact)
-                      _buildItem(
-                        context,
-                        icon: Icons.support_agent_rounded,
-                        title: l.tr('widgets_app_sidebar.022'),
-                        routeName: '/contact-us',
-                      ),
-                    if (canViewLocations)
-                      _buildItem(
-                        context,
-                        icon: Icons.storefront_rounded,
-                        title: l.tr('widgets_app_sidebar.023'),
-                        routeName: '/supported-locations',
-                      ),
+                    ],
+                    _buildMenuSection(
+                      label: l.tr('widgets_app_sidebar.020'),
+                      children: [
+                        if (canViewUsagePolicy)
+                          _buildItem(
+                            context,
+                            icon: Icons.policy_rounded,
+                            title: l.tr('widgets_app_sidebar.021'),
+                            routeName: '/usage-policy',
+                          ),
+                        if (canViewContact)
+                          _buildItem(
+                            context,
+                            icon: Icons.support_agent_rounded,
+                            title: l.tr('widgets_app_sidebar.022'),
+                            routeName: '/contact-us',
+                          ),
+                        if (canViewLocations)
+                          _buildItem(
+                            context,
+                            icon: Icons.storefront_rounded,
+                            title: l.tr('widgets_app_sidebar.023'),
+                            routeName: '/supported-locations',
+                          ),
+                      ],
+                    ),
                   ],
-                  const Divider(indent: 8, endIndent: 8, height: 28),
-                  _buildSectionLabel(l.tr('widgets_app_sidebar.024')),
-                  ListTile(
-                    minTileHeight: 50,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 2,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    leading: const Icon(
-                      Icons.language_rounded,
-                      color: AppTheme.textSecondary,
-                    ),
-                    title: Text(
-                      l.tr('widgets_app_sidebar.025'),
-                      style: AppTheme.bodyText.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      l.tr('widgets_app_sidebar.034'),
-                      style: AppTheme.caption,
-                    ),
-                    onTap: () async {
-                      await AppLocaleService.instance.toggleLocale();
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                    },
+                  _buildMenuSection(
+                    label: l.tr('widgets_app_sidebar.024'),
+                    children: [_buildLanguageItem(context)],
                   ),
                 ],
               ),
@@ -482,6 +269,84 @@ class _AppSidebarState extends State<AppSidebar> {
     );
   }
 
+  Widget _buildMenuSection({
+    required String label,
+    required List<Widget> children,
+  }) {
+    if (children.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionLabel(label),
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.035),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(21),
+              child: Column(children: _withItemSeparators(children)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _withItemSeparators(List<Widget> children) {
+    final separated = <Widget>[];
+    for (var index = 0; index < children.length; index += 1) {
+      if (index > 0) {
+        separated.add(const Divider(height: 1, indent: 58, endIndent: 12));
+      }
+      separated.add(children[index]);
+    }
+    return separated;
+  }
+
+  Widget _buildLanguageItem(BuildContext context) {
+    final l = context.loc;
+    return ListTile(
+      minTileHeight: 50,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      leading: const Icon(
+        Icons.language_rounded,
+        color: AppTheme.textSecondary,
+      ),
+      title: Text(
+        l.tr('widgets_app_sidebar.025'),
+        style: AppTheme.bodyText.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(l.tr('widgets_app_sidebar.034'), style: AppTheme.caption),
+      trailing: const Icon(
+        Icons.translate_rounded,
+        size: 20,
+        color: AppTheme.textTertiary,
+      ),
+      onTap: () async {
+        await AppLocaleService.instance.toggleLocale();
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+    );
+  }
+
   Widget _buildItem(
     BuildContext context, {
     required IconData icon,
@@ -489,9 +354,16 @@ class _AppSidebarState extends State<AppSidebar> {
     required String routeName,
   }) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    final isSelected = currentRoute == routeName;
+    final normalizedRoute =
+        OfflineSessionService.isOfflineMode && routeName == '/scan-card'
+        ? '/scan-card-offline'
+        : routeName;
+    final isSelected =
+        currentRoute == routeName || currentRoute == normalizedRoute;
     final isArabic = context.loc.isArabic;
-    final isBlockedOffline = !OfflineSessionService.canOpenRoute(routeName);
+    final isBlockedOffline = !OfflineSessionService.canOpenRoute(
+      normalizedRoute,
+    );
 
     return ListTile(
       minTileHeight: 50,

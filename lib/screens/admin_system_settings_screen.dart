@@ -49,6 +49,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _singleUseTicketIssueCostController = TextEditingController();
   final _appointmentTicketIssueCostController = TextEditingController();
   final _queueTicketIssueCostController = TextEditingController();
+  final _scanDefaultLimitController = TextEditingController();
+  final _scanRestrictedLimitController = TextEditingController();
+  final _scanBasicLimitController = TextEditingController();
+  final _scanVerifiedLimitController = TextEditingController();
+  final _scanDriverLimitController = TextEditingController();
+  final _scanMarketerLimitController = TextEditingController();
+  final _scanSupportLimitController = TextEditingController();
+  final _scanFinanceLimitController = TextEditingController();
+  final _scanAdminLimitController = TextEditingController();
   final _offlineMaxPendingAmountController = TextEditingController();
   final _offlineMaxPendingCountController = TextEditingController();
   final _offlineCacheLimitController = TextEditingController();
@@ -77,6 +86,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   String _whatsappUsageMode = 'all';
   bool _topupRequestEnabled = true;
   bool _affiliateEnabled = true;
+  bool _scanAutoRedeemGlobalForced = false;
   bool _isLoadingPrepaidReport = false;
   String _prepaidReportCardStatus = 'all';
   List<Map<String, dynamic>> _topupPaymentMethods = const [];
@@ -115,6 +125,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _singleUseTicketIssueCostController.dispose();
     _appointmentTicketIssueCostController.dispose();
     _queueTicketIssueCostController.dispose();
+    _scanDefaultLimitController.dispose();
+    _scanRestrictedLimitController.dispose();
+    _scanBasicLimitController.dispose();
+    _scanVerifiedLimitController.dispose();
+    _scanDriverLimitController.dispose();
+    _scanMarketerLimitController.dispose();
+    _scanSupportLimitController.dispose();
+    _scanFinanceLimitController.dispose();
+    _scanAdminLimitController.dispose();
     _offlineMaxPendingAmountController.dispose();
     _offlineMaxPendingCountController.dispose();
     _offlineCacheLimitController.dispose();
@@ -159,6 +178,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _apiService.getTransferSettings(),
         _apiService.getOfflineCardSettings(),
         _apiService.getFeeSettings(),
+        _apiService.getCardScanLimitSettings(),
         _apiService.getAdminTopupRequestSettings(),
         _apiService.getAdminAffiliateSettings(),
         _apiService.getAdminTopupPaymentMethods(),
@@ -176,16 +196,19 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       final transferSettings = Map<String, dynamic>.from(results[3] as Map);
       final offlineCardSettings = Map<String, dynamic>.from(results[4] as Map);
       final feeSettings = Map<String, dynamic>.from(results[5] as Map);
-      final topupRequestSettings = Map<String, dynamic>.from(results[6] as Map);
-      final affiliateSettings = Map<String, dynamic>.from(results[7] as Map);
+      final cardScanLimitSettings = Map<String, dynamic>.from(
+        results[6] as Map,
+      );
+      final topupRequestSettings = Map<String, dynamic>.from(results[7] as Map);
+      final affiliateSettings = Map<String, dynamic>.from(results[8] as Map);
       final topupPaymentMethods = List<Map<String, dynamic>>.from(
-        (results[8] as List).map(
+        (results[9] as List).map(
           (item) => Map<String, dynamic>.from(item as Map),
         ),
       );
-      final usagePolicy = Map<String, dynamic>.from(results[9] as Map);
+      final usagePolicy = Map<String, dynamic>.from(results[10] as Map);
       final prepaidMultipaySettings = Map<String, dynamic>.from(
-        results[10] as Map,
+        results[11] as Map,
       );
 
       _contactTitleController.text = contactSettings['title'] ?? '';
@@ -244,6 +267,27 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           '0.25';
       _queueTicketIssueCostController.text =
           (feeSettings['queueTicketIssueCost'] as num?)?.toString() ?? '0.10';
+      _scanDefaultLimitController.text =
+          (cardScanLimitSettings['defaultLimit'] as num?)?.toString() ?? '30';
+      _scanRestrictedLimitController.text =
+          (cardScanLimitSettings['restrictedLimit'] as num?)?.toString() ??
+          '10';
+      _scanBasicLimitController.text =
+          (cardScanLimitSettings['basicLimit'] as num?)?.toString() ?? '30';
+      _scanVerifiedLimitController.text =
+          (cardScanLimitSettings['verifiedLimit'] as num?)?.toString() ?? '60';
+      _scanDriverLimitController.text =
+          (cardScanLimitSettings['driverLimit'] as num?)?.toString() ?? '200';
+      _scanMarketerLimitController.text =
+          (cardScanLimitSettings['marketerLimit'] as num?)?.toString() ?? '40';
+      _scanSupportLimitController.text =
+          (cardScanLimitSettings['supportLimit'] as num?)?.toString() ?? '0';
+      _scanFinanceLimitController.text =
+          (cardScanLimitSettings['financeLimit'] as num?)?.toString() ?? '0';
+      _scanAdminLimitController.text =
+          (cardScanLimitSettings['adminLimit'] as num?)?.toString() ?? '0';
+      _scanAutoRedeemGlobalForced =
+          cardScanLimitSettings['autoRedeemGlobalForced'] == true;
       _offlineMaxPendingAmountController.text =
           (offlineCardSettings['maxPendingAmount'] as num?)?.toString() ??
           '500';
@@ -434,6 +478,19 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               0.25,
           queueTicketIssueCost:
               double.tryParse(_queueTicketIssueCostController.text) ?? 0.10,
+        ),
+        _apiService.updateCardScanLimitSettings(
+          defaultLimit: int.tryParse(_scanDefaultLimitController.text) ?? 30,
+          restrictedLimit:
+              int.tryParse(_scanRestrictedLimitController.text) ?? 10,
+          basicLimit: int.tryParse(_scanBasicLimitController.text) ?? 30,
+          verifiedLimit: int.tryParse(_scanVerifiedLimitController.text) ?? 60,
+          driverLimit: int.tryParse(_scanDriverLimitController.text) ?? 200,
+          marketerLimit: int.tryParse(_scanMarketerLimitController.text) ?? 40,
+          supportLimit: int.tryParse(_scanSupportLimitController.text) ?? 0,
+          financeLimit: int.tryParse(_scanFinanceLimitController.text) ?? 0,
+          adminLimit: int.tryParse(_scanAdminLimitController.text) ?? 0,
+          autoRedeemGlobalForced: _scanAutoRedeemGlobalForced,
         ),
         _apiService.updateAdminOfflineCardSettings(
           maxPendingAmount:
@@ -1580,17 +1637,17 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   _cardPrintRequestFeeController,
                 ),
                 _buildFeeField(
-                  'تكلفة بطاقة رصيد عامة',
+                  'رسوم بطاقة رصيد عند الاستخدام',
                   _standardCardIssueCostController,
                   suffixText: '₪',
                 ),
                 _buildFeeField(
-                  'تكلفة بطاقة توصيل',
+                  'رسوم بطاقة توصيل عند الاستخدام',
                   _deliveryCardIssueCostController,
                   suffixText: '₪',
                 ),
                 _buildFeeField(
-                  'تكلفة البطاقة الخاصة',
+                  'رسوم البطاقة الخاصة عند الإنشاء',
                   _privateCardIssueCostController,
                   suffixText: '₪',
                 ),
@@ -1608,6 +1665,55 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   'رسوم إصدار تذكرة طابور',
                   _queueTicketIssueCostController,
                   suffixText: '₪',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('حماية فحص البطاقات', style: AppTheme.bodyBold),
+                const SizedBox(height: 8),
+                Text(
+                  '0 يعني غير محدود. يتم تصفير عداد المستخدم بعد سحب ناجح أو من صفحة المستخدم في الإدارة.',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _buildNumberField('الافتراضي', _scanDefaultLimitController),
+                    _buildNumberField(
+                      'عضوية مقيدة',
+                      _scanRestrictedLimitController,
+                    ),
+                    _buildNumberField('مستخدم', _scanBasicLimitController),
+                    _buildNumberField(
+                      'تاجر / موثق',
+                      _scanVerifiedLimitController,
+                    ),
+                    _buildNumberField('سائق', _scanDriverLimitController),
+                    _buildNumberField('مسوق', _scanMarketerLimitController),
+                    _buildNumberField('دعم فني', _scanSupportLimitController),
+                    _buildNumberField('مالية', _scanFinanceLimitController),
+                    _buildNumberField('إدارة', _scanAdminLimitController),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('فرض السحب التلقائي عند الفحص للجميع'),
+                  subtitle: const Text(
+                    'عند التفعيل يتم استخدام البطاقة مباشرة بعد قراءتها ولا يستطيع المستخدم تعطيل الخيار.',
+                  ),
+                  value: _scanAutoRedeemGlobalForced,
+                  onChanged: (value) =>
+                      setState(() => _scanAutoRedeemGlobalForced = value),
                 ),
               ],
             ),

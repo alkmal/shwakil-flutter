@@ -780,6 +780,7 @@ class ApiService {
     required bool canIssueSingleUseTickets,
     required bool canIssueAppointmentTickets,
     required bool canIssueQueueTickets,
+    required bool canReadOwnPrivateCardsOnly,
     required bool canResellCards,
     required bool canRequestCardPrinting,
     required bool canManageCardPrintRequests,
@@ -801,6 +802,7 @@ class ApiService {
         'canIssueSingleUseTickets': canIssueSingleUseTickets,
         'canIssueAppointmentTickets': canIssueAppointmentTickets,
         'canIssueQueueTickets': canIssueQueueTickets,
+        'canReadOwnPrivateCardsOnly': canReadOwnPrivateCardsOnly,
         'canResellCards': canResellCards,
         'canRequestCardPrinting': canRequestCardPrinting,
         'canManageCardPrintRequests': canManageCardPrintRequests,
@@ -846,6 +848,10 @@ class ApiService {
     double? customCardRedeemFeePercent,
     double? customCardResellFeePercent,
     double? customCardPrintRequestFeePercent,
+    int? customCardScanLimit,
+    bool cardScanLimitExempt = false,
+    bool resetCardScanCounter = false,
+    bool cardAutoRedeemOnScanForced = false,
   }) async {
     final response = await http.put(
       AppConfig.apiUri('admin/users/$userId/account-controls'),
@@ -861,6 +867,52 @@ class ApiService {
         'customCardRedeemFeePercent': customCardRedeemFeePercent,
         'customCardResellFeePercent': customCardResellFeePercent,
         'customCardPrintRequestFeePercent': customCardPrintRequestFeePercent,
+        'customCardScanLimit': customCardScanLimit,
+        'cardScanLimitExempt': cardScanLimitExempt,
+        'resetCardScanCounter': resetCardScanCounter,
+        'cardAutoRedeemOnScanForced': cardAutoRedeemOnScanForced,
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getCardScanLimitSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/card-scan-limits'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(
+      body['cardScanLimits'] as Map? ?? const {},
+    );
+  }
+
+  Future<Map<String, dynamic>> updateCardScanLimitSettings({
+    required int defaultLimit,
+    required int restrictedLimit,
+    required int basicLimit,
+    required int verifiedLimit,
+    required int driverLimit,
+    required int marketerLimit,
+    required int supportLimit,
+    required int financeLimit,
+    required int adminLimit,
+    required bool autoRedeemGlobalForced,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/card-scan-limits'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'defaultLimit': defaultLimit,
+        'restrictedLimit': restrictedLimit,
+        'basicLimit': basicLimit,
+        'verifiedLimit': verifiedLimit,
+        'driverLimit': driverLimit,
+        'marketerLimit': marketerLimit,
+        'supportLimit': supportLimit,
+        'financeLimit': financeLimit,
+        'adminLimit': adminLimit,
+        'autoRedeemGlobalForced': autoRedeemGlobalForced,
       }),
     );
     return _decodeObject(response);
@@ -929,6 +981,7 @@ class ApiService {
     required String cardType,
     String notes = '',
     List<String> allowedUserIds = const [],
+    List<String> allowedUserPhones = const [],
     String? validFrom,
     String? validUntil,
     Map<String, dynamic> cardDetails = const {},
@@ -942,6 +995,8 @@ class ApiService {
         'cardType': cardType,
         'notes': notes.trim(),
         if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
+        if (allowedUserPhones.isNotEmpty)
+          'allowedUserPhones': allowedUserPhones,
         if ((validFrom ?? '').trim().isNotEmpty) 'validFrom': validFrom!.trim(),
         if ((validUntil ?? '').trim().isNotEmpty)
           'validUntil': validUntil!.trim(),
@@ -989,6 +1044,7 @@ class ApiService {
     required String cardType,
     String notes = '',
     List<String> allowedUserIds = const [],
+    List<String> allowedUserPhones = const [],
     String? validFrom,
     String? validUntil,
     Map<String, dynamic> cardDetails = const {},
@@ -1003,6 +1059,8 @@ class ApiService {
         'cardType': cardType,
         'notes': notes.trim(),
         if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
+        if (allowedUserPhones.isNotEmpty)
+          'allowedUserPhones': allowedUserPhones,
         if ((validFrom ?? '').trim().isNotEmpty) 'validFrom': validFrom!.trim(),
         if ((validUntil ?? '').trim().isNotEmpty)
           'validUntil': validUntil!.trim(),
@@ -1884,6 +1942,7 @@ class ApiService {
     required double value,
     required int quantity,
     List<String> allowedUserIds = const [],
+    List<String> allowedUserPhones = const [],
     String visibilityScope = 'general',
     String cardType = 'standard',
     Map<String, dynamic>? printDesign,
@@ -1898,6 +1957,7 @@ class ApiService {
       'quantity': quantity,
       'cardType': cardType,
       if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
+      if (allowedUserPhones.isNotEmpty) 'allowedUserPhones': allowedUserPhones,
       if (visibilityScope.trim().isNotEmpty) 'visibilityScope': visibilityScope,
       ...?printDesign == null ? null : {'printDesign': printDesign},
       if (validFrom != null && validFrom.trim().isNotEmpty)
@@ -2081,16 +2141,45 @@ class ApiService {
     });
   }
 
-  Future<VirtualCard?> getCardByBarcode(String barcode) async {
+  Future<VirtualCard?> getCardByBarcode(
+    String barcode, {
+    bool autoRedeem = false,
+  }) async {
     final response = await http.get(
-      AppConfig.apiUri('cards/$barcode'),
+      AppConfig.apiUri(
+        'cards/$barcode',
+        autoRedeem ? {'autoRedeem': '1'} : null,
+      ),
       headers: await _headers(),
     );
     if (response.statusCode == 404) {
       return null;
     }
     final body = _decodeObject(response);
+    await _patchCachedBalanceFromPayload(body);
+    if (body['user'] is Map) {
+      await _authService.patchCurrentUser(
+        Map<String, dynamic>.from(body['user'] as Map),
+      );
+    }
     return _cardFromApi(Map<String, dynamic>.from(body['card'] as Map));
+  }
+
+  Future<Map<String, dynamic>> updateCardAutoRedeemOnScanPreference({
+    required bool enabled,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('cards/auto-redeem-on-scan'),
+      headers: await _headers(),
+      body: jsonEncode({'enabled': enabled}),
+    );
+    final body = _decodeObject(response);
+    if (body['user'] is Map) {
+      await _authService.patchCurrentUser(
+        Map<String, dynamic>.from(body['user'] as Map),
+      );
+    }
+    return body;
   }
 
   Future<Map<String, dynamic>> redeemCard({

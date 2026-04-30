@@ -299,7 +299,11 @@ class PDFService {
   bool _isTicketCard(VirtualCard card) =>
       card.isSingleUse || card.isAppointment || card.isQueueTicket;
 
-  String _privacyLabel(VirtualCard card) => card.isPrivate ? 'خاصة' : 'عامة';
+  bool _isVisuallyPrivate(VirtualCard card) =>
+      card.isPrivate || _isLocationSpecific(card) || _isTicketCard(card);
+
+  String _privacyLabel(VirtualCard card) =>
+      _isVisuallyPrivate(card) ? 'خاصة' : 'عامة';
 
   String _cardKindLabel(VirtualCard card) {
     if (card.isDelivery) {
@@ -341,7 +345,9 @@ class PDFService {
 
   String _cardSubtitle(VirtualCard card) {
     if (card.isDelivery) {
-      return 'بطاقة رصيد عامة للتوصيل والمدفوعات';
+      return _isVisuallyPrivate(card)
+          ? 'بطاقة توصيل خاصة لمستفيدين محددين'
+          : 'بطاقة رصيد عامة للتوصيل والمدفوعات';
     }
     if (card.isSingleUse) {
       return 'تذكرة خاصة لاستخدام واحد داخل النظام';
@@ -352,7 +358,7 @@ class PDFService {
     if (card.isQueueTicket) {
       return 'تذكرة طابور خاصة لمستفيدين محددين';
     }
-    return card.isPrivate
+    return _isVisuallyPrivate(card)
         ? 'بطاقة رصيد خاصة لمستفيدين محددين'
         : 'بطاقة رصيد عامة - ${_valueInArabicWords(card.value)}';
   }
@@ -375,12 +381,12 @@ class PDFService {
             vertical: compact ? 1.3 : 3,
           ),
           decoration: pw.BoxDecoration(
-            color: card.isPrivate
+            color: _isVisuallyPrivate(card)
                 ? const PdfColor.fromInt(0xFFFFE4E6)
                 : palette.soft,
             borderRadius: pw.BorderRadius.circular(compact ? 6 : 10),
             border: pw.Border.all(
-              color: card.isPrivate
+              color: _isVisuallyPrivate(card)
                   ? const PdfColor.fromInt(0xFFFB7185)
                   : palette.border,
               width: compact ? 0.45 : 0.9,
@@ -392,7 +398,7 @@ class PDFService {
             style: _textStyle(
               fontSize: badgeFont,
               bold: true,
-              color: card.isPrivate
+              color: _isVisuallyPrivate(card)
                   ? const PdfColor.fromInt(0xFFBE123C)
                   : palette.primary,
             ),
@@ -439,7 +445,7 @@ class PDFService {
                     pw.SizedBox(height: compact ? 1.2 : 2.5),
                     pw.Text(
                       card.isDelivery
-                          ? 'بطاقة رصيد عامة للتوصيل والمدفوعات'
+                          ? _cardSubtitle(card)
                           : _isTicketCard(card)
                           ? 'تذكرة خاصة داخل النظام'
                           : 'بطاقة رصيد رقمية',
@@ -568,7 +574,7 @@ class PDFService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          margin: pw.EdgeInsets.zero,
           theme: pw.ThemeData.withFont(
             base: _regularFont!,
             bold: _boldFont!,
@@ -598,44 +604,24 @@ class PDFService {
     String? printedBy,
     int startSerialNumber = 1,
   }) {
-    final rows = <pw.Widget>[];
-    for (int rowIndex = 0; rowIndex < _rowsPerPage; rowIndex++) {
-      final start = rowIndex * _columnsPerPage;
-      final end = (start + _columnsPerPage).clamp(0, cards.length);
-      final rowCards = start < cards.length
-          ? cards.sublist(start, end)
-          : <VirtualCard>[];
-      rows.add(
-        pw.Expanded(
-          child: pw.Padding(
-            padding: pw.EdgeInsets.only(
-              bottom: rowIndex == _rowsPerPage - 1 ? 0 : 2.5,
-            ),
-            child: pw.Row(
-              children: List.generate(_columnsPerPage, (columnIndex) {
-                return pw.Expanded(
-                  child: pw.Padding(
-                    padding: pw.EdgeInsetsDirectional.only(
-                      start: columnIndex == 0 ? 0 : 2,
-                      end: columnIndex == _columnsPerPage - 1 ? 0 : 2,
-                    ),
-                    child: columnIndex < rowCards.length
-                        ? _buildSmallCardWidget(
-                            rowCards[columnIndex],
-                            printedBy: printedBy,
-                            serialNumber:
-                                startSerialNumber + start + columnIndex,
-                          )
-                        : pw.SizedBox.expand(),
-                  ),
-                );
-              }),
-            ),
-          ),
+    return List.generate(_rowsPerPage, (rowIndex) {
+      return pw.Expanded(
+        child: pw.Row(
+          children: List.generate(_columnsPerPage, (columnIndex) {
+            final cardIndex = (rowIndex * _columnsPerPage) + columnIndex;
+            return pw.Expanded(
+              child: cardIndex < cards.length
+                  ? _buildSmallCardWidget(
+                      cards[cardIndex],
+                      printedBy: printedBy,
+                      serialNumber: startSerialNumber + cardIndex,
+                    )
+                  : pw.SizedBox.expand(),
+            );
+          }),
         ),
       );
-    }
-    return rows;
+    });
   }
 
   pw.Widget _buildSmallCardWidget(
@@ -701,10 +687,10 @@ class PDFService {
             child: pw.Padding(
               padding: const pw.EdgeInsets.fromLTRB(3.4, 5.5, 3.4, 2.8),
               child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
                   _topHeader(palette, compact: true, card: card),
+                  pw.SizedBox(height: 2.6),
                   pw.Column(
                     children: [
                       if (_isTicketCard(card))
@@ -787,6 +773,7 @@ class PDFService {
                       ),
                     ],
                   ),
+                  pw.Spacer(),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                     children: [
@@ -845,7 +832,9 @@ class PDFService {
                       ),
                       if (card.issueCost > 0)
                         pw.Text(
-                          'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                          _isTicketCard(card)
+                              ? 'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل'
+                              : 'رسوم عند الاستخدام: ${card.issueCost.toStringAsFixed(2)} شيكل',
                           textAlign: pw.TextAlign.right,
                           textDirection: pw.TextDirection.rtl,
                           style: _textStyle(
@@ -951,10 +940,10 @@ class PDFService {
             child: pw.Padding(
               padding: const pw.EdgeInsets.fromLTRB(14, 14, 14, 12),
               child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
                   _topHeader(palette, compact: false, card: card),
+                  pw.SizedBox(height: 16),
                   pw.Column(
                     children: [
                       if (_isTicketCard(card))
@@ -1003,7 +992,9 @@ class PDFService {
                       pw.SizedBox(height: 4),
                       pw.Text(
                         card.isDelivery
-                            ? 'بطاقة رصيد عامة يمكن استخدامها للمدفوعات'
+                            ? (_isVisuallyPrivate(card)
+                                  ? 'صالحة للمستفيدين المحددين فقط'
+                                  : 'بطاقة رصيد عامة يمكن استخدامها للمدفوعات')
                             : _isTicketCard(card)
                             ? 'صالحة للمستفيدين المحددين فقط'
                             : 'قيمة داخلية صالحة للاستخدام داخل النظام',
@@ -1048,6 +1039,7 @@ class PDFService {
                       ),
                     ],
                   ),
+                  pw.Spacer(),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                     children: [
@@ -1093,7 +1085,9 @@ class PDFService {
                       ),
                       if (card.issueCost > 0)
                         pw.Text(
-                          'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                          _isTicketCard(card)
+                              ? 'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل'
+                              : 'رسوم عند الاستخدام: ${card.issueCost.toStringAsFixed(2)} شيكل',
                           textAlign: pw.TextAlign.right,
                           textDirection: pw.TextDirection.rtl,
                           style: _textStyle(

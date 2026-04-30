@@ -41,6 +41,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   final TextEditingController _detailsTitleC = TextEditingController();
   final TextEditingController _detailsDescriptionC = TextEditingController();
   final TextEditingController _appointmentLocationC = TextEditingController();
+  final TextEditingController _allowedPhoneC = TextEditingController();
 
   bool _isLoading = false;
   bool _isLoadingUser = true;
@@ -58,6 +59,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   Map<String, dynamic>? _user;
   List<VirtualCard> _recent = [];
   List<Map<String, dynamic>> _selectedUsers = [];
+  List<String> _selectedPhoneNumbers = [];
 
   @override
   void initState() {
@@ -74,6 +76,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _detailsTitleC.dispose();
     _detailsDescriptionC.dispose();
     _appointmentLocationC.dispose();
+    _allowedPhoneC.dispose();
     super.dispose();
   }
 
@@ -316,7 +319,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (!_isTrialMode && isPrivate && _selectedUsers.isEmpty) {
+    if (!_isTrialMode &&
+        isPrivate &&
+        _selectedUsers.isEmpty &&
+        _selectedPhoneNumbers.isEmpty) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.006'),
@@ -350,7 +356,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   'privateLine': isPrivate
                       ? l.tr(
                           'screens_create_card_screen.015',
-                          params: {'count': '${_selectedUsers.length}'},
+                          params: {
+                            'count':
+                                '${_selectedUsers.length + _selectedPhoneNumbers.length}',
+                          },
                         )
                       : '',
                 },
@@ -443,6 +452,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           otpCode: securityResult.otpCode,
           localAuthMethod: securityResult.method,
           allowedUserIds: _selectedAllowedUserIds(),
+          allowedUserPhones: _selectedAllowedUserPhones(),
         );
         final userId = _user?['id']?.toString();
         if (userId != null && userId.isNotEmpty) {
@@ -710,6 +720,32 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         .map((user) => user['id']?.toString() ?? '')
         .where((id) => id.isNotEmpty)
         .toList();
+  }
+
+  List<String> _selectedAllowedUserPhones() {
+    return _selectedPhoneNumbers
+        .map((phone) => phone.trim())
+        .where((phone) => phone.isNotEmpty)
+        .toList();
+  }
+
+  void _addAllowedPhoneFromInput() {
+    final raw = _allowedPhoneC.text.trim();
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 6) {
+      return;
+    }
+
+    final normalized = raw.startsWith('+') ? '+$digits' : digits;
+    if (_selectedPhoneNumbers.any((item) => item == normalized)) {
+      _allowedPhoneC.clear();
+      return;
+    }
+
+    setState(() {
+      _selectedPhoneNumbers = [..._selectedPhoneNumbers, normalized];
+      _allowedPhoneC.clear();
+    });
   }
 
   bool _isLocalSecurityRequiredMessage(String message) {
@@ -1460,6 +1496,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   } else if (_cardType == 'delivery') {
                     _visibilityScope = 'general';
                     _selectedUsers = [];
+                    _selectedPhoneNumbers = [];
                   }
                   if (_cardType != 'appointment') {
                     _appointmentStartsAt = null;
@@ -1724,6 +1761,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                             _visibilityScope = selection.first;
                             if (_visibilityScope != 'restricted') {
                               _selectedUsers = [];
+                              _selectedPhoneNumbers = [];
                             }
                           });
                         },
@@ -1764,6 +1802,46 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                           style: AppTheme.caption.copyWith(fontSize: 13),
                         ),
                         const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _allowedPhoneC,
+                                keyboardType: TextInputType.phone,
+                                decoration: const InputDecoration(
+                                  labelText: 'رقم هاتف المستفيد',
+                                  prefixIcon: Icon(Icons.phone_rounded),
+                                ),
+                                onSubmitted: (_) => _addAllowedPhoneFromInput(),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            IconButton.filledTonal(
+                              onPressed: _addAllowedPhoneFromInput,
+                              icon: const Icon(Icons.add_rounded),
+                              tooltip: 'إضافة الرقم',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (_selectedPhoneNumbers.isNotEmpty)
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _selectedPhoneNumbers.map((phone) {
+                              return Chip(
+                                avatar: const Icon(Icons.phone_rounded),
+                                label: Text(phone),
+                                onDeleted: () {
+                                  setState(() {
+                                    _selectedPhoneNumbers.remove(phone);
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        if (_selectedPhoneNumbers.isNotEmpty)
+                          const SizedBox(height: 12),
                         if (_selectedUsers.isNotEmpty)
                           Wrap(
                             spacing: 8,
@@ -2118,7 +2196,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final amount = double.tryParse(_amountC.text) ?? 0;
     final previewCard = VirtualCard(
       id: 'preview',
-      barcode: 'SHW-0001-2026',
+      barcode: '1234567890123456',
       value: amount,
       cardType: _cardType,
       visibilityScope: _effectiveVisibilityScope,
@@ -2282,6 +2360,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           _visibilityScope = value;
           if (_visibilityScope != 'restricted') {
             _selectedUsers = [];
+            _selectedPhoneNumbers = [];
           }
         });
       },
