@@ -43,6 +43,8 @@ class PDFService {
   static const int _cardsPerPage = 30;
   static const int _rowsPerPage = 6;
   static const int _columnsPerPage = 5;
+  static const double _a4PagePrintMargin = 3.5 * PdfPageFormat.mm;
+  static const double _cardCutGap = 0.6 * PdfPageFormat.mm;
   static const PdfColor _pageBackground = PdfColor.fromInt(0xFFF8FAFC);
   static const PdfColor _cardBackground = PdfColor.fromInt(0xFFFFF8EC);
   static const PdfColor _titleColor = PdfColor.fromInt(0xFF16302B);
@@ -574,7 +576,7 @@ class PDFService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.zero,
+          margin: const pw.EdgeInsets.all(_a4PagePrintMargin),
           theme: pw.ThemeData.withFont(
             base: _regularFont!,
             bold: _boldFont!,
@@ -610,13 +612,16 @@ class PDFService {
           children: List.generate(_columnsPerPage, (columnIndex) {
             final cardIndex = (rowIndex * _columnsPerPage) + columnIndex;
             return pw.Expanded(
-              child: cardIndex < cards.length
-                  ? _buildSmallCardWidget(
-                      cards[cardIndex],
-                      printedBy: printedBy,
-                      serialNumber: startSerialNumber + cardIndex,
-                    )
-                  : pw.SizedBox.expand(),
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.all(_cardCutGap),
+                child: cardIndex < cards.length
+                    ? _buildSmallCardWidget(
+                        cards[cardIndex],
+                        printedBy: printedBy,
+                        serialNumber: startSerialNumber + cardIndex,
+                      )
+                    : pw.SizedBox.expand(),
+              ),
             );
           }),
         ),
