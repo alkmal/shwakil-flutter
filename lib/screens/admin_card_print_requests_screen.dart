@@ -237,6 +237,8 @@ class _AdminCardPrintRequestsScreenState
       'barcode': item['barcode'],
       'value': item['value'],
       'card_type': item['card_type'] ?? item['cardType'],
+      'original_card_type':
+          item['original_card_type'] ?? item['originalCardType'],
       'visibility_scope': item['visibility_scope'] ?? item['visibilityScope'],
       'issue_cost': item['issue_cost'] ?? item['issueCost'],
       'owner_id': item['owner_id'] ?? item['ownerId'],
@@ -255,6 +257,9 @@ class _AdminCardPrintRequestsScreenState
           const [],
       'customer_name': item['customer_name'] ?? item['customerName'],
       'created_at': item['created_at'] ?? item['issuedAt'] ?? item['createdAt'],
+      'valid_from': item['valid_from'] ?? item['validFrom'],
+      'valid_until': item['valid_until'] ?? item['validUntil'],
+      'details': item['details'] ?? item['card_details'] ?? item['cardDetails'],
       'last_resold_at': item['last_resold_at'] ?? item['lastResoldAt'],
       'use_count': item['use_count'] ?? item['useCount'],
       'resale_count': item['resale_count'] ?? item['resaleCount'],

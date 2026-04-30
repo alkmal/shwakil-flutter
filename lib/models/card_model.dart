@@ -20,6 +20,32 @@ Map<String, dynamic> _mapFromDynamic(dynamic value) {
   return value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
 }
 
+double _doubleFromDynamic(dynamic value, {double fallback = 0}) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  if (value is String) {
+    final normalized = value.trim().replaceAll(',', '');
+    if (normalized.isNotEmpty) {
+      return double.tryParse(normalized) ?? fallback;
+    }
+  }
+  return fallback;
+}
+
+int _intFromDynamic(dynamic value, {int fallback = 0}) {
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    final normalized = value.trim().replaceAll(',', '');
+    if (normalized.isNotEmpty) {
+      return int.tryParse(normalized) ?? fallback;
+    }
+  }
+  return fallback;
+}
+
 class VirtualCard {
   final String id;
   final String barcode;
@@ -147,7 +173,7 @@ class VirtualCard {
     return VirtualCard(
       id: map['id']?.toString() ?? '',
       barcode: map['barcode']?.toString() ?? '',
-      value: (map['value'] as num?)?.toDouble() ?? 0,
+      value: _doubleFromDynamic(map['value']),
       cardType:
           map['cardType']?.toString() ??
           map['card_type']?.toString() ??
@@ -159,9 +185,9 @@ class VirtualCard {
           map['visibility_scope']?.toString() ??
           'general',
       issueCost:
-          (map['issueCost'] as num?)?.toDouble() ??
-          (map['issue_cost'] as num?)?.toDouble() ??
-          0,
+          _doubleFromDynamic(map['issueCost'], fallback: double.nan).isNaN
+          ? _doubleFromDynamic(map['issue_cost'])
+          : _doubleFromDynamic(map['issueCost']),
       ownerId: (map['ownerId'] ?? map['owner_id'])?.toString(),
       ownerUsername: (map['ownerUsername'] ?? map['owner_username'])
           ?.toString(),
@@ -197,13 +223,11 @@ class VirtualCard {
           : DateTime.tryParse(
               (map['lastResoldAt'] ?? map['last_resold_at']).toString(),
             ),
-      useCount: ((map['useCount'] ?? map['use_count']) as num?)?.toInt() ?? 0,
-      resaleCount:
-          ((map['resaleCount'] ?? map['resale_count']) as num?)?.toInt() ?? 0,
-      totalRedeemedValue:
-          ((map['totalRedeemedValue'] ?? map['total_redeemed_value']) as num?)
-              ?.toDouble() ??
-          0,
+      useCount: _intFromDynamic(map['useCount'] ?? map['use_count']),
+      resaleCount: _intFromDynamic(map['resaleCount'] ?? map['resale_count']),
+      totalRedeemedValue: _doubleFromDynamic(
+        map['totalRedeemedValue'] ?? map['total_redeemed_value'],
+      ),
       status: CardStatus.values.firstWhere(
         (e) => e.toString().split('.').last == map['status']?.toString(),
         orElse: () => CardStatus.unused,
@@ -213,7 +237,9 @@ class VirtualCard {
           : DateTime.tryParse(usedAtValue.toString()),
       usedBy: (map['usedBy'] ?? map['redeemedByUsername'] ?? map['used_by'])
           ?.toString(),
-      soldPrice: ((map['soldPrice'] ?? map['sold_price']) as num?)?.toDouble(),
+      soldPrice: (map['soldPrice'] ?? map['sold_price']) == null
+          ? null
+          : _doubleFromDynamic(map['soldPrice'] ?? map['sold_price']),
     );
   }
 

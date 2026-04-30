@@ -3024,8 +3024,21 @@ class ApiService {
       'status': map['status']?.toString() ?? 'available',
     }).copyWith(
       status: _statusFromApi(map['status']?.toString()),
-      soldPrice: (map['value'] as num?)?.toDouble(),
+      soldPrice: _doubleFromApi(map['value']),
     );
+  }
+
+  double? _doubleFromApi(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      final normalized = value.trim().replaceAll(',', '');
+      if (normalized.isNotEmpty) {
+        return double.tryParse(normalized);
+      }
+    }
+    return null;
   }
 
   CardStatus _statusFromApi(String? status) {

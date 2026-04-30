@@ -762,6 +762,25 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     return mounted && security.isVerified;
   }
 
+  List<VirtualCard> _cardsWithPrintFallbacks(List<VirtualCard> cards) {
+    final currentAmount = double.tryParse(_amountC.text.trim()) ?? 0;
+    final currentDetails = _currentCardDetails() ?? const <String, dynamic>{};
+    return cards
+        .map(
+          (card) => card.copyWith(
+            value: card.value > 0 ? card.value : currentAmount,
+            cardType: card.cardType.trim().isNotEmpty
+                ? card.cardType
+                : _cardType,
+            visibilityScope: card.visibilityScope.trim().isNotEmpty
+                ? card.visibilityScope
+                : _effectiveVisibilityScope,
+            details: card.details.isNotEmpty ? card.details : currentDetails,
+          ),
+        )
+        .toList();
+  }
+
   Future<void> _printCards(
     List<VirtualCard> cards, {
     bool requireSecurity = true,
@@ -793,7 +812,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         : null;
     _pdfService.setDesignSettings(settings);
     try {
-      await _pdfService.printCards(cards, printedBy: printedBy);
+      await _pdfService.printCards(
+        _cardsWithPrintFallbacks(cards),
+        printedBy: printedBy,
+      );
     } catch (error) {
       if (!mounted) {
         return;
