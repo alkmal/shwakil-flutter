@@ -999,12 +999,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   value: _registrationWhatsappVerificationRequired,
-                  onChanged: (value) => setState(
-                    () => _registrationWhatsappVerificationRequired = value,
-                  ),
-                  title: const Text('طلب تحقق واتساب عند التسجيل'),
+                  onChanged: null,
+                  title: const Text('تأكيد التسجيل بالرمز'),
                   subtitle: const Text(
-                    'عند إيقافه يتم استلام طلب التسجيل مباشرة ويمكن للإدارة التواصل مع المستخدم وتسليم البيانات يدويًا.',
+                    'يبقى مفعّلًا دائمًا، حتى عند تعطيل OTP لتسجيل الدخول.',
                   ),
                 ),
                 DropdownButtonFormField<String>(
