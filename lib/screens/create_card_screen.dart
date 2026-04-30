@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:screenshot/screenshot.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -13,7 +11,6 @@ import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/print_card_preview.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/thermal_card_ticket.dart';
 
 class CreateCardScreen extends StatefulWidget {
   const CreateCardScreen({super.key});
@@ -30,8 +27,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   final AuthService _authService = AuthService();
   final OfflineCardService _offlineCardService = OfflineCardService();
   final PDFService _pdfService = PDFService();
-  final ThermalPrinterService _thermalPrinterService = ThermalPrinterService();
-  final ScreenshotController _thermalTicketScreenshot = ScreenshotController();
   final TextEditingController _amountC = TextEditingController();
   final TextEditingController _qtyC = TextEditingController(
     text: '$_cardsPerA4Page',
@@ -49,7 +44,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool _showLogo = true;
   bool _showStamp = true;
   bool _useAccountLogo = true;
-  bool _isThermalPrinting = false;
   String _cardType = 'standard';
   String _visibilityScope = 'general';
   DateTime? _validFrom;
@@ -138,12 +132,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   bool get _hasAccountLogo =>
       _user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
-
-  bool get _canUseThermalPrinting =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
 
   bool get _isAppointmentCard => _cardType == 'appointment';
   bool get _isQueueCard => _cardType == 'queue';
@@ -797,20 +785,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ? _user!['fullName'].toString().trim()
         : _user?['username']?.toString();
 
-    final settings = CardDesignSettings(
-      showLogo: _showLogo,
-      showStamp: _showStamp,
-      logoText: _titleC.text.trim().isEmpty
-          ? l.tr('screens_create_card_screen.001')
-          : _titleC.text.trim(),
-      stampText: _stampC.text.trim().isEmpty
-          ? l.tr('screens_create_card_screen.019')
-          : _stampC.text.trim(),
-    );
-    settings.logoUrl = (_showLogo && _useAccountLogo)
-        ? (_user?['printLogoUrl'])?.toString()
-        : null;
-    _pdfService.setDesignSettings(settings);
+    _pdfService.setDesignSettings(CardDesignSettings());
     try {
       await _pdfService.printCards(
         _cardsWithPrintFallbacks(cards),
@@ -830,97 +805,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
   }
 
-  Future<void> _quickThermalPrintCards(
-    List<VirtualCard> cards, {
-    bool requireSecurity = true,
-  }) async {
-    final l = context.loc;
-    if (!_canUseThermalPrinting) {
-      await AppAlertService.showInfo(
-        context,
-        title: 'الطباعة الحرارية غير متاحة',
-        message: 'الطباعة الحرارية السريعة مدعومة حاليًا على الأجهزة المحمولة.',
-      );
-      return;
-    }
-    if (cards.isEmpty) {
-      return;
-    }
-    if (requireSecurity && !await _confirmCardOutputSecurity()) {
-      return;
-    }
-
-    setState(() => _isThermalPrinting = true);
-    try {
-      final printer = await _resolveThermalPrinter();
-      if (printer == null || !mounted) {
-        return;
-      }
-
-      final connected = await _thermalPrinterService.ensureConnected(printer);
-      if (!connected) {
-        if (!mounted) {
-          return;
-        }
-        await AppAlertService.showError(
-          context,
-          title: 'تعذر الاتصال بالطابعة',
-          message:
-              'تأكد من تشغيل البلوتوث وأن الطابعة الحرارية مقترنة بالجهاز.',
-        );
-        return;
-      }
-
-      final issuerName = _resolvedIssuerName(l);
-      for (var index = 0; index < cards.length; index++) {
-        final card = cards[index];
-        final ticketBytes = await _captureThermalTicketBytes(card, issuerName);
-        final printed = await _thermalPrinterService.printCardTicket(
-          card: card,
-          ticketPngBytes: ticketBytes,
-          issuerName: issuerName,
-          cutPaper: index == cards.length - 1,
-        );
-        if (!printed) {
-          if (!mounted) {
-            return;
-          }
-          await AppAlertService.showError(
-            context,
-            title: 'فشل الطباعة الحرارية',
-            message: 'تعذر إرسال البطاقة إلى الطابعة الحرارية.',
-          );
-          return;
-        }
-      }
-
-      if (!mounted) {
-        return;
-      }
-      await AppAlertService.showSuccess(
-        context,
-        title: 'تمت الطباعة الحرارية',
-        message: l.tr(
-          'screens_create_card_screen.021',
-          params: {'count': '${cards.length}'},
-        ),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      await AppAlertService.showError(
-        context,
-        title: 'تعذر الطباعة الحرارية',
-        message: ErrorMessageService.sanitize(error),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isThermalPrinting = false);
-      }
-    }
-  }
-
   String _resolvedIssuerName(AppLocalizer l) {
     final fullName = _user?['fullName']?.toString().trim() ?? '';
     final username = _user?['username']?.toString().trim() ?? '';
@@ -931,174 +815,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return username;
     }
     return l.tr('screens_create_card_screen.001');
-  }
-
-  Future<Uint8List> _captureThermalTicketBytes(
-    VirtualCard card,
-    String issuerName,
-  ) {
-    final title = _titleC.text.trim().isEmpty
-        ? context.loc.tr('screens_create_card_screen.001')
-        : _titleC.text.trim();
-
-    return _thermalTicketScreenshot.captureFromWidget(
-      ThermalCardTicket(card: card, issuerName: issuerName, title: title),
-      context: context,
-      pixelRatio: 2.4,
-      delay: const Duration(milliseconds: 100),
-      targetSize: const Size(320, 420),
-    );
-  }
-
-  Future<ThermalPrinterDevice?> _resolveThermalPrinter() async {
-    final selected = await _thermalPrinterService.selectedDevice();
-    final hasPermission = await _thermalPrinterService
-        .ensureBluetoothPermission();
-    if (!hasPermission) {
-      if (!mounted) {
-        return null;
-      }
-      await AppAlertService.showInfo(
-        context,
-        title: 'صلاحية البلوتوث مطلوبة',
-        message: 'فعّل صلاحية البلوتوث للتطبيق ثم أعد محاولة الطباعة الحرارية.',
-      );
-      return null;
-    }
-
-    final bluetoothEnabled = await _thermalPrinterService.isBluetoothEnabled();
-    if (!bluetoothEnabled) {
-      if (!mounted) {
-        return null;
-      }
-      await AppAlertService.showInfo(
-        context,
-        title: 'البلوتوث غير مفعّل',
-        message: 'شغّل البلوتوث على الجهاز ثم أعد محاولة الطباعة الحرارية.',
-      );
-      return null;
-    }
-
-    final devices = await _thermalPrinterService.pairedDevices();
-    if (devices.isEmpty) {
-      if (!mounted) {
-        return null;
-      }
-      await AppAlertService.showInfo(
-        context,
-        title: 'لا توجد طابعات مقترنة',
-        message:
-            'قم بربط الطابعة الحرارية من إعدادات البلوتوث أولًا ثم أعد المحاولة.',
-      );
-      return null;
-    }
-
-    if (selected != null &&
-        devices.any((device) => device.macAddress == selected.macAddress)) {
-      return selected;
-    }
-
-    if (!mounted) {
-      return null;
-    }
-    final picked = await _showThermalPrinterPicker(devices);
-    if (picked != null) {
-      await _thermalPrinterService.rememberDevice(picked);
-    }
-    return picked;
-  }
-
-  Future<ThermalPrinterDevice?> _showThermalPrinterPicker(
-    List<ThermalPrinterDevice> devices,
-  ) async {
-    final selected = await _thermalPrinterService.selectedDevice();
-    if (!mounted) {
-      return null;
-    }
-
-    return showModalBottomSheet<ThermalPrinterDevice>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        final selectedMac = selected?.macAddress;
-        return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            children: [
-              Text('اختر الطابعة الحرارية', style: AppTheme.h3),
-              const SizedBox(height: 8),
-              Text(
-                'سيتم حفظ الطابعة المختارة لتسريع الطباعة لاحقًا.',
-                style: AppTheme.bodyAction,
-              ),
-              const SizedBox(height: 14),
-              ...devices.map((device) {
-                final isSelected = device.macAddress == selectedMac;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () => Navigator.pop(context, device),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppTheme.primary.withValues(alpha: 0.08)
-                            : AppTheme.surfaceVariant,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppTheme.primary
-                              : AppTheme.border,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primarySoft,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(
-                              Icons.print_rounded,
-                              color: AppTheme.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(device.name, style: AppTheme.bodyBold),
-                                const SizedBox(height: 4),
-                                Text(
-                                  device.macAddress,
-                                  style: AppTheme.caption.copyWith(
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (isSelected)
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              color: AppTheme.primary,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   void _showSuccess(List<VirtualCard> cards) {
@@ -1118,16 +834,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l.tr('screens_create_card_screen.022')),
           ),
-          if (_canUseThermalPrinting)
-            ShwakelButton(
-              label: 'طباعة حرارية',
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                await _quickThermalPrintCards(cards, requireSecurity: false);
-              },
-              width: 150,
-              isSecondary: true,
-            ),
           if (_canRequestCardPrinting)
             ShwakelButton(
               label: l.tr('screens_create_card_screen.023'),
@@ -2110,16 +1816,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ),
           if (canPreviewPrint) ...[
             const SizedBox(height: 10),
-            if (_canUseThermalPrinting) ...[
-              ShwakelButton(
-                label: 'طباعة حرارية للبطاقات الأخيرة',
-                icon: Icons.local_printshop_rounded,
-                isSecondary: true,
-                isLoading: _isThermalPrinting,
-                onPressed: () => _quickThermalPrintCards(_recent),
-              ),
-              const SizedBox(height: 10),
-            ],
             ShwakelButton(
               label: l.tr('screens_create_card_screen.065'),
               icon: Icons.print_rounded,
@@ -2310,16 +2006,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ],
           if (_recent.isNotEmpty) ...[
             const SizedBox(height: 20),
-            if (_canUseThermalPrinting) ...[
-              ShwakelButton(
-                label: 'إعادة طباعة حرارية',
-                icon: Icons.local_printshop_rounded,
-                isSecondary: true,
-                isLoading: _isThermalPrinting,
-                onPressed: () => _quickThermalPrintCards(_recent),
-              ),
-              const SizedBox(height: 10),
-            ],
             ShwakelButton(
               label: l.tr('screens_create_card_screen.065'),
               icon: Icons.print_rounded,
