@@ -2037,6 +2037,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         _detailsTitleC.clear();
         _detailsDescriptionC.clear();
       }
+      if (_cardType == 'single_use' && _detailsTitleC.text.trim().isEmpty) {
+        _detailsTitleC.text = 'بطاقة خاصة';
+      }
     });
   }
 

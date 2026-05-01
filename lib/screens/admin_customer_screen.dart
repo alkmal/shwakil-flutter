@@ -77,7 +77,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     {
       'title': 'صلاحيات الحساب والعرض',
       'keys':
-          'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canTransfer,canWithdraw',
+          'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canTransfer,canWithdraw,canRedeemCards',
     },
     {
       'title': 'البطاقات والتحصيل',
@@ -115,6 +115,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       'keys': [
         'canScanCards',
         'canOfflineCardScan',
+        'canRedeemCards',
         'canViewPrivateCards',
         'canReadOwnPrivateCardsOnly',
         'canDeleteCards',
@@ -134,6 +135,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     'canViewQuickTransfer': 'إظهار خدمة التحويل السريع',
     'canTransfer': 'تحويل الرصيد',
     'canWithdraw': 'طلب السحب',
+    'canRedeemCards': 'استرداد/سحب رصيد البطاقات',
     'canIssueCards': 'إصدار البطاقات',
     'canScanCards': 'قراءة البطاقات',
     'canOfflineCardScan': 'قراءة البطاقات أوفلاين',

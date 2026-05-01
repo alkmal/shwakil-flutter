@@ -1484,7 +1484,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final card = lookup.card!;
     final isUsed = card.status == CardStatus.used;
     final permissions = AppPermissions.fromUser(_user);
-    final canRedeemCards = permissions.canRedeemCards && !isUsed;
+    final canRedeemCards =
+        permissions.canRedeemCards &&
+        !isUsed &&
+        _canCurrentUserRedeemCard(card, permissions);
     final canResellCards =
         !widget.offlineMode && permissions.canResellCards && isUsed;
 
@@ -1516,6 +1519,34 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
+  bool _canCurrentUserRedeemCard(VirtualCard card, AppPermissions permissions) {
+    if (!permissions.canReadOwnPrivateCardsOnly) {
+      return true;
+    }
+
+    if (!card.isPrivate) {
+      return false;
+    }
+
+    final userId = _user?['id']?.toString().trim() ?? '';
+    final username = _user?['username']?.toString().trim() ?? '';
+
+    if (userId.isNotEmpty) {
+      if (card.ownerId?.trim() == userId || card.issuedById?.trim() == userId) {
+        return true;
+      }
+      if (card.allowedUserIds.contains(userId)) {
+        return true;
+      }
+    }
+
+    if (username.isNotEmpty && card.allowedUsernames.contains(username)) {
+      return true;
+    }
+
+    return false;
+  }
+
   Future<bool> _redeemCard(VirtualCard card, {bool showFeedback = true}) async {
     final l = context.loc;
     final permissions = AppPermissions.fromUser(_user);
@@ -1525,6 +1556,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           context,
           title: l.tr('screens_scan_card_screen.043'),
           message: l.tr('screens_scan_card_screen.022'),
+        );
+      }
+      return false;
+    }
+
+    if (!_canCurrentUserRedeemCard(card, permissions)) {
+      if (showFeedback) {
+        await AppAlertService.showError(
+          context,
+          title: 'لا يمكن استرداد هذه البطاقة',
+          message: 'هذا الحساب مقيّد لبطاقاته الخاصة فقط.',
         );
       }
       return false;
