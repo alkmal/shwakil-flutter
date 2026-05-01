@@ -1201,6 +1201,7 @@ const Map<String, String> appStringsEn = {
       'Enable PIN or biometrics to protect account access and confirm sensitive actions quickly and safely.',
   'screens_account_settings_screen.074': 'Current protection status',
   'screens_account_settings_screen.075': 'PIN code',
+  'screens_account_settings_screen.080': 'Business name',
   'screens_account_settings_screen.076': 'Biometrics',
   'screens_account_settings_screen.077': 'Unsupported',
   'screens_account_settings_screen.078': 'Open security settings',

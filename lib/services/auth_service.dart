@@ -229,9 +229,7 @@ class AuthService {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
     final response = await _postWithFallback(
       'auth/register/pending',
-      body: {
-        'deviceId': deviceId,
-      },
+      body: {'deviceId': deviceId},
     );
     if (response.statusCode >= 400) {
       throw Exception(_extractRegistrationMessage(response.body));
@@ -414,6 +412,7 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>> updateProfile({
+    required String businessName,
     required String fullName,
     required String username,
     required String email,
@@ -427,6 +426,7 @@ class AuthService {
       AppConfig.apiUri('auth/profile'),
       headers: await _jsonHeaders(token: authToken),
       body: jsonEncode({
+        'businessName': businessName.trim(),
         'fullName': fullName.trim(),
         'username': _normalizeUsername(username),
         'email': email.trim(),
@@ -565,11 +565,7 @@ class AuthService {
     for (final uri in AppConfig.apiCandidateUris(path)) {
       try {
         return await _client
-            .post(
-              uri,
-              headers: await _jsonHeaders(),
-              body: jsonEncode(body),
-            )
+            .post(uri, headers: await _jsonHeaders(), body: jsonEncode(body))
             .timeout(_requestTimeout);
       } on TimeoutException catch (error) {
         lastError = error;

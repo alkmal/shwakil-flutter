@@ -1044,6 +1044,7 @@ const Map<String, String> appStringsAr = {
       'فعّل PIN أو البصمة لحماية الدخول للحساب وتأكيد العمليات الحساسة بسرعة وأمان.',
   'screens_account_settings_screen.074': 'حالة الحماية الحالية',
   'screens_account_settings_screen.075': 'رمز PIN',
+  'screens_account_settings_screen.080': 'اسم النشاط',
   'screens_account_settings_screen.076': 'البصمة',
   'screens_account_settings_screen.077': 'غير مدعومة',
   'screens_account_settings_screen.078': 'فتح إعدادات الأمان',

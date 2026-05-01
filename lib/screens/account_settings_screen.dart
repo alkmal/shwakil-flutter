@@ -24,6 +24,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
 
+  final TextEditingController _businessNameController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
@@ -59,6 +60,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   @override
   void dispose() {
+    _businessNameController.dispose();
     _fullNameController.dispose();
     _usernameController.dispose();
     _whatsappController.dispose();
@@ -91,6 +93,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() {
       _isAuthorized = AppPermissions.fromUser(user).canViewAccountSettings;
       _user = user;
+      _businessNameController.text = user['businessName']?.toString() ?? '';
       _fullNameController.text = user['fullName']?.toString() ?? '';
       _usernameController.text = user['username']?.toString() ?? '';
       _whatsappController.text = user['whatsapp']?.toString() ?? '';
@@ -126,6 +129,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() => _isSaving = true);
     try {
       final response = await _authService.updateProfile(
+        businessName: _businessNameController.text,
         fullName: _fullNameController.text,
         username: _usernameController.text,
         email: _emailController.text,
@@ -832,6 +836,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         children: [
           Text(l.tr('screens_account_settings_screen.019'), style: AppTheme.h3),
           const SizedBox(height: 18),
+          _field(
+            l.tr('screens_account_settings_screen.080'),
+            _businessNameController,
+            Icons.storefront_rounded,
+            enabled: _canEditField('businessName'),
+          ),
+          const SizedBox(height: 16),
           _field(
             l.tr('screens_account_settings_screen.020'),
             _fullNameController,
