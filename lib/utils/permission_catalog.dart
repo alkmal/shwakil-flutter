@@ -95,7 +95,7 @@ class PermissionCatalog {
     'canIssueSubShekelCards': 'السماح بإصدار بطاقات بقيم صغيرة جدا.',
     'canIssueHighValueCards': 'السماح بإصدار بطاقات بقيم عالية.',
     'canIssuePrivateCards': 'السماح بإصدار بطاقات خاصة (مقيدة على مستخدمين).',
-    'canIssueSingleUseTickets': 'السماح بإصدار تذكرة/بطاقة استخدام واحد.',
+    'canIssueSingleUseTickets': 'السماح بإصدار تذكرة/بطاقة خاصة.',
     'canIssueAppointmentTickets': 'السماح بإصدار تذكرة مواعيد بوقت.',
     'canIssueQueueTickets': 'السماح بإصدار تذكرة طابور.',
     'canScanCards': 'السماح بقراءة/فحص البطاقات.',
@@ -109,7 +109,8 @@ class PermissionCatalog {
     'canRequestCardPrinting': 'إنشاء طلبات طباعة بطاقات.',
     'canManageCardPrintRequests': 'إدارة واعتماد تجهيز/تسليم طلبات الطباعة.',
     'canUsePrepaidMultipayCards': 'استخدام بطاقات الدفع المسبق داخل التطبيق.',
-    'canAcceptPrepaidMultipayPayments': 'استقبال/قبول مدفوعات الدفع المسبق كتاجر.',
+    'canAcceptPrepaidMultipayPayments':
+        'استقبال/قبول مدفوعات الدفع المسبق كتاجر.',
     'canUsePrepaidMultipayNfc': 'تمكين عمليات الدفع المسبق عبر NFC.',
     'canViewCustomers': 'الوصول لقائمة المستخدمين/العملاء في لوحة الإدارة.',
     'canLookupMembers': 'البحث عن أعضاء حسب الاسم/الهاتف.',
