@@ -426,6 +426,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-pending-registrations',
           badge: l.tr('screens_admin_dashboard_screen.089'),
         ),
+      if (permissions.canManageUsers)
+        const _AdminEntry(
+          title: 'تقارير فحص البطاقات',
+          subtitle: 'قراءات بدون استخدام ونسب الاستخدام حسب المستخدم والموقع',
+          icon: Icons.qr_code_scanner_rounded,
+          color: AppTheme.accent,
+          routeName: '/admin-card-scan-reports',
+          badge: 'تقارير',
+        ),
       if (permissions.canReviewDevices)
         _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.008'),

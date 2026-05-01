@@ -2426,11 +2426,20 @@ class ApiService {
   Future<VirtualCard?> getCardByBarcode(
     String barcode, {
     bool autoRedeem = false,
+    Map<String, dynamic>? location,
   }) async {
+    final query = <String, String>{};
+    if (autoRedeem) {
+      query['autoRedeem'] = '1';
+    }
+    if (location != null) {
+      // Server accepts either `location[lat]=..` style or a json string; we use json for simplicity.
+      query['location'] = jsonEncode(location);
+    }
     final response = await http.get(
       AppConfig.apiUri(
         'cards/$barcode',
-        autoRedeem ? {'autoRedeem': '1'} : null,
+        query.isEmpty ? null : query,
       ),
       headers: await _headers(),
     );
@@ -2445,6 +2454,61 @@ class ApiService {
       );
     }
     return _cardFromApi(Map<String, dynamic>.from(body['card'] as Map));
+  }
+
+  Future<Map<String, dynamic>> getAdminCardScanReportUsers({
+    String scope = 'private',
+    String? from,
+    String? to,
+    int page = 1,
+    int perPage = 12,
+  }) async {
+    final params = <String, String>{
+      'scope': scope,
+      'page': page.toString(),
+      'perPage': perPage.toString(),
+    };
+    if (from != null && from.trim().isNotEmpty) params['from'] = from.trim();
+    if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
+
+    final response = await http.get(
+      AppConfig.apiUri('admin/reports/card-scans/users', params),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminCardScanReportUserLocations(
+    String userId, {
+    String scope = 'private',
+    String? from,
+    String? to,
+  }) async {
+    final params = <String, String>{'scope': scope};
+    if (from != null && from.trim().isNotEmpty) params['from'] = from.trim();
+    if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
+
+    final response = await http.get(
+      AppConfig.apiUri('admin/reports/card-scans/users/$userId/locations', params),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminCardScanReportLocations({
+    String scope = 'private',
+    String? from,
+    String? to,
+  }) async {
+    final params = <String, String>{'scope': scope};
+    if (from != null && from.trim().isNotEmpty) params['from'] = from.trim();
+    if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
+
+    final response = await http.get(
+      AppConfig.apiUri('admin/reports/card-scans/locations', params),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> updateCardAutoRedeemOnScanPreference({

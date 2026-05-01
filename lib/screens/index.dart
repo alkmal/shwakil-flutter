@@ -19,6 +19,7 @@ export 'affiliate_center_screen.dart';
 export 'admin_dashboard_screen.dart';
 export 'admin_debt_book_screen.dart';
 export 'admin_card_print_requests_screen.dart';
+export 'admin_card_scan_reports_screen.dart';
 export 'admin_customers_screen.dart';
 export 'admin_customer_screen.dart';
 export 'admin_pending_registrations_screen.dart';

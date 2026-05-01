@@ -701,9 +701,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return _lookupOfflineCard(barcode);
     }
     try {
+      Map<String, dynamic>? location;
+      try {
+        location =
+            await TransactionLocationService.captureCurrentLocationIfPermitted();
+      } catch (_) {
+        location = null;
+      }
       final result = await _api.getCardByBarcode(
         barcode,
         autoRedeem: _autoRedeemOnScan || _autoRedeemOnScanForced,
+        location: location,
       );
       final updatedUser = await _auth.currentUser();
       if (mounted && updatedUser != null) {

@@ -71,6 +71,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/admin-debt-book': (context) => const AdminDebtBookScreen(),
   '/admin-card-print-requests': (context) =>
       const AdminCardPrintRequestsScreen(),
+  '/admin-card-scan-reports': (context) => const AdminCardScanReportsScreen(),
   '/admin-customers': (context) => const AdminCustomersScreen(),
   '/admin-pending-registrations': (context) =>
       const AdminPendingRegistrationsScreen(),
