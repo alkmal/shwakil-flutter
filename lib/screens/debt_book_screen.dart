@@ -5,6 +5,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -191,7 +192,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       ),
     );
     return customers.where((customer) {
-      final name = customer['fullName']?.toString().toLowerCase() ?? '';
+      final name = UserDisplayName.fromMap(customer).toLowerCase();
       final phone = customer['phone']?.toString().toLowerCase() ?? '';
       final balance = _remainingAmount(customer);
       final matchesQuery =
@@ -335,7 +336,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
         content: Text(
           _t(
             'screens_debt_book_screen.015',
-            params: {'name': customer['fullName']?.toString() ?? '-'},
+            params: {'name': UserDisplayName.fromMap(customer, fallback: '-')},
           ),
         ),
         actions: [
@@ -424,8 +425,10 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
             if (OfflineSessionService.isOfflineMode)
               IconButton(
                 tooltip: _t('screens_debt_book_screen.058'),
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/scan-card-offline'),
+                onPressed: () => Navigator.pushReplacementNamed(
+                  context,
+                  '/scan-card-offline',
+                ),
                 icon: const Icon(Icons.qr_code_scanner_rounded),
               ),
             IconButton(
@@ -634,7 +637,8 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                       tooltip: _showStatusMessage
                           ? _t('screens_debt_book_screen.055')
                           : _t('screens_debt_book_screen.056'),
-                      highlighted: _showStatusMessage ||
+                      highlighted:
+                          _showStatusMessage ||
                           _pendingOperations.isNotEmpty ||
                           !_isOnline,
                       onPressed: () {
@@ -744,17 +748,10 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                               alpha: 0.14,
                             ),
                             child: Text(
-                              (customer['fullName']
-                                          ?.toString()
-                                          .trim()
-                                          .isNotEmpty ??
-                                      false)
-                                  ? customer['fullName']
-                                        .toString()
-                                        .trim()
-                                        .characters
-                                        .first
-                                  : _t('screens_debt_book_screen.041'),
+                              UserDisplayName.initialFromMap(
+                                customer,
+                                fallback: _t('screens_debt_book_screen.041'),
+                              ),
                               style: AppTheme.bodyBold.copyWith(
                                 color: AppTheme.primary,
                               ),
@@ -766,7 +763,10 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  customer['fullName']?.toString() ?? '-',
+                                  UserDisplayName.fromMap(
+                                    customer,
+                                    fallback: '-',
+                                  ),
                                   style: AppTheme.bodyBold,
                                 ),
                                 const SizedBox(height: 4),
@@ -915,7 +915,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          customer['fullName']?.toString() ?? '-',
+                          UserDisplayName.fromMap(customer, fallback: '-'),
                           style: AppTheme.bodyBold,
                         ),
                         const SizedBox(height: 6),

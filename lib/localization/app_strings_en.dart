@@ -19,7 +19,7 @@ const Map<String, String> appStringsEn = {
   'screens_account_settings_screen.017': 'Unverified account',
   'screens_account_settings_screen.018': 'No phone number',
   'screens_account_settings_screen.019': 'Basic information',
-  'screens_account_settings_screen.020': 'Full name',
+  'screens_account_settings_screen.020': 'Personal full name',
   'screens_account_settings_screen.021': 'Username',
   'screens_account_settings_screen.022': 'Phone number',
   'screens_account_settings_screen.023': 'Email',
@@ -82,7 +82,7 @@ const Map<String, String> appStringsEn = {
   'screens_account_verification_screen.014': 'Selected',
   'screens_account_verification_screen.015': 'Choose file',
   'screens_account_verification_screen.016':
-      'Please add the required images, national ID, and birth date before submitting.',
+      'Please enter your four-part personal name, required images, national ID, and birth date before submitting.',
   'screens_account_verification_screen.017':
       'Your verification request is now under review.',
   'screens_account_verification_screen.018':
@@ -102,10 +102,19 @@ const Map<String, String> appStringsEn = {
   'screens_account_verification_screen.026': 'Please enter a valid birth date.',
   'screens_account_verification_screen.027':
       'You can choose reasonably large images and the app will automatically optimize and compress them before upload.',
+  'screens_account_verification_screen.028':
+      'These details are required to protect your rights and secure your funds if a dispute or financial issue occurs. Unverified accounts cannot be handled for financial disputes or issues until verification is completed and identity details are matched.',
   'screens_account_verification_screen.029':
       'The selected image could not be read. Please choose a clear JPG, PNG, or WEBP image.',
   'screens_account_verification_screen.030':
-      'The selected file is too large. Please choose an image smaller than 15 MB and try again.',
+      'The selected file is too large. Please choose an image smaller than 25 MB and try again.',
+  'screens_account_verification_screen.031':
+      'Enter your four-part personal name exactly as shown on your identity document.',
+  'screens_account_verification_screen.032':
+      'Enter your four-part personal name',
+  'screens_account_verification_screen.033': 'Four-part personal name',
+  'screens_account_verification_screen.034':
+      'Use your personal name, not the business name, as shown on the official identity document.',
   'screens_admin_card_print_requests_screen.001': 'Card Print Requests',
   'screens_admin_card_print_requests_screen.002': 'Request tracking',
   'screens_admin_card_print_requests_screen.003': 'Status',
@@ -140,7 +149,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.004': 'Creation failed',
   'screens_admin_customers_screen.005': 'Add new user',
   'screens_admin_customers_screen.006': 'Username',
-  'screens_admin_customers_screen.007': 'Full name',
+  'screens_admin_customers_screen.007': 'Personal full name',
   'screens_admin_customers_screen.008': 'Country code',
   'screens_admin_customers_screen.009': 'Phone number',
   'screens_admin_customers_screen.010': 'Cancel',
@@ -162,12 +171,12 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.025':
       'The user has been created successfully.',
   'screens_admin_customers_screen.026':
-      'A temporary password will be generated and sent automatically by SMS to the provided number.',
+      'A temporary password will be generated and sent to the provided number using the delivery method you choose.',
   'screens_admin_customers_screen.047':
       'Username must be 3-32 characters using English letters, numbers, and only . _ @ + - symbols.',
   'screens_admin_customers_screen.027': 'Unable to determine the user account.',
   'screens_admin_customers_screen.028':
-      'A new password and account details will be sent by SMS to the linked number.',
+      'A new password and account details will be sent to the linked number using the delivery method you choose.',
   'screens_admin_customers_screen.029':
       'Search customers, add new users, and open each customer profile independently.',
   'screens_admin_customers_screen.030': '{count} customers',
@@ -192,7 +201,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.016': 'Active',
   'screens_admin_customer_screen.017': 'Contact details',
   'screens_admin_customer_screen.018': 'Username',
-  'screens_admin_customer_screen.019': 'Full name',
+  'screens_admin_customer_screen.019': 'Personal full name',
   'screens_admin_customer_screen.020': 'Phone number',
   'screens_admin_customer_screen.021': 'Join date',
   'screens_admin_customer_screen.022': 'User',
@@ -226,7 +235,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.050': 'Card & admin permissions',
   'screens_admin_customer_screen.051': 'Issue balance cards',
   'screens_admin_customer_screen.052': 'Request card printing',
-  'screens_admin_customer_screen.053': 'Issue sub-shekel cards',
+  'screens_admin_customer_screen.053': 'Issue low-value cards',
   'screens_admin_customer_screen.054': 'Issue high-value cards',
   'screens_admin_customer_screen.055': 'Resell used cards',
   'screens_admin_customer_screen.056': 'Review print requests',
@@ -241,11 +250,11 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customer_screen.065':
       'Customer details were updated successfully.',
   'screens_admin_customer_screen.066':
-      'A new password will be generated, then the login details will be sent by SMS to the linked number. Continue?',
+      'A new password will be generated, then the login details will be sent to the linked number using the delivery method you choose. Continue?',
   'screens_admin_customer_screen.067':
-      'A new password was created and the user details were sent by SMS.',
+      'A new password was created and the user details were sent.',
   'screens_admin_customer_screen.068':
-      'Resending user details by SMS will automatically generate a new password before sending.',
+      'Resending user details will automatically generate a new password before sending.',
   'screens_admin_customer_screen.069':
       'Review financial transactions and activity related to this customer.',
   'screens_admin_customer_screen.070': 'No devices are linked to this account.',
@@ -337,7 +346,8 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.070': 'Sending...',
   'screens_balance_screen.071': 'Submit request',
   'screens_balance_screen.072': 'Could not load request options',
-  'screens_balance_screen.073': 'Enter a username or full name to search.',
+  'screens_balance_screen.073':
+      'Enter a username, business name, or personal name to search.',
   'screens_balance_screen.074': 'No matching users were found.',
   'screens_balance_screen.075': 'Enter a phone number to look up the account.',
   'screens_balance_screen.076': 'Account found and selected successfully.',
@@ -345,7 +355,7 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.078':
       'Search by username, or find the account directly by phone number.',
   'screens_balance_screen.079': 'Search for the user by username.',
-  'screens_balance_screen.080': 'Username or full name',
+  'screens_balance_screen.080': 'Username, business, or personal name',
   'screens_balance_screen.081': 'Searching...',
   'screens_balance_screen.082': 'Search',
   'screens_balance_screen.083': 'Find account by phone number',
@@ -421,7 +431,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_permissions_screen.017': 'View account settings',
   'screens_admin_permissions_screen.018': 'Allow verification requests',
   'screens_admin_permissions_screen.019': 'Issue cards',
-  'screens_admin_permissions_screen.020': 'Issue sub-shekel cards',
+  'screens_admin_permissions_screen.020': 'Issue low-value cards',
   'screens_admin_permissions_screen.021': 'Issue high-value cards',
   'screens_admin_permissions_screen.022': 'Issue private cards',
   'screens_admin_permissions_screen.023': 'Delete cards',
@@ -678,7 +688,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.008': 'Could not start registration',
   'screens_register_screen.009': 'Create a New Account',
   'screens_register_screen.010': 'Basic Information',
-  'screens_register_screen.011': 'Full name',
+  'screens_register_screen.011': 'Business or personal name',
   'screens_register_screen.012': 'Username in English',
   'screens_register_screen.013': 'National ID',
   'screens_register_screen.014': 'Birth date',
@@ -1448,7 +1458,7 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.050': 'The default app logo will be used',
   'screens_create_card_screen.051': 'Use account logo',
   'screens_create_card_screen.052':
-      'You can change the logo from account settings when needed',
+      'The administration can change the account logo when needed',
   'screens_create_card_screen.053': 'Show stamp',
   'screens_create_card_screen.054':
       'Displayed in a lighter, smaller style to keep the design balanced',
@@ -1517,7 +1527,7 @@ const Map<String, String> appStringsEn = {
       'Could not determine the recipient account.',
   'screens_quick_transfer_screen.026':
       'The balance was sent successfully to the recipient.',
-  'screens_quick_transfer_screen.027': 'Amount to transfer (ILS)',
+  'screens_quick_transfer_screen.027': 'Amount to transfer',
   'screens_quick_transfer_screen.028':
       'You do not have permission to use quick transfer.',
   'screens_quick_transfer_screen.029': 'Send balance by phone number',
@@ -1734,7 +1744,7 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.064': 'Offline sync in progress',
   'screens_home_screen.065': 'Offline sync',
   'screens_home_screen.066':
-      'There are {count} pending cards worth {amount} ILS, and the local inventory will also be updated.',
+      'There are {count} pending cards worth {amount}, and the local inventory will also be updated.',
   'screens_home_screen.067':
       'Update local cards and download any new cards available for this device.',
   'screens_home_screen.068': 'Offline center',
@@ -1976,9 +1986,9 @@ const Map<String, String> appStringsEn = {
   'widgets_app_sidebar.039': 'Sub users',
   'widgets_app_sidebar.040': 'Debt book',
   'services_error_message_service.001':
-      'An unexpected error occurred. Please try again.',
+      'Something unexpected happened. Try again, and if it repeats, close this screen and open it again.',
   'services_error_message_service.002':
-      'Please sign in with an account that has the required permission to continue.',
+      'This account does not have the required permission, or its permissions have changed. You will be sent to sign in with an authorized account, then try the step again.',
   'services_error_message_service.003':
       'Could not reach the server right now. Check your internet connection or try again shortly.',
   'services_error_message_service.004':
@@ -1986,19 +1996,21 @@ const Map<String, String> appStringsEn = {
   'services_error_message_service.005':
       'Could not connect to the live server right now. You can continue and try again shortly.',
   'services_error_message_service.006':
-      'Please verify all entered data and try again.',
+      'The server response could not be understood. Check the data, refresh this screen, then try again.',
   'services_error_message_service.007':
-      'An error occurred while processing the request. Try again, or contact support if the issue continues.',
+      'An error occurred while processing the request. Review the required fields on this screen, then try again. If it repeats, contact support and mention the step you were taking.',
   'services_error_message_service.008': 'Unauthorized',
   'services_error_message_service.009': 'Not permitted',
   'services_error_message_service.010':
       'This device is not approved for this account. Sign in from an approved device or ask the admin to approve this one.',
   'services_error_message_service.011':
-      'Your session has expired or is no longer valid on this device. Sign in again, then try scanning the card once more.',
+      'Your session has expired or is no longer valid on this device. You will be sent to sign in again, then you can safely repeat the action.',
   'services_error_message_service.012':
       'Registration is currently unavailable.\nContact us for more details.',
   'services_error_message_service.013':
       'The offline data stored on this device needs a fresh update. Connect to the internet and refresh offline data again.',
+  'services_error_message_service.014':
+      'If this message is unclear or the problem continues, contact the administration and mention the step you were taking.',
   'services_local_notification_service.001': 'Account updates',
   'services_local_notification_service.002':
       'Account, request, and important alert notifications',
@@ -2214,7 +2226,7 @@ const Map<String, String> appStringsEn = {
       'Choose what the sub user can access inside the app.',
   'screens_sub_users_screen.123': '{count} enabled',
   'screens_sub_users_screen.124':
-      'Default sub-user policy: redeem cards up to 50 ILS, printing debt up to 5 ILS, and a 50 ILS cap. When quick send is enabled, operation increases to redeem up to 200 ILS, printing debt up to 50 ILS, and a 200 ILS cap.',
+      'Default sub-user policy: redeem cards up to 50, printing debt up to 5, and a 50 cap. When quick send is enabled, operation increases to redeem up to 200, printing debt up to 50, and a 200 cap.',
   'screens_sub_users_screen.125': 'Edit',
   'screens_sub_users_screen.126':
       'This screen is in view-only mode. You can review sub-user accounts without creating, editing, or transferring balances.',
@@ -2300,6 +2312,10 @@ const Map<String, String> appStringsEn = {
   'widgets_app_sidebar.043': 'Send notifications',
   'widgets_app_sidebar.044': 'Notifications',
   'widgets_app_sidebar.045': 'Prepaid card requests',
+  'widgets_app_sidebar.046': 'Wallet and transfers',
+  'widgets_app_sidebar.047': 'Create card',
+  'widgets_app_sidebar.048': 'Inventory',
+  'widgets_app_sidebar.049': 'Prepaid cards',
   'screens_admin_notifications_screen.001': 'Could not load notifications',
   'screens_admin_notifications_screen.002': 'Send notifications',
   'screens_admin_notifications_screen.003': 'New notification',
@@ -2375,6 +2391,15 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.097': 'Welcome card is hidden',
   'screens_home_screen.098': 'You can show it again any time from here.',
   'screens_home_screen.099': 'Show balance',
+  'screens_home_screen.100': 'Available offline cards',
+  'screens_home_screen.101': '{available} of {cached}',
+  'screens_home_screen.102': 'Cards waiting to upload',
+  'screens_home_screen.103': 'Actions needing review',
+  'screens_home_screen.104': 'Offline validity',
+  'screens_home_screen.105': '{minutes} minutes',
+  'screens_home_screen.106':
+      'Offline access has expired. Connect to the internet and sync before scanning again.',
+  'screens_home_screen.107': 'Update now',
   'screens_balance_screen.111': 'Quick actions',
   'screens_balance_screen.112': 'Recent transactions',
   'screens_balance_screen.113': 'Recent transactions',
@@ -2407,6 +2432,24 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.134': 'Recipient',
   'screens_balance_screen.135':
       'Choose the recipient from the search or phone tab to show them here.',
+  'screens_balance_screen.136': 'App fee {percent}%',
+  'screens_balance_screen.137': 'No extra fees',
+  'screens_balance_screen.138': 'Minimum {amount}',
+  'screens_balance_screen.139': 'Maximum {amount}',
+  'screens_balance_screen.140': 'There are currently no withdrawal methods.',
+  'screens_balance_screen.141': 'Operation summary',
+  'screens_balance_screen.142': 'Requested amount: {amount}',
+  'screens_balance_screen.143': 'App fee: {amount}',
+  'screens_balance_screen.144': 'Total deduction from balance: {amount}',
+  'screens_balance_screen.145':
+      'The minimum top-up request amount is {amount}.',
+  'screens_balance_screen.146':
+      'The maximum top-up request amount is {amount}.',
+  'screens_balance_screen.147':
+      'The minimum withdrawal request amount is {amount}.',
+  'screens_balance_screen.148':
+      'The maximum withdrawal request amount is {amount}.',
+  'screens_balance_screen.149': 'There is no withdrawal method available now.',
   'screens_security_settings_screen.072':
       'Enable local lock to protect your account',
   'screens_security_settings_screen.073':
@@ -2550,6 +2593,8 @@ const Map<String, String> appStringsEn = {
   'screens_transactions_screen.059': 'Total incoming',
   'screens_transactions_screen.060': 'Total outgoing',
   'screens_transactions_screen.061': 'Net',
+  'screens_transactions_screen.062':
+      'Viewing transaction activity is currently disabled for this account.',
   'screens_supported_locations_screen.015': 'Missing data',
   'screens_supported_locations_screen.016':
       'Center name and address are required.',
@@ -2606,6 +2651,11 @@ const Map<String, String> appStringsEn = {
   'shared.role_driver': 'Driver',
   'shared.role_verified_member': 'Merchant',
   'shared.role_advanced_member': 'Merchant',
+  'shared.password_delivery_method': 'Password delivery method',
+  'shared.delivery_whatsapp': 'WhatsApp',
+  'shared.delivery_sms': 'Text message',
+  'screens_admin_pending_registrations_screen.033':
+      'Choose how the password should be sent to the user after approval.',
   'screens_balance_screen.108': 'Top-up details',
   'screens_balance_screen.109': 'Withdrawal destination',
   'screens_balance_screen.110': 'Amount details',
@@ -2635,4 +2685,56 @@ const Map<String, String> appStringsEn = {
       'The account will be activated as a driver, and only delivery cards will sync in offline mode.',
   'account_verification.verified_member_note':
       'The account will be activated as a trader after the verification request is reviewed.',
+  'screens_quick_transfer_screen.049': 'Invalid amount',
+  'screens_quick_transfer_screen.050':
+      'Enter a valid amount greater than zero before completing the transfer.',
+  'screens_quick_transfer_screen.051': 'Could not complete the transfer',
+  'screens_quick_transfer_screen.052':
+      'Enter the amount you want to transfer to this user.',
+  'screens_quick_transfer_screen.053':
+      'This service is not enabled for this account right now. Contact the administration if you need this permission enabled.',
+  'screens_topup_requests_screen.036': 'Access unavailable',
+  'screens_topup_requests_screen.037':
+      'This screen is available only to accounts that review top-up requests.',
+  'screens_topup_requests_screen.038': 'Total requests',
+  'screens_topup_requests_screen.039': 'Pending',
+  'screens_topup_requests_screen.040': 'Page',
+  'screens_topup_requests_screen.041': 'Proof image required',
+  'screens_topup_requests_screen.042': 'Request approved',
+  'screens_topup_requests_screen.043': 'Could not approve the request',
+  'screens_topup_requests_screen.044': 'Request rejected',
+  'screens_topup_requests_screen.045': 'Could not reject the request',
+  'screens_withdrawal_requests_screen.033': 'Access unavailable',
+  'screens_withdrawal_requests_screen.034':
+      'This screen is available only to accounts that review withdrawal requests.',
+  'screens_withdrawal_requests_screen.035': 'Total requests',
+  'screens_withdrawal_requests_screen.036': 'Pending',
+  'screens_withdrawal_requests_screen.037': 'Page',
+  'screens_withdrawal_requests_screen.038': 'Proof image required',
+  'screens_withdrawal_requests_screen.039': 'Request approved',
+  'screens_withdrawal_requests_screen.040': 'Could not approve the request',
+  'screens_withdrawal_requests_screen.041': 'Request rejected',
+  'screens_withdrawal_requests_screen.042': 'Could not reject the request',
+  'screens_scan_card_screen.123': 'Temporary transfer code',
+  'screens_scan_card_screen.124':
+      'A valid transfer code was found. Review the details, then confirm receipt before it expires.',
+  'screens_scan_card_screen.125': 'Amount',
+  'screens_scan_card_screen.126': 'Net amount received',
+  'screens_scan_card_screen.127': 'From account',
+  'screens_scan_card_screen.128': 'User',
+  'screens_scan_card_screen.129': 'Expires at',
+  'screens_scan_card_screen.130': 'Receive now',
+  'screens_scan_card_screen.131': 'Received successfully',
+  'screens_scan_card_screen.132':
+      'The amount was transferred to your account successfully using the temporary code.',
+  'screens_scan_card_screen.133': 'Added to your account',
+  'screens_scan_card_screen.134': 'Payment approved successfully',
+  'screens_scan_card_screen.135': 'The operation was completed successfully.',
+  'screens_scan_card_screen.136':
+      'A payment of {amount} was approved, and {remaining} remains on the card.',
+  'screens_scan_card_screen.137': 'Could not complete the withdrawal',
+  'screens_scan_card_screen.138': 'Countdown: {countdown}',
+  'screens_scan_card_screen.139': 'Expires at {time}',
+  'screens_scan_card_screen.140': 'Fee {amount}',
+  'screens_scan_card_screen.141': 'Net {amount}',
 };

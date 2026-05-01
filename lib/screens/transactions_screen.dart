@@ -143,22 +143,27 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _isRefreshing = false;
       });
       await _showMessage(
-        '${_t('screens_transactions_screen.001')}: ${ErrorMessageService.sanitize(error)}',
+        ErrorMessageService.sanitize(error),
         isError: true,
+        title: _t('screens_transactions_screen.001'),
       );
     }
   }
 
-  Future<void> _showMessage(String text, {bool isError = false}) {
+  Future<void> _showMessage(
+    String text, {
+    bool isError = false,
+    String? title,
+  }) {
     return isError
         ? AppAlertService.showError(
             context,
-            title: _t('screens_transactions_screen.002'),
+            title: title ?? _t('screens_transactions_screen.002'),
             message: text,
           )
         : AppAlertService.showSuccess(
             context,
-            title: _t('screens_transactions_screen.003'),
+            title: title ?? _t('screens_transactions_screen.003'),
             message: text,
           );
   }
@@ -179,8 +184,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return;
       }
       await _showMessage(
-        '${_t('screens_transactions_screen.004')}: ${ErrorMessageService.sanitize(error)}',
+        ErrorMessageService.sanitize(error),
         isError: true,
+        title: _t('screens_transactions_screen.004'),
       );
     }
   }
@@ -218,7 +224,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             child: ShwakelCard(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'عرض الحركات المالية غير مفعل لهذا الحساب حالياً.',
+                _t('screens_transactions_screen.062'),
                 style: AppTheme.bodyAction,
                 textAlign: TextAlign.center,
               ),

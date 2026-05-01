@@ -22,11 +22,12 @@ class AccountVerificationScreen extends StatefulWidget {
 }
 
 class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
-  static const int _maxSelectedImageBytes = 15 * 1024 * 1024;
-  static const int _targetUploadImageBytes = 2 * 1024 * 1024;
-  static const int _maxImageDimension = 2200;
+  static const int _maxSelectedImageBytes = 25 * 1024 * 1024;
+  static const int _targetUploadImageBytes = 4 * 1024 * 1024;
+  static const int _maxImageDimension = 2600;
 
   final ApiService _apiService = ApiService();
+  final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _nationalIdController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -51,6 +52,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   @override
   void dispose() {
+    _fullNameController.dispose();
     _nationalIdController.dispose();
     _birthDateController.dispose();
     _notesController.dispose();
@@ -67,6 +69,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         response['verification'] as Map? ?? const <String, dynamic>{},
       );
       final status = verification['status']?.toString() ?? 'unverified';
+      final fullName = verification['fullName']?.toString() ?? '';
       final nationalId = verification['nationalId']?.toString() ?? '';
       final birthDate = verification['birthDate']?.toString() ?? '';
       final latestRequest = Map<String, dynamic>.from(
@@ -79,6 +82,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             ? 'driver'
             : 'verified_member';
         _isLoading = false;
+        if (fullName.isNotEmpty) {
+          _fullNameController.text = fullName;
+        }
         if (nationalId.isNotEmpty) {
           _nationalIdController.text = nationalId;
         }
@@ -154,6 +160,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   Future<void> _submit() async {
     final l = context.loc;
+    final fullName = _fullNameController.text.trim();
     final nationalId = _nationalIdController.text.trim();
     final birthDate = _birthDateController.text.trim();
     if (_isApproved) {
@@ -161,12 +168,22 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     }
     if ((_identityBase64 ?? '').isEmpty ||
         (_selfieBase64 ?? '').isEmpty ||
+        fullName.isEmpty ||
         nationalId.isEmpty ||
         birthDate.isEmpty) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_account_verification_screen.001'),
         message: l.tr('screens_account_verification_screen.016'),
+      );
+      return;
+    }
+
+    if (!_hasFourPartFullName) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_account_verification_screen.001'),
+        message: l.tr('screens_account_verification_screen.031'),
       );
       return;
     }
@@ -185,6 +202,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       await _apiService.submitVerification(
         identityDocumentBase64: _identityBase64!,
         selfieImageBase64: _selfieBase64!,
+        fullName: fullName,
         nationalId: nationalId,
         birthDate: birthDate,
         requestedRole: _requestedRole,
@@ -219,12 +237,22 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   bool get _hasSelfieImage => (_selfieBase64 ?? '').isNotEmpty;
 
+  bool get _hasFourPartFullName {
+    final parts = _fullNameController.text
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    return parts.length >= 4;
+  }
+
   bool get _hasNationalId => _nationalIdController.text.trim().isNotEmpty;
 
   bool get _hasValidBirthDate =>
       DateTime.tryParse(_birthDateController.text.trim()) != null;
 
   List<_VerificationRequirement> _requirementsForStatus(String status) {
+    final l = context.loc;
     final needsRefreshUploads = status == 'rejected';
 
     return [
@@ -239,6 +267,12 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         completed: _hasSelfieImage,
         highlighted: needsRefreshUploads || !_hasSelfieImage,
         icon: Icons.face_rounded,
+      ),
+      _VerificationRequirement(
+        label: l.tr('screens_account_verification_screen.032'),
+        completed: _hasFourPartFullName,
+        highlighted: !_hasFourPartFullName,
+        icon: Icons.person_rounded,
       ),
       _VerificationRequirement(
         label: 'إدخال رقم الهوية',
@@ -502,6 +536,38 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             l.tr('screens_account_verification_screen.022'),
             style: AppTheme.bodyAction.copyWith(height: 1.6),
           ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: AppTheme.warning.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.security_rounded,
+                  color: AppTheme.warning,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l.tr('screens_account_verification_screen.028'),
+                    style: AppTheme.bodyAction.copyWith(
+                      height: 1.6,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
             l.tr('screens_account_verification_screen.027'),
@@ -580,6 +646,20 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             style: AppTheme.caption.copyWith(height: 1.5, fontSize: 13),
           ),
           const SizedBox(height: 22),
+          TextField(
+            controller: _fullNameController,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) => setState(() {}),
+            decoration:
+                _verificationInputDecoration(
+                  highlight: !_hasFourPartFullName,
+                  labelText: l.tr('screens_account_verification_screen.033'),
+                  prefixIcon: const Icon(Icons.person_rounded),
+                ).copyWith(
+                  helperText: l.tr('screens_account_verification_screen.034'),
+                ),
+          ),
+          const SizedBox(height: 16),
           _docPicker(
             l.tr('screens_account_verification_screen.010'),
             _identityBase64,
@@ -601,6 +681,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           TextField(
             controller: _nationalIdController,
             keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
             decoration: _verificationInputDecoration(
               highlight: !_hasNationalId,
               labelText: l.tr('screens_account_verification_screen.024'),

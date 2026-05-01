@@ -4,6 +4,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -39,6 +40,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       (_subUserOperationalLimits[key] as num?)?.toDouble();
 
   bool get _isDriverAccount => _user?['role']?.toString() == 'driver';
+  int get _minimumCardQuantity {
+    final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
+    return raw < 1 ? 1 : raw;
+  }
 
   String _subUserPrintLimitMessage(BuildContext context) {
     final l = context.loc;
@@ -166,7 +171,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     }
     final l = context.loc;
     final valueController = TextEditingController();
-    final quantityController = TextEditingController(text: '10');
+    final quantityController = TextEditingController(
+      text: '$_minimumCardQuantity',
+    );
     final notesController = TextEditingController();
     final detailsTitleController = TextEditingController();
     final detailsDescriptionController = TextEditingController();
@@ -221,6 +228,16 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 dialogContext,
                 title: l.tr('screens_card_print_requests_screen.002'),
                 message: l.tr('screens_card_print_requests_screen.003'),
+              );
+              return;
+            }
+
+            if (quantity < _minimumCardQuantity) {
+              await AppAlertService.showError(
+                dialogContext,
+                title: 'عدد البطاقات أقل من الحد المطلوب',
+                message:
+                    'الحد الأدنى لهذا الحساب هو $_minimumCardQuantity بطاقة في طلب الطباعة الواحد.',
               );
               return;
             }
@@ -505,14 +522,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                 runSpacing: 8,
                                 children: selectedUsers.map((user) {
                                   final id = user['id']?.toString() ?? '';
-                                  final label =
-                                      user['fullName']
-                                              ?.toString()
-                                              .trim()
-                                              .isNotEmpty ==
-                                          true
-                                      ? user['fullName'].toString()
-                                      : (user['username']?.toString() ?? id);
+                                  final label = UserDisplayName.fromMap(
+                                    user,
+                                    fallback: id,
+                                  );
                                   return InputChip(
                                     label: Text(label),
                                     onDeleted: () {
@@ -625,6 +638,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         labelText: l.tr(
                           'screens_card_print_requests_screen.013',
                         ),
+                        helperText:
+                            'الحد الأدنى لهذا الحساب هو $_minimumCardQuantity بطاقة.',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -745,10 +760,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           final id = user['id']?.toString() ?? '';
                           return InputChip(
                             label: Text(
-                              user['fullName']?.toString().trim().isNotEmpty ==
-                                      true
-                                  ? user['fullName'].toString()
-                                  : (user['username']?.toString() ?? id),
+                              UserDisplayName.fromMap(user, fallback: id),
                             ),
                             onDeleted: () => setModalState(
                               () => selected.removeWhere(
@@ -770,14 +782,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                 final user = results[index];
                                 final checked = isSelected(user);
                                 final id = user['id']?.toString() ?? '';
-                                final title =
-                                    user['fullName']
-                                            ?.toString()
-                                            .trim()
-                                            .isNotEmpty ==
-                                        true
-                                    ? user['fullName'].toString()
-                                    : (user['username']?.toString() ?? id);
+                                final title = UserDisplayName.fromMap(
+                                  user,
+                                  fallback: id,
+                                );
                                 final subtitle =
                                     user['whatsapp']?.toString() ??
                                     user['username']?.toString() ??
@@ -987,8 +995,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     required double? printFee,
   }) {
     final l = context.loc;
-    final feeLabel =
-        '${printFee?.toStringAsFixed(2) ?? l.tr('screens_card_print_requests_screen.022')}%';
+    final feeLabel = printFee == null
+        ? l.tr('screens_card_print_requests_screen.022')
+        : '${CurrencyFormatter.formatAmount(printFee)}%';
     final debtLimit = (_user?['printingDebtLimit'] as num?)?.toDouble() ?? 0;
     final currentDebt = (_user?['outstandingDebt'] as num?)?.toDouble() ?? 0;
     final showPrintFee = (printFee ?? 0) > 0;

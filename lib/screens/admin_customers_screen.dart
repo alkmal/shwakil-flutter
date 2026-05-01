@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_customer_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
@@ -160,6 +161,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     final fullNameController = TextEditingController();
     final whatsappController = TextEditingController();
     var countryCode = PhoneNumberService.countries.first.dialCode;
+    var deliveryMethod = 'whatsapp';
     var isSaving = false;
 
     await showDialog<void>(
@@ -200,6 +202,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 whatsapp: whatsapp,
                 password: '',
                 countryCode: countryCode,
+                deliveryMethod: deliveryMethod,
               );
               if (!dialogContext.mounted) {
                 return;
@@ -322,6 +325,33 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                         color: AppTheme.textSecondary,
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        l.tr('shared.password_delivery_method'),
+                        style: AppTheme.bodyAction,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      segments: [
+                        ButtonSegment<String>(
+                          value: 'whatsapp',
+                          icon: Icon(Icons.chat_rounded),
+                          label: Text(l.tr('shared.delivery_whatsapp')),
+                        ),
+                        ButtonSegment<String>(
+                          value: 'sms',
+                          icon: Icon(Icons.sms_rounded),
+                          label: Text(l.tr('shared.delivery_sms')),
+                        ),
+                      ],
+                      selected: {deliveryMethod},
+                      onSelectionChanged: (selection) {
+                        setDialogState(() => deliveryMethod = selection.first);
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -379,16 +409,16 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               Text(l.tr('screens_admin_customers_screen.028')),
               const SizedBox(height: 14),
               SegmentedButton<String>(
-                segments: const [
+                segments: [
                   ButtonSegment<String>(
                     value: 'whatsapp',
                     icon: Icon(Icons.chat_rounded),
-                    label: Text('واتساب'),
+                    label: Text(l.tr('shared.delivery_whatsapp')),
                   ),
                   ButtonSegment<String>(
                     value: 'sms',
                     icon: Icon(Icons.sms_rounded),
-                    label: Text('رسالة نصية'),
+                    label: Text(l.tr('shared.delivery_sms')),
                   ),
                 ],
                 selected: {deliveryMethod},
@@ -633,13 +663,13 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               ),
               _summaryCard(
                 context.loc.tr('screens_admin_customers_screen.052'),
-                totalBalances.toStringAsFixed(2),
+                CurrencyFormatter.formatAmount(totalBalances),
                 Icons.account_balance_wallet_rounded,
                 AppTheme.success,
               ),
               _summaryCard(
                 context.loc.tr('screens_admin_customers_screen.053'),
-                totalPrintingDebt.toStringAsFixed(2),
+                CurrencyFormatter.formatAmount(totalPrintingDebt),
                 Icons.print_rounded,
                 AppTheme.warning,
               ),

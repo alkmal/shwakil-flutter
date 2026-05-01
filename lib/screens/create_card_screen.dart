@@ -5,6 +5,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -88,10 +89,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         final isTrialMode =
             (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
             'approved';
-        final accountName =
-            user?['fullName']?.toString().trim().isNotEmpty == true
-            ? user!['fullName'].toString().trim()
-            : l.tr('screens_create_card_screen.001');
+        final accountName = UserDisplayName.fromMap(
+          user,
+          fallback: l.tr('screens_create_card_screen.001'),
+        );
         if (_titleC.text.trim().isEmpty ||
             _titleC.text.trim() == l.tr('screens_create_card_screen.001')) {
           _titleC.text = accountName;
@@ -108,7 +109,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           _visibilityScope = 'restricted';
           if ((_qtyC.text.trim()).isEmpty ||
               (int.tryParse(_qtyC.text.trim()) ?? 0) % _cardsPerA4Page == 0) {
-            _qtyC.text = '1';
+            final minQuantity =
+                (user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
+            _qtyC.text = '${minQuantity < 1 ? 1 : minQuantity}';
           }
         } else if (!_isBalanceCard) {
           _visibilityScope = 'restricted';
@@ -146,6 +149,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool get _isTrialMode =>
       (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
       'approved';
+  int get _minimumCardQuantity {
+    final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
+    return raw < 1 ? 1 : raw;
+  }
+
   double get _trialCardsRemainingAmount =>
       ((_user?['trialCardsAvailableAmount'] as num?)?.toDouble() ??
               _trialCardsLimit)
@@ -229,6 +237,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         context,
         title: l.tr('screens_create_card_screen.004'),
         message: 'أدخل عدد بطاقات صحيح.',
+      );
+      return;
+    }
+
+    if (quantity < _minimumCardQuantity) {
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_create_card_screen.004'),
+        message:
+            'الحد الأدنى لعدد البطاقات لهذا الحساب هو $_minimumCardQuantity بطاقة في العملية الواحدة.',
       );
       return;
     }
@@ -781,9 +799,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     final l = context.loc;
-    final printedBy = _user?['fullName']?.toString().trim().isNotEmpty == true
-        ? _user!['fullName'].toString().trim()
-        : _user?['username']?.toString();
+    final printedBy = UserDisplayName.fromMap(_user);
 
     _pdfService.setDesignSettings(CardDesignSettings());
     try {
@@ -806,15 +822,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   String _resolvedIssuerName(AppLocalizer l) {
-    final fullName = _user?['fullName']?.toString().trim() ?? '';
-    final username = _user?['username']?.toString().trim() ?? '';
-    if (fullName.isNotEmpty) {
-      return fullName;
-    }
-    if (username.isNotEmpty) {
-      return username;
-    }
-    return l.tr('screens_create_card_screen.001');
+    return UserDisplayName.fromMap(
+      _user,
+      fallback: l.tr('screens_create_card_screen.001'),
+    );
   }
 
   void _showSuccess(List<VirtualCard> cards) {
@@ -1264,8 +1275,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               labelText: l.tr('screens_create_card_screen.037'),
               prefixIcon: const Icon(Icons.pin_rounded),
               helperText: _isTrialMode
-                  ? 'يمكنك إنشاء أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.ils(_trialCardsRemainingAmount)}.'
-                  : 'أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
+                  ? 'الحد الأدنى $_minimumCardQuantity بطاقة. يمكنك إنشاء أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.'
+                  : 'الحد الأدنى $_minimumCardQuantity بطاقة. أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
             ),
           ),
           if (_cardType == 'single_use') ...[

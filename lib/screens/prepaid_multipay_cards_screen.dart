@@ -10,6 +10,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/barcode_scanner_dialog.dart';
@@ -1611,7 +1612,7 @@ class _PrepaidMultipayCardsScreenState
                   Expanded(child: body),
                 ],
               ),
-        ),
+      ),
     );
   }
 
@@ -2524,10 +2525,7 @@ class _PrepaidMultipayCardsScreenState
           SizedBox(height: isLarge ? 26 : 18),
           Text(
             displayNumber,
-            style: AppTheme.h2.copyWith(
-              color: Colors.white,
-              letterSpacing: 0,
-            ),
+            style: AppTheme.h2.copyWith(color: Colors.white, letterSpacing: 0),
           ),
           const SizedBox(height: 22),
           Row(
@@ -2580,13 +2578,7 @@ class _PrepaidMultipayCardsScreenState
   }
 
   String _cardOwnerName() {
-    final fullName = AuthService.peekCurrentUser()?['fullName']?.toString() ??
-        AuthService.peekCurrentUser()?['full_name']?.toString() ??
-        '';
-    if (fullName.trim().isNotEmpty) {
-      return fullName.trim();
-    }
-    return AuthService.peekCurrentUser()?['username']?.toString().trim() ?? '';
+    return UserDisplayName.fromMap(AuthService.peekCurrentUser());
   }
 
   String _cardIssuerLocalPhone() {

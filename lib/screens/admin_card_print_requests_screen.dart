@@ -7,6 +7,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -274,11 +275,7 @@ class _AdminCardPrintRequestsScreenState
   }
 
   CardDesignSettings _settingsFromRequest(Map<String, dynamic> request) {
-    final title = request['fullName']?.toString().trim().isNotEmpty == true
-        ? request['fullName'].toString().trim()
-        : (request['username']?.toString().trim().isNotEmpty == true
-              ? request['username'].toString().trim()
-              : 'شواكل');
+    final title = UserDisplayName.fromMap(request, fallback: 'شواكل');
     final settings = CardDesignSettings(
       showLogo: true,
       showStamp: true,
@@ -316,10 +313,7 @@ class _AdminCardPrintRequestsScreenState
 
     try {
       final currentUser = await _authService.currentUser();
-      final printedBy =
-          currentUser?['fullName']?.toString().trim().isNotEmpty == true
-          ? currentUser!['fullName'].toString().trim()
-          : currentUser?['username']?.toString();
+      final printedBy = UserDisplayName.fromMap(currentUser);
       _pdfService.setDesignSettings(_settingsFromRequest(request));
       final pdf = await _pdfService.createMultiCardPDF(
         cards,
@@ -388,10 +382,7 @@ class _AdminCardPrintRequestsScreenState
 
     try {
       final currentUser = await _authService.currentUser();
-      final printedBy =
-          currentUser?['fullName']?.toString().trim().isNotEmpty == true
-          ? currentUser!['fullName'].toString().trim()
-          : currentUser?['username']?.toString();
+      final printedBy = UserDisplayName.fromMap(currentUser);
       _pdfService.setDesignSettings(_settingsFromRequest(request));
       await _pdfService.printCards(cards, printedBy: printedBy);
       final requestId = request['id']?.toString();
@@ -787,13 +778,12 @@ class _AdminCardPrintRequestsScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        request['fullName']?.toString().trim().isNotEmpty ==
-                                true
-                            ? request['fullName'].toString()
-                            : (request['username']?.toString() ??
-                                  l.tr(
-                                    'screens_admin_card_print_requests_screen.015',
-                                  )),
+                        UserDisplayName.fromMap(
+                          request,
+                          fallback: l.tr(
+                            'screens_admin_card_print_requests_screen.015',
+                          ),
+                        ),
                         style: AppTheme.h3,
                       ),
                       const SizedBox(height: 4),

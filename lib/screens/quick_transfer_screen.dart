@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/barcode_scanner_dialog.dart';
@@ -174,6 +175,13 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
 
     final amount = await _askAmount(recipient);
     if (amount == null || amount <= 0) {
+      if (amount != null && mounted) {
+        await AppAlertService.showError(
+          context,
+          title: _t('screens_quick_transfer_screen.049'),
+          message: _t('screens_quick_transfer_screen.050'),
+        );
+      }
       return;
     }
     if (!mounted) return;
@@ -217,6 +225,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       }
       await AppAlertService.showError(
         context,
+        title: _t('screens_quick_transfer_screen.051'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -280,6 +289,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                   decoration: InputDecoration(
                     labelText: _t('screens_quick_transfer_screen.027'),
                     prefixIcon: const Icon(Icons.payments_rounded),
+                    helperText: _t('screens_quick_transfer_screen.052'),
                   ),
                 ),
               ],
@@ -327,7 +337,15 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           ],
         ),
         drawer: const AppSidebar(),
-        body: Center(child: Text(_t('screens_quick_transfer_screen.028'))),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              _t('screens_quick_transfer_screen.053'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       );
     }
 
@@ -534,7 +552,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             icon: Icons.search_rounded,
             gradient: AppTheme.primaryGradient,
             isLoading: _isLookingUpRecipient || _isTransfering,
-            onPressed: (_canTransfer && !_isTransfering) ? _lookupRecipient : null,
+            onPressed: (_canTransfer && !_isTransfering)
+                ? _lookupRecipient
+                : null,
           ),
           if (!_canTransfer) ...[
             const SizedBox(height: 12),
@@ -807,14 +827,14 @@ class _RecipientPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.loc;
     final username = recipient['username']?.toString().trim();
-    final fullName = recipient['fullName']?.toString().trim();
     final phone = recipient['whatsapp']?.toString().trim() ?? '';
     final role = recipient['role']?.toString().trim() ?? '';
-    final displayName = fullName?.isNotEmpty == true
-        ? fullName!
-        : (username?.isNotEmpty == true
-              ? username!
-              : l.tr('screens_quick_transfer_screen.004'));
+    final displayName = UserDisplayName.fromMap(
+      recipient,
+      fallback: username?.isNotEmpty == true
+          ? username!
+          : l.tr('screens_quick_transfer_screen.004'),
+    );
 
     return Container(
       width: double.infinity,
@@ -839,13 +859,12 @@ class _RecipientPreviewCard extends StatelessWidget {
           final info = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                displayName,
-                style: AppTheme.bodyBold,
-              ),
+              Text(displayName, style: AppTheme.bodyBold),
               const SizedBox(height: 4),
               Text(
-                username?.isNotEmpty == true ? '@$username' : _maskedPhone(phone),
+                username?.isNotEmpty == true
+                    ? '@$username'
+                    : _maskedPhone(phone),
                 style: AppTheme.bodyAction,
               ),
               if (username?.isNotEmpty == true) ...[

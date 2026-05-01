@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/index.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/user_display_name.dart';
 import '../shwakel_card.dart';
 
 class AdminCustomerCard extends StatelessWidget {
@@ -20,9 +21,8 @@ class AdminCustomerCard extends StatelessWidget {
   });
 
   String _displayName() {
-    final fullName = customer['fullName']?.toString().trim() ?? '';
     final username = customer['username']?.toString().trim() ?? '';
-    return fullName.isNotEmpty ? fullName : username;
+    return UserDisplayName.fromMap(customer, fallback: username);
   }
 
   String _currency(num? amount) => CurrencyFormatter.ils(amount);

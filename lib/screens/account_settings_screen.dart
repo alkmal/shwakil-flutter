@@ -1,7 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
@@ -22,7 +18,6 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final AuthService _authService = AuthService();
-  final ApiService _apiService = ApiService();
 
   final TextEditingController _businessNameController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
@@ -42,14 +37,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isLoading = true;
   bool _isAuthorized = false;
   bool _isSaving = false;
-  bool _isUploadingLogo = false;
   bool _profileLocked = false;
   bool _hasPin = false;
   bool _biometricEnabled = false;
   bool _canUseBiometrics = false;
   Set<String> _editableProfileFields = const <String>{};
-  Uint8List? _printLogoPreview;
-  String? _printLogoFileName;
   Map<String, dynamic>? _user;
 
   @override
@@ -657,8 +649,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               _buildBasicInfoCard(),
               const SizedBox(height: 16),
               _buildIdentityCard(),
-              const SizedBox(height: 16),
-              _buildPrintLogoCard(),
             ] else ...[
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,8 +658,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   Expanded(flex: 2, child: _buildIdentityCard()),
                 ],
               ),
-              const SizedBox(height: 16),
-              _buildPrintLogoCard(),
             ],
             const SizedBox(height: 24),
             ShwakelButton(
@@ -968,204 +956,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildPrintLogoCard() {
-    final l = context.loc;
-    final remoteLogoUrl = _user?['printLogoUrl']?.toString();
-    final hasRemoteLogo = remoteLogoUrl != null && remoteLogoUrl.isNotEmpty;
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.tr('screens_account_settings_screen.029'), style: AppTheme.h3),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_account_settings_screen.049'),
-            style: AppTheme.caption,
-          ),
-          const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppTheme.secondary.withValues(alpha: 0.05),
-              borderRadius: AppTheme.radiusLg,
-              border: Border.all(
-                color: AppTheme.secondary.withValues(alpha: 0.12),
-              ),
-            ),
-            child: Column(
-              children: [
-                if (_printLogoPreview != null)
-                  ClipRRect(
-                    borderRadius: AppTheme.radiusMd,
-                    child: Image.memory(
-                      _printLogoPreview!,
-                      height: 90,
-                      fit: BoxFit.contain,
-                    ),
-                  )
-                else if (hasRemoteLogo)
-                  ClipRRect(
-                    borderRadius: AppTheme.radiusMd,
-                    child: Image.network(
-                      remoteLogoUrl,
-                      height: 90,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, error, stackTrace) => const Icon(
-                        Icons.image_not_supported_rounded,
-                        size: 54,
-                        color: AppTheme.textTertiary,
-                      ),
-                    ),
-                  )
-                else
-                  const Icon(
-                    Icons.image_rounded,
-                    size: 54,
-                    color: AppTheme.textTertiary,
-                  ),
-                const SizedBox(height: 12),
-                Text(
-                  _printLogoFileName ??
-                      (hasRemoteLogo
-                          ? l.tr('screens_account_settings_screen.030')
-                          : l.tr('screens_account_settings_screen.031')),
-                  style: AppTheme.bodyText,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              ShwakelButton(
-                label: l.tr('screens_account_settings_screen.032'),
-                icon: Icons.upload_rounded,
-                onPressed: _pickAndUploadPrintLogo,
-                isLoading: _isUploadingLogo,
-                width: 160,
-              ),
-              if (hasRemoteLogo)
-                ShwakelButton(
-                  label: l.tr('screens_account_settings_screen.033'),
-                  icon: Icons.delete_outline_rounded,
-                  isSecondary: true,
-                  onPressed: _isUploadingLogo ? null : _removePrintLogo,
-                  width: 160,
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickAndUploadPrintLogo() async {
-    final l = context.loc;
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty || !mounted) {
-      return;
-    }
-
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null || bytes.isEmpty) {
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_account_settings_screen.034'),
-        message: l.tr('screens_account_settings_screen.050'),
-      );
-      return;
-    }
-
-    setState(() {
-      _isUploadingLogo = true;
-      _printLogoPreview = bytes;
-      _printLogoFileName = file.name;
-    });
-
-    try {
-      final response = await _apiService.updatePrintLogo(
-        logoBase64: _asDataUri(file.name, bytes),
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _user = Map<String, dynamic>.from(response['user'] as Map);
-      });
-      AppAlertService.showSuccess(
-        context,
-        title: l.tr('screens_account_settings_screen.035'),
-        message: l.tr('screens_account_settings_screen.051'),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_account_settings_screen.036'),
-        message: ErrorMessageService.sanitize(error),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isUploadingLogo = false);
-      }
-    }
-  }
-
-  Future<void> _removePrintLogo() async {
-    final l = context.loc;
-    setState(() => _isUploadingLogo = true);
-    try {
-      final response = await _apiService.updatePrintLogo(remove: true);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _user = Map<String, dynamic>.from(response['user'] as Map);
-        _printLogoPreview = null;
-        _printLogoFileName = null;
-      });
-      AppAlertService.showSuccess(
-        context,
-        title: l.tr('screens_account_settings_screen.037'),
-        message: l.tr('screens_account_settings_screen.052'),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_account_settings_screen.038'),
-        message: ErrorMessageService.sanitize(error),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isUploadingLogo = false);
-      }
-    }
-  }
-
-  String _asDataUri(String fileName, Uint8List bytes) {
-    final lower = fileName.toLowerCase();
-    final mime = lower.endsWith('.jpg') || lower.endsWith('.jpeg')
-        ? 'image/jpeg'
-        : lower.endsWith('.webp')
-        ? 'image/webp'
-        : 'image/png';
-    return 'data:$mime;base64,${base64Encode(bytes)}';
   }
 
   Widget _field(

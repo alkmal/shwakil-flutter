@@ -790,29 +790,36 @@ class ApiService {
     required bool canFinanceTopup,
     required bool canUsePrepaidMultipayCards,
     required bool canAcceptPrepaidMultipayPayments,
+    bool canUsePrepaidMultipayNfc = false,
+    Map<String, bool> permissionOverrides = const {},
+    bool restoreDefaults = false,
   }) async {
+    final payload = <String, dynamic>{
+      'canIssueCards': canIssueCards,
+      'canIssueSubShekelCards': canIssueSubShekelCards,
+      'canIssueHighValueCards': canIssueHighValueCards,
+      'canIssuePrivateCards': canIssuePrivateCards,
+      'canIssueSingleUseTickets': canIssueSingleUseTickets,
+      'canIssueAppointmentTickets': canIssueAppointmentTickets,
+      'canIssueQueueTickets': canIssueQueueTickets,
+      'canReadOwnPrivateCardsOnly': canReadOwnPrivateCardsOnly,
+      'canResellCards': canResellCards,
+      'canRequestCardPrinting': canRequestCardPrinting,
+      'canManageCardPrintRequests': canManageCardPrintRequests,
+      'canOfflineCardScan': canOfflineCardScan,
+      'canManageDebtBook': canManageDebtBook,
+      'canManageUsers': canManageUsers,
+      'canFinanceTopup': canFinanceTopup,
+      'canUsePrepaidMultipayCards': canUsePrepaidMultipayCards,
+      'canAcceptPrepaidMultipayPayments': canAcceptPrepaidMultipayPayments,
+      'canUsePrepaidMultipayNfc': canUsePrepaidMultipayNfc,
+      ...permissionOverrides,
+      if (restoreDefaults) 'restoreDefaults': true,
+    };
     final response = await http.put(
       AppConfig.apiUri('admin/users/$userId/card-permissions'),
       headers: await _headers(),
-      body: jsonEncode({
-        'canIssueCards': canIssueCards,
-        'canIssueSubShekelCards': canIssueSubShekelCards,
-        'canIssueHighValueCards': canIssueHighValueCards,
-        'canIssuePrivateCards': canIssuePrivateCards,
-        'canIssueSingleUseTickets': canIssueSingleUseTickets,
-        'canIssueAppointmentTickets': canIssueAppointmentTickets,
-        'canIssueQueueTickets': canIssueQueueTickets,
-        'canReadOwnPrivateCardsOnly': canReadOwnPrivateCardsOnly,
-        'canResellCards': canResellCards,
-        'canRequestCardPrinting': canRequestCardPrinting,
-        'canManageCardPrintRequests': canManageCardPrintRequests,
-        'canOfflineCardScan': canOfflineCardScan,
-        'canManageDebtBook': canManageDebtBook,
-        'canManageUsers': canManageUsers,
-        'canFinanceTopup': canFinanceTopup,
-        'canUsePrepaidMultipayCards': canUsePrepaidMultipayCards,
-        'canAcceptPrepaidMultipayPayments': canAcceptPrepaidMultipayPayments,
-      }),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -838,6 +845,17 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateAdminUserAccountControls({
     required String userId,
+    String? businessName,
+    String? fullName,
+    String? username,
+    String? whatsapp,
+    String? email,
+    String? address,
+    String? nationalId,
+    String? birthDate,
+    String? referralPhone,
+    String? printLogoBase64,
+    bool removePrintLogo = false,
     required bool isDisabled,
     required String transferVerificationStatus,
     required String role,
@@ -853,25 +871,38 @@ class ApiService {
     bool resetCardScanCounter = false,
     bool cardAutoRedeemOnScanForced = false,
   }) async {
+    final payload = <String, dynamic>{
+      'removePrintLogo': removePrintLogo,
+      'isDisabled': isDisabled,
+      'transferVerificationStatus': transferVerificationStatus,
+      'role': role,
+      'printingDebtLimit': printingDebtLimit,
+      'customTopupFeePercent': customTopupFeePercent,
+      'customWithdrawFeePercent': customWithdrawFeePercent,
+      'customTransferFeePercent': customTransferFeePercent,
+      'customCardRedeemFeePercent': customCardRedeemFeePercent,
+      'customCardResellFeePercent': customCardResellFeePercent,
+      'customCardPrintRequestFeePercent': customCardPrintRequestFeePercent,
+      'customCardScanLimit': customCardScanLimit,
+      'cardScanLimitExempt': cardScanLimitExempt,
+      'resetCardScanCounter': resetCardScanCounter,
+      'cardAutoRedeemOnScanForced': cardAutoRedeemOnScanForced,
+    };
+    if (businessName != null) payload['businessName'] = businessName;
+    if (fullName != null) payload['fullName'] = fullName;
+    if (username != null) payload['username'] = username;
+    if (whatsapp != null) payload['whatsapp'] = whatsapp;
+    if (email != null) payload['email'] = email;
+    if (address != null) payload['address'] = address;
+    if (nationalId != null) payload['nationalId'] = nationalId;
+    if (birthDate != null) payload['birthDate'] = birthDate;
+    if (referralPhone != null) payload['referralPhone'] = referralPhone;
+    if (printLogoBase64 != null) payload['printLogoBase64'] = printLogoBase64;
+
     final response = await http.put(
       AppConfig.apiUri('admin/users/$userId/account-controls'),
       headers: await _headers(),
-      body: jsonEncode({
-        'isDisabled': isDisabled,
-        'transferVerificationStatus': transferVerificationStatus,
-        'role': role,
-        'printingDebtLimit': printingDebtLimit,
-        'customTopupFeePercent': customTopupFeePercent,
-        'customWithdrawFeePercent': customWithdrawFeePercent,
-        'customTransferFeePercent': customTransferFeePercent,
-        'customCardRedeemFeePercent': customCardRedeemFeePercent,
-        'customCardResellFeePercent': customCardResellFeePercent,
-        'customCardPrintRequestFeePercent': customCardPrintRequestFeePercent,
-        'customCardScanLimit': customCardScanLimit,
-        'cardScanLimitExempt': cardScanLimitExempt,
-        'resetCardScanCounter': resetCardScanCounter,
-        'cardAutoRedeemOnScanForced': cardAutoRedeemOnScanForced,
-      }),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -924,6 +955,7 @@ class ApiService {
     required double cardRedeemPercent,
     required double cardResellPercent,
     required double cardPrintRequestPercent,
+    required double withdrawPercent,
     required double standardCardIssueCost,
     required double deliveryCardIssueCost,
     required double privateCardIssueCost,
@@ -940,6 +972,7 @@ class ApiService {
         'cardRedeemPercent': cardRedeemPercent,
         'cardResellPercent': cardResellPercent,
         'cardPrintRequestPercent': cardPrintRequestPercent,
+        'withdrawPercent': withdrawPercent,
         'standardCardIssueCost': standardCardIssueCost,
         'deliveryCardIssueCost': deliveryCardIssueCost,
         'privateCardIssueCost': privateCardIssueCost,
@@ -1146,6 +1179,7 @@ class ApiService {
     String fullName = '',
     String password = '',
     String countryCode = '970',
+    String deliveryMethod = 'sms',
   }) async {
     final normalizedUsername = username.trim().toLowerCase();
     final normalizedWhatsapp = PhoneNumberService.normalize(
@@ -1162,6 +1196,7 @@ class ApiService {
         'fullName': fullName.trim(),
         'password': password,
         'countryCode': countryCode.trim(),
+        'deliveryMethod': deliveryMethod.trim(),
       }),
     );
     return _decodeObject(response);
@@ -1275,13 +1310,92 @@ class ApiService {
   Future<Map<String, dynamic>> updateAdminTopupRequestSettings({
     required bool enabled,
     required String instructions,
+    double? minAmount,
+    double? maxAmount,
   }) async {
+    final payload = <String, dynamic>{
+      'enabled': enabled,
+      'instructions': instructions.trim(),
+    };
+    if (minAmount != null) {
+      payload['minAmount'] = minAmount;
+    }
+    if (maxAmount != null) {
+      payload['maxAmount'] = maxAmount;
+    }
     final response = await http.put(
       AppConfig.apiUri('admin/settings/topup-request'),
+      headers: await _headers(),
+      body: jsonEncode(payload),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminWithdrawalRequestSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/withdrawal-request'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(
+      body['withdrawalRequest'] as Map? ?? const {},
+    );
+  }
+
+  Future<Map<String, dynamic>> updateAdminWithdrawalRequestSettings({
+    required bool enabled,
+    required String instructions,
+    required double minAmount,
+    required double maxAmount,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/withdrawal-request'),
       headers: await _headers(),
       body: jsonEncode({
         'enabled': enabled,
         'instructions': instructions.trim(),
+        'minAmount': minAmount,
+        'maxAmount': maxAmount,
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getCardQuantityLimitSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/card-quantity-limits'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return Map<String, dynamic>.from(
+      body['cardQuantityLimits'] as Map? ?? const {},
+    );
+  }
+
+  Future<Map<String, dynamic>> updateCardQuantityLimitSettings({
+    required int defaultLimit,
+    required int restrictedLimit,
+    required int basicLimit,
+    required int verifiedLimit,
+    required int driverLimit,
+    required int marketerLimit,
+    required int supportLimit,
+    required int financeLimit,
+    required int adminLimit,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/card-quantity-limits'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'defaultLimit': defaultLimit,
+        'restrictedLimit': restrictedLimit,
+        'basicLimit': basicLimit,
+        'verifiedLimit': verifiedLimit,
+        'driverLimit': driverLimit,
+        'marketerLimit': marketerLimit,
+        'supportLimit': supportLimit,
+        'financeLimit': financeLimit,
+        'adminLimit': adminLimit,
       }),
     );
     return _decodeObject(response);
@@ -1360,6 +1474,72 @@ class ApiService {
   ) async {
     final response = await http.delete(
       AppConfig.apiUri('admin/topup-payment-methods/$methodId'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['methods'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminWithdrawalMethods() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/withdrawal-methods'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['methods'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> saveAdminWithdrawalMethod({
+    String? methodId,
+    required String code,
+    required String title,
+    required String description,
+    required String accountLabel,
+    required bool requiresBankName,
+    required bool isActive,
+    required int sortOrder,
+  }) async {
+    final payload = {
+      'code': code.trim(),
+      'title': title.trim(),
+      'description': description.trim(),
+      'accountLabel': accountLabel.trim(),
+      'requiresBankName': requiresBankName,
+      'isActive': isActive,
+      'sortOrder': sortOrder,
+    };
+    final response = methodId == null
+        ? await http.post(
+            AppConfig.apiUri('admin/withdrawal-methods'),
+            headers: await _headers(),
+            body: jsonEncode(payload),
+          )
+        : await http.put(
+            AppConfig.apiUri('admin/withdrawal-methods/$methodId'),
+            headers: await _headers(),
+            body: jsonEncode(payload),
+          );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['methods'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> deleteAdminWithdrawalMethod(
+    String methodId,
+  ) async {
+    final response = await http.delete(
+      AppConfig.apiUri('admin/withdrawal-methods/$methodId'),
       headers: await _headers(),
     );
     final body = _decodeObject(response);
@@ -1762,11 +1942,15 @@ class ApiService {
   Future<Map<String, dynamic>> approvePendingRegistrationRequest(
     String requestId, {
     bool allowUnverifiedWhatsapp = false,
+    String deliveryMethod = 'sms',
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/registrations/$requestId/approve'),
       headers: await _headers(),
-      body: jsonEncode({'allowUnverifiedWhatsapp': allowUnverifiedWhatsapp}),
+      body: jsonEncode({
+        'allowUnverifiedWhatsapp': allowUnverifiedWhatsapp,
+        'deliveryMethod': deliveryMethod.trim(),
+      }),
     );
     return _decodeObject(response);
   }
@@ -1857,6 +2041,14 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> getWithdrawalRequestOptions() async {
+    final response = await http.get(
+      AppConfig.apiUri('wallet/withdrawal/options'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getTopupRequestOptions() async {
     final response = await http.get(
       AppConfig.apiUri('wallet/topup-request/options'),
@@ -1912,6 +2104,7 @@ class ApiService {
   Future<Map<String, dynamic>> submitVerification({
     required String identityDocumentBase64,
     required String selfieImageBase64,
+    required String fullName,
     required String nationalId,
     required String birthDate,
     String requestedRole = 'verified_member',
@@ -1923,6 +2116,7 @@ class ApiService {
       body: jsonEncode({
         'identityDocumentBase64': identityDocumentBase64,
         'selfieImageBase64': selfieImageBase64,
+        'fullName': fullName.trim(),
         'nationalId': nationalId.trim(),
         'birthDate': birthDate.trim(),
         'requestedRole': requestedRole,
@@ -3062,6 +3256,14 @@ class ApiService {
         trimmedBody.startsWith('<');
     final fallbackMessage = _tr('services_api_service.001');
     final payloadTooLargeMessage = _tr('services_api_service.002');
+
+    if (response.statusCode == 401) {
+      throw Exception(_tr('services_error_message_service.011'));
+    }
+
+    if (response.statusCode == 403) {
+      throw Exception(_tr('services_error_message_service.002'));
+    }
 
     if (response.statusCode == 413) {
       throw Exception(payloadTooLargeMessage);

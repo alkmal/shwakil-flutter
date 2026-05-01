@@ -12,6 +12,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -26,11 +27,13 @@ class ScanCardScreen extends StatefulWidget {
     this.initialBarcode,
     this.offlineMode = false,
     this.autoOpenScanner = false,
+    this.openTemporaryTransferCreator = false,
   });
 
   final String? initialBarcode;
   final bool offlineMode;
   final bool autoOpenScanner;
+  final bool openTemporaryTransferCreator;
 
   @override
   State<ScanCardScreen> createState() => _ScanCardScreenState();
@@ -151,6 +154,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         _ensureOfflineTemporaryTransferSlots(),
       ]);
       _maybeOpenScannerAutomatically();
+      if (widget.openTemporaryTransferCreator && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showTemporaryTransferCreator();
+          }
+        });
+      }
     } catch (_) {
       if (!mounted) {
         return;
@@ -525,8 +535,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
     final permissions = AppPermissions.fromUser(_user);
-    if (!permissions.canTransfer ||
-        (_user?['transferVerificationStatus']?.toString() != 'approved')) {
+    if (!permissions.canTransfer) {
       return;
     }
     final existingCount = await _offlineTransferCodeService.countAvailableSlots(
@@ -655,6 +664,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       _isSearching = false;
     });
     if (result.errorMessage != null) {
+      if (ErrorMessageService.requiresFreshLogin(result.errorMessage)) {
+        return;
+      }
       AppAlertService.showError(
         context,
         title: context.loc.tr('screens_scan_card_screen.039'),
@@ -685,7 +697,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
       return _CardLookupResult.success(result);
     } catch (error) {
-      return _CardLookupResult.error(ErrorMessageService.sanitize(error));
+      final message = ErrorMessageService.sanitize(error);
+      if (ErrorMessageService.requiresFreshLogin(message) && mounted) {
+        unawaited(
+          AppAlertService.showError(
+            context,
+            title: context.loc.tr('screens_scan_card_screen.039'),
+            message: message,
+          ),
+        );
+      }
+      return _CardLookupResult.error(message);
     }
   }
 
@@ -725,7 +747,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final permissions = AppPermissions.fromUser(_user);
     return !widget.offlineMode &&
         permissions.canTransfer &&
-        (_user?['transferVerificationStatus']?.toString() == 'approved') &&
         (!_isDeviceOffline || _availableOfflineTransferSlots > 0);
   }
 
@@ -756,7 +777,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         title: 'رمز تحويل مؤقت',
         message: _isDeviceOffline
             ? 'لا يوجد لديك رصيد محلي جاهز من الرموز المؤقتة. افتح الشاشة أثناء الاتصال لتجهيزها ثم يمكنك الإنشاء أوفلاين.'
-            : 'هذه الميزة متاحة فقط للحسابات الموثقة والمصرح لها بالتحويل.',
+            : 'هذه الميزة متاحة للحسابات التي تملك صلاحية تحويل الرصيد. راجع الإدارة إذا كانت الصلاحية غير مفعلة لحسابك.',
       );
       return;
     }
@@ -978,36 +999,35 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
 
     return BarcodeScannerDialogResult(
-      headline: 'رمز تحويل مؤقت',
-      description:
-          'تم العثور على رمز تحويل بمبلغ محدد. راجع البيانات ثم أكد الاستلام خلال مدة الصلاحية.',
+      headline: _t('screens_scan_card_screen.123'),
+      description: _t('screens_scan_card_screen.124'),
       color: AppTheme.primary,
       icon: Icons.qr_code_2_rounded,
       items: [
         BarcodeScannerDialogResultItem(
-          label: 'المبلغ',
+          label: _t('screens_scan_card_screen.125'),
           value: CurrencyFormatter.ils(payload.amount),
           icon: Icons.payments_rounded,
         ),
         BarcodeScannerDialogResultItem(
-          label: 'صافي الاستلام',
+          label: _t('screens_scan_card_screen.126'),
           value: CurrencyFormatter.ils(payload.netAmount),
           icon: Icons.account_balance_wallet_rounded,
         ),
         BarcodeScannerDialogResultItem(
-          label: 'من الحساب',
+          label: _t('screens_scan_card_screen.127'),
           value: payload.senderUsername.isNotEmpty
               ? payload.senderUsername
-              : 'مستخدم',
+              : _t('screens_scan_card_screen.128'),
           icon: Icons.person_rounded,
         ),
         BarcodeScannerDialogResultItem(
-          label: 'ينتهي عند',
+          label: _t('screens_scan_card_screen.129'),
           value: _formatDate(payload.expiresAt),
           icon: Icons.timer_outlined,
         ),
       ],
-      primaryActionLabel: 'استلام الآن',
+      primaryActionLabel: _t('screens_scan_card_screen.130'),
       primaryActionIcon: Icons.download_done_rounded,
       onPrimaryAction: () async =>
           _redeemTemporaryTransferCodeFromScan(payload),
@@ -1041,21 +1061,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
 
       return BarcodeScannerDialogResult(
-        headline: 'تم الاستلام بنجاح',
-        description:
-            'تم خصم المبلغ من رصيد المُرسل وتحويله إلى حسابك عبر الرمز المؤقت.',
+        headline: _t('screens_scan_card_screen.131'),
+        description: _t('screens_scan_card_screen.132'),
         color: AppTheme.success,
         icon: Icons.check_circle_rounded,
         items: [
           BarcodeScannerDialogResultItem(
-            label: 'المبلغ',
+            label: _t('screens_scan_card_screen.125'),
             value: CurrencyFormatter.ils(
               (response['grossAmount'] as num?)?.toDouble() ?? payload.amount,
             ),
             icon: Icons.payments_rounded,
           ),
           BarcodeScannerDialogResultItem(
-            label: 'المضاف إلى حسابك',
+            label: _t('screens_scan_card_screen.133'),
             value: CurrencyFormatter.ils(
               (response['creditedAmount'] as num?)?.toDouble() ??
                   payload.netAmount,
@@ -1296,10 +1315,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final remaining = (payment['remainingCardBalance'] as num?)?.toDouble();
 
       return BarcodeScannerDialogResult(
-        headline: 'تم اعتماد الدفع بنجاح',
+        headline: _t('screens_scan_card_screen.134'),
         description: remaining == null
-            ? 'تم تنفيذ العملية بنجاح.'
-            : 'تم اعتماد دفع بقيمة ${CurrencyFormatter.ils(submission.amount)} وبقي في البطاقة ${CurrencyFormatter.ils(remaining)}.',
+            ? _t('screens_scan_card_screen.135')
+            : _t('screens_scan_card_screen.136', {
+                'amount': CurrencyFormatter.ils(submission.amount),
+                'remaining': CurrencyFormatter.ils(remaining),
+              }),
         color: AppTheme.success,
         icon: Icons.check_circle_rounded,
         items: [
@@ -1329,12 +1351,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       if (showErrorAlert) {
         await AppAlertService.showError(
           context,
-          title: 'تعذر تنفيذ السحب',
+          title: _t('screens_scan_card_screen.137'),
           message: message,
         );
       }
       return BarcodeScannerDialogResult.error(
-        headline: 'تعذر تنفيذ السحب',
+        headline: _t('screens_scan_card_screen.137'),
         message: message,
       );
     } finally {
@@ -1503,10 +1525,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
       final response = await _api.redeemCard(
         cardId: card.id,
-        customerName:
-            _user?['fullName'] ??
-            _user?['username'] ??
-            l.tr('screens_scan_card_screen.060'),
+        customerName: UserDisplayName.fromMap(
+          _user,
+          fallback: l.tr('screens_scan_card_screen.060'),
+        ),
         location: location,
       );
       final updatedBalance = (response['balance'] as num?)?.toDouble();
@@ -1583,10 +1605,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
 
-    final customerName =
-        _user?['fullName'] ??
-        _user?['username'] ??
-        l.tr('screens_scan_card_screen.060');
+    final customerName = UserDisplayName.fromMap(
+      _user,
+      fallback: l.tr('screens_scan_card_screen.060'),
+    );
     await _offlineCardService.enqueueRedeem(userId, {
       'barcode': _card!.barcode,
       'cardId': _card!.id,
@@ -3837,12 +3859,20 @@ class _TemporaryTransferCodeDialogState
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'العد التنازلي: ${_formatCountdown()}',
+                      context.loc.tr(
+                        'screens_scan_card_screen.138',
+                        params: {'countdown': _formatCountdown()},
+                      ),
                       style: AppTheme.bodyBold,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'ينتهي عند ${_formatExpiry(widget.payload.expiresAt)}',
+                      context.loc.tr(
+                        'screens_scan_card_screen.139',
+                        params: {
+                          'time': _formatExpiry(widget.payload.expiresAt),
+                        },
+                      ),
                       style: AppTheme.caption,
                     ),
                   ],
@@ -3856,13 +3886,25 @@ class _TemporaryTransferCodeDialogState
                 children: [
                   _TempTransferInfoChip(
                     icon: Icons.payments_rounded,
-                    label:
-                        'الرسوم ${CurrencyFormatter.ils(widget.payload.feeAmount)}',
+                    label: context.loc.tr(
+                      'screens_scan_card_screen.140',
+                      params: {
+                        'amount': CurrencyFormatter.ils(
+                          widget.payload.feeAmount,
+                        ),
+                      },
+                    ),
                   ),
                   _TempTransferInfoChip(
                     icon: Icons.account_balance_wallet_rounded,
-                    label:
-                        'الصافي ${CurrencyFormatter.ils(widget.payload.netAmount)}',
+                    label: context.loc.tr(
+                      'screens_scan_card_screen.141',
+                      params: {
+                        'amount': CurrencyFormatter.ils(
+                          widget.payload.netAmount,
+                        ),
+                      },
+                    ),
                   ),
                 ],
               ),

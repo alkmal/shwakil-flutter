@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../localization/index.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/user_display_name.dart';
 import '../shwakel_button.dart';
 import '../shwakel_card.dart';
 
@@ -22,9 +23,8 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
 
   String _displayName() {
     final user = Map<String, dynamic>.from(request['user'] as Map? ?? const {});
-    final fullName = user['fullName']?.toString().trim() ?? '';
     final username = user['username']?.toString().trim() ?? '';
-    return fullName.isNotEmpty ? fullName : username;
+    return UserDisplayName.fromMap(user, fallback: username);
   }
 
   String _currency(num? amount) => CurrencyFormatter.ils(amount);
@@ -33,9 +33,11 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.loc;
     final amount = (request['amount'] as num?)?.toDouble() ?? 0;
-    final method = request['method']?.toString() ??
+    final method =
+        request['method']?.toString() ??
         l.tr('widgets_admin_withdrawal_request_card.001');
-    final details = request['methodDetails']?.toString() ??
+    final details =
+        request['methodDetails']?.toString() ??
         l.tr('widgets_admin_withdrawal_request_card.002');
     final createdAt = request['createdAt']?.toString() ?? '';
 

@@ -48,7 +48,14 @@ final Map<String, WidgetBuilder> _appRoutes = {
   },
   '/quick-transfer': (context) => const QuickTransferScreen(),
   '/card-print-requests': (context) => const CardPrintRequestsScreen(),
-  '/scan-card': (context) => const ScanCardScreen(),
+  '/scan-card': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return ScanCardScreen(
+      openTemporaryTransferCreator:
+          options['openTemporaryTransferCreator'] == true,
+    );
+  },
   '/scan-card-camera': (context) => const ScanCardScreen(autoOpenScanner: true),
   '/scan-card-offline': (context) => const ScanCardScreen(offlineMode: true),
   '/scan-card-offline-camera': (context) =>
@@ -116,7 +123,8 @@ Future<void> main() async {
         unawaited(
           AppAlertService.showGlobalError(
             title: 'خطأ في التطبيق',
-            message: 'حدث خطأ غير متوقع. يمكنك المتابعة أو المحاولة مرة أخرى.',
+            message:
+                'حدث خلل غير متوقع أثناء عرض هذه الشاشة. أغلق الرسالة وحاول تنفيذ الخطوة مرة أخرى، وإذا تكرر الخلل انتقل للشاشة السابقة ثم افتحها من جديد.',
           ),
         );
       };
@@ -136,7 +144,8 @@ Future<void> main() async {
         unawaited(
           AppAlertService.showGlobalError(
             title: 'خطأ غير متوقع',
-            message: 'حدث خطأ غير معالج داخل التطبيق.',
+            message:
+                'حدث خلل غير متوقع أثناء تنفيذ العملية. حاول مرة أخرى، وإذا تكرر الخلل أعد فتح التطبيق ثم كرر الخطوة.',
           ),
         );
         return true;
@@ -150,7 +159,8 @@ Future<void> main() async {
       unawaited(
         AppAlertService.showGlobalError(
           title: 'خطأ غير متوقع',
-          message: 'حدث خطأ غير متوقع أثناء تشغيل التطبيق.',
+          message:
+              'تعذر تشغيل التطبيق بشكل طبيعي. أعد فتح التطبيق، وإذا استمر الخلل تحقق من الاتصال ثم حاول مرة أخرى.',
         ),
       );
     },

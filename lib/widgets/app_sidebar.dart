@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/user_display_name.dart';
 import 'shwakel_logo.dart';
 
 class AppSidebar extends StatefulWidget {
@@ -64,7 +65,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final l = context.loc;
     final username =
         _user?['username']?.toString() ?? l.tr('widgets_app_sidebar.001');
-    final fullName = _user?['fullName']?.toString().trim() ?? '';
+    final displayName = UserDisplayName.fromMap(_user, fallback: username);
     final verificationStatus =
         _user?['transferVerificationStatus']?.toString() ?? 'unverified';
     final permissions = AppPermissions.fromUser(_user);
@@ -73,6 +74,18 @@ class _AppSidebarState extends State<AppSidebar> {
     final canViewLocations = permissions.canViewLocations;
     final canViewNotifications =
         permissions.canViewTransactions || permissions.canViewBalance;
+    final canViewBalance = permissions.canViewBalance;
+    final canViewTransactions = permissions.canViewTransactions;
+    final canIssueCards = permissions.canIssueCards;
+    final canOpenCardTools = permissions.canOpenCardTools;
+    final canOpenQuickTransfer = permissions.canOpenQuickTransfer;
+    final canTransfer = permissions.canTransfer;
+    final canViewInventory = permissions.canViewInventory;
+    final canRequestCardPrinting = permissions.canRequestCardPrinting;
+    final canOpenPrepaidMultipayCards = permissions.canOpenPrepaidMultipayCards;
+    final canWithdraw = permissions.canWithdraw;
+    final canManageDebtBook = permissions.canManageDebtBook;
+    final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canViewUsagePolicy = permissions.canViewUsagePolicy;
     final canViewSubUsers = permissions.canViewSubUsers;
     final canViewAccountSettings = permissions.canViewAccountSettings;
@@ -107,7 +120,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              fullName.isEmpty ? username : fullName,
+                              displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTheme.h2.copyWith(
@@ -161,6 +174,79 @@ class _AppSidebarState extends State<AppSidebar> {
                   ),
                   if (!isOfflineMode) ...[
                     _buildMenuSection(
+                      label: l.tr('widgets_app_sidebar.046'),
+                      children: [
+                        if (canViewBalance)
+                          _buildItem(
+                            context,
+                            icon: Icons.account_balance_wallet_rounded,
+                            title: l.tr('widgets_app_sidebar.004'),
+                            routeName: '/balance',
+                          ),
+                        if (canOpenQuickTransfer && canTransfer)
+                          _buildItem(
+                            context,
+                            icon: Icons.send_to_mobile_rounded,
+                            title: l.tr('widgets_app_sidebar.011'),
+                            routeName: '/quick-transfer',
+                          ),
+                        if (canWithdraw)
+                          _buildItem(
+                            context,
+                            icon: Icons.payments_rounded,
+                            title: l.tr('widgets_app_sidebar.031'),
+                            routeName: '/withdrawal-requests',
+                          ),
+                        if (canViewTransactions)
+                          _buildItem(
+                            context,
+                            icon: Icons.receipt_long_rounded,
+                            title: l.tr('widgets_app_sidebar.005'),
+                            routeName: '/transactions',
+                          ),
+                      ],
+                    ),
+                    _buildMenuSection(
+                      label: l.tr('widgets_app_sidebar.006'),
+                      children: [
+                        if (canOpenCardTools)
+                          _buildItem(
+                            context,
+                            icon: Icons.qr_code_scanner_rounded,
+                            title: l.tr('widgets_app_sidebar.008'),
+                            routeName: '/scan-card',
+                          ),
+                        if (canIssueCards)
+                          _buildItem(
+                            context,
+                            icon: Icons.add_card_rounded,
+                            title: l.tr('widgets_app_sidebar.047'),
+                            routeName: '/create-card',
+                          ),
+                        if (canViewInventory && canIssueCards)
+                          _buildItem(
+                            context,
+                            icon: Icons.inventory_2_rounded,
+                            title: l.tr('widgets_app_sidebar.048'),
+                            routeName: '/inventory',
+                          ),
+                        if (canRequestCardPrinting)
+                          _buildItem(
+                            context,
+                            icon: Icons.print_rounded,
+                            title: l.tr('widgets_app_sidebar.007'),
+                            routeName: '/card-print-requests',
+                          ),
+                        if (canOpenPrepaidMultipayCards)
+                          _buildItem(
+                            context,
+                            icon: Icons.credit_card_rounded,
+                            title: l.tr('widgets_app_sidebar.049'),
+                            routeName: '/prepaid-multipay-cards',
+                          ),
+                      ],
+                    ),
+                    _buildMenuSection(
                       label: l.tr('widgets_app_sidebar.009'),
                       children: [
                         if (canViewAccountSettings)
@@ -185,6 +271,27 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.tr('widgets_app_sidebar.039'),
                             routeName: '/sub-users',
                           ),
+                        if (permissions.canViewSecuritySettings)
+                          _buildItem(
+                            context,
+                            icon: Icons.shield_rounded,
+                            title: l.tr('widgets_app_sidebar.013'),
+                            routeName: '/security-settings',
+                          ),
+                        if (canManageDebtBook)
+                          _buildItem(
+                            context,
+                            icon: Icons.menu_book_rounded,
+                            title: l.tr('widgets_app_sidebar.040'),
+                            routeName: '/debt-book',
+                          ),
+                        if (canViewAffiliateCenter)
+                          _buildItem(
+                            context,
+                            icon: Icons.campaign_rounded,
+                            title: l.tr('widgets_app_sidebar.041'),
+                            routeName: '/affiliate-center',
+                          ),
                       ],
                     ),
                     if (hasAdminWorkspaceAccess) ...[
@@ -197,6 +304,93 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.tr('widgets_app_sidebar.015'),
                             routeName: '/admin-dashboard',
                           ),
+                          if (permissions.canViewCustomers)
+                            _buildItem(
+                              context,
+                              icon: Icons.groups_rounded,
+                              title: l.tr('widgets_app_sidebar.030'),
+                              routeName: '/admin-customers',
+                            ),
+                          if (permissions.canManageUsers ||
+                              permissions.canManageMarketingAccounts)
+                            _buildItem(
+                              context,
+                              icon: Icons.how_to_reg_rounded,
+                              title: l.tr('widgets_app_sidebar.042'),
+                              routeName: '/admin-pending-registrations',
+                            ),
+                          if (permissions.canReviewTopups ||
+                              permissions.canFinanceTopup)
+                            _buildItem(
+                              context,
+                              icon: Icons.account_balance_rounded,
+                              title: l.tr('widgets_app_sidebar.017'),
+                              routeName: '/topup-requests',
+                            ),
+                          if (permissions.canReviewWithdrawals)
+                            _buildItem(
+                              context,
+                              icon: Icons.payments_rounded,
+                              title: l.tr('widgets_app_sidebar.031'),
+                              routeName: '/withdrawal-requests',
+                            ),
+                          if (permissions.canManageCardPrintRequests)
+                            _buildItem(
+                              context,
+                              icon: Icons.print_rounded,
+                              title: l.tr('widgets_app_sidebar.032'),
+                              routeName: '/admin-card-print-requests',
+                            ),
+                          if (permissions.canManageUsers)
+                            _buildItem(
+                              context,
+                              icon: Icons.credit_score_rounded,
+                              title: l.tr('widgets_app_sidebar.045'),
+                              routeName: '/admin-prepaid-multipay-approvals',
+                            ),
+                          if (permissions.canReviewDevices)
+                            _buildItem(
+                              context,
+                              icon: Icons.devices_rounded,
+                              title: l.tr('widgets_app_sidebar.016'),
+                              routeName: '/admin-device-requests',
+                            ),
+                          if (permissions.canManageDebtBook)
+                            _buildItem(
+                              context,
+                              icon: Icons.menu_book_rounded,
+                              title: l.tr('widgets_app_sidebar.040'),
+                              routeName: '/admin-debt-book',
+                            ),
+                          if (permissions.canManageLocations)
+                            _buildItem(
+                              context,
+                              icon: Icons.store_mall_directory_rounded,
+                              title: l.tr('widgets_app_sidebar.018'),
+                              routeName: '/admin-locations',
+                            ),
+                          if (permissions.canManageUsers ||
+                              permissions.canManageSystemSettings)
+                            _buildItem(
+                              context,
+                              icon: Icons.notification_add_rounded,
+                              title: l.tr('widgets_app_sidebar.043'),
+                              routeName: '/admin-notifications',
+                            ),
+                          if (permissions.canManageUsers)
+                            _buildItem(
+                              context,
+                              icon: Icons.rule_rounded,
+                              title: l.tr('widgets_app_sidebar.033'),
+                              routeName: '/admin-permissions',
+                            ),
+                          if (permissions.canManageSystemSettings)
+                            _buildItem(
+                              context,
+                              icon: Icons.tune_rounded,
+                              title: l.tr('widgets_app_sidebar.019'),
+                              routeName: '/admin-system-settings',
+                            ),
                         ],
                       ),
                     ],

@@ -43,6 +43,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardRedeemFeeController = TextEditingController();
   final _cardResellFeeController = TextEditingController();
   final _cardPrintRequestFeeController = TextEditingController();
+  final _withdrawFeeController = TextEditingController();
   final _standardCardIssueCostController = TextEditingController();
   final _deliveryCardIssueCostController = TextEditingController();
   final _privateCardIssueCostController = TextEditingController();
@@ -76,6 +77,20 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _affiliateRewardAmountController = TextEditingController();
   final _affiliateFirstTopupMinAmountController = TextEditingController();
   final _affiliateMarketerDebtLimitController = TextEditingController();
+  final _withdrawalRequestInstructionsController = TextEditingController();
+  final _withdrawalMinAmountController = TextEditingController();
+  final _withdrawalMaxAmountController = TextEditingController();
+  final _topupMinAmountController = TextEditingController();
+  final _topupMaxAmountController = TextEditingController();
+  final _cardQtyDefaultController = TextEditingController();
+  final _cardQtyRestrictedController = TextEditingController();
+  final _cardQtyBasicController = TextEditingController();
+  final _cardQtyVerifiedController = TextEditingController();
+  final _cardQtyDriverController = TextEditingController();
+  final _cardQtyMarketerController = TextEditingController();
+  final _cardQtySupportController = TextEditingController();
+  final _cardQtyFinanceController = TextEditingController();
+  final _cardQtyAdminController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -85,11 +100,13 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _registrationWhatsappVerificationRequired = true;
   String _whatsappUsageMode = 'all';
   bool _topupRequestEnabled = true;
+  bool _withdrawalRequestEnabled = true;
   bool _affiliateEnabled = true;
   bool _scanAutoRedeemGlobalForced = false;
   bool _isLoadingPrepaidReport = false;
   String _prepaidReportCardStatus = 'all';
   List<Map<String, dynamic>> _topupPaymentMethods = const [];
+  List<Map<String, dynamic>> _withdrawalMethods = const [];
   List<Map<String, dynamic>> _prepaidReportPayments = const [];
   Map<String, dynamic> _prepaidReportSummary = const {};
 
@@ -119,6 +136,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardRedeemFeeController.dispose();
     _cardResellFeeController.dispose();
     _cardPrintRequestFeeController.dispose();
+    _withdrawFeeController.dispose();
     _standardCardIssueCostController.dispose();
     _deliveryCardIssueCostController.dispose();
     _privateCardIssueCostController.dispose();
@@ -152,6 +170,20 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _affiliateRewardAmountController.dispose();
     _affiliateFirstTopupMinAmountController.dispose();
     _affiliateMarketerDebtLimitController.dispose();
+    _withdrawalRequestInstructionsController.dispose();
+    _withdrawalMinAmountController.dispose();
+    _withdrawalMaxAmountController.dispose();
+    _topupMinAmountController.dispose();
+    _topupMaxAmountController.dispose();
+    _cardQtyDefaultController.dispose();
+    _cardQtyRestrictedController.dispose();
+    _cardQtyBasicController.dispose();
+    _cardQtyVerifiedController.dispose();
+    _cardQtyDriverController.dispose();
+    _cardQtyMarketerController.dispose();
+    _cardQtySupportController.dispose();
+    _cardQtyFinanceController.dispose();
+    _cardQtyAdminController.dispose();
     super.dispose();
   }
 
@@ -180,10 +212,13 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _apiService.getFeeSettings(),
         _apiService.getCardScanLimitSettings(),
         _apiService.getAdminTopupRequestSettings(),
+        _apiService.getAdminWithdrawalRequestSettings(),
         _apiService.getAdminAffiliateSettings(),
         _apiService.getAdminTopupPaymentMethods(),
+        _apiService.getAdminWithdrawalMethods(),
         _apiService.getUsagePolicy(),
         _apiService.getAdminPrepaidMultipaySettings(),
+        _apiService.getCardQuantityLimitSettings(),
       ]);
 
       if (!mounted) {
@@ -200,15 +235,26 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         results[6] as Map,
       );
       final topupRequestSettings = Map<String, dynamic>.from(results[7] as Map);
-      final affiliateSettings = Map<String, dynamic>.from(results[8] as Map);
+      final withdrawalRequestSettings = Map<String, dynamic>.from(
+        results[8] as Map,
+      );
+      final affiliateSettings = Map<String, dynamic>.from(results[9] as Map);
       final topupPaymentMethods = List<Map<String, dynamic>>.from(
-        (results[9] as List).map(
+        (results[10] as List).map(
           (item) => Map<String, dynamic>.from(item as Map),
         ),
       );
-      final usagePolicy = Map<String, dynamic>.from(results[10] as Map);
+      final withdrawalMethods = List<Map<String, dynamic>>.from(
+        (results[11] as List).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      final usagePolicy = Map<String, dynamic>.from(results[12] as Map);
       final prepaidMultipaySettings = Map<String, dynamic>.from(
-        results[11] as Map,
+        results[13] as Map,
+      );
+      final cardQuantityLimitSettings = Map<String, dynamic>.from(
+        results[14] as Map,
       );
 
       _contactTitleController.text = contactSettings['title'] ?? '';
@@ -253,6 +299,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (feeSettings['cardResellPercent'] as num?)?.toString() ?? '1';
       _cardPrintRequestFeeController.text =
           (feeSettings['cardPrintRequestPercent'] as num?)?.toString() ?? '1';
+      _withdrawFeeController.text =
+          (feeSettings['withdrawPercent'] as num?)?.toString() ?? '1';
       _standardCardIssueCostController.text =
           (feeSettings['standardCardIssueCost'] as num?)?.toString() ?? '0';
       _deliveryCardIssueCostController.text =
@@ -321,6 +369,43 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _topupRequestEnabled = topupRequestSettings['enabled'] == true;
       _topupRequestInstructionsController.text =
           topupRequestSettings['instructions']?.toString() ?? '';
+      _topupMinAmountController.text =
+          (topupRequestSettings['minAmount'] as num?)?.toString() ?? '10';
+      _topupMaxAmountController.text =
+          (topupRequestSettings['maxAmount'] as num?)?.toString() ?? '10000';
+      _withdrawalRequestEnabled = withdrawalRequestSettings['enabled'] == true;
+      _withdrawalRequestInstructionsController.text =
+          withdrawalRequestSettings['instructions']?.toString() ?? '';
+      _withdrawalMinAmountController.text =
+          (withdrawalRequestSettings['minAmount'] as num?)?.toString() ?? '100';
+      _withdrawalMaxAmountController.text =
+          (withdrawalRequestSettings['maxAmount'] as num?)?.toString() ??
+          '10000';
+      _cardQtyDefaultController.text =
+          (cardQuantityLimitSettings['defaultLimit'] as num?)?.toString() ??
+          '1';
+      _cardQtyRestrictedController.text =
+          (cardQuantityLimitSettings['restrictedLimit'] as num?)?.toString() ??
+          '1';
+      _cardQtyBasicController.text =
+          (cardQuantityLimitSettings['basicLimit'] as num?)?.toString() ?? '30';
+      _cardQtyVerifiedController.text =
+          (cardQuantityLimitSettings['verifiedLimit'] as num?)?.toString() ??
+          '30';
+      _cardQtyDriverController.text =
+          (cardQuantityLimitSettings['driverLimit'] as num?)?.toString() ??
+          '30';
+      _cardQtyMarketerController.text =
+          (cardQuantityLimitSettings['marketerLimit'] as num?)?.toString() ??
+          '10';
+      _cardQtySupportController.text =
+          (cardQuantityLimitSettings['supportLimit'] as num?)?.toString() ??
+          '1';
+      _cardQtyFinanceController.text =
+          (cardQuantityLimitSettings['financeLimit'] as num?)?.toString() ??
+          '1';
+      _cardQtyAdminController.text =
+          (cardQuantityLimitSettings['adminLimit'] as num?)?.toString() ?? '1';
       _affiliateEnabled = affiliateSettings['enabled'] == true;
       _affiliateRewardAmountController.text =
           (affiliateSettings['rewardAmount'] as num?)?.toString() ?? '5';
@@ -335,6 +420,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       setState(() {
         _isAuthorized = true;
         _topupPaymentMethods = topupPaymentMethods;
+        _withdrawalMethods = withdrawalMethods;
         _isLoading = false;
       });
       unawaited(_loadPrepaidReport());
@@ -465,6 +551,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               double.tryParse(_cardResellFeeController.text) ?? 1,
           cardPrintRequestPercent:
               double.tryParse(_cardPrintRequestFeeController.text) ?? 1,
+          withdrawPercent: double.tryParse(_withdrawFeeController.text) ?? 1,
           standardCardIssueCost:
               double.tryParse(_standardCardIssueCostController.text) ?? 0,
           deliveryCardIssueCost:
@@ -519,6 +606,27 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _apiService.updateAdminTopupRequestSettings(
           enabled: _topupRequestEnabled,
           instructions: _topupRequestInstructionsController.text,
+          minAmount: double.tryParse(_topupMinAmountController.text) ?? 10,
+          maxAmount: double.tryParse(_topupMaxAmountController.text) ?? 10000,
+        ),
+        _apiService.updateAdminWithdrawalRequestSettings(
+          enabled: _withdrawalRequestEnabled,
+          instructions: _withdrawalRequestInstructionsController.text,
+          minAmount:
+              double.tryParse(_withdrawalMinAmountController.text) ?? 100,
+          maxAmount:
+              double.tryParse(_withdrawalMaxAmountController.text) ?? 10000,
+        ),
+        _apiService.updateCardQuantityLimitSettings(
+          defaultLimit: int.tryParse(_cardQtyDefaultController.text) ?? 1,
+          restrictedLimit: int.tryParse(_cardQtyRestrictedController.text) ?? 1,
+          basicLimit: int.tryParse(_cardQtyBasicController.text) ?? 30,
+          verifiedLimit: int.tryParse(_cardQtyVerifiedController.text) ?? 30,
+          driverLimit: int.tryParse(_cardQtyDriverController.text) ?? 30,
+          marketerLimit: int.tryParse(_cardQtyMarketerController.text) ?? 10,
+          supportLimit: int.tryParse(_cardQtySupportController.text) ?? 1,
+          financeLimit: int.tryParse(_cardQtyFinanceController.text) ?? 1,
+          adminLimit: int.tryParse(_cardQtyAdminController.text) ?? 1,
         ),
         _apiService.updateAffiliateSettings(
           enabled: _affiliateEnabled,
@@ -749,6 +857,190 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_admin_system_settings_screen.015'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _showWithdrawalMethodDialog({
+    Map<String, dynamic>? method,
+  }) async {
+    final codeController = TextEditingController(
+      text: method?['code']?.toString() ?? '',
+    );
+    final titleController = TextEditingController(
+      text: method?['title']?.toString() ?? '',
+    );
+    final descriptionController = TextEditingController(
+      text: method?['description']?.toString() ?? '',
+    );
+    final accountLabelController = TextEditingController(
+      text: method?['accountLabel']?.toString() ?? 'رقم الحساب أو المحفظة',
+    );
+    final sortOrderController = TextEditingController(
+      text: (method?['sortOrder'] ?? 0).toString(),
+    );
+    var requiresBankName = method?['requiresBankName'] == true;
+    var isActive = method?['isActive'] != false;
+    var isSaving = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> submit() async {
+            if (codeController.text.trim().isEmpty ||
+                titleController.text.trim().isEmpty ||
+                accountLabelController.text.trim().isEmpty) {
+              await AppAlertService.showError(
+                dialogContext,
+                title: 'بيانات ناقصة',
+                message: 'أدخل الرمز واسم الطريقة ووصف حقل الحساب قبل الحفظ.',
+              );
+              return;
+            }
+            setDialogState(() => isSaving = true);
+            try {
+              final methods = await _apiService.saveAdminWithdrawalMethod(
+                methodId: method?['id']?.toString(),
+                code: codeController.text,
+                title: titleController.text,
+                description: descriptionController.text,
+                accountLabel: accountLabelController.text,
+                requiresBankName: requiresBankName,
+                isActive: isActive,
+                sortOrder: int.tryParse(sortOrderController.text) ?? 0,
+              );
+              if (!dialogContext.mounted) {
+                return;
+              }
+              Navigator.pop(dialogContext);
+              if (!mounted) {
+                return;
+              }
+              setState(() => _withdrawalMethods = methods);
+            } catch (error) {
+              if (!dialogContext.mounted) {
+                return;
+              }
+              setDialogState(() => isSaving = false);
+              await AppAlertService.showError(
+                dialogContext,
+                title: 'تعذر حفظ طريقة السحب',
+                message: ErrorMessageService.sanitize(error),
+              );
+            }
+          }
+
+          return AlertDialog(
+            title: Text(method == null ? 'إضافة طريقة سحب' : 'تعديل طريقة سحب'),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: codeController,
+                      decoration: const InputDecoration(
+                        labelText: 'الرمز الداخلي',
+                        helperText: 'مثال: bank_transfer أو palpay_wallet',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم الطريقة',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: accountLabelController,
+                      decoration: const InputDecoration(
+                        labelText: 'وصف حقل الحساب',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: sortOrderController,
+                      decoration: const InputDecoration(labelText: 'الترتيب'),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'وصف للمستخدم',
+                      ),
+                      minLines: 2,
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      value: requiresBankName,
+                      onChanged: (value) =>
+                          setDialogState(() => requiresBankName = value),
+                      title: const Text('يتطلب اسم بنك'),
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      value: isActive,
+                      onChanged: (value) =>
+                          setDialogState(() => isActive = value),
+                      title: const Text('مفعلة للمستخدمين'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: isSaving ? null : submit,
+                child: Text(isSaving ? 'جارٍ الحفظ...' : 'حفظ'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    codeController.dispose();
+    titleController.dispose();
+    descriptionController.dispose();
+    accountLabelController.dispose();
+    sortOrderController.dispose();
+  }
+
+  Future<void> _deleteWithdrawalMethod(Map<String, dynamic> method) async {
+    final methodId = method['id']?.toString().trim() ?? '';
+    if (methodId.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر الحذف',
+        message: 'تعذر تحديد طريقة السحب المطلوبة.',
+      );
+      return;
+    }
+
+    try {
+      final methods = await _apiService.deleteAdminWithdrawalMethod(methodId);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _withdrawalMethods = methods);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر الحذف',
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -1099,11 +1391,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             title: l.tr('screens_admin_system_settings_screen.024'),
             subtitle: l.tr('screens_admin_system_settings_screen.063'),
             icon: Icons.add_card_rounded,
-            trailing: ShwakelButton(
-              label: l.tr('screens_admin_system_settings_screen.025'),
-              icon: Icons.playlist_add_rounded,
-              onPressed: _showTopupMethodDialog,
-            ),
           ),
           const SizedBox(height: 16),
           _card(
@@ -1126,6 +1413,36 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _buildNumberField(
+                      'الحد الأدنى لطلب الشحن',
+                      _topupMinAmountController,
+                      decimal: true,
+                    ),
+                    _buildNumberField(
+                      'الحد الأعلى لطلب الشحن',
+                      _topupMaxAmountController,
+                      decimal: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('طرق الشحن', style: AppTheme.bodyBold),
+                    ),
+                    ShwakelButton(
+                      label: l.tr('screens_admin_system_settings_screen.025'),
+                      icon: Icons.playlist_add_rounded,
+                      onPressed: _showTopupMethodDialog,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 if (_topupPaymentMethods.isEmpty)
                   Text(
                     l.tr('screens_admin_system_settings_screen.049'),
@@ -1176,6 +1493,138 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          _card(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('إعدادات السحب', style: AppTheme.bodyBold),
+                    ),
+                    ShwakelButton(
+                      label: 'إضافة طريقة سحب',
+                      icon: Icons.playlist_add_rounded,
+                      onPressed: _showWithdrawalMethodDialog,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _withdrawalRequestEnabled,
+                  onChanged: (value) =>
+                      setState(() => _withdrawalRequestEnabled = value),
+                  title: const Text('تفعيل طلبات السحب'),
+                ),
+                TextField(
+                  controller: _withdrawalRequestInstructionsController,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: const InputDecoration(labelText: 'تعليمات السحب'),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _buildNumberField(
+                      'الحد الأدنى لطلب السحب',
+                      _withdrawalMinAmountController,
+                      decimal: true,
+                    ),
+                    _buildNumberField(
+                      'الحد الأعلى لطلب السحب',
+                      _withdrawalMaxAmountController,
+                      decimal: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (_withdrawalMethods.isEmpty)
+                  Text(
+                    'لا توجد طرق سحب مضافة حاليًا.',
+                    style: AppTheme.bodyAction,
+                  )
+                else
+                  ..._withdrawalMethods.map(
+                    (method) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    method['title']?.toString() ?? '-',
+                                    style: AppTheme.bodyBold,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${method['code']} | ${method['accountLabel']}',
+                                    style: AppTheme.bodyAction,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  _showWithdrawalMethodDialog(method: method),
+                              icon: const Icon(Icons.edit_rounded),
+                            ),
+                            IconButton(
+                              onPressed: () => _deleteWithdrawalMethod(method),
+                              icon: const Icon(Icons.delete_outline_rounded),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'الحد الأدنى لعدد البطاقات حسب نوع الحساب',
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'يُطبق هذا الحد في إنشاء البطاقات وطلبات الطباعة.',
+                  style: AppTheme.bodyAction,
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _buildNumberField('عام', _cardQtyDefaultController),
+                    _buildNumberField('مقيد', _cardQtyRestrictedController),
+                    _buildNumberField('مستخدم', _cardQtyBasicController),
+                    _buildNumberField('موثق/تاجر', _cardQtyVerifiedController),
+                    _buildNumberField('سائق', _cardQtyDriverController),
+                    _buildNumberField('مسوق', _cardQtyMarketerController),
+                    _buildNumberField('دعم', _cardQtySupportController),
+                    _buildNumberField('مالية', _cardQtyFinanceController),
+                    _buildNumberField('إدارة', _cardQtyAdminController),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1214,7 +1663,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 _buildNumberField(
                   l.tr('screens_admin_system_settings_screen.080'),
                   _offlineMaxPendingAmountController,
-                  suffixText: '₪',
                   decimal: true,
                 ),
               ],
@@ -1249,13 +1697,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 _buildNumberField(
                   'أعلى قيمة للبطاقة',
                   _prepaidMaxCardAmountController,
-                  suffixText: '₪',
                   decimal: true,
                 ),
                 _buildNumberField(
                   'أعلى مبلغ للدفع الواحد',
                   _prepaidMaxPaymentAmountController,
-                  suffixText: '₪',
                   decimal: true,
                 ),
                 _buildNumberField(
@@ -1269,7 +1715,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 _buildNumberField(
                   'حد المبلغ اليومي',
                   _prepaidDailyAmountLimitController,
-                  suffixText: '₪',
                   decimal: true,
                 ),
                 _buildNumberField(
@@ -1550,7 +1995,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     labelText: context.loc.tr(
                       'screens_admin_system_settings_screen.071',
                     ),
-                    suffixText: '₪',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1563,7 +2007,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     labelText: context.loc.tr(
                       'screens_admin_system_settings_screen.072',
                     ),
-                    suffixText: '₪',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1576,7 +2019,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     labelText: context.loc.tr(
                       'screens_admin_system_settings_screen.073',
                     ),
-                    suffixText: '₪',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1634,35 +2076,30 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   l.tr('screens_admin_system_settings_screen.033'),
                   _cardPrintRequestFeeController,
                 ),
+                _buildFeeField('رسوم السحب', _withdrawFeeController),
                 _buildFeeField(
                   'رسوم بطاقة رصيد عند الاستخدام',
                   _standardCardIssueCostController,
-                  suffixText: '₪',
                 ),
                 _buildFeeField(
                   'رسوم بطاقة توصيل عند الاستخدام',
                   _deliveryCardIssueCostController,
-                  suffixText: '₪',
                 ),
                 _buildFeeField(
                   'رسوم البطاقة الخاصة عند الإنشاء',
                   _privateCardIssueCostController,
-                  suffixText: '₪',
                 ),
                 _buildFeeField(
                   'رسوم إصدار تذكرة دخول',
                   _singleUseTicketIssueCostController,
-                  suffixText: '₪',
                 ),
                 _buildFeeField(
                   'رسوم إصدار تذكرة موعد',
                   _appointmentTicketIssueCostController,
-                  suffixText: '₪',
                 ),
                 _buildFeeField(
                   'رسوم إصدار تذكرة طابور',
                   _queueTicketIssueCostController,
-                  suffixText: '₪',
                 ),
               ],
             ),

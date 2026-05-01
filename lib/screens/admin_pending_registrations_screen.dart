@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/rejection_reason_dialog.dart';
@@ -87,11 +88,64 @@ class _AdminPendingRegistrationsScreenState
     if (requestId.isEmpty) {
       return;
     }
+    String deliveryMethod = 'whatsapp';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(l.tr('screens_admin_pending_registrations_screen.005')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.tr('screens_admin_pending_registrations_screen.033')),
+              const SizedBox(height: 14),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'whatsapp',
+                    icon: Icon(Icons.chat_rounded),
+                    label: Text(l.tr('shared.delivery_whatsapp')),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'sms',
+                    icon: Icon(Icons.sms_rounded),
+                    label: Text(l.tr('shared.delivery_sms')),
+                  ),
+                ],
+                selected: {deliveryMethod},
+                onSelectionChanged: (selection) {
+                  setDialogState(() => deliveryMethod = selection.first);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                l.tr('screens_admin_pending_registrations_screen.010'),
+              ),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(
+                l.tr('screens_admin_pending_registrations_screen.030'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
     setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingRegistrationRequest(
         requestId,
         allowUnverifiedWhatsapp: true,
+        deliveryMethod: deliveryMethod,
       );
       if (!mounted) {
         return;
@@ -278,6 +332,8 @@ class _AdminPendingRegistrationsScreenState
     }
     return _requests.where((request) {
       final haystack = [
+        request['displayName'],
+        request['businessName'],
         request['fullName'],
         request['username'],
         request['whatsapp'],
@@ -432,11 +488,12 @@ class _AdminPendingRegistrationsScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      request['fullName']?.toString().trim().isNotEmpty == true
-                          ? request['fullName'].toString()
-                          : l.tr(
-                              'screens_admin_pending_registrations_screen.019',
-                            ),
+                      UserDisplayName.fromMap(
+                        request,
+                        fallback: l.tr(
+                          'screens_admin_pending_registrations_screen.019',
+                        ),
+                      ),
                       style: AppTheme.h3,
                     ),
                     const SizedBox(height: 4),

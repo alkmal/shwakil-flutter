@@ -9,6 +9,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -44,6 +45,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   Timer? _searchDebounce;
   int _loadRequestId = 0;
   String _lastSubmittedQuery = '';
+
+  String _t(String key, {Map<String, String>? params}) =>
+      context.loc.tr(key, params: params);
 
   @override
   void initState() {
@@ -130,6 +134,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         });
         AppAlertService.showError(
           context,
+          title: _t('screens_topup_requests_screen.036'),
           message: ErrorMessageService.sanitize(error),
         );
       }
@@ -173,8 +178,14 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  l.tr('screens_topup_requests_screen.025'),
+                  l.tr('screens_topup_requests_screen.036'),
                   style: AppTheme.h3,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l.tr('screens_topup_requests_screen.037'),
+                  style: AppTheme.bodyAction,
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -298,9 +309,18 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildOverviewChip('إجمالي المعروض', '$_totalRequests'),
-              _buildOverviewChip('قيد الانتظار', '$pendingCount'),
-              _buildOverviewChip('صفحة', '$_page / $_lastPage'),
+              _buildOverviewChip(
+                context.loc.tr('screens_topup_requests_screen.038'),
+                '$_totalRequests',
+              ),
+              _buildOverviewChip(
+                context.loc.tr('screens_topup_requests_screen.039'),
+                '$pendingCount',
+              ),
+              _buildOverviewChip(
+                context.loc.tr('screens_topup_requests_screen.040'),
+                '$_page / $_lastPage',
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -478,7 +498,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user['fullName'] ?? user['username'] ?? '-',
+                        UserDisplayName.fromMap(user, fallback: '-'),
                         style: AppTheme.bodyBold,
                       ),
                       Text(
@@ -613,6 +633,12 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
           ),
           const SizedBox(height: 16),
           Text(l.tr('screens_topup_requests_screen.019'), style: AppTheme.h3),
+          const SizedBox(height: 8),
+          Text(
+            l.tr('screens_topup_requests_screen.029'),
+            style: AppTheme.bodyAction,
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -661,6 +687,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       if (mounted) {
         AppAlertService.showError(
           context,
+          title: l.tr('screens_topup_requests_screen.041'),
           message: l.tr('screens_topup_requests_screen.029'),
         );
       }
@@ -677,6 +704,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       }
       AppAlertService.showSuccess(
         context,
+        title: l.tr('screens_topup_requests_screen.042'),
         message:
             response['message']?.toString() ??
             l.tr('screens_topup_requests_screen.030'),
@@ -686,6 +714,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       if (mounted) {
         AppAlertService.showError(
           context,
+          title: l.tr('screens_topup_requests_screen.043'),
           message: ErrorMessageService.sanitize(error),
         );
       }
@@ -721,6 +750,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       }
       AppAlertService.showSuccess(
         context,
+        title: l.tr('screens_topup_requests_screen.044'),
         message:
             response['message']?.toString() ??
             l.tr('screens_topup_requests_screen.024'),
@@ -730,6 +760,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       if (mounted) {
         AppAlertService.showError(
           context,
+          title: l.tr('screens_topup_requests_screen.045'),
           message: ErrorMessageService.sanitize(error),
         );
       }

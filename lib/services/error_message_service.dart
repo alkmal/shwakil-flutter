@@ -30,13 +30,20 @@ class ErrorMessageService {
     }
 
     if (lower.contains('401') ||
-        lower.contains('403') ||
         lower.contains('unauthorized') ||
+        lower.contains(
+          _tr('services_error_message_service.008').toLowerCase(),
+        )) {
+      return _tr('services_error_message_service.011');
+    }
+
+    if (lower.contains('403') ||
         lower.contains('forbidden') ||
         lower.contains('not authorized') ||
         lower.contains('not permitted') ||
-        lower.contains(_tr('services_error_message_service.008').toLowerCase()) ||
-        lower.contains(_tr('services_error_message_service.009').toLowerCase())) {
+        lower.contains(
+          _tr('services_error_message_service.009').toLowerCase(),
+        )) {
       return _tr('services_error_message_service.002');
     }
 
@@ -93,6 +100,17 @@ class ErrorMessageService {
     return cleaned;
   }
 
+  static String forUser(Object? error, {bool includeSupportGuidance = false}) {
+    final clean = _normalizeMixedDirection(sanitize(error));
+    if (!includeSupportGuidance || !_shouldAppendSupportGuidance(clean)) {
+      return clean;
+    }
+    final guidance = _normalizeMixedDirection(
+      _tr('services_error_message_service.014'),
+    );
+    return '$clean\n$guidance';
+  }
+
   static String sanitizeRegistration(Object? error) {
     final text = (error?.toString() ?? '').trim();
     if (text.isEmpty) {
@@ -100,6 +118,29 @@ class ErrorMessageService {
     }
 
     return sanitize(text);
+  }
+
+  static bool requiresFreshLogin(Object? error) {
+    final clean = sanitize(error);
+    final lower = (error?.toString() ?? clean).toLowerCase();
+    if (lower.contains('401') ||
+        lower.contains('403') ||
+        lower.contains('unauthorized') ||
+        lower.contains('forbidden') ||
+        lower.contains('not authorized') ||
+        lower.contains('not permitted') ||
+        lower.contains('session version') ||
+        lower.contains('bearer ') ||
+        lower.contains('jwt') ||
+        lower.contains('token')) {
+      return true;
+    }
+
+    return _matchesAnyMessage(clean, [
+      'services_error_message_service.002',
+      'services_error_message_service.010',
+      'services_error_message_service.011',
+    ]);
   }
 
   static String fromResponseBody(String body) {
@@ -114,6 +155,36 @@ class ErrorMessageService {
     } catch (_) {}
 
     return sanitize(body);
+  }
+
+  static bool _shouldAppendSupportGuidance(String message) {
+    final clean = message.trim();
+    if (clean.isEmpty ||
+        clean.contains(_tr('services_error_message_service.014')) ||
+        clean.contains(
+          appStringsAr['services_error_message_service.014'] ?? '',
+        ) ||
+        clean.contains(
+          appStringsEn['services_error_message_service.014'] ?? '',
+        )) {
+      return false;
+    }
+
+    return true;
+  }
+
+  static String _normalizeMixedDirection(String text) {
+    final locale = AppLocaleService.instance.locale;
+    if ((locale?.languageCode ?? 'ar') != 'ar') {
+      return text;
+    }
+
+    const isolateStart = '\u2068';
+    const isolateEnd = '\u2069';
+    return text.replaceAllMapped(
+      RegExp(r'([A-Za-z][A-Za-z0-9._@:/+\-]*|\d+(?:[.,]\d+)*)'),
+      (match) => '$isolateStart${match.group(0)}$isolateEnd',
+    );
   }
 
   static String fromRegistrationResponseBody(String body) {
@@ -136,5 +207,21 @@ class ErrorMessageService {
       return appStringsEn[key] ?? key;
     }
     return appStringsAr[key] ?? appStringsEn[key] ?? key;
+  }
+
+  static bool _matchesAnyMessage(String message, List<String> keys) {
+    for (final key in keys) {
+      final current = _tr(key);
+      final arabic = appStringsAr[key];
+      final english = appStringsEn[key];
+      for (final candidate in [current, arabic, english]) {
+        if (candidate != null &&
+            candidate.isNotEmpty &&
+            message.contains(candidate)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

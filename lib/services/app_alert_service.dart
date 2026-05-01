@@ -261,8 +261,11 @@ class AppAlertService {
     Map<String, dynamic>? extraContext,
   }) async {
     final style = _styleFor(type);
-    final cleanTitle = ErrorMessageService.sanitize(title);
-    final cleanMessage = ErrorMessageService.sanitize(message);
+    final cleanTitle = ErrorMessageService.forUser(title);
+    final cleanMessage = ErrorMessageService.forUser(
+      message,
+      includeSupportGuidance: type == AppAlertType.error,
+    );
     if (type == AppAlertType.error) {
       unawaited(
         _reportVisibleError(
@@ -277,6 +280,9 @@ class AppAlertService {
     final returnToHomeOnAcknowledge =
         type == AppAlertType.error &&
         _shouldReturnHomeOnAcknowledge(cleanMessage);
+    final restartLoginOnAcknowledge =
+        type == AppAlertType.error &&
+        ErrorMessageService.requiresFreshLogin(cleanMessage);
     final canRelogin =
         type == AppAlertType.error && _shouldOfferRelogin(cleanMessage);
 
@@ -326,14 +332,19 @@ class AppAlertService {
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                cleanMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.7,
-                  color: Color(0xFF334155),
-                  fontWeight: FontWeight.w600,
+              Directionality(
+                textDirection: context.loc.isArabic
+                    ? TextDirection.rtl
+                    : TextDirection.ltr,
+                child: Text(
+                  cleanMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.7,
+                    color: Color(0xFF334155),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const SizedBox(height: 22),
@@ -396,6 +407,10 @@ class AppAlertService {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
+                    if (restartLoginOnAcknowledge) {
+                      unawaited(_restartLoginFlow());
+                      return;
+                    }
                     if (returnToHomeOnAcknowledge) {
                       final navigator = navigatorKey.currentState;
                       if (navigator != null) {
@@ -506,8 +521,7 @@ class AppAlertService {
   }
 
   static bool _shouldOfferRelogin(String message) {
-    return _messageContainsAny(message, 'services_error_message_service.010') ||
-        _messageContainsAny(message, 'services_error_message_service.011');
+    return ErrorMessageService.requiresFreshLogin(message);
   }
 
   static String? _currentRouteName(BuildContext context) {

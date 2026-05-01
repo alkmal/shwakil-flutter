@@ -5,6 +5,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -1361,9 +1362,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         return;
       }
     }
-    final issuerName = user?['fullName']?.toString().trim().isNotEmpty == true
-        ? user!['fullName'].toString().trim()
-        : (user?['username']?.toString() ?? 'Shwakel');
+    final issuerName = UserDisplayName.fromMap(user, fallback: 'Shwakel');
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(

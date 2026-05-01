@@ -19,7 +19,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.017': 'حساب غير موثق',
   'screens_account_settings_screen.018': 'لا يوجد رقم هاتف',
   'screens_account_settings_screen.019': 'المعلومات الأساسية',
-  'screens_account_settings_screen.020': 'الاسم الكامل',
+  'screens_account_settings_screen.020': 'الاسم الشخصي الكامل',
   'screens_account_settings_screen.021': 'اسم المستخدم',
   'screens_account_settings_screen.022': 'رقم الهاتف',
   'screens_account_settings_screen.023': 'البريد الإلكتروني',
@@ -78,7 +78,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_verification_screen.014': 'تم الاختيار',
   'screens_account_verification_screen.015': 'اختر ملفًا',
   'screens_account_verification_screen.016':
-      'أرفق المستندات المطلوبة وأدخل رقم الهوية وتاريخ الميلاد قبل إرسال طلب التوثيق.',
+      'أدخل اسمك الشخصي الرباعي وأرفق المستندات المطلوبة ورقم الهوية وتاريخ الميلاد قبل إرسال طلب التوثيق.',
   'screens_account_verification_screen.017':
       'تم إرسال طلب التوثيق بنجاح. سيتم مراجعته قريبًا.',
   'screens_account_verification_screen.018':
@@ -98,10 +98,18 @@ const Map<String, String> appStringsAr = {
       'يرجى إدخال تاريخ الميلاد بصيغة صحيحة.',
   'screens_account_verification_screen.027':
       'يمكنك اختيار صور كبيرة نسبيًا، وسيقوم التطبيق بتهيئتها وضغطها تلقائيًا لتسهيل الإرسال وتسريع المراجعة.',
+  'screens_account_verification_screen.028':
+      'هذه البيانات ضرورية لحفظ حقوقك وتأمين أموالك عند حدوث نزاع أو مشكلة مالية. لا يمكن معالجة أي خلل أو نزاع مالي للحسابات غير الموثقة إلا بعد إكمال التوثيق ومطابقة بيانات الهوية.',
   'screens_account_verification_screen.029':
       'تعذر قراءة الصورة المختارة. اختر صورة واضحة بصيغة JPG أو PNG أو WEBP.',
   'screens_account_verification_screen.030':
-      'حجم الملف كبير جدًا. اختر صورة أقل من 15 ميجابايت أو التقط صورة أوضح ثم أعد المحاولة.',
+      'حجم الملف كبير جدًا. اختر صورة أقل من 25 ميجابايت أو التقط صورة أوضح ثم أعد المحاولة.',
+  'screens_account_verification_screen.031':
+      'أدخل اسمك الشخصي الرباعي كما هو مكتوب في الهوية.',
+  'screens_account_verification_screen.032': 'إدخال الاسم الشخصي الرباعي',
+  'screens_account_verification_screen.033': 'الاسم الشخصي الرباعي',
+  'screens_account_verification_screen.034':
+      'اكتب الاسم الشخصي لا اسم النشاط، كما يظهر في الهوية الرسمية.',
   'screens_admin_card_print_requests_screen.001': 'طلبات طباعة البطاقات',
   'screens_admin_card_print_requests_screen.002': 'متابعة الطلبات',
   'screens_admin_card_print_requests_screen.003': 'الحالة',
@@ -136,7 +144,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.004': 'فشل الإنشاء',
   'screens_admin_customers_screen.005': 'إضافة مستخدم جديد',
   'screens_admin_customers_screen.006': 'اسم المستخدم',
-  'screens_admin_customers_screen.007': 'الاسم الكامل',
+  'screens_admin_customers_screen.007': 'الاسم الشخصي الكامل',
   'screens_admin_customers_screen.008': 'رمز الدولة',
   'screens_admin_customers_screen.009': 'رقم الهاتف',
   'screens_admin_customers_screen.010': 'إلغاء',
@@ -156,12 +164,12 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.024': 'اسم المستخدم ورقم الهاتف مطلوبان.',
   'screens_admin_customers_screen.025': 'تم إنشاء المستخدم بنجاح.',
   'screens_admin_customers_screen.026':
-      'سيتم إنشاء كلمة مرور مؤقتة وإرسالها تلقائيًا عبر SMS إلى الرقم المدخل.',
+      'سيتم إنشاء كلمة مرور مؤقتة وإرسالها إلى الرقم المدخل حسب طريقة الإرسال التي تختارها.',
   'screens_admin_customers_screen.047':
       'اسم المستخدم يجب أن يكون بين 3 و32 حرفًا وبالأحرف الإنجليزية والأرقام والرموز . _ @ + - فقط.',
   'screens_admin_customers_screen.027': 'تعذر تحديد حساب المستخدم.',
   'screens_admin_customers_screen.028':
-      'سيتم إرسال كلمة مرور جديدة وبيانات الحساب عبر SMS إلى الرقم المرتبط.',
+      'سيتم إرسال كلمة مرور جديدة وبيانات الحساب إلى الرقم المرتبط حسب طريقة الإرسال التي تختارها.',
   'screens_admin_customers_screen.029':
       'ابحث عن العملاء، أضف مستخدمين جددًا، وافتح ملف كل عميل بشكل مستقل.',
   'screens_admin_customers_screen.030': '{count} عميل',
@@ -186,7 +194,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customer_screen.016': 'نشط',
   'screens_admin_customer_screen.017': 'بيانات التواصل',
   'screens_admin_customer_screen.018': 'اسم المستخدم',
-  'screens_admin_customer_screen.019': 'الاسم الكامل',
+  'screens_admin_customer_screen.019': 'الاسم الشخصي الكامل',
   'screens_admin_customer_screen.020': 'رقم الهاتف',
   'screens_admin_customer_screen.021': 'تاريخ الانضمام',
   'screens_admin_customer_screen.022': 'مستخدم',
@@ -234,11 +242,11 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customer_screen.064': 'جهاز غير معروف',
   'screens_admin_customer_screen.065': 'تم تحديث بيانات العميل بنجاح.',
   'screens_admin_customer_screen.066':
-      'سيتم إنشاء كلمة مرور جديدة ثم إرسال بيانات الدخول عبر SMS إلى الرقم المرتبط بالحساب. هل تريد المتابعة؟',
+      'سيتم إنشاء كلمة مرور جديدة ثم إرسال بيانات الدخول إلى الرقم المرتبط بالحساب حسب طريقة الإرسال التي تختارها. هل تريد المتابعة؟',
   'screens_admin_customer_screen.067':
-      'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم عبر SMS.',
+      'تم إنشاء كلمة مرور جديدة وإرسال بيانات المستخدم.',
   'screens_admin_customer_screen.068':
-      'إعادة إرسال بيانات المستخدم عبر SMS ستؤدي تلقائيًا إلى إنشاء كلمة مرور جديدة قبل الإرسال.',
+      'إعادة إرسال بيانات المستخدم ستؤدي تلقائيًا إلى إنشاء كلمة مرور جديدة قبل الإرسال.',
   'screens_admin_customer_screen.069':
       'راجع الحركات المالية والنشاط المرتبط بهذا العميل.',
   'screens_admin_customer_screen.070': 'لا توجد أجهزة مرتبطة بهذا الحساب.',
@@ -288,7 +296,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_permissions_screen.017': 'عرض إعدادات الحساب',
   'screens_admin_permissions_screen.018': 'السماح بطلبات التوثيق',
   'screens_admin_permissions_screen.019': 'إصدار البطاقات',
-  'screens_admin_permissions_screen.020': 'إصدار بطاقات كسر الشيكل',
+  'screens_admin_permissions_screen.020': 'إصدار بطاقات منخفضة القيمة',
   'screens_admin_permissions_screen.021': 'إصدار بطاقات عالية القيمة',
   'screens_admin_permissions_screen.022': 'إصدار بطاقات خاصة',
   'screens_admin_permissions_screen.023': 'حذف البطاقات',
@@ -545,7 +553,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.008': 'تعذر بدء التسجيل',
   'screens_register_screen.009': 'إنشاء حساب جديد',
   'screens_register_screen.010': 'المعلومات الأساسية',
-  'screens_register_screen.011': 'الاسم الكامل',
+  'screens_register_screen.011': 'اسم النشاط أو الاسم الشخصي',
   'screens_register_screen.012': 'اسم المستخدم بالإنجليزية',
   'screens_register_screen.013': 'رقم الهوية',
   'screens_register_screen.014': 'تاريخ الميلاد',
@@ -1286,8 +1294,7 @@ const Map<String, String> appStringsAr = {
       'سيتم استخدام شعار الحساب المرفوع عند التفعيل',
   'screens_create_card_screen.050': 'سيتم استخدام شعار التطبيق الافتراضي',
   'screens_create_card_screen.051': 'استخدام شعار الحساب',
-  'screens_create_card_screen.052':
-      'يمكنك تغيير الشعار من إعدادات الحساب عند الحاجة',
+  'screens_create_card_screen.052': 'يمكن للإدارة تغيير شعار الحساب عند الحاجة',
   'screens_create_card_screen.053': 'إظهار الختم',
   'screens_create_card_screen.054':
       'يُعرض بأسلوب أخف وأصغر للحفاظ على توازن التصميم',
@@ -1353,7 +1360,7 @@ const Map<String, String> appStringsAr = {
   'screens_quick_transfer_screen.024': 'تعذر العثور على المستخدم',
   'screens_quick_transfer_screen.025': 'تعذر تحديد حساب المستلم.',
   'screens_quick_transfer_screen.026': 'تم إرسال الرصيد إلى المستلم بنجاح.',
-  'screens_quick_transfer_screen.027': 'المبلغ المراد تحويله (شيكل)',
+  'screens_quick_transfer_screen.027': 'المبلغ المراد تحويله',
   'screens_quick_transfer_screen.028': 'لا تملك صلاحية استخدام التحويل السريع.',
   'screens_quick_transfer_screen.029': 'إرسال رصيد عبر رقم الهاتف',
   'screens_quick_transfer_screen.030':
@@ -1451,7 +1458,8 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.070': 'جارٍ الإرسال...',
   'screens_balance_screen.071': 'إرسال الطلب',
   'screens_balance_screen.072': 'تعذر تحميل خيارات الطلب',
-  'screens_balance_screen.073': 'أدخل اسم المستخدم أو الاسم الكامل للبحث.',
+  'screens_balance_screen.073':
+      'أدخل اسم المستخدم أو اسم النشاط أو الاسم الشخصي للبحث.',
   'screens_balance_screen.074': 'لم يتم العثور على مستخدمين مطابقين.',
   'screens_balance_screen.075': 'أدخل رقم الهاتف للبحث عن الحساب.',
   'screens_balance_screen.076': 'تم العثور على الحساب وتحديده بنجاح.',
@@ -1459,7 +1467,7 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.078':
       'ابحث باسم المستخدم، أو اعثر على الحساب مباشرة عبر رقم الهاتف.',
   'screens_balance_screen.079': 'ابحث عن المستخدم باسم المستخدم.',
-  'screens_balance_screen.080': 'اسم المستخدم أو الاسم الكامل',
+  'screens_balance_screen.080': 'اسم المستخدم أو اسم النشاط أو الاسم الشخصي',
   'screens_balance_screen.081': 'جارٍ البحث...',
   'screens_balance_screen.082': 'بحث',
   'screens_balance_screen.083': 'البحث عن الحساب برقم الهاتف',
@@ -1675,7 +1683,7 @@ const Map<String, String> appStringsAr = {
   'screens_home_screen.064': 'جاري مزامنة الأوفلاين',
   'screens_home_screen.065': 'مزامنة الأوفلاين',
   'screens_home_screen.066':
-      'لديك {count} بطاقة معلقة بقيمة {amount} شيكل، وسيتم تحديث المخزون المحلي أيضًا.',
+      'لديك {count} بطاقة معلقة بقيمة {amount}، وسيتم تحديث المخزون المحلي أيضًا.',
   'screens_home_screen.067':
       'تحديث البطاقات المحلية وتنزيل أي بطاقات جديدة متاحة لهذا الجهاز.',
   'screens_home_screen.068': 'مركز الأوفلاين',
@@ -1909,9 +1917,10 @@ const Map<String, String> appStringsAr = {
   'widgets_app_sidebar.038': 'مركز الأوفلاين',
   'widgets_app_sidebar.039': 'المستخدمون التابعون',
   'widgets_app_sidebar.040': 'دفتر الديون',
-  'services_error_message_service.001': 'حدث خطأ غير متوقع. حاول مرة أخرى.',
+  'services_error_message_service.001':
+      'حدث أمر غير متوقع. أعد المحاولة، وإذا تكرر الخطأ أغلق الشاشة وافتحها من جديد.',
   'services_error_message_service.002':
-      'يرجى تسجيل الدخول بحساب يملك الصلاحية المطلوبة للمتابعة.',
+      'لا تملك الصلاحية المطلوبة لهذه العملية أو تغيّرت صلاحيات الحساب. سيتم توجيهك لتسجيل الدخول بحساب مخوّل، ثم حاول تنفيذ الخطوة مرة أخرى.',
   'services_error_message_service.003':
       'تعذر الاتصال بالخادم في الوقت الحالي. تحقق من الإنترنت أو أعد المحاولة بعد قليل.',
   'services_error_message_service.004':
@@ -1919,19 +1928,21 @@ const Map<String, String> appStringsAr = {
   'services_error_message_service.005':
       'تعذر الاتصال الفوري بالخادم حالياً. يمكنك المتابعة وإعادة المحاولة بعد قليل.',
   'services_error_message_service.006':
-      'تأكد من جميع البيانات المدخلة ثم حاول مرة أخرى.',
+      'لم نتمكن من فهم رد الخادم. تأكد من البيانات، حدّث الصفحة أو الشاشة، ثم حاول مرة أخرى.',
   'services_error_message_service.007':
-      'حدث خطأ أثناء تنفيذ الطلب. حاول مرة أخرى أو تواصل مع الدعم إذا استمرت المشكلة.',
+      'حدث خطأ أثناء تنفيذ الطلب. راجع البيانات المطلوبة في الشاشة، ثم حاول مرة أخرى. إذا تكرر الخطأ تواصل مع الدعم مع توضيح الخطوة التي كنت تنفذها.',
   'services_error_message_service.008': 'غير مصرح',
   'services_error_message_service.009': 'غير مخول',
   'services_error_message_service.010':
       'هذا الجهاز غير معتمد لهذا الحساب. جرّب تسجيل الدخول من الجهاز المعتمد أو راجع الإدارة لاعتماد هذا الجهاز.',
   'services_error_message_service.011':
-      'انتهت الجلسة أو لم يعد تسجيل الدخول صالحًا على هذا الجهاز. أعد تسجيل الدخول ثم جرّب فحص البطاقة مرة أخرى.',
+      'انتهت الجلسة أو لم يعد تسجيل الدخول صالحًا على هذا الجهاز. سيتم توجيهك لتسجيل الدخول من جديد، ثم يمكنك تكرار العملية بأمان.',
   'services_error_message_service.012':
       'التسجيل متوقف حاليا\nتواصل معنا لمزيد من التفاصيل',
   'services_error_message_service.013':
       'بيانات الأوفلاين المحفوظة على هذا الجهاز تحتاج تحديثًا جديدًا. اتصل بالإنترنت ثم حدّث الأوفلاين مرة أخرى.',
+  'services_error_message_service.014':
+      'إذا لم تكن الرسالة واضحة أو استمرت المشكلة، تواصل مع الإدارة واذكر الخطوة التي كنت تنفذها.',
   'services_local_notification_service.001': 'تحديثات الحساب',
   'services_local_notification_service.002':
       'إشعارات الحساب والطلبات والتنبيهات المهمة',
@@ -2138,7 +2149,7 @@ const Map<String, String> appStringsAr = {
       'حدد ما يستطيع التابع الوصول إليه داخل التطبيق.',
   'screens_sub_users_screen.123': '{count} مفعّل',
   'screens_sub_users_screen.124':
-      'الافتراضي للتابع: اعتماد البطاقة حتى 50 شيكل وطباعة بدين 5 شيكل وسقف 50 شيكل. عند تفعيل الإرسال السريع يرتفع التشغيل إلى اعتماد حتى 200 شيكل وطباعة بدين 50 شيكل وسقف 200 شيكل.',
+      'الافتراضي للتابع: اعتماد البطاقة حتى 50 وطباعة بدين 5 وسقف 50. عند تفعيل الإرسال السريع يرتفع التشغيل إلى اعتماد حتى 200 وطباعة بدين 50 وسقف 200.',
   'screens_sub_users_screen.125': 'تعديل',
   'screens_sub_users_screen.126':
       'هذه الشاشة في وضع العرض فقط. يمكنك مراجعة الحسابات التابعة دون إنشاء أو تعديل أو تحويل أرصدة.',
@@ -2224,6 +2235,10 @@ const Map<String, String> appStringsAr = {
   'widgets_app_sidebar.043': 'إرسال الإشعارات',
   'widgets_app_sidebar.044': 'الإشعارات',
   'widgets_app_sidebar.045': 'طلبات البطاقات المسبقة',
+  'widgets_app_sidebar.046': 'المحفظة والتحويلات',
+  'widgets_app_sidebar.047': 'إنشاء بطاقة',
+  'widgets_app_sidebar.048': 'المخزون',
+  'widgets_app_sidebar.049': 'بطاقات الدفع المسبق',
   'screens_admin_notifications_screen.001': 'تعذر تحميل الإشعارات',
   'screens_admin_notifications_screen.002': 'إرسال الإشعارات',
   'screens_admin_notifications_screen.003': 'إشعار جديد',
@@ -2294,6 +2309,15 @@ const Map<String, String> appStringsAr = {
   'screens_home_screen.097': 'البطاقة الترحيبية مخفية',
   'screens_home_screen.098': 'يمكنك إظهارها مرة أخرى في أي وقت من هنا.',
   'screens_home_screen.099': 'إظهار الرصيد',
+  'screens_home_screen.100': 'البطاقات المتاحة أوفلاين',
+  'screens_home_screen.101': '{available} من {cached}',
+  'screens_home_screen.102': 'بطاقات تنتظر الرفع',
+  'screens_home_screen.103': 'عمليات تحتاج مراجعة',
+  'screens_home_screen.104': 'مدة صلاحية الأوفلاين',
+  'screens_home_screen.105': '{minutes} دقيقة',
+  'screens_home_screen.106':
+      'انتهت مدة الأوفلاين. اتصل بالإنترنت ثم حدّث المزامنة قبل متابعة الفحص.',
+  'screens_home_screen.107': 'تحديث الآن',
   'screens_balance_screen.111': 'الإجراءات السريعة',
   'screens_balance_screen.112': 'آخر الحركات',
   'screens_balance_screen.113': 'آخر الحركات',
@@ -2325,6 +2349,20 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.134': 'المستلم',
   'screens_balance_screen.135':
       'اختر المستلم من تبويب البحث أو الهاتف ليظهر هنا.',
+  'screens_balance_screen.136': 'رسوم التطبيق {percent}%',
+  'screens_balance_screen.137': 'بدون رسوم إضافية',
+  'screens_balance_screen.138': 'الحد الأدنى {amount}',
+  'screens_balance_screen.139': 'الحد الأعلى {amount}',
+  'screens_balance_screen.140': 'لا توجد طرق سحب متاحة حاليًا.',
+  'screens_balance_screen.141': 'ملخص العملية',
+  'screens_balance_screen.142': 'المبلغ المطلوب: {amount}',
+  'screens_balance_screen.143': 'رسوم التطبيق: {amount}',
+  'screens_balance_screen.144': 'إجمالي الخصم من الرصيد: {amount}',
+  'screens_balance_screen.145': 'الحد الأدنى لطلب الشحن هو {amount}.',
+  'screens_balance_screen.146': 'الحد الأعلى لطلب الشحن هو {amount}.',
+  'screens_balance_screen.147': 'الحد الأدنى لطلب السحب هو {amount}.',
+  'screens_balance_screen.148': 'الحد الأعلى لطلب السحب هو {amount}.',
+  'screens_balance_screen.149': 'لا توجد طريقة سحب متاحة الآن.',
   'screens_security_settings_screen.072': 'فعّل القفل المحلي لحماية حسابك',
   'screens_security_settings_screen.073':
       'يجب تفعيل رقم PIN أو البصمة أو كليهما قبل استخدام باقي ميزات التطبيق والعمليات الحساسة.',
@@ -2459,6 +2497,8 @@ const Map<String, String> appStringsAr = {
   'screens_transactions_screen.059': 'الإجمالي الداخل',
   'screens_transactions_screen.060': 'الإجمالي الخارج',
   'screens_transactions_screen.061': 'الصافي',
+  'screens_transactions_screen.062':
+      'عرض الحركات المالية غير مفعّل لهذا الحساب حاليًا.',
   'screens_supported_locations_screen.015': 'بيانات ناقصة',
   'screens_supported_locations_screen.016': 'اسم المركز والعنوان مطلوبان.',
   'screens_supported_locations_screen.017': 'تم إرسال الطلب',
@@ -2512,6 +2552,11 @@ const Map<String, String> appStringsAr = {
   'shared.role_driver': 'سائق',
   'shared.role_verified_member': 'تاجر',
   'shared.role_advanced_member': 'تاجر',
+  'shared.password_delivery_method': 'طريقة إرسال كلمة المرور',
+  'shared.delivery_whatsapp': 'واتساب',
+  'shared.delivery_sms': 'رسالة نصية',
+  'screens_admin_pending_registrations_screen.033':
+      'اختر طريقة إرسال كلمة المرور للمستخدم بعد الاعتماد.',
   'screens_balance_screen.108': 'بيانات الشحن',
   'screens_balance_screen.109': 'جهة السحب',
   'screens_balance_screen.110': 'تفاصيل المبلغ',
@@ -2541,4 +2586,56 @@ const Map<String, String> appStringsAr = {
       'سيُفعّل الحساب كسائق مع مزامنة بطاقات التوصيل فقط في الأوف لاين.',
   'account_verification.verified_member_note':
       'سيُفعّل الحساب كتاجر بعد مراجعة طلب التوثيق.',
+  'screens_quick_transfer_screen.049': 'مبلغ غير صالح',
+  'screens_quick_transfer_screen.050':
+      'أدخل مبلغًا صحيحًا أكبر من صفر قبل تنفيذ التحويل.',
+  'screens_quick_transfer_screen.051': 'تعذر تنفيذ التحويل',
+  'screens_quick_transfer_screen.052':
+      'أدخل المبلغ الذي تريد تحويله إلى هذا المستخدم.',
+  'screens_quick_transfer_screen.053':
+      'هذه الخدمة غير مفعّلة لهذا الحساب حاليًا. إذا كنت تحتاجها، تواصل مع الإدارة لتفعيل الصلاحية المناسبة.',
+  'screens_topup_requests_screen.036': 'الوصول غير متاح',
+  'screens_topup_requests_screen.037':
+      'هذه الشاشة متاحة للحسابات التي تراجع طلبات الشحن فقط.',
+  'screens_topup_requests_screen.038': 'إجمالي الطلبات',
+  'screens_topup_requests_screen.039': 'قيد الانتظار',
+  'screens_topup_requests_screen.040': 'الصفحة',
+  'screens_topup_requests_screen.041': 'صورة الإثبات مطلوبة',
+  'screens_topup_requests_screen.042': 'تم اعتماد الطلب',
+  'screens_topup_requests_screen.043': 'تعذر اعتماد الطلب',
+  'screens_topup_requests_screen.044': 'تم رفض الطلب',
+  'screens_topup_requests_screen.045': 'تعذر رفض الطلب',
+  'screens_withdrawal_requests_screen.033': 'الوصول غير متاح',
+  'screens_withdrawal_requests_screen.034':
+      'هذه الشاشة متاحة للحسابات التي تراجع طلبات السحب فقط.',
+  'screens_withdrawal_requests_screen.035': 'إجمالي الطلبات',
+  'screens_withdrawal_requests_screen.036': 'قيد الانتظار',
+  'screens_withdrawal_requests_screen.037': 'الصفحة',
+  'screens_withdrawal_requests_screen.038': 'صورة الإثبات مطلوبة',
+  'screens_withdrawal_requests_screen.039': 'تم اعتماد الطلب',
+  'screens_withdrawal_requests_screen.040': 'تعذر اعتماد الطلب',
+  'screens_withdrawal_requests_screen.041': 'تم رفض الطلب',
+  'screens_withdrawal_requests_screen.042': 'تعذر رفض الطلب',
+  'screens_scan_card_screen.123': 'رمز تحويل مؤقت',
+  'screens_scan_card_screen.124':
+      'تم العثور على رمز تحويل صالح. راجع التفاصيل ثم أكد الاستلام قبل انتهاء المدة.',
+  'screens_scan_card_screen.125': 'المبلغ',
+  'screens_scan_card_screen.126': 'صافي الاستلام',
+  'screens_scan_card_screen.127': 'من الحساب',
+  'screens_scan_card_screen.128': 'مستخدم',
+  'screens_scan_card_screen.129': 'ينتهي عند',
+  'screens_scan_card_screen.130': 'استلام الآن',
+  'screens_scan_card_screen.131': 'تم الاستلام بنجاح',
+  'screens_scan_card_screen.132':
+      'تم نقل المبلغ إلى حسابك بنجاح عبر الرمز المؤقت.',
+  'screens_scan_card_screen.133': 'المضاف إلى حسابك',
+  'screens_scan_card_screen.134': 'تم اعتماد الدفع بنجاح',
+  'screens_scan_card_screen.135': 'تم تنفيذ العملية بنجاح.',
+  'screens_scan_card_screen.136':
+      'تم اعتماد دفع بقيمة {amount}، والمتبقي في البطاقة {remaining}.',
+  'screens_scan_card_screen.137': 'تعذر تنفيذ السحب',
+  'screens_scan_card_screen.138': 'العد التنازلي: {countdown}',
+  'screens_scan_card_screen.139': 'ينتهي عند {time}',
+  'screens_scan_card_screen.140': 'الرسوم {amount}',
+  'screens_scan_card_screen.141': 'الصافي {amount}',
 };

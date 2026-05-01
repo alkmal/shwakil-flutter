@@ -1,8 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_enums.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_section_header.dart';
@@ -33,6 +38,15 @@ class AdminCustomerScreen extends StatefulWidget {
 
 class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   final _api = ApiService();
+  final _businessNameController = TextEditingController();
+  final _fullNameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _nationalIdController = TextEditingController();
+  final _birthDateController = TextEditingController();
+  final _referralPhoneController = TextEditingController();
   final _maxDevicesController = TextEditingController();
   final _printingDebtLimitController = TextEditingController();
   final _topupFeeController = TextEditingController();
@@ -48,17 +62,88 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   List<Map<String, dynamic>> _devices = const [];
   Map<String, dynamic>? _verificationRequest;
   Map<String, String> _verificationImageHeaders = const {};
+
+  String get _customerDisplayName => UserDisplayName.fromMap(
+    _customer,
+    fallback: _customer['username']?.toString() ?? '-',
+  );
   bool _firstLoad = true;
   bool _busy = false;
   String _role = 'restricted';
   String _verification = 'unverified';
   int _txPage = 1;
   static const _perPage = 10;
+  static const List<Map<String, String>> _permissionGroups = [
+    {
+      'title': 'صلاحيات الحساب والعرض',
+      'keys':
+          'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canTransfer,canWithdraw',
+    },
+    {
+      'title': 'البطاقات والتحصيل',
+      'keys':
+          'canIssueCards,canScanCards,canOfflineCardScan,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canIssueSingleUseTickets,canIssueAppointmentTickets,canIssueQueueTickets,canViewPrivateCards,canReadOwnPrivateCardsOnly,canDeleteCards,canResellCards,canRequestCardPrinting,canManageCardPrintRequests',
+    },
+    {
+      'title': 'الدفع المسبق و NFC',
+      'keys':
+          'canUsePrepaidMultipayCards,canAcceptPrepaidMultipayPayments,canUsePrepaidMultipayNfc',
+    },
+    {
+      'title': 'الإدارة والمراجعات',
+      'keys':
+          'canViewCustomers,canLookupMembers,canManageUsers,canFinanceTopup,canManageMarketingAccounts,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canExportCustomerTransactions,canViewAffiliateCenter,canManageDebtBook',
+    },
+  ];
+  static const Map<String, String> _permissionLabels = {
+    'canViewBalance': 'عرض الرصيد',
+    'canViewTransactions': 'عرض الحركات المالية',
+    'canViewInventory': 'عرض المخزون',
+    'canViewQuickTransfer': 'إظهار خدمة التحويل السريع',
+    'canTransfer': 'تحويل الرصيد',
+    'canWithdraw': 'طلب السحب',
+    'canIssueCards': 'إصدار البطاقات',
+    'canScanCards': 'قراءة البطاقات',
+    'canOfflineCardScan': 'قراءة البطاقات أوفلاين',
+    'canIssueSubShekelCards': 'إصدار بطاقات منخفضة القيمة',
+    'canIssueHighValueCards': 'إصدار بطاقات عالية القيمة',
+    'canIssuePrivateCards': 'إصدار بطاقات خاصة',
+    'canIssueSingleUseTickets': 'إنشاء تذاكر دخول لمرة واحدة',
+    'canIssueAppointmentTickets': 'إنشاء تذاكر مواعيد',
+    'canIssueQueueTickets': 'إنشاء تذاكر طوابير',
+    'canViewPrivateCards': 'عرض البطاقات الخاصة',
+    'canReadOwnPrivateCardsOnly': 'قراءة بطاقاته الخاصة فقط',
+    'canDeleteCards': 'حذف البطاقات',
+    'canResellCards': 'إعادة بيع البطاقات',
+    'canRequestCardPrinting': 'طلب طباعة البطاقات',
+    'canManageCardPrintRequests': 'إدارة طلبات طباعة البطاقات',
+    'canUsePrepaidMultipayCards': 'استخدام بطاقات الدفع المسبق',
+    'canAcceptPrepaidMultipayPayments': 'قبول دفع البطاقات المسبقة',
+    'canUsePrepaidMultipayNfc': 'استخدام NFC للبطاقات المسبقة',
+    'canViewCustomers': 'عرض المستخدمين',
+    'canLookupMembers': 'البحث عن الأعضاء',
+    'canManageUsers': 'إدارة المستخدمين',
+    'canFinanceTopup': 'شحن أرصدة المستخدمين من حساب المالية',
+    'canManageMarketingAccounts': 'إدارة حسابات التسويق',
+    'canManageSubUsers': 'إدارة المستخدمين الفرعيين',
+    'canManageLocations': 'إدارة الفروع والمواقع',
+    'canManageSystemSettings': 'إدارة إعدادات النظام',
+    'canReviewWithdrawals': 'مراجعة طلبات السحب',
+    'canReviewTopups': 'مراجعة عمليات الشحن',
+    'canReviewDevices': 'مراجعة الأجهزة',
+    'canExportCustomerTransactions': 'تصدير حركات المستخدمين',
+    'canViewAffiliateCenter': 'عرض مركز التسويق',
+    'canManageDebtBook': 'إدارة دفتر الديون',
+  };
   AdminTransactionAuditFilter _auditFilter = AdminTransactionAuditFilter.all;
   bool _showTransactionFilters = false;
   bool _cardScanLimitExempt = false;
   bool _resetCardScanCounter = false;
   bool _cardAutoRedeemOnScanForced = false;
+  Uint8List? _printLogoPreview;
+  String? _printLogoFileName;
+  String? _printLogoBase64;
+  bool _removePrintLogo = false;
 
   bool get _canManageAccountControls =>
       widget.canManageUsers || widget.canManageMarketingAccounts;
@@ -81,6 +166,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
 
   @override
   void dispose() {
+    _businessNameController.dispose();
+    _fullNameController.dispose();
+    _usernameController.dispose();
+    _whatsappController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _nationalIdController.dispose();
+    _birthDateController.dispose();
+    _referralPhoneController.dispose();
     _maxDevicesController.dispose();
     _printingDebtLimitController.dispose();
     _topupFeeController.dispose();
@@ -96,6 +190,16 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   String _t(String key) => context.loc.tr(key);
 
   void _syncFields() {
+    _businessNameController.text = _customer['businessName']?.toString() ?? '';
+    _fullNameController.text = _customer['fullName']?.toString() ?? '';
+    _usernameController.text = _customer['username']?.toString() ?? '';
+    _whatsappController.text = _customer['whatsapp']?.toString() ?? '';
+    _emailController.text = _customer['email']?.toString() ?? '';
+    _addressController.text = _customer['address']?.toString() ?? '';
+    _nationalIdController.text = _customer['nationalId']?.toString() ?? '';
+    _birthDateController.text = _customer['birthDate']?.toString() ?? '';
+    _referralPhoneController.text =
+        _customer['referralPhone']?.toString() ?? '';
     _role = _customer['role']?.toString() ?? 'restricted';
     _verification =
         _customer['transferVerificationStatus']?.toString() ?? 'unverified';
@@ -126,6 +230,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     _cardAutoRedeemOnScanForced =
         _customer['cardAutoRedeemOnScanUserForced'] == true;
     _resetCardScanCounter = false;
+    _printLogoPreview = null;
+    _printLogoFileName = null;
+    _printLogoBase64 = null;
+    _removePrintLogo = false;
   }
 
   String _formatPct(Object? v) {
@@ -209,6 +317,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     try {
       final payload = await _api.updateAdminUserAccountControls(
         userId: _customer['id'].toString(),
+        businessName: widget.canManageUsers
+            ? _businessNameController.text
+            : null,
+        fullName: widget.canManageUsers ? _fullNameController.text : null,
+        username: widget.canManageUsers ? _usernameController.text : null,
+        whatsapp: widget.canManageUsers ? _whatsappController.text : null,
+        email: widget.canManageUsers ? _emailController.text : null,
+        address: widget.canManageUsers ? _addressController.text : null,
+        nationalId: widget.canManageUsers ? _nationalIdController.text : null,
+        birthDate: widget.canManageUsers ? _birthDateController.text : null,
+        referralPhone: widget.canManageUsers
+            ? _referralPhoneController.text
+            : null,
+        printLogoBase64: widget.canManageUsers ? _printLogoBase64 : null,
+        removePrintLogo: widget.canManageUsers && _removePrintLogo,
         isDisabled: _customer['isDisabled'] == true,
         transferVerificationStatus: _verification,
         role: _role,
@@ -261,16 +384,16 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               Text(context.loc.tr('screens_admin_customer_screen.066')),
               const SizedBox(height: 14),
               SegmentedButton<String>(
-                segments: const [
+                segments: [
                   ButtonSegment<String>(
                     value: 'whatsapp',
                     icon: Icon(Icons.chat_rounded),
-                    label: Text('واتساب'),
+                    label: Text(context.loc.tr('shared.delivery_whatsapp')),
                   ),
                   ButtonSegment<String>(
                     value: 'sms',
                     icon: Icon(Icons.sms_rounded),
-                    label: Text('رسالة نصية'),
+                    label: Text(context.loc.tr('shared.delivery_sms')),
                   ),
                 ],
                 selected: {deliveryMethod},
@@ -355,10 +478,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
-                    labelText: 'المبلغ',
-                    prefixText: '₪ ',
-                  ),
+                  decoration: const InputDecoration(labelText: 'المبلغ'),
                   validator: (value) {
                     final amount = double.tryParse(
                       (value ?? '').trim().replaceAll(',', '.'),
@@ -754,11 +874,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             radius: 40,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Text(
-              (_customer['username']
-                      ?.toString()
-                      .substring(0, 1)
-                      .toUpperCase() ??
-                  'U'),
+              UserDisplayName.initialFromMap(_customer, fallback: 'U'),
               style: AppTheme.h1.copyWith(color: Colors.white, fontSize: 32),
             ),
           );
@@ -766,7 +882,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _customer['fullName'] ?? _customer['username'],
+                _customerDisplayName,
                 style: AppTheme.h2.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 4),
@@ -967,6 +1083,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       child: ResponsiveScaffoldContainer(
         child: Column(
           children: [
+            if (widget.canManageUsers) ...[
+              _buildAdminProfileDataCard(),
+              const SizedBox(height: 16),
+              _buildAdminPrintLogoCard(),
+              const SizedBox(height: 16),
+            ],
             ShwakelCard(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -1031,7 +1153,6 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     controller: _printingDebtLimitController,
                     decoration: InputDecoration(
                       labelText: _t('screens_admin_customer_screen.041'),
-                      suffixText: '₪',
                     ),
                   ),
                   if (_isMarketingManagerOnly) ...[
@@ -1127,6 +1248,232 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     );
   }
 
+  Widget _buildAdminProfileDataCard() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('بيانات المستخدم', style: AppTheme.h3),
+          const SizedBox(height: 8),
+          Text(
+            'تعديل هذه البيانات متاح للإدارة فقط، وتشمل بيانات الهوية المطلوبة لحل النزاعات المالية بعد التوثيق.',
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 14,
+            runSpacing: 14,
+            children: [
+              _adminProfileField(
+                'اسم النشاط',
+                _businessNameController,
+                Icons.storefront_rounded,
+              ),
+              _adminProfileField(
+                'الاسم الشخصي الرباعي',
+                _fullNameController,
+                Icons.badge_rounded,
+              ),
+              _adminProfileField(
+                'اسم المستخدم',
+                _usernameController,
+                Icons.alternate_email_rounded,
+              ),
+              _adminProfileField(
+                'رقم الهاتف',
+                _whatsappController,
+                Icons.phone_rounded,
+              ),
+              _adminProfileField(
+                'البريد الإلكتروني',
+                _emailController,
+                Icons.email_rounded,
+              ),
+              _adminProfileField(
+                'رقم الهوية',
+                _nationalIdController,
+                Icons.credit_card_rounded,
+              ),
+              _adminProfileField(
+                'تاريخ الميلاد',
+                _birthDateController,
+                Icons.cake_rounded,
+                readOnly: true,
+                onTap: _pickAdminBirthDate,
+              ),
+              _adminProfileField(
+                'هاتف الإحالة',
+                _referralPhoneController,
+                Icons.call_split_rounded,
+              ),
+              _adminProfileField(
+                'العنوان',
+                _addressController,
+                Icons.location_on_rounded,
+                lines: 2,
+                wide: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminPrintLogoCard() {
+    final remoteLogoUrl = _customer['printLogoUrl']?.toString().trim() ?? '';
+    final hasRemoteLogo = remoteLogoUrl.isNotEmpty && !_removePrintLogo;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('شعار الطباعة', style: AppTheme.h3),
+          const SizedBox(height: 8),
+          Text(
+            'الشعار يدار من الإدارة فقط ولا يمكن للمستخدم رفع أو تغيير أي ملف من ملفه الشخصي.',
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: AppTheme.radiusMd,
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Column(
+              children: [
+                if (_printLogoPreview != null)
+                  Image.memory(_printLogoPreview!, height: 92)
+                else if (hasRemoteLogo)
+                  Image.network(
+                    remoteLogoUrl,
+                    height: 92,
+                    errorBuilder: (_, error, stackTrace) => const Icon(
+                      Icons.image_not_supported_rounded,
+                      size: 48,
+                      color: AppTheme.textTertiary,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.image_rounded,
+                    size: 48,
+                    color: AppTheme.textTertiary,
+                  ),
+                const SizedBox(height: 10),
+                Text(
+                  _printLogoFileName ??
+                      (hasRemoteLogo ? 'يوجد شعار محفوظ' : 'لا يوجد شعار'),
+                  style: AppTheme.bodyAction,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ShwakelButton(
+                label: 'رفع شعار',
+                icon: Icons.upload_rounded,
+                width: 160,
+                onPressed: _pickAdminPrintLogo,
+              ),
+              if (hasRemoteLogo || _printLogoPreview != null)
+                ShwakelButton(
+                  label: 'حذف الشعار',
+                  icon: Icons.delete_outline_rounded,
+                  isSecondary: true,
+                  width: 160,
+                  onPressed: () => setState(() {
+                    _printLogoPreview = null;
+                    _printLogoFileName = null;
+                    _printLogoBase64 = null;
+                    _removePrintLogo = true;
+                  }),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _adminProfileField(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    bool readOnly = false,
+    VoidCallback? onTap,
+    int lines = 1,
+    bool wide = false,
+  }) {
+    return SizedBox(
+      width: wide || AppTheme.isPhone(context) ? double.infinity : 260,
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
+        maxLines: lines,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, size: 20),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAdminBirthDate() async {
+    final initial =
+        DateTime.tryParse(_birthDateController.text.trim()) ?? DateTime(2000);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1930),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _birthDateController.text =
+          '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    });
+  }
+
+  Future<void> _pickAdminPrintLogo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    final file = result?.files.single;
+    final bytes = file?.bytes;
+    if (file == null || bytes == null || bytes.isEmpty) {
+      return;
+    }
+    setState(() {
+      _printLogoPreview = bytes;
+      _printLogoFileName = file.name;
+      _printLogoBase64 = _asDataUri(file.name, bytes);
+      _removePrintLogo = false;
+    });
+  }
+
+  String _asDataUri(String fileName, Uint8List bytes) {
+    final lower = fileName.toLowerCase();
+    final mime = lower.endsWith('.jpg') || lower.endsWith('.jpeg')
+        ? 'image/jpeg'
+        : lower.endsWith('.webp')
+        ? 'image/webp'
+        : 'image/png';
+    return 'data:$mime;base64,${base64Encode(bytes)}';
+  }
+
   Widget _feeGrid() {
     return Wrap(
       spacing: 16,
@@ -1170,91 +1517,54 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(_t('screens_admin_customer_screen.050'), style: AppTheme.h3),
+              const SizedBox(height: 8),
+              Text(
+                'يمكن تعديل صلاحيات هذا المستخدم بشكل فردي، أو استعادة صلاحياته الافتراضية حسب نوع الحساب الحالي.',
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              ),
               const SizedBox(height: 16),
-              _permItem(
-                _t('screens_admin_customer_screen.051'),
-                'canIssueCards',
-                perms,
+              ShwakelButton(
+                label: 'استعادة صلاحيات نوع الحساب',
+                icon: Icons.restore_rounded,
+                isSecondary: true,
+                onPressed: _busy ? null : _restoreDefaultPermissions,
+                isLoading: _busy,
               ),
-              _permItem(
-                _t('screens_admin_customer_screen.052'),
-                'canRequestCardPrinting',
-                perms,
-              ),
-              _permItem(
-                _t('screens_admin_customer_screen.053'),
-                'canIssueSubShekelCards',
-                perms,
-              ),
-              _permItem('إصدار بطاقات خاصة', 'canIssuePrivateCards', perms),
-              _permItem(
-                'إنشاء تذاكر دخول لمرة واحدة',
-                'canIssueSingleUseTickets',
-                perms,
-              ),
-              _permItem(
-                'إنشاء تذاكر مواعيد',
-                'canIssueAppointmentTickets',
-                perms,
-              ),
-              _permItem('إنشاء تذاكر طوابير', 'canIssueQueueTickets', perms),
-              _permItem(
-                _t('screens_admin_customer_screen.054'),
-                'canIssueHighValueCards',
-                perms,
-              ),
-              _permItem(
-                'قراءة بطاقاته الخاصة فقط',
-                'canReadOwnPrivateCardsOnly',
-                perms,
-              ),
-              _permItem(
-                _t('screens_admin_customer_screen.055'),
-                'canResellCards',
-                perms,
-              ),
-              _permItem(
-                'استخدام بطاقات الدفع المسبق',
-                'canUsePrepaidMultipayCards',
-                perms,
-              ),
-              _permItem(
-                'قبول دفع البطاقات المسبقة',
-                'canAcceptPrepaidMultipayPayments',
-                perms,
-              ),
-              _permItem(
-                _t('screens_admin_customer_screen.056'),
-                'canManageCardPrintRequests',
-                perms,
-              ),
-              _permItem(
-                _t('screens_admin_customer_screen.072'),
-                'canOfflineCardScan',
-                perms,
-              ),
-              _permItem(
-                _t('screens_admin_customer_screen.078'),
-                'canManageDebtBook',
-                perms,
-              ),
-              if (widget.canManageUsers)
-                _permItem(
-                  _t('screens_admin_customer_screen.059'),
-                  'canManageUsers',
-                  perms,
-                ),
-              if (widget.canManageUsers)
-                _permItem(
-                  'شحن أرصدة المستخدمين من حساب المالية',
-                  'canFinanceTopup',
-                  perms,
-                ),
+              const SizedBox(height: 20),
+              for (final group in _permissionGroups) ...[
+                Text(group['title']!, style: AppTheme.bodyAction),
+                const SizedBox(height: 8),
+                ...group['keys']!
+                    .split(',')
+                    .where(
+                      (key) =>
+                          widget.canManageUsers || !_isAdminOnlyPermission(key),
+                    )
+                    .map(
+                      (key) =>
+                          _permItem(_permissionLabels[key] ?? key, key, perms),
+                    ),
+                const SizedBox(height: 16),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  bool _isAdminOnlyPermission(String key) {
+    return const {
+      'canManageUsers',
+      'canFinanceTopup',
+      'canManageMarketingAccounts',
+      'canManageLocations',
+      'canManageSystemSettings',
+      'canReviewWithdrawals',
+      'canReviewTopups',
+      'canReviewDevices',
+      'canExportCustomerTransactions',
+    }.contains(key);
   }
 
   Widget _buildDevicesTab() {
@@ -1788,6 +2098,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   Future<void> _savePermissions(Map<String, dynamic> p) async {
     setState(() => _busy = true);
     try {
+      final overrides = <String, bool>{
+        for (final key in _permissionLabels.keys) key: p[key] == true,
+      };
       final res = await _api.updateAdminUserCardPermissions(
         userId: _customer['id'].toString(),
         canIssueCards: p['canIssueCards'] == true,
@@ -1808,6 +2121,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         canUsePrepaidMultipayCards: p['canUsePrepaidMultipayCards'] == true,
         canAcceptPrepaidMultipayPayments:
             p['canAcceptPrepaidMultipayPayments'] == true,
+        canUsePrepaidMultipayNfc: p['canUsePrepaidMultipayNfc'] == true,
+        permissionOverrides: overrides,
       );
       setState(() {
         _customer = Map<String, dynamic>.from(res['user']);
@@ -1815,6 +2130,56 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       });
     } catch (_) {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restoreDefaultPermissions() async {
+    setState(() => _busy = true);
+    try {
+      final p = Map<String, dynamic>.from(
+        _customer['permissions'] as Map? ?? {},
+      );
+      final res = await _api.updateAdminUserCardPermissions(
+        userId: _customer['id'].toString(),
+        canIssueCards: p['canIssueCards'] == true,
+        canIssueSubShekelCards: p['canIssueSubShekelCards'] == true,
+        canIssueHighValueCards: p['canIssueHighValueCards'] == true,
+        canIssuePrivateCards: p['canIssuePrivateCards'] == true,
+        canIssueSingleUseTickets: p['canIssueSingleUseTickets'] == true,
+        canIssueAppointmentTickets: p['canIssueAppointmentTickets'] == true,
+        canIssueQueueTickets: p['canIssueQueueTickets'] == true,
+        canReadOwnPrivateCardsOnly: p['canReadOwnPrivateCardsOnly'] == true,
+        canResellCards: p['canResellCards'] == true,
+        canRequestCardPrinting: p['canRequestCardPrinting'] == true,
+        canManageCardPrintRequests: p['canManageCardPrintRequests'] == true,
+        canOfflineCardScan: p['canOfflineCardScan'] == true,
+        canManageDebtBook: p['canManageDebtBook'] == true,
+        canManageUsers: p['canManageUsers'] == true,
+        canFinanceTopup: p['canFinanceTopup'] == true,
+        canUsePrepaidMultipayCards: p['canUsePrepaidMultipayCards'] == true,
+        canAcceptPrepaidMultipayPayments:
+            p['canAcceptPrepaidMultipayPayments'] == true,
+        canUsePrepaidMultipayNfc: p['canUsePrepaidMultipayNfc'] == true,
+        restoreDefaults: true,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _customer = Map<String, dynamic>.from(res['user']);
+        _busy = false;
+      });
+      AppAlertService.showSuccess(
+        context,
+        message:
+            res['message']?.toString() ??
+            'تمت استعادة صلاحيات المستخدم حسب نوع الحساب.',
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        AppAlertService.showError(context, message: e.toString());
+      }
     }
   }
 

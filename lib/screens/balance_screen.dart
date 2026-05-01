@@ -7,6 +7,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -48,6 +49,50 @@ class _BalanceScreenState extends State<BalanceScreen>
       _appPermissions.canAccessRegulatedWalletFeatures;
   bool get _isVerifiedAccount =>
       _user?['transferVerificationStatus']?.toString() == 'approved';
+
+  double _effectiveFeePercent(String key) {
+    final raw = _user?[key];
+    if (raw is num) {
+      return raw.toDouble();
+    }
+    return double.tryParse(raw?.toString() ?? '') ?? 0;
+  }
+
+  String _feeSummaryText({
+    required String actionLabel,
+    required double feePercent,
+    double? minAmount,
+    double? maxAmount,
+  }) {
+    final parts = <String>[];
+    if (feePercent > 0) {
+      parts.add(
+        context.loc.tr(
+          'screens_balance_screen.136',
+          params: {'percent': CurrencyFormatter.formatAmount(feePercent)},
+        ),
+      );
+    } else {
+      parts.add(context.loc.tr('screens_balance_screen.137'));
+    }
+    if (minAmount != null && minAmount > 0) {
+      parts.add(
+        context.loc.tr(
+          'screens_balance_screen.138',
+          params: {'amount': CurrencyFormatter.formatAmount(minAmount)},
+        ),
+      );
+    }
+    if (maxAmount != null && maxAmount > 0) {
+      parts.add(
+        context.loc.tr(
+          'screens_balance_screen.139',
+          params: {'amount': CurrencyFormatter.formatAmount(maxAmount)},
+        ),
+      );
+    }
+    return '$actionLabel: ${parts.join(' • ')}';
+  }
 
   @override
   void initState() {
@@ -180,6 +225,10 @@ class _BalanceScreenState extends State<BalanceScreen>
       title: l.tr('screens_balance_screen.003'),
       confirmLabel: l.tr('screens_balance_screen.004'),
       notesLabel: l.tr('screens_balance_screen.005'),
+      amountHelperText: _feeSummaryText(
+        actionLabel: 'التحويل',
+        feePercent: _effectiveFeePercent('effectiveTransferFeePercent'),
+      ),
       enablePhoneLookup: true,
     );
     if (result == null || !mounted) return;
@@ -225,7 +274,21 @@ class _BalanceScreenState extends State<BalanceScreen>
       return;
     }
 
-    final result = await _showWithdrawalDialog();
+    Map<String, dynamic> options;
+    try {
+      options = await _apiService.getWithdrawalRequestOptions();
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(
+        ErrorMessageService.sanitize(error),
+        isError: true,
+        operation: 'load_withdrawal_options',
+        fallbackTitle: l.tr('screens_balance_screen.009'),
+      );
+      return;
+    }
+
+    final result = await _showWithdrawalDialog(options);
     if (result == null || !mounted) return;
 
     final securityResult = await TransferSecurityService.confirmTransfer(
@@ -277,7 +340,10 @@ class _BalanceScreenState extends State<BalanceScreen>
       title: l.tr('screens_balance_screen.011'),
       confirmLabel: l.tr('screens_balance_screen.012'),
       notesLabel: l.tr('screens_balance_screen.013'),
-      amountHelperText: l.tr('screens_balance_screen.014'),
+      amountHelperText: _feeSummaryText(
+        actionLabel: 'الشحن',
+        feePercent: _effectiveFeePercent('effectiveTopupFeePercent'),
+      ),
     );
     if (result == null || !mounted) return;
 
@@ -322,6 +388,11 @@ class _BalanceScreenState extends State<BalanceScreen>
       final topupRequest = Map<String, dynamic>.from(
         options['topupRequest'] as Map? ?? const {},
       );
+      final topupFeePercent = (options['feePercent'] as num?)?.toDouble() ?? 0;
+      final topupMinAmount =
+          (topupRequest['minAmount'] as num?)?.toDouble() ?? 0;
+      final topupMaxAmount =
+          (topupRequest['maxAmount'] as num?)?.toDouble() ?? 0;
       final methods = List<Map<String, dynamic>>.from(
         (options['methods'] as List? ?? const []).map(
           (item) => Map<String, dynamic>.from(item as Map),
@@ -349,10 +420,7 @@ class _BalanceScreenState extends State<BalanceScreen>
 
       final amountController = TextEditingController();
       final senderNameController = TextEditingController(
-        text:
-            _user?['fullName']?.toString() ??
-            _user?['username']?.toString() ??
-            '',
+        text: UserDisplayName.fromMap(_user),
       );
       final senderPhoneController = TextEditingController(
         text: _user?['whatsapp']?.toString() ?? '',
@@ -430,6 +498,28 @@ class _BalanceScreenState extends State<BalanceScreen>
               if (amount <= 0 || selectedMethodId == null) {
                 setDialogState(
                   () => errorText = l.tr('screens_balance_screen.056'),
+                );
+                return;
+              }
+              if (topupMinAmount > 0 && amount < topupMinAmount) {
+                setDialogState(
+                  () => errorText = l.tr(
+                    'screens_balance_screen.145',
+                    params: {
+                      'amount': CurrencyFormatter.formatAmount(topupMinAmount),
+                    },
+                  ),
+                );
+                return;
+              }
+              if (topupMaxAmount > 0 && amount > topupMaxAmount) {
+                setDialogState(
+                  () => errorText = l.tr(
+                    'screens_balance_screen.146',
+                    params: {
+                      'amount': CurrencyFormatter.formatAmount(topupMaxAmount),
+                    },
+                  ),
                 );
                 return;
               }
@@ -532,6 +622,16 @@ class _BalanceScreenState extends State<BalanceScreen>
                       _buildTopupRequestInfoCard(
                         icon: Icons.hourglass_top_rounded,
                         message: l.tr('screens_balance_screen.125'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTopupRequestInfoCard(
+                        icon: Icons.info_outline_rounded,
+                        message: _feeSummaryText(
+                          actionLabel: 'الشحن',
+                          feePercent: topupFeePercent,
+                          minAmount: topupMinAmount,
+                          maxAmount: topupMaxAmount,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       ShwakelCard(
@@ -781,9 +881,16 @@ class _BalanceScreenState extends State<BalanceScreen>
         (isError
             ? l.tr('screens_balance_screen.018')
             : l.tr('screens_balance_screen.019'));
-    isError || operation != null
-        ? AppAlertService.showError(context, title: title, message: text)
-        : AppAlertService.showSuccess(context, title: title, message: text);
+    if (isError) {
+      AppAlertService.showError(
+        context,
+        title: title,
+        message: text,
+        extraContext: operation == null ? null : {'operation': operation},
+      );
+      return;
+    }
+    AppAlertService.showSuccess(context, title: title, message: text);
   }
 
   String _formatTopupRequestDateTime(DateTime value) {
@@ -2485,11 +2592,19 @@ class _BalanceScreenState extends State<BalanceScreen>
                   );
                   return;
                 }
+                final parsedAmount =
+                    double.tryParse(amountController.text.trim()) ?? 0;
+                if (parsedAmount <= 0) {
+                  setDialogState(
+                    () => searchError = 'أدخل مبلغًا صحيحًا قبل المتابعة.',
+                  );
+                  return;
+                }
                 Navigator.pop(
                   context,
                   _UserAmountResult(
                     userId: selectedUser!['id'].toString(),
-                    amount: double.tryParse(amountController.text) ?? 0,
+                    amount: parsedAmount,
                     notes: notesController.text.trim(),
                   ),
                 );
@@ -2700,28 +2815,62 @@ class _BalanceScreenState extends State<BalanceScreen>
     );
   }
 
-  Future<_WithdrawalRequestResult?> _showWithdrawalDialog() async {
+  Future<_WithdrawalRequestResult?> _showWithdrawalDialog(
+    Map<String, dynamic> options,
+  ) async {
     final l = context.loc;
     final amountController = TextEditingController();
     final accountController = TextEditingController();
-    final fullName = (_user?['fullName']?.toString() ?? '').trim();
     final username = (_user?['username']?.toString() ?? '').trim();
     final accountHolderController = TextEditingController(
-      text: fullName.isNotEmpty ? fullName : username,
+      text: UserDisplayName.fromMap(_user, fallback: username),
     );
     final bankController = TextEditingController();
     final notesController = TextEditingController();
-    String destinationType = 'wallet';
+    final methods = List<Map<String, dynamic>>.from(
+      (options['methods'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+    final withdrawalRequest = Map<String, dynamic>.from(
+      options['withdrawalRequest'] as Map? ?? const {},
+    );
+    final feePercent = (options['feePercent'] as num?)?.toDouble() ?? 0;
+    final minAmount = (withdrawalRequest['minAmount'] as num?)?.toDouble() ?? 0;
+    final maxAmount = (withdrawalRequest['maxAmount'] as num?)?.toDouble() ?? 0;
+    String destinationType = methods.isNotEmpty
+        ? (methods.first['code']?.toString() ?? 'bank_transfer')
+        : 'bank_transfer';
     String? formError;
 
     return showDialog<_WithdrawalRequestResult>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final isBankTransfer = destinationType == 'bank';
-          final accountLabel = isBankTransfer
-              ? l.tr('screens_balance_screen.096')
-              : l.tr('screens_balance_screen.097');
+          final selectedMethod = methods.firstWhere(
+            (item) => item['code']?.toString() == destinationType,
+            orElse: () => methods.isNotEmpty
+                ? methods.first
+                : <String, dynamic>{
+                    'code': 'bank_transfer',
+                    'title': l.tr('screens_balance_screen.101'),
+                    'accountLabel': l.tr('screens_balance_screen.096'),
+                    'requiresBankName': true,
+                  },
+          );
+          final isBankTransfer = selectedMethod['requiresBankName'] == true;
+          final accountLabel =
+              selectedMethod['accountLabel']?.toString().trim().isNotEmpty ==
+                  true
+              ? selectedMethod['accountLabel'].toString()
+              : (isBankTransfer
+                    ? l.tr('screens_balance_screen.096')
+                    : l.tr('screens_balance_screen.097'));
+          final amount = double.tryParse(amountController.text.trim()) ?? 0;
+          final estimatedFee = amount <= 0
+              ? 0.0
+              : double.parse((amount * (feePercent / 100)).toStringAsFixed(2));
+          final totalDeduction = amount + estimatedFee;
 
           return AlertDialog(
             content: ConstrainedBox(
@@ -2762,7 +2911,14 @@ class _BalanceScreenState extends State<BalanceScreen>
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  l.tr('screens_balance_screen.098'),
+                                  withdrawalRequest['instructions']
+                                              ?.toString()
+                                              .trim()
+                                              .isNotEmpty ==
+                                          true
+                                      ? withdrawalRequest['instructions']
+                                            .toString()
+                                      : l.tr('screens_balance_screen.098'),
                                   style: AppTheme.bodyAction.copyWith(
                                     height: 1.45,
                                   ),
@@ -2787,28 +2943,48 @@ class _BalanceScreenState extends State<BalanceScreen>
                             style: AppTheme.bodyBold,
                           ),
                           const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            initialValue: destinationType,
-                            decoration: InputDecoration(
-                              labelText: l.tr('screens_balance_screen.099'),
-                              prefixIcon: const Icon(
-                                Icons.account_balance_wallet_outlined,
+                          if (methods.isEmpty)
+                            Text(
+                              l.tr('screens_balance_screen.140'),
+                              style: AppTheme.bodyAction.copyWith(
+                                color: AppTheme.error,
                               ),
+                            )
+                          else
+                            DropdownButtonFormField<String>(
+                              initialValue: destinationType,
+                              decoration: InputDecoration(
+                                labelText: l.tr('screens_balance_screen.099'),
+                                prefixIcon: const Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                ),
+                              ),
+                              items: methods
+                                  .map(
+                                    (method) => DropdownMenuItem(
+                                      value: method['code']?.toString(),
+                                      child: Text(
+                                        method['title']?.toString() ?? '-',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setDialogState(() => destinationType = value);
+                              },
                             ),
-                            items: [
-                              DropdownMenuItem(
-                                value: 'wallet',
-                                child: Text(l.tr('screens_balance_screen.100')),
-                              ),
-                              DropdownMenuItem(
-                                value: 'bank',
-                                child: Text(l.tr('screens_balance_screen.101')),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value == null) return;
-                              setDialogState(() => destinationType = value);
-                            },
+                          const SizedBox(height: 12),
+                          Text(
+                            _feeSummaryText(
+                              actionLabel: 'السحب',
+                              feePercent: feePercent,
+                              minAmount: minAmount,
+                              maxAmount: maxAmount,
+                            ),
+                            style: AppTheme.caption.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -2829,6 +3005,7 @@ class _BalanceScreenState extends State<BalanceScreen>
                           const SizedBox(height: 12),
                           TextField(
                             controller: amountController,
+                            onChanged: (_) => setDialogState(() {}),
                             decoration: InputDecoration(
                               labelText: l.tr('screens_balance_screen.093'),
                               helperText: l.tr('screens_balance_screen.102'),
@@ -2878,6 +3055,59 @@ class _BalanceScreenState extends State<BalanceScreen>
                             minLines: 2,
                             maxLines: 3,
                           ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l.tr('screens_balance_screen.141'),
+                                  style: AppTheme.bodyBold,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  l.tr(
+                                    'screens_balance_screen.142',
+                                    params: {
+                                      'amount': CurrencyFormatter.formatAmount(
+                                        amount,
+                                      ),
+                                    },
+                                  ),
+                                  style: AppTheme.bodyAction,
+                                ),
+                                Text(
+                                  l.tr(
+                                    'screens_balance_screen.143',
+                                    params: {
+                                      'amount': CurrencyFormatter.formatAmount(
+                                        estimatedFee,
+                                      ),
+                                    },
+                                  ),
+                                  style: AppTheme.bodyAction,
+                                ),
+                                Text(
+                                  l.tr(
+                                    'screens_balance_screen.144',
+                                    params: {
+                                      'amount': CurrencyFormatter.formatAmount(
+                                        totalDeduction,
+                                      ),
+                                    },
+                                  ),
+                                  style: AppTheme.bodyAction,
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -2909,6 +3139,28 @@ class _BalanceScreenState extends State<BalanceScreen>
                       });
                       return;
                     }
+                    if (minAmount > 0 && amount < minAmount) {
+                      setDialogState(() {
+                        formError = l.tr(
+                          'screens_balance_screen.147',
+                          params: {
+                            'amount': CurrencyFormatter.formatAmount(minAmount),
+                          },
+                        );
+                      });
+                      return;
+                    }
+                    if (maxAmount > 0 && amount > maxAmount) {
+                      setDialogState(() {
+                        formError = l.tr(
+                          'screens_balance_screen.148',
+                          params: {
+                            'amount': CurrencyFormatter.formatAmount(maxAmount),
+                          },
+                        );
+                      });
+                      return;
+                    }
                     if (accountController.text.trim().isEmpty ||
                         accountHolderController.text.trim().isEmpty) {
                       setDialogState(() {
@@ -2919,6 +3171,12 @@ class _BalanceScreenState extends State<BalanceScreen>
                     if (isBankTransfer && bankController.text.trim().isEmpty) {
                       setDialogState(() {
                         formError = l.tr('screens_balance_screen.107');
+                      });
+                      return;
+                    }
+                    if (methods.isEmpty) {
+                      setDialogState(() {
+                        formError = l.tr('screens_balance_screen.149');
                       });
                       return;
                     }

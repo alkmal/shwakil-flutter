@@ -8,6 +8,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -307,7 +308,8 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   Widget _buildHero(bool enabled) {
     final l = context.loc;
     final rewardAmount = (_affiliate['rewardAmount'] as num?)?.toDouble() ?? 0;
-    final minAmount = (_affiliate['firstTopupMinAmount'] as num?)?.toDouble() ?? 0;
+    final minAmount =
+        (_affiliate['firstTopupMinAmount'] as num?)?.toDouble() ?? 0;
 
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
@@ -385,7 +387,9 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
     final l = context.loc;
     final shareCode = _affiliate['shareCode']?.toString() ?? '';
     final sharePhone = _affiliate['sharePhone']?.toString() ?? '';
-    final preferredReferral = shareCode.trim().isNotEmpty ? shareCode : sharePhone;
+    final preferredReferral = shareCode.trim().isNotEmpty
+        ? shareCode
+        : sharePhone;
     final inviteLink = preferredReferral.trim().isEmpty
         ? ''
         : AppConfig.inviteUri(preferredReferral).toString();
@@ -591,7 +595,9 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
     final status = item['status']?.toString() ?? 'waiting_for_first_topup';
     final label = switch (status) {
       'rewarded' => l.tr('screens_affiliate_center_screen.030'),
-      'waiting_for_qualification' => l.tr('screens_affiliate_center_screen.031'),
+      'waiting_for_qualification' => l.tr(
+        'screens_affiliate_center_screen.031',
+      ),
       _ => l.tr('screens_affiliate_center_screen.032'),
     };
     final color = switch (status) {
@@ -616,10 +622,10 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['fullName']?.toString().trim().isNotEmpty == true
-                        ? item['fullName'].toString()
-                        : (item['username']?.toString() ??
-                              l.tr('screens_affiliate_center_screen.033')),
+                    UserDisplayName.fromMap(
+                      item,
+                      fallback: l.tr('screens_affiliate_center_screen.033'),
+                    ),
                     style: AppTheme.bodyBold,
                   ),
                   const SizedBox(height: 4),
@@ -671,7 +677,8 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['referredFullName']?.toString().trim().isNotEmpty == true
+                    item['referredFullName']?.toString().trim().isNotEmpty ==
+                            true
                         ? item['referredFullName'].toString()
                         : (item['referredUsername']?.toString() ??
                               l.tr('screens_affiliate_center_screen.034')),

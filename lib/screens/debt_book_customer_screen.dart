@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
@@ -83,7 +84,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     buffer.writeln(
       _t(
         'screens_debt_book_customer_screen.003',
-        params: {'name': customer['fullName']?.toString() ?? '-'},
+        params: {'name': UserDisplayName.fromMap(customer, fallback: '-')},
       ),
     );
     buffer.writeln(
@@ -191,7 +192,9 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                 pw.Text(
                   l.tr(
                     'screens_debt_book_customer_screen.003',
-                    params: {'name': customer['fullName']?.toString() ?? '-'},
+                    params: {
+                      'name': UserDisplayName.fromMap(customer, fallback: '-'),
+                    },
                   ),
                 ),
                 pw.Text(
@@ -319,7 +322,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       await Printing.layoutPdf(
         onLayout: (format) async => pdf.save(),
         name:
-            'debt_book_${_customer!['fullName']?.toString().trim().replaceAll(' ', '_') ?? 'customer'}',
+            'debt_book_${UserDisplayName.fromMap(_customer, fallback: 'customer').replaceAll(' ', '_')}',
       );
     } catch (error) {
       if (!mounted) {
@@ -342,7 +345,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       await Printing.sharePdf(
         bytes: await pdf.save(),
         filename:
-            'debt_book_${_customer!['fullName']?.toString().trim().replaceAll(' ', '_') ?? 'customer'}.pdf',
+            'debt_book_${UserDisplayName.fromMap(_customer, fallback: 'customer').replaceAll(' ', '_')}.pdf',
       );
     } catch (error) {
       if (!mounted) {
@@ -482,7 +485,9 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
   }) async {
     final amountController = TextEditingController(
       text: ((entry?['amount'] as num?)?.toDouble() ?? 0) > 0
-          ? ((entry?['amount'] as num?)?.toDouble() ?? 0).toStringAsFixed(2)
+          ? CurrencyFormatter.formatAmount(
+              (entry?['amount'] as num?)?.toDouble() ?? 0,
+            )
           : '',
     );
     final noteController = TextEditingController(
@@ -703,7 +708,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
         content: Text(
           _t(
             'screens_debt_book_customer_screen.043',
-            params: {'name': customer['fullName']?.toString() ?? '-'},
+            params: {'name': UserDisplayName.fromMap(customer, fallback: '-')},
           ),
         ),
         actions: [
@@ -900,9 +905,10 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(
-          customer?['fullName']?.toString().trim().isNotEmpty == true
-              ? customer!['fullName'].toString()
-              : _t('screens_debt_book_customer_screen.062'),
+          UserDisplayName.fromMap(
+            customer,
+            fallback: _t('screens_debt_book_customer_screen.062'),
+          ),
         ),
         actions: [
           if (customer != null) ...[
@@ -973,8 +979,10 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          customer['fullName']?.toString() ??
-                                              '-',
+                                          UserDisplayName.fromMap(
+                                            customer,
+                                            fallback: '-',
+                                          ),
                                           style: AppTheme.h3,
                                         ),
                                         const SizedBox(height: 10),

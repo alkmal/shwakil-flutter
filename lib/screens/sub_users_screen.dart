@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -1052,10 +1053,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       if (permissions['canReadOwnPrivateCardsOnly'] == true)
         context.loc.tr('screens_sub_users_screen.132'),
     ];
-    final fullName = user['fullName']?.toString().trim();
-    final displayName = (fullName?.isNotEmpty ?? false)
-        ? fullName!
-        : user['username'].toString();
+    final displayName = UserDisplayName.fromMap(
+      user,
+      fallback: user['username'].toString(),
+    );
     final isDisabled = user['isDisabled'] == true;
 
     return Padding(

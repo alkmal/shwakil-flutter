@@ -8,6 +8,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../models/index.dart';
+import '../utils/currency_formatter.dart';
 
 class CardDesignSettings {
   bool showLogo;
@@ -189,9 +190,9 @@ class PDFService {
   String _valueInArabicWords(double value) {
     final rounded = value.round();
     if ((value - rounded).abs() < 0.001) {
-      return '${_integerToArabicWords(rounded)} شيكل';
+      return _integerToArabicWords(rounded);
     }
-    return '${value.toStringAsFixed(2)} شيكل';
+    return CurrencyFormatter.formatAmount(value);
   }
 
   String _integerToArabicWords(int number) {
@@ -342,7 +343,7 @@ class PDFService {
       final title = card.title?.trim() ?? '';
       return title.isNotEmpty ? title : _cardKindLabel(card);
     }
-    return '${card.value.toStringAsFixed(2)} شيكل';
+    return CurrencyFormatter.formatAmount(card.value);
   }
 
   String _cardSubtitle(VirtualCard card) {
@@ -838,8 +839,8 @@ class PDFService {
                       if (card.issueCost > 0)
                         pw.Text(
                           _isTicketCard(card)
-                              ? 'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل'
-                              : 'رسوم عند الاستخدام: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                              ? 'تكلفة الإصدار: ${CurrencyFormatter.formatAmount(card.issueCost)}'
+                              : 'رسوم عند الاستخدام: ${CurrencyFormatter.formatAmount(card.issueCost)}',
                           textAlign: pw.TextAlign.right,
                           textDirection: pw.TextDirection.rtl,
                           style: _textStyle(
@@ -1091,8 +1092,8 @@ class PDFService {
                       if (card.issueCost > 0)
                         pw.Text(
                           _isTicketCard(card)
-                              ? 'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل'
-                              : 'رسوم عند الاستخدام: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                              ? 'تكلفة الإصدار: ${CurrencyFormatter.formatAmount(card.issueCost)}'
+                              : 'رسوم عند الاستخدام: ${CurrencyFormatter.formatAmount(card.issueCost)}',
                           textAlign: pw.TextAlign.right,
                           textDirection: pw.TextDirection.rtl,
                           style: _textStyle(

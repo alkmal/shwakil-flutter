@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/index.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/user_display_name.dart';
 import '../shwakel_button.dart';
 import '../shwakel_card.dart';
 
@@ -21,9 +22,8 @@ class AdminDeviceRequestCard extends StatelessWidget {
 
   String _displayName() {
     final user = Map<String, dynamic>.from(request['user'] as Map? ?? const {});
-    final fullName = user['fullName']?.toString().trim() ?? '';
     final username = user['username']?.toString().trim() ?? '';
-    return fullName.isNotEmpty ? fullName : username;
+    return UserDisplayName.fromMap(user, fallback: username);
   }
 
   @override

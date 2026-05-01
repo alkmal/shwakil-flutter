@@ -9,6 +9,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -107,7 +108,7 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
   ) {
     final normalized = query.trim().toLowerCase();
     return customers.where((customer) {
-      final name = customer['fullName']?.toString().toLowerCase() ?? '';
+      final name = UserDisplayName.fromMap(customer).toLowerCase();
       final phone = customer['phone']?.toString().toLowerCase() ?? '';
       final balance = _remainingAmount(customer);
       final matchesQuery =
@@ -262,7 +263,7 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
           _t(
             'screens_admin_debt_book_screen.010',
             params: {
-              'name': customer['fullName']?.toString() ?? '-',
+              'name': UserDisplayName.fromMap(customer, fallback: '-'),
               'phone': phone.isNotEmpty
                   ? phone
                   : _t('screens_admin_debt_book_screen.016'),
@@ -388,7 +389,7 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
                     data: debtors.map((customer) {
                       final phone = customer['phone']?.toString().trim() ?? '';
                       return [
-                        customer['fullName']?.toString() ?? '-',
+                        UserDisplayName.fromMap(customer, fallback: '-'),
                         phone.isNotEmpty
                             ? phone
                             : l.tr('screens_admin_debt_book_screen.016'),
@@ -681,17 +682,12 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
                               alpha: 0.14,
                             ),
                             child: Text(
-                              (customer['fullName']
-                                          ?.toString()
-                                          .trim()
-                                          .isNotEmpty ??
-                                      false)
-                                  ? customer['fullName']
-                                        .toString()
-                                        .trim()
-                                        .characters
-                                        .first
-                                  : _t('screens_admin_debt_book_screen.038'),
+                              UserDisplayName.initialFromMap(
+                                customer,
+                                fallback: _t(
+                                  'screens_admin_debt_book_screen.038',
+                                ),
+                              ),
                               style: AppTheme.bodyBold.copyWith(
                                 color: AppTheme.warning,
                               ),
@@ -703,7 +699,10 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  customer['fullName']?.toString() ?? '-',
+                                  UserDisplayName.fromMap(
+                                    customer,
+                                    fallback: '-',
+                                  ),
                                   style: AppTheme.bodyBold,
                                 ),
                                 const SizedBox(height: 4),

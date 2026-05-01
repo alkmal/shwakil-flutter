@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -784,10 +785,13 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   String _userDisplayName(Map<String, dynamic> user) {
-    final fullName = user['fullName']?.toString().trim();
     final username = user['username']?.toString().trim() ?? '';
-    if (fullName != null && fullName.isNotEmpty) {
-      return '$fullName @$username';
+    final displayName = UserDisplayName.fromMap(user);
+    if (displayName.isNotEmpty && username.isNotEmpty) {
+      return '$displayName @$username';
+    }
+    if (displayName.isNotEmpty) {
+      return displayName;
     }
     return username.isEmpty ? user['id']?.toString() ?? '-' : '@$username';
   }

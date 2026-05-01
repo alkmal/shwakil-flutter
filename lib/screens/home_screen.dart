@@ -9,6 +9,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -100,8 +101,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   String get _displayName {
     final username = _user?['username']?.toString().trim() ?? '';
-    final fullName = _user?['fullName']?.toString().trim() ?? '';
-    return fullName.isNotEmpty ? fullName : username;
+    return UserDisplayName.fromMap(_user, fallback: username);
   }
 
   String get _roleLabel {
@@ -848,6 +848,20 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           kind: _HomeServiceKind.quickTransfer,
           onTap: () => unawaited(_openOnlineOnlyRoute('/quick-transfer')),
         ),
+      if (_canTransfer)
+        _HomeServiceItem(
+          title: 'رمز تحويل مؤقت',
+          subtitle: 'أنشئ رمزًا قصير الصلاحية لتحويل الرصيد لحساب آخر.',
+          icon: Icons.qr_code_2_rounded,
+          color: const Color(0xFF0F766E),
+          kind: _HomeServiceKind.temporaryTransfer,
+          onTap: () => unawaited(
+            _openOnlineOnlyRoute(
+              '/scan-card',
+              arguments: const {'openTemporaryTransferCreator': true},
+            ),
+          ),
+        ),
       if (canViewInventory && canIssueCards)
         _HomeServiceItem(
           title: l.tr('screens_home_screen.023'),
@@ -1466,20 +1480,35 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               _syncInfoRow(_t('screens_home_screen.090'), statusText),
               _syncInfoRow(_t('screens_home_screen.091'), lastSync),
               _syncInfoRow(
-                'البطاقات المتاحة أوفلاين',
-                '$_availableOfflineCount من $_cachedOfflineCount',
+                _t('screens_home_screen.100'),
+                _t(
+                  'screens_home_screen.101',
+                  params: {
+                    'available': '$_availableOfflineCount',
+                    'cached': '$_cachedOfflineCount',
+                  },
+                ),
               ),
-              _syncInfoRow('بطاقات تنتظر الرفع', '$_pendingOfflineCount'),
-              if (_rejectedOfflineCount > 0)
-                _syncInfoRow('عمليات تحتاج مراجعة', '$_rejectedOfflineCount'),
               _syncInfoRow(
-                'مدة صلاحية الأوفلاين',
-                '$_offlineSyncIntervalMinutes دقيقة',
+                _t('screens_home_screen.102'),
+                '$_pendingOfflineCount',
+              ),
+              if (_rejectedOfflineCount > 0)
+                _syncInfoRow(
+                  _t('screens_home_screen.103'),
+                  '$_rejectedOfflineCount',
+                ),
+              _syncInfoRow(
+                _t('screens_home_screen.104'),
+                _t(
+                  'screens_home_screen.105',
+                  params: {'minutes': '$_offlineSyncIntervalMinutes'},
+                ),
               ),
               if (_offlineAccessExpired)
                 _syncInfoRow(
-                  'الحالة',
-                  'انتهت المدة. يجب الاتصال بالإنترنت والمزامنة قبل الفحص.',
+                  _t('screens_home_screen.090'),
+                  _t('screens_home_screen.106'),
                 ),
               const SizedBox(height: 8),
               SizedBox(
@@ -1492,7 +1521,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           unawaited(_syncOfflineWorkspace());
                         },
                   icon: const Icon(Icons.cloud_sync_rounded),
-                  label: const Text('تحديث الآن'),
+                  label: Text(_t('screens_home_screen.107')),
                 ),
               ),
             ],
@@ -1868,6 +1897,7 @@ enum _HomeServiceKind {
   createCard,
   prepaidMultipay,
   quickTransfer,
+  temporaryTransfer,
   inventory,
   printRequests,
   transactions,

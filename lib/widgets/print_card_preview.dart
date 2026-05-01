@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/card_model.dart';
 import '../services/pdf_service.dart';
 import '../utils/app_theme.dart';
+import '../utils/currency_formatter.dart';
 
 class _PrintPreviewPalette {
   final Color primary;
@@ -139,7 +140,7 @@ class PrintCardPreview extends StatelessWidget {
       final title = card.title?.trim() ?? '';
       return title.isNotEmpty ? title : _cardKindLabel;
     }
-    return '${card.value.toStringAsFixed(2)} شيكل';
+    return CurrencyFormatter.formatAmount(card.value);
   }
 
   String get _cardSubtitle {
@@ -165,9 +166,9 @@ class PrintCardPreview extends StatelessWidget {
   String _valueInArabicWords(double value) {
     final rounded = value.round();
     if ((value - rounded).abs() < 0.001) {
-      return '${_integerToArabicWords(rounded)} شيكل';
+      return _integerToArabicWords(rounded);
     }
-    return '${value.toStringAsFixed(2)} شيكل';
+    return CurrencyFormatter.formatAmount(value);
   }
 
   String _integerToArabicWords(int number) {
@@ -476,8 +477,8 @@ class PrintCardPreview extends StatelessWidget {
                             if (card.issueCost > 0)
                               Text(
                                 _isBalanceCard
-                                    ? 'رسوم عند الاستخدام: ${card.issueCost.toStringAsFixed(2)} شيكل'
-                                    : 'تكلفة الإصدار: ${card.issueCost.toStringAsFixed(2)} شيكل',
+                                    ? 'رسوم عند الاستخدام: ${CurrencyFormatter.formatAmount(card.issueCost)}'
+                                    : 'تكلفة الإصدار: ${CurrencyFormatter.formatAmount(card.issueCost)}',
                                 textAlign: TextAlign.right,
                                 style: AppTheme.caption.copyWith(
                                   fontSize: 4,
