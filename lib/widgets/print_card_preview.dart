@@ -100,7 +100,7 @@ class PrintCardPreview extends StatelessWidget {
       return 'بطاقة رصيد توصيل';
     }
     if (card.isSingleUse) {
-      return 'بطاقة خاصة لاستخدام واحد';
+      return 'بطاقة خاصة';
     }
     if (card.isAppointment) {
       return 'تذكرة موعد';
@@ -148,7 +148,7 @@ class PrintCardPreview extends StatelessWidget {
           : 'بطاقة رصيد عامة للتوصيل والمدفوعات';
     }
     if (card.isSingleUse) {
-      return 'بطاقة خاصة لاستخدام واحد داخل النظام';
+      return 'بطاقة خاصة داخل النظام';
     }
     if (card.isAppointment) {
       return 'تذكرة موعد خاصة لمستفيدين محددين';
@@ -350,17 +350,20 @@ class PrintCardPreview extends StatelessWidget {
                                     textAlign: TextAlign.center,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: (_isTicketCard
-                                            ? AppTheme.bodyBold
-                                            : AppTheme.h1)
-                                        .copyWith(
-                                      fontSize: _isTicketCard ? 7.1 : 14.2,
-                                      height: 1.05,
-                                      color: _isTicketCard
-                                          ? palette.primary
-                                          : palette.value,
-                                      fontWeight: FontWeight.w900,
-                                    ),
+                                    style:
+                                        (_isTicketCard
+                                                ? AppTheme.bodyBold
+                                                : AppTheme.h1)
+                                            .copyWith(
+                                              fontSize: _isTicketCard
+                                                  ? 7.1
+                                                  : 14.2,
+                                              height: 1.05,
+                                              color: _isTicketCard
+                                                  ? palette.primary
+                                                  : palette.value,
+                                              fontWeight: FontWeight.w900,
+                                            ),
                                   ),
                                 ),
                               ],
@@ -590,7 +593,9 @@ class _Header extends StatelessWidget {
     final resolvedLogoUrl = logoUrl?.trim() ?? '';
     final hasNetworkLogo = resolvedLogoUrl.isNotEmpty;
     final hasHeaderBrand =
-        showLogo || logoText.trim().isNotEmpty || subtitleText.trim().isNotEmpty;
+        showLogo ||
+        logoText.trim().isNotEmpty ||
+        subtitleText.trim().isNotEmpty;
     if (!hasHeaderBrand) {
       return Align(
         alignment: AlignmentDirectional.centerEnd,

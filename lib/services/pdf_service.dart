@@ -288,7 +288,7 @@ class PDFService {
       return 'بطاقة رصيد توصيل';
     }
     if (card.isSingleUse) {
-      return 'بطاقة خاصة لاستخدام واحد';
+      return 'بطاقة خاصة';
     }
     if (card.isAppointment) {
       return 'تذكرة موعد';
@@ -331,7 +331,7 @@ class PDFService {
           : 'بطاقة رصيد عامة للتوصيل والمدفوعات';
     }
     if (card.isSingleUse) {
-      return 'بطاقة خاصة لاستخدام واحد داخل النظام';
+      return 'بطاقة خاصة داخل النظام';
     }
     if (card.isAppointment) {
       return 'تذكرة موعد خاصة لمستفيدين محددين';
@@ -1113,7 +1113,9 @@ class PDFService {
   }
 
   Future<void> printPdfBytes(Uint8List pdfBytes) async {
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdfBytes);
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdfBytes,
+    );
   }
 
   Future<File> savePDF(pw.Document pdf, String filename) async {

@@ -1340,9 +1340,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _loginOtpRequired,
                   onChanged: (value) =>
                       setState(() => _loginOtpRequired = value),
-                  title: Text(
-                    l.tr('screens_admin_system_settings_screen.146'),
-                  ),
+                  title: Text(l.tr('screens_admin_system_settings_screen.146')),
                   subtitle: Text(
                     l.tr('screens_admin_system_settings_screen.147'),
                   ),
@@ -1351,9 +1349,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   contentPadding: EdgeInsets.zero,
                   value: _registrationWhatsappVerificationRequired,
                   onChanged: null,
-                  title: Text(
-                    l.tr('screens_admin_system_settings_screen.148'),
-                  ),
+                  title: Text(l.tr('screens_admin_system_settings_screen.148')),
                   subtitle: Text(
                     l.tr('screens_admin_system_settings_screen.149'),
                   ),
@@ -1361,9 +1357,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: _whatsappUsageMode,
                   decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_admin_system_settings_screen.150',
-                    ),
+                    labelText: l.tr('screens_admin_system_settings_screen.150'),
                     helperText: l.tr(
                       'screens_admin_system_settings_screen.151',
                     ),
@@ -1618,18 +1612,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _withdrawalRequestEnabled,
                   onChanged: (value) =>
                       setState(() => _withdrawalRequestEnabled = value),
-                  title: Text(
-                    l.tr('screens_admin_system_settings_screen.157'),
-                  ),
+                  title: Text(l.tr('screens_admin_system_settings_screen.157')),
                 ),
                 TextField(
                   controller: _withdrawalRequestInstructionsController,
                   minLines: 3,
                   maxLines: 5,
                   decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_admin_system_settings_screen.158',
-                    ),
+                    labelText: l.tr('screens_admin_system_settings_screen.158'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1819,8 +1809,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         children: [
           AdminSectionHeader(
             title: context.loc.tr('screens_admin_system_settings_screen.184'),
-            subtitle:
-                context.loc.tr('screens_admin_system_settings_screen.185'),
+            subtitle: context.loc.tr(
+              'screens_admin_system_settings_screen.185',
+            ),
             icon: Icons.credit_card_rounded,
           ),
           const SizedBox(height: 16),
@@ -1862,8 +1853,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           const SizedBox(height: 16),
           AdminSectionHeader(
             title: context.loc.tr('screens_admin_system_settings_screen.162'),
-            subtitle:
-                context.loc.tr('screens_admin_system_settings_screen.163'),
+            subtitle: context.loc.tr(
+              'screens_admin_system_settings_screen.163',
+            ),
             icon: Icons.receipt_long_rounded,
             trailing: Wrap(
               spacing: 8,
@@ -1907,20 +1899,28 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       ),
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.192'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.192',
+                      ),
                       _prepaidReportBuyerIdController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.193'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.193',
+                      ),
                       _prepaidReportMerchantIdController,
                     ),
                     _buildTextField(
-                      context.loc.tr('screens_admin_system_settings_screen.194'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.194',
+                      ),
                       _prepaidReportDateFromController,
                       hintText: '2026-04-26',
                     ),
                     _buildTextField(
-                      context.loc.tr('screens_admin_system_settings_screen.195'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.195',
+                      ),
                       _prepaidReportDateToController,
                       hintText: '2026-04-26',
                     ),
@@ -2260,7 +2260,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   _privateCardIssueCostController,
                 ),
                 _buildFeeField(
-                  'رسوم إصدار بطاقة خاصة لاستخدام واحد',
+                  'رسوم إصدار بطاقة خاصة',
                   _singleUseTicketIssueCostController,
                 ),
                 _buildFeeField(
@@ -2285,9 +2285,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  context.loc.tr(
-                    'screens_admin_system_settings_screen.170',
-                  ),
+                  context.loc.tr('screens_admin_system_settings_screen.170'),
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.textSecondary,
                   ),
@@ -2298,39 +2296,57 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   runSpacing: 16,
                   children: [
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.201'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.201',
+                      ),
                       _scanDefaultLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.202'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.202',
+                      ),
                       _scanRestrictedLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.177'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.177',
+                      ),
                       _scanBasicLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.203'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.203',
+                      ),
                       _scanVerifiedLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.179'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.179',
+                      ),
                       _scanDriverLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.180'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.180',
+                      ),
                       _scanMarketerLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.204'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.204',
+                      ),
                       _scanSupportLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.182'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.182',
+                      ),
                       _scanFinanceLimitController,
                     ),
                     _buildNumberField(
-                      context.loc.tr('screens_admin_system_settings_screen.183'),
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.183',
+                      ),
                       _scanAdminLimitController,
                     ),
                   ],
@@ -2338,25 +2354,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 const SizedBox(height: 16),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      context.loc.tr(
-                        'screens_admin_system_settings_screen.171',
-                      ),
-                    ),
+                  title: Text(
+                    context.loc.tr('screens_admin_system_settings_screen.171'),
+                  ),
                   subtitle: Text(
-                    context.loc.tr(
-                      'screens_admin_system_settings_screen.172',
-                    ),
+                    context.loc.tr('screens_admin_system_settings_screen.172'),
                   ),
                   value: _scanAutoRedeemGlobalForced,
                   onChanged: (value) =>
                       setState(() => _scanAutoRedeemGlobalForced = value),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'خصم قراءات بدون استخدام',
-                  style: AppTheme.bodyBold,
-                ),
+                Text('خصم قراءات بدون استخدام', style: AppTheme.bodyBold),
                 const SizedBox(height: 8),
                 Text(
                   'حدد كل كم قراءة بدون استرداد يتم الخصم، وقيمة الخصم. اترك العدد أو القيمة 0 لتعطيل الخصم.',

@@ -244,7 +244,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   String _cardTypeDescription(String type) {
     switch (type) {
       case 'single_use':
-        return 'بطاقة خاصة لاستخدام واحد تظهر ضمن البطاقات الخاصة بدون قيمة مالية.';
+        return 'بطاقة خاصة تظهر ضمن البطاقات الخاصة بدون قيمة مالية.';
       case 'delivery':
         return 'بطاقة مخصصة للتسليم مع رصيد قابل للاستخدام.';
       case 'appointment':
@@ -1343,9 +1343,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                         return CheckboxListTile(
                           value: selectedNow,
                           title: Text(_userOptionLabel(user)),
-                          subtitle: Text(
-                            _userOptionSubtitle(l, user),
-                          ),
+                          subtitle: Text(_userOptionSubtitle(l, user)),
                           onChanged: (value) {
                             setModalState(() {
                               if (value == true && !selectedNow) {
@@ -1407,9 +1405,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final username = user['username']?.toString().trim() ?? '';
     final id = user['id']?.toString().trim() ?? '-';
     if (username.isNotEmpty) {
-      return '@$username - ${l.tr('screens_create_card_screen.027', params: {
-            'id': id,
-          })}';
+      return '@$username - ${l.tr('screens_create_card_screen.027', params: {'id': id})}';
     }
 
     return l.tr('screens_create_card_screen.027', params: {'id': id});
