@@ -1081,10 +1081,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _applyCurrentPdfDesignSettings();
     try {
       final exportCards = _cardsWithPrintFallbacks(cards);
-      final pdf = await _pdfService.createMultiCardPDF(
-        exportCards,
-        printedBy: printedBy,
-      );
+      final pdf = exportCards.length == 1
+          ? await _pdfService.createCardPDF(
+              exportCards.first,
+              printedBy: printedBy,
+              serialNumber: 1,
+            )
+          : await _pdfService.createMultiCardPDF(
+              exportCards,
+              printedBy: printedBy,
+            );
       final timestamp = DateTime.now().toIso8601String().replaceAll(
         RegExp(r'[:.]'),
         '-',
