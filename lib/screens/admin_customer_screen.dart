@@ -8,6 +8,7 @@ import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
+import '../utils/permission_catalog.dart';
 import '../widgets/admin/admin_enums.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_section_header.dart';
@@ -128,47 +129,6 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       'keys': ['canRequestCardPrinting', 'canManageCardPrintRequests'],
     },
   ];
-  static const Map<String, String> _permissionLabels = {
-    'canViewBalance': 'عرض الرصيد',
-    'canViewTransactions': 'عرض الحركات المالية',
-    'canViewInventory': 'عرض المخزون',
-    'canViewQuickTransfer': 'إظهار خدمة التحويل السريع',
-    'canTransfer': 'تحويل الرصيد',
-    'canWithdraw': 'طلب السحب',
-    'canRedeemCards': 'استرداد/سحب رصيد البطاقات',
-    'canIssueCards': 'إصدار البطاقات',
-    'canScanCards': 'قراءة البطاقات',
-    'canOfflineCardScan': 'قراءة البطاقات أوفلاين',
-    'canIssueSubShekelCards': 'إصدار بطاقات منخفضة القيمة',
-    'canIssueHighValueCards': 'إصدار بطاقات عالية القيمة',
-    'canIssuePrivateCards': 'إصدار بطاقات خاصة',
-    'canIssueSingleUseTickets': 'إصدار تذاكر دخول لمرة واحدة',
-    'canIssueAppointmentTickets': 'إصدار تذاكر مواعيد',
-    'canIssueQueueTickets': 'إصدار تذاكر طوابير',
-    'canViewPrivateCards': 'عرض البطاقات الخاصة',
-    'canReadOwnPrivateCardsOnly': 'قراءة بطاقاته الخاصة فقط',
-    'canDeleteCards': 'حذف البطاقات',
-    'canResellCards': 'إعادة بيع البطاقات',
-    'canRequestCardPrinting': 'طلب طباعة البطاقات',
-    'canManageCardPrintRequests': 'إدارة طلبات طباعة البطاقات',
-    'canUsePrepaidMultipayCards': 'استخدام بطاقات الدفع المسبق',
-    'canAcceptPrepaidMultipayPayments': 'قبول دفع البطاقات المسبقة',
-    'canUsePrepaidMultipayNfc': 'استخدام NFC للبطاقات المسبقة',
-    'canViewCustomers': 'عرض المستخدمين',
-    'canLookupMembers': 'البحث عن الأعضاء',
-    'canManageUsers': 'إدارة المستخدمين',
-    'canFinanceTopup': 'شحن أرصدة المستخدمين من حساب المالية',
-    'canManageMarketingAccounts': 'إدارة حسابات التسويق',
-    'canManageSubUsers': 'إدارة المستخدمين الفرعيين',
-    'canManageLocations': 'إدارة الفروع والمواقع',
-    'canManageSystemSettings': 'إدارة إعدادات النظام',
-    'canReviewWithdrawals': 'مراجعة طلبات السحب',
-    'canReviewTopups': 'مراجعة عمليات الشحن',
-    'canReviewDevices': 'مراجعة الأجهزة',
-    'canExportCustomerTransactions': 'تصدير حركات المستخدمين',
-    'canViewAffiliateCenter': 'عرض مركز التسويق',
-    'canManageDebtBook': 'إدارة دفتر الديون',
-  };
   AdminTransactionAuditFilter _auditFilter = AdminTransactionAuditFilter.all;
   bool _showTransactionFilters = false;
   bool _cardScanLimitExempt = false;
@@ -1659,7 +1619,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       )
                       .map(
                         (key) => _permItem(
-                          _permissionLabels[key] ?? key,
+                          PermissionCatalog.label(context, key),
                           key,
                           perms,
                         ),
@@ -1741,7 +1701,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           ),
           const SizedBox(height: 10),
           ...permissionKeys.map(
-            (key) => _permItem(_permissionLabels[key] ?? key, key, perms),
+            (key) => _permItem(PermissionCatalog.label(context, key), key, perms),
           ),
         ],
       ),
@@ -2273,6 +2233,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   Widget _permItem(String l, String k, Map<String, dynamic> p) =>
       SwitchListTile(
         title: Text(l, style: AppTheme.bodyText),
+        subtitle: () {
+          final desc = PermissionCatalog.description(context, k).trim();
+          if (desc.isEmpty) return null;
+          return Text(desc, style: AppTheme.bodyText.copyWith(fontSize: 12));
+        }(),
         value: p[k] == true,
         onChanged: (v) async {
           p[k] = v;
@@ -2285,8 +2250,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   Future<void> _savePermissions(Map<String, dynamic> p) async {
     setState(() => _busy = true);
     try {
+      // Persist only the permissions keys we are showing (plus those already in payload).
       final overrides = <String, bool>{
-        for (final key in _permissionLabels.keys) key: p[key] == true,
+        for (final entry in p.entries)
+          if (entry.value is bool) entry.key: entry.value == true,
       };
       final res = await _api.updateAdminUserCardPermissions(
         userId: _customer['id'].toString(),

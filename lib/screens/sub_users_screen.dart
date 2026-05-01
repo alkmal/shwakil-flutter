@@ -4,6 +4,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/user_display_name.dart';
+import '../utils/permission_catalog.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -46,16 +47,16 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canRequestCardPrinting': true,
   };
 
-  static const Map<String, String> _permissionLabels = {
-    'canTransfer': 'screens_sub_users_screen.073',
-    'canWithdraw': 'screens_sub_users_screen.074',
-    'canScanCards': 'screens_sub_users_screen.075',
-    'canRedeemCards': 'screens_sub_users_screen.076',
-    'canOfflineCardScan': 'screens_sub_users_screen.077',
-    'canRequestCardPrinting': 'screens_sub_users_screen.078',
-    'canReviewCards': 'screens_sub_users_screen.079',
-    'canReadOwnPrivateCardsOnly': 'screens_sub_users_screen.131',
-  };
+  static const List<String> _permissionKeysOrder = [
+    'canTransfer',
+    'canWithdraw',
+    'canScanCards',
+    'canRedeemCards',
+    'canOfflineCardScan',
+    'canRequestCardPrinting',
+    'canReviewCards',
+    'canReadOwnPrivateCardsOnly',
+  ];
 
   @override
   void initState() {
@@ -871,8 +872,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          ..._permissionLabels.entries.map(
-            (entry) => _permissionTile(context.loc.tr(entry.value), entry.key),
+          ..._permissionKeysOrder.map(
+            (key) => _permissionTile(PermissionCatalog.label(context, key), key),
           ),
         ],
       ),
@@ -976,6 +977,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   }
 
   String _permissionHint(String key) {
+    final fromCatalog = PermissionCatalog.description(context, key).trim();
+    if (fromCatalog.isNotEmpty) {
+      return fromCatalog;
+    }
     switch (key) {
       case 'canTransfer':
         return context.loc.tr('screens_sub_users_screen.056');
