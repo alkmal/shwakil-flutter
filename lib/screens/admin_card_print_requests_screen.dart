@@ -943,6 +943,12 @@ class _AdminCardPrintRequestsScreenState
                     l.tr('screens_admin_card_print_requests_screen.export_pdf'),
                   ),
                 ),
+                OutlinedButton.icon(
+                  onPressed:
+                      busy ? null : () => _showOverrideStatusDialog(request),
+                  icon: const Icon(Icons.edit_rounded),
+                  label: const Text('تعديل الحالة'),
+                ),
                 if (status == 'pending_review')
                   _actionButton(
                     l.tr('screens_admin_card_print_requests_screen.023'),
@@ -979,6 +985,119 @@ class _AdminCardPrintRequestsScreenState
         ),
       ),
     );
+  }
+
+  Future<void> _showOverrideStatusDialog(Map<String, dynamic> request) async {
+    final currentStatus = request['status']?.toString() ?? 'pending_review';
+    final controller = TextEditingController();
+    String selected = currentStatus;
+    final result = await showDialog<Map<String, String>?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تعديل حالة الطلب'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: selected,
+                decoration: const InputDecoration(labelText: 'الحالة الجديدة'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'pending_review',
+                    child: Text('بانتظار المراجعة'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'approved',
+                    child: Text('تمت الموافقة'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'printing',
+                    child: Text('قيد الطباعة'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'ready',
+                    child: Text('جاهز للتسليم'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'completed',
+                    child: Text('مكتمل'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'rejected',
+                    child: Text('مرفوض'),
+                  ),
+                ],
+                onChanged: (value) => selected = value ?? selected,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                minLines: 2,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'ملاحظة للإدارة (اختياري)',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, {
+              'status': selected,
+              'notes': controller.text,
+            }),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null) return;
+
+    try {
+      setState(() => _busyId = request['id']?.toString());
+      final res = await _apiService.overrideCardPrintRequestStatus(
+        request['id']?.toString() ?? '',
+        status: result['status'] ?? currentStatus,
+        notes: result['notes'] ?? '',
+      );
+      final updated = res['request'];
+      if (updated is Map) {
+        final updatedMap = Map<String, dynamic>.from(updated);
+        setState(() {
+          _requests = _requests
+              .map(
+                (item) => (item['id']?.toString() ==
+                        updatedMap['id']?.toString())
+                    ? updatedMap
+                    : item,
+              )
+              .toList();
+          _busyId = null;
+        });
+      } else {
+        setState(() => _busyId = null);
+      }
+      if (!mounted) return;
+      AppAlertService.showSuccess(
+        context,
+        message: res['message']?.toString() ?? 'تم تحديث حالة الطلب.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busyId = null);
+      AppAlertService.showError(
+        context,
+        message: ErrorMessageService.sanitize(e),
+      );
+    }
   }
 
   Widget _actionButton(String label, bool busy, VoidCallback onPressed) {

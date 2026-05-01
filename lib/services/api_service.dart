@@ -1229,6 +1229,22 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> overrideCardPrintRequestStatus(
+    String requestId, {
+    required String status,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/card-print-requests/$requestId/override-status'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'status': status.trim(),
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> rejectCardPrintRequest(
     String requestId, {
     String notes = '',
