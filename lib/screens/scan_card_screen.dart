@@ -177,9 +177,19 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   void _syncAutoRedeemState(Map<String, dynamic>? user) {
+    final role = user?['role']?.toString() ?? '';
+    final staffCanUsePublicCards =
+        role == 'admin' || role == 'support' || role == 'finance';
+    final unverifiedForced =
+        user?['cardAutoRedeemOnScanUnverifiedForced'] == true ||
+        (!staffCanUsePublicCards &&
+            (user?['transferVerificationStatus']?.toString() ??
+                    'unverified') !=
+                'approved');
     _autoRedeemOnScanForced =
         user?['cardAutoRedeemOnScanForced'] == true ||
-        user?['cardAutoRedeemOnScanGlobalForced'] == true;
+        user?['cardAutoRedeemOnScanGlobalForced'] == true ||
+        unverifiedForced;
     _autoRedeemOnScan =
         _autoRedeemOnScanForced || user?['cardAutoRedeemOnScanEnabled'] == true;
   }
@@ -216,10 +226,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
     final nextValue = !_autoRedeemOnScan;
     if (_autoRedeemOnScanForced && !nextValue) {
+      final unverifiedForced =
+          _user?['cardAutoRedeemOnScanUnverifiedForced'] == true ||
+          (!['admin', 'support', 'finance'].contains(
+                _user?['role']?.toString() ?? '',
+              ) &&
+              (_user?['transferVerificationStatus']?.toString() ??
+                      'unverified') !=
+                  'approved');
       await AppAlertService.showInfo(
         context,
-        title: 'السحب التلقائي مفعل من الإدارة',
-        message: 'لا يمكن تعطيله إلا بعد مراجعة الإدارة.',
+        title: 'لا يمكن تعطيل السحب التلقائي',
+        message: unverifiedForced
+            ? 'لا يمكن تعطيل هذه الخاصية. تعطيل السحب التلقائي متوفر للمستخدمين الموثقين حساباتهم.'
+            : 'السحب التلقائي مفعل من الإدارة ولا يمكن تعطيله إلا بعد مراجعة الإدارة.',
       );
       return;
     }
@@ -2670,13 +2690,23 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   Widget _buildAutoRedeemControl() {
     final active = _autoRedeemOnScan || _autoRedeemOnScanForced;
+    final unverifiedForced =
+        _user?['cardAutoRedeemOnScanUnverifiedForced'] == true ||
+        (!['admin', 'support', 'finance'].contains(
+              _user?['role']?.toString() ?? '',
+            ) &&
+            (_user?['transferVerificationStatus']?.toString() ??
+                    'unverified') !=
+                'approved');
     final color = _autoRedeemOnScanForced
         ? AppTheme.warning
         : active
         ? AppTheme.success
         : AppTheme.textSecondary;
     final title = _autoRedeemOnScanForced
-        ? 'السحب التلقائي مفروض من الإدارة'
+        ? (unverifiedForced
+              ? 'السحب التلقائي مفعل للحساب غير الموثق'
+              : 'السحب التلقائي مفروض من الإدارة')
         : active
         ? 'السحب التلقائي مفعل'
         : 'السحب اليدوي مفعل';

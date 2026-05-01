@@ -49,6 +49,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       (_subUserOperationalLimits[key] as num?)?.toDouble();
 
   bool get _isDriverAccount => _user?['role']?.toString() == 'driver';
+  bool get _isVerifiedAccount =>
+      (_user?['transferVerificationStatus']?.toString() ?? 'unverified') ==
+      'approved';
   int get _minimumCardQuantity {
     final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
     return raw < 1 ? 1 : raw;
@@ -297,6 +300,16 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           final totalAmount = baseAmount + feeAmount;
 
           void addAllowedPhone() {
+            if (!_isVerifiedAccount) {
+              AppAlertService.showInfo(
+                dialogContext,
+                title: 'إضافة المستفيدين غير متاحة',
+                message:
+                    'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط.',
+              );
+              return;
+            }
+
             final raw = allowedPhoneController.text.trim();
             final digits = raw.replaceAll(RegExp(r'\D'), '');
             if (digits.length < 6) {
@@ -327,17 +340,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   'screens_card_print_requests_screen.058',
                   params: {'count': '$_minimumCardQuantity'},
                 ),
-              );
-              return;
-            }
-
-            if (requiresTargetedUsers &&
-                selectedUserIds.isEmpty &&
-                selectedPhones.isEmpty) {
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_card_print_requests_screen.059'),
-                message: l.tr('screens_card_print_requests_screen.060'),
               );
               return;
             }
@@ -866,6 +868,16 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     BuildContext dialogContext,
     List<Map<String, dynamic>> current,
   ) async {
+    if (!_isVerifiedAccount) {
+      await AppAlertService.showInfo(
+        dialogContext,
+        title: 'اختيار المستفيدين غير متاح',
+        message:
+            'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط ولا يمكن البحث عن مستخدمين آخرين.',
+      );
+      return current;
+    }
+
     final searchController = TextEditingController();
     final selected = List<Map<String, dynamic>>.from(current);
     var results = <Map<String, dynamic>>[];

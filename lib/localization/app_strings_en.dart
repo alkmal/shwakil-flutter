@@ -1409,7 +1409,7 @@ const Map<String, String> appStringsEn = {
   'screens_card_print_requests_screen.040': 'Rejected',
   'screens_create_card_screen.001': 'Shwakel',
   'screens_create_card_screen.002': 'Balance card',
-  'screens_create_card_screen.003': 'Single-use card',
+  'screens_create_card_screen.003': 'Private single-use card',
   'screens_create_card_screen.004': 'Incomplete data',
   'screens_create_card_screen.005':
       'Please enter valid issuance data before continuing.',

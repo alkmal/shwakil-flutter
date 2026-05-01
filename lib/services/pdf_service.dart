@@ -313,7 +313,7 @@ class PDFService {
       return 'بطاقة رصيد توصيل';
     }
     if (card.isSingleUse) {
-      return 'تذكرة دخول';
+      return 'بطاقة خاصة لاستخدام واحد';
     }
     if (card.isAppointment) {
       return 'تذكرة موعد';
@@ -353,7 +353,7 @@ class PDFService {
           : 'بطاقة رصيد عامة للتوصيل والمدفوعات';
     }
     if (card.isSingleUse) {
-      return 'تذكرة خاصة لاستخدام واحد داخل النظام';
+      return 'بطاقة خاصة لاستخدام واحد داخل النظام';
     }
     if (card.isAppointment) {
       return 'تذكرة موعد خاصة لمستفيدين محددين';

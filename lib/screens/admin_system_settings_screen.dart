@@ -99,6 +99,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _loginOtpRequired = false;
   bool _registrationWhatsappVerificationRequired = true;
   String _whatsappUsageMode = 'all';
+  String _messageDeliveryPriority = 'whatsapp';
   bool _topupRequestEnabled = true;
   bool _withdrawalRequestEnabled = true;
   bool _affiliateEnabled = true;
@@ -269,6 +270,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _whatsappUsageMode = _normalizeWhatsappUsageMode(
         authSettings['whatsappUsageMode'],
       );
+      _messageDeliveryPriority = _normalizeMessageDeliveryPriority(
+        authSettings['messageDeliveryPriority'],
+      );
       final minSupportedVersion =
           authSettings['minSupportedVersion']?.toString().trim() ?? '';
       final latestVersion =
@@ -309,7 +313,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (feeSettings['privateCardIssueCost'] as num?)?.toString() ?? '0.01';
       _singleUseTicketIssueCostController.text =
           (feeSettings['singleUseTicketIssueCost'] as num?)?.toString() ??
-          '0.01';
+          '0.02';
       _appointmentTicketIssueCostController.text =
           (feeSettings['appointmentTicketIssueCost'] as num?)?.toString() ??
           '0.25';
@@ -530,6 +534,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           registrationWhatsappVerificationRequired:
               _registrationWhatsappVerificationRequired,
           whatsappUsageMode: _whatsappUsageMode,
+          messageDeliveryPriority: _messageDeliveryPriority,
           minSupportedVersion: _minSupportedVersionController.text,
           latestVersion: _latestVersionController.text,
           androidStoreUrl: _androidStoreUrlController.text,
@@ -559,7 +564,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           privateCardIssueCost:
               double.tryParse(_privateCardIssueCostController.text) ?? 0.01,
           singleUseTicketIssueCost:
-              double.tryParse(_singleUseTicketIssueCostController.text) ?? 0.01,
+              double.tryParse(_singleUseTicketIssueCostController.text) ?? 0.02,
           appointmentTicketIssueCost:
               double.tryParse(_appointmentTicketIssueCostController.text) ??
               0.25,
@@ -1233,6 +1238,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     return 'all';
   }
 
+  String _normalizeMessageDeliveryPriority(Object? value) {
+    final priority = value?.toString().trim().toLowerCase();
+    if (priority == 'whatsapp' || priority == 'sms') {
+      return priority!;
+    }
+    return 'whatsapp';
+  }
+
   Widget _buildContactTab() {
     final l = context.loc;
     return _tabScroll(
@@ -1361,6 +1374,29 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   onChanged: (value) => setState(
                     () =>
                         _whatsappUsageMode = _normalizeWhatsappUsageMode(value),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _messageDeliveryPriority,
+                  decoration: const InputDecoration(
+                    labelText: 'أولوية إرسال الرسائل',
+                    helperText:
+                        'القناة الأولى للرسائل، ويتم استخدام القناة الأخرى تلقائيًا عند الفشل.',
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'whatsapp',
+                      child: Text('واتساب ثم SMS'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'sms',
+                      child: Text('SMS ثم واتساب'),
+                    ),
+                  ],
+                  onChanged: (value) => setState(
+                    () => _messageDeliveryPriority =
+                        _normalizeMessageDeliveryPriority(value),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2207,7 +2243,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   _privateCardIssueCostController,
                 ),
                 _buildFeeField(
-                  'رسوم إصدار تذكرة دخول',
+                  'رسوم إصدار بطاقة خاصة لاستخدام واحد',
                   _singleUseTicketIssueCostController,
                 ),
                 _buildFeeField(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class OfflineTransferCodeService {
@@ -7,11 +8,11 @@ class OfflineTransferCodeService {
   static const String _keyPrefix = 'offline_temp_transfer_slots_';
 
   Future<List<Map<String, dynamic>>> getSlots(String userId) async {
-    final raw = await _storage.read(key: '$_keyPrefix$userId');
-    if (raw == null || raw.trim().isEmpty) {
-      return [];
-    }
     try {
+      final raw = await _storage.read(key: '$_keyPrefix$userId');
+      if (raw == null || raw.trim().isEmpty) {
+        return [];
+      }
       final decoded = jsonDecode(raw);
       if (decoded is! List) {
         return [];
@@ -21,27 +22,35 @@ class OfflineTransferCodeService {
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .where((item) {
-            final expiresAt = DateTime.tryParse(item['expiresAt']?.toString() ?? '');
+            final expiresAt = DateTime.tryParse(
+              item['expiresAt']?.toString() ?? '',
+            );
             if (expiresAt == null) {
               return false;
             }
             return expiresAt.isAfter(now);
           })
           .toList();
+    } on PlatformException {
+      return [];
     } catch (_) {
       return [];
     }
   }
 
-  Future<void> replaceSlots(String userId, List<Map<String, dynamic>> slots) async {
-    if (slots.isEmpty) {
-      await _storage.delete(key: '$_keyPrefix$userId');
+  Future<void> replaceSlots(
+    String userId,
+    List<Map<String, dynamic>> slots,
+  ) async {
+    try {
+      if (slots.isEmpty) {
+        await _storage.delete(key: '$_keyPrefix$userId');
+        return;
+      }
+      await _storage.write(key: '$_keyPrefix$userId', value: jsonEncode(slots));
+    } on PlatformException {
       return;
     }
-    await _storage.write(
-      key: '$_keyPrefix$userId',
-      value: jsonEncode(slots),
-    );
   }
 
   Future<List<Map<String, dynamic>>> mergeSlots(
@@ -51,7 +60,8 @@ class OfflineTransferCodeService {
     final current = await getSlots(userId);
     final byId = <String, Map<String, dynamic>>{
       for (final slot in current)
-        if ((slot['id']?.toString() ?? '').isNotEmpty) slot['id'].toString(): slot,
+        if ((slot['id']?.toString() ?? '').isNotEmpty)
+          slot['id'].toString(): slot,
     };
     for (final slot in incoming) {
       final id = slot['id']?.toString() ?? '';
@@ -61,7 +71,11 @@ class OfflineTransferCodeService {
       byId[id] = Map<String, dynamic>.from(slot);
     }
     final merged = byId.values.toList()
-      ..sort((a, b) => (a['expiresAt']?.toString() ?? '').compareTo(b['expiresAt']?.toString() ?? ''));
+      ..sort(
+        (a, b) => (a['expiresAt']?.toString() ?? '').compareTo(
+          b['expiresAt']?.toString() ?? '',
+        ),
+      );
     await replaceSlots(userId, merged);
     return merged;
   }

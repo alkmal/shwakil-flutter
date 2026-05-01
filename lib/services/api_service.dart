@@ -1247,7 +1247,7 @@ class ApiService {
     String fullName = '',
     String password = '',
     String countryCode = '970',
-    String deliveryMethod = 'sms',
+    String deliveryMethod = 'whatsapp',
   }) async {
     final normalizedUsername = username.trim().toLowerCase();
     final normalizedWhatsapp = PhoneNumberService.normalize(
@@ -1273,7 +1273,7 @@ class ApiService {
   Future<Map<String, dynamic>> resendAdminUserAccountDetails({
     required String userId,
     bool regeneratePassword = true,
-    String deliveryMethod = 'sms',
+    String deliveryMethod = 'whatsapp',
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/users/$userId/resend-account-details'),
@@ -1303,6 +1303,7 @@ class ApiService {
     required bool loginOtpRequired,
     required bool registrationWhatsappVerificationRequired,
     required String whatsappUsageMode,
+    required String messageDeliveryPriority,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1318,6 +1319,7 @@ class ApiService {
         'registrationWhatsappVerificationRequired':
             registrationWhatsappVerificationRequired,
         'whatsappUsageMode': whatsappUsageMode.trim(),
+        'messageDeliveryPriority': messageDeliveryPriority.trim(),
         'minSupportedVersion': minSupportedVersion.trim(),
         'latestVersion': latestVersion.trim(),
         'androidStoreUrl': androidStoreUrl.trim(),
@@ -1682,6 +1684,7 @@ class ApiService {
     required bool loginOtpRequired,
     required bool registrationWhatsappVerificationRequired,
     required String whatsappUsageMode,
+    required String messageDeliveryPriority,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1694,6 +1697,7 @@ class ApiService {
       registrationWhatsappVerificationRequired:
           registrationWhatsappVerificationRequired,
       whatsappUsageMode: whatsappUsageMode,
+      messageDeliveryPriority: messageDeliveryPriority,
       minSupportedVersion: minSupportedVersion,
       latestVersion: latestVersion,
       androidStoreUrl: androidStoreUrl,
@@ -2010,7 +2014,7 @@ class ApiService {
   Future<Map<String, dynamic>> approvePendingRegistrationRequest(
     String requestId, {
     bool allowUnverifiedWhatsapp = false,
-    String deliveryMethod = 'sms',
+    String deliveryMethod = 'whatsapp',
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/registrations/$requestId/approve'),
