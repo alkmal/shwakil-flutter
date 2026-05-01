@@ -602,6 +602,58 @@ class PDFService {
     return pdf;
   }
 
+  /// Creates a single-page A4 PDF that renders the exact same "small card"
+  /// layout used inside the 30-cards-per-page sheet. This is used for an
+  /// accurate on-screen preview (rasterized from this PDF) so the user sees
+  /// exactly what will be printed.
+  Future<pw.Document> createSmallCardSheetPreviewPDF(
+    VirtualCard card, {
+    String? printedBy,
+    int serialNumber = 1,
+  }) async {
+    await _ensureFontsLoaded();
+    final pdf = pw.Document();
+
+    final availableWidth = PdfPageFormat.a4.width - (2 * _a4PagePrintMargin);
+    final availableHeight = PdfPageFormat.a4.height - (2 * _a4PagePrintMargin);
+    final cellWidth = availableWidth / _columnsPerPage;
+    final cellHeight = availableHeight / _rowsPerPage;
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(_a4PagePrintMargin),
+        theme: pw.ThemeData.withFont(
+          base: _regularFont!,
+          bold: _boldFont!,
+          fontFallback: [_regularFont!, _boldFont!],
+        ),
+        build: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Container(
+            color: _pageBackground,
+            child: pw.Center(
+              child: pw.SizedBox(
+                width: cellWidth,
+                height: cellHeight,
+                child: pw.Padding(
+                  padding: const pw.EdgeInsets.all(_cardCutGap),
+                  child: _buildSmallCardWidget(
+                    card,
+                    printedBy: printedBy,
+                    serialNumber: serialNumber,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return pdf;
+  }
+
   List<pw.Widget> _buildCardRows(
     List<VirtualCard> cards, {
     String? printedBy,
@@ -1143,6 +1195,10 @@ class PDFService {
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
+  }
+
+  Future<void> printPdfBytes(Uint8List pdfBytes) async {
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdfBytes);
   }
 
   Future<File> savePDF(pw.Document pdf, String filename) async {

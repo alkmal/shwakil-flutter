@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -9,7 +12,6 @@ import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
-import '../widgets/print_card_preview.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -994,10 +996,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
     _applyCurrentPdfDesignSettings();
     try {
-      await _pdfService.printCards(
-        _cardsWithPrintFallbacks(cards),
+      final exportCards = _cardsWithPrintFallbacks(cards);
+      // Validate that we can generate the PDF sheet before opening the printer dialog.
+      final pdf = await _pdfService.createMultiCardPDF(
+        exportCards,
         printedBy: printedBy,
       );
+      final bytes = await pdf.save();
+      if (bytes.isEmpty) {
+        throw Exception('تعذر توليد ملف الطباعة.');
+      }
+      // Extra guard: attempt rasterizing page 1 to ensure rendering works.
+      try {
+        final stream = Printing.raster(bytes, pages: const [0], dpi: 110);
+        await stream.first;
+      } catch (_) {
+        throw Exception('تعذر تجهيز معاينة الطباعة. يرجى المحاولة لاحقاً.');
+      }
+      await _pdfService.printPdfBytes(bytes);
     } catch (error) {
       if (!mounted) {
         return;
@@ -2029,6 +2045,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _cardType = type;
       if (_requiresTargetedPrivateCard) {
         _visibilityScope = 'restricted';
+      } else if (!_isTrialMode && _cardType == 'standard') {
+        // Default to public issuance for standard balance cards.
+        _visibilityScope = 'general';
       } else if (_cardType == 'delivery') {
         _visibilityScope = 'general';
         _selectedUsers = [];
@@ -2433,6 +2452,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
     final canPreviewPrint = _recent.isNotEmpty;
+    final visibilityLabel = _effectiveVisibilityScope == 'restricted'
+        ? l.tr('screens_create_card_screen.010')
+        : l.tr('screens_create_card_screen.011');
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       color: AppTheme.secondary.withValues(alpha: 0.05),
@@ -2450,10 +2472,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             'العدد المطلوب',
             quantity > 0 ? '$quantity' : '-',
           ),
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow('الخصوصية', visibilityLabel),
+          if (_effectiveVisibilityScope == 'restricted') ...[
+            const SizedBox(height: 8),
+            _buildPreviewSummaryRow(
+              'مستفيدون محددون',
+              '${_selectedUsers.length} مستخدم - ${_selectedPhoneNumbers.length} رقم',
+            ),
+          ],
           if (_formatValidityWindow().isNotEmpty) ...[
             const SizedBox(height: 8),
             _buildPreviewSummaryRow('الصلاحية', _formatValidityWindow()),
           ],
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow(
+            'الشعار والختم',
+            '${_showLogo ? 'مفعل' : 'مخفي'} / ${_showStamp ? 'مفعل' : 'مخفي'}',
+          ),
           const SizedBox(height: 18),
           ShwakelButton(
             label: 'إصدار الدفعة الآن',
@@ -2575,11 +2611,46 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     required int serialNumber,
   }) {
     final l = context.loc;
-    return PrintCardPreview(
-      card: previewCard,
-      serialNumber: serialNumber,
-      printedBy: _resolvedIssuerName(l),
-      designSettings: _currentPdfDesignSettings(),
+    final printedBy = _resolvedIssuerName(l);
+    final settings = _currentPdfDesignSettings();
+    _pdfService.setDesignSettings(settings);
+
+    return FutureBuilder<Uint8List>(
+      future: () async {
+        final pdf = await _pdfService.createSmallCardSheetPreviewPDF(
+          previewCard,
+          printedBy: printedBy,
+          serialNumber: serialNumber,
+        );
+        final bytes = await pdf.save();
+        final stream = Printing.raster(bytes, pages: const [0], dpi: 220);
+        final page = await stream.first;
+        return page.toPng();
+      }(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox(
+            height: 240,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final data = snapshot.data;
+        if (data == null || data.isEmpty) {
+          return ShwakelCard(
+            padding: const EdgeInsets.all(18),
+            color: AppTheme.surfaceVariant,
+            child: const Text('تعذر توليد معاينة الطباعة.'),
+          );
+        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.memory(
+            data,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
+        );
+      },
     );
   }
 
