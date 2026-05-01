@@ -111,11 +111,6 @@ class PrintCardPreview extends StatelessWidget {
     return 'بطاقة رصيد';
   }
 
-  String get _logoText {
-    final text = designSettings.logoText?.trim() ?? '';
-    return text.isEmpty ? 'شواكل' : text;
-  }
-
   String get _stampText {
     final text = designSettings.stampText?.trim() ?? '';
     return text.isEmpty ? 'صالح للتداول' : text;
@@ -129,6 +124,9 @@ class PrintCardPreview extends StatelessWidget {
   }
 
   String get _cardBadgeLabel {
+    if (card.isSingleUse) {
+      return 'بطاقة خاصة';
+    }
     if (_isLocationSpecific) {
       return 'مكان محدد - $_cardKindLabel';
     }
@@ -325,13 +323,9 @@ class PrintCardPreview extends StatelessWidget {
                       children: [
                         _Header(
                           palette: palette,
-                          showLogo: designSettings.showLogo,
-                          logoText: _logoText,
-                          subtitleText: card.isDelivery
-                              ? _cardSubtitle
-                              : _isTicketCard
-                              ? 'تذكرة خاصة داخل النظام'
-                              : 'بطاقة رصيد رقمية',
+                          showLogo: false,
+                          logoText: '',
+                          subtitleText: '',
                           badgeText: _cardBadgeLabel,
                           logoUrl: designSettings.logoUrl,
                           isPrivate: _isVisuallyPrivate,
@@ -339,15 +333,39 @@ class PrintCardPreview extends StatelessWidget {
                         const SizedBox(height: 2.6),
                         Column(
                           children: [
-                            if (_isTicketCard)
-                              Text(
-                                _cardTitle,
-                                textAlign: TextAlign.center,
-                                style: AppTheme.bodyBold.copyWith(
-                                  fontSize: 5.7,
-                                  color: palette.primary,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                if (designSettings.showLogo) ...[
+                                  _LogoBox(
+                                    logoUrl: designSettings.logoUrl,
+                                    size: 26,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    _cardTitle,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: (_isTicketCard
+                                            ? AppTheme.bodyBold
+                                            : AppTheme.h1)
+                                        .copyWith(
+                                      fontSize: _isTicketCard ? 7.1 : 14.2,
+                                      height: 1.05,
+                                      color: _isTicketCard
+                                          ? palette.primary
+                                          : palette.value,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
+                            ),
+                            const SizedBox(height: 1.6),
                             Text(
                               _isTicketCard
                                   ? _cardSubtitle
@@ -360,16 +378,6 @@ class PrintCardPreview extends StatelessWidget {
                             ),
                             if (!_isTicketCard) ...[
                               const SizedBox(height: 1.5),
-                              Text(
-                                _cardTitle,
-                                textAlign: TextAlign.center,
-                                style: AppTheme.h1.copyWith(
-                                  fontSize: 14.5,
-                                  color: palette.value,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 1),
                               Text(
                                 _cardSubtitle,
                                 textAlign: TextAlign.center,
@@ -581,6 +589,33 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final resolvedLogoUrl = logoUrl?.trim() ?? '';
     final hasNetworkLogo = resolvedLogoUrl.isNotEmpty;
+    final hasHeaderBrand =
+        showLogo || logoText.trim().isNotEmpty || subtitleText.trim().isNotEmpty;
+    if (!hasHeaderBrand) {
+      return Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 3.8, vertical: 1.3),
+          decoration: BoxDecoration(
+            color: isPrivate ? const Color(0xFFFFE4E6) : palette.soft,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isPrivate ? const Color(0xFFFB7185) : palette.border,
+              width: 0.45,
+            ),
+          ),
+          child: Text(
+            badgeText,
+            style: AppTheme.caption.copyWith(
+              fontSize: 4.8,
+              fontWeight: FontWeight.w800,
+              color: isPrivate ? const Color(0xFFBE123C) : palette.primary,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -657,17 +692,18 @@ class _Header extends StatelessWidget {
 }
 
 class _LogoBox extends StatelessWidget {
-  const _LogoBox({required this.logoUrl});
+  const _LogoBox({required this.logoUrl, this.size = 24});
 
   final String? logoUrl;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     final resolvedUrl = logoUrl?.trim() ?? '';
     final hasNetworkLogo = resolvedUrl.isNotEmpty;
     return Container(
-      width: 24,
-      height: 24,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(3),

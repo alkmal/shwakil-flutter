@@ -65,6 +65,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _autoRedeemOnScan = false;
   bool _autoRedeemOnScanForced = false;
   bool _isUpdatingAutoRedeemOnScan = false;
+  String? _lastAutoRedeemedBarcode;
 
   bool get _canAccessScanScreen {
     final permissions = AppPermissions.fromUser(_user);
@@ -713,6 +714,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         autoRedeem: _autoRedeemOnScan || _autoRedeemOnScanForced,
         location: location,
       );
+      final autoRedeemed = _api.lastCardLookupAutoRedeemed;
       final updatedUser = await _auth.currentUser();
       if (mounted && updatedUser != null) {
         setState(() {
@@ -721,10 +723,21 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         });
       }
       if (result == null) {
+        if (mounted) {
+          setState(() => _lastAutoRedeemedBarcode = null);
+        }
         return _CardLookupResult.error(notFoundMessage);
       }
-      return _CardLookupResult.success(result);
+      if (mounted) {
+        setState(() {
+          _lastAutoRedeemedBarcode = autoRedeemed ? result.barcode : null;
+        });
+      }
+      return _CardLookupResult.success(result, autoRedeemed: autoRedeemed);
     } catch (error) {
+      if (mounted) {
+        setState(() => _lastAutoRedeemedBarcode = null);
+      }
       final message = ErrorMessageService.sanitize(error);
       if (ErrorMessageService.requiresFreshLogin(message) && mounted) {
         unawaited(
@@ -1490,7 +1503,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
 
     final card = lookup.card!;
+    final isAutoRedeemed = lookup.autoRedeemed;
     final isUsed = card.status == CardStatus.used;
+    final isRejected = isUsed && !isAutoRedeemed;
     final permissions = AppPermissions.fromUser(_user);
     final canRedeemCards =
         permissions.canRedeemCards &&
@@ -1502,9 +1517,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return BarcodeScannerDialogResult(
       headline: '',
       description: '',
-      color: _cardAccent(card),
-      icon: isUsed ? Icons.cancel_rounded : Icons.verified_rounded,
-      customContent: _buildCardScannerResultContent(card),
+      color: _cardAccent(card, forceSuccess: isAutoRedeemed),
+      icon: isRejected ? Icons.cancel_rounded : Icons.verified_rounded,
+      customContent: _buildCardScannerResultContent(
+        card,
+        forceSuccess: isAutoRedeemed,
+      ),
       primaryActionLabel: canRedeemCards
           ? _t('screens_scan_card_screen.087')
           : (canResellCards ? _t('screens_scan_card_screen.011') : null),
@@ -2854,7 +2872,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
 
     final card = _card!;
-    final isUsed = card.status == CardStatus.used;
+    final isAutoRedeemSuccess = _lastAutoRedeemedBarcode == card.barcode;
+    final actualUsed = card.status == CardStatus.used;
+    final isUsed = actualUsed && !isAutoRedeemSuccess;
     final accent = isUsed ? AppTheme.error : AppTheme.success;
     final appPermissions = AppPermissions.fromUser(_user);
     final canRedeemCards = appPermissions.canRedeemCards;
@@ -3024,14 +3044,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ],
           ),
           const SizedBox(height: 14),
-          if (!isUsed && canRedeemCards)
+          if (!actualUsed && canRedeemCards)
             ShwakelButton(
               label: l.tr('screens_scan_card_screen.087'),
               icon: Icons.download_done_rounded,
               onPressed: _isOfflineUseBlocked ? null : _redeem,
               isLoading: _isSubmitting,
             )
-          else if (isUsed && canResellCards)
+          else if (actualUsed && !isAutoRedeemSuccess && canResellCards)
             ShwakelButton(
               label: l.tr('screens_scan_card_screen.011'),
               icon: Icons.autorenew_rounded,
@@ -3040,7 +3060,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             )
           else
             Text(
-              isUsed
+              actualUsed
                   ? l.tr('screens_scan_card_screen.110')
                   : l.tr('screens_scan_card_screen.111'),
               style: AppTheme.bodyAction.copyWith(
@@ -3059,6 +3079,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   Widget _buildDetails() {
     final card = _card!;
+    final isAutoRedeemSuccess = _lastAutoRedeemedBarcode == card.barcode;
     final appPermissions = AppPermissions.fromUser(_user);
     final canRedeemCards = appPermissions.canRedeemCards;
     final canResellCards = !widget.offlineMode && appPermissions.canResellCards;
@@ -3069,11 +3090,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       children: [
         ShwakelCard(
           padding: const EdgeInsets.all(20),
-          color: _cardAccent(card).withValues(alpha: 0.08),
-          borderColor: _cardAccent(card).withValues(alpha: 0.24),
+          color: _cardAccent(
+            card,
+            forceSuccess: isAutoRedeemSuccess,
+          ).withValues(alpha: 0.08),
+          borderColor: _cardAccent(
+            card,
+            forceSuccess: isAutoRedeemSuccess,
+          ).withValues(alpha: 0.24),
           borderRadius: BorderRadius.circular(28),
           shadowLevel: ShwakelShadowLevel.medium,
-          child: _buildCardScannerResultContent(card),
+          child: _buildCardScannerResultContent(
+            card,
+            forceSuccess: isAutoRedeemSuccess,
+          ),
         ),
         const SizedBox(height: 16),
         _buildActionPanel(
@@ -3087,12 +3117,15 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
-  Widget _buildCardScannerResultContent(VirtualCard card) {
-    final isFailed = card.status == CardStatus.used;
+  Widget _buildCardScannerResultContent(
+    VirtualCard card, {
+    bool forceSuccess = false,
+  }) {
+    final isFailed = card.status == CardStatus.used && !forceSuccess;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildCardSummaryPanel(card),
+        _buildCardSummaryPanel(card, forceSuccess: forceSuccess),
         const SizedBox(height: 14),
         _resultBadge(
           context.loc.tr('screens_scan_card_screen.024'),
@@ -3105,10 +3138,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
-  Widget _buildCardSummaryPanel(VirtualCard card) {
+  Widget _buildCardSummaryPanel(
+    VirtualCard card, {
+    bool forceSuccess = false,
+  }) {
     final l = context.loc;
-    final isUsed = card.status == CardStatus.used;
-    final accent = _cardAccent(card);
+    final isUsed = card.status == CardStatus.used && !forceSuccess;
+    final accent = _cardAccent(card, forceSuccess: forceSuccess);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -3237,8 +3273,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
-  Color _cardAccent(VirtualCard card) {
-    return card.status == CardStatus.used ? AppTheme.error : AppTheme.success;
+  Color _cardAccent(VirtualCard card, {bool forceSuccess = false}) {
+    return card.status == CardStatus.used && !forceSuccess
+        ? AppTheme.error
+        : AppTheme.success;
   }
 
   Widget _buildActionPanel({
@@ -3833,12 +3871,16 @@ class _OfflineStatusSnapshot {
 }
 
 class _CardLookupResult {
-  const _CardLookupResult.success(this.card) : errorMessage = null;
+  const _CardLookupResult.success(this.card, {this.autoRedeemed = false})
+    : errorMessage = null;
 
-  const _CardLookupResult.error(this.errorMessage) : card = null;
+  const _CardLookupResult.error(this.errorMessage)
+    : card = null,
+      autoRedeemed = false;
 
   final VirtualCard? card;
   final String? errorMessage;
+  final bool autoRedeemed;
 }
 
 class _PrepaidPaymentSubmission {

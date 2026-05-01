@@ -59,6 +59,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _scanSupportLimitController = TextEditingController();
   final _scanFinanceLimitController = TextEditingController();
   final _scanAdminLimitController = TextEditingController();
+  final _scanWithoutRedeemChargeEveryController = TextEditingController();
+  final _scanWithoutRedeemChargeAmountController = TextEditingController();
   final _offlineMaxPendingAmountController = TextEditingController();
   final _offlineMaxPendingCountController = TextEditingController();
   final _offlineCacheLimitController = TextEditingController();
@@ -153,6 +155,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _scanSupportLimitController.dispose();
     _scanFinanceLimitController.dispose();
     _scanAdminLimitController.dispose();
+    _scanWithoutRedeemChargeEveryController.dispose();
+    _scanWithoutRedeemChargeAmountController.dispose();
     _offlineMaxPendingAmountController.dispose();
     _offlineMaxPendingCountController.dispose();
     _offlineCacheLimitController.dispose();
@@ -338,6 +342,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (cardScanLimitSettings['financeLimit'] as num?)?.toString() ?? '0';
       _scanAdminLimitController.text =
           (cardScanLimitSettings['adminLimit'] as num?)?.toString() ?? '0';
+      _scanWithoutRedeemChargeEveryController.text =
+          (cardScanLimitSettings['withoutRedeemChargeEvery'] as num?)
+              ?.toString() ??
+          '0';
+      _scanWithoutRedeemChargeAmountController.text =
+          (cardScanLimitSettings['withoutRedeemChargeAmount'] as num?)
+              ?.toString() ??
+          '0';
       _scanAutoRedeemGlobalForced =
           cardScanLimitSettings['autoRedeemGlobalForced'] == true;
       _offlineMaxPendingAmountController.text =
@@ -583,6 +595,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           financeLimit: int.tryParse(_scanFinanceLimitController.text) ?? 0,
           adminLimit: int.tryParse(_scanAdminLimitController.text) ?? 0,
           autoRedeemGlobalForced: _scanAutoRedeemGlobalForced,
+          withoutRedeemChargeEvery:
+              int.tryParse(_scanWithoutRedeemChargeEveryController.text) ?? 0,
+          withoutRedeemChargeAmount:
+              double.tryParse(_scanWithoutRedeemChargeAmountController.text) ??
+              0,
         ),
         _apiService.updateAdminOfflineCardSettings(
           maxPendingAmount:
@@ -2334,6 +2351,34 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _scanAutoRedeemGlobalForced,
                   onChanged: (value) =>
                       setState(() => _scanAutoRedeemGlobalForced = value),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'خصم قراءات بدون استخدام',
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'حدد كل كم قراءة بدون استرداد يتم الخصم، وقيمة الخصم. اترك العدد أو القيمة 0 لتعطيل الخصم.',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _buildNumberField(
+                      'عدد القراءات قبل الخصم',
+                      _scanWithoutRedeemChargeEveryController,
+                    ),
+                    _buildFeeField(
+                      'قيمة الخصم',
+                      _scanWithoutRedeemChargeAmountController,
+                      suffixText: '₪',
+                    ),
+                  ],
                 ),
               ],
             ),

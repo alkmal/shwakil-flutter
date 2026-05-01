@@ -18,6 +18,7 @@ import 'phone_number_service.dart';
 
 class ApiService {
   final AuthService _authService = AuthService();
+  bool lastCardLookupAutoRedeemed = false;
   static final http.Client _client = NetworkClientService.client;
   static const Duration _publicRequestTimeout = Duration(seconds: 8);
   static const Duration _authenticatedRequestTimeout = Duration(seconds: 12);
@@ -997,6 +998,8 @@ class ApiService {
     required int financeLimit,
     required int adminLimit,
     required bool autoRedeemGlobalForced,
+    required int withoutRedeemChargeEvery,
+    required double withoutRedeemChargeAmount,
   }) async {
     final response = await http.put(
       AppConfig.apiUri('admin/settings/card-scan-limits'),
@@ -1012,6 +1015,8 @@ class ApiService {
         'financeLimit': financeLimit,
         'adminLimit': adminLimit,
         'autoRedeemGlobalForced': autoRedeemGlobalForced,
+        'withoutRedeemChargeEvery': withoutRedeemChargeEvery,
+        'withoutRedeemChargeAmount': withoutRedeemChargeAmount,
       }),
     );
     return _decodeObject(response);
@@ -2428,6 +2433,7 @@ class ApiService {
     bool autoRedeem = false,
     Map<String, dynamic>? location,
   }) async {
+    lastCardLookupAutoRedeemed = false;
     final query = <String, String>{};
     if (autoRedeem) {
       query['autoRedeem'] = '1';
@@ -2453,6 +2459,7 @@ class ApiService {
         Map<String, dynamic>.from(body['user'] as Map),
       );
     }
+    lastCardLookupAutoRedeemed = body['autoRedeemed'] == true;
     return _cardFromApi(Map<String, dynamic>.from(body['card'] as Map));
   }
 

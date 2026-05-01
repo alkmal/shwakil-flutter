@@ -157,34 +157,9 @@ class PDFService {
     return serialNumber.toString().padLeft(4, '0');
   }
 
-  String _resolvedLogoText() {
-    final text = designSettings.logoText?.trim() ?? '';
-    return text.isEmpty ? 'شواكل' : text;
-  }
-
   String _resolvedStampText() {
     final text = designSettings.stampText?.trim() ?? '';
     return text.isEmpty ? 'صالح للتداول' : text;
-  }
-
-  double _headerTitleSize(bool compact) {
-    final length = _resolvedLogoText().runes.length;
-    if (compact) {
-      if (length > 26) {
-        return 5.6;
-      }
-      if (length > 18) {
-        return 6.2;
-      }
-      return 7.2;
-    }
-    if (length > 30) {
-      return 12.8;
-    }
-    if (length > 20) {
-      return 14.6;
-    }
-    return 16.5;
   }
 
   String _valueInArabicWords(double value) {
@@ -332,6 +307,9 @@ class PDFService {
   }
 
   String _cardBadgeLabel(VirtualCard card) {
+    if (card.isSingleUse) {
+      return 'بطاقة خاصة';
+    }
     if (_isLocationSpecific(card)) {
       return 'مكان محدد - ${_cardKindLabel(card)}';
     }
@@ -371,101 +349,38 @@ class PDFService {
     required bool compact,
     required VirtualCard card,
   }) {
-    final shwakelLogoSize = compact ? 24.0 : 58.0;
-    final accountLogoSize = compact ? 24.0 : 54.0;
-    final titleSize = _headerTitleSize(compact);
     final badgeFont = compact ? 4.8 : 8.8;
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Container(
-          padding: pw.EdgeInsets.symmetric(
-            horizontal: compact ? 3.8 : 8,
-            vertical: compact ? 1.3 : 3,
-          ),
-          decoration: pw.BoxDecoration(
+    return pw.Align(
+      alignment: pw.Alignment.centerRight,
+      child: pw.Container(
+        padding: pw.EdgeInsets.symmetric(
+          horizontal: compact ? 3.8 : 8,
+          vertical: compact ? 1.3 : 3,
+        ),
+        decoration: pw.BoxDecoration(
+          color: _isVisuallyPrivate(card)
+              ? const PdfColor.fromInt(0xFFFFE4E6)
+              : palette.soft,
+          borderRadius: pw.BorderRadius.circular(compact ? 6 : 10),
+          border: pw.Border.all(
             color: _isVisuallyPrivate(card)
-                ? const PdfColor.fromInt(0xFFFFE4E6)
-                : palette.soft,
-            borderRadius: pw.BorderRadius.circular(compact ? 6 : 10),
-            border: pw.Border.all(
-              color: _isVisuallyPrivate(card)
-                  ? const PdfColor.fromInt(0xFFFB7185)
-                  : palette.border,
-              width: compact ? 0.45 : 0.9,
-            ),
-          ),
-          child: pw.Text(
-            _cardBadgeLabel(card),
-            textDirection: pw.TextDirection.rtl,
-            style: _textStyle(
-              fontSize: badgeFont,
-              bold: true,
-              color: _isVisuallyPrivate(card)
-                  ? const PdfColor.fromInt(0xFFBE123C)
-                  : palette.primary,
-            ),
+                ? const PdfColor.fromInt(0xFFFB7185)
+                : palette.border,
+            width: compact ? 0.45 : 0.9,
           ),
         ),
-        pw.SizedBox(width: compact ? 4 : 10),
-        pw.Expanded(
-          child: pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.end,
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              if (_accountLogoImage != null) ...[
-                _buildHeaderLogoBox(
-                  _accountLogoImage!,
-                  size: accountLogoSize,
-                  compact: compact,
-                ),
-                pw.SizedBox(width: compact ? 4 : 7),
-              ],
-              if (_defaultLogoImage != null) ...[
-                _buildHeaderLogoBox(
-                  _defaultLogoImage!,
-                  size: shwakelLogoSize,
-                  compact: compact,
-                ),
-                pw.SizedBox(width: compact ? 5 : 10),
-              ],
-              pw.Flexible(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  mainAxisSize: pw.MainAxisSize.min,
-                  children: [
-                    pw.Text(
-                      _resolvedLogoText(),
-                      maxLines: compact ? 2 : 3,
-                      textAlign: pw.TextAlign.right,
-                      textDirection: pw.TextDirection.rtl,
-                      style: _textStyle(
-                        fontSize: titleSize,
-                        bold: true,
-                        color: palette.primary,
-                      ),
-                    ),
-                    pw.SizedBox(height: compact ? 1.2 : 2.5),
-                    pw.Text(
-                      card.isDelivery
-                          ? _cardSubtitle(card)
-                          : _isTicketCard(card)
-                          ? 'تذكرة خاصة داخل النظام'
-                          : 'بطاقة رصيد رقمية',
-                      textDirection: pw.TextDirection.rtl,
-                      textAlign: pw.TextAlign.right,
-                      style: _textStyle(
-                        fontSize: compact ? 4.2 : 7.2,
-                        color: _mutedColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        child: pw.Text(
+          _cardBadgeLabel(card),
+          textDirection: pw.TextDirection.rtl,
+          style: _textStyle(
+            fontSize: badgeFont,
+            bold: true,
+            color: _isVisuallyPrivate(card)
+                ? const PdfColor.fromInt(0xFFBE123C)
+                : palette.primary,
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -483,6 +398,46 @@ class PDFService {
         borderRadius: pw.BorderRadius.circular(compact ? 3 : 8),
       ),
       child: pw.Image(image, fit: pw.BoxFit.contain),
+    );
+  }
+
+  pw.Widget _cardTitleWithLogo(
+    VirtualCard card,
+    _DenominationPalette palette, {
+    required bool compact,
+  }) {
+    final isTicket = _isTicketCard(card);
+    final logoSize = compact ? 26.0 : 58.0;
+    final titleFontSize = isTicket
+        ? (compact ? 7.1 : 12.5)
+        : (compact ? 14.2 : 24.0);
+
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.center,
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        if (_defaultLogoImage != null) ...[
+          _buildHeaderLogoBox(
+            _defaultLogoImage!,
+            size: logoSize,
+            compact: compact,
+          ),
+          pw.SizedBox(width: compact ? 4 : 10),
+        ],
+        pw.Flexible(
+          child: pw.Text(
+            _cardTitle(card),
+            maxLines: 2,
+            textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
+            style: _textStyle(
+              fontSize: titleFontSize,
+              bold: true,
+              color: isTicket ? palette.primary : palette.value,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -751,17 +706,8 @@ class PDFService {
                   pw.SizedBox(height: 2.6),
                   pw.Column(
                     children: [
-                      if (_isTicketCard(card))
-                        pw.Text(
-                          _cardTitle(card),
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 5.7,
-                            bold: true,
-                            color: palette.primary,
-                          ),
-                        ),
+                      _cardTitleWithLogo(card, palette, compact: true),
+                      pw.SizedBox(height: 1.6),
                       pw.Text(
                         _isTicketCard(card)
                             ? _cardSubtitle(card)
@@ -772,17 +718,6 @@ class PDFService {
                       ),
                       if (!_isTicketCard(card)) ...[
                         pw.SizedBox(height: 1.5),
-                        pw.Text(
-                          _cardTitle(card),
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 14.5,
-                            bold: true,
-                            color: palette.value,
-                          ),
-                        ),
-                        pw.SizedBox(height: 1),
                         pw.Text(
                           _cardSubtitle(card),
                           textAlign: pw.TextAlign.center,
@@ -1004,17 +939,8 @@ class PDFService {
                   pw.SizedBox(height: 16),
                   pw.Column(
                     children: [
-                      if (_isTicketCard(card))
-                        pw.Text(
-                          _cardTitle(card),
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 10.5,
-                            bold: true,
-                            color: palette.primary,
-                          ),
-                        ),
+                      _cardTitleWithLogo(card, palette, compact: false),
+                      pw.SizedBox(height: 4),
                       pw.Text(
                         _isTicketCard(card)
                             ? _cardSubtitle(card)
@@ -1025,17 +951,6 @@ class PDFService {
                       ),
                       if (!_isTicketCard(card)) ...[
                         pw.SizedBox(height: 7),
-                        pw.Text(
-                          _cardTitle(card),
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 24,
-                            bold: true,
-                            color: palette.value,
-                          ),
-                        ),
-                        pw.SizedBox(height: 3),
                         pw.Text(
                           _cardSubtitle(card),
                           textAlign: pw.TextAlign.center,
