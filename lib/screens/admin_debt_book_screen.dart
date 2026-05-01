@@ -876,7 +876,7 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
 
   Widget _metricCard(String title, String value, IconData icon, Color color) {
     return SizedBox(
-      width: 220,
+      width: AppTheme.isPhone(context) ? double.infinity : 220,
       child: ShwakelCard(
         padding: const EdgeInsets.all(18),
         child: Row(

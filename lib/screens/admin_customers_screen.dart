@@ -564,6 +564,44 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   padding: EdgeInsets.only(bottom: 16),
                   child: LinearProgressIndicator(minHeight: 3),
                 ),
+              _buildHeader(totalCustomers),
+              const SizedBox(height: 16),
+              _buildOverviewCard(totalCustomers),
+              const SizedBox(height: 16),
+              ShwakelCard(
+                padding: const EdgeInsets.all(18),
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(24),
+                shadowLevel: ShwakelShadowLevel.none,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.manage_search_rounded,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l.tr('screens_admin_customers_screen.056'),
+                        style: AppTheme.bodyAction.copyWith(
+                          color: AppTheme.textSecondary,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               if (_customers.isEmpty)
                 ShwakelCard(
                   padding: const EdgeInsets.all(28),
@@ -599,6 +637,64 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(int totalCustomers) {
+    final l = context.loc;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      gradient: AppTheme.heroGradient,
+      shadowLevel: ShwakelShadowLevel.premium,
+      borderColor: Colors.white.withValues(alpha: 0.18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Icon(
+              Icons.groups_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l.tr('screens_admin_customers_screen.017'),
+            style: AppTheme.h1.copyWith(color: Colors.white, height: 1.2),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l.tr('screens_admin_customers_screen.050'),
+            style: AppTheme.bodyAction.copyWith(
+              color: Colors.white.withValues(alpha: 0.90),
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _heroChip(
+                icon: Icons.people_alt_rounded,
+                label:
+                    '$totalCustomers ${l.tr('screens_admin_customers_screen.051')}',
+              ),
+              _heroChip(
+                icon: Icons.search_rounded,
+                label: l.tr('screens_admin_customers_screen.040'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -728,6 +824,31 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _heroChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

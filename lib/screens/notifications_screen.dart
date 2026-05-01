@@ -331,9 +331,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         color: AppTheme.secondary,
       ),
       _NotificationStat(
-        label: 'الإشعارات الإدارية',
+        label: context.loc.tr('screens_notifications_screen.063'),
         value: '$adminCount',
-        hint: 'الإشعارات القادمة من الإدارة',
+        hint: context.loc.tr('screens_notifications_screen.064'),
         icon: Icons.admin_panel_settings_rounded,
         color: AppTheme.warning,
       ),
@@ -395,7 +395,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _filterChip(_t('screens_notifications_screen.027'), 'unread'),
       _filterChip(_t('screens_notifications_screen.029'), 'financial'),
       _filterChip(_t('screens_notifications_screen.047'), 'account'),
-      _filterChip('إدارية', 'admin'),
+      _filterChip(_t('screens_notifications_screen.065'), 'admin'),
     ];
 
     return ShwakelCard(
@@ -494,7 +494,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               color: AppTheme.warning,
             ),
             const SizedBox(height: 16),
-            Text('تعذر تحميل الإشعارات', style: AppTheme.h3),
+            Text(_t('screens_notifications_screen.066'), style: AppTheme.h3),
             const SizedBox(height: 8),
             Text(
               message,
@@ -577,6 +577,10 @@ class _NotificationCard extends StatelessWidget {
     final actor = _notificationActorLabel(data);
     final createdAt = item['createdAt']?.toString() ?? '';
     final isFinancial = categoryKind == _NotificationKind.financial;
+    final typeLabel = _notificationTypeLabel(context, item);
+    final status = _notificationStatusValue(item);
+    final statusLabel = _notificationStatusLabel(context, status);
+    final statusColor = _notificationStatusColor(status);
 
     return ShwakelCard(
       onTap: onTap,
@@ -625,6 +629,42 @@ class _NotificationCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (typeLabel.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              typeLabel,
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        if (statusLabel != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: AppTheme.caption.copyWith(
+                                color: statusColor,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
                         if (!isRead) const _UnreadDot(),
                       ],
                     ),
@@ -745,6 +785,10 @@ class _NotificationDetailsSheet extends StatelessWidget {
         NotificationNavigationService.actionRouteForNotificationItem(item);
     final type =
         data['transactionType']?.toString() ?? item['type']?.toString() ?? '';
+    final typeLabel = _notificationTypeLabel(context, item);
+    final status = _notificationStatusValue(item);
+    final statusLabel = _notificationStatusLabel(context, status);
+    final statusColor = _notificationStatusColor(status);
 
     return SafeArea(
       child: Padding(
@@ -773,8 +817,14 @@ class _NotificationDetailsSheet extends StatelessWidget {
                     icon: _notificationCategoryIcon(categoryKind),
                     label: _notificationCategoryLabel(context, categoryKind),
                   ),
-                  if (type.isNotEmpty)
-                    _InfoChip(icon: Icons.category_rounded, label: type),
+                  if (typeLabel.isNotEmpty)
+                    _InfoChip(icon: Icons.category_rounded, label: typeLabel),
+                  if (statusLabel != null)
+                    _InfoChip(
+                      icon: Icons.flag_rounded,
+                      label: statusLabel,
+                      color: statusColor,
+                    ),
                   if (amount != null)
                     _InfoChip(
                       icon: Icons.payments_rounded,
@@ -794,12 +844,18 @@ class _NotificationDetailsSheet extends StatelessWidget {
                   if (sentBy.isNotEmpty)
                     _InfoChip(
                       icon: Icons.admin_panel_settings_rounded,
-                      label: 'مرسل الإشعار: $sentBy',
+                      label: context.loc.tr(
+                        'screens_notifications_screen.067',
+                        params: {'name': sentBy},
+                      ),
                     ),
                   if (actor != null && actor != sentBy)
                     _InfoChip(
                       icon: Icons.person_pin_circle_rounded,
-                      label: 'المستخدم المتسبب: $actor',
+                      label: context.loc.tr(
+                        'screens_notifications_screen.068',
+                        params: {'name': actor},
+                      ),
                     ),
                   if (priority.isNotEmpty)
                     _InfoChip(
@@ -871,10 +927,15 @@ class _UnreadDot extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.icon, required this.label});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.color = AppTheme.primary,
+  });
 
   final IconData icon;
   final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -890,7 +951,7 @@ class _InfoChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: AppTheme.primary),
+          Icon(icon, size: 15, color: color),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
@@ -999,10 +1060,97 @@ String _notificationCategoryLabel(
     _NotificationKind.account => context.loc.tr(
       'screens_notifications_screen.049',
     ),
-    _NotificationKind.admin => 'إداري',
+    _NotificationKind.admin => context.loc.tr(
+      'screens_notifications_screen.065',
+    ),
     _NotificationKind.general => context.loc.tr(
       'screens_notifications_screen.046',
     ),
+  };
+}
+
+String _notificationTypeLabel(BuildContext context, Map<String, dynamic> item) {
+  final data = item['data'] is Map<String, dynamic>
+      ? item['data'] as Map<String, dynamic>
+      : item['data'] is Map
+      ? Map<String, dynamic>.from(item['data'] as Map)
+      : const <String, dynamic>{};
+  final type =
+      (data['transactionType']?.toString() ?? item['type']?.toString() ?? '')
+          .trim()
+          .toLowerCase();
+
+  return switch (type) {
+    'topup' || 'wallet_topup_received' => context.loc.tr(
+      'screens_notifications_screen.069',
+    ),
+    'transfer_in' || 'wallet_transfer_received' => context.loc.tr(
+      'screens_notifications_screen.070',
+    ),
+    'transfer_out' || 'wallet_transfer_sent' => context.loc.tr(
+      'screens_notifications_screen.071',
+    ),
+    'withdrawal_request' ||
+    'withdrawal' => context.loc.tr('screens_notifications_screen.072'),
+    'withdrawal_rejected' ||
+    'withdrawal_refund' => context.loc.tr('screens_notifications_screen.073'),
+    'withdrawal_completed' => context.loc.tr(
+      'screens_notifications_screen.074',
+    ),
+    'issue_cards' => context.loc.tr('screens_notifications_screen.075'),
+    'redeem_card' => context.loc.tr('screens_notifications_screen.076'),
+    'resell_card' => context.loc.tr('screens_notifications_screen.077'),
+    'account_verification_approved' => context.loc.tr(
+      'screens_notifications_screen.078',
+    ),
+    'account_verification_rejected' => context.loc.tr(
+      'screens_notifications_screen.079',
+    ),
+    'admin_pending_verification_request' => context.loc.tr(
+      'screens_notifications_screen.080',
+    ),
+    'admin_pending_registration_request' => context.loc.tr(
+      'screens_notifications_screen.081',
+    ),
+    'admin_custom_notification' => context.loc.tr(
+      'screens_notifications_screen.082',
+    ),
+    _ => context.loc.tr('screens_notifications_screen.083'),
+  };
+}
+
+String? _notificationStatusValue(Map<String, dynamic> item) {
+  final data = item['data'] is Map<String, dynamic>
+      ? item['data'] as Map<String, dynamic>
+      : item['data'] is Map
+      ? Map<String, dynamic>.from(item['data'] as Map)
+      : const <String, dynamic>{};
+  for (final key in ['status', 'requestStatus', 'verificationStatus']) {
+    final value = data[key]?.toString().trim().toLowerCase();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+  }
+  return null;
+}
+
+String? _notificationStatusLabel(BuildContext context, String? status) {
+  return switch (status) {
+    'pending' => context.loc.tr('screens_notifications_screen.084'),
+    'approved' => context.loc.tr('screens_notifications_screen.085'),
+    'completed' => context.loc.tr('screens_notifications_screen.086'),
+    'rejected' => context.loc.tr('screens_notifications_screen.087'),
+    'failed' => context.loc.tr('screens_notifications_screen.088'),
+    _ => null,
+  };
+}
+
+Color _notificationStatusColor(String? status) {
+  return switch (status) {
+    'approved' || 'completed' => AppTheme.success,
+    'rejected' || 'failed' => AppTheme.error,
+    'pending' => AppTheme.warning,
+    _ => AppTheme.textSecondary,
   };
 }
 

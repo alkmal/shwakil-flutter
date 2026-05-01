@@ -4,6 +4,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/user_display_name.dart';
+import 'app_top_actions.dart';
 import 'shwakel_logo.dart';
 
 class AppSidebar extends StatefulWidget {
@@ -223,6 +224,13 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.tr('widgets_app_sidebar.047'),
                             routeName: '/create-card',
                           ),
+                        if (permissions.canOfflineCardScan)
+                          _buildItem(
+                            context,
+                            icon: Icons.cloud_sync_rounded,
+                            title: l.tr('widgets_app_sidebar.053'),
+                            routeName: '/offline-sync',
+                          ),
                         if (canViewInventory && canIssueCards)
                           _buildItem(
                             context,
@@ -318,6 +326,13 @@ class _AppSidebarState extends State<AppSidebar> {
                               icon: Icons.how_to_reg_rounded,
                               title: l.tr('widgets_app_sidebar.042'),
                               routeName: '/admin-pending-registrations',
+                            ),
+                          if (permissions.canManageUsers)
+                            _buildItem(
+                              context,
+                              icon: Icons.verified_user_rounded,
+                              title: l.tr('widgets_app_sidebar.050'),
+                              routeName: '/admin-verification-requests',
                             ),
                           if (permissions.canReviewTopups ||
                               permissions.canFinanceTopup)
@@ -416,14 +431,17 @@ class _AppSidebarState extends State<AppSidebar> {
                             context,
                             icon: Icons.storefront_rounded,
                             title: l.tr('widgets_app_sidebar.023'),
-                            routeName: '/supported-locations',
+                            routeName: '/approved-merchants',
                           ),
                       ],
                     ),
                   ],
                   _buildMenuSection(
                     label: l.tr('widgets_app_sidebar.024'),
-                    children: [_buildLanguageItem(context)],
+                    children: [
+                      _buildLanguageItem(context),
+                      _buildSecureLogoutItem(context),
+                    ],
                   ),
                 ],
               ),
@@ -608,6 +626,33 @@ class _AppSidebarState extends State<AppSidebar> {
           return;
         }
         _openRoute(routeName);
+      },
+    );
+  }
+
+  Widget _buildSecureLogoutItem(BuildContext context) {
+    final l = context.loc;
+    return ListTile(
+      minTileHeight: 50,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
+      title: Text(
+        l.tr('widgets_app_sidebar.051'),
+        style: AppTheme.bodyText.copyWith(
+          color: AppTheme.error,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      subtitle: Text(l.tr('widgets_app_sidebar.052'), style: AppTheme.caption),
+      trailing: const Icon(
+        Icons.lock_clock_rounded,
+        size: 20,
+        color: AppTheme.error,
+      ),
+      onTap: () async {
+        Navigator.pop(context);
+        await QuickLogoutAction.logout(context);
       },
     );
   }

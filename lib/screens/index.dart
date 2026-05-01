@@ -22,6 +22,7 @@ export 'admin_card_print_requests_screen.dart';
 export 'admin_customers_screen.dart';
 export 'admin_customer_screen.dart';
 export 'admin_pending_registrations_screen.dart';
+export 'admin_verification_requests_screen.dart';
 export 'admin_device_requests_screen.dart';
 export 'admin_locations_screen.dart';
 export 'admin_notifications_screen.dart';

@@ -44,6 +44,46 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     },
   ];
 
+  static const List<Map<String, Object>> _cardOpsSections = [
+    {
+      'titleKey': 'issuance',
+      'icon': Icons.credit_card_rounded,
+      'keys': [
+        'canIssueCards',
+        'canIssueSubShekelCards',
+        'canIssueHighValueCards',
+        'canIssuePrivateCards',
+        'canIssueSingleUseTickets',
+        'canIssueAppointmentTickets',
+        'canIssueQueueTickets',
+      ],
+    },
+    {
+      'titleKey': 'access_followup',
+      'icon': Icons.qr_code_scanner_rounded,
+      'keys': [
+        'canViewPrivateCards',
+        'canReadOwnPrivateCardsOnly',
+        'canDeleteCards',
+        'canResellCards',
+        'canScanCards',
+        'canOfflineCardScan',
+      ],
+    },
+    {
+      'titleKey': 'payments_printing',
+      'icon': Icons.swap_horiz_rounded,
+      'keys': [
+        'canUsePrepaidMultipayCards',
+        'canAcceptPrepaidMultipayPayments',
+        'canRequestCardPrinting',
+        'canManageCardPrintRequests',
+        'canTransfer',
+        'canWithdraw',
+      ],
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -197,9 +237,6 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
 
   Widget _buildRoleView(String roleKey) {
     final l = context.loc;
-    final template = Map<String, dynamic>.from(
-      _templates[roleKey] as Map? ?? const {},
-    );
 
     return SingleChildScrollView(
       child: ResponsiveScaffoldContainer(
@@ -233,24 +270,30 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                         icon: Icons.tune_rounded,
                       ),
                       const SizedBox(height: 8),
-                      ...keys.map((key) {
-                        final current = template[key] == true;
-                        return SwitchListTile(
-                          value: current,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(_permissionLabel(key)),
-                          onChanged: (value) {
-                            setState(() {
-                              final next = Map<String, dynamic>.from(
-                                _templates[roleKey] as Map? ?? const {},
-                              );
-                              next[key] = value;
-                              _templates = Map<String, dynamic>.from(_templates)
-                                ..[roleKey] = next;
-                            });
-                          },
-                        );
-                      }),
+                      ...(group['titleKey'] == 'cards_and_ops'
+                          ? _cardOpsSections.map(
+                              (section) => Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: _buildPermissionSection(
+                                  roleKey: roleKey,
+                                  title: _cardOpsSectionTitle(
+                                    section['titleKey']! as String,
+                                  ),
+                                  icon: section['icon']! as IconData,
+                                  keys: List<String>.from(
+                                    section['keys']! as List,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : [
+                              ...keys.map(
+                                (key) => _buildPermissionToggle(
+                                  roleKey: roleKey,
+                                  permissionKey: key,
+                                ),
+                              ),
+                            ]),
                     ],
                   ),
                 ),
@@ -272,6 +315,82 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     };
   }
 
+  String _cardOpsSectionTitle(String key) {
+    final l = context.loc;
+    return switch (key) {
+      'issuance' => l.tr('screens_admin_permissions_screen.057'),
+      'access_followup' => l.tr('screens_admin_permissions_screen.058'),
+      _ => l.tr('screens_admin_permissions_screen.059'),
+    };
+  }
+
+  Widget _buildPermissionSection({
+    required String roleKey,
+    required String title,
+    required IconData icon,
+    required List<String> keys,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: AppTheme.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(title, style: AppTheme.bodyBold)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...keys.map(
+            (key) =>
+                _buildPermissionToggle(roleKey: roleKey, permissionKey: key),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionToggle({
+    required String roleKey,
+    required String permissionKey,
+  }) {
+    final current =
+        (Map<String, dynamic>.from(
+          _templates[roleKey] as Map? ?? const {},
+        ))[permissionKey] ==
+        true;
+    return SwitchListTile(
+      value: current,
+      contentPadding: EdgeInsets.zero,
+      title: Text(_permissionLabel(permissionKey)),
+      onChanged: (value) {
+        setState(() {
+          final next = Map<String, dynamic>.from(
+            _templates[roleKey] as Map? ?? const {},
+          );
+          next[permissionKey] = value;
+          _templates = Map<String, dynamic>.from(_templates)..[roleKey] = next;
+        });
+      },
+    );
+  }
+
   String _permissionLabel(String key) {
     final l = context.loc;
     return switch (key) {
@@ -290,15 +409,25 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canIssueSubShekelCards' => l.tr('screens_admin_permissions_screen.020'),
       'canIssueHighValueCards' => l.tr('screens_admin_permissions_screen.021'),
       'canIssuePrivateCards' => l.tr('screens_admin_permissions_screen.022'),
-      'canIssueSingleUseTickets' => 'إنشاء تذاكر دخول لمرة واحدة',
-      'canIssueAppointmentTickets' => 'إنشاء تذاكر مواعيد',
-      'canIssueQueueTickets' => 'إنشاء تذاكر طوابير',
+      'canIssueSingleUseTickets' => l.tr(
+        'screens_admin_permissions_screen.051',
+      ),
+      'canIssueAppointmentTickets' => l.tr(
+        'screens_admin_permissions_screen.052',
+      ),
+      'canIssueQueueTickets' => l.tr('screens_admin_permissions_screen.053'),
       'canViewPrivateCards' => l.tr('screens_admin_permissions_screen.050'),
-      'canReadOwnPrivateCardsOnly' => 'قراءة بطاقاته الخاصة فقط',
+      'canReadOwnPrivateCardsOnly' => l.tr(
+        'screens_admin_permissions_screen.060',
+      ),
       'canDeleteCards' => l.tr('screens_admin_permissions_screen.023'),
       'canResellCards' => l.tr('screens_admin_permissions_screen.024'),
-      'canUsePrepaidMultipayCards' => 'استخدام بطاقات الدفع المسبق',
-      'canAcceptPrepaidMultipayPayments' => 'قبول دفع البطاقات المسبقة',
+      'canUsePrepaidMultipayCards' => l.tr(
+        'screens_admin_permissions_screen.054',
+      ),
+      'canAcceptPrepaidMultipayPayments' => l.tr(
+        'screens_admin_permissions_screen.055',
+      ),
       'canRequestCardPrinting' => l.tr('screens_admin_permissions_screen.025'),
       'canScanCards' => l.tr('screens_admin_permissions_screen.026'),
       'canOfflineCardScan' => l.tr('screens_admin_permissions_screen.042'),
@@ -307,7 +436,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),
       'canLookupMembers' => l.tr('screens_admin_permissions_screen.030'),
       'canManageUsers' => l.tr('screens_admin_permissions_screen.031'),
-      'canFinanceTopup' => 'شحن أرصدة المستخدمين من حساب المالية',
+      'canFinanceTopup' => l.tr('screens_admin_permissions_screen.056'),
       'canManageMarketingAccounts' => l.tr(
         'screens_admin_permissions_screen.049',
       ),

@@ -21,7 +21,7 @@ class ConnectivityService {
   static const Duration _minimumCheckGap = Duration(seconds: 4);
 
   Future<void> startMonitoring({
-    Duration interval = const Duration(seconds: 15),
+    Duration interval = const Duration(seconds: 6),
   }) async {
     if (_started) {
       return;

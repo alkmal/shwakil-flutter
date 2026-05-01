@@ -286,8 +286,11 @@ class ApiService {
 
   Future<List<Map<String, dynamic>>> submitSupportedLocation({
     required String title,
+    String displayName = '',
     required String address,
     required String phone,
+    String displayPhone = '',
+    String displayWhatsapp = '',
     required String type,
     required double latitude,
     required double longitude,
@@ -297,11 +300,51 @@ class ApiService {
       headers: await _headers(),
       body: jsonEncode({
         'title': title.trim(),
+        'displayName': displayName.trim(),
         'address': address.trim(),
         'phone': phone.trim(),
+        'displayPhone': displayPhone.trim(),
+        'displayWhatsapp': displayWhatsapp.trim(),
         'type': type.trim(),
         'latitude': latitude,
         'longitude': longitude,
+      }),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['myLocations'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> saveMySupportedLocation({
+    required String locationId,
+    required String title,
+    String displayName = '',
+    required String address,
+    required String phone,
+    String displayPhone = '',
+    String displayWhatsapp = '',
+    required String type,
+    required double latitude,
+    required double longitude,
+    required bool isActive,
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('supported-locations/my/$locationId'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'title': title.trim(),
+        'displayName': displayName.trim(),
+        'address': address.trim(),
+        'phone': phone.trim(),
+        'displayPhone': displayPhone.trim(),
+        'displayWhatsapp': displayWhatsapp.trim(),
+        'type': type.trim(),
+        'latitude': latitude,
+        'longitude': longitude,
+        'isActive': isActive,
       }),
     );
     final body = _decodeObject(response);
@@ -591,6 +634,19 @@ class ApiService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getPendingVerificationRequests() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/verifications/pending'),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['requests'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> getWithdrawalRequests({
     String? status,
     String query = '',
@@ -667,6 +723,18 @@ class ApiService {
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/verifications/$requestId/approve'),
+      headers: await _headers(),
+      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> rejectPendingVerificationRequest(
+    String requestId, {
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/verifications/$requestId/reject'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
     );

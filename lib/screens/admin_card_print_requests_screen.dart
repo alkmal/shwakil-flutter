@@ -764,6 +764,15 @@ class _AdminCardPrintRequestsScreenState
     final status = request['status']?.toString() ?? 'pending_review';
     final busy = _busyId == request['id']?.toString();
 
+    final chargedIssueCostAmount =
+        (request['chargedIssueCostAmount'] as num?)?.toDouble() ?? 0;
+    final deferredIssueCostAmount =
+        (request['deferredIssueCostAmount'] as num?)?.toDouble() ?? 0;
+    final printCount = (request['printCount'] as num?)?.toInt() ?? 0;
+    final totalAmount = CurrencyFormatter.ils(
+      (request['totalAmount'] as num?)?.toDouble() ?? 0,
+    );
+    final hasFees = chargedIssueCostAmount > 0 || deferredIssueCostAmount > 0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: ShwakelCard(
@@ -795,6 +804,42 @@ class _AdminCardPrintRequestsScreenState
                   ),
                 ),
                 _statusChip(request['statusLabel']?.toString() ?? status),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _infoChip(
+                  Icons.credit_card_rounded,
+                  _cardTypeLabel(
+                    context,
+                    request['cardType']?.toString() ?? 'standard',
+                  ),
+                ),
+                _infoChip(
+                  Icons.layers_rounded,
+                  l.tr(
+                    'screens_admin_card_print_requests_screen.quantity_label',
+                    params: {'count': '${request['quantity'] ?? 0}'},
+                  ),
+                ),
+                _infoChip(Icons.account_balance_wallet_rounded, totalAmount),
+                if (hasFees)
+                  _infoChip(
+                    Icons.receipt_long_rounded,
+                    l.tr('screens_admin_card_print_requests_screen.046'),
+                  ),
+                _infoChip(
+                  Icons.print_rounded,
+                  printCount > 0
+                      ? l.tr(
+                          'screens_admin_card_print_requests_screen.047',
+                          params: {'count': '$printCount'},
+                        )
+                      : l.tr('screens_admin_card_print_requests_screen.048'),
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -833,29 +878,26 @@ class _AdminCardPrintRequestsScreenState
                     (request['cardValue'] as num?)?.toDouble() ?? 0,
                   ),
                 ),
-                if (((request['issueCostAmount'] as num?)?.toDouble() ?? 0) > 0)
+                if (chargedIssueCostAmount > 0)
                   _metaItem(
-                    ['standard', 'delivery'].contains(
-                          request['cardType']?.toString() ?? 'standard',
-                        )
-                        ? 'رسوم عند الاستخدام'
-                        : 'تكلفة الإصدار',
-                    CurrencyFormatter.ils(
-                      (request['issueCostAmount'] as num?)?.toDouble() ?? 0,
-                    ),
+                    l.tr('screens_admin_card_print_requests_screen.049'),
+                    CurrencyFormatter.ils(chargedIssueCostAmount),
+                  ),
+                if (deferredIssueCostAmount > 0)
+                  _metaItem(
+                    l.tr('screens_admin_card_print_requests_screen.050'),
+                    CurrencyFormatter.ils(deferredIssueCostAmount),
                   ),
                 if (((request['feeAmount'] as num?)?.toDouble() ?? 0) > 0)
                   _metaItem(
-                    'رسوم طلب الطباعة',
+                    l.tr('screens_admin_card_print_requests_screen.051'),
                     CurrencyFormatter.ils(
                       (request['feeAmount'] as num?)?.toDouble() ?? 0,
                     ),
                   ),
                 _metaItem(
                   l.tr('screens_admin_card_print_requests_screen.022'),
-                  CurrencyFormatter.ils(
-                    (request['totalAmount'] as num?)?.toDouble() ?? 0,
-                  ),
+                  totalAmount,
                 ),
                 _metaItem(
                   l.tr('screens_admin_card_print_requests_screen.031'),
@@ -984,6 +1026,30 @@ class _AdminCardPrintRequestsScreenState
           Text(label, style: AppTheme.caption),
           const SizedBox(height: 4),
           Text(value, style: AppTheme.bodyBold),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

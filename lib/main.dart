@@ -18,6 +18,7 @@ final RouteObserver<ModalRoute<void>> appRouteObserver =
 final Map<String, WidgetBuilder> _appRoutes = {
   '/app-shell': (context) => const _AppLifecycleShell(),
   '/home': (context) => const HomeScreen(),
+  '/offline-sync': (context) => const HomeScreen(openSyncStatus: true),
   '/login': (context) {
     final args = ModalRoute.of(context)?.settings.arguments;
     final options = args is Map ? args : const <String, dynamic>{};
@@ -73,6 +74,8 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/admin-customers': (context) => const AdminCustomersScreen(),
   '/admin-pending-registrations': (context) =>
       const AdminPendingRegistrationsScreen(),
+  '/admin-verification-requests': (context) =>
+      const AdminVerificationRequestsScreen(),
   '/admin-device-requests': (context) => const AdminDeviceRequestsScreen(),
   '/admin-locations': (context) => const AdminLocationsScreen(),
   '/admin-notifications': (context) => const AdminNotificationsScreen(),
@@ -85,6 +88,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/usage-policy': (context) => const UsagePolicyScreen(),
   '/contact-us': (context) => const ContactUsScreen(),
   '/supported-locations': (context) => const SupportedLocationsScreen(),
+  '/approved-merchants': (context) => const SupportedLocationsScreen(),
   '/forgot-password': (context) => const ForgotPasswordScreen(),
   '/account-verification': (context) => const AccountVerificationScreen(),
   '/sub-users': (context) => const SubUsersScreen(),
@@ -120,13 +124,6 @@ Future<void> main() async {
             stackTrace: details.stack?.toString(),
           ),
         );
-        unawaited(
-          AppAlertService.showGlobalError(
-            title: 'خطأ في التطبيق',
-            message:
-                'حدث خلل غير متوقع أثناء عرض هذه الشاشة. أغلق الرسالة وحاول تنفيذ الخطوة مرة أخرى، وإذا تكرر الخلل انتقل للشاشة السابقة ثم افتحها من جديد.',
-          ),
-        );
       };
       PlatformDispatcher.instance.onError = (error, stack) {
         assert(() {
@@ -141,13 +138,6 @@ Future<void> main() async {
             stackTrace: stack.toString(),
           ),
         );
-        unawaited(
-          AppAlertService.showGlobalError(
-            title: 'خطأ غير متوقع',
-            message:
-                'حدث خلل غير متوقع أثناء تنفيذ العملية. حاول مرة أخرى، وإذا تكرر الخلل أعد فتح التطبيق ثم كرر الخطوة.',
-          ),
-        );
         return true;
       };
       runApp(const MyApp());
@@ -157,10 +147,10 @@ Future<void> main() async {
     },
     (error, stack) {
       unawaited(
-        AppAlertService.showGlobalError(
-          title: 'خطأ غير متوقع',
-          message:
-              'تعذر تشغيل التطبيق بشكل طبيعي. أعد فتح التطبيق، وإذا استمر الخلل تحقق من الاتصال ثم حاول مرة أخرى.',
+        AppAlertService.reportUnhandledCrash(
+          title: 'Unhandled zoned error',
+          message: error.toString(),
+          stackTrace: stack.toString(),
         ),
       );
     },
@@ -236,11 +226,16 @@ class MyApp extends StatelessWidget {
             );
             return Directionality(
               textDirection: context.loc.textDirection,
-              child: MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: const TextScaler.linear(1)),
-                child: child ?? const SizedBox.shrink(),
+              child: Stack(
+                children: [
+                  MediaQuery(
+                    data: MediaQuery.of(
+                      context,
+                    ).copyWith(textScaler: const TextScaler.linear(1)),
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                  const _GlobalConnectivityBanner(),
+                ],
               ),
             );
           },
@@ -293,6 +288,7 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
 
   Future<void> _handleAppResumed() async {
     final shouldRebuild = await LocalSecurityService.handleAppResumed();
+    unawaited(ConnectivityService.instance.checkNow());
     if (!mounted) {
       return;
     }
@@ -304,6 +300,151 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
   @override
   Widget build(BuildContext context) {
     return AppEntryPoint(key: ValueKey(_appLifecycleVersion));
+  }
+}
+
+class _GlobalConnectivityBanner extends StatefulWidget {
+  const _GlobalConnectivityBanner();
+
+  @override
+  State<_GlobalConnectivityBanner> createState() =>
+      _GlobalConnectivityBannerState();
+}
+
+class _GlobalConnectivityBannerState extends State<_GlobalConnectivityBanner> {
+  bool? _lastOnline;
+  bool _visible = false;
+  bool _showRecoveredState = false;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastOnline = ConnectivityService.instance.isOnline.value;
+    _visible = _lastOnline == false;
+    ConnectivityService.instance.isOnline.addListener(_handleConnectivity);
+  }
+
+  @override
+  void dispose() {
+    ConnectivityService.instance.isOnline.removeListener(_handleConnectivity);
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleConnectivity() {
+    final isOnline = ConnectivityService.instance.isOnline.value;
+    final previous = _lastOnline;
+    _lastOnline = isOnline;
+
+    if (previous == isOnline) {
+      return;
+    }
+
+    _hideTimer?.cancel();
+    if (!mounted) {
+      return;
+    }
+
+    if (!isOnline) {
+      setState(() {
+        _visible = true;
+        _showRecoveredState = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _visible = true;
+      _showRecoveredState = true;
+    });
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _visible = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    final showBanner = _visible;
+    final isRecovered = _showRecoveredState && _lastOnline == true;
+    final color = isRecovered ? AppTheme.success : AppTheme.error;
+    final icon = isRecovered ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+    final title = isRecovered ? l.tr('main.004') : l.tr('main.002');
+    final message = isRecovered ? l.tr('main.005') : l.tr('main.003');
+
+    return IgnorePointer(
+      ignoring: true,
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 240),
+            offset: showBanner ? Offset.zero : const Offset(0, 1.2),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: showBanner ? 1 : 0,
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: color.withValues(alpha: 0.18)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x200F172A),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: color, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
+                            style: AppTheme.bodyBold.copyWith(color: color),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            message,
+                            style: AppTheme.caption.copyWith(
+                              color: AppTheme.textSecondary,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -1,5 +1,11 @@
 const Map<String, String> appStringsEn = {
   'main.001': 'shwakil',
+  'main.002': 'Service connection unavailable',
+  'main.003':
+      'The app could not reach its services right now. Check your internet connection or wait for service to return.',
+  'main.004': 'Connection restored',
+  'main.005':
+      'The connection to services is back and you can continue normally.',
   'screens_account_settings_screen.001': 'Saved',
   'screens_account_settings_screen.002': 'Could not save',
   'screens_account_settings_screen.003': 'Missing data',
@@ -568,7 +574,7 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.017': 'Balance',
   'screens_home_screen.018': 'Balance and transactions.',
   'screens_home_screen.019': 'Issue Cards',
-  'screens_home_screen.020': 'Create new cards.',
+  'screens_home_screen.020': 'Issue new cards with the appropriate account.',
   'screens_home_screen.021': 'Quick Transfer',
   'screens_home_screen.022': 'Instant transfer.',
   'screens_home_screen.023': 'Cards Archive',
@@ -586,7 +592,7 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.035': 'Open the camera to scan the card.',
   'screens_home_screen.036': 'View your available balance.',
   'screens_home_screen.037': 'Issue a card',
-  'screens_home_screen.038': 'Create a new card quickly.',
+  'screens_home_screen.038': 'Issue a new card quickly.',
   'screens_home_screen.039': 'Quick transfer',
   'screens_home_screen.040': 'Send transfers instantly.',
   'screens_home_screen.041': 'Cards archive',
@@ -841,7 +847,7 @@ const Map<String, String> appStringsEn = {
   'widgets_app_sidebar.020': 'More',
   'widgets_app_sidebar.021': 'Usage Policy',
   'widgets_app_sidebar.022': 'Support',
-  'widgets_app_sidebar.023': 'Agents',
+  'widgets_app_sidebar.023': 'Approved merchants',
   'widgets_app_sidebar.024': 'Language',
   'widgets_app_sidebar.025': 'English / العربية',
   'widgets_app_sidebar.026': 'Log Out',
@@ -1228,6 +1234,12 @@ const Map<String, String> appStringsEn = {
   'screens_admin_card_print_requests_screen.044':
       'Use search and status filters for quick access, then open a request to manage its steps.',
   'screens_admin_card_print_requests_screen.045': 'Close',
+  'screens_admin_card_print_requests_screen.046': 'Includes detailed fees',
+  'screens_admin_card_print_requests_screen.047': 'Printed {count} time(s)',
+  'screens_admin_card_print_requests_screen.048': 'Not printed yet',
+  'screens_admin_card_print_requests_screen.049': 'Charged issue fees now',
+  'screens_admin_card_print_requests_screen.050': 'Deferred issue fees',
+  'screens_admin_card_print_requests_screen.051': 'Print request fees',
   'screens_admin_device_requests_screen.010':
       'You do not have permission to review device requests.',
   'screens_admin_device_requests_screen.011': 'Help',
@@ -1446,7 +1458,7 @@ const Map<String, String> appStringsEn = {
       'These cards will only appear for the users you choose here.',
   'screens_create_card_screen.041': 'Select users',
   'screens_create_card_screen.042': 'Edit users',
-  'screens_create_card_screen.043': 'Generate and issue batch',
+  'screens_create_card_screen.043': 'Issue batch now',
   'screens_create_card_screen.044': 'Print customization',
   'screens_create_card_screen.045':
       'Enable the title, stamp, and custom logo before printing, with lighter text sizing for a cleaner card layout.',
@@ -1476,6 +1488,32 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.066': 'Issue',
   'screens_create_card_screen.067': 'Customize',
   'screens_create_card_screen.068': 'Latest batch',
+  'screens_create_card_screen.069': 'Appointment ticket',
+  'screens_create_card_screen.070': 'Queue ticket',
+  'screens_create_card_screen.071':
+      'Enter a valid card value greater than zero.',
+  'screens_create_card_screen.072':
+      'The appointment ticket value cannot be negative.',
+  'screens_create_card_screen.073': 'Enter a valid card count.',
+  'screens_create_card_screen.074':
+      'The minimum number of cards for this account is {count} cards per operation.',
+  'screens_create_card_screen.075': 'Invalid card count',
+  'screens_create_card_screen.076':
+      'The number of cards must be a multiple of {count} because one A4 page prints {count} cards.',
+  'screens_create_card_screen.077': 'Trial limit exceeded',
+  'screens_create_card_screen.078':
+      'You can only issue trial cards with a remaining total of {amount}.',
+  'screens_create_card_screen.079': 'Appointment data is incomplete',
+  'screens_create_card_screen.080':
+      'Enter the appointment title and set the start time at minimum.',
+  'screens_create_card_screen.081': 'Invalid appointment time',
+  'screens_create_card_screen.082':
+      'The appointment end time must be after the start time.',
+  'screens_create_card_screen.083': 'Queue data is incomplete',
+  'screens_create_card_screen.084': 'Enter the queue title or service name.',
+  'screens_create_card_screen.085': 'Invalid validity window',
+  'screens_create_card_screen.086':
+      'The validity end time must be after the start time.',
   'screens_contact_us_screen.001': 'Support phone number',
   'screens_contact_us_screen.002': 'Official email',
   'screens_contact_us_screen.003': 'Head office',
@@ -1645,6 +1683,43 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.121':
       'The offline window ({minutes} minutes) has expired. Connect to the internet and sync before using card scanning.',
   'screens_scan_card_screen.122': 'Not synced yet',
+  'screens_scan_card_screen.154': 'Offline card status',
+  'screens_scan_card_screen.162': 'Update now',
+  'screens_scan_card_screen.163':
+      'Offline mode is active. You can search within locally saved cards.',
+  'screens_scan_card_screen.164':
+      'Search for a card by barcode or use the camera for quick scanning.',
+  'screens_scan_card_screen.165': 'Offline mode',
+  'screens_scan_card_screen.166': 'Live connected mode',
+  'screens_scan_card_screen.167':
+      'An update is required before continuing the scan or using local cards.',
+  'screens_scan_card_screen.168':
+      'You can use locally synced cards based on the latest saved update.',
+  'screens_scan_card_screen.169':
+      'Scanning is directly connected to services and can read cards and execute actions based on permission.',
+  'screens_scan_card_screen.170': 'Local cards: {count}',
+  'screens_scan_card_screen.171': 'Scanning is connected to the service',
+  'screens_scan_card_screen.172': 'Temporary code available',
+  'screens_scan_card_screen.173': 'Temporary code unavailable',
+  'screens_scan_card_screen.174': 'Create temporary transfer code',
+  'screens_scan_card_screen.175': 'Menu',
+  'screens_scan_card_screen.176':
+      'Create an offline temporary transfer code from the ready local balance.',
+  'screens_scan_card_screen.177':
+      'Requires a verified account and ready local balance when the internet is unavailable',
+  'screens_scan_card_screen.178': 'Search for a card',
+  'screens_scan_card_screen.179': 'Hide balance',
+  'screens_scan_card_screen.180': 'Show balance',
+  'screens_scan_card_screen.181':
+      'Show this code to the recipient. It expires automatically one minute after it is created.',
+  'screens_scan_card_screen.155': 'Synced cards',
+  'screens_scan_card_screen.156': 'Last update',
+  'screens_scan_card_screen.157': 'Allowed period',
+  'screens_scan_card_screen.158': '{minutes} minutes',
+  'screens_scan_card_screen.159': 'Status',
+  'screens_scan_card_screen.160':
+      'The period expired. Connect to the internet and update.',
+  'screens_scan_card_screen.161': 'Ready for offline scanning.',
   'screens_admin_dashboard_screen.020':
       'You do not have access to the admin dashboard',
   'screens_admin_dashboard_screen.021': 'Requests',
@@ -2103,6 +2178,33 @@ const Map<String, String> appStringsEn = {
   'screens_notifications_screen.060': 'Important',
   'screens_notifications_screen.061': 'Urgent',
   'screens_notifications_screen.062': 'Normal',
+  'screens_notifications_screen.063': 'Admin notifications',
+  'screens_notifications_screen.064':
+      'Alerts and follow-ups sent by the administration',
+  'screens_notifications_screen.065': 'Admin',
+  'screens_notifications_screen.066': 'Could not load notifications',
+  'screens_notifications_screen.067': 'Sent by: {name}',
+  'screens_notifications_screen.068': 'Related user: {name}',
+  'screens_notifications_screen.069': 'Balance top-up',
+  'screens_notifications_screen.070': 'Incoming transfer',
+  'screens_notifications_screen.071': 'Outgoing transfer',
+  'screens_notifications_screen.072': 'Withdrawal request',
+  'screens_notifications_screen.073': 'Withdrawal refund',
+  'screens_notifications_screen.074': 'Completed withdrawal',
+  'screens_notifications_screen.075': 'Card issuance',
+  'screens_notifications_screen.076': 'Card redemption',
+  'screens_notifications_screen.077': 'Card resale',
+  'screens_notifications_screen.078': 'Verification approved',
+  'screens_notifications_screen.079': 'Verification rejected',
+  'screens_notifications_screen.080': 'New verification request',
+  'screens_notifications_screen.081': 'New registration request',
+  'screens_notifications_screen.082': 'Direct admin notification',
+  'screens_notifications_screen.083': 'General notification',
+  'screens_notifications_screen.084': 'Pending',
+  'screens_notifications_screen.085': 'Approved',
+  'screens_notifications_screen.086': 'Completed',
+  'screens_notifications_screen.087': 'Rejected',
+  'screens_notifications_screen.088': 'Failed',
   'screens_transactions_screen.042': 'Quick search',
   'screens_transactions_screen.043': 'Time range',
   'screens_transactions_screen.044': 'Transaction type',
@@ -2274,6 +2376,22 @@ const Map<String, String> appStringsEn = {
       'From this screen, you can submit a new card printing request and track its status step by step. Make sure your printable balance covers the total card value plus the request fee, and use the notes field to add any special instructions before sending.',
   'screens_card_print_requests_screen.054':
       'The current print limit for this sub-user is {limit} per request.',
+  'screens_card_print_requests_screen.055': 'Appointment ticket',
+  'screens_card_print_requests_screen.056': 'Queue ticket',
+  'screens_card_print_requests_screen.057':
+      'The number of cards is below the required minimum',
+  'screens_card_print_requests_screen.058':
+      'The minimum for this account is {count} cards per print request.',
+  'screens_card_print_requests_screen.059': 'Beneficiaries are required',
+  'screens_card_print_requests_screen.060':
+      'Tickets and service cards must be private and assigned to specific target users.',
+  'screens_card_print_requests_screen.061':
+      'Appointment details are incomplete',
+  'screens_card_print_requests_screen.062':
+      'Enter the appointment title and start time before sending the print request.',
+  'screens_card_print_requests_screen.063': 'Queue details are incomplete',
+  'screens_card_print_requests_screen.064':
+      'Enter the queue title or service name before sending the print request.',
   'screens_login_screen.026':
       'Offline work mode is enabled. After sign-in, the scan screen will open directly.',
   'screens_debt_book_screen.049':
@@ -2313,9 +2431,14 @@ const Map<String, String> appStringsEn = {
   'widgets_app_sidebar.044': 'Notifications',
   'widgets_app_sidebar.045': 'Prepaid card requests',
   'widgets_app_sidebar.046': 'Wallet and transfers',
-  'widgets_app_sidebar.047': 'Create card',
+  'widgets_app_sidebar.047': 'Issue cards',
   'widgets_app_sidebar.048': 'Inventory',
   'widgets_app_sidebar.049': 'Prepaid cards',
+  'widgets_app_sidebar.050': 'Verification requests',
+  'widgets_app_sidebar.051': 'Secure logout',
+  'widgets_app_sidebar.052':
+      'End the current session and return to the login or secure unlock screen',
+  'widgets_app_sidebar.053': 'Offline sync',
   'screens_admin_notifications_screen.001': 'Could not load notifications',
   'screens_admin_notifications_screen.002': 'Send notifications',
   'screens_admin_notifications_screen.003': 'New notification',
@@ -2400,6 +2523,29 @@ const Map<String, String> appStringsEn = {
   'screens_home_screen.106':
       'Offline access has expired. Connect to the internet and sync before scanning again.',
   'screens_home_screen.107': 'Update now',
+  'screens_home_screen.108': 'Update offline now',
+  'screens_home_screen.109': 'Update required',
+  'screens_home_screen.110': 'Ready to update',
+  'screens_home_screen.111': 'Offline update required',
+  'screens_home_screen.112': 'Offline is ready',
+  'screens_home_screen.113':
+      'Marketing data is saved locally from the last successful open.',
+  'screens_home_screen.114':
+      'Open your locally saved cards and view unused ones directly.',
+  'screens_home_screen.115': 'Ready',
+  'screens_home_screen.116': 'Last data update: {time}{suffix}',
+  'screens_home_screen.117': ' - balance will not change until sync completes',
+  'screens_home_screen.118': 'Prepaid cards',
+  'screens_home_screen.119':
+      'Create multiple multipay cards with reserved balance and an expiry date.',
+  'screens_home_screen.120':
+      'Accept prepaid card payments from authorized customers.',
+  'screens_home_screen.121': 'Accept NFC',
+  'screens_home_screen.122':
+      'Read the payment authorization from the customer phone and approve the operation directly.',
+  'screens_home_screen.123': 'Temporary transfer code',
+  'screens_home_screen.124':
+      'Create a short-lived code to transfer balance to another account.',
   'screens_balance_screen.111': 'Quick actions',
   'screens_balance_screen.112': 'Recent transactions',
   'screens_balance_screen.113': 'Recent transactions',
@@ -2595,6 +2741,118 @@ const Map<String, String> appStringsEn = {
   'screens_transactions_screen.061': 'Net',
   'screens_transactions_screen.062':
       'Viewing transaction activity is currently disabled for this account.',
+  'screens_transactions_screen.063': 'Previous balance',
+  'screens_transactions_screen.064': 'Transaction amount',
+  'screens_transactions_screen.065': 'Fee / deduction',
+  'screens_transactions_screen.066': 'Current balance',
+  'screens_transactions_screen.067':
+      'Tap to open the ledger entry in a clearer detailed view.',
+  'screens_transactions_screen.068': 'Operation confirmation',
+  'screens_transactions_screen.069': 'Balance effect',
+  'screens_transactions_screen.070': 'Related party',
+  'screens_transactions_screen.071': 'Description',
+  'screens_transactions_screen.072': 'Transaction ID',
+  'screens_transactions_screen.073':
+      'This transfer was sent from this account.',
+  'screens_transactions_screen.074':
+      'This transfer was received into this account.',
+  'screens_transactions_screen.075':
+      'The withdrawal request was recorded and deducted from the balance.',
+  'screens_transactions_screen.076':
+      'The balance was added to this account successfully.',
+  'screens_transactions_screen.077':
+      'This transaction increased the current balance of this account.',
+  'screens_transactions_screen.078':
+      'This transaction decreased the current balance of this account.',
+  'screens_transactions_screen.079':
+      'The withdrawal request was rejected and the amount was returned to the balance.',
+  'screens_transactions_screen.080':
+      'The withdrawal request was approved and the amount was deducted permanently from the balance.',
+  'screens_transactions_screen.081':
+      'Printing debt was settled and the amount was added to this account.',
+  'screens_transactions_screen.082':
+      'Cards were issued and part of the printing debt was settled on this account.',
+  'screens_transactions_screen.083':
+      'Cards were issued and their cost was charged to this account.',
+  'screens_transactions_screen.084':
+      'The card was redeemed and its value was added to the balance.',
+  'screens_transactions_screen.085':
+      'The card was resold and its value was deducted from the balance.',
+  'screens_transactions_screen.086':
+      'Application fees were credited to this account.',
+  'screens_transactions_screen.087':
+      'The withdrawal request to {destination} was recorded and linked to this account.',
+  'screens_transactions_screen.088':
+      'The withdrawal request was recorded and linked to this account.',
+  'screens_transactions_screen.089':
+      'The withdrawal amount was returned to the balance after the request was rejected.',
+  'screens_transactions_screen.090':
+      'The withdrawal was completed and closed on this account.',
+  'screens_transactions_screen.091':
+      'Issued {count} cards and charged the operation to this account.',
+  'screens_transactions_screen.092':
+      'Issued cards and charged the operation to this account.',
+  'screens_transactions_screen.093':
+      'The card was redeemed and its net value was added after fees.',
+  'screens_transactions_screen.094':
+      'The card was redeemed and its value was added to the balance.',
+  'screens_transactions_screen.095':
+      'The card was resold and its value with fees was deducted from the balance.',
+  'screens_transactions_screen.096':
+      'The card was resold and its value was deducted from the balance.',
+  'screens_transactions_screen.097': 'These fees came from a balance top-up.',
+  'screens_transactions_screen.098': 'These fees came from a balance transfer.',
+  'screens_transactions_screen.099': 'These fees came from a card redemption.',
+  'screens_transactions_screen.100': 'These fees came from a card resale.',
+  'screens_transactions_screen.101':
+      'Service fees linked to a financial operation were credited to this account.',
+  'screens_admin_verification_requests_screen.001':
+      'Could not load verification requests',
+  'screens_admin_verification_requests_screen.002': 'Verification approved',
+  'screens_admin_verification_requests_screen.003':
+      'The verification request was approved successfully.',
+  'screens_admin_verification_requests_screen.004':
+      'Could not approve verification',
+  'screens_admin_verification_requests_screen.005':
+      'Reject verification request',
+  'screens_admin_verification_requests_screen.006': 'Rejection reason',
+  'screens_admin_verification_requests_screen.007':
+      'Write a clear reason that will be shown to the user in the notification.',
+  'screens_admin_verification_requests_screen.008': 'Missing data',
+  'screens_admin_verification_requests_screen.009':
+      'A rejection reason is required before continuing.',
+  'screens_admin_verification_requests_screen.010': 'Verification rejected',
+  'screens_admin_verification_requests_screen.011':
+      'The verification request was rejected successfully.',
+  'screens_admin_verification_requests_screen.012':
+      'Could not reject verification',
+  'screens_admin_verification_requests_screen.013': 'Reject request',
+  'screens_admin_verification_requests_screen.014': 'File ready',
+  'screens_admin_verification_requests_screen.015':
+      'The verification file was downloaded successfully.',
+  'screens_admin_verification_requests_screen.016': 'Could not download file',
+  'screens_admin_verification_requests_screen.017':
+      'Review the verification data and files before approving or rejecting the request.',
+  'screens_admin_verification_requests_screen.018': 'Username',
+  'screens_admin_verification_requests_screen.019': 'Contact number',
+  'screens_admin_verification_requests_screen.020': 'National ID',
+  'screens_admin_verification_requests_screen.021': 'Birth date',
+  'screens_admin_verification_requests_screen.022': 'Requested account type',
+  'screens_admin_verification_requests_screen.023': 'Submitted at',
+  'screens_admin_verification_requests_screen.024': 'User notes',
+  'screens_admin_verification_requests_screen.025': 'Verification files',
+  'screens_admin_verification_requests_screen.026': 'Identity file',
+  'screens_admin_verification_requests_screen.027': 'Selfie image',
+  'screens_admin_verification_requests_screen.028': 'Approve request',
+  'screens_admin_verification_requests_screen.029': 'Verification requests',
+  'screens_admin_verification_requests_screen.030': 'Requests awaiting review',
+  'screens_admin_verification_requests_screen.031':
+      '{count} verification requests need admin follow-up.',
+  'screens_admin_verification_requests_screen.032':
+      'No verification requests right now',
+  'screens_admin_verification_requests_screen.033':
+      'All current verification requests have been reviewed, or no new requests are available.',
+  'screens_admin_verification_requests_screen.034': 'Account verification',
   'screens_supported_locations_screen.015': 'Missing data',
   'screens_supported_locations_screen.016':
       'Center name and address are required.',
@@ -2623,6 +2881,36 @@ const Map<String, String> appStringsEn = {
   'screens_supported_locations_screen.036': 'Rejected',
   'screens_supported_locations_screen.037': 'Pending approval',
   'screens_supported_locations_screen.038': 'Rejection reason: {reason}',
+  'screens_supported_locations_screen.039': 'Pick location from map',
+  'screens_supported_locations_screen.040':
+      'You can choose the exact shop location from the map before submitting the request.',
+  'screens_supported_locations_screen.041': 'Approved merchants',
+  'screens_supported_locations_screen.042':
+      '{count} approved merchants or service locations are currently visible.',
+  'screens_supported_locations_screen.043': 'List view',
+  'screens_supported_locations_screen.044': 'Map view',
+  'screens_supported_locations_screen.045': 'View route',
+  'screens_supported_locations_screen.046': 'Open route on map',
+  'screens_supported_locations_screen.047':
+      'Tap the map to choose the exact shop location.',
+  'screens_supported_locations_screen.048': 'Use this location',
+  'screens_supported_locations_screen.049': 'Visible on map',
+  'screens_supported_locations_screen.050': 'Temporarily hidden',
+  'screens_supported_locations_screen.051': 'Edit display settings',
+  'screens_supported_locations_screen.052': 'Show this shop on the map',
+  'screens_supported_locations_screen.053':
+      'When disabled, the shop will not appear to users in the merchants list or map.',
+  'screens_supported_locations_screen.054': 'Map display name',
+  'screens_supported_locations_screen.055': 'Visible contact number',
+  'screens_supported_locations_screen.056': 'Visible WhatsApp',
+  'screens_supported_locations_screen.057': 'Internal shop name',
+  'screens_supported_locations_screen.058': 'Internal contact number',
+  'screens_supported_locations_screen.059': 'Changes saved',
+  'screens_supported_locations_screen.060':
+      'The shop visibility details were updated successfully.',
+  'screens_supported_locations_screen.061':
+      'Could not update visibility details',
+  'screens_supported_locations_screen.062': 'Save display settings',
   'screens_admin_locations_screen.028': 'Could not approve center',
   'screens_admin_locations_screen.029': 'Could not reject center',
   'widgets_admin_admin_location_card.006': 'Approved',
@@ -2678,6 +2966,18 @@ const Map<String, String> appStringsEn = {
   'screens_admin_permissions_screen.049':
       'Manage account activation and type for marketers',
   'screens_admin_permissions_screen.050': 'View private cards',
+  'screens_admin_permissions_screen.051': 'Issue single-use tickets',
+  'screens_admin_permissions_screen.052': 'Issue appointment tickets',
+  'screens_admin_permissions_screen.053': 'Issue queue tickets',
+  'screens_admin_permissions_screen.054': 'Use prepaid cards',
+  'screens_admin_permissions_screen.055': 'Accept prepaid card payments',
+  'screens_admin_permissions_screen.056':
+      'Top up user balances from the finance account',
+  'screens_admin_permissions_screen.057': 'Card and ticket issuance',
+  'screens_admin_permissions_screen.058': 'Scanning, access, and follow-up',
+  'screens_admin_permissions_screen.059':
+      'Transfers, printing, and balance ops',
+  'screens_admin_permissions_screen.060': 'Read only own private cards',
   'account_verification.requested_role_label': 'Requested account type',
   'account_verification.rejection_reason_label': 'Rejection reason',
   'account_verification.post_verification_role': 'Account type',
@@ -2693,6 +2993,16 @@ const Map<String, String> appStringsEn = {
       'Enter the amount you want to transfer to this user.',
   'screens_quick_transfer_screen.053':
       'This service is not enabled for this account right now. Contact the administration if you need this permission enabled.',
+  'screens_quick_transfer_screen.054': 'Transfers available',
+  'screens_quick_transfer_screen.055': 'Transfers unavailable',
+  'screens_quick_transfer_screen.056':
+      'You can search for a recipient or use a QR code to send balance quickly.',
+  'screens_quick_transfer_screen.057':
+      'This permission is not enabled for this account. Viewing tools will remain available based on the current access.',
+  'screens_quick_transfer_screen.058': 'Manual lookup shown',
+  'screens_quick_transfer_screen.059': 'Manual lookup hidden',
+  'screens_quick_transfer_screen.060': 'Show receive code',
+  'screens_quick_transfer_screen.061': 'Transfer to recipient',
   'screens_topup_requests_screen.036': 'Access unavailable',
   'screens_topup_requests_screen.037':
       'This screen is available only to accounts that review top-up requests.',
@@ -2737,4 +3047,165 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.139': 'Expires at {time}',
   'screens_scan_card_screen.140': 'Fee {amount}',
   'screens_scan_card_screen.141': 'Net {amount}',
+  'screens_admin_customer_screen.081': 'Balance added from user page',
+  'screens_admin_customer_screen.082': 'Balance deducted from user page',
+  'screens_admin_customer_screen.083': 'Add balance',
+  'screens_admin_customer_screen.084': 'Withdraw balance',
+  'screens_admin_customer_screen.085': 'Amount',
+  'screens_admin_customer_screen.086': 'Enter a valid amount',
+  'screens_admin_customer_screen.087': 'Notes',
+  'screens_admin_customer_screen.088':
+      'The balance will be adjusted administratively, and the account may become negative if the amount exceeds the current balance.',
+  'screens_admin_customer_screen.089': 'Cancel',
+  'screens_admin_customer_screen.090': 'Add balance',
+  'screens_admin_customer_screen.091': 'Withdraw balance',
+  'screens_admin_customer_screen.092': 'Balance management',
+  'screens_admin_customer_screen.093': 'Current balance: {amount}',
+  'screens_admin_customer_screen.094': 'Card scan protection',
+  'screens_admin_customer_screen.095': 'Custom scan limit',
+  'screens_admin_customer_screen.096': 'Global limit',
+  'screens_admin_customer_screen.097': 'Exempt from scan limit',
+  'screens_admin_customer_screen.098': 'Reset counter on save',
+  'screens_admin_customer_screen.099': 'Current: {count}',
+  'screens_admin_customer_screen.100': 'Force auto redeem on scan',
+  'screens_admin_customer_screen.101':
+      'Any card is used immediately after scanning, and the user cannot disable this option.',
+  'screens_admin_customer_screen.102': 'User details',
+  'screens_admin_customer_screen.103':
+      'Editing this data is available to the administration only, including the identity data needed to resolve financial disputes after verification.',
+  'screens_admin_customer_screen.104': 'Print logo',
+  'screens_admin_customer_screen.105':
+      'The logo is managed by the administration only, and the user cannot upload or replace any file from the profile.',
+  'screens_admin_customer_screen.106': 'Account verification',
+  'screens_admin_customer_screen.107':
+      'Review the identity and selfie attachments for this user.',
+  'screens_admin_customer_screen.108': 'Refresh',
+  'screens_admin_customer_screen.109':
+      'No verification request has been submitted for this account.',
+  'screens_admin_customer_screen.110': 'Status',
+  'screens_admin_customer_screen.111': 'Requested type',
+  'screens_admin_customer_screen.112': 'National ID',
+  'screens_admin_customer_screen.113': 'Birth date',
+  'screens_admin_customer_screen.114': 'User notes',
+  'screens_admin_customer_screen.115': 'Approve verification as user',
+  'screens_admin_customer_screen.116':
+      'After approval, the account becomes verified as a user, and the user receives a notice that they can upgrade to trader or driver through administration support.',
+  'screens_admin_customer_screen.117': 'Identity image',
+  'screens_admin_customer_screen.118': 'Selfie image',
+  'screens_admin_customer_screen.119': 'Download file',
+  'screens_admin_customer_screen.120': 'No image available',
+  'screens_admin_customer_screen.121': 'Could not load the image',
+  'screens_admin_customer_screen.122':
+      'The file {title} was downloaded successfully.',
+  'screens_admin_customer_screen.123':
+      'Account verification was approved successfully.',
+  'screens_admin_system_settings_screen.125':
+      'Could not load the card payments report',
+  'screens_admin_system_settings_screen.126': 'No data',
+  'screens_admin_system_settings_screen.127':
+      'There are no payments in the current report to export.',
+  'screens_admin_system_settings_screen.128': 'Export completed',
+  'screens_admin_system_settings_screen.129':
+      'The card payments report was exported successfully.',
+  'screens_admin_system_settings_screen.130': 'Could not export',
+  'screens_admin_system_settings_screen.131': 'Missing data',
+  'screens_admin_system_settings_screen.132':
+      'Enter the internal code, method name, and account field description before saving.',
+  'screens_admin_system_settings_screen.133':
+      'Could not save the withdrawal method',
+  'screens_admin_system_settings_screen.134': 'Add withdrawal method',
+  'screens_admin_system_settings_screen.135': 'Edit withdrawal method',
+  'screens_admin_system_settings_screen.136': 'Internal code',
+  'screens_admin_system_settings_screen.137':
+      'Example: bank_transfer or palpay_wallet',
+  'screens_admin_system_settings_screen.138': 'Method name',
+  'screens_admin_system_settings_screen.139': 'Account field label',
+  'screens_admin_system_settings_screen.140': 'Order',
+  'screens_admin_system_settings_screen.141': 'Description for users',
+  'screens_admin_system_settings_screen.142': 'Requires bank name',
+  'screens_admin_system_settings_screen.143': 'Enabled for users',
+  'screens_admin_system_settings_screen.144': 'Saving...',
+  'screens_admin_system_settings_screen.145': 'Save',
+  'screens_admin_system_settings_screen.146': 'Require OTP on sign in',
+  'screens_admin_system_settings_screen.147':
+      'When disabled, the user can sign in inside the app without a WhatsApp code.',
+  'screens_admin_system_settings_screen.148':
+      'Require registration code verification',
+  'screens_admin_system_settings_screen.149':
+      'This stays enabled at all times, even when sign-in OTP is disabled.',
+  'screens_admin_system_settings_screen.150': 'WhatsApp usage',
+  'screens_admin_system_settings_screen.151':
+      'Choose the cases where the system is allowed to send WhatsApp messages.',
+  'screens_admin_system_settings_screen.152': 'Registration only',
+  'screens_admin_system_settings_screen.153': 'Financial activity only',
+  'screens_admin_system_settings_screen.154': 'All',
+  'screens_admin_system_settings_screen.155': 'Top-up methods',
+  'screens_admin_system_settings_screen.156': 'Withdrawal settings',
+  'screens_admin_system_settings_screen.157': 'Enable withdrawal requests',
+  'screens_admin_system_settings_screen.158': 'Withdrawal instructions',
+  'screens_admin_system_settings_screen.159':
+      'Minimum withdrawal request amount',
+  'screens_admin_system_settings_screen.160':
+      'Maximum withdrawal request amount',
+  'screens_admin_system_settings_screen.161':
+      'There are currently no withdrawal methods.',
+  'screens_admin_system_settings_screen.162': 'Card payments report',
+  'screens_admin_system_settings_screen.163':
+      'An internal view of payments executed through prepaid multipay cards with quick filters and CSV export.',
+  'screens_admin_system_settings_screen.164': 'Refresh',
+  'screens_admin_system_settings_screen.165': 'Search by name or card',
+  'screens_admin_system_settings_screen.166': 'Username, card, or note',
+  'screens_admin_system_settings_screen.167': 'Card status',
+  'screens_admin_system_settings_screen.168': 'All',
+  'screens_admin_system_settings_screen.169': 'Card scan protection',
+  'screens_admin_system_settings_screen.170':
+      '0 means unlimited. When the limit is reached, automatic redeem is forced on scan, and the counter resets after a successful redeem or from the admin user page.',
+  'screens_admin_system_settings_screen.171':
+      'Force auto redeem on scan for everyone',
+  'screens_admin_system_settings_screen.172':
+      'When enabled, the card is used immediately after being scanned and the user cannot disable this option.',
+  'screens_admin_system_settings_screen.173':
+      'Minimum card count by account type',
+  'screens_admin_system_settings_screen.174':
+      'This minimum is applied in card creation and print requests.',
+  'screens_admin_system_settings_screen.175': 'General',
+  'screens_admin_system_settings_screen.176': 'Restricted',
+  'screens_admin_system_settings_screen.177': 'User',
+  'screens_admin_system_settings_screen.178': 'Verified/merchant',
+  'screens_admin_system_settings_screen.179': 'Driver',
+  'screens_admin_system_settings_screen.180': 'Marketer',
+  'screens_admin_system_settings_screen.181': 'Support',
+  'screens_admin_system_settings_screen.182': 'Finance',
+  'screens_admin_system_settings_screen.183': 'Admin',
+  'screens_admin_system_settings_screen.184': 'Prepaid card settings',
+  'screens_admin_system_settings_screen.185':
+      'Internal operating limits for multi-pay cards without any external integration.',
+  'screens_admin_system_settings_screen.186': 'Maximum card value',
+  'screens_admin_system_settings_screen.187': 'Maximum amount per payment',
+  'screens_admin_system_settings_screen.188': 'Number of active cards',
+  'screens_admin_system_settings_screen.189': 'Maximum expiry in days',
+  'screens_admin_system_settings_screen.190': 'Daily amount limit',
+  'screens_admin_system_settings_screen.191': 'Daily operations limit',
+  'screens_admin_system_settings_screen.192': 'Buyer ID',
+  'screens_admin_system_settings_screen.193': 'Merchant ID',
+  'screens_admin_system_settings_screen.194': 'From date',
+  'screens_admin_system_settings_screen.195': 'To date',
+  'screens_admin_system_settings_screen.196': 'Active',
+  'screens_admin_system_settings_screen.197': 'Frozen',
+  'screens_admin_system_settings_screen.198': 'Spent',
+  'screens_admin_system_settings_screen.199': 'Expired',
+  'screens_admin_system_settings_screen.200': 'Cancelled',
+  'screens_admin_system_settings_screen.201': 'Default',
+  'screens_admin_system_settings_screen.202': 'Restricted membership',
+  'screens_admin_system_settings_screen.203': 'Verified / merchant',
+  'screens_admin_system_settings_screen.204': 'Technical support',
+  'screens_admin_dashboard_screen.090': 'Prepaid card approvals',
+  'screens_admin_dashboard_screen.091':
+      'Approve or reject new prepaid cards before they become active for users.',
+  'screens_admin_dashboard_screen.092': 'Pending cards',
+  'screens_admin_dashboard_screen.093': 'Most used sections',
+  'screens_admin_dashboard_screen.094':
+      'These are the admin sections most commonly used in the daily workflow. Start here for faster access.',
+  'screens_admin_customers_screen.056':
+      'Use search to reach a customer quickly, then open their page to review profile data, permissions, and financial actions from one place.',
 };

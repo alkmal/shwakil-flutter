@@ -23,6 +23,13 @@ class CreateCardScreen extends StatefulWidget {
 class _CreateCardScreenState extends State<CreateCardScreen> {
   static const int _cardsPerA4Page = 30;
   static const double _trialCardsLimit = 10;
+  static const Map<String, int> _cardTypeDisplayOrder = {
+    'standard': 0,
+    'delivery': 1,
+    'single_use': 2,
+    'appointment': 3,
+    'queue': 4,
+  };
 
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
@@ -52,6 +59,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   DateTime? _appointmentStartsAt;
   DateTime? _appointmentEndsAt;
   Map<String, dynamic>? _user;
+  Map<String, dynamic> _feeSettings = const {};
   List<VirtualCard> _recent = [];
   List<Map<String, dynamic>> _selectedUsers = [];
   List<String> _selectedPhoneNumbers = [];
@@ -79,12 +87,21 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final l = context.loc;
     try {
       final user = await _authService.currentUser();
+      Map<String, dynamic> feeSettings = const {};
+      try {
+        feeSettings = Map<String, dynamic>.from(
+          await _apiService.getFeeSettings(),
+        );
+      } catch (_) {
+        feeSettings = const {};
+      }
       if (!mounted) {
         return;
       }
       final permissions = AppPermissions.fromUser(user);
       setState(() {
         _user = user;
+        _feeSettings = feeSettings;
         _isAuthorized = permissions.canIssueCards;
         final isTrialMode =
             (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
@@ -166,6 +183,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   List<String> get _issuableCardTypes => _issuableCardTypesFromUser(_user);
 
+  List<String> get _sortedIssuableCardTypes {
+    final values = [..._issuableCardTypes];
+    values.sort(
+      (a, b) => (_cardTypeDisplayOrder[a] ?? 999).compareTo(
+        _cardTypeDisplayOrder[b] ?? 999,
+      ),
+    );
+    return values;
+  }
+
   List<String> _issuableCardTypesFromUser(Map<String, dynamic>? user) {
     final raw = user?['cardIssuanceOptions'];
     if (raw is List) {
@@ -183,14 +210,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     return const ['standard', 'delivery', 'single_use', 'appointment', 'queue'];
   }
 
-  List<DropdownMenuItem<String>> _cardTypeItems(AppLocalizer l) =>
-      _issuableCardTypes.map((type) {
-        return DropdownMenuItem(
-          value: type,
-          child: Text(_cardTypeLabel(l, type)),
-        );
-      }).toList();
-
   String _cardTypeLabel(AppLocalizer l, String type) {
     switch (type) {
       case 'single_use':
@@ -198,21 +217,112 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       case 'delivery':
         return l.tr('shared.delivery_card_label');
       case 'appointment':
-        return 'تذكرة موعد';
+        return l.tr('screens_create_card_screen.069');
       case 'queue':
-        return 'تذكرة طابور';
+        return l.tr('screens_create_card_screen.070');
       default:
         return l.tr('screens_create_card_screen.002');
     }
   }
 
+  IconData _cardTypeIcon(String type) {
+    switch (type) {
+      case 'single_use':
+        return Icons.confirmation_number_rounded;
+      case 'delivery':
+        return Icons.local_shipping_rounded;
+      case 'appointment':
+        return Icons.event_available_rounded;
+      case 'queue':
+        return Icons.people_alt_rounded;
+      default:
+        return Icons.credit_card_rounded;
+    }
+  }
+
+  String _cardTypeDescription(String type) {
+    switch (type) {
+      case 'single_use':
+        return 'تذكرة استخدام سريع بدون قيمة مالية.';
+      case 'delivery':
+        return 'بطاقة مخصصة للتسليم مع رصيد قابل للاستخدام.';
+      case 'appointment':
+        return 'تذكرة موعد بوقت محدد ويمكن ربطها بتعليمات.';
+      case 'queue':
+        return 'تذكرة دور أو خدمة مع بيانات تنظيمية واضحة.';
+      default:
+        return 'بطاقة رصيد قياسية مناسبة للاستخدام العام.';
+    }
+  }
+
+  double _feeAmount(String key) =>
+      (_feeSettings[key] as num?)?.toDouble() ?? 0.0;
+
+  bool get _isPrivateIssuance => _effectiveVisibilityScope == 'restricted';
+
+  double _issueFeePerCardForType(String type, {required bool isPrivate}) {
+    if (_isTrialMode) {
+      return 0;
+    }
+    final normalizedType = type.trim().toLowerCase();
+    var fee = switch (normalizedType) {
+      'single_use' => _feeAmount('singleUseTicketIssueCost'),
+      'appointment' => _feeAmount('appointmentTicketIssueCost'),
+      'queue' => _feeAmount('queueTicketIssueCost'),
+      'delivery' => _feeAmount('deliveryCardIssueCost'),
+      _ => _feeAmount('standardCardIssueCost'),
+    };
+    final isTicket =
+        normalizedType == 'single_use' ||
+        normalizedType == 'appointment' ||
+        normalizedType == 'queue';
+    if (isPrivate && !isTicket) {
+      fee += _feeAmount('privateCardIssueCost');
+    }
+    return fee > 0 ? fee : 0;
+  }
+
+  double get _currentIssueFeePerCard =>
+      _issueFeePerCardForType(_cardType, isPrivate: _isPrivateIssuance);
+
+  double get _currentChargedIssueFeePerCard {
+    if (_isTrialMode) {
+      return 0;
+    }
+    if (_isBalanceCard && !_isPrivateIssuance) {
+      return 0;
+    }
+    return _currentIssueFeePerCard;
+  }
+
+  double get _currentDeferredIssueFeePerCard =>
+      (_currentIssueFeePerCard - _currentChargedIssueFeePerCard).clamp(
+        0,
+        double.infinity,
+      );
+
+  double get _currentCardFaceValue {
+    final amount = double.tryParse(_amountC.text.trim()) ?? 0;
+    return _isBalanceCard ? amount : (_isAppointmentCard ? amount : 0);
+  }
+
+  double get _currentChargeNowPerCard =>
+      _currentCardFaceValue + _currentChargedIssueFeePerCard;
+
+  double get _currentTotalChargeNow {
+    final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+    return _currentChargeNowPerCard * quantity;
+  }
+
   String? _validateAmountForCardType(double amount) {
     if (_isBalanceCard) {
-      return amount > 0 ? null : 'أدخل قيمة بطاقة صحيحة أكبر من صفر.';
+      return amount > 0
+          ? null
+          : context.loc.tr('screens_create_card_screen.071');
     }
 
     if (_isAppointmentCard && amount < 0) {
-      return 'قيمة تذكرة الموعد لا يمكن أن تكون سالبة.';
+      return context.loc.tr('screens_create_card_screen.072');
     }
 
     return null;
@@ -236,7 +346,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
-        message: 'أدخل عدد بطاقات صحيح.',
+        message: l.tr('screens_create_card_screen.073'),
       );
       return;
     }
@@ -245,8 +355,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
-        message:
-            'الحد الأدنى لعدد البطاقات لهذا الحساب هو $_minimumCardQuantity بطاقة في العملية الواحدة.',
+        message: l.tr(
+          'screens_create_card_screen.074',
+          params: {'count': '$_minimumCardQuantity'},
+        ),
       );
       return;
     }
@@ -264,9 +376,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (!_isTrialMode && quantity % _cardsPerA4Page != 0) {
       await AppAlertService.showError(
         context,
-        title: 'عدد البطاقات غير صالح',
-        message:
-            'عدد البطاقات يجب أن يكون من مضاعفات $_cardsPerA4Page لأن صفحة A4 تطبع $_cardsPerA4Page بطاقة.',
+        title: l.tr('screens_create_card_screen.075'),
+        message: l.tr(
+          'screens_create_card_screen.076',
+          params: {'count': '$_cardsPerA4Page'},
+        ),
       );
       return;
     }
@@ -276,9 +390,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       if (totalAmount > _trialCardsRemainingAmount) {
         await AppAlertService.showError(
           context,
-          title: 'تجاوزت الحد التجريبي',
-          message:
-              'يمكنك إنشاء بطاقات تجريبية بمجموع متبقٍ ${CurrencyFormatter.ils(_trialCardsRemainingAmount)} فقط.',
+          title: l.tr('screens_create_card_screen.077'),
+          message: l.tr(
+            'screens_create_card_screen.078',
+            params: {
+              'amount': CurrencyFormatter.ils(_trialCardsRemainingAmount),
+            },
+          ),
         );
         return;
       }
@@ -288,8 +406,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       if (_detailsTitleC.text.trim().isEmpty || _appointmentStartsAt == null) {
         await AppAlertService.showError(
           context,
-          title: 'بيانات الموعد ناقصة',
-          message: 'أدخل عنوان الموعد وحدد وقت البداية على الأقل.',
+          title: l.tr('screens_create_card_screen.079'),
+          message: l.tr('screens_create_card_screen.080'),
         );
         return;
       }
@@ -298,8 +416,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           !_appointmentEndsAt!.isAfter(_appointmentStartsAt!)) {
         await AppAlertService.showError(
           context,
-          title: 'وقت الموعد غير صحيح',
-          message: 'وقت نهاية الموعد يجب أن يكون بعد وقت البداية.',
+          title: l.tr('screens_create_card_screen.081'),
+          message: l.tr('screens_create_card_screen.082'),
         );
         return;
       }
@@ -308,8 +426,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (_isQueueCard && _detailsTitleC.text.trim().isEmpty) {
       await AppAlertService.showError(
         context,
-        title: 'بيانات الطابور ناقصة',
-        message: 'أدخل عنوان أو اسم خدمة الطابور.',
+        title: l.tr('screens_create_card_screen.083'),
+        message: l.tr('screens_create_card_screen.084'),
       );
       return;
     }
@@ -319,8 +437,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         !_validUntil!.isAfter(_validFrom!)) {
       await AppAlertService.showError(
         context,
-        title: 'نافذة الصلاحية غير صحيحة',
-        message: 'وقت انتهاء الصلاحية يجب أن يكون بعد وقت البداية.',
+        title: l.tr('screens_create_card_screen.085'),
+        message: l.tr('screens_create_card_screen.086'),
       );
       return;
     }
@@ -386,6 +504,23 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 'الموعد: ${_formatDateTime(_appointmentStartsAt)}${_appointmentEndsAt != null ? ' - ${_formatDateTime(_appointmentEndsAt)}' : ''}',
               ),
             ],
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'المخصوم الآن لكل بطاقة: ${CurrencyFormatter.ils(_currentChargeNowPerCard)}',
+            ),
+            if (_currentDeferredIssueFeePerCard > 0) ...[
+              const SizedBox(height: 6),
+              Text(
+                'الرسوم المؤجلة لكل بطاقة: ${CurrencyFormatter.ils(_currentDeferredIssueFeePerCard)}',
+              ),
+            ],
+            const SizedBox(height: 6),
+            Text(
+              'إجمالي الخصم الآن: ${CurrencyFormatter.ils(_currentTotalChargeNow)}',
+              style: AppTheme.bodyBold,
+            ),
           ],
         ),
         actions: [
@@ -544,7 +679,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
         await AppAlertService.showError(
           context,
-          title: 'تعذر إنشاء البطاقات التجريبية',
+          title: 'تعذر إصدار البطاقات التجريبية',
           message: message,
         );
         return null;
@@ -1219,36 +1354,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          if (!_isTrialMode && _cardTypeItems(l).length > 1) ...[
-            DropdownButtonFormField<String>(
-              initialValue: _cardType,
-              decoration: InputDecoration(
-                labelText: l.tr('screens_create_card_screen.034'),
-                prefixIcon: const Icon(Icons.category_rounded),
-              ),
-              items: _cardTypeItems(l),
-              onChanged: (value) {
-                setState(() {
-                  _cardType = value ?? 'standard';
-                  if (_requiresTargetedPrivateCard) {
-                    _visibilityScope = 'restricted';
-                  } else if (_cardType == 'delivery') {
-                    _visibilityScope = 'general';
-                    _selectedUsers = [];
-                    _selectedPhoneNumbers = [];
-                  }
-                  if (_cardType != 'appointment') {
-                    _appointmentStartsAt = null;
-                    _appointmentEndsAt = null;
-                  }
-                  if (_cardType != 'appointment' && _cardType != 'queue') {
-                    _appointmentLocationC.clear();
-                    _detailsTitleC.clear();
-                    _detailsDescriptionC.clear();
-                  }
-                });
-              },
-            ),
+          if (!_isTrialMode && _sortedIssuableCardTypes.length > 1) ...[
+            _buildCardTypeSelector(),
             const SizedBox(height: 16),
           ],
           if (_isBalanceCard || _isAppointmentCard) ...[
@@ -1275,10 +1382,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               labelText: l.tr('screens_create_card_screen.037'),
               prefixIcon: const Icon(Icons.pin_rounded),
               helperText: _isTrialMode
-                  ? 'الحد الأدنى $_minimumCardQuantity بطاقة. يمكنك إنشاء أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.'
+                  ? 'الحد الأدنى $_minimumCardQuantity بطاقة. يمكنك إصدار أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.'
                   : 'الحد الأدنى $_minimumCardQuantity بطاقة. أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
             ),
           ),
+          const SizedBox(height: 16),
+          _buildIssueCostSummary(),
           if (_cardType == 'single_use') ...[
             const SizedBox(height: 16),
             ShwakelCard(
@@ -1642,6 +1751,188 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
+  void _selectCardType(String type) {
+    setState(() {
+      _cardType = type;
+      if (_requiresTargetedPrivateCard) {
+        _visibilityScope = 'restricted';
+      } else if (_cardType == 'delivery') {
+        _visibilityScope = 'general';
+        _selectedUsers = [];
+        _selectedPhoneNumbers = [];
+      }
+      if (_cardType != 'appointment') {
+        _appointmentStartsAt = null;
+        _appointmentEndsAt = null;
+      }
+      if (_cardType != 'appointment' && _cardType != 'queue') {
+        _appointmentLocationC.clear();
+        _detailsTitleC.clear();
+        _detailsDescriptionC.clear();
+      }
+    });
+  }
+
+  Widget _buildCardTypeSelector() {
+    final l = context.loc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l.tr('screens_create_card_screen.034'), style: AppTheme.bodyBold),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: _sortedIssuableCardTypes.map((type) {
+            final isSelected = _cardType == type;
+            final fee = _issueFeePerCardForType(
+              type,
+              isPrivate: _effectiveVisibilityScope == 'restricted',
+            );
+            return InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => _selectCardType(type),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 220,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.primary.withValues(alpha: 0.08)
+                      : AppTheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primary : AppTheme.border,
+                    width: isSelected ? 1.4 : 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.primarySoft
+                                : AppTheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            _cardTypeIcon(type),
+                            color: isSelected
+                                ? AppTheme.primary
+                                : AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _cardTypeLabel(l, type),
+                            style: AppTheme.bodyBold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _cardTypeDescription(type),
+                      style: AppTheme.caption.copyWith(fontSize: 12),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: Text(
+                        fee > 0
+                            ? 'رسوم الإصدار: ${CurrencyFormatter.ils(fee)} لكل بطاقة'
+                            : 'بدون رسوم إصدار مباشرة',
+                        style: AppTheme.caption.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIssueCostSummary() {
+    final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+    final isDeferred = !_isTrialMode && _isBalanceCard && !_isPrivateIssuance;
+    final note = _isTrialMode
+        ? 'في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.'
+        : isDeferred
+        ? 'رسوم الإصدار لهذه البطاقة لا تُخصم الآن، وتُحتسب لاحقًا عند استخدام البطاقة.'
+        : 'رسوم الإصدار لهذه العملية تُضاف ضمن المبلغ المخصوم الآن.';
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      color: AppTheme.secondary.withValues(alpha: 0.05),
+      borderColor: AppTheme.secondary.withValues(alpha: 0.12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('ملخص الدفع والرسوم', style: AppTheme.bodyBold),
+          const SizedBox(height: 6),
+          Text(
+            'راجع ما سيتم خصمه الآن لكل بطاقة وفي إجمالي العملية قبل المتابعة.',
+            style: AppTheme.caption.copyWith(fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          _buildPreviewSummaryRow(
+            'قيمة البطاقة الواحدة',
+            CurrencyFormatter.ils(_currentCardFaceValue),
+          ),
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow(
+            'رسوم الإصدار لكل بطاقة',
+            CurrencyFormatter.ils(_currentIssueFeePerCard),
+          ),
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow(
+            'المخصوم الآن لكل بطاقة',
+            CurrencyFormatter.ils(_currentChargeNowPerCard),
+          ),
+          if (_currentDeferredIssueFeePerCard > 0) ...[
+            const SizedBox(height: 8),
+            _buildPreviewSummaryRow(
+              'الرسوم المؤجلة لكل بطاقة',
+              CurrencyFormatter.ils(_currentDeferredIssueFeePerCard),
+            ),
+          ],
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow(
+            'إجمالي الخصم الآن',
+            quantity > 0 ? CurrencyFormatter.ils(_currentTotalChargeNow) : '-',
+          ),
+          const SizedBox(height: 12),
+          Text(
+            note,
+            style: AppTheme.caption.copyWith(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPreviewAndPrintWorkspace() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1874,7 +2165,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           Text('وضع البطاقات التجريبية', style: AppTheme.bodyBold),
           const SizedBox(height: 8),
           Text(
-            'هذا الحساب غير موثق بعد، لذلك يتم إنشاء بطاقات تجريبية خاصة بك فقط. مجموع البطاقات غير المستخدمة لا يتجاوز ${CurrencyFormatter.ils(_trialCardsLimit)} وتسجل قيمتها بالسالب على الرصيد.',
+            'هذا الحساب غير موثق بعد، لذلك يتم إصدار بطاقات تجريبية خاصة بك فقط. مجموع البطاقات غير المستخدمة لا يتجاوز ${CurrencyFormatter.ils(_trialCardsLimit)} وتسجل قيمتها بالسالب على الرصيد.',
             style: AppTheme.bodyAction.copyWith(fontSize: 13, height: 1.6),
           ),
           const SizedBox(height: 12),

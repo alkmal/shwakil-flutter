@@ -1603,184 +1603,127 @@ class _BalanceScreenState extends State<BalanceScreen>
   }
 
   Widget _buildBalanceHistoryCard({required Map<String, dynamic> transaction}) {
-    final l = context.loc;
     final type = transaction['type']?.toString() ?? '';
     final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
-    final createdAt = transaction['createdAt']?.toString() ?? '';
-    final status = transaction['status']?.toString() ?? 'completed';
+    final fee = (transaction['fee'] as num?)?.toDouble() ?? 0;
+    final previousBalance =
+        (transaction['previousBalance'] as num?)?.toDouble() ?? 0;
+    final currentBalance =
+        (transaction['balanceAfter'] as num?)?.toDouble() ?? 0;
+    final delta = (transaction['balanceDelta'] as num?)?.toDouble() ?? 0;
     final metadata = Map<String, dynamic>.from(
       transaction['metadata'] as Map? ?? const {},
     );
-    final audit = metadata['locationAudit'];
-    final isNearBranch = audit is Map && audit['isNearSupportedBranch'] == true;
-    final isRejected = status == 'rejected' || type == 'withdrawal_rejected';
-    final accentColor = _historyAccentColor(
-      type: type,
-      amount: amount,
-      isRejected: isRejected,
-    );
-    final actorLine = _historyActorLine(type: type, metadata: metadata);
+    final accentColor = _historyAccentColor(type: type, delta: delta);
+    final isPositive = delta >= 0;
 
     return ShwakelCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      onTap: () => _showHistoryTransactionDetails(transaction),
+      padding: const EdgeInsets.all(16),
       borderRadius: BorderRadius.circular(22),
       shadowLevel: ShwakelShadowLevel.soft,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 560;
-          final amountBadge = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              CurrencyFormatter.ils(amount),
-              style: AppTheme.bodyBold.copyWith(
-                color: accentColor,
-                fontSize: 13,
-              ),
-            ),
-          );
-
-          return Flex(
-            direction: isCompact ? Axis.vertical : Axis.horizontal,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: accentColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
-                  _historyIcon(
-                    type: type,
-                    amount: amount,
-                    isRejected: isRejected,
-                  ),
+                  _historyIcon(type: type, delta: delta),
                   color: accentColor,
                   size: 20,
                 ),
               ),
-              SizedBox(width: isCompact ? 0 : 12, height: isCompact ? 12 : 0),
-              if (isCompact)
-                Column(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _historyTypeLabel(type: type, metadata: metadata),
-                      style: AppTheme.bodyBold.copyWith(fontSize: 15),
+                      style: AppTheme.bodyBold,
                     ),
-                    const SizedBox(height: 8),
-                    amountBadge,
-                    const SizedBox(height: 6),
-                    _buildHistoryMeta(
-                      createdAt: createdAt,
-                      isRejected: isRejected,
-                      actorLine: actorLine,
-                      isNearBranch: isNearBranch,
-                      l: l,
+                    const SizedBox(height: 4),
+                    Text(
+                      transaction['createdAt']?.toString() ?? '-',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ],
-                )
-              else
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _historyTypeLabel(type: type, metadata: metadata),
-                              style: AppTheme.bodyBold.copyWith(fontSize: 15),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          amountBadge,
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      _buildHistoryMeta(
-                        createdAt: createdAt,
-                        isRejected: isRejected,
-                        actorLine: actorLine,
-                        isNearBranch: isNearBranch,
-                        l: l,
-                      ),
-                    ],
-                  ),
                 ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${isPositive ? '+' : '-'}${CurrencyFormatter.ils(delta.abs())}',
+                  style: AppTheme.bodyBold.copyWith(color: accentColor),
+                ),
+              ),
             ],
-          );
-        },
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildHistoryMiniItem(
+                context.loc.tr('screens_transactions_screen.063'),
+                CurrencyFormatter.ils(previousBalance),
+              ),
+              _buildHistoryMiniItem(
+                context.loc.tr('screens_transactions_screen.064'),
+                CurrencyFormatter.ils(amount),
+              ),
+              _buildHistoryMiniItem(
+                context.loc.tr('screens_transactions_screen.065'),
+                CurrencyFormatter.ils(fee),
+              ),
+              _buildHistoryMiniItem(
+                context.loc.tr('screens_transactions_screen.066'),
+                CurrencyFormatter.ils(currentBalance),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            context.loc.tr('screens_transactions_screen.067'),
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHistoryMeta({
-    required String createdAt,
-    required bool isRejected,
-    required String? actorLine,
-    required bool isNearBranch,
-    required AppLocalizer l,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          children: [
-            Text(
-              createdAt,
-              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
-            ),
-            if (isRejected)
-              Text(
-                l.tr('widgets_admin_transaction_audit_card.029'),
-                style: AppTheme.caption.copyWith(
-                  color: AppTheme.error,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-          ],
-        ),
-        if (actorLine != null) ...[
+  Widget _buildHistoryMiniItem(String label, String value) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 132),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTheme.caption),
           const SizedBox(height: 4),
-          Text(
-            actorLine,
-            style: AppTheme.caption.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.3,
-            ),
-          ),
+          Text(value, style: AppTheme.bodyBold.copyWith(fontSize: 13)),
         ],
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Icon(
-              isNearBranch ? Icons.place_rounded : Icons.location_off_outlined,
-              size: 14,
-              color: isNearBranch ? AppTheme.primary : AppTheme.warning,
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                isNearBranch
-                    ? l.tr('widgets_admin_transaction_audit_card.030')
-                    : l.tr('widgets_admin_transaction_audit_card.031'),
-                style: AppTheme.caption.copyWith(
-                  color: isNearBranch ? AppTheme.primary : AppTheme.warning,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
@@ -1914,12 +1857,7 @@ class _BalanceScreenState extends State<BalanceScreen>
     return null;
   }
 
-  IconData _historyIcon({
-    required String type,
-    required double amount,
-    required bool isRejected,
-  }) {
-    if (isRejected) return Icons.block_rounded;
+  IconData _historyIcon({required String type, required double delta}) {
     switch (type) {
       case 'transfer_out':
       case 'withdrawal_request':
@@ -1932,19 +1870,16 @@ class _BalanceScreenState extends State<BalanceScreen>
         return Icons.south_west_rounded;
       case 'issue_cards':
         return Icons.add_card_rounded;
+      case 'withdrawal_rejected':
+        return Icons.block_rounded;
       default:
-        return amount >= 0
+        return delta >= 0
             ? Icons.add_circle_rounded
             : Icons.remove_circle_rounded;
     }
   }
 
-  Color _historyAccentColor({
-    required String type,
-    required double amount,
-    required bool isRejected,
-  }) {
-    if (isRejected) return AppTheme.error;
+  Color _historyAccentColor({required String type, required double delta}) {
     switch (type) {
       case 'transfer_out':
       case 'withdrawal_request':
@@ -1952,8 +1887,320 @@ class _BalanceScreenState extends State<BalanceScreen>
         return AppTheme.warning;
       case 'issue_cards':
         return AppTheme.accent;
+      case 'withdrawal_rejected':
+        return AppTheme.error;
       default:
-        return amount >= 0 ? AppTheme.primary : AppTheme.warning;
+        return delta >= 0 ? AppTheme.success : AppTheme.warning;
+    }
+  }
+
+  Future<void> _showHistoryTransactionDetails(
+    Map<String, dynamic> transaction,
+  ) async {
+    final metadata = Map<String, dynamic>.from(
+      transaction['metadata'] as Map? ?? const {},
+    );
+    final type = transaction['type']?.toString() ?? '';
+    final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
+    final fee = (transaction['fee'] as num?)?.toDouble() ?? 0;
+    final previousBalance =
+        (transaction['previousBalance'] as num?)?.toDouble() ?? 0;
+    final currentBalance =
+        (transaction['balanceAfter'] as num?)?.toDouble() ?? 0;
+    final delta = (transaction['balanceDelta'] as num?)?.toDouble() ?? 0;
+    final accentColor = _historyAccentColor(type: type, delta: delta);
+    final actorLine = _historyActorLine(type: type, metadata: metadata);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.68,
+        minChildSize: 0.45,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.border,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(
+                      _historyIcon(type: type, delta: delta),
+                      color: accentColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _historyTypeLabel(type: type, metadata: metadata),
+                          style: AppTheme.h3,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          transaction['createdAt']?.toString() ?? '-',
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              ShwakelCard(
+                padding: const EdgeInsets.all(16),
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(20),
+                shadowLevel: ShwakelShadowLevel.none,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHistoryDetailRow(
+                      context.loc.tr('screens_transactions_screen.068'),
+                      _historyConfirmationText(type, delta, metadata),
+                      accentColor,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildHistoryDetailRow(
+                      context.loc.tr('screens_transactions_screen.063'),
+                      CurrencyFormatter.ils(previousBalance),
+                      AppTheme.textPrimary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildHistoryDetailRow(
+                      context.loc.tr('screens_transactions_screen.064'),
+                      CurrencyFormatter.ils(amount),
+                      AppTheme.textPrimary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildHistoryDetailRow(
+                      context.loc.tr('screens_transactions_screen.065'),
+                      CurrencyFormatter.ils(fee),
+                      AppTheme.textPrimary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildHistoryDetailRow(
+                      context.loc.tr('screens_transactions_screen.069'),
+                      '${delta >= 0 ? '+' : '-'}${CurrencyFormatter.ils(delta.abs())}',
+                      accentColor,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildHistoryDetailRow(
+                      context.loc.tr('screens_transactions_screen.066'),
+                      CurrencyFormatter.ils(currentBalance),
+                      AppTheme.primary,
+                    ),
+                    if (actorLine != null) ...[
+                      const SizedBox(height: 10),
+                      _buildHistoryDetailRow(
+                        context.loc.tr('screens_transactions_screen.070'),
+                        actorLine,
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                    if ((transaction['description']
+                            ?.toString()
+                            .trim()
+                            .isNotEmpty ??
+                        false)) ...[
+                      const SizedBox(height: 10),
+                      _buildHistoryDetailRow(
+                        context.loc.tr('screens_transactions_screen.071'),
+                        _historyDescriptionText(
+                          type: type,
+                          rawDescription:
+                              transaction['description']?.toString() ?? '',
+                          metadata: metadata,
+                          amount: amount,
+                          fee: fee,
+                        ),
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                    if ((transaction['id']?.toString().trim().isNotEmpty ??
+                        false)) ...[
+                      const SizedBox(height: 10),
+                      _buildHistoryDetailRow(
+                        context.loc.tr('screens_transactions_screen.072'),
+                        transaction['id'].toString(),
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryDetailRow(String label, String value, Color valueColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          flex: 2,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: AppTheme.bodyBold.copyWith(color: valueColor),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _historyConfirmationText(
+    String type,
+    double delta,
+    Map<String, dynamic> metadata,
+  ) {
+    if (type == 'transfer_out') {
+      return context.loc.tr('screens_transactions_screen.073');
+    }
+    if (type == 'transfer_in') {
+      return context.loc.tr('screens_transactions_screen.074');
+    }
+    if (type == 'withdrawal_request') {
+      return context.loc.tr('screens_transactions_screen.075');
+    }
+    if (type == 'withdrawal_rejected') {
+      return context.loc.tr('screens_transactions_screen.079');
+    }
+    if (type == 'withdrawal_completed') {
+      return context.loc.tr('screens_transactions_screen.080');
+    }
+    if (type == 'topup' || type == 'balance_credit') {
+      if ((metadata['sourceType']?.toString() ?? '') ==
+          'printing_debt_settlement') {
+        return context.loc.tr('screens_transactions_screen.081');
+      }
+      return context.loc.tr('screens_transactions_screen.076');
+    }
+    if (type == 'issue_cards') {
+      final usedDebt = (metadata['usedPrintingDebt'] as num?)?.toDouble() ?? 0;
+      return usedDebt > 0
+          ? context.loc.tr('screens_transactions_screen.082')
+          : context.loc.tr('screens_transactions_screen.083');
+    }
+    if (type == 'redeem_card') {
+      return context.loc.tr('screens_transactions_screen.084');
+    }
+    if (type == 'resell_card') {
+      return context.loc.tr('screens_transactions_screen.085');
+    }
+    if (type == 'app_fee_credit') {
+      return context.loc.tr('screens_transactions_screen.086');
+    }
+    return delta >= 0
+        ? context.loc.tr('screens_transactions_screen.077')
+        : context.loc.tr('screens_transactions_screen.078');
+  }
+
+  String _historyDescriptionText({
+    required String type,
+    required String rawDescription,
+    required Map<String, dynamic> metadata,
+    required double amount,
+    required double fee,
+  }) {
+    final sanitized = rawDescription
+        .replaceAll('₪', '')
+        .replaceAll('شيكل', '')
+        .replaceAll('ILS', '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final quantity = (metadata['quantity'] as num?)?.toInt();
+    final sourceType = metadata['sourceType']?.toString().trim() ?? '';
+
+    switch (type) {
+      case 'withdrawal_request':
+        final destinationTitle =
+            metadata['destinationTitle']?.toString().trim() ??
+            metadata['destinationTypeLabel']?.toString().trim() ??
+            '';
+        if (destinationTitle.isNotEmpty) {
+          return context.loc.tr(
+            'screens_transactions_screen.087',
+            params: {'destination': destinationTitle},
+          );
+        }
+        return context.loc.tr('screens_transactions_screen.088');
+      case 'withdrawal_rejected':
+        return context.loc.tr('screens_transactions_screen.089');
+      case 'withdrawal_completed':
+        return context.loc.tr('screens_transactions_screen.090');
+      case 'issue_cards':
+        if (quantity != null && quantity > 0) {
+          return context.loc.tr(
+            'screens_transactions_screen.091',
+            params: {'count': quantity.toString()},
+          );
+        }
+        return context.loc.tr('screens_transactions_screen.092');
+      case 'redeem_card':
+        return fee > 0
+            ? context.loc.tr('screens_transactions_screen.093')
+            : context.loc.tr('screens_transactions_screen.094');
+      case 'resell_card':
+        return fee > 0
+            ? context.loc.tr('screens_transactions_screen.095')
+            : context.loc.tr('screens_transactions_screen.096');
+      case 'app_fee_credit':
+        switch (sourceType) {
+          case 'topup':
+            return context.loc.tr('screens_transactions_screen.097');
+          case 'transfer':
+            return context.loc.tr('screens_transactions_screen.098');
+          case 'redeem_card':
+          case 'card_redeem':
+            return context.loc.tr('screens_transactions_screen.099');
+          case 'resell_card':
+          case 'card_resell':
+            return context.loc.tr('screens_transactions_screen.100');
+        }
+        return context.loc.tr('screens_transactions_screen.101');
+      default:
+        return sanitized;
     }
   }
 

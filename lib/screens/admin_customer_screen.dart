@@ -95,6 +95,38 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           'canViewCustomers,canLookupMembers,canManageUsers,canFinanceTopup,canManageMarketingAccounts,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canExportCustomerTransactions,canViewAffiliateCenter,canManageDebtBook',
     },
   ];
+  static const List<Map<String, Object>> _cardPermissionSections = [
+    {
+      'title': 'إصدار البطاقات والتذاكر',
+      'icon': Icons.credit_card_rounded,
+      'keys': [
+        'canIssueCards',
+        'canIssueSubShekelCards',
+        'canIssueHighValueCards',
+        'canIssuePrivateCards',
+        'canIssueSingleUseTickets',
+        'canIssueAppointmentTickets',
+        'canIssueQueueTickets',
+      ],
+    },
+    {
+      'title': 'الفحص والوصول والمتابعة',
+      'icon': Icons.qr_code_scanner_rounded,
+      'keys': [
+        'canScanCards',
+        'canOfflineCardScan',
+        'canViewPrivateCards',
+        'canReadOwnPrivateCardsOnly',
+        'canDeleteCards',
+        'canResellCards',
+      ],
+    },
+    {
+      'title': 'الطباعة والتحصيل',
+      'icon': Icons.print_rounded,
+      'keys': ['canRequestCardPrinting', 'canManageCardPrintRequests'],
+    },
+  ];
   static const Map<String, String> _permissionLabels = {
     'canViewBalance': 'عرض الرصيد',
     'canViewTransactions': 'عرض الحركات المالية',
@@ -108,9 +140,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     'canIssueSubShekelCards': 'إصدار بطاقات منخفضة القيمة',
     'canIssueHighValueCards': 'إصدار بطاقات عالية القيمة',
     'canIssuePrivateCards': 'إصدار بطاقات خاصة',
-    'canIssueSingleUseTickets': 'إنشاء تذاكر دخول لمرة واحدة',
-    'canIssueAppointmentTickets': 'إنشاء تذاكر مواعيد',
-    'canIssueQueueTickets': 'إنشاء تذاكر طوابير',
+    'canIssueSingleUseTickets': 'إصدار تذاكر دخول لمرة واحدة',
+    'canIssueAppointmentTickets': 'إصدار تذاكر مواعيد',
+    'canIssueQueueTickets': 'إصدار تذاكر طوابير',
     'canViewPrivateCards': 'عرض البطاقات الخاصة',
     'canReadOwnPrivateCardsOnly': 'قراءة بطاقاته الخاصة فقط',
     'canDeleteCards': 'حذف البطاقات',
@@ -187,7 +219,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     super.dispose();
   }
 
-  String _t(String key) => context.loc.tr(key);
+  String _t(String key, [Map<String, String>? params]) =>
+      context.loc.tr(key, params: params);
 
   void _syncFields() {
     _businessNameController.text = _customer['businessName']?.toString() ?? '';
@@ -452,8 +485,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     final amountController = TextEditingController();
     final notesController = TextEditingController(
       text: isCredit
-          ? 'إضافة رصيد من صفحة المستخدم'
-          : 'سحب رصيد من صفحة المستخدم',
+          ? _t('screens_admin_customer_screen.081')
+          : _t('screens_admin_customer_screen.082'),
     );
     final formKey = GlobalKey<FormState>();
 
@@ -461,7 +494,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(isCredit ? 'إضافة رصيد' : 'سحب رصيد'),
+          title: Text(
+            isCredit
+                ? _t('screens_admin_customer_screen.083')
+                : _t('screens_admin_customer_screen.084'),
+          ),
           content: Form(
             key: formKey,
             child: Column(
@@ -478,13 +515,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(labelText: 'المبلغ'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_admin_customer_screen.085'),
+                  ),
                   validator: (value) {
                     final amount = double.tryParse(
                       (value ?? '').trim().replaceAll(',', '.'),
                     );
                     if (amount == null || amount <= 0) {
-                      return 'أدخل مبلغًا صحيحًا';
+                      return _t('screens_admin_customer_screen.086');
                     }
                     return null;
                   },
@@ -495,12 +534,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   maxLength: 250,
                   minLines: 2,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'ملاحظات'),
+                  decoration: InputDecoration(
+                    labelText: _t('screens_admin_customer_screen.087'),
+                  ),
                 ),
                 if (!isCredit) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'سيتم خصم الرصيد إداريًا، وقد يصبح الحساب بالسالب إذا كان المبلغ أكبر من الرصيد الحالي.',
+                    _t('screens_admin_customer_screen.088'),
                     style: AppTheme.caption.copyWith(color: AppTheme.warning),
                   ),
                 ],
@@ -510,7 +551,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('إلغاء'),
+              child: Text(_t('screens_admin_customer_screen.089')),
             ),
             FilledButton.icon(
               onPressed: () {
@@ -524,7 +565,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     ? Icons.add_card_rounded
                     : Icons.remove_circle_outline_rounded,
               ),
-              label: Text(isCredit ? 'إضافة الرصيد' : 'سحب الرصيد'),
+              label: Text(
+                isCredit
+                    ? _t('screens_admin_customer_screen.090')
+                    : _t('screens_admin_customer_screen.091'),
+              ),
             ),
           ],
         );
@@ -820,10 +865,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('إدارة الرصيد', style: AppTheme.h3),
+                    Text(
+                      _t('screens_admin_customer_screen.092'),
+                      style: AppTheme.h3,
+                    ),
                     const SizedBox(height: 2),
                     Text(
-                      'الرصيد الحالي: ${CurrencyFormatter.ils(balance)}',
+                      _t('screens_admin_customer_screen.093', {
+                        'amount': CurrencyFormatter.ils(balance),
+                      }),
                       style: AppTheme.caption,
                     ),
                   ],
@@ -1173,7 +1223,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     const SizedBox(height: 16),
                     _feeGrid(),
                     const SizedBox(height: 24),
-                    Text('حماية فحص البطاقات', style: AppTheme.bodyBold),
+                    Text(
+                      _t('screens_admin_customer_screen.094'),
+                      style: AppTheme.bodyBold,
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 16,
@@ -1185,9 +1238,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           child: TextField(
                             controller: _cardScanLimitController,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'حد فحص خاص',
-                              hintText: 'الحد العام',
+                            decoration: InputDecoration(
+                              labelText: _t(
+                                'screens_admin_customer_screen.095',
+                              ),
+                              hintText: _t('screens_admin_customer_screen.096'),
                             ),
                           ),
                         ),
@@ -1195,7 +1250,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           width: 260,
                           child: SwitchListTile.adaptive(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('إعفاء من حد الفحص'),
+                            title: Text(
+                              _t('screens_admin_customer_screen.097'),
+                            ),
                             value: _cardScanLimitExempt,
                             onChanged: (value) =>
                                 setState(() => _cardScanLimitExempt = value),
@@ -1205,9 +1262,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           width: 280,
                           child: CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('تصفير العداد عند الحفظ'),
+                            title: Text(
+                              _t('screens_admin_customer_screen.098'),
+                            ),
                             subtitle: Text(
-                              'الحالي: ${(_customer['cardScanChecksWithoutRedeem'] as num?)?.toInt() ?? 0}',
+                              _t('screens_admin_customer_screen.099', {
+                                'count':
+                                    '${(_customer['cardScanChecksWithoutRedeem'] as num?)?.toInt() ?? 0}',
+                              }),
                             ),
                             value: _resetCardScanCounter,
                             onChanged: (value) => setState(
@@ -1219,9 +1281,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           width: 320,
                           child: SwitchListTile.adaptive(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('فرض السحب التلقائي عند الفحص'),
-                            subtitle: const Text(
-                              'يتم استخدام أي بطاقة مباشرة بعد قراءتها ولا يستطيع المستخدم تعطيله.',
+                            title: Text(
+                              _t('screens_admin_customer_screen.100'),
+                            ),
+                            subtitle: Text(
+                              _t('screens_admin_customer_screen.101'),
                             ),
                             value: _cardAutoRedeemOnScanForced,
                             onChanged: (value) => setState(
@@ -1254,10 +1318,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('بيانات المستخدم', style: AppTheme.h3),
+          Text(_t('screens_admin_customer_screen.102'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'تعديل هذه البيانات متاح للإدارة فقط، وتشمل بيانات الهوية المطلوبة لحل النزاعات المالية بعد التوثيق.',
+            _t('screens_admin_customer_screen.103'),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 18),
@@ -1329,10 +1393,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('شعار الطباعة', style: AppTheme.h3),
+          Text(_t('screens_admin_customer_screen.104'), style: AppTheme.h3),
           const SizedBox(height: 8),
           Text(
-            'الشعار يدار من الإدارة فقط ولا يمكن للمستخدم رفع أو تغيير أي ملف من ملفه الشخصي.',
+            _t('screens_admin_customer_screen.105'),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -1523,6 +1587,36 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primarySoft.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.10),
+                  ),
+                ),
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _permissionHintChip(
+                      Icons.person_outline_rounded,
+                      'تعديل فردي مباشر',
+                    ),
+                    _permissionHintChip(
+                      Icons.restore_rounded,
+                      'استعادة سريعة حسب نوع الحساب',
+                    ),
+                    _permissionHintChip(
+                      Icons.admin_panel_settings_rounded,
+                      'إظهار العناصر حسب مستوى الصلاحية',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               ShwakelButton(
                 label: 'استعادة صلاحيات نوع الحساب',
                 icon: Icons.restore_rounded,
@@ -1532,18 +1626,43 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ),
               const SizedBox(height: 20),
               for (final group in _permissionGroups) ...[
-                Text(group['title']!, style: AppTheme.bodyAction),
-                const SizedBox(height: 8),
-                ...group['keys']!
-                    .split(',')
-                    .where(
-                      (key) =>
-                          widget.canManageUsers || !_isAdminOnlyPermission(key),
-                    )
-                    .map(
-                      (key) =>
-                          _permItem(_permissionLabels[key] ?? key, key, perms),
+                if (group['title'] == 'البطاقات والتحصيل')
+                  ..._cardPermissionSections.map(
+                    (section) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildPermissionSectionCard(
+                        title: section['title']! as String,
+                        icon: section['icon']! as IconData,
+                        permissionKeys:
+                            List<String>.from(section['keys']! as List)
+                                .where(
+                                  (key) =>
+                                      widget.canManageUsers ||
+                                      !_isAdminOnlyPermission(key),
+                                )
+                                .toList(),
+                        perms: perms,
+                      ),
                     ),
+                  )
+                else ...[
+                  Text(group['title']!, style: AppTheme.bodyAction),
+                  const SizedBox(height: 8),
+                  ...group['keys']!
+                      .split(',')
+                      .where(
+                        (key) =>
+                            widget.canManageUsers ||
+                            !_isAdminOnlyPermission(key),
+                      )
+                      .map(
+                        (key) => _permItem(
+                          _permissionLabels[key] ?? key,
+                          key,
+                          perms,
+                        ),
+                      ),
+                ],
                 const SizedBox(height: 16),
               ],
             ],
@@ -1565,6 +1684,66 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       'canReviewDevices',
       'canExportCustomerTransactions',
     }.contains(key);
+  }
+
+  Widget _permissionHintChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(label, style: AppTheme.caption.copyWith(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionSectionCard({
+    required String title,
+    required IconData icon,
+    required List<String> permissionKeys,
+    required Map<String, dynamic> perms,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: AppTheme.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(title, style: AppTheme.bodyBold)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...permissionKeys.map(
+            (key) => _permItem(_permissionLabels[key] ?? key, key, perms),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDevicesTab() {
@@ -1634,11 +1813,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AdminSectionHeader(
-              title: 'توثيق الحساب',
-              subtitle: 'مراجعة مرفقات الهوية والسيلفي الخاصة بهذا المستخدم',
+              title: _t('screens_admin_customer_screen.106'),
+              subtitle: _t('screens_admin_customer_screen.107'),
               icon: Icons.verified_user_rounded,
               trailing: IconButton(
-                tooltip: 'تحديث',
+                tooltip: _t('screens_admin_customer_screen.108'),
                 onPressed: _busy ? null : () => _loadCustomer(),
                 icon: const Icon(Icons.refresh_rounded),
               ),
@@ -1648,7 +1827,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ShwakelCard(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'لا يوجد طلب توثيق مرسل لهذا الحساب.',
+                  _t('screens_admin_customer_screen.109'),
                   style: AppTheme.bodyText,
                 ),
               )
@@ -1663,24 +1842,24 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       runSpacing: 12,
                       children: [
                         _verificationChip(
-                          'الحالة',
+                          _t('screens_admin_customer_screen.110'),
                           _verificationStatusLabel(
                             request['status']?.toString() ?? '',
                           ),
                           Icons.fact_check_rounded,
                         ),
                         _verificationChip(
-                          'النوع المطلوب',
+                          _t('screens_admin_customer_screen.111'),
                           request['requestedRoleLabel']?.toString() ?? '-',
                           Icons.badge_rounded,
                         ),
                         _verificationChip(
-                          'رقم الهوية',
+                          _t('screens_admin_customer_screen.112'),
                           request['nationalId']?.toString() ?? '-',
                           Icons.credit_card_rounded,
                         ),
                         _verificationChip(
-                          'تاريخ الميلاد',
+                          _t('screens_admin_customer_screen.113'),
                           request['birthDate']?.toString() ?? '-',
                           Icons.cake_rounded,
                         ),
@@ -1688,7 +1867,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     ),
                     if ((request['notes']?.toString() ?? '').isNotEmpty) ...[
                       const SizedBox(height: 18),
-                      Text('ملاحظات المستخدم', style: AppTheme.bodyBold),
+                      Text(
+                        _t('screens_admin_customer_screen.114'),
+                        style: AppTheme.bodyBold,
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         request['notes'].toString(),
@@ -1698,14 +1880,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     if (isPending) ...[
                       const SizedBox(height: 24),
                       ShwakelButton(
-                        label: 'اعتماد التوثيق كمستخدم',
+                        label: _t('screens_admin_customer_screen.115'),
                         icon: Icons.verified_rounded,
                         onPressed: _busy ? null : _approveVerificationRequest,
                         isLoading: _busy,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'بعد الاعتماد يصبح الحساب موثقًا ونوع الحساب مستخدم، ويصل للمستخدم إشعار بإمكانية الترقية إلى تاجر أو سائق عبر التواصل.',
+                        _t('screens_admin_customer_screen.116'),
                         style: AppTheme.caption,
                       ),
                     ],
@@ -1725,7 +1907,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       SizedBox(
                         width: imageWidth,
                         child: _verificationImageCard(
-                          title: 'صورة الهوية',
+                          title: _t('screens_admin_customer_screen.117'),
                           url: requestId.isEmpty
                               ? ''
                               : _api
@@ -1741,7 +1923,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       SizedBox(
                         width: imageWidth,
                         child: _verificationImageCard(
-                          title: 'صورة السيلفي',
+                          title: _t('screens_admin_customer_screen.118'),
                           url: requestId.isEmpty
                               ? ''
                               : _api
@@ -1811,7 +1993,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               Text(title, style: AppTheme.bodyBold),
               const Spacer(),
               IconButton(
-                tooltip: 'تحميل الملف',
+                tooltip: _t('screens_admin_customer_screen.119'),
                 onPressed: url.isEmpty
                     ? null
                     : () => _downloadVerificationFile(fileType, title),
@@ -1828,7 +2010,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   ? Container(
                       color: AppTheme.surfaceVariant,
                       alignment: Alignment.center,
-                      child: Text('لا توجد صورة', style: AppTheme.caption),
+                      child: Text(
+                        _t('screens_admin_customer_screen.120'),
+                        style: AppTheme.caption,
+                      ),
                     )
                   : InkWell(
                       onTap: () => _openVerificationImage(title, url),
@@ -1840,7 +2025,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           color: AppTheme.surfaceVariant,
                           alignment: Alignment.center,
                           child: Text(
-                            'تعذر تحميل الصورة',
+                            _t('screens_admin_customer_screen.121'),
                             style: AppTheme.caption,
                           ),
                         ),
@@ -1929,7 +2114,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       }
       AppAlertService.showSuccess(
         context,
-        message: 'تم تحميل ملف $title بنجاح.',
+        message: _t('screens_admin_customer_screen.122', {'title': title}),
       );
     } catch (e) {
       if (!mounted) {
@@ -2178,7 +2363,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _busy = false);
-        AppAlertService.showError(context, message: e.toString());
+        AppAlertService.showError(
+          context,
+          message: ErrorMessageService.sanitize(e),
+        );
       }
     }
   }
@@ -2240,7 +2428,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       AppAlertService.showSuccess(
         context,
         message:
-            response['message']?.toString() ?? 'تم اعتماد توثيق الحساب بنجاح.',
+            response['message']?.toString() ??
+            _t('screens_admin_customer_screen.123'),
       );
     } catch (e) {
       if (!mounted) {

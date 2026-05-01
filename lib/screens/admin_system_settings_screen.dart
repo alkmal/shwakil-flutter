@@ -473,7 +473,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       setState(() => _isLoadingPrepaidReport = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل تقرير البطاقات',
+        title: context.loc.tr('screens_admin_system_settings_screen.125'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -483,8 +483,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     if (_prepaidReportPayments.isEmpty) {
       await AppAlertService.showError(
         context,
-        title: 'لا توجد بيانات',
-        message: 'لا توجد مدفوعات في التقرير الحالي لتصديرها.',
+        title: context.loc.tr('screens_admin_system_settings_screen.126'),
+        message: context.loc.tr('screens_admin_system_settings_screen.127'),
       );
       return;
     }
@@ -498,8 +498,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم التصدير',
-        message: 'تم تصدير تقرير مدفوعات البطاقات بنجاح.',
+        title: context.loc.tr('screens_admin_system_settings_screen.128'),
+        message: context.loc.tr('screens_admin_system_settings_screen.129'),
       );
     } catch (error) {
       if (!mounted) {
@@ -507,7 +507,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر التصدير',
+        title: context.loc.tr('screens_admin_system_settings_screen.130'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -865,6 +865,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   Future<void> _showWithdrawalMethodDialog({
     Map<String, dynamic>? method,
   }) async {
+    final l = context.loc;
     final codeController = TextEditingController(
       text: method?['code']?.toString() ?? '',
     );
@@ -895,8 +896,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 accountLabelController.text.trim().isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'بيانات ناقصة',
-                message: 'أدخل الرمز واسم الطريقة ووصف حقل الحساب قبل الحفظ.',
+                title: l.tr('screens_admin_system_settings_screen.131'),
+                message: l.tr('screens_admin_system_settings_screen.132'),
               );
               return;
             }
@@ -927,14 +928,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               setDialogState(() => isSaving = false);
               await AppAlertService.showError(
                 dialogContext,
-                title: 'تعذر حفظ طريقة السحب',
+                title: l.tr('screens_admin_system_settings_screen.133'),
                 message: ErrorMessageService.sanitize(error),
               );
             }
           }
 
           return AlertDialog(
-            title: Text(method == null ? 'إضافة طريقة سحب' : 'تعديل طريقة سحب'),
+            title: Text(
+              method == null
+                  ? l.tr('screens_admin_system_settings_screen.134')
+                  : l.tr('screens_admin_system_settings_screen.135'),
+            ),
             content: SizedBox(
               width: 460,
               child: SingleChildScrollView(
@@ -942,36 +947,50 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   children: [
                     TextField(
                       controller: codeController,
-                      decoration: const InputDecoration(
-                        labelText: 'الرمز الداخلي',
-                        helperText: 'مثال: bank_transfer أو palpay_wallet',
+                      decoration: InputDecoration(
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.136',
+                        ),
+                        helperText: l.tr(
+                          'screens_admin_system_settings_screen.137',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم الطريقة',
+                      decoration: InputDecoration(
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.138',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: accountLabelController,
-                      decoration: const InputDecoration(
-                        labelText: 'وصف حقل الحساب',
+                      decoration: InputDecoration(
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.139',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: sortOrderController,
-                      decoration: const InputDecoration(labelText: 'الترتيب'),
+                      decoration: InputDecoration(
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.140',
+                        ),
+                      ),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'وصف للمستخدم',
+                      decoration: InputDecoration(
+                        labelText: l.tr(
+                          'screens_admin_system_settings_screen.141',
+                        ),
                       ),
                       minLines: 2,
                       maxLines: 4,
@@ -982,14 +1001,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       value: requiresBankName,
                       onChanged: (value) =>
                           setDialogState(() => requiresBankName = value),
-                      title: const Text('يتطلب اسم بنك'),
+                      title: Text(
+                        l.tr('screens_admin_system_settings_screen.142'),
+                      ),
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
                       value: isActive,
                       onChanged: (value) =>
                           setDialogState(() => isActive = value),
-                      title: const Text('مفعلة للمستخدمين'),
+                      title: Text(
+                        l.tr('screens_admin_system_settings_screen.143'),
+                      ),
                     ),
                   ],
                 ),
@@ -998,11 +1021,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             actions: [
               TextButton(
                 onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                child: const Text('إلغاء'),
+                child: Text(l.tr('screens_admin_system_settings_screen.012')),
               ),
               ElevatedButton(
                 onPressed: isSaving ? null : submit,
-                child: Text(isSaving ? 'جارٍ الحفظ...' : 'حفظ'),
+                child: Text(
+                  isSaving
+                      ? l.tr('screens_admin_system_settings_screen.144')
+                      : l.tr('screens_admin_system_settings_screen.145'),
+                ),
               ),
             ],
           );
@@ -1283,37 +1310,53 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _loginOtpRequired,
                   onChanged: (value) =>
                       setState(() => _loginOtpRequired = value),
-                  title: const Text('طلب OTP عند تسجيل الدخول'),
-                  subtitle: const Text(
-                    'عند إيقافه يمكن للمستخدم تسجيل الدخول من داخل التطبيق بدون كود واتساب.',
+                  title: Text(
+                    l.tr('screens_admin_system_settings_screen.146'),
+                  ),
+                  subtitle: Text(
+                    l.tr('screens_admin_system_settings_screen.147'),
                   ),
                 ),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   value: _registrationWhatsappVerificationRequired,
                   onChanged: null,
-                  title: const Text('تأكيد التسجيل بالرمز'),
-                  subtitle: const Text(
-                    'يبقى مفعّلًا دائمًا، حتى عند تعطيل OTP لتسجيل الدخول.',
+                  title: Text(
+                    l.tr('screens_admin_system_settings_screen.148'),
+                  ),
+                  subtitle: Text(
+                    l.tr('screens_admin_system_settings_screen.149'),
                   ),
                 ),
                 DropdownButtonFormField<String>(
                   initialValue: _whatsappUsageMode,
-                  decoration: const InputDecoration(
-                    labelText: 'استخدام واتساب',
-                    helperText:
-                        'اختر الحالات التي يسمح النظام بإرسال رسائل واتساب لها.',
+                  decoration: InputDecoration(
+                    labelText: l.tr(
+                      'screens_admin_system_settings_screen.150',
+                    ),
+                    helperText: l.tr(
+                      'screens_admin_system_settings_screen.151',
+                    ),
                   ),
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: 'registration',
-                      child: Text('التسجيل فقط'),
+                      child: Text(
+                        l.tr('screens_admin_system_settings_screen.152'),
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'financial',
-                      child: Text('الحركات المالية فقط'),
+                      child: Text(
+                        l.tr('screens_admin_system_settings_screen.153'),
+                      ),
                     ),
-                    DropdownMenuItem(value: 'all', child: Text('الجميع')),
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text(
+                        l.tr('screens_admin_system_settings_screen.154'),
+                      ),
+                    ),
                   ],
                   onChanged: (value) => setState(
                     () =>
@@ -1433,7 +1476,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('طرق الشحن', style: AppTheme.bodyBold),
+                      child: Text(
+                        l.tr('screens_admin_system_settings_screen.155'),
+                        style: AppTheme.bodyBold,
+                      ),
                     ),
                     ShwakelButton(
                       label: l.tr('screens_admin_system_settings_screen.025'),
@@ -1501,10 +1547,13 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('إعدادات السحب', style: AppTheme.bodyBold),
+                      child: Text(
+                        l.tr('screens_admin_system_settings_screen.156'),
+                        style: AppTheme.bodyBold,
+                      ),
                     ),
                     ShwakelButton(
-                      label: 'إضافة طريقة سحب',
+                      label: l.tr('screens_admin_system_settings_screen.134'),
                       icon: Icons.playlist_add_rounded,
                       onPressed: _showWithdrawalMethodDialog,
                     ),
@@ -1516,13 +1565,19 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _withdrawalRequestEnabled,
                   onChanged: (value) =>
                       setState(() => _withdrawalRequestEnabled = value),
-                  title: const Text('تفعيل طلبات السحب'),
+                  title: Text(
+                    l.tr('screens_admin_system_settings_screen.157'),
+                  ),
                 ),
                 TextField(
                   controller: _withdrawalRequestInstructionsController,
                   minLines: 3,
                   maxLines: 5,
-                  decoration: const InputDecoration(labelText: 'تعليمات السحب'),
+                  decoration: InputDecoration(
+                    labelText: l.tr(
+                      'screens_admin_system_settings_screen.158',
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Wrap(
@@ -1530,12 +1585,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   runSpacing: 16,
                   children: [
                     _buildNumberField(
-                      'الحد الأدنى لطلب السحب',
+                      l.tr('screens_admin_system_settings_screen.159'),
                       _withdrawalMinAmountController,
                       decimal: true,
                     ),
                     _buildNumberField(
-                      'الحد الأعلى لطلب السحب',
+                      l.tr('screens_admin_system_settings_screen.160'),
                       _withdrawalMaxAmountController,
                       decimal: true,
                     ),
@@ -1544,7 +1599,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 const SizedBox(height: 16),
                 if (_withdrawalMethods.isEmpty)
                   Text(
-                    'لا توجد طرق سحب مضافة حاليًا.',
+                    l.tr('screens_admin_system_settings_screen.161'),
                     style: AppTheme.bodyAction,
                   )
                 else
@@ -1598,12 +1653,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'الحد الأدنى لعدد البطاقات حسب نوع الحساب',
+                  l.tr('screens_admin_system_settings_screen.173'),
                   style: AppTheme.bodyBold,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'يُطبق هذا الحد في إنشاء البطاقات وطلبات الطباعة.',
+                  l.tr('screens_admin_system_settings_screen.174'),
                   style: AppTheme.bodyAction,
                 ),
                 const SizedBox(height: 16),
@@ -1611,15 +1666,42 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   spacing: 16,
                   runSpacing: 16,
                   children: [
-                    _buildNumberField('عام', _cardQtyDefaultController),
-                    _buildNumberField('مقيد', _cardQtyRestrictedController),
-                    _buildNumberField('مستخدم', _cardQtyBasicController),
-                    _buildNumberField('موثق/تاجر', _cardQtyVerifiedController),
-                    _buildNumberField('سائق', _cardQtyDriverController),
-                    _buildNumberField('مسوق', _cardQtyMarketerController),
-                    _buildNumberField('دعم', _cardQtySupportController),
-                    _buildNumberField('مالية', _cardQtyFinanceController),
-                    _buildNumberField('إدارة', _cardQtyAdminController),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.175'),
+                      _cardQtyDefaultController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.176'),
+                      _cardQtyRestrictedController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.177'),
+                      _cardQtyBasicController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.178'),
+                      _cardQtyVerifiedController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.179'),
+                      _cardQtyDriverController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.180'),
+                      _cardQtyMarketerController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.181'),
+                      _cardQtySupportController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.182'),
+                      _cardQtyFinanceController,
+                    ),
+                    _buildNumberField(
+                      l.tr('screens_admin_system_settings_screen.183'),
+                      _cardQtyAdminController,
+                    ),
                   ],
                 ),
               ],
@@ -1682,10 +1764,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AdminSectionHeader(
-            title: 'إعدادات بطاقات الدفع',
+          AdminSectionHeader(
+            title: context.loc.tr('screens_admin_system_settings_screen.184'),
             subtitle:
-                'حدود تشغيل داخلية للبطاقات متعددة الدفع بدون أي تكامل خارجي.',
+                context.loc.tr('screens_admin_system_settings_screen.185'),
             icon: Icons.credit_card_rounded,
           ),
           const SizedBox(height: 16),
@@ -1695,30 +1777,30 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               runSpacing: 16,
               children: [
                 _buildNumberField(
-                  'أعلى قيمة للبطاقة',
+                  context.loc.tr('screens_admin_system_settings_screen.186'),
                   _prepaidMaxCardAmountController,
                   decimal: true,
                 ),
                 _buildNumberField(
-                  'أعلى مبلغ للدفع الواحد',
+                  context.loc.tr('screens_admin_system_settings_screen.187'),
                   _prepaidMaxPaymentAmountController,
                   decimal: true,
                 ),
                 _buildNumberField(
-                  'عدد البطاقات النشطة',
+                  context.loc.tr('screens_admin_system_settings_screen.188'),
                   _prepaidMaxActiveCardsController,
                 ),
                 _buildNumberField(
-                  'أقصى صلاحية بالأيام',
+                  context.loc.tr('screens_admin_system_settings_screen.189'),
                   _prepaidMaxExpiryDaysController,
                 ),
                 _buildNumberField(
-                  'حد المبلغ اليومي',
+                  context.loc.tr('screens_admin_system_settings_screen.190'),
                   _prepaidDailyAmountLimitController,
                   decimal: true,
                 ),
                 _buildNumberField(
-                  'حد عدد العمليات اليومي',
+                  context.loc.tr('screens_admin_system_settings_screen.191'),
                   _prepaidDailyCountLimitController,
                 ),
               ],
@@ -1726,9 +1808,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           ),
           const SizedBox(height: 16),
           AdminSectionHeader(
-            title: 'تقرير مدفوعات البطاقات',
+            title: context.loc.tr('screens_admin_system_settings_screen.162'),
             subtitle:
-                'عرض داخلي للمدفوعات المنفذة عبر البطاقات متعددة الدفع مع فلاتر سريعة وتصدير CSV.',
+                context.loc.tr('screens_admin_system_settings_screen.163'),
             icon: Icons.receipt_long_rounded,
             trailing: Wrap(
               spacing: 8,
@@ -1739,7 +1821,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       ? null
                       : _loadPrepaidReport,
                   icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('تحديث'),
+                  label: Text(
+                    context.loc.tr('screens_admin_system_settings_screen.164'),
+                  ),
                 ),
                 OutlinedButton.icon(
                   onPressed: _isLoadingPrepaidReport
@@ -1761,25 +1845,29 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   runSpacing: 16,
                   children: [
                     _buildTextField(
-                      'بحث بالاسم أو البطاقة',
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.165',
+                      ),
                       _prepaidReportSearchController,
-                      hintText: 'اسم مستخدم، بطاقة، ملاحظة',
+                      hintText: context.loc.tr(
+                        'screens_admin_system_settings_screen.166',
+                      ),
                     ),
                     _buildNumberField(
-                      'ID المشتري',
+                      context.loc.tr('screens_admin_system_settings_screen.192'),
                       _prepaidReportBuyerIdController,
                     ),
                     _buildNumberField(
-                      'ID التاجر',
+                      context.loc.tr('screens_admin_system_settings_screen.193'),
                       _prepaidReportMerchantIdController,
                     ),
                     _buildTextField(
-                      'من تاريخ',
+                      context.loc.tr('screens_admin_system_settings_screen.194'),
                       _prepaidReportDateFromController,
                       hintText: '2026-04-26',
                     ),
                     _buildTextField(
-                      'إلى تاريخ',
+                      context.loc.tr('screens_admin_system_settings_screen.195'),
                       _prepaidReportDateToController,
                       hintText: '2026-04-26',
                     ),
@@ -1787,30 +1875,59 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       width: 220,
                       child: DropdownButtonFormField<String>(
                         initialValue: _prepaidReportCardStatus,
-                        decoration: const InputDecoration(
-                          labelText: 'حالة البطاقة',
+                        decoration: InputDecoration(
+                          labelText: context.loc.tr(
+                            'screens_admin_system_settings_screen.167',
+                          ),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'all', child: Text('الكل')),
+                        items: [
+                          DropdownMenuItem(
+                            value: 'all',
+                            child: Text(
+                              context.loc.tr(
+                                'screens_admin_system_settings_screen.168',
+                              ),
+                            ),
+                          ),
                           DropdownMenuItem(
                             value: 'active',
-                            child: Text('نشطة'),
+                            child: Text(
+                              context.loc.tr(
+                                'screens_admin_system_settings_screen.196',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'frozen',
-                            child: Text('مجمدة'),
+                            child: Text(
+                              context.loc.tr(
+                                'screens_admin_system_settings_screen.197',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'spent',
-                            child: Text('مستهلكة'),
+                            child: Text(
+                              context.loc.tr(
+                                'screens_admin_system_settings_screen.198',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'expired',
-                            child: Text('منتهية'),
+                            child: Text(
+                              context.loc.tr(
+                                'screens_admin_system_settings_screen.199',
+                              ),
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'cancelled',
-                            child: Text('ملغاة'),
+                            child: Text(
+                              context.loc.tr(
+                                'screens_admin_system_settings_screen.200',
+                              ),
+                            ),
                           ),
                         ],
                         onChanged: (value) => setState(
@@ -2109,10 +2226,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('حماية فحص البطاقات', style: AppTheme.bodyBold),
+                Text(
+                  context.loc.tr('screens_admin_system_settings_screen.169'),
+                  style: AppTheme.bodyBold,
+                ),
                 const SizedBox(height: 8),
                 Text(
-                  '0 يعني غير محدود. عند الوصول للحد يتم فرض السحب التلقائي عند الفحص، ويُصفّر العداد بعد سحب ناجح أو من صفحة المستخدم في الإدارة.',
+                  context.loc.tr(
+                    'screens_admin_system_settings_screen.170',
+                  ),
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.textSecondary,
                   ),
@@ -2122,29 +2244,56 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   spacing: 16,
                   runSpacing: 16,
                   children: [
-                    _buildNumberField('الافتراضي', _scanDefaultLimitController),
                     _buildNumberField(
-                      'عضوية مقيدة',
+                      context.loc.tr('screens_admin_system_settings_screen.201'),
+                      _scanDefaultLimitController,
+                    ),
+                    _buildNumberField(
+                      context.loc.tr('screens_admin_system_settings_screen.202'),
                       _scanRestrictedLimitController,
                     ),
-                    _buildNumberField('مستخدم', _scanBasicLimitController),
                     _buildNumberField(
-                      'تاجر / موثق',
+                      context.loc.tr('screens_admin_system_settings_screen.177'),
+                      _scanBasicLimitController,
+                    ),
+                    _buildNumberField(
+                      context.loc.tr('screens_admin_system_settings_screen.203'),
                       _scanVerifiedLimitController,
                     ),
-                    _buildNumberField('سائق', _scanDriverLimitController),
-                    _buildNumberField('مسوق', _scanMarketerLimitController),
-                    _buildNumberField('دعم فني', _scanSupportLimitController),
-                    _buildNumberField('مالية', _scanFinanceLimitController),
-                    _buildNumberField('إدارة', _scanAdminLimitController),
+                    _buildNumberField(
+                      context.loc.tr('screens_admin_system_settings_screen.179'),
+                      _scanDriverLimitController,
+                    ),
+                    _buildNumberField(
+                      context.loc.tr('screens_admin_system_settings_screen.180'),
+                      _scanMarketerLimitController,
+                    ),
+                    _buildNumberField(
+                      context.loc.tr('screens_admin_system_settings_screen.204'),
+                      _scanSupportLimitController,
+                    ),
+                    _buildNumberField(
+                      context.loc.tr('screens_admin_system_settings_screen.182'),
+                      _scanFinanceLimitController,
+                    ),
+                    _buildNumberField(
+                      context.loc.tr('screens_admin_system_settings_screen.183'),
+                      _scanAdminLimitController,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('فرض السحب التلقائي عند الفحص للجميع'),
-                  subtitle: const Text(
-                    'عند التفعيل يتم استخدام البطاقة مباشرة بعد قراءتها ولا يستطيع المستخدم تعطيل الخيار.',
+                    title: Text(
+                      context.loc.tr(
+                        'screens_admin_system_settings_screen.171',
+                      ),
+                    ),
+                  subtitle: Text(
+                    context.loc.tr(
+                      'screens_admin_system_settings_screen.172',
+                    ),
                   ),
                   value: _scanAutoRedeemGlobalForced,
                   onChanged: (value) =>

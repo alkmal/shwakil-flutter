@@ -20,11 +20,20 @@ class CardPrintRequestsScreen extends StatefulWidget {
 }
 
 class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
+  static const Map<String, int> _cardTypeDisplayOrder = {
+    'standard': 0,
+    'delivery': 1,
+    'single_use': 2,
+    'appointment': 3,
+    'queue': 4,
+  };
+
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
 
   List<Map<String, dynamic>> _requests = const [];
   Map<String, dynamic>? _user;
+  Map<String, dynamic> _feeSettings = const {};
   bool _isLoading = true;
   bool _isAuthorized = false;
   bool _isSubmitting = false;
@@ -72,8 +81,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     return switch (cardType) {
       'single_use' => l.tr('screens_card_print_requests_screen.027'),
       'delivery' => l.tr('shared.delivery_card_label'),
-      'appointment' => 'تذكرة موعد',
-      'queue' => 'تذكرة طابور',
+      'appointment' => l.tr('screens_card_print_requests_screen.055'),
+      'queue' => l.tr('screens_card_print_requests_screen.056'),
       _ => l.tr('screens_card_print_requests_screen.028'),
     };
   }
@@ -104,6 +113,36 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     return const ['standard', 'delivery', 'single_use', 'appointment', 'queue'];
   }
 
+  List<String> _sortedPrintableTypes() {
+    final values = [..._issuablePrintCardTypes()];
+    values.sort(
+      (a, b) => (_cardTypeDisplayOrder[a] ?? 999).compareTo(
+        _cardTypeDisplayOrder[b] ?? 999,
+      ),
+    );
+    return values;
+  }
+
+  IconData _cardTypeIcon(String cardType) {
+    return switch (cardType) {
+      'single_use' => Icons.confirmation_number_rounded,
+      'delivery' => Icons.local_shipping_rounded,
+      'appointment' => Icons.event_available_rounded,
+      'queue' => Icons.people_alt_rounded,
+      _ => Icons.credit_card_rounded,
+    };
+  }
+
+  String _cardTypeDescription(String cardType) {
+    return switch (cardType) {
+      'single_use' => 'تذكرة استخدام سريع تُطبع لمستفيدين محددين.',
+      'delivery' => 'بطاقة توصيل برصيد قابل للاستخدام مع طباعة جاهزة.',
+      'appointment' => 'تذكرة موعد بتاريخ ووقت وتعليمات واضحة.',
+      'queue' => 'تذكرة دور أو خدمة مع تفاصيل تنظيمية.',
+      _ => 'بطاقة رصيد عامة مناسبة للطباعة والاستخدام المعتاد.',
+    };
+  }
+
   double _cardRequestFeeAmount(double baseAmount, double feePercent) {
     if (baseAmount <= 0 || feePercent <= 0) {
       return 0;
@@ -112,6 +151,28 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       (baseAmount * (feePercent / 100)).toStringAsFixed(2),
     );
     return rounded > 0 ? rounded : 0.01;
+  }
+
+  double _feeAmount(String key) =>
+      (_feeSettings[key] as num?)?.toDouble() ?? 0.0;
+
+  double _issueFeePerCard(String cardType, {required bool isPrivate}) {
+    final normalizedType = cardType.trim().toLowerCase();
+    var fee = switch (normalizedType) {
+      'single_use' => _feeAmount('singleUseTicketIssueCost'),
+      'appointment' => _feeAmount('appointmentTicketIssueCost'),
+      'queue' => _feeAmount('queueTicketIssueCost'),
+      'delivery' => _feeAmount('deliveryCardIssueCost'),
+      _ => _feeAmount('standardCardIssueCost'),
+    };
+    final isTicket =
+        normalizedType == 'single_use' ||
+        normalizedType == 'appointment' ||
+        normalizedType == 'queue';
+    if (isPrivate && !isTicket) {
+      fee += _feeAmount('privateCardIssueCost');
+    }
+    return fee > 0 ? fee : 0;
   }
 
   @override
@@ -127,6 +188,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       final results = await Future.wait([
         _apiService.getMyCardPrintRequests(),
         _refreshAndReadCurrentUser(),
+        _apiService.getFeeSettings(),
       ]);
       if (!mounted) {
         return;
@@ -136,6 +198,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       setState(() {
         _requests = List<Map<String, dynamic>>.from(results[0] as List);
         _user = user;
+        _feeSettings = Map<String, dynamic>.from(results[2] as Map);
         _isAuthorized = permissions.canRequestCardPrinting;
         _isLoading = false;
       });
@@ -185,7 +248,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final allowedPhoneController = TextEditingController();
     final selectedUsers = <Map<String, dynamic>>[];
     final selectedPhoneNumbers = <String>[];
-    final availableTypes = _issuablePrintCardTypes();
+    final availableTypes = _sortedPrintableTypes();
     var cardType =
         availableTypes.contains(_isDriverAccount ? 'delivery' : 'standard')
         ? (_isDriverAccount ? 'delivery' : 'standard')
@@ -206,6 +269,32 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               .map((item) => item.trim())
               .where((item) => item.isNotEmpty)
               .toList();
+          final availableBalance =
+              (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
+          final feePercent =
+              (_user?['customCardPrintRequestFeePercent'] as num?)
+                  ?.toDouble() ??
+              0;
+          final value = double.tryParse(valueController.text.trim()) ?? 0;
+          final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
+          final faceAmount = isBalanceCard ? value * quantity : 0.0;
+          final isPrivateRequest =
+              requiresTargetedUsers ||
+              selectedUserIds.isNotEmpty ||
+              selectedPhones.isNotEmpty;
+          final issueCostPerCard = _issueFeePerCard(
+            cardType,
+            isPrivate: isPrivateRequest,
+          );
+          final chargedIssueCostAmount = !isBalanceCard || isPrivateRequest
+              ? issueCostPerCard * quantity
+              : 0.0;
+          final deferredIssueCostAmount = isBalanceCard && !isPrivateRequest
+              ? issueCostPerCard * quantity
+              : 0.0;
+          final baseAmount = faceAmount + chargedIssueCostAmount;
+          final feeAmount = _cardRequestFeeAmount(baseAmount, feePercent);
+          final totalAmount = baseAmount + feeAmount;
 
           void addAllowedPhone() {
             final raw = allowedPhoneController.text.trim();
@@ -221,8 +310,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           }
 
           Future<void> submit() async {
-            final value = double.tryParse(valueController.text.trim()) ?? 0;
-            final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
             if (quantity <= 0 || (isBalanceCard && value <= 0)) {
               await AppAlertService.showError(
                 dialogContext,
@@ -235,9 +322,11 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             if (quantity < _minimumCardQuantity) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'عدد البطاقات أقل من الحد المطلوب',
-                message:
-                    'الحد الأدنى لهذا الحساب هو $_minimumCardQuantity بطاقة في طلب الطباعة الواحد.',
+                title: l.tr('screens_card_print_requests_screen.057'),
+                message: l.tr(
+                  'screens_card_print_requests_screen.058',
+                  params: {'count': '$_minimumCardQuantity'},
+                ),
               );
               return;
             }
@@ -247,9 +336,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 selectedPhones.isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'المستفيدون مطلوبون',
-                message:
-                    'التذاكر وبطاقات الخدمات يجب أن تكون خاصة ومحددة لمستخدمين مستهدفين.',
+                title: l.tr('screens_card_print_requests_screen.059'),
+                message: l.tr('screens_card_print_requests_screen.060'),
               );
               return;
             }
@@ -259,9 +347,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     startsAtController.text.trim().isEmpty)) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'بيانات الموعد ناقصة',
-                message:
-                    'أدخل عنوان الموعد ووقت البداية قبل إرسال طلب الطباعة.',
+                title: l.tr('screens_card_print_requests_screen.061'),
+                message: l.tr('screens_card_print_requests_screen.062'),
               );
               return;
             }
@@ -270,23 +357,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 detailsTitleController.text.trim().isEmpty) {
               await AppAlertService.showError(
                 dialogContext,
-                title: 'بيانات الطابور ناقصة',
-                message:
-                    'أدخل عنوان أو اسم خدمة الطابور قبل إرسال طلب الطباعة.',
+                title: l.tr('screens_card_print_requests_screen.063'),
+                message: l.tr('screens_card_print_requests_screen.064'),
               );
               return;
             }
 
-            final availableBalance =
-                (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
-            final feePercent =
-                (_user?['customCardPrintRequestFeePercent'] as num?)
-                    ?.toDouble() ??
-                0;
-            final unitAmount = isBalanceCard ? value : 0.01;
-            final baseAmount = unitAmount * quantity;
-            final feeAmount = _cardRequestFeeAmount(baseAmount, feePercent);
-            final totalAmount = baseAmount + feeAmount;
             if (totalAmount > availableBalance) {
               final contact = await ContactInfoService.getContactInfo();
               if (!dialogContext.mounted) {
@@ -384,39 +460,83 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    DropdownButtonFormField<String>(
-                      initialValue: cardType,
-                      decoration: InputDecoration(
-                        labelText: l.tr(
-                          'screens_card_print_requests_screen.008',
-                        ),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        l.tr('screens_card_print_requests_screen.008'),
+                        style: AppTheme.bodyBold,
                       ),
-                      items: availableTypes
-                          .map(
-                            (type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(_cardTypeLabel(dialogContext, type)),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: availableTypes.map((type) {
+                        final selected = cardType == type;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () {
+                            setDialogState(() {
+                              cardType = type;
+                              if (_isBalanceCardType(type)) {
+                                selectedUsers.clear();
+                                detailsTitleController.clear();
+                                detailsDescriptionController.clear();
+                                detailsLocationController.clear();
+                                startsAtController.clear();
+                                endsAtController.clear();
+                                validFromController.clear();
+                                validUntilController.clear();
+                              }
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 198,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? AppTheme.primary.withValues(alpha: 0.08)
+                                  : AppTheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: selected
+                                    ? AppTheme.primary
+                                    : AppTheme.border,
+                              ),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setDialogState(() {
-                          cardType = value;
-                          if (_isBalanceCardType(value)) {
-                            selectedUsers.clear();
-                            detailsTitleController.clear();
-                            detailsDescriptionController.clear();
-                            detailsLocationController.clear();
-                            startsAtController.clear();
-                            endsAtController.clear();
-                            validFromController.clear();
-                            validUntilController.clear();
-                          }
-                        });
-                      },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _cardTypeIcon(type),
+                                      color: selected
+                                          ? AppTheme.primary
+                                          : AppTheme.textSecondary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _cardTypeLabel(dialogContext, type),
+                                        style: AppTheme.bodyBold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _cardTypeDescription(type),
+                                  style: AppTheme.caption.copyWith(
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 12),
                     if (cardType == 'delivery')
@@ -449,6 +569,55 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         labelText: !isBalanceCard
                             ? l.tr('screens_card_print_requests_screen.011')
                             : l.tr('screens_card_print_requests_screen.012'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ShwakelCard(
+                      padding: const EdgeInsets.all(14),
+                      color: AppTheme.secondary.withValues(alpha: 0.05),
+                      borderColor: AppTheme.secondary.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('ملخص الخصم والرسوم', style: AppTheme.bodyBold),
+                          const SizedBox(height: 10),
+                          _metaItem(
+                            'قيمة البطاقات',
+                            CurrencyFormatter.ils(faceAmount),
+                          ),
+                          const SizedBox(height: 8),
+                          _metaItem(
+                            'رسوم الإصدار المخصومة الآن',
+                            CurrencyFormatter.ils(chargedIssueCostAmount),
+                          ),
+                          if (deferredIssueCostAmount > 0) ...[
+                            const SizedBox(height: 8),
+                            _metaItem(
+                              'رسوم الإصدار المؤجلة',
+                              CurrencyFormatter.ils(deferredIssueCostAmount),
+                            ),
+                          ],
+                          if (feeAmount > 0) ...[
+                            const SizedBox(height: 8),
+                            _metaItem(
+                              'رسوم طلب الطباعة',
+                              CurrencyFormatter.ils(feeAmount),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          _metaItem(
+                            'إجمالي الخصم الآن',
+                            CurrencyFormatter.ils(totalAmount),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            deferredIssueCostAmount > 0
+                                ? 'هذا النوع يحتفظ برسوم إصدار مؤجلة تُحسب عند استخدام البطاقة، بينما يظهر في هذا الطلب فقط ما سيُخصم الآن.'
+                                : 'هذا الملخص يوضح كامل المبلغ الذي سيُخصم الآن عند إرسال طلب الطباعة.',
+                            style: AppTheme.caption.copyWith(fontSize: 12),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1189,7 +1358,11 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final title = request['statusLabel']?.toString().trim().isNotEmpty == true
         ? request['statusLabel']!.toString()
         : cardTypeLabel;
-    final summary = '$cardTypeLabel  |  $quantity  |  $totalAmount';
+    final chargedIssueCostAmount =
+        (request['chargedIssueCostAmount'] as num?)?.toDouble() ?? 0;
+    final deferredIssueCostAmount =
+        (request['deferredIssueCostAmount'] as num?)?.toDouble() ?? 0;
+    final hasFees = chargedIssueCostAmount > 0 || deferredIssueCostAmount > 0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1233,12 +1406,29 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    summary,
+                    cardTypeLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _requestInfoChip(Icons.layers_rounded, '$quantity بطاقة'),
+                      _requestInfoChip(
+                        Icons.account_balance_wallet_rounded,
+                        totalAmount,
+                      ),
+                      if (hasFees)
+                        _requestInfoChip(
+                          Icons.receipt_long_rounded,
+                          'يشمل تفاصيل الرسوم',
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -1266,6 +1456,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
   Future<void> _showRequestDetails(Map<String, dynamic> request) async {
     final l = context.loc;
+    final chargedIssueCostAmount =
+        (request['chargedIssueCostAmount'] as num?)?.toDouble() ?? 0;
+    final deferredIssueCostAmount =
+        (request['deferredIssueCostAmount'] as num?)?.toDouble() ?? 0;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -1339,18 +1533,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         (request['cardValue'] as num?)?.toDouble() ?? 0,
                       ),
                     ),
-                    if (((request['issueCostAmount'] as num?)?.toDouble() ??
-                            0) >
-                        0)
+                    if (chargedIssueCostAmount > 0)
                       _metaItem(
-                        ['standard', 'delivery'].contains(
-                              request['cardType']?.toString() ?? 'standard',
-                            )
-                            ? 'رسوم عند الاستخدام'
-                            : 'تكلفة الإصدار',
-                        CurrencyFormatter.ils(
-                          (request['issueCostAmount'] as num?)?.toDouble() ?? 0,
-                        ),
+                        'رسوم الإصدار المخصومة الآن',
+                        CurrencyFormatter.ils(chargedIssueCostAmount),
+                      ),
+                    if (deferredIssueCostAmount > 0)
+                      _metaItem(
+                        'رسوم الإصدار المؤجلة',
+                        CurrencyFormatter.ils(deferredIssueCostAmount),
                       ),
                     if (((request['feeAmount'] as num?)?.toDouble() ?? 0) > 0)
                       _metaItem(
@@ -1398,6 +1589,22 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       ),
                     ),
                   ),
+                if (chargedIssueCostAmount > 0 || deferredIssueCostAmount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: ShwakelCard(
+                      padding: const EdgeInsets.all(14),
+                      color: AppTheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(18),
+                      shadowLevel: ShwakelShadowLevel.none,
+                      child: Text(
+                        deferredIssueCostAmount > 0
+                            ? 'تم عرض الرسوم المخصومة الآن والرسوم المؤجلة بشكل منفصل حتى تعرف ما يدخل ضمن خصم الطلب وما يُحتسب لاحقًا عند الاستخدام.'
+                            : 'جميع رسوم الإصدار الخاصة بهذا الطلب تدخل ضمن الخصم الحالي الظاهر أمامك.',
+                        style: AppTheme.bodyAction,
+                      ),
+                    ),
+                  ),
                 if ((request['adminNotes']?.toString().trim().isNotEmpty ??
                     false))
                   Padding(
@@ -1439,6 +1646,30 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           Text(label, style: AppTheme.caption),
           const SizedBox(height: 4),
           Text(value, style: AppTheme.bodyBold),
+        ],
+      ),
+    );
+  }
+
+  Widget _requestInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceMuted,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

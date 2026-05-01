@@ -473,12 +473,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       if (permissions.canManageSystemSettings)
         _AdminEntry(
-          title: 'موافقات البطاقات المسبقة',
-          subtitle: 'اعتماد أو رفض البطاقات الجديدة قبل تفعيلها',
+          title: l.tr('screens_admin_dashboard_screen.090'),
+          subtitle: l.tr('screens_admin_dashboard_screen.091'),
           icon: Icons.approval_rounded,
           color: AppTheme.warning,
           routeName: '/admin-prepaid-multipay-approvals',
-          badge: 'البطاقات المعلقة',
+          badge: l.tr('screens_admin_dashboard_screen.092'),
         ),
       if (permissions.canManageSystemSettings)
         _AdminEntry(
@@ -774,6 +774,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required List<_AdminEntry> adminCards,
     required List<Widget> adminWidgets,
   }) {
+    final priorityCards = adminCards.take(3).toList(growable: false);
     return ListView(
       padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
       children: [
@@ -788,29 +789,93 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 params: {'count': '${adminCards.length}'},
               ),
             ),
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 1120
-                    ? 3
-                    : constraints.maxWidth > 740
-                    ? 2
-                    : 1;
-                final childAspectRatio = constraints.maxWidth > 1120
-                    ? 1.45
-                    : constraints.maxWidth > 740
-                    ? 1.18
-                    : 1.32;
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: 18,
-                  crossAxisSpacing: 18,
-                  childAspectRatio: childAspectRatio,
-                  children: adminWidgets,
-                );
-              },
+            if (priorityCards.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              ShwakelCard(
+                padding: const EdgeInsets.all(20),
+                color: AppTheme.tabSurface,
+                borderColor: AppTheme.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(24),
+                shadowLevel: ShwakelShadowLevel.soft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.dashboard_customize_rounded,
+                            color: AppTheme.primary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            context.loc.tr(
+                              'screens_admin_dashboard_screen.093',
+                            ),
+                            style: AppTheme.bodyBold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.loc.tr('screens_admin_dashboard_screen.094'),
+                      style: AppTheme.bodyAction.copyWith(
+                        color: AppTheme.textSecondary,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: priorityCards
+                          .map((item) => _priorityShortcutTile(item))
+                          .toList(growable: false),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth > 1120
+                      ? 3
+                      : constraints.maxWidth > 740
+                      ? 2
+                      : 1;
+                  final childAspectRatio = constraints.maxWidth > 1120
+                      ? 1.38
+                      : constraints.maxWidth > 740
+                      ? 1.15
+                      : 1.26;
+                  return GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: childAspectRatio,
+                    children: adminWidgets,
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -942,12 +1007,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _navCard(_AdminEntry item) {
+    final isArabic = context.loc.isArabic;
     return ShwakelCard(
       onTap: () => Navigator.pushNamed(context, item.routeName),
       padding: const EdgeInsets.all(22),
       borderRadius: BorderRadius.circular(28),
       shadowLevel: ShwakelShadowLevel.medium,
-      borderColor: item.color.withValues(alpha: 0.10),
+      color: AppTheme.surfaceElevated,
+      borderColor: item.color.withValues(alpha: 0.14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -960,12 +1027,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      item.color.withValues(alpha: 0.16),
-                      item.color.withValues(alpha: 0.08),
+                      item.color.withValues(alpha: 0.22),
+                      item.color.withValues(alpha: 0.10),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
+                  border: Border.all(color: item.color.withValues(alpha: 0.10)),
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: Icon(item.icon, color: item.color, size: 30),
@@ -977,7 +1045,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.08),
+                  color: item.color.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -1008,6 +1076,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            height: 1,
+            color: item.color.withValues(alpha: 0.10),
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Text(
@@ -1015,10 +1089,68 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 style: AppTheme.bodyBold.copyWith(color: item.color),
               ),
               const Spacer(),
-              Icon(Icons.arrow_back_rounded, color: item.color, size: 24),
+              Icon(
+                isArabic
+                    ? Icons.arrow_back_rounded
+                    : Icons.arrow_forward_rounded,
+                color: item.color,
+                size: 24,
+              ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _priorityShortcutTile(_AdminEntry item) {
+    final isArabic = context.loc.isArabic;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => Navigator.pushNamed(context, item.routeName),
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 220),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceElevated,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: item.color.withValues(alpha: 0.14)),
+          boxShadow: [
+            BoxShadow(
+              color: item.color.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: item.color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(item.icon, color: item.color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.bodyBold.copyWith(height: 1.3),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              isArabic ? Icons.arrow_back_rounded : Icons.arrow_forward_rounded,
+              color: item.color,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

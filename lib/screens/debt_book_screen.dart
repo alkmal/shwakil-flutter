@@ -904,7 +904,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
               children: topDebtors.map((customer) {
                 final balance = _remainingAmount(customer);
                 return SizedBox(
-                  width: 260,
+                  width: AppTheme.isPhone(context) ? double.infinity : 260,
                   child: ShwakelCard(
                     onTap: () => _openCustomer(customer),
                     padding: const EdgeInsets.all(16),
@@ -947,7 +947,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
 
   Widget _metricCard(String title, String value, IconData icon, Color color) {
     return SizedBox(
-      width: 220,
+      width: AppTheme.isPhone(context) ? double.infinity : 220,
       child: ShwakelCard(
         padding: const EdgeInsets.all(18),
         color: AppTheme.surface,

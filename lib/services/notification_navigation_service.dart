@@ -93,6 +93,17 @@ class NotificationNavigationService {
     Map<String, dynamic> payload, {
     required bool includeDefaultNotificationsRoute,
   }) async {
+    if (_isPendingVerificationNotification(payload)) {
+      final route = _normalizeRouteName('/admin-verification-requests');
+      final navigator = AppAlertService.navigatorKey.currentState;
+      if (route == null || navigator == null) {
+        _queuePayload(payload);
+        return true;
+      }
+      await navigator.pushNamed(route);
+      return true;
+    }
+
     if (!_isNewUserRequestNotification(payload)) {
       return false;
     }
@@ -277,6 +288,13 @@ class NotificationNavigationService {
 
     return type == 'admin_pending_registration_request' ||
         messageType == 'admin_pending_registration_request';
+  }
+
+  static bool _isPendingVerificationNotification(Map<String, dynamic> payload) {
+    final type = _normalizedText(payload['type']);
+    final messageType = _normalizedText(payload['messageType']);
+    return type == 'admin_pending_verification_request' ||
+        messageType == 'admin_pending_verification_request';
   }
 
   static Future<Map<String, dynamic>?> _findPendingRegistration(

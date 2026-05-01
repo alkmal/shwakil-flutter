@@ -787,7 +787,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final amount = await showDialog<double>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('إنشاء رمز تحويل مؤقت'),
+          title: Text(_t('screens_scan_card_screen.174')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1934,7 +1934,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   _buildOfflineStatusAction(),
                   Builder(
                     builder: (context) => IconButton(
-                      tooltip: 'القائمة',
+                      tooltip: _t('screens_scan_card_screen.175'),
                       onPressed: () => Scaffold.of(context).openDrawer(),
                       icon: const Icon(Icons.menu_rounded),
                     ),
@@ -1977,7 +1977,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 _buildOfflineStatusAction(),
                 Builder(
                   builder: (context) => IconButton(
-                    tooltip: 'القائمة',
+                    tooltip: _t('screens_scan_card_screen.175'),
                     onPressed: () => Scaffold.of(context).openDrawer(),
                     icon: const Icon(Icons.menu_rounded),
                   ),
@@ -1997,9 +1997,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 IconButton(
                   tooltip: _canCreateTemporaryTransferCode
                       ? (_isDeviceOffline
-                            ? 'إنشاء رمز تحويل مؤقت أوفلاين من الرصيد المحلي الجاهز'
-                            : 'إنشاء رمز تحويل مؤقت')
-                      : 'يتطلب حسابًا موثقًا ورصيدًا محليًا جاهزًا عند انقطاع الإنترنت',
+                            ? _t('screens_scan_card_screen.176')
+                            : _t('screens_scan_card_screen.174'))
+                      : _t('screens_scan_card_screen.177'),
                   onPressed: _showTemporaryTransferCreator,
                   icon: Icon(
                     Icons.qr_code_2_rounded,
@@ -2061,22 +2061,24 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('حالة بطاقات الأوفلاين', style: AppTheme.h3),
+              Text(_t('screens_scan_card_screen.154'), style: AppTheme.h3),
               const SizedBox(height: 14),
               _statusSheetRow(
-                'البطاقات المتزامنة',
+                _t('screens_scan_card_screen.155'),
                 '$_availableOfflineCardCount',
               ),
-              _statusSheetRow('آخر تحديث', lastSync),
+              _statusSheetRow(_t('screens_scan_card_screen.156'), lastSync),
               _statusSheetRow(
-                'مدة السماح',
-                '$_offlineSyncIntervalMinutes دقيقة',
+                _t('screens_scan_card_screen.157'),
+                _t('screens_scan_card_screen.158', {
+                  'minutes': '$_offlineSyncIntervalMinutes',
+                }),
               ),
               _statusSheetRow(
-                'الحالة',
+                _t('screens_scan_card_screen.159'),
                 _offlineAccessExpired
-                    ? 'انتهت المدة. يجب الاتصال بالإنترنت والتحديث.'
-                    : 'جاهزة للفحص أوفلاين.',
+                    ? _t('screens_scan_card_screen.160')
+                    : _t('screens_scan_card_screen.161'),
               ),
               const SizedBox(height: 8),
               SizedBox(
@@ -2089,7 +2091,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                           unawaited(_syncOfflineCardsForCurrentUser());
                         },
                   icon: const Icon(Icons.cloud_sync_rounded),
-                  label: const Text('تحديث الآن'),
+                  label: Text(_t('screens_scan_card_screen.162')),
                 ),
               ),
             ],
@@ -2175,11 +2177,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [Text('البحث عن بطاقة', style: AppTheme.h3)],
+                    children: [
+                      Text(
+                        _t('screens_scan_card_screen.178'),
+                        style: AppTheme.h3,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
+          const SizedBox(height: 14),
+          _buildModeSummaryCard(),
           const SizedBox(height: 14),
           _buildUserBalanceCard(),
           if (!widget.offlineMode) ...[
@@ -2229,8 +2238,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               widget.offlineMode
-                  ? 'وضع الأوفلاين مفعل. يمكنك البحث ضمن البطاقات المحفوظة.'
-                  : 'ابحث عن بطاقة برقم الباركود أو استخدم الكاميرا للفحص السريع.',
+                  ? _t('screens_scan_card_screen.163')
+                  : _t('screens_scan_card_screen.164'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.bodyAction.copyWith(
@@ -2398,6 +2407,108 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
+  Widget _buildModeSummaryCard() {
+    final modeLabel = widget.offlineMode
+        ? _t('screens_scan_card_screen.165')
+        : _t('screens_scan_card_screen.166');
+    final modeHint = widget.offlineMode
+        ? (_offlineAccessExpired
+              ? _t('screens_scan_card_screen.167')
+              : _t('screens_scan_card_screen.168'))
+        : _t('screens_scan_card_screen.169');
+    final modeColor = widget.offlineMode
+        ? (_offlineAccessExpired ? AppTheme.error : AppTheme.warning)
+        : AppTheme.success;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: modeColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: modeColor.withValues(alpha: 0.14)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                widget.offlineMode
+                    ? Icons.cloud_off_rounded
+                    : Icons.cloud_done_rounded,
+                color: modeColor,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  modeLabel,
+                  style: AppTheme.bodyBold.copyWith(color: modeColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            modeHint,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textPrimary,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _modeInfoChip(
+                Icons.inventory_2_rounded,
+                widget.offlineMode
+                    ? _t('screens_scan_card_screen.170', {
+                        'count': '$_availableOfflineCardCount',
+                      })
+                    : _t('screens_scan_card_screen.171'),
+              ),
+              if (!widget.offlineMode)
+                _modeInfoChip(
+                  Icons.qr_code_2_rounded,
+                  _canCreateTemporaryTransferCode
+                      ? _t('screens_scan_card_screen.172')
+                      : _t('screens_scan_card_screen.173'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _modeInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _offlineInventoryStatusCard() {
     final needsRefresh =
         _isOfflineUseBlocked ||
@@ -2542,7 +2653,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ),
           ),
           IconButton(
-            tooltip: _showUserBalance ? 'إخفاء الرصيد' : 'إظهار الرصيد',
+            tooltip: _showUserBalance
+                ? _t('screens_scan_card_screen.179')
+                : _t('screens_scan_card_screen.180'),
             onPressed: _toggleBalanceVisibility,
             icon: Icon(
               _showUserBalance
@@ -3816,7 +3929,12 @@ class _TemporaryTransferCodeDialogState
             children: [
               Row(
                 children: [
-                  Expanded(child: Text('رمز تحويل مؤقت', style: AppTheme.h3)),
+                  Expanded(
+                    child: Text(
+                      context.loc.tr('screens_scan_card_screen.174'),
+                      style: AppTheme.h3,
+                    ),
+                  ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded),
@@ -3825,7 +3943,7 @@ class _TemporaryTransferCodeDialogState
               ),
               const SizedBox(height: 8),
               Text(
-                'اعرض هذا الرمز للطرف المستلم. تنتهي صلاحيته تلقائيًا بعد دقيقة واحدة من وقت إنشائه.',
+                context.loc.tr('screens_scan_card_screen.181'),
                 textAlign: TextAlign.center,
                 style: AppTheme.bodyAction,
               ),

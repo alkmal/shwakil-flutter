@@ -7,7 +7,6 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
-import '../widgets/admin/admin_transaction_audit_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -294,7 +293,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ..._transactions.map(
                       (tx) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: AdminTransactionAuditCard(transaction: tx),
+                        child: _buildLedgerTransactionCard(tx),
                       ),
                     ),
                     AdminPaginationFooter(
@@ -856,6 +855,564 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildLedgerTransactionCard(Map<String, dynamic> tx) {
+    final metadata = Map<String, dynamic>.from(
+      tx['metadata'] as Map? ?? const {},
+    );
+    final type = tx['type']?.toString() ?? '';
+    final amount = (tx['amount'] as num?)?.toDouble() ?? 0;
+    final fee = (tx['fee'] as num?)?.toDouble() ?? 0;
+    final previousBalance = (tx['previousBalance'] as num?)?.toDouble() ?? 0;
+    final currentBalance = (tx['balanceAfter'] as num?)?.toDouble() ?? 0;
+    final delta = (tx['balanceDelta'] as num?)?.toDouble() ?? 0;
+    final accent = _transactionAccentColor(type, delta);
+    final isPositive = delta >= 0;
+
+    return ShwakelCard(
+      onTap: () => _showTransactionDetails(tx),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(22),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  _transactionIcon(type, delta),
+                  color: accent,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _transactionTypeLabel(type, metadata),
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tx['createdAt']?.toString() ?? '-',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${isPositive ? '+' : '-'}${CurrencyFormatter.ils(delta.abs())}',
+                  style: AppTheme.bodyBold.copyWith(color: accent),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildLedgerMiniItem(
+                _t('screens_transactions_screen.063'),
+                CurrencyFormatter.ils(previousBalance),
+              ),
+              _buildLedgerMiniItem(
+                _t('screens_transactions_screen.064'),
+                CurrencyFormatter.ils(amount),
+              ),
+              _buildLedgerMiniItem(
+                _t('screens_transactions_screen.065'),
+                CurrencyFormatter.ils(fee),
+              ),
+              _buildLedgerMiniItem(
+                _t('screens_transactions_screen.066'),
+                CurrencyFormatter.ils(currentBalance),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _t('screens_transactions_screen.067'),
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLedgerMiniItem(String label, String value) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 132),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTheme.caption),
+          const SizedBox(height: 4),
+          Text(value, style: AppTheme.bodyBold.copyWith(fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showTransactionDetails(Map<String, dynamic> tx) async {
+    final metadata = Map<String, dynamic>.from(
+      tx['metadata'] as Map? ?? const {},
+    );
+    final type = tx['type']?.toString() ?? '';
+    final amount = (tx['amount'] as num?)?.toDouble() ?? 0;
+    final fee = (tx['fee'] as num?)?.toDouble() ?? 0;
+    final previousBalance = (tx['previousBalance'] as num?)?.toDouble() ?? 0;
+    final currentBalance = (tx['balanceAfter'] as num?)?.toDouble() ?? 0;
+    final delta = (tx['balanceDelta'] as num?)?.toDouble() ?? 0;
+    final accent = _transactionAccentColor(type, delta);
+    final actor = _transactionActorLine(type, metadata);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.68,
+        minChildSize: 0.45,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.border,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(
+                      _transactionIcon(type, delta),
+                      color: accent,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _transactionTypeLabel(type, metadata),
+                          style: AppTheme.h3,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tx['createdAt']?.toString() ?? '-',
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              ShwakelCard(
+                padding: const EdgeInsets.all(16),
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(20),
+                shadowLevel: ShwakelShadowLevel.none,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow(
+                      _t('screens_transactions_screen.068'),
+                      _transactionConfirmationText(type, delta, metadata),
+                      accent,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildDetailRow(
+                      _t('screens_transactions_screen.063'),
+                      CurrencyFormatter.ils(previousBalance),
+                      AppTheme.textPrimary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildDetailRow(
+                      _t('screens_transactions_screen.064'),
+                      CurrencyFormatter.ils(amount),
+                      AppTheme.textPrimary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildDetailRow(
+                      _t('screens_transactions_screen.065'),
+                      CurrencyFormatter.ils(fee),
+                      AppTheme.textPrimary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildDetailRow(
+                      _t('screens_transactions_screen.069'),
+                      '${delta >= 0 ? '+' : '-'}${CurrencyFormatter.ils(delta.abs())}',
+                      accent,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildDetailRow(
+                      _t('screens_transactions_screen.066'),
+                      CurrencyFormatter.ils(currentBalance),
+                      AppTheme.primary,
+                    ),
+                    if (actor != null) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.070'),
+                        actor,
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                    if ((tx['description']?.toString().trim().isNotEmpty ??
+                        false)) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.071'),
+                        _transactionDescriptionText(
+                          type: type,
+                          rawDescription: tx['description']?.toString() ?? '',
+                          metadata: metadata,
+                          amount: amount,
+                          fee: fee,
+                        ),
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                    if ((tx['id']?.toString().trim().isNotEmpty ?? false)) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.072'),
+                        tx['id'].toString(),
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, Color valueColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          flex: 2,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: AppTheme.bodyBold.copyWith(color: valueColor),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _transactionTypeLabel(String type, Map<String, dynamic> metadata) {
+    switch (type) {
+      case 'topup':
+        return _t('widgets_admin_transaction_audit_card.001');
+      case 'transfer_out':
+        return _t('widgets_admin_transaction_audit_card.002');
+      case 'transfer_in':
+        return _t('widgets_admin_transaction_audit_card.003');
+      case 'redeem_card':
+        return _t('widgets_admin_transaction_audit_card.004');
+      case 'resell_card':
+        return _t('widgets_admin_transaction_audit_card.005');
+      case 'issue_cards':
+        return _t('widgets_admin_transaction_audit_card.006');
+      case 'withdrawal_request':
+        return _t('widgets_admin_transaction_audit_card.007');
+      case 'withdrawal_rejected':
+        return _t('widgets_admin_transaction_audit_card.008');
+      case 'withdrawal_completed':
+        return _t('widgets_admin_transaction_audit_card.009');
+      case 'balance_credit':
+        return (metadata['sourceType']?.toString() ?? '') ==
+                'printing_debt_settlement'
+            ? _t('widgets_admin_transaction_audit_card.010')
+            : _t('widgets_admin_transaction_audit_card.011');
+      case 'app_fee_credit':
+        return _t('widgets_admin_transaction_audit_card.012');
+      default:
+        return type.trim().isEmpty
+            ? _t('widgets_admin_transaction_audit_card.013')
+            : type;
+    }
+  }
+
+  String? _transactionActorLine(String type, Map<String, dynamic> metadata) {
+    final recipient = metadata['recipientUsername']?.toString().trim();
+    final sender = metadata['senderUsername']?.toString().trim();
+    final byUser = metadata['byUsername']?.toString().trim();
+    final target = metadata['targetUsername']?.toString().trim();
+    final sourceUser = metadata['sourceUsername']?.toString().trim();
+    final sourceType = metadata['sourceType']?.toString().trim();
+    if (recipient != null && recipient.isNotEmpty) {
+      return _t(
+        'widgets_admin_transaction_audit_card.015',
+        params: {'username': recipient},
+      );
+    }
+    if (sender != null && sender.isNotEmpty) {
+      return _t(
+        'widgets_admin_transaction_audit_card.016',
+        params: {'username': sender},
+      );
+    }
+    if (target != null && target.isNotEmpty) {
+      return _t(
+        'widgets_admin_transaction_audit_card.020',
+        params: {'username': target},
+      );
+    }
+    if (sourceUser != null && sourceUser.isNotEmpty) {
+      return _t(
+        'widgets_admin_transaction_audit_card.021',
+        params: {'username': sourceUser},
+      );
+    }
+    if (byUser != null && byUser.isNotEmpty) {
+      if (type == 'issue_cards') {
+        return _t(
+          'widgets_admin_transaction_audit_card.018',
+          params: {'username': byUser},
+        );
+      }
+      return _t(
+        'widgets_admin_transaction_audit_card.014',
+        params: {'username': byUser},
+      );
+    }
+    final customerName = metadata['customerName']?.toString().trim();
+    if (customerName != null && customerName.isNotEmpty) {
+      return _t(
+        'widgets_admin_transaction_audit_card.017',
+        params: {'name': customerName},
+      );
+    }
+    if (sourceType != null && sourceType.isNotEmpty) {
+      switch (sourceType) {
+        case 'topup':
+          return _t('widgets_admin_transaction_audit_card.022');
+        case 'transfer':
+          return _t('widgets_admin_transaction_audit_card.023');
+        case 'card_redeem':
+          return _t('widgets_admin_transaction_audit_card.024');
+        case 'card_resell':
+          return _t('widgets_admin_transaction_audit_card.025');
+      }
+    }
+    return null;
+  }
+
+  String _transactionConfirmationText(
+    String type,
+    double delta,
+    Map<String, dynamic> metadata,
+  ) {
+    if (type == 'transfer_out') {
+      return _t('screens_transactions_screen.073');
+    }
+    if (type == 'transfer_in') {
+      return _t('screens_transactions_screen.074');
+    }
+    if (type == 'withdrawal_request') {
+      return _t('screens_transactions_screen.075');
+    }
+    if (type == 'withdrawal_rejected') {
+      return _t('screens_transactions_screen.079');
+    }
+    if (type == 'withdrawal_completed') {
+      return _t('screens_transactions_screen.080');
+    }
+    if (type == 'topup' || type == 'balance_credit') {
+      if ((metadata['sourceType']?.toString() ?? '') ==
+          'printing_debt_settlement') {
+        return _t('screens_transactions_screen.081');
+      }
+      return _t('screens_transactions_screen.076');
+    }
+    if (type == 'issue_cards') {
+      final usedDebt = (metadata['usedPrintingDebt'] as num?)?.toDouble() ?? 0;
+      return usedDebt > 0
+          ? _t('screens_transactions_screen.082')
+          : _t('screens_transactions_screen.083');
+    }
+    if (type == 'redeem_card') {
+      return _t('screens_transactions_screen.084');
+    }
+    if (type == 'resell_card') {
+      return _t('screens_transactions_screen.085');
+    }
+    if (type == 'app_fee_credit') {
+      return _t('screens_transactions_screen.086');
+    }
+    return delta >= 0
+        ? _t('screens_transactions_screen.077')
+        : _t('screens_transactions_screen.078');
+  }
+
+  String _transactionDescriptionText({
+    required String type,
+    required String rawDescription,
+    required Map<String, dynamic> metadata,
+    required double amount,
+    required double fee,
+  }) {
+    final sanitized = rawDescription
+        .replaceAll('₪', '')
+        .replaceAll('شيكل', '')
+        .replaceAll('ILS', '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final quantity = (metadata['quantity'] as num?)?.toInt();
+    final sourceType = metadata['sourceType']?.toString().trim() ?? '';
+
+    switch (type) {
+      case 'withdrawal_request':
+        final destinationTitle =
+            metadata['destinationTitle']?.toString().trim() ??
+            metadata['destinationTypeLabel']?.toString().trim() ??
+            '';
+        if (destinationTitle.isNotEmpty) {
+          return _t(
+            'screens_transactions_screen.087',
+            params: {'destination': destinationTitle},
+          );
+        }
+        return _t('screens_transactions_screen.088');
+      case 'withdrawal_rejected':
+        return _t('screens_transactions_screen.089');
+      case 'withdrawal_completed':
+        return _t('screens_transactions_screen.090');
+      case 'issue_cards':
+        if (quantity != null && quantity > 0) {
+          return _t(
+            'screens_transactions_screen.091',
+            params: {'count': quantity.toString()},
+          );
+        }
+        return _t('screens_transactions_screen.092');
+      case 'redeem_card':
+        return fee > 0
+            ? _t('screens_transactions_screen.093')
+            : _t('screens_transactions_screen.094');
+      case 'resell_card':
+        return fee > 0
+            ? _t('screens_transactions_screen.095')
+            : _t('screens_transactions_screen.096');
+      case 'app_fee_credit':
+        switch (sourceType) {
+          case 'topup':
+            return _t('screens_transactions_screen.097');
+          case 'transfer':
+            return _t('screens_transactions_screen.098');
+          case 'redeem_card':
+          case 'card_redeem':
+            return _t('screens_transactions_screen.099');
+          case 'resell_card':
+          case 'card_resell':
+            return _t('screens_transactions_screen.100');
+        }
+        return _t('screens_transactions_screen.101');
+      default:
+        return sanitized;
+    }
+  }
+
+  IconData _transactionIcon(String type, double delta) {
+    switch (type) {
+      case 'transfer_out':
+      case 'withdrawal_request':
+      case 'resell_card':
+        return Icons.north_east_rounded;
+      case 'transfer_in':
+      case 'topup':
+      case 'balance_credit':
+      case 'redeem_card':
+        return Icons.south_west_rounded;
+      case 'issue_cards':
+        return Icons.add_card_rounded;
+      default:
+        return delta >= 0
+            ? Icons.add_circle_rounded
+            : Icons.remove_circle_rounded;
+    }
+  }
+
+  Color _transactionAccentColor(String type, double delta) {
+    switch (type) {
+      case 'transfer_out':
+      case 'withdrawal_request':
+      case 'resell_card':
+        return AppTheme.warning;
+      case 'issue_cards':
+        return AppTheme.accent;
+      case 'withdrawal_rejected':
+        return AppTheme.error;
+      default:
+        return delta >= 0 ? AppTheme.success : AppTheme.warning;
+    }
   }
 }
 

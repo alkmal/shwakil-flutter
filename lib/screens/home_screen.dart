@@ -16,7 +16,9 @@ import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.openSyncStatus = false});
+
+  final bool openSyncStatus;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -57,6 +59,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         .listen((_) {
           if (mounted) _loadUser();
         });
+    if (widget.openSyncStatus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(_showSyncStatusSheet());
+        }
+      });
+    }
   }
 
   @override
@@ -659,8 +668,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           _HomeServiceItem(
             title: _isSyncingOfflineWorkspace
                 ? _t('screens_home_screen.064')
-                : 'تحديث الأوفلاين الآن',
-            subtitle: _offlineAccessExpired ? 'مطلوب تحديث' : 'جاهز للتحديث',
+                : _t('screens_home_screen.108'),
+            subtitle: _offlineAccessExpired
+                ? _t('screens_home_screen.109')
+                : _t('screens_home_screen.110'),
             icon: Icons.cloud_sync_rounded,
             color: _offlineAccessExpired ? AppTheme.error : AppTheme.primary,
             kind: _HomeServiceKind.sync,
@@ -679,8 +690,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             title:
                 '${l.tr('screens_home_screen.015')} ($_availableOfflineCount)',
             subtitle: _offlineAccessExpired
-                ? 'يلزم تحديث الأوفلاين'
-                : 'الأوفلاين جاهز',
+                ? _t('screens_home_screen.111')
+                : _t('screens_home_screen.112'),
             icon: Icons.qr_code_scanner_rounded,
             color: _offlineAccessExpired ? AppTheme.error : AppTheme.success,
             kind: _HomeServiceKind.scan,
@@ -704,7 +715,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         if (canViewAffiliateCenter)
           _HomeServiceItem(
             title: l.tr('screens_home_screen.082'),
-            subtitle: 'بيانات التسويق محفوظة محليًا عند آخر فتح ناجح.',
+            subtitle: _t('screens_home_screen.113'),
             icon: Icons.campaign_rounded,
             color: const Color(0xFF0F766E),
             kind: _HomeServiceKind.affiliate,
@@ -713,8 +724,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         if (canViewInventory && canIssueCards && _hasOfflineWorkspace)
           _HomeServiceItem(
             title: l.tr('screens_home_screen.023'),
-            subtitle:
-                'افتح بطاقاتك المحفوظة محليًا واعرض غير المستخدمة مباشرة.',
+            subtitle: _t('screens_home_screen.114'),
             icon: Icons.inventory_2_rounded,
             color: AppTheme.textSecondary,
             kind: _HomeServiceKind.inventory,
@@ -730,7 +740,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             title: _isSyncingOfflineWorkspace
                 ? _t('screens_home_screen.064')
                 : _t('screens_home_screen.065'),
-            subtitle: _pendingOfflineCount > 0 ? 'مطلوب تحديث' : 'جاهز',
+            subtitle: _pendingOfflineCount > 0
+                ? _t('screens_home_screen.109')
+                : _t('screens_home_screen.115'),
             icon: Icons.cloud_sync_rounded,
             color: AppTheme.primary,
             kind: _HomeServiceKind.sync,
@@ -770,7 +782,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           title: _isSyncingOfflineWorkspace
               ? _t('screens_home_screen.064')
               : _t('screens_home_screen.065'),
-          subtitle: _pendingOfflineCount > 0 ? 'مطلوب تحديث' : 'جاهز',
+          subtitle: _pendingOfflineCount > 0
+              ? _t('screens_home_screen.109')
+              : _t('screens_home_screen.115'),
           icon: Icons.cloud_sync_rounded,
           color: AppTheme.primary,
           kind: _HomeServiceKind.sync,
@@ -813,10 +827,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canOpenPrepaidMultipayCards)
         _HomeServiceItem(
-          title: 'بطاقات دفع مسبق',
+          title: l.tr('screens_home_screen.118'),
           subtitle: permissions.canUsePrepaidMultipayCards
-              ? 'أنشئ أكثر من بطاقة متعددة الدفع برصيد محجوز وتاريخ انتهاء.'
-              : 'اقبل دفعات البطاقات المسبقة من العملاء المصرح لهم.',
+              ? l.tr('screens_home_screen.119')
+              : l.tr('screens_home_screen.120'),
           icon: Icons.credit_card_rounded,
           color: const Color(0xFF334155),
           kind: _HomeServiceKind.prepaidMultipay,
@@ -825,8 +839,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canAcceptNfcPayments)
         _HomeServiceItem(
-          title: 'قبول NFC',
-          subtitle: 'اقرأ إذن الدفع من هاتف العميل واعتمد العملية مباشرة.',
+          title: l.tr('screens_home_screen.121'),
+          subtitle: l.tr('screens_home_screen.122'),
           icon: Icons.nfc_rounded,
           color: const Color(0xFF0F766E),
           kind: _HomeServiceKind.prepaidMultipay,
@@ -850,8 +864,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (_canTransfer)
         _HomeServiceItem(
-          title: 'رمز تحويل مؤقت',
-          subtitle: 'أنشئ رمزًا قصير الصلاحية لتحويل الرصيد لحساب آخر.',
+          title: l.tr('screens_home_screen.123'),
+          subtitle: l.tr('screens_home_screen.124'),
           icon: Icons.qr_code_2_rounded,
           color: const Color(0xFF0F766E),
           kind: _HomeServiceKind.temporaryTransfer,
@@ -1100,8 +1114,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 if (_canOfflineScan) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'آخر تحديث للبيانات: ${_formatSyncTimestamp(_lastOfflineSyncAt)}'
-                    '${OfflineSessionService.isOfflineMode ? ' - الرصيد لا يتغير حتى تتم المزامنة' : ''}',
+                    _t(
+                      'screens_home_screen.116',
+                      params: {
+                        'time': _formatSyncTimestamp(_lastOfflineSyncAt),
+                        'suffix': OfflineSessionService.isOfflineMode
+                            ? _t('screens_home_screen.117')
+                            : '',
+                      },
+                    ),
                     style: AppTheme.caption.copyWith(
                       color: Colors.white.withValues(alpha: 0.82),
                       fontWeight: FontWeight.w700,

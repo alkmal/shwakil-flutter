@@ -65,6 +65,9 @@ dependencies:
   # UI
   url_launcher: ^6.3.2
   geolocator: ^14.0.2
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  webview_flutter: ^4.13.0
   firebase_core: ^4.7.0
   firebase_messaging: ^16.2.0
   nfc_manager: ^4.2.1

@@ -498,11 +498,19 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
 
   Widget _buildActiveTransferView() {
     if (_activeTab == 1) {
-      return _buildMyCode();
+      return Column(
+        children: [
+          _buildTransferStatusCard(),
+          const SizedBox(height: 18),
+          _buildMyCode(),
+        ],
+      );
     }
 
     return Column(
       children: [
+        _buildTransferStatusCard(),
+        const SizedBox(height: 18),
         if (_showLookupTools) ...[
           _buildLookupCard(compact: true),
           const SizedBox(height: 18),
@@ -515,6 +523,106 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         ],
         _buildScanCard(),
       ],
+    );
+  }
+
+  Widget _buildTransferStatusCard() {
+    final statusColor = _canTransfer ? AppTheme.success : AppTheme.warning;
+    final statusLabel = _canTransfer
+        ? _t('screens_quick_transfer_screen.054')
+        : _t('screens_quick_transfer_screen.055');
+    final statusHint = _canTransfer
+        ? _t('screens_quick_transfer_screen.056')
+        : _t('screens_quick_transfer_screen.057');
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      color: statusColor.withValues(alpha: 0.05),
+      borderColor: statusColor.withValues(alpha: 0.16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  _canTransfer
+                      ? Icons.send_rounded
+                      : Icons.lock_outline_rounded,
+                  color: statusColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(statusLabel, style: AppTheme.bodyBold),
+                    const SizedBox(height: 4),
+                    Text(
+                      statusHint,
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _statusChip(
+                Icons.person_search_rounded,
+                _showLookupTools
+                    ? _t('screens_quick_transfer_screen.058')
+                    : _t('screens_quick_transfer_screen.059'),
+              ),
+              _statusChip(
+                Icons.qr_code_2_rounded,
+                _activeTab == 1
+                    ? _t('screens_quick_transfer_screen.060')
+                    : _t('screens_quick_transfer_screen.061'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
