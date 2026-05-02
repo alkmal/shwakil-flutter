@@ -92,6 +92,9 @@ final Map<String, WidgetBuilder> _appRoutes = {
     final args = ModalRoute.of(context)?.settings.arguments;
     final options = args is Map ? args : const <String, dynamic>{};
     return ScanCardScreen(
+      initialBarcode: options['initialBarcode']?.toString(),
+      autoOpenScanner: options['autoOpenScanner'] == true,
+      autoReadNfc: options['autoReadNfc'] == true,
       openTemporaryTransferCreator:
           options['openTemporaryTransferCreator'] == true,
     );

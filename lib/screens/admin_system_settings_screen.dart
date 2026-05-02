@@ -50,6 +50,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _singleUseTicketIssueCostController = TextEditingController();
   final _appointmentTicketIssueCostController = TextEditingController();
   final _queueTicketIssueCostController = TextEditingController();
+  final _subscriptionCardIssueCostController = TextEditingController();
+  final _attendanceCardIssueCostController = TextEditingController();
   final _scanDefaultLimitController = TextEditingController();
   final _scanRestrictedLimitController = TextEditingController();
   final _scanBasicLimitController = TextEditingController();
@@ -152,6 +154,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _singleUseTicketIssueCostController.dispose();
     _appointmentTicketIssueCostController.dispose();
     _queueTicketIssueCostController.dispose();
+    _subscriptionCardIssueCostController.dispose();
+    _attendanceCardIssueCostController.dispose();
     _scanDefaultLimitController.dispose();
     _scanRestrictedLimitController.dispose();
     _scanBasicLimitController.dispose();
@@ -419,6 +423,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           '0.25';
       _queueTicketIssueCostController.text =
           (feeSettings['queueTicketIssueCost'] as num?)?.toString() ?? '0.10';
+      _subscriptionCardIssueCostController.text =
+          (feeSettings['subscriptionCardIssueCost'] as num?)?.toString() ??
+          '0.25';
+      _attendanceCardIssueCostController.text =
+          (feeSettings['attendanceCardIssueCost'] as num?)?.toString() ??
+          '0.10';
       _scanDefaultLimitController.text =
           (cardScanLimitSettings['defaultLimit'] as num?)?.toString() ?? '30';
       _scanRestrictedLimitController.text =
@@ -627,10 +637,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
   }
 
-  Future<void> _toggleWhatsAppChannel(
-    String channelKey,
-    bool enabled,
-  ) async {
+  Future<void> _toggleWhatsAppChannel(String channelKey, bool enabled) async {
     setState(() => _gatewayBusyChannelKey = channelKey);
     try {
       final payload = await _apiService.toggleWhatsAppGatewayChannel(
@@ -833,6 +840,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               0.25,
           queueTicketIssueCost:
               double.tryParse(_queueTicketIssueCostController.text) ?? 0.10,
+          subscriptionCardIssueCost:
+              double.tryParse(_subscriptionCardIssueCostController.text) ??
+              0.25,
+          attendanceCardIssueCost:
+              double.tryParse(_attendanceCardIssueCostController.text) ?? 0.10,
         ),
         _apiService.updateCardScanLimitSettings(
           defaultLimit: int.tryParse(_scanDefaultLimitController.text) ?? 30,
@@ -1785,18 +1797,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   children: [
                     _buildGatewayStatCard(
                       title: 'واتساب 24 ساعة',
-                      value:
-                          '${whatsappSummary['sentCount24h'] ?? 0} إرسال',
+                      value: '${whatsappSummary['sentCount24h'] ?? 0} إرسال',
                       subtitle:
                           '${whatsappSummary['uniqueRecipients24h'] ?? 0} رقم مختلف',
                       icon: Icons.mark_chat_unread_rounded,
                     ),
                     _buildGatewayStatCard(
                       title: 'فشل واتساب',
-                      value:
-                          '${whatsappSummary['failedCount24h'] ?? 0} عملية',
-                      subtitle:
-                          '${summary['blockedChannels'] ?? 0} توكن متوقف',
+                      value: '${whatsappSummary['failedCount24h'] ?? 0} عملية',
+                      subtitle: '${summary['blockedChannels'] ?? 0} توكن متوقف',
                       icon: Icons.warning_amber_rounded,
                     ),
                     _buildGatewayStatCard(
@@ -1904,8 +1913,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: _channelStatusColor(status).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -1965,9 +1976,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               const SizedBox(height: 8),
               Text(
                 'ملاحظة الاختبار: $lastTestMessage',
-                style: AppTheme.caption.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
               ),
             ],
             const SizedBox(height: 14),
@@ -1978,7 +1987,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 ShwakelButton(
                   label: 'اختبار',
                   icon: Icons.play_arrow_rounded,
-                  onPressed: isBusy ? null : () => _testWhatsAppChannel(channelKey),
+                  onPressed: isBusy
+                      ? null
+                      : () => _testWhatsAppChannel(channelKey),
                   isLoading: isBusy,
                 ),
                 ShwakelButton(
@@ -2907,6 +2918,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 _buildFeeField(
                   'رسوم إصدار تذكرة طابور',
                   _queueTicketIssueCostController,
+                ),
+                _buildFeeField(
+                  'رسوم إصدار بطاقة اشتراك',
+                  _subscriptionCardIssueCostController,
+                ),
+                _buildFeeField(
+                  'رسوم إصدار بطاقة حضور وانصراف',
+                  _attendanceCardIssueCostController,
                 ),
               ],
             ),

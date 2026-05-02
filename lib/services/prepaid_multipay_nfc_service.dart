@@ -125,6 +125,22 @@ class PrepaidMultipayNfcPaymentAuthorization {
   }
 }
 
+sealed class PrepaidMultipayNfcReadResult {
+  const PrepaidMultipayNfcReadResult();
+}
+
+class PrepaidMultipayNfcCardReadResult extends PrepaidMultipayNfcReadResult {
+  const PrepaidMultipayNfcCardReadResult(this.payload);
+
+  final PrepaidMultipayNfcPayload payload;
+}
+
+class PrepaidMultipayNfcPaymentReadResult extends PrepaidMultipayNfcReadResult {
+  const PrepaidMultipayNfcPaymentReadResult(this.authorization);
+
+  final PrepaidMultipayNfcPaymentAuthorization authorization;
+}
+
 class PrepaidMultipayNfcService {
   const PrepaidMultipayNfcService();
 
@@ -215,7 +231,7 @@ class PrepaidMultipayNfcService {
         try {
           final ndef = Ndef.from(tag);
           if (ndef == null) {
-            throw Exception('هذا الوسم لا يدعم NDEF.');
+            throw Exception(_unsupportedNdefMessage);
           }
 
           final message = await ndef.read() ?? ndef.cachedMessage;
@@ -376,7 +392,7 @@ class PrepaidMultipayNfcService {
         try {
           final ndef = Ndef.from(tag);
           if (ndef == null) {
-            throw Exception('هذا الوسم لا يدعم NDEF.');
+            throw Exception(_unsupportedNdefMessage);
           }
 
           final message = await ndef.read() ?? ndef.cachedMessage;
@@ -388,6 +404,53 @@ class PrepaidMultipayNfcService {
           await NfcManager.instance.stopSession();
           if (!completer.isCompleted) {
             completer.complete(authorization);
+          }
+        } catch (error, stackTrace) {
+          await NfcManager.instance.stopSession(
+            errorMessageIos: error.toString(),
+          );
+          if (!completer.isCompleted) {
+            completer.completeError(error, stackTrace);
+          }
+        }
+      },
+    );
+
+    return completer.future.timeout(
+      const Duration(seconds: 30),
+      onTimeout: () async {
+        await NfcManager.instance.stopSession(
+          errorMessageIos: 'انتهت مهلة NFC.',
+        );
+        throw TimeoutException('انتهت مهلة NFC.');
+      },
+    );
+  }
+
+  Future<PrepaidMultipayNfcReadResult> readAny() async {
+    await _ensureAvailable();
+
+    final completer = Completer<PrepaidMultipayNfcReadResult>();
+    await NfcManager.instance.startSession(
+      pollingOptions: const {NfcPollingOption.iso14443},
+      onDiscovered: (tag) async {
+        try {
+          final ndef = Ndef.from(tag);
+          if (ndef == null) {
+            throw Exception(_unsupportedNdefMessage);
+          }
+
+          final message = await ndef.read() ?? ndef.cachedMessage;
+          if (message == null) {
+            throw Exception(
+              'لا توجد بيانات شواكل قابلة للقراءة على هذا الوسم.',
+            );
+          }
+
+          final result = _readResultFromMessage(message);
+          await NfcManager.instance.stopSession();
+          if (!completer.isCompleted) {
+            completer.complete(result);
           }
         } catch (error, stackTrace) {
           await NfcManager.instance.stopSession(
@@ -430,6 +493,9 @@ class PrepaidMultipayNfcService {
 
     await formatable.format(message);
   }
+
+  static const String _unsupportedNdefMessage =
+      'هذا الوسم لا يدعم NDEF أو غير مهيأ للقراءة داخل شواكل. استخدم وسم NTAG213 أو NTAG215 أو NTAG216، أو اكتب بيانات البطاقة عليه من التطبيق أولًا.';
 
   NdefMessage _messageFromPayload(PrepaidMultipayNfcPayload payload) {
     final jsonPayload = jsonEncode(payload.toJson());
@@ -503,6 +569,39 @@ class PrepaidMultipayNfcService {
     }
 
     throw const FormatException('لم يتم العثور على إذن دفع NFC صالح.');
+  }
+
+  PrepaidMultipayNfcReadResult _readResultFromMessage(NdefMessage message) {
+    for (final record in message.records) {
+      final type = utf8.decode(record.type, allowMalformed: true);
+      if (record.typeNameFormat != TypeNameFormat.media) {
+        continue;
+      }
+      if (type != PrepaidMultipayNfcPayload.mimeType &&
+          type != PrepaidMultipayNfcPaymentAuthorization.mimeType) {
+        continue;
+      }
+
+      final decoded = jsonDecode(utf8.decode(record.payload));
+      if (decoded is! Map) {
+        continue;
+      }
+      final map = Map<String, dynamic>.from(decoded);
+      if (type == PrepaidMultipayNfcPayload.mimeType) {
+        return PrepaidMultipayNfcCardReadResult(
+          PrepaidMultipayNfcPayload.fromJson(map),
+        );
+      }
+      if (type == PrepaidMultipayNfcPaymentAuthorization.mimeType) {
+        return PrepaidMultipayNfcPaymentReadResult(
+          PrepaidMultipayNfcPaymentAuthorization.fromJson(map),
+        );
+      }
+    }
+
+    throw const FormatException(
+      'تمت قراءة الوسم، لكن بياناته ليست بطاقة أو إذن دفع صالح داخل شواكل.',
+    );
   }
 
   Future<SimpleKeyPairData> _keyPairForCard(String cardId) async {

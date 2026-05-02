@@ -111,6 +111,8 @@ class VirtualCard {
   bool get isDelivery => cardType == 'delivery';
   bool get isAppointment => cardType == 'appointment';
   bool get isQueueTicket => cardType == 'queue';
+  bool get isSubscription => cardType == 'subscription';
+  bool get isAttendance => cardType == 'attendance';
   String get resolvedOriginalCardType {
     final normalized = originalCardType?.trim().toLowerCase();
     if (normalized == null || normalized.isEmpty) {
@@ -131,6 +133,16 @@ class VirtualCard {
       DateTime.tryParse(details['startsAt']?.toString() ?? '');
   DateTime? get appointmentEndsAt =>
       DateTime.tryParse(details['endsAt']?.toString() ?? '');
+  String? get subscriptionName =>
+      details['subscriptionName']?.toString() ?? title;
+  String? get subscriptionDetails =>
+      details['subscriptionDetails']?.toString() ?? description;
+  String? get employeeName => details['employeeName']?.toString() ?? title;
+  String? get employeeCode => details['employeeCode']?.toString();
+  String? get department => details['department']?.toString() ?? location;
+  String? get attendanceSystem => details['attendanceSystem']?.toString();
+  String? get integrationReference =>
+      details['integrationReference']?.toString();
 
   Map<String, dynamic> toMap() {
     return {

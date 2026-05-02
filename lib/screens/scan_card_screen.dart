@@ -27,12 +27,14 @@ class ScanCardScreen extends StatefulWidget {
     this.initialBarcode,
     this.offlineMode = false,
     this.autoOpenScanner = false,
+    this.autoReadNfc = false,
     this.openTemporaryTransferCreator = false,
   });
 
   final String? initialBarcode;
   final bool offlineMode;
   final bool autoOpenScanner;
+  final bool autoReadNfc;
   final bool openTemporaryTransferCreator;
 
   @override
@@ -46,13 +48,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   final OfflineCardService _offlineCardService = OfflineCardService();
   final OfflineTransferCodeService _offlineTransferCodeService =
       OfflineTransferCodeService();
+  final PrepaidMultipayNfcService _nfc = const PrepaidMultipayNfcService();
 
   VirtualCard? _card;
   Map<String, dynamic>? _user;
   bool _isSearching = false;
   bool _isSubmitting = false;
+  bool _isReadingNfc = false;
   bool _routeSubscribed = false;
   bool _autoScannerOpened = false;
+  bool _autoNfcReadStarted = false;
+  bool _initialBarcodeHandled = false;
   int _availableOfflineTransferSlots = 0;
   int _availableOfflineCardCount = 0;
   int _offlineSyncIntervalMinutes = 60;
@@ -110,7 +116,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     _load();
     if (widget.initialBarcode?.isNotEmpty == true) {
       _bcC.text = widget.initialBarcode!;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _search());
     }
   }
 
@@ -169,6 +174,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           }
         });
       }
+      _maybeReadNfcAutomatically();
     } catch (_) {
       if (!mounted) {
         return;
@@ -180,8 +186,23 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     } finally {
       if (mounted) {
         setState(() => _isPreparingScreen = false);
+        _maybeSearchInitialBarcode();
       }
     }
+  }
+
+  void _maybeSearchInitialBarcode() {
+    if (!mounted ||
+        _initialBarcodeHandled ||
+        widget.initialBarcode?.trim().isNotEmpty != true) {
+      return;
+    }
+    _initialBarcodeHandled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_search());
+      }
+    });
   }
 
   void _syncAutoRedeemState(Map<String, dynamic>? user) {
@@ -191,8 +212,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final unverifiedForced =
         user?['cardAutoRedeemOnScanUnverifiedForced'] == true ||
         (!staffCanUsePublicCards &&
-            (user?['transferVerificationStatus']?.toString() ??
-                    'unverified') !=
+            (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
                 'approved');
     _autoRedeemOnScanForced =
         user?['cardAutoRedeemOnScanForced'] == true ||
@@ -236,9 +256,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (_autoRedeemOnScanForced && !nextValue) {
       final unverifiedForced =
           _user?['cardAutoRedeemOnScanUnverifiedForced'] == true ||
-          (!['admin', 'support', 'finance'].contains(
-                _user?['role']?.toString() ?? '',
-              ) &&
+          (![
+                'admin',
+                'support',
+                'finance',
+              ].contains(_user?['role']?.toString() ?? '') &&
               (_user?['transferVerificationStatus']?.toString() ??
                       'unverified') !=
                   'approved');
@@ -348,6 +370,22 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         unawaited(_openScannerDialog());
+      }
+    });
+  }
+
+  void _maybeReadNfcAutomatically() {
+    if (!mounted ||
+        _autoNfcReadStarted ||
+        !widget.autoReadNfc ||
+        widget.offlineMode ||
+        widget.initialBarcode?.isNotEmpty == true) {
+      return;
+    }
+    _autoNfcReadStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_readNfcFromUnifiedScanner());
       }
     });
   }
@@ -1222,28 +1260,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
 
     return BarcodeScannerDialogResult(
-      headline: 'بطاقة دفع مسبق',
-      description:
-          'تمت قراءة بطاقة دفع مسبق. أدخل التاجر مبلغ الدفع وكود التحقق المكوّن من 3 أرقام لاعتماد العملية.',
+      headline: '',
+      description: '',
       color: AppTheme.primary,
       icon: Icons.credit_card_rounded,
-      items: [
-        BarcodeScannerDialogResultItem(
-          label: 'رقم البطاقة',
-          value: payload.maskedCardNumber,
-          icon: Icons.credit_card_rounded,
-        ),
-        if (payload.expiryLabel.isNotEmpty)
-          BarcodeScannerDialogResultItem(
-            label: 'الانتهاء',
-            value: payload.expiryLabel,
-            icon: Icons.event_rounded,
-          ),
-      ],
+      customContent: _buildPrepaidMultipayScannerResultContent(payload),
       primaryActionLabel: 'اعتماد الدفع',
       primaryActionIcon: Icons.payments_rounded,
       onPrimaryAction: () =>
           _handlePrepaidMultipayScan(payload, showErrorAlert: false),
+      hideDialogHeader: true,
+      hideDialogDescription: true,
     );
   }
 
@@ -1278,80 +1305,78 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('اعتماد دفع بطاقة مسبقة'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                payload.label?.isNotEmpty == true
-                    ? payload.label!
-                    : payload.maskedCardNumber,
-                style: AppTheme.bodyBold,
-              ),
-              if (payload.expiryLabel.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'الانتهاء: ${payload.expiryLabel}',
-                  style: AppTheme.caption,
-                ),
-              ],
-              const SizedBox(height: 16),
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'مبلغ الدفع',
-                  hintText: 'مثال: 25',
-                  prefixIcon: Icon(Icons.payments_rounded),
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (!payload.hasExpiry) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: monthController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'الشهر',
-                          counterText: '',
-                          prefixIcon: Icon(Icons.calendar_month_rounded),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: yearController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'السنة',
-                          counterText: '',
-                          prefixIcon: Icon(Icons.event_rounded),
-                        ),
-                      ),
-                    ),
-                  ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPrepaidPaymentDialogCard(payload),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'إضافة قيمة الدفع',
+                    hintText: 'مثال: 25',
+                    prefixIcon: Icon(Icons.payments_rounded),
+                  ),
                 ),
                 const SizedBox(height: 12),
-              ],
-              TextField(
-                controller: codeController,
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                maxLength: 3,
-                decoration: const InputDecoration(
-                  labelText: 'كود التحقق من 3 أرقام',
-                  counterText: '',
-                  prefixIcon: Icon(Icons.pin_rounded),
+                if (!payload.hasExpiry) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: monthController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 2,
+                          decoration: const InputDecoration(
+                            labelText: 'الشهر',
+                            counterText: '',
+                            prefixIcon: Icon(Icons.calendar_month_rounded),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: yearController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 2,
+                          decoration: const InputDecoration(
+                            labelText: 'السنة',
+                            counterText: '',
+                            prefixIcon: Icon(Icons.event_rounded),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  maxLength: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'كود البطاقة الثلاثي',
+                    counterText: '',
+                    prefixIcon: Icon(Icons.pin_rounded),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  'سيتم اعتماد العملية من نفس شاشة الفحص وتحديث الرصيد مباشرة.',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1415,6 +1440,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final merchantBalance = (response['merchantBalance'] as num?)?.toDouble();
       if (merchantBalance != null) {
         await _auth.cacheCurrentUser({...?_user, 'balance': merchantBalance});
+        if (!mounted) {
+          return null;
+        }
         setState(() {
           _user = {...?_user, 'balance': merchantBalance};
         });
@@ -1426,33 +1454,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final remaining = (payment['remainingCardBalance'] as num?)?.toDouble();
 
       return BarcodeScannerDialogResult(
-        headline: _t('screens_scan_card_screen.134'),
-        description: remaining == null
-            ? _t('screens_scan_card_screen.135')
-            : _t('screens_scan_card_screen.136', {
-                'amount': CurrencyFormatter.ils(submission.amount),
-                'remaining': CurrencyFormatter.ils(remaining),
-              }),
+        headline: '',
+        description: '',
         color: AppTheme.success,
         icon: Icons.check_circle_rounded,
-        items: [
-          BarcodeScannerDialogResultItem(
-            label: 'رقم البطاقة',
-            value: payload.maskedCardNumber,
-            icon: Icons.credit_card_rounded,
-          ),
-          BarcodeScannerDialogResultItem(
-            label: 'المبلغ',
-            value: CurrencyFormatter.ils(submission.amount),
-            icon: Icons.payments_rounded,
-          ),
-          if (remaining != null)
-            BarcodeScannerDialogResultItem(
-              label: 'المتبقي',
-              value: CurrencyFormatter.ils(remaining),
-              icon: Icons.account_balance_wallet_rounded,
-            ),
-        ],
+        customContent: _buildPrepaidPaymentSuccessContent(
+          payload: payload,
+          amount: submission.amount,
+          remaining: remaining,
+        ),
+        hideDialogHeader: true,
+        hideDialogDescription: true,
       );
     } catch (error) {
       if (!mounted) {
@@ -1478,6 +1490,232 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
   }
 
+  Widget _buildPrepaidMultipayScannerResultContent(
+    _PrepaidMultipayScanPayload payload,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildPrepaidPaymentDialogCard(payload, isLarge: true),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _resultBadge(
+              'الخطوة التالية',
+              'إضافة القيمة',
+              AppTheme.primary,
+              icon: Icons.payments_rounded,
+            ),
+            _resultBadge(
+              'التحقق',
+              'كود البطاقة الثلاثي',
+              AppTheme.info,
+              icon: Icons.pin_rounded,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrepaidPaymentDialogCard(
+    _PrepaidMultipayScanPayload payload, {
+    bool isLarge = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isLarge ? 20 : 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF155E75)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: AppTheme.mediumShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.credit_card_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'بطاقة دفع مسبق',
+                  style: AppTheme.bodyBold.copyWith(color: Colors.white),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'PREPAID',
+                  textDirection: TextDirection.ltr,
+                  style: AppTheme.caption.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isLarge ? 18 : 14),
+          Text(
+            payload.maskedCardNumber,
+            textDirection: TextDirection.ltr,
+            style: AppTheme.h2.copyWith(color: Colors.white, letterSpacing: 0),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            payload.label?.trim().isNotEmpty == true
+                ? payload.label!.trim()
+                : 'بطاقة دفع مسبق عامة',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.caption.copyWith(color: Colors.white70),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _prepaidMiniLabel(
+                  'طريقة الاعتماد',
+                  'فحص موحد',
+                  Icons.qr_code_scanner_rounded,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _prepaidMiniLabel(
+                  'الصلاحية',
+                  payload.expiryLabel.isEmpty
+                      ? 'غير محددة'
+                      : payload.expiryLabel,
+                  Icons.event_rounded,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _prepaidMiniLabel(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTheme.caption.copyWith(color: Colors.white60),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.caption.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrepaidPaymentSuccessContent({
+    required _PrepaidMultipayScanPayload payload,
+    required double amount,
+    required double? remaining,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.success.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppTheme.success.withValues(alpha: 0.18)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppTheme.success.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppTheme.success,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _t('screens_scan_card_screen.134'),
+                      style: AppTheme.h3.copyWith(color: AppTheme.success),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _resultBadge(
+                    'رقم البطاقة',
+                    payload.maskedCardNumber,
+                    AppTheme.success,
+                    icon: Icons.credit_card_rounded,
+                    isFullWidth: true,
+                  ),
+                  _resultBadge(
+                    'المبلغ المضاف',
+                    CurrencyFormatter.ils(amount),
+                    AppTheme.success,
+                    icon: Icons.payments_rounded,
+                  ),
+                  if (remaining != null)
+                    _resultBadge(
+                      'المتبقي',
+                      CurrencyFormatter.ils(remaining),
+                      AppTheme.primary,
+                      icon: Icons.account_balance_wallet_rounded,
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   String _newPrepaidPaymentKey() {
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
     return 'scan-prepaid:$now:${identityHashCode(this)}';
@@ -1489,18 +1727,124 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return null;
     }
 
+    for (final candidate in _prepaidPayloadCandidates(trimmed)) {
+      final parsed = _tryParsePrepaidJsonPayload(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+
+      final decoded = _tryDecodeBase64Text(candidate);
+      if (decoded != null) {
+        final decodedParsed = _tryParsePrepaidJsonPayload(decoded);
+        if (decodedParsed != null) {
+          return decodedParsed;
+        }
+      }
+    }
+
+    return _tryParsePrepaidDelimitedPayload(trimmed);
+  }
+
+  List<String> _prepaidPayloadCandidates(String value) {
+    final candidates = <String>[value];
+    final uri = Uri.tryParse(value);
+    if (uri == null) {
+      return candidates;
+    }
+
+    for (final key in const ['payload', 'data', 'p', 'card', 'qr', 'prepaid']) {
+      final queryValue = uri.queryParameters[key]?.trim() ?? '';
+      if (queryValue.isNotEmpty) {
+        candidates.add(queryValue);
+      }
+    }
+
+    if (uri.queryParameters.containsKey('cardNumber') ||
+        uri.queryParameters.containsKey('card_number') ||
+        uri.queryParameters.containsKey('rawCardNumber')) {
+      candidates.add(
+        jsonEncode({'type': 'prepaid_multipay_card', ...uri.queryParameters}),
+      );
+    }
+
+    return candidates;
+  }
+
+  _PrepaidMultipayScanPayload? _tryParsePrepaidJsonPayload(String value) {
     try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is! Map || decoded['type'] != 'prepaid_multipay_card') {
+      final decoded = jsonDecode(value.trim());
+      if (decoded is! Map) {
         return null;
       }
-      final payload = _PrepaidMultipayScanPayload.fromMap(
-        Map<String, dynamic>.from(decoded),
-      );
-      return payload.cardNumber.isEmpty ? null : payload;
+      return _prepaidPayloadFromMap(Map<String, dynamic>.from(decoded));
     } catch (_) {
       return null;
     }
+  }
+
+  _PrepaidMultipayScanPayload? _prepaidPayloadFromMap(
+    Map<String, dynamic> map,
+  ) {
+    final type = map['type']?.toString().trim().toLowerCase() ?? '';
+    const supportedTypes = {
+      'prepaid_multipay_card',
+      'shwakil_prepaid_multipay_card',
+      'shwakel_prepaid_multipay_card',
+      'prepaid_card',
+      'shwakil_prepaid_card',
+      'shwakel_prepaid_card',
+    };
+    final hasPrepaidCardNumber =
+        map.containsKey('cardNumber') ||
+        map.containsKey('card_number') ||
+        map.containsKey('rawCardNumber') ||
+        map.containsKey('raw_card_number');
+    if (!supportedTypes.contains(type) && !hasPrepaidCardNumber) {
+      return null;
+    }
+
+    final payload = _PrepaidMultipayScanPayload.fromMap(map);
+    return payload.cardNumber.isEmpty ? null : payload;
+  }
+
+  String? _tryDecodeBase64Text(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty || normalized.contains('{')) {
+      return null;
+    }
+
+    try {
+      var padded = normalized.replaceAll('-', '+').replaceAll('_', '/');
+      while (padded.length % 4 != 0) {
+        padded += '=';
+      }
+      return utf8.decode(base64Decode(padded));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _PrepaidMultipayScanPayload? _tryParsePrepaidDelimitedPayload(String value) {
+    final parts = value.split('|').map((item) => item.trim()).toList();
+    if (parts.length < 2) {
+      return null;
+    }
+    final type = parts.first.toLowerCase();
+    if (type != 'prepaid_multipay_card' &&
+        type != 'shwakil_prepaid_card' &&
+        type != 'shwakel_prepaid_card' &&
+        type != 'prepaid_card') {
+      return null;
+    }
+
+    final payload = _PrepaidMultipayScanPayload.fromMap({
+      'type': 'prepaid_multipay_card',
+      'cardNumber': parts.length > 1 ? parts[1] : '',
+      'expiryMonth': parts.length > 2 ? parts[2] : null,
+      'expiryYear': parts.length > 3 ? parts[3] : null,
+      'label': parts.length > 4 ? parts.sublist(4).join(' ') : null,
+    });
+    return payload.cardNumber.isEmpty ? null : payload;
   }
 
   Future<void> _openScannerDialog() async {
@@ -1530,6 +1874,100 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         onScanResolved: _resolveScannerDialogResult,
       ),
     );
+  }
+
+  Future<void> _readNfcFromUnifiedScanner() async {
+    if (widget.offlineMode || _isReadingNfc || _isPreparingScreen) {
+      return;
+    }
+    if (!await _nfc.isAvailable()) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'NFC غير متاح',
+        message: 'فعّل NFC على الجهاز ثم حاول القراءة من شاشة الفحص.',
+      );
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isReadingNfc = true);
+    try {
+      final result = await _nfc.readAny();
+      if (!mounted) {
+        return;
+      }
+
+      if (result is PrepaidMultipayNfcCardReadResult) {
+        final payload = jsonEncode(result.payload.toJson());
+        setState(() => _bcC.text = payload);
+        await _search();
+        return;
+      }
+
+      if (result is PrepaidMultipayNfcPaymentReadResult) {
+        await _acceptNfcPaymentAuthorizationFromScan(result.authorization);
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر قراءة NFC',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isReadingNfc = false);
+      }
+    }
+  }
+
+  Future<void> _acceptNfcPaymentAuthorizationFromScan(
+    PrepaidMultipayNfcPaymentAuthorization authorization,
+  ) async {
+    if (DateTime.now().toUtc().isAfter(authorization.expiresAt.toUtc())) {
+      throw Exception('انتهت صلاحية إذن NFC. اطلب من المشتري إنشاء إذن جديد.');
+    }
+
+    final response = await _api.acceptPrepaidMultipayNfcPayment(
+      signedPayload: authorization.signedPayload,
+      signature: authorization.signature,
+      idempotencyKey: _newPrepaidPaymentKey(),
+      merchantDeviceId: await LocalSecurityService.getOrCreateDeviceId(),
+    );
+    if (!mounted) {
+      return;
+    }
+
+    final merchantBalance = (response['merchantBalance'] as num?)?.toDouble();
+    if (merchantBalance != null) {
+      await _auth.cacheCurrentUser({...?_user, 'balance': merchantBalance});
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _user = {...?_user, 'balance': merchantBalance};
+      });
+    }
+
+    final status = response['status']?.toString() ?? '';
+    if (status == 'approved') {
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم قبول NFC',
+        message:
+            'تم استلام ${CurrencyFormatter.ils(authorization.amount)} من شاشة الفحص الموحدة.',
+      );
+      return;
+    }
+
+    throw Exception(response['message']?.toString() ?? 'تعذر اعتماد العملية.');
   }
 
   Future<BarcodeScannerDialogResult?> _resolveScannerDialogResult(
@@ -1580,6 +2018,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final canRedeemCards =
         permissions.canRedeemCards &&
         !isUsed &&
+        !_isInformationalCard(card) &&
         _canCurrentUserRedeemCard(card, permissions);
     final canResellCards =
         !widget.offlineMode && permissions.canResellCards && isUsed;
@@ -1724,6 +2163,100 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Future<void> _redeem() async {
     if (_card == null) return;
     await _redeemCard(_card!);
+  }
+
+  Future<void> _renewSubscriptionCard(VirtualCard card) async {
+    final controller = TextEditingController(text: '30');
+    try {
+      final days = await showDialog<int>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('تجديد الاشتراك'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'حدد مدة التجديد بالأيام. سيتم احتساب تكلفة التجديد من إعدادات الإدارة الحالية.',
+                style: AppTheme.bodyAction,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'مدة التجديد',
+                  suffixText: 'يوم',
+                  prefixIcon: Icon(Icons.event_repeat_rounded),
+                ),
+                onSubmitted: (_) => Navigator.of(
+                  dialogContext,
+                ).pop(int.tryParse(controller.text.trim())),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(int.tryParse(controller.text.trim())),
+              icon: const Icon(Icons.check_rounded),
+              label: const Text('تجديد'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted || days == null || days < 1) {
+        return;
+      }
+
+      final security = await TransferSecurityService.confirmTransfer(context);
+      if (!mounted || !security.isVerified) {
+        return;
+      }
+
+      setState(() => _isSubmitting = true);
+      final response = await _api.renewSubscriptionCard(
+        cardId: card.id,
+        durationDays: days,
+        otpCode: security.otpCode,
+        localAuthMethod: security.method,
+      );
+      final renewed = response['card'];
+      final updatedBalance = (response['balance'] as num?)?.toDouble();
+      if (!mounted) return;
+      setState(() {
+        if (renewed is VirtualCard) {
+          _card = renewed;
+        } else if (renewed is Map) {
+          _card = VirtualCard.fromMap(Map<String, dynamic>.from(renewed));
+        }
+        if (updatedBalance != null) {
+          _user = {...?_user, 'balance': updatedBalance};
+        }
+      });
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم تجديد الاشتراك',
+        message:
+            response['message']?.toString() ?? 'تم تحديث مدة الاشتراك بنجاح.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تجديد الاشتراك',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      controller.dispose();
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   Future<void> _redeemOffline(AppLocalizer l) async {
@@ -1980,6 +2513,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (card.isQueueTicket) {
       return 'تذكرة طابور';
     }
+    if (card.isSubscription) {
+      return 'بطاقة اشتراك';
+    }
+    if (card.isAttendance) {
+      return 'بطاقة حضور وانصراف';
+    }
     if (isLocationSpecific) {
       return l.tr('screens_scan_card_screen.065');
     }
@@ -1999,6 +2538,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         return 'تذكرة موعد';
       case 'queue':
         return 'تذكرة طابور';
+      case 'subscription':
+        return 'بطاقة اشتراك';
+      case 'attendance':
+        return 'بطاقة حضور وانصراف';
       case 'single_use':
         return 'بطاقة دخول';
       default:
@@ -2031,8 +2574,36 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (card.isQueueTicket && card.title?.trim().isNotEmpty == true) {
       return card.title!.trim();
     }
+    if (card.isSubscription) {
+      final details = card.subscriptionDetails?.trim() ?? '';
+      if (details.isNotEmpty) return details;
+      return card.subscriptionName?.trim() ?? '';
+    }
+    if (card.isAttendance) {
+      final parts = [
+        if (card.employeeName?.trim().isNotEmpty == true)
+          card.employeeName!.trim(),
+        if (card.employeeCode?.trim().isNotEmpty == true)
+          'رقم: ${card.employeeCode!.trim()}',
+        if (card.department?.trim().isNotEmpty == true) card.department!.trim(),
+        if (card.attendanceSystem?.trim().isNotEmpty == true)
+          card.attendanceSystem!.trim(),
+      ];
+      return parts.join(' - ');
+    }
     return '';
   }
+
+  Map<String, dynamic>? _attendanceScanInfo(VirtualCard card) {
+    if (!card.isAttendance) {
+      return null;
+    }
+    final value = card.details['attendanceScan'];
+    return value is Map ? Map<String, dynamic>.from(value) : null;
+  }
+
+  bool _isInformationalCard(VirtualCard card) =>
+      card.isSubscription || card.isAttendance;
 
   String _visibilityLabel(VirtualCard card) {
     final l = context.loc;
@@ -2053,6 +2624,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (card.isQueueTicket) {
       return 'طابور';
     }
+    if (card.isSubscription) {
+      return 'اشتراك';
+    }
+    if (card.isAttendance) {
+      return 'حضور';
+    }
     if (isLocationSpecific) {
       return l.tr('screens_scan_card_screen.065');
     }
@@ -2062,7 +2639,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   String _cardAmountLabel(VirtualCard card) {
-    if ((card.isSingleUse || card.isAppointment || card.isQueueTicket) &&
+    if ((card.isSingleUse ||
+            card.isAppointment ||
+            card.isQueueTicket ||
+            card.isSubscription ||
+            card.isAttendance) &&
         card.value <= 0) {
       return _cardTypeLabel(card);
     }
@@ -2376,6 +2957,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                       icon: Icons.search_rounded,
                       onPressed: _isOfflineUseBlocked ? null : _search,
                     ),
+                    if (!widget.offlineMode) ...[
+                      const SizedBox(height: 12),
+                      ShwakelButton(
+                        label: _isReadingNfc ? 'جاري قراءة NFC' : 'فحص NFC',
+                        icon: Icons.nfc_rounded,
+                        isSecondary: true,
+                        onPressed: _isReadingNfc
+                            ? null
+                            : _readNfcFromUnifiedScanner,
+                      ),
+                    ],
                   ],
                 );
               }
@@ -2404,6 +2996,19 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                       onPressed: _isOfflineUseBlocked ? null : _search,
                     ),
                   ),
+                  if (!widget.offlineMode) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ShwakelButton(
+                        label: _isReadingNfc ? 'جاري قراءة NFC' : 'فحص NFC',
+                        icon: Icons.nfc_rounded,
+                        isSecondary: true,
+                        onPressed: _isReadingNfc
+                            ? null
+                            : _readNfcFromUnifiedScanner,
+                      ),
+                    ),
+                  ],
                 ],
               );
             },
@@ -2609,9 +3214,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final active = _autoRedeemOnScan || _autoRedeemOnScanForced;
     final unverifiedForced =
         _user?['cardAutoRedeemOnScanUnverifiedForced'] == true ||
-        (!['admin', 'support', 'finance'].contains(
-              _user?['role']?.toString() ?? '',
-            ) &&
+        (![
+              'admin',
+              'support',
+              'finance',
+            ].contains(_user?['role']?.toString() ?? '') &&
             (_user?['transferVerificationStatus']?.toString() ??
                     'unverified') !=
                 'approved');
@@ -2726,7 +3333,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final isUsed = actualUsed && !isAutoRedeemSuccess;
     final accent = isUsed ? AppTheme.error : AppTheme.success;
     final appPermissions = AppPermissions.fromUser(_user);
-    final canRedeemCards = appPermissions.canRedeemCards;
+    final canRedeemCards =
+        appPermissions.canRedeemCards && !_isInformationalCard(card);
     final canResellCards = !widget.offlineMode && appPermissions.canResellCards;
 
     return Container(
@@ -2930,7 +3538,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final card = _card!;
     final isAutoRedeemSuccess = _lastAutoRedeemedBarcode == card.barcode;
     final appPermissions = AppPermissions.fromUser(_user);
-    final canRedeemCards = appPermissions.canRedeemCards;
+    final canRedeemCards =
+        appPermissions.canRedeemCards && !_isInformationalCard(card);
     final canResellCards = !widget.offlineMode && appPermissions.canResellCards;
     final canViewCardDetails = _canRevealSensitiveCardData;
 
@@ -2971,6 +3580,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     bool forceSuccess = false,
   }) {
     final isFailed = card.status == CardStatus.used && !forceSuccess;
+    final temporal = _cardTemporalStatus(card);
+    final attendanceScan = _attendanceScanInfo(card);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -2983,14 +3594,47 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           icon: Icons.category_rounded,
           isFullWidth: isFailed,
         ),
+        if (temporal != null) ...[
+          const SizedBox(height: 10),
+          _resultBadge(
+            temporal.label,
+            temporal.message,
+            temporal.color,
+            icon: temporal.icon,
+            isFullWidth: true,
+          ),
+        ],
+        if (attendanceScan != null) ...[
+          const SizedBox(height: 10),
+          _resultBadge(
+            'نتيجة الحضور والانصراف',
+            attendanceScan['label']?.toString() ?? 'تم تسجيل القراءة',
+            attendanceScan['action'] == 'check_out'
+                ? AppTheme.accent
+                : AppTheme.success,
+            icon: attendanceScan['action'] == 'check_out'
+                ? Icons.logout_rounded
+                : Icons.login_rounded,
+            isFullWidth: true,
+          ),
+        ],
+        if (_cardUsageNote(card).trim().isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _resultBadge(
+            card.isAttendance ? 'بيانات الربط' : 'التفاصيل',
+            _cardUsageNote(card),
+            AppTheme.info,
+            icon: card.isAttendance
+                ? Icons.badge_rounded
+                : Icons.description_rounded,
+            isFullWidth: true,
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildCardSummaryPanel(
-    VirtualCard card, {
-    bool forceSuccess = false,
-  }) {
+  Widget _buildCardSummaryPanel(VirtualCard card, {bool forceSuccess = false}) {
     final l = context.loc;
     final isUsed = card.status == CardStatus.used && !forceSuccess;
     final accent = _cardAccent(card, forceSuccess: forceSuccess);
@@ -3123,9 +3767,53 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Color _cardAccent(VirtualCard card, {bool forceSuccess = false}) {
+    final temporal = _cardTemporalStatus(card);
+    if (temporal != null && !temporal.isActive) {
+      return temporal.color;
+    }
     return card.status == CardStatus.used && !forceSuccess
         ? AppTheme.error
         : AppTheme.success;
+  }
+
+  _CardTemporalStatus? _cardTemporalStatus(VirtualCard card) {
+    if (!card.isSubscription && !card.isAttendance) {
+      return null;
+    }
+
+    final now = DateTime.now();
+    final validFrom = card.validFrom?.toLocal();
+    final validUntil = card.validUntil?.toLocal();
+    if (validFrom != null && now.isBefore(validFrom)) {
+      return _CardTemporalStatus(
+        label: card.isSubscription ? 'الاشتراك لم يبدأ' : 'لم يبدأ الدوام',
+        message: 'يبدأ في ${_formatDate(validFrom)}',
+        color: AppTheme.warning,
+        icon: Icons.schedule_rounded,
+        isActive: false,
+      );
+    }
+    if (validUntil != null && now.isAfter(validUntil)) {
+      return _CardTemporalStatus(
+        label: card.isSubscription ? 'الاشتراك منتهي' : 'خارج فترة الصلاحية',
+        message: 'انتهى في ${_formatDate(validUntil)}',
+        color: AppTheme.error,
+        icon: Icons.event_busy_rounded,
+        isActive: false,
+      );
+    }
+
+    final range = [
+      if (validFrom != null) 'من ${_formatDate(validFrom)}',
+      if (validUntil != null) 'حتى ${_formatDate(validUntil)}',
+    ].join(' - ');
+    return _CardTemporalStatus(
+      label: card.isSubscription ? 'اشتراك فعال' : 'بطاقة حضور فعالة',
+      message: range.isEmpty ? 'لا توجد نافذة زمنية محددة.' : range,
+      color: AppTheme.success,
+      icon: Icons.verified_rounded,
+      isActive: true,
+    );
   }
 
   Widget _buildActionPanel({
@@ -3136,6 +3824,15 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     required bool canViewCardDetails,
   }) {
     final l = context.loc;
+    final permissions = AppPermissions.fromUser(_user);
+    final canRenewSubscription =
+        !widget.offlineMode &&
+        card.isSubscription &&
+        permissions.canIssueCards &&
+        (card.ownerId == null ||
+            card.ownerId == _user?['id']?.toString() ||
+            permissions.canManageUsers ||
+            _user?['id']?.toString() == '1');
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(26),
@@ -3195,6 +3892,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               icon: Icons.autorenew_rounded,
               onPressed: _resell,
               isLoading: _isSubmitting,
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (canRenewSubscription) ...[
+            OutlinedButton.icon(
+              onPressed: _isSubmitting
+                  ? null
+                  : () => _renewSubscriptionCard(card),
+              icon: const Icon(Icons.event_repeat_rounded),
+              label: const Text('تجديد الاشتراك'),
             ),
             const SizedBox(height: 12),
           ],
@@ -3732,6 +4439,22 @@ class _CardLookupResult {
   final bool autoRedeemed;
 }
 
+class _CardTemporalStatus {
+  const _CardTemporalStatus({
+    required this.label,
+    required this.message,
+    required this.color,
+    required this.icon,
+    required this.isActive,
+  });
+
+  final String label;
+  final String message;
+  final Color color;
+  final IconData icon;
+  final bool isActive;
+}
+
 class _PrepaidPaymentSubmission {
   const _PrepaidPaymentSubmission({
     required this.amount,
@@ -3755,17 +4478,54 @@ class _PrepaidMultipayScanPayload {
   });
 
   factory _PrepaidMultipayScanPayload.fromMap(Map<String, dynamic> map) {
-    final cardNumber =
-        map['cardNumber']?.toString().replaceAll(RegExp(r'\D+'), '') ?? '';
-    final expiryMonth = (map['expiryMonth'] as num?)?.toInt();
-    final expiryYear = (map['expiryYear'] as num?)?.toInt();
+    final cardNumber = _firstString(map, const [
+      'cardNumber',
+      'card_number',
+      'rawCardNumber',
+      'raw_card_number',
+      'number',
+    ]).replaceAll(RegExp(r'\D+'), '');
+    final expiryMonth = _firstInt(map, const [
+      'expiryMonth',
+      'expiry_month',
+      'month',
+    ]);
+    final expiryYear = _firstInt(map, const [
+      'expiryYear',
+      'expiry_year',
+      'year',
+    ]);
 
     return _PrepaidMultipayScanPayload(
       cardNumber: cardNumber,
       expiryMonth: expiryMonth,
       expiryYear: expiryYear,
-      label: map['label']?.toString(),
+      label: _firstString(map, const ['label', 'name', 'title']),
     );
+  }
+
+  static String _firstString(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = map[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  static int? _firstInt(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value is num) {
+        return value.toInt();
+      }
+      final parsed = int.tryParse(value?.toString().trim() ?? '');
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+    return null;
   }
 
   final String cardNumber;

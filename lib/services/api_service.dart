@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 
 import '../localization/app_localization.dart';
@@ -10,6 +11,7 @@ import '../localization/app_strings_en.dart';
 import '../models/index.dart';
 import 'app_config.dart';
 import 'app_version_service.dart';
+import 'app_alert_service.dart';
 import 'auth_service.dart';
 import 'error_message_service.dart';
 import 'network_client_service.dart';
@@ -31,6 +33,7 @@ class ApiService {
   static Map<String, dynamic>? _cachedNotificationSummary;
   static DateTime? _cachedNotificationSummaryAt;
   static Future<Map<String, dynamic>>? _pendingNotificationSummaryRequest;
+  static bool _isRedirectingToLogin = false;
 
   Future<Map<String, String>> _headers() async {
     final token = await _authService.token();
@@ -1034,6 +1037,8 @@ class ApiService {
     required double singleUseTicketIssueCost,
     required double appointmentTicketIssueCost,
     required double queueTicketIssueCost,
+    required double subscriptionCardIssueCost,
+    required double attendanceCardIssueCost,
   }) async {
     final response = await http.put(
       AppConfig.apiUri('admin/settings/fees'),
@@ -1051,6 +1056,8 @@ class ApiService {
         'singleUseTicketIssueCost': singleUseTicketIssueCost,
         'appointmentTicketIssueCost': appointmentTicketIssueCost,
         'queueTicketIssueCost': queueTicketIssueCost,
+        'subscriptionCardIssueCost': subscriptionCardIssueCost,
+        'attendanceCardIssueCost': attendanceCardIssueCost,
       }),
     );
     return _decodeObject(response);
@@ -2346,6 +2353,48 @@ class ApiService {
         .toList();
   }
 
+  Future<Map<String, dynamic>> renewSubscriptionCard({
+    required String cardId,
+    int? durationDays,
+    String? validFrom,
+    String? validUntil,
+    String? otpCode,
+    String? localAuthMethod,
+  }) async {
+    final payload = <String, dynamic>{};
+    if (durationDays != null) payload['durationDays'] = durationDays;
+    if (validFrom != null && validFrom.trim().isNotEmpty) {
+      payload['validFrom'] = validFrom.trim();
+    }
+    if (validUntil != null && validUntil.trim().isNotEmpty) {
+      payload['validUntil'] = validUntil.trim();
+    }
+    if (otpCode != null && otpCode.trim().isNotEmpty) {
+      payload['otpCode'] = otpCode.trim();
+    } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
+      payload['localAuthMethod'] = localAuthMethod.trim();
+    }
+    final response = await http.post(
+      AppConfig.apiUri('cards/$cardId/subscription/renew'),
+      headers: await _headers(),
+      body: jsonEncode(payload),
+    );
+    final body = _decodeObject(response);
+    await _authService.patchCurrentUser({
+      if (body['balance'] is num)
+        'balance': (body['balance'] as num).toDouble(),
+      if (body['availablePrintingBalance'] is num)
+        'availablePrintingBalance': (body['availablePrintingBalance'] as num)
+            .toDouble(),
+    });
+    if (body['card'] is Map) {
+      body['card'] = _cardFromApi(
+        Map<String, dynamic>.from(body['card'] as Map),
+      );
+    }
+    return body;
+  }
+
   Future<List<VirtualCard>> issueTrialCards({
     required List<Map<String, dynamic>> items,
     String? otpCode,
@@ -2526,7 +2575,17 @@ class ApiService {
       );
     }
     lastCardLookupAutoRedeemed = body['autoRedeemed'] == true;
-    return _cardFromApi(Map<String, dynamic>.from(body['card'] as Map));
+    final cardMap = Map<String, dynamic>.from(body['card'] as Map);
+    if (body['attendanceScan'] is Map) {
+      final details = Map<String, dynamic>.from(
+        cardMap['details'] as Map? ?? const {},
+      );
+      details['attendanceScan'] = Map<String, dynamic>.from(
+        body['attendanceScan'] as Map,
+      );
+      cardMap['details'] = details;
+    }
+    return _cardFromApi(cardMap);
   }
 
   Future<Map<String, dynamic>> getAdminCardScanReportUsers({
@@ -2585,6 +2644,113 @@ class ApiService {
       headers: await _headers(),
     );
     return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminAttendanceCardReports({
+    String? from,
+    String? to,
+    String? query,
+    int page = 1,
+    int perPage = 25,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'perPage': perPage.toString(),
+    };
+    if (from != null && from.trim().isNotEmpty) {
+      final value = from.trim();
+      params['from'] = value.length == 10 ? '$value 00:00:00' : value;
+    }
+    if (to != null && to.trim().isNotEmpty) {
+      final value = to.trim();
+      params['to'] = value.length == 10 ? '$value 23:59:59' : value;
+    }
+    if (query != null && query.trim().isNotEmpty) params['q'] = query.trim();
+
+    final response = await http.get(
+      AppConfig.apiUri('admin/reports/attendance-cards', params),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<void> exportAttendanceCardReportsCsv({
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final buffer = StringBuffer();
+    buffer.writeln(
+      '\uFEFFevent_id,barcode,action,employee_name,employee_code,department,attendance_system,integration_reference,scanner,owner,created_at,location,latitude,longitude,accuracy',
+    );
+    String csv(String value) => '"${value.replaceAll('"', '""')}"';
+    for (final item in items) {
+      buffer.writeln(
+        [
+          csv(item['id']?.toString() ?? ''),
+          csv(item['barcode']?.toString() ?? ''),
+          csv(
+            Map<String, dynamic>.from(
+                  item['attendanceAction'] as Map? ?? const {},
+                )['label']?.toString() ??
+                '',
+          ),
+          csv(item['employeeName']?.toString() ?? ''),
+          csv(item['employeeCode']?.toString() ?? ''),
+          csv(item['department']?.toString() ?? ''),
+          csv(item['attendanceSystem']?.toString() ?? ''),
+          csv(item['integrationReference']?.toString() ?? ''),
+          csv(item['scannerName']?.toString() ?? ''),
+          csv(item['ownerName']?.toString() ?? ''),
+          csv(item['createdAt']?.toString() ?? ''),
+          csv(item['locationKey']?.toString() ?? ''),
+          item['latitude']?.toString() ?? '',
+          item['longitude']?.toString() ?? '',
+          item['accuracy']?.toString() ?? '',
+        ].join(','),
+      );
+    }
+
+    final bytes = Uint8List.fromList(utf8.encode(buffer.toString()));
+    await FileSaver.instance.saveFile(
+      name: 'attendance_card_reports',
+      bytes: bytes,
+      fileExtension: 'csv',
+      mimeType: MimeType.csv,
+    );
+  }
+
+  Future<void> exportAttendanceDailySummaryCsv({
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final buffer = StringBuffer();
+    buffer.writeln(
+      '\uFEFFdate,barcode,employee_name,employee_code,department,attendance_system,first_check_in,last_check_out,worked_minutes,scan_count,status',
+    );
+    String csv(String value) => '"${value.replaceAll('"', '""')}"';
+    for (final item in items) {
+      buffer.writeln(
+        [
+          csv(item['date']?.toString() ?? ''),
+          csv(item['barcode']?.toString() ?? ''),
+          csv(item['employeeName']?.toString() ?? ''),
+          csv(item['employeeCode']?.toString() ?? ''),
+          csv(item['department']?.toString() ?? ''),
+          csv(item['attendanceSystem']?.toString() ?? ''),
+          csv(item['firstCheckInAt']?.toString() ?? ''),
+          csv(item['lastCheckOutAt']?.toString() ?? ''),
+          item['workedMinutes']?.toString() ?? '',
+          item['scanCount']?.toString() ?? '',
+          csv(item['status']?.toString() ?? ''),
+        ].join(','),
+      );
+    }
+
+    final bytes = Uint8List.fromList(utf8.encode(buffer.toString()));
+    await FileSaver.instance.saveFile(
+      name: 'attendance_daily_summary',
+      bytes: bytes,
+      fileExtension: 'csv',
+      mimeType: MimeType.csv,
+    );
   }
 
   Future<Map<String, dynamic>> updateCardAutoRedeemOnScanPreference({
@@ -3482,6 +3648,7 @@ class ApiService {
     final payloadTooLargeMessage = _tr('services_api_service.002');
 
     if (response.statusCode == 401) {
+      unawaited(_redirectToLoginAfterExpiredSession());
       throw Exception(_tr('services_error_message_service.011'));
     }
 
@@ -3518,5 +3685,30 @@ class ApiService {
       return appStringsEn[key] ?? key;
     }
     return appStringsAr[key] ?? appStringsEn[key] ?? key;
+  }
+
+  Future<void> _redirectToLoginAfterExpiredSession() async {
+    if (_isRedirectingToLogin) {
+      return;
+    }
+    _isRedirectingToLogin = true;
+    try {
+      final navigator = AppAlertService.navigatorKey.currentState;
+      final context = AppAlertService.navigatorKey.currentContext;
+      final routeName = context != null
+          ? ModalRoute.of(context)?.settings.name
+          : null;
+      await _authService.logout();
+      if (navigator == null ||
+          routeName == '/login' ||
+          routeName == '/login-offline') {
+        return;
+      }
+      navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+    } finally {
+      Future<void>.delayed(const Duration(seconds: 2), () {
+        _isRedirectingToLogin = false;
+      });
+    }
   }
 }

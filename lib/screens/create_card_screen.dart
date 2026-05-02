@@ -32,6 +32,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     'single_use': 2,
     'appointment': 3,
     'queue': 4,
+    'subscription': 5,
+    'attendance': 6,
   };
 
   final ApiService _apiService = ApiService();
@@ -158,6 +160,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   bool get _isAppointmentCard => _cardType == 'appointment';
   bool get _isQueueCard => _cardType == 'queue';
+  bool get _isSubscriptionCard => _cardType == 'subscription';
+  bool get _isAttendanceCard => _cardType == 'attendance';
 
   bool get _hasSelectedCardType => _cardType.trim().isNotEmpty;
   bool get _isBalanceCard => _cardType == 'standard' || _cardType == 'delivery';
@@ -166,7 +170,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _isTrialMode || _requiresTargetedPrivateCard
       ? 'restricted'
       : _visibilityScope;
-  bool get _needsTypeDetails => _isAppointmentCard || _isQueueCard;
+  bool get _needsTypeDetails =>
+      _isAppointmentCard ||
+      _isQueueCard ||
+      _isSubscriptionCard ||
+      _isAttendanceCard;
   bool get _isTrialMode =>
       (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
       'approved';
@@ -211,7 +219,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (user?['role']?.toString() == 'driver') {
       return const ['delivery'];
     }
-    return const ['standard', 'delivery', 'single_use', 'appointment', 'queue'];
+    return const [
+      'standard',
+      'delivery',
+      'single_use',
+      'appointment',
+      'queue',
+      'subscription',
+      'attendance',
+    ];
   }
 
   String _cardTypeLabel(AppLocalizer l, String type) {
@@ -224,6 +240,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         return l.tr('screens_create_card_screen.069');
       case 'queue':
         return l.tr('screens_create_card_screen.070');
+      case 'subscription':
+        return 'بطاقة اشتراك';
+      case 'attendance':
+        return 'بطاقة حضور وانصراف';
       default:
         return l.tr('screens_create_card_screen.002');
     }
@@ -239,6 +259,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         return Icons.event_available_rounded;
       case 'queue':
         return Icons.people_alt_rounded;
+      case 'subscription':
+        return Icons.card_membership_rounded;
+      case 'attendance':
+        return Icons.badge_rounded;
       default:
         return Icons.credit_card_rounded;
     }
@@ -254,9 +278,44 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         return 'تذكرة موعد بوقت محدد ويمكن ربطها بتعليمات.';
       case 'queue':
         return 'تذكرة دور أو خدمة مع بيانات تنظيمية واضحة.';
+      case 'subscription':
+        return 'بطاقة اشتراك بمدة محددة، تظهر فعالة باللون الأخضر داخل فترة الاشتراك.';
+      case 'attendance':
+        return 'بطاقة تعريف حضور وانصراف قابلة للربط مع أنظمة الموظفين والبصمة.';
       default:
         return 'بطاقة رصيد قياسية مناسبة للاستخدام العام.';
     }
+  }
+
+  String _typeDetailsTitle() {
+    if (_isAppointmentCard) return 'تفاصيل الموعد المطلوبة';
+    if (_isQueueCard) return 'تفاصيل تذكرة الطابور';
+    if (_isSubscriptionCard) return 'تفاصيل الاشتراك';
+    if (_isAttendanceCard) return 'تفاصيل الحضور والانصراف';
+    return 'تفاصيل البطاقة';
+  }
+
+  String _typeTitleFieldLabel() {
+    if (_isAppointmentCard) return 'عنوان الموعد';
+    if (_isQueueCard) return 'اسم الخدمة أو الطابور';
+    if (_isSubscriptionCard) return 'اسم الاشتراك';
+    if (_isAttendanceCard) return 'اسم الموظف أو عنوان البطاقة';
+    return 'العنوان';
+  }
+
+  String _typeLocationFieldLabel() {
+    if (_isAppointmentCard) return 'الموقع';
+    if (_isQueueCard) return 'الموقع أو القسم';
+    if (_isSubscriptionCard) return 'الفرع أو الجهة';
+    if (_isAttendanceCard) return 'القسم أو موقع الدوام';
+    return 'الموقع';
+  }
+
+  String _typeDescriptionFieldLabel() {
+    if (_isAppointmentCard) return 'ملاحظات أو تعليمات';
+    if (_isSubscriptionCard) return 'تفاصيل الاشتراك';
+    if (_isAttendanceCard) return 'مرجع الربط أو نظام الحضور';
+    return 'ملاحظات إضافية';
   }
 
   double _feeAmount(String key) =>
@@ -273,13 +332,17 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       'single_use' => _feeAmount('singleUseTicketIssueCost'),
       'appointment' => _feeAmount('appointmentTicketIssueCost'),
       'queue' => _feeAmount('queueTicketIssueCost'),
+      'subscription' => _feeAmount('subscriptionCardIssueCost'),
+      'attendance' => _feeAmount('attendanceCardIssueCost'),
       'delivery' => _feeAmount('deliveryCardIssueCost'),
       _ => _feeAmount('standardCardIssueCost'),
     };
     final isTicket =
         normalizedType == 'single_use' ||
         normalizedType == 'appointment' ||
-        normalizedType == 'queue';
+        normalizedType == 'queue' ||
+        normalizedType == 'subscription' ||
+        normalizedType == 'attendance';
     if (isPrivate && !isTicket) {
       fee += _feeAmount('privateCardIssueCost');
     }
@@ -307,7 +370,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   double get _currentCardFaceValue {
     final amount = double.tryParse(_amountC.text.trim()) ?? 0;
-    return _isBalanceCard ? amount : (_isAppointmentCard ? amount : 0);
+    return _isBalanceCard || _isAppointmentCard ? amount : 0;
   }
 
   double get _currentChargeNowPerCard =>
@@ -350,7 +413,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       );
       return;
     }
-    final amount = double.tryParse(_amountC.text) ?? 0;
+    final enteredAmount = double.tryParse(_amountC.text) ?? 0;
+    final amount = (_isBalanceCard || _isAppointmentCard) ? enteredAmount : 0.0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
     final isPrivate = _effectiveVisibilityScope == 'restricted';
 
@@ -440,6 +504,34 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         context,
         title: l.tr('screens_create_card_screen.083'),
         message: l.tr('screens_create_card_screen.084'),
+      );
+      return;
+    }
+
+    if (_isSubscriptionCard) {
+      if (_detailsTitleC.text.trim().isEmpty) {
+        await AppAlertService.showError(
+          context,
+          title: 'بيانات الاشتراك غير مكتملة',
+          message: 'أدخل اسم الاشتراك قبل إصدار البطاقة.',
+        );
+        return;
+      }
+      if (_validFrom == null || _validUntil == null) {
+        await AppAlertService.showError(
+          context,
+          title: 'مدة الاشتراك مطلوبة',
+          message: 'حدد بداية ونهاية الاشتراك قبل إصدار البطاقة.',
+        );
+        return;
+      }
+    }
+
+    if (_isAttendanceCard && _detailsTitleC.text.trim().isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'بيانات الحضور غير مكتملة',
+        message: 'أدخل اسم الموظف أو عنوان بطاقة الحضور والانصراف.',
       );
       return;
     }
@@ -770,17 +862,29 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       details['ticketKind'] = 'appointment';
     } else if (_isQueueCard) {
       details['ticketKind'] = 'queue';
+    } else if (_isSubscriptionCard) {
+      details['ticketKind'] = 'subscription';
+      details['subscriptionName'] = _detailsTitleC.text.trim();
+      if (_detailsDescriptionC.text.trim().isNotEmpty) {
+        details['subscriptionDetails'] = _detailsDescriptionC.text.trim();
+      }
+    } else if (_isAttendanceCard) {
+      details['ticketKind'] = 'attendance';
+      details['employeeName'] = _detailsTitleC.text.trim();
+      if (_detailsDescriptionC.text.trim().isNotEmpty) {
+        details['integrationReference'] = _detailsDescriptionC.text.trim();
+      }
     }
     return details.isEmpty ? null : details;
   }
 
   String _cardValueLabel(AppLocalizer l, double amount) {
-    if (_cardType == 'single_use' || _isQueueCard) {
+    if (_cardType == 'single_use' || _isQueueCard || _isAttendanceCard) {
       return amount <= 0
           ? 'تذكرة استخدام تنظيمي'
           : CurrencyFormatter.ils(amount);
     }
-    if (_isAppointmentCard && amount <= 0) {
+    if ((_isAppointmentCard || _isSubscriptionCard) && amount <= 0) {
       return 'بدون قيمة مالية';
     }
     return CurrencyFormatter.ils(amount);
@@ -1701,33 +1805,26 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               ShwakelCard(
                 padding: const EdgeInsets.all(16),
                 color:
-                    (_isAppointmentCard ? AppTheme.primary : AppTheme.secondary)
+                    ((_isAppointmentCard || _isSubscriptionCard)
+                            ? AppTheme.primary
+                            : AppTheme.secondary)
                         .withValues(alpha: 0.05),
                 borderColor:
-                    (_isAppointmentCard ? AppTheme.primary : AppTheme.secondary)
+                    ((_isAppointmentCard || _isSubscriptionCard)
+                            ? AppTheme.primary
+                            : AppTheme.secondary)
                         .withValues(alpha: 0.15),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _isAppointmentCard
-                          ? 'تفاصيل الموعد المطلوبة'
-                          : 'تفاصيل تذكرة الطابور',
-                      style: AppTheme.bodyBold,
-                    ),
+                    Text(_typeDetailsTitle(), style: AppTheme.bodyBold),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _detailsTitleC,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        labelText: _isAppointmentCard
-                            ? 'عنوان الموعد'
-                            : 'اسم الخدمة أو الطابور',
-                        prefixIcon: Icon(
-                          _isAppointmentCard
-                              ? Icons.event_note_rounded
-                              : Icons.confirmation_number_rounded,
-                        ),
+                        labelText: _typeTitleFieldLabel(),
+                        prefixIcon: Icon(_cardTypeIcon(_cardType)),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1735,9 +1832,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       controller: _appointmentLocationC,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        labelText: _isAppointmentCard
-                            ? 'الموقع'
-                            : 'الموقع أو القسم',
+                        labelText: _typeLocationFieldLabel(),
                         prefixIcon: const Icon(Icons.place_rounded),
                       ),
                     ),
@@ -1748,9 +1843,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       maxLines: 4,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        labelText: _isAppointmentCard
-                            ? 'ملاحظات أو تعليمات'
-                            : 'ملاحظات إضافية',
+                        labelText: _typeDescriptionFieldLabel(),
                         prefixIcon: const Icon(Icons.notes_rounded),
                       ),
                     ),
@@ -1784,6 +1877,30 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                               _validUntil ??= value;
                             });
                           },
+                        ),
+                      ),
+                    ],
+                    if (_isSubscriptionCard) ...[
+                      const SizedBox(height: 12),
+                      _buildDateTimeField(
+                        label: 'بداية الاشتراك',
+                        value: _validFrom,
+                        icon: Icons.play_circle_outline_rounded,
+                        onPick: () => _pickDateTime(
+                          initialValue: _validFrom,
+                          onChanged: (value) =>
+                              setState(() => _validFrom = value),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDateTimeField(
+                        label: 'نهاية الاشتراك',
+                        value: _validUntil,
+                        icon: Icons.event_busy_rounded,
+                        onPick: () => _pickDateTime(
+                          initialValue: _validUntil ?? _validFrom,
+                          onChanged: (value) =>
+                              setState(() => _validUntil = value),
                         ),
                       ),
                     ],
@@ -2058,7 +2175,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         _appointmentStartsAt = null;
         _appointmentEndsAt = null;
       }
-      if (_cardType != 'appointment' && _cardType != 'queue') {
+      if (!_needsTypeDetails) {
         _appointmentLocationC.clear();
         _detailsTitleC.clear();
         _detailsDescriptionC.clear();
