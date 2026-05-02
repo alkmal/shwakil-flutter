@@ -598,9 +598,8 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         const Duration(milliseconds: 1500),
       );
     } catch (_) {
-      await authService.logout();
       unawaited(RealtimeNotificationService.stop());
-      _debugLaunchDecision('login(refreshFailed)', stopwatch.elapsed);
+      _debugLaunchDecision('login(refreshFailedKeepToken)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
     }
     unawaited(RealtimeNotificationService.start());

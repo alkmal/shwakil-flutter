@@ -79,7 +79,6 @@ class _AppSidebarState extends State<AppSidebar> {
     final canViewTransactions = permissions.canViewTransactions;
     final canIssueCards = permissions.canIssueCards;
     final canOpenCardTools = permissions.canOpenCardTools;
-    final canOpenQuickTransfer = permissions.canOpenQuickTransfer;
     final canTransfer = permissions.canTransfer;
     final canViewInventory = permissions.canViewInventory;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
@@ -184,7 +183,7 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.tr('widgets_app_sidebar.004'),
                             routeName: '/balance',
                           ),
-                        if (canOpenQuickTransfer && canTransfer)
+                        if (canTransfer)
                           _buildItem(
                             context,
                             icon: Icons.send_to_mobile_rounded,

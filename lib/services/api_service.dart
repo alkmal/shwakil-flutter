@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:http/http.dart' as http;
@@ -2443,10 +2442,7 @@ class ApiService {
       query['location'] = jsonEncode(location);
     }
     final response = await http.get(
-      AppConfig.apiUri(
-        'cards/$barcode',
-        query.isEmpty ? null : query,
-      ),
+      AppConfig.apiUri('cards/$barcode', query.isEmpty ? null : query),
       headers: await _headers(),
     );
     if (response.statusCode == 404) {
@@ -2496,7 +2492,10 @@ class ApiService {
     if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
 
     final response = await http.get(
-      AppConfig.apiUri('admin/reports/card-scans/users/$userId/locations', params),
+      AppConfig.apiUri(
+        'admin/reports/card-scans/users/$userId/locations',
+        params,
+      ),
       headers: await _headers(),
     );
     return _decodeObject(response);
@@ -3272,8 +3271,6 @@ class ApiService {
         return response;
       } on TimeoutException catch (error) {
         lastError = error;
-      } on SocketException catch (error) {
-        lastError = error;
       } on http.ClientException catch (error) {
         lastError = error;
       }
@@ -3303,8 +3300,6 @@ class ApiService {
         }
         return response;
       } on TimeoutException catch (error) {
-        lastError = error;
-      } on SocketException catch (error) {
         lastError = error;
       } on http.ClientException catch (error) {
         lastError = error;

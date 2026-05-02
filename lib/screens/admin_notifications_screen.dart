@@ -119,6 +119,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       value: 'admin_maintenance_notice',
       label: _t('screens_admin_notifications_screen.025'),
     ),
+    _AdminNotificationOption(
+      value: 'admin_usage_instruction',
+      label: _t('screens_admin_notifications_screen.052'),
+    ),
   ];
 
   List<_AdminNotificationOption> get _priorities => [
@@ -458,6 +462,18 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
             ),
             const SizedBox(height: 12),
             _buildTargetValueField(),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _applyUsageInstructionTemplate,
+                  icon: const Icon(Icons.auto_fix_high_rounded),
+                  label: Text(_t('screens_admin_notifications_screen.053')),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _titleController,
@@ -728,6 +744,23 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         ],
       ),
     );
+  }
+
+  void _applyUsageInstructionTemplate() {
+    setState(() {
+      _category = 'general';
+      _notificationType = 'admin_usage_instruction';
+      _priority = 'important';
+      if (_titleController.text.trim().isEmpty) {
+        _titleController.text = _t('screens_admin_notifications_screen.054');
+      }
+      if (_bodyController.text.trim().isEmpty) {
+        _bodyController.text = _t('screens_admin_notifications_screen.055');
+      }
+      if (_detailsController.text.trim().isEmpty) {
+        _detailsController.text = _t('screens_admin_notifications_screen.056');
+      }
+    });
   }
 
   Widget _buildRecentBatches() {

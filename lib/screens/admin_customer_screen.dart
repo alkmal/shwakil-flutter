@@ -78,7 +78,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     {
       'title': 'صلاحيات الحساب والعرض',
       'keys':
-          'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canTransfer,canWithdraw,canRedeemCards',
+          'canViewBalance,canViewTransactions,canViewInventory,canTransfer,canWithdraw,canRedeemCards',
     },
     {
       'title': 'البطاقات والتحصيل',
@@ -1701,7 +1701,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           ),
           const SizedBox(height: 10),
           ...permissionKeys.map(
-            (key) => _permItem(PermissionCatalog.label(context, key), key, perms),
+            (key) =>
+                _permItem(PermissionCatalog.label(context, key), key, perms),
           ),
         ],
       ),

@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'dart:typed_data';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -23,6 +22,12 @@ class CardDesignSettings {
     this.stampText = 'صالح للتداول',
     this.valueUnitText,
   });
+}
+
+class PdfSaveResult {
+  const PdfSaveResult(this.path);
+
+  final String path;
 }
 
 class _DenominationPalette {
@@ -196,6 +201,12 @@ class PDFService {
     return '$numericValue $unitText';
   }
 
+  String _internalUseLabel(VirtualCard card) {
+    return _isTicketCard(card)
+        ? _cardSubtitle(card)
+        : 'بطاقة رقمية للاستخدام الداخلي';
+  }
+
   pw.TextDirection _cardTitleDirection(VirtualCard card) {
     return !_isTicketCard(card) && _valueUnitText().isNotEmpty
         ? pw.TextDirection.ltr
@@ -233,6 +244,26 @@ class PDFService {
       return 'تذكرة طابور';
     }
     return 'بطاقة رصيد';
+  }
+
+  String _cardSubtitle(VirtualCard card) {
+    if (card.isDelivery) {
+      return _isVisuallyPrivate(card)
+          ? 'بطاقة توصيل خاصة لمستفيدين محددين'
+          : 'بطاقة رصيد عامة للتوصيل والمدفوعات';
+    }
+    if (card.isSingleUse) {
+      return 'بطاقة خاصة داخل النظام';
+    }
+    if (card.isAppointment) {
+      return 'تذكرة موعد خاصة لمستفيدين محددين';
+    }
+    if (card.isQueueTicket) {
+      return 'تذكرة طابور خاصة لمستفيدين محددين';
+    }
+    return _isVisuallyPrivate(card)
+        ? 'بطاقة رصيد خاصة لمستفيدين محددين'
+        : 'بطاقة رصيد عامة';
   }
 
   String _cardBadgeLabel(VirtualCard card) {
@@ -413,6 +444,7 @@ class PDFService {
             fontSize: compact ? 4.3 : 8.2,
             bold: true,
             color: _titleColor,
+            font: pw.Font.helveticaBold(),
           ),
         ),
         pw.SizedBox(height: compact ? 0.2 : 1),
@@ -653,7 +685,18 @@ class PDFService {
                   pw.Column(
                     children: [
                       _cardTitleWithLogo(card, palette, compact: true),
-                      pw.SizedBox(height: 2.3),
+                      pw.SizedBox(height: 0.7),
+                      pw.Text(
+                        _internalUseLabel(card),
+                        maxLines: 1,
+                        textAlign: pw.TextAlign.center,
+                        textDirection: pw.TextDirection.rtl,
+                        style: _textStyle(
+                          fontSize: 4.6,
+                          color: const PdfColor.fromInt(0xFF64748B),
+                        ),
+                      ),
+                      pw.SizedBox(height: 1.2),
                       pw.Container(
                         padding: const pw.EdgeInsets.symmetric(
                           horizontal: 2.2,
@@ -787,7 +830,18 @@ class PDFService {
                   pw.Column(
                     children: [
                       _cardTitleWithLogo(card, palette, compact: false),
-                      pw.SizedBox(height: 12),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        _internalUseLabel(card),
+                        maxLines: 1,
+                        textAlign: pw.TextAlign.center,
+                        textDirection: pw.TextDirection.rtl,
+                        style: _textStyle(
+                          fontSize: 8.6,
+                          color: const PdfColor.fromInt(0xFF64748B),
+                        ),
+                      ),
+                      pw.SizedBox(height: 7),
                       pw.Container(
                         padding: const pw.EdgeInsets.symmetric(
                           horizontal: 8,
@@ -851,42 +905,15 @@ class PDFService {
     );
   }
 
-  Future<File> savePDF(pw.Document pdf, String filename) async {
-    final dir = await _documentsExportDirectory();
+  Future<PdfSaveResult> savePDF(pw.Document pdf, String filename) async {
     final safeName = _safeFileName(filename);
-    final file = File('${dir.path}/$safeName.pdf');
-    await file.writeAsBytes(await pdf.save());
-    return file;
-  }
-
-  Future<Directory> _documentsExportDirectory() async {
-    final candidates = <Directory>[];
-
-    if (Platform.isAndroid) {
-      candidates.add(Directory('/storage/emulated/0/Documents/shwakil'));
-    } else {
-      final documentsDir = await getApplicationDocumentsDirectory();
-      candidates.add(Directory('${documentsDir.path}/shwakil'));
-    }
-
-    final fallbackDir = await getApplicationDocumentsDirectory();
-    candidates.add(Directory('${fallbackDir.path}/shwakil'));
-
-    for (final candidate in candidates) {
-      try {
-        if (!await candidate.exists()) {
-          await candidate.create(recursive: true);
-        }
-        final probe = File(
-          '${candidate.path}/.write_test_${DateTime.now().microsecondsSinceEpoch}',
-        );
-        await probe.writeAsString('ok');
-        await probe.delete();
-        return candidate;
-      } catch (_) {}
-    }
-
-    return fallbackDir;
+    await FileSaver.instance.saveFile(
+      name: safeName,
+      bytes: await pdf.save(),
+      fileExtension: 'pdf',
+      mimeType: MimeType.pdf,
+    );
+    return PdfSaveResult('$safeName.pdf');
   }
 
   String _safeFileName(String filename) {

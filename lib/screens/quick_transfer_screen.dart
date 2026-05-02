@@ -31,7 +31,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   Map<String, dynamic>? _recipient;
   bool _isLoading = true;
   bool _canTransfer = false;
-  bool _canViewQuickTransfer = false;
   bool _isLookingUpRecipient = false;
   bool _isTransfering = false;
   int _activeTab = 0;
@@ -60,7 +59,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       setState(() {
         _user = u;
         _canTransfer = appPermissions.canTransfer;
-        _canViewQuickTransfer = appPermissions.canOpenQuickTransfer;
         _isLoading = false;
       });
     } catch (_) {
@@ -321,7 +319,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (!_canViewQuickTransfer) {
+    if (!_canTransfer) {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(

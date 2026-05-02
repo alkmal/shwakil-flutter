@@ -2493,6 +2493,13 @@ const Map<String, String> appStringsEn = {
   'screens_admin_notifications_screen.050': 'Recent sent notifications',
   'screens_admin_notifications_screen.051':
       'No admin notifications have been sent yet.',
+  'screens_admin_notifications_screen.052': 'In-app usage instruction',
+  'screens_admin_notifications_screen.053': 'Fill usage guide template',
+  'screens_admin_notifications_screen.054': 'How to use this feature',
+  'screens_admin_notifications_screen.055':
+      'This is an instructional message from the administration explaining how to use a specific feature inside the app. Please read the steps carefully before continuing.',
+  'screens_admin_notifications_screen.056':
+      'Write the detailed steps or instructions you want the user to see inside the notification center.',
   'screens_home_screen.082': 'Affiliate marketing',
   'screens_home_screen.083':
       'Track your referrals and rewards, and share your referral details.',

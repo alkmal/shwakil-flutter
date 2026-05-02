@@ -1115,6 +1115,9 @@ String _notificationTypeLabel(BuildContext context, Map<String, dynamic> item) {
     'admin_custom_notification' => context.loc.tr(
       'screens_notifications_screen.082',
     ),
+    'admin_usage_instruction' => context.loc.tr(
+      'screens_admin_notifications_screen.052',
+    ),
     _ => context.loc.tr('screens_notifications_screen.083'),
   };
 }

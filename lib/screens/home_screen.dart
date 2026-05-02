@@ -696,7 +696,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewBalance = permissions.canViewBalance;
     final canViewTransactions = permissions.canViewTransactions;
     final canViewInventory = permissions.canViewInventory;
-    final canViewQuickTransfer = permissions.canOpenQuickTransfer;
     final canManageDebtBook = permissions.canManageDebtBook;
     final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
@@ -900,7 +899,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           badgeIcon: Icons.contactless_rounded,
           badgeColor: AppTheme.success,
         ),
-      if (canViewQuickTransfer && _canTransfer)
+      if (_canTransfer)
         _HomeServiceItem(
           title: l.tr('screens_home_screen.021'),
           subtitle: l.tr('screens_home_screen.022'),

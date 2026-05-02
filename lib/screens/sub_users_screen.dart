@@ -36,7 +36,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   late final Map<String, bool> _permissions = _defaultPermissions();
 
   static Map<String, bool> _defaultPermissions() => {
-    'canViewQuickTransfer': false,
     'canTransfer': false,
     'canScanCards': true,
     'canOfflineCardScan': true,
@@ -873,7 +872,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           ),
           const SizedBox(height: 14),
           ..._permissionKeysOrder.map(
-            (key) => _permissionTile(PermissionCatalog.label(context, key), key),
+            (key) =>
+                _permissionTile(PermissionCatalog.label(context, key), key),
           ),
         ],
       ),
@@ -957,9 +957,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         onChanged: (value) {
           setState(() {
             _permissions[key] = value;
-            if (key == 'canTransfer') {
-              _permissions['canViewQuickTransfer'] = value;
-            }
             if (key == 'canRedeemCards') {
               _permissions['canScanCards'] =
                   value || (_permissions['canScanCards'] ?? false);

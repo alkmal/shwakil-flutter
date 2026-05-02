@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,6 +40,21 @@ class PendingRegistrationLookupResult {
   final bool hasPendingRegistration;
   final String? message;
   final Map<String, dynamic>? pendingRegistration;
+}
+
+class AuthRequestException implements Exception {
+  const AuthRequestException(
+    this.message, {
+    this.deviceApprovalRequired = false,
+    this.deviceApprovalPending = false,
+  });
+
+  final String message;
+  final bool deviceApprovalRequired;
+  final bool deviceApprovalPending;
+
+  @override
+  String toString() => message;
 }
 
 class AuthService {
@@ -124,7 +138,7 @@ class AuthService {
       },
     );
     if (response.statusCode >= 400) {
-      throw Exception(_extractRegistrationMessage(response.body));
+      throw _exceptionFromResponse(response.body, registrationMessage: true);
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -306,7 +320,7 @@ class AuthService {
       },
     );
     if (response.statusCode >= 400) {
-      throw Exception(_extractMessage(response.body));
+      throw _exceptionFromResponse(response.body);
     }
     await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
   }
@@ -557,6 +571,32 @@ class AuthService {
     return ErrorMessageService.fromRegistrationResponseBody(body);
   }
 
+  AuthRequestException _exceptionFromResponse(
+    String body, {
+    bool registrationMessage = false,
+  }) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final rawMessage = decoded['message']?.toString() ?? '';
+        final message = registrationMessage
+            ? ErrorMessageService.sanitizeRegistration(rawMessage)
+            : ErrorMessageService.sanitize(rawMessage);
+        return AuthRequestException(
+          message,
+          deviceApprovalRequired: decoded['deviceApprovalRequired'] == true,
+          deviceApprovalPending: decoded['deviceApprovalPending'] == true,
+        );
+      }
+    } catch (_) {}
+
+    return AuthRequestException(
+      registrationMessage
+          ? _extractRegistrationMessage(body)
+          : _extractMessage(body),
+    );
+  }
+
   Future<http.Response> _postWithFallback(
     String path, {
     required Map<String, dynamic> body,
@@ -570,8 +610,6 @@ class AuthService {
       } on TimeoutException catch (error) {
         lastError = error;
       } on http.ClientException catch (error) {
-        lastError = error;
-      } on SocketException catch (error) {
         lastError = error;
       }
     }

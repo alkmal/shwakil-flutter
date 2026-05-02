@@ -42,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final ApiService _apiService = ApiService();
 
   bool _isLoading = false;
+  bool _isWaitingForDeviceApproval = false;
   bool _obscurePassword = true;
   bool _registrationEnabled = true;
   String? _supportWhatsapp;
@@ -174,6 +175,16 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } catch (error) {
+      if (kIsWeb &&
+          error is AuthRequestException &&
+          error.deviceApprovalPending) {
+        await _waitForWebDeviceApproval(
+          username: username,
+          password: password,
+          message: error.message,
+        );
+        return;
+      }
       final cachedUser = await _authService.currentUser();
       final isTrustedDevice = await _isTrustedDeviceForUsername(username);
       if (isTrustedDevice &&
@@ -193,6 +204,60 @@ class _LoginScreenState extends State<LoginScreen> {
         username: username,
       );
     }
+  }
+
+  Future<void> _waitForWebDeviceApproval({
+    required String username,
+    required String password,
+    required String message,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isLoading = false;
+      _isWaitingForDeviceApproval = true;
+    });
+    await _showMessage(message);
+
+    for (var attempt = 0; attempt < 24; attempt++) {
+      await Future<void>.delayed(const Duration(seconds: 5));
+      if (!mounted || !_isWaitingForDeviceApproval) {
+        return;
+      }
+      try {
+        await _authService.login(
+          username: username,
+          password: password,
+          otpCode: '',
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() => _isWaitingForDeviceApproval = false);
+        await _finishLogin(username);
+        return;
+      } on AuthRequestException catch (error) {
+        if (!error.deviceApprovalPending) {
+          if (!mounted) {
+            return;
+          }
+          setState(() => _isWaitingForDeviceApproval = false);
+          await _showMessage(error.message, isError: true, username: username);
+          return;
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() => _isWaitingForDeviceApproval = false);
+    await _showMessage(
+      'لم تصل الموافقة بعد. افتح الإشعارات داخل التطبيق من الهاتف أو تواصل مع الإدارة للتفاصيل.',
+      isError: true,
+      username: username,
+    );
   }
 
   void _submitFromUsername() {
@@ -402,9 +467,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 28),
           ShwakelButton(
-            label: l.tr('screens_login_screen.007'),
-            isLoading: _isLoading,
-            onPressed: _continueToOtp,
+            label: _isWaitingForDeviceApproval
+                ? 'بانتظار موافقة الجهاز'
+                : l.tr('screens_login_screen.007'),
+            isLoading: _isLoading || _isWaitingForDeviceApproval,
+            onPressed: _isWaitingForDeviceApproval ? null : _continueToOtp,
             icon: Icons.login_rounded,
             gradient: AppTheme.primaryGradient,
           ),

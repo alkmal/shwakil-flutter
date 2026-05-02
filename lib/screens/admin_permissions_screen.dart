@@ -30,7 +30,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     {
       'titleKey': 'public_pages',
       'keys':
-          'canViewBalance,canViewTransactions,canViewInventory,canViewQuickTransfer,canViewContact,canViewLocations,canViewUsagePolicy,canViewSecuritySettings,canViewAccountSettings,canRequestVerification,canViewAffiliateCenter',
+          'canViewBalance,canViewTransactions,canViewInventory,canViewContact,canViewLocations,canViewUsagePolicy,canViewSecuritySettings,canViewAccountSettings,canRequestVerification,canViewAffiliateCenter',
     },
     {
       'titleKey': 'cards_and_ops',
@@ -397,7 +397,6 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       'canViewBalance' => l.tr('screens_admin_permissions_screen.009'),
       'canViewTransactions' => l.tr('screens_admin_permissions_screen.010'),
       'canViewInventory' => l.tr('screens_admin_permissions_screen.011'),
-      'canViewQuickTransfer' => l.tr('screens_admin_permissions_screen.012'),
       'canViewContact' => l.tr('screens_admin_permissions_screen.013'),
       'canViewLocations' => l.tr('screens_admin_permissions_screen.014'),
       'canViewUsagePolicy' => l.tr('screens_admin_permissions_screen.015'),

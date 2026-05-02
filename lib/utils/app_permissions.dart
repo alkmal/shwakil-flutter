@@ -98,7 +98,7 @@ class AppPermissions {
   bool get canViewBalance => _isEnabled('canViewBalance');
   bool get canViewTransactions => _isEnabled('canViewTransactions');
   bool get canViewInventory => _isEnabled('canViewInventory');
-  bool get canViewQuickTransfer => _isEnabled('canViewQuickTransfer');
+  bool get canViewQuickTransfer => canTransfer;
   bool get canViewContact => _raw['canViewContact'] != false;
   bool get canViewLocations => _raw['canViewLocations'] != false;
   bool get canViewUsagePolicy => _raw['canViewUsagePolicy'] != false;
@@ -136,7 +136,6 @@ class AppPermissions {
   bool get canAccessRegulatedWalletFeatures =>
       canViewBalance ||
       canViewTransactions ||
-      canOpenQuickTransfer ||
       canTransfer ||
       canWithdraw ||
       canFinanceTopup ||
@@ -200,5 +199,5 @@ class AppPermissions {
       canResellCards ||
       canRedeemCards;
 
-  bool get canOpenQuickTransfer => canViewQuickTransfer || canTransfer;
+  bool get canOpenQuickTransfer => canTransfer;
 }

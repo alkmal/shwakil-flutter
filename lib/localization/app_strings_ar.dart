@@ -1210,7 +1210,7 @@ const Map<String, String> appStringsAr = {
   'screens_card_print_requests_screen.007': 'طلب طباعة بطاقات',
   'screens_card_print_requests_screen.008': 'نوع البطاقة',
   'screens_card_print_requests_screen.009': 'بطاقات رصيد عادية',
-  'screens_card_print_requests_screen.010': 'بطاقات خاصة لاستخدام واحد',
+  'screens_card_print_requests_screen.010': 'بطاقات خاصة',
   'screens_card_print_requests_screen.011':
       'القيمة ثابتة لبطاقات الاستخدام الواحد',
   'screens_card_print_requests_screen.012': 'قيمة البطاقة',
@@ -2406,6 +2406,13 @@ const Map<String, String> appStringsAr = {
   'screens_admin_notifications_screen.049': 'معاينة',
   'screens_admin_notifications_screen.050': 'آخر الإشعارات المرسلة',
   'screens_admin_notifications_screen.051': 'لا توجد إشعارات إدارية مرسلة بعد.',
+  'screens_admin_notifications_screen.052': 'رسالة إرشادية داخل التطبيق',
+  'screens_admin_notifications_screen.053': 'تعبئة قالب شرح الاستخدام',
+  'screens_admin_notifications_screen.054': 'شرح آلية الاستخدام داخل التطبيق',
+  'screens_admin_notifications_screen.055':
+      'هذه رسالة إرشادية من الإدارة لتوضيح آلية استخدام ميزة معينة داخل التطبيق. يرجى قراءة الخطوات بعناية قبل تنفيذ العملية.',
+  'screens_admin_notifications_screen.056':
+      'اكتب هنا الخطوات أو التعليمات التفصيلية التي تريد أن تظهر للمستخدم داخل مركز الإشعارات.',
   'screens_home_screen.082': 'التسويق بالعمولة',
   'screens_home_screen.083':
       'تابع إحالاتك وعمولاتك وشارك بيانات الإحالة الخاصة بك.',

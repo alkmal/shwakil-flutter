@@ -138,7 +138,23 @@ class PrintCardPreview extends StatelessWidget {
       final title = card.title?.trim() ?? '';
       return title.isNotEmpty ? title : _cardKindLabel;
     }
-    return CurrencyFormatter.formatAmount(card.value);
+    final unitText = _valueUnitText;
+    if (unitText.isEmpty) {
+      return CurrencyFormatter.formatAmount(card.value);
+    }
+    final numericValue = card.value == card.value.roundToDouble()
+        ? card.value.round().toString()
+        : card.value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+    return '$numericValue $unitText';
+  }
+
+  String get _valueUnitText {
+    final text = designSettings.valueUnitText?.trim() ?? '';
+    final normalized = text.replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.length <= 10) {
+      return normalized;
+    }
+    return normalized.substring(0, 10).trim();
   }
 
   String get _cardSubtitle {
@@ -379,17 +395,6 @@ class PrintCardPreview extends StatelessWidget {
                                 color: const Color(0xFF64748B),
                               ),
                             ),
-                            if (!_isTicketCard) ...[
-                              const SizedBox(height: 1.5),
-                              Text(
-                                _cardSubtitle,
-                                textAlign: TextAlign.center,
-                                style: AppTheme.bodyBold.copyWith(
-                                  fontSize: 5,
-                                  color: palette.primary,
-                                ),
-                              ),
-                            ],
                             const SizedBox(height: 1.5),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -506,6 +511,7 @@ class PrintCardPreview extends StatelessWidget {
                                 fontSize: 4.2,
                                 color: palette.primary,
                                 fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
                               ),
                             ),
                           ],

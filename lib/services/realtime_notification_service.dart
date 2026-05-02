@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -169,8 +168,6 @@ class RealtimeNotificationService {
         if (response.statusCode != 401 && response.statusCode != 403) {
           return;
         }
-      } on SocketException {
-        // No internet / DNS issue: keep the app running and retry later.
       } on http.ClientException {
         // Network client errors should not surface to the user here.
       } on TimeoutException {
@@ -245,7 +242,7 @@ class RealtimeNotificationService {
   static Future<void> _waitForApplePushToken(
     FirebaseMessaging messaging,
   ) async {
-    if (kIsWeb || !Platform.isIOS) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
       return;
     }
 
