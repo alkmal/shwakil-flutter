@@ -1324,6 +1324,8 @@ class ApiService {
     required bool registrationWhatsappVerificationRequired,
     required String whatsappUsageMode,
     required String messageDeliveryPriority,
+    required bool adminAlertsWhatsappEnabled,
+    required bool adminAlertsSmsEnabled,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1340,6 +1342,8 @@ class ApiService {
             registrationWhatsappVerificationRequired,
         'whatsappUsageMode': whatsappUsageMode.trim(),
         'messageDeliveryPriority': messageDeliveryPriority.trim(),
+        'adminAlertsWhatsappEnabled': adminAlertsWhatsappEnabled,
+        'adminAlertsSmsEnabled': adminAlertsSmsEnabled,
         'minSupportedVersion': minSupportedVersion.trim(),
         'latestVersion': latestVersion.trim(),
         'androidStoreUrl': androidStoreUrl.trim(),
@@ -1705,6 +1709,8 @@ class ApiService {
     required bool registrationWhatsappVerificationRequired,
     required String whatsappUsageMode,
     required String messageDeliveryPriority,
+    required bool adminAlertsWhatsappEnabled,
+    required bool adminAlertsSmsEnabled,
     required String minSupportedVersion,
     required String latestVersion,
     required String androidStoreUrl,
@@ -1718,12 +1724,59 @@ class ApiService {
           registrationWhatsappVerificationRequired,
       whatsappUsageMode: whatsappUsageMode,
       messageDeliveryPriority: messageDeliveryPriority,
+      adminAlertsWhatsappEnabled: adminAlertsWhatsappEnabled,
+      adminAlertsSmsEnabled: adminAlertsSmsEnabled,
       minSupportedVersion: minSupportedVersion,
       latestVersion: latestVersion,
       androidStoreUrl: androidStoreUrl,
       iosStoreUrl: iosStoreUrl,
       webStoreUrl: webStoreUrl,
     );
+  }
+
+  Future<Map<String, dynamic>> getAdminMessageGatewayDashboard() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/message-gateway/dashboard'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> toggleWhatsAppGatewayChannel({
+    required String channelKey,
+    required bool enabled,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/message-gateway/whatsapp/$channelKey/toggle'),
+      headers: await _headers(),
+      body: jsonEncode({'enabled': enabled}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> testWhatsAppGatewayChannel({
+    required String channelKey,
+    String phone = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/message-gateway/whatsapp/$channelKey/test'),
+      headers: await _headers(),
+      body: jsonEncode({
+        if (phone.trim().isNotEmpty) 'phone': phone.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> testSmsGateway({String phone = ''}) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/message-gateway/sms/test'),
+      headers: await _headers(),
+      body: jsonEncode({
+        if (phone.trim().isNotEmpty) 'phone': phone.trim(),
+      }),
+    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> updateTransferSettings({

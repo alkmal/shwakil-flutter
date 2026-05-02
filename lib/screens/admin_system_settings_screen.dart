@@ -102,16 +102,22 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _registrationWhatsappVerificationRequired = true;
   String _whatsappUsageMode = 'all';
   String _messageDeliveryPriority = 'whatsapp';
+  bool _adminAlertsWhatsappEnabled = true;
+  bool _adminAlertsSmsEnabled = true;
   bool _topupRequestEnabled = true;
   bool _withdrawalRequestEnabled = true;
   bool _affiliateEnabled = true;
   bool _scanAutoRedeemGlobalForced = false;
   bool _isLoadingPrepaidReport = false;
+  bool _isLoadingGatewayDashboard = false;
+  bool _isTestingSmsGateway = false;
+  String? _gatewayBusyChannelKey;
   String _prepaidReportCardStatus = 'all';
   List<Map<String, dynamic>> _topupPaymentMethods = const [];
   List<Map<String, dynamic>> _withdrawalMethods = const [];
   List<Map<String, dynamic>> _prepaidReportPayments = const [];
   Map<String, dynamic> _prepaidReportSummary = const {};
+  Map<String, dynamic> _messageGatewayDashboard = const {};
 
   @override
   void initState() {
@@ -224,6 +230,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _apiService.getUsagePolicy(),
         _apiService.getAdminPrepaidMultipaySettings(),
         _apiService.getCardQuantityLimitSettings(),
+        _apiService.getAdminMessageGatewayDashboard(),
       ]);
 
       if (!mounted) {
@@ -261,6 +268,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       final cardQuantityLimitSettings = Map<String, dynamic>.from(
         results[14] as Map,
       );
+      final messageGatewayDashboard = Map<String, dynamic>.from(
+        results[15] as Map,
+      );
 
       _contactTitleController.text = contactSettings['title'] ?? '';
       _contactWhatsappController.text =
@@ -277,6 +287,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _messageDeliveryPriority = _normalizeMessageDeliveryPriority(
         authSettings['messageDeliveryPriority'],
       );
+      _adminAlertsWhatsappEnabled =
+          authSettings['adminAlertsWhatsappEnabled'] != false;
+      _adminAlertsSmsEnabled = authSettings['adminAlertsSmsEnabled'] != false;
       final minSupportedVersion =
           authSettings['minSupportedVersion']?.toString().trim() ?? '';
       final latestVersion =
@@ -437,6 +450,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _isAuthorized = true;
         _topupPaymentMethods = topupPaymentMethods;
         _withdrawalMethods = withdrawalMethods;
+        _messageGatewayDashboard = messageGatewayDashboard;
         _isLoading = false;
       });
       unawaited(_loadPrepaidReport());
@@ -495,6 +509,150 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
   }
 
+  Future<void> _refreshMessageGatewayDashboard() async {
+    if (!_isAuthorized) {
+      return;
+    }
+    setState(() => _isLoadingGatewayDashboard = true);
+    try {
+      final payload = await _apiService.getAdminMessageGatewayDashboard();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _messageGatewayDashboard = payload;
+        _isLoadingGatewayDashboard = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isLoadingGatewayDashboard = false);
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحميل متابعة الرسائل',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _toggleWhatsAppChannel(
+    String channelKey,
+    bool enabled,
+  ) async {
+    setState(() => _gatewayBusyChannelKey = channelKey);
+    try {
+      final payload = await _apiService.toggleWhatsAppGatewayChannel(
+        channelKey: channelKey,
+        enabled: enabled,
+      );
+      _replaceGatewayDashboard(payload);
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: enabled ? 'تم التفعيل' : 'تم الإيقاف',
+        message: (payload['message']?.toString().trim().isNotEmpty ?? false)
+            ? payload['message'].toString()
+            : 'تم تحديث حالة التوكن.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحديث حالة التوكن',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _gatewayBusyChannelKey = null);
+      }
+    }
+  }
+
+  Future<void> _testWhatsAppChannel(String channelKey) async {
+    setState(() => _gatewayBusyChannelKey = channelKey);
+    try {
+      final payload = await _apiService.testWhatsAppGatewayChannel(
+        channelKey: channelKey,
+      );
+      _replaceGatewayDashboard(payload);
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'نجح الاختبار',
+        message: (payload['message']?.toString().trim().isNotEmpty ?? false)
+            ? payload['message'].toString()
+            : 'تم اختبار التوكن بنجاح.',
+      );
+    } catch (error) {
+      await _refreshMessageGatewayDashboard();
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'فشل اختبار التوكن',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _gatewayBusyChannelKey = null);
+      }
+    }
+  }
+
+  Future<void> _testSmsGateway() async {
+    setState(() => _isTestingSmsGateway = true);
+    try {
+      final payload = await _apiService.testSmsGateway();
+      _replaceGatewayDashboard(payload);
+      if (!mounted) {
+        return;
+      }
+      if (payload['ok'] == true) {
+        await AppAlertService.showSuccess(
+          context,
+          title: 'بوابة SMS جاهزة',
+          message: payload['message']?.toString() ?? 'الفحص ناجح.',
+        );
+      } else {
+        await AppAlertService.showInfo(
+          context,
+          title: 'فحص SMS',
+          message: payload['message']?.toString() ?? 'تم تنفيذ الفحص.',
+        );
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر فحص SMS',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isTestingSmsGateway = false);
+      }
+    }
+  }
+
+  void _replaceGatewayDashboard(Map<String, dynamic> payload) {
+    final dashboard = payload['dashboard'];
+    if (dashboard is Map) {
+      setState(() {
+        _messageGatewayDashboard = Map<String, dynamic>.from(dashboard);
+      });
+    }
+  }
+
   Future<void> _exportPrepaidReport() async {
     if (_prepaidReportPayments.isEmpty) {
       await AppAlertService.showError(
@@ -547,6 +705,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               _registrationWhatsappVerificationRequired,
           whatsappUsageMode: _whatsappUsageMode,
           messageDeliveryPriority: _messageDeliveryPriority,
+          adminAlertsWhatsappEnabled: _adminAlertsWhatsappEnabled,
+          adminAlertsSmsEnabled: _adminAlertsSmsEnabled,
           minSupportedVersion: _minSupportedVersionController.text,
           latestVersion: _latestVersionController.text,
           androidStoreUrl: _androidStoreUrlController.text,
@@ -1187,6 +1347,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       icon: const Icon(Icons.system_update_rounded),
                       text: l.tr('screens_admin_system_settings_screen.054'),
                     ),
+                    const Tab(
+                      icon: Icon(Icons.wifi_tethering_rounded),
+                      text: 'متابعة الرسائل',
+                    ),
                     Tab(
                       icon: const Icon(Icons.add_card_rounded),
                       text: l.tr('screens_admin_system_settings_screen.055'),
@@ -1220,6 +1384,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   children: [
                     _buildContactTab(),
                     _buildAppTab(),
+                    _buildMessagingTab(),
                     _buildTopupTab(),
                     _buildOfflineCardsTab(),
                     _buildPrepaidMultipayTab(),
@@ -1410,6 +1575,27 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                         _normalizeMessageDeliveryPriority(value),
                   ),
                 ),
+                const SizedBox(height: 16),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _adminAlertsWhatsappEnabled,
+                  onChanged: (value) =>
+                      setState(() => _adminAlertsWhatsappEnabled = value),
+                  title: const Text('تنبيهات الإدارة عبر واتساب'),
+                  subtitle: const Text(
+                    'عند إيقافه تبقى التنبيهات داخل النظام فقط ولا ترسل عبر واتساب.',
+                  ),
+                ),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _adminAlertsSmsEnabled,
+                  onChanged: (value) =>
+                      setState(() => _adminAlertsSmsEnabled = value),
+                  title: const Text('تنبيهات الإدارة عبر SMS'),
+                  subtitle: const Text(
+                    'عند إيقافه لن يستخدم SMS لتنبيهات الإدارة الخارجية.',
+                  ),
+                ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _unverifiedTransferLimitController,
@@ -1469,6 +1655,366 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMessagingTab() {
+    final summary = Map<String, dynamic>.from(
+      _messageGatewayDashboard['summary'] as Map? ?? const {},
+    );
+    final whatsappSummary = Map<String, dynamic>.from(
+      summary['whatsapp'] as Map? ?? const {},
+    );
+    final smsSummary = Map<String, dynamic>.from(
+      summary['sms'] as Map? ?? const {},
+    );
+    final channels = List<Map<String, dynamic>>.from(
+      (_messageGatewayDashboard['channels'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+
+    return _tabScroll(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AdminSectionHeader(
+            title: 'متابعة الرسائل',
+            subtitle:
+                'مراقبة واتساب و SMS خلال آخر 24 ساعة مع إيقاف وإعادة تفعيل التوكنات يدويًا.',
+            icon: Icons.wifi_tethering_rounded,
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _buildGatewayStatCard(
+                      title: 'واتساب 24 ساعة',
+                      value:
+                          '${whatsappSummary['sentCount24h'] ?? 0} إرسال',
+                      subtitle:
+                          '${whatsappSummary['uniqueRecipients24h'] ?? 0} رقم مختلف',
+                      icon: Icons.mark_chat_unread_rounded,
+                    ),
+                    _buildGatewayStatCard(
+                      title: 'فشل واتساب',
+                      value:
+                          '${whatsappSummary['failedCount24h'] ?? 0} عملية',
+                      subtitle:
+                          '${summary['blockedChannels'] ?? 0} توكن متوقف',
+                      icon: Icons.warning_amber_rounded,
+                    ),
+                    _buildGatewayStatCard(
+                      title: 'SMS 24 ساعة',
+                      value: '${smsSummary['sentCount24h'] ?? 0} إرسال',
+                      subtitle:
+                          '${smsSummary['uniqueRecipients24h'] ?? 0} رقم مختلف',
+                      icon: Icons.sms_rounded,
+                    ),
+                    _buildGatewayStatCard(
+                      title: 'أجهزة SMS',
+                      value: '${smsSummary['onlineDevicesCount'] ?? 0} أونلاين',
+                      subtitle: '${smsSummary['devicesCount'] ?? 0} إجمالي',
+                      icon: Icons.phonelink_ring_rounded,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _isLoadingGatewayDashboard
+                            ? 'جار تحديث لوحة المتابعة...'
+                            : 'يمكنك اختبار كل توكن، وإذا فشل سيتم إيقافه تلقائيًا حتى تعيد تفعيله يدويًا.',
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ShwakelButton(
+                      label: 'تحديث',
+                      icon: Icons.refresh_rounded,
+                      onPressed: _refreshMessageGatewayDashboard,
+                      isLoading: _isLoadingGatewayDashboard,
+                    ),
+                    const SizedBox(width: 8),
+                    ShwakelButton(
+                      label: 'فحص SMS',
+                      icon: Icons.sms_rounded,
+                      onPressed: _testSmsGateway,
+                      isLoading: _isTestingSmsGateway,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          ...channels.map(_buildWhatsAppChannelCard),
+          if (channels.isEmpty)
+            _card(
+              const Text(
+                'لا توجد توكنات واتساب معرفة حاليًا داخل إعدادات البيئة.',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhatsAppChannelCard(Map<String, dynamic> channel) {
+    final channelKey = channel['channelKey']?.toString() ?? '';
+    final isBusy = _gatewayBusyChannelKey == channelKey;
+    final isEnabled = channel['isEnabled'] == true;
+    final isBlocked = channel['isBlocked'] == true;
+    final status = _channelStatusLabel(
+      channel['lastHealthStatus']?.toString(),
+      isEnabled: isEnabled,
+      isBlocked: isBlocked,
+    );
+    final stats = Map<String, dynamic>.from(
+      channel['stats24h'] as Map? ?? const {},
+    );
+    final blockedReason = channel['blockedReason']?.toString().trim() ?? '';
+    final lastTestMessage = channel['lastTestMessage']?.toString().trim() ?? '';
+    final lastFailureReason =
+        channel['lastFailureReason']?.toString().trim() ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: _card(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        channel['displayName']?.toString() ?? 'توكن واتساب',
+                        style: AppTheme.bodyBold,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'آخر 8 أحرف: ${channel['tokenLastEight'] ?? '-'}',
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _channelStatusColor(status).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    status,
+                    style: AppTheme.caption.copyWith(
+                      color: _channelStatusColor(status),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _buildMiniInfoChip(
+                  'أرقام 24 ساعة',
+                  '${stats['uniqueRecipients24h'] ?? 0}',
+                ),
+                _buildMiniInfoChip(
+                  'إرسال 24 ساعة',
+                  '${stats['sentCount24h'] ?? 0}',
+                ),
+                _buildMiniInfoChip(
+                  'فشل 24 ساعة',
+                  '${stats['failedCount24h'] ?? 0}',
+                ),
+                _buildMiniInfoChip(
+                  'آخر نجاح',
+                  _shortDateTime(channel['lastSuccessAt']?.toString()),
+                ),
+                _buildMiniInfoChip(
+                  'آخر اختبار',
+                  _shortDateTime(channel['lastTestedAt']?.toString()),
+                ),
+              ],
+            ),
+            if (blockedReason.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'سبب الإيقاف: $blockedReason',
+                style: AppTheme.caption.copyWith(color: Colors.red.shade700),
+              ),
+            ],
+            if (lastFailureReason.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'آخر خطأ: $lastFailureReason',
+                style: AppTheme.caption.copyWith(color: Colors.red.shade700),
+              ),
+            ],
+            if (lastTestMessage.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'ملاحظة الاختبار: $lastTestMessage',
+                style: AppTheme.caption.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ShwakelButton(
+                  label: 'اختبار',
+                  icon: Icons.play_arrow_rounded,
+                  onPressed: isBusy ? null : () => _testWhatsAppChannel(channelKey),
+                  isLoading: isBusy,
+                ),
+                ShwakelButton(
+                  label: isEnabled ? 'إيقاف يدوي' : 'تفعيل يدوي',
+                  icon: isEnabled
+                      ? Icons.pause_circle_filled_rounded
+                      : Icons.check_circle_rounded,
+                  onPressed: isBusy
+                      ? null
+                      : () => _toggleWhatsAppChannel(channelKey, !isEnabled),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGatewayStatCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    return SizedBox(
+      width: 220,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppTheme.primary),
+            const SizedBox(height: 12),
+            Text(title, style: AppTheme.caption),
+            const SizedBox(height: 6),
+            Text(value, style: AppTheme.bodyBold),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniInfoChip(String title, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          children: [
+            TextSpan(text: '$title: '),
+            TextSpan(
+              text: value,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _channelStatusLabel(
+    String? value, {
+    required bool isEnabled,
+    required bool isBlocked,
+  }) {
+    if (!isEnabled) {
+      return 'موقوف يدويًا';
+    }
+    if (isBlocked) {
+      return 'متوقف ويحتاج تفعيل';
+    }
+
+    return switch ((value ?? '').trim()) {
+      'healthy' => 'سليم',
+      'manual_enabled' => 'تم تفعيله',
+      'failed' => 'فشل',
+      'unknown' || '' => 'غير مفحوص',
+      _ => value!.trim(),
+    };
+  }
+
+  Color _channelStatusColor(String status) {
+    if (status.contains('سليم') || status.contains('تفعيله')) {
+      return const Color(0xFF0F766E);
+    }
+    if (status.contains('غير')) {
+      return const Color(0xFF92400E);
+    }
+    return const Color(0xFFB91C1C);
+  }
+
+  String _shortDateTime(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) {
+      return '—';
+    }
+
+    final parsed = DateTime.tryParse(text);
+    if (parsed == null) {
+      return text;
+    }
+
+    final local = parsed.toLocal();
+    final mm = local.month.toString().padLeft(2, '0');
+    final dd = local.day.toString().padLeft(2, '0');
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mi = local.minute.toString().padLeft(2, '0');
+    return '$mm/$dd $hh:$mi';
   }
 
   Widget _buildTopupTab() {
