@@ -1309,10 +1309,21 @@ class ApiService {
   Future<Map<String, dynamic>> sendAdminUserOtp({
     required String userId,
   }) async {
-    final response = await http.get(
-      AppConfig.apiUri('admin/users/$userId/send-otp'),
-      headers: await _headers(),
+    final headers = await _headers();
+    final uri = AppConfig.apiUri('admin/users/$userId/send-otp');
+
+    // Some production nodes still expose this admin action as GET only.
+    // Try POST first to match the action semantics, then fall back safely.
+    var response = await http.post(
+      uri,
+      headers: headers,
+      body: jsonEncode(const <String, dynamic>{}),
     );
+
+    if (response.statusCode == 405) {
+      response = await http.get(uri, headers: headers);
+    }
+
     return _decodeObject(response);
   }
 
@@ -1771,9 +1782,7 @@ class ApiService {
     final response = await http.post(
       AppConfig.apiUri('admin/message-gateway/whatsapp/$channelKey/test'),
       headers: await _headers(),
-      body: jsonEncode({
-        if (phone.trim().isNotEmpty) 'phone': phone.trim(),
-      }),
+      body: jsonEncode({if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
     );
     return _decodeObject(response);
   }
@@ -1782,9 +1791,7 @@ class ApiService {
     final response = await http.post(
       AppConfig.apiUri('admin/message-gateway/sms/test'),
       headers: await _headers(),
-      body: jsonEncode({
-        if (phone.trim().isNotEmpty) 'phone': phone.trim(),
-      }),
+      body: jsonEncode({if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
     );
     return _decodeObject(response);
   }
