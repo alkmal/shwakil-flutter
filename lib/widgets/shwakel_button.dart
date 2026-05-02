@@ -53,7 +53,14 @@ class ShwakelButton extends StatelessWidget {
       borderColor = Colors.transparent;
     }
 
-    final isGradient = gradient != null && onPressed != null;
+    final safeGradient = AppTheme.webSafeGradient(gradient);
+    final isGradient = safeGradient != null && onPressed != null;
+    if (!isGradient && gradient != null && onPressed != null && !isSecondary) {
+      backgroundColor = AppTheme.webSafeGradientFallback(
+        gradient,
+        fallback: backgroundColor,
+      );
+    }
     final borderRadius = AppTheme.radiusMd;
 
     final content = isLoading
@@ -101,7 +108,7 @@ class ShwakelButton extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: isGradient ? null : backgroundColor,
-        gradient: isGradient ? gradient : null,
+        gradient: isGradient ? safeGradient : null,
         borderRadius: borderRadius,
         boxShadow: (onPressed != null && !isSecondary)
             ? AppTheme.softShadow

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Centralized Design System for Shwakel App
@@ -129,6 +130,20 @@ class AppTheme {
     begin: Alignment.topRight,
     end: Alignment.bottomLeft,
   );
+
+  static Gradient? webSafeGradient(Gradient? gradient) {
+    return kIsWeb ? null : gradient;
+  }
+
+  static Color webSafeGradientFallback(
+    Gradient? gradient, {
+    Color fallback = surface,
+  }) {
+    if (gradient is LinearGradient && gradient.colors.isNotEmpty) {
+      return gradient.colors.first;
+    }
+    return fallback;
+  }
 
   // --- Radius ---
   static BorderRadius get radiusSm => BorderRadius.circular(8);
