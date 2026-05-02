@@ -201,7 +201,25 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final currentAppVersionFuture = AppVersionService.currentVersion();
+      final loadWarnings = <String>[];
+      Future<T> safeLoad<T>(
+        Future<T> future, {
+        required T fallback,
+        required String section,
+      }) async {
+        try {
+          return await future;
+        } catch (_) {
+          loadWarnings.add(section);
+          return fallback;
+        }
+      }
+
+      final currentAppVersionFuture = safeLoad<String>(
+        AppVersionService.currentVersion(),
+        fallback: '',
+        section: 'app_version',
+      );
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
       if (!permissions.canManageSystemSettings) {
@@ -216,21 +234,86 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       final results = await Future.wait<dynamic>([
         currentAppVersionFuture,
-        _apiService.getContactInfo(),
-        _apiService.getAuthSettings(),
-        _apiService.getTransferSettings(),
-        _apiService.getOfflineCardSettings(),
-        _apiService.getFeeSettings(),
-        _apiService.getCardScanLimitSettings(),
-        _apiService.getAdminTopupRequestSettings(),
-        _apiService.getAdminWithdrawalRequestSettings(),
-        _apiService.getAdminAffiliateSettings(),
-        _apiService.getAdminTopupPaymentMethods(),
-        _apiService.getAdminWithdrawalMethods(),
-        _apiService.getUsagePolicy(),
-        _apiService.getAdminPrepaidMultipaySettings(),
-        _apiService.getCardQuantityLimitSettings(),
-        _apiService.getAdminMessageGatewayDashboard(),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getContactInfo(),
+          fallback: const {},
+          section: 'contact',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getAuthSettings(),
+          fallback: const {},
+          section: 'auth',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getTransferSettings(),
+          fallback: const {},
+          section: 'transfer',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getOfflineCardSettings(),
+          fallback: const {},
+          section: 'offline',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getFeeSettings(),
+          fallback: const {},
+          section: 'fees',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getCardScanLimitSettings(),
+          fallback: const {},
+          section: 'card_scan_limits',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getAdminTopupRequestSettings(),
+          fallback: const {},
+          section: 'topup_requests',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getAdminWithdrawalRequestSettings(),
+          fallback: const {},
+          section: 'withdrawal_requests',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getAdminAffiliateSettings(),
+          fallback: const {
+            'enabled': true,
+            'rewardAmount': 5,
+            'firstTopupMinAmount': 100,
+            'marketerDebtLimit': 50,
+          },
+          section: 'affiliate',
+        ),
+        safeLoad<List<Map<String, dynamic>>>(
+          _apiService.getAdminTopupPaymentMethods(),
+          fallback: const [],
+          section: 'topup_methods',
+        ),
+        safeLoad<List<Map<String, dynamic>>>(
+          _apiService.getAdminWithdrawalMethods(),
+          fallback: const [],
+          section: 'withdrawal_methods',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getUsagePolicy(),
+          fallback: const {},
+          section: 'usage_policy',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getAdminPrepaidMultipaySettings(),
+          fallback: const {},
+          section: 'prepaid_multipay',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getCardQuantityLimitSettings(),
+          fallback: const {},
+          section: 'card_quantity_limits',
+        ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getAdminMessageGatewayDashboard(),
+          fallback: const {},
+          section: 'message_gateway',
+        ),
       ]);
 
       if (!mounted) {
@@ -453,6 +536,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _messageGatewayDashboard = messageGatewayDashboard;
         _isLoading = false;
       });
+      if (loadWarnings.isNotEmpty) {
+        await AppAlertService.showInfo(
+          context,
+          title: context.loc.tr('screens_admin_system_settings_screen.016'),
+          message:
+              'تعذر تحميل بعض أقسام إعدادات النظام مؤقتًا، وتم عرض القيم المتاحة أو الافتراضية لحين إعادة المحاولة.',
+        );
+      }
       unawaited(_loadPrepaidReport());
     } catch (error) {
       if (!mounted) {
@@ -461,7 +552,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: context.loc.tr('screens_admin_system_settings_screen.066'),
+        title: context.loc.tr('screens_admin_system_settings_screen.016'),
         message: ErrorMessageService.sanitize(error),
       );
     }

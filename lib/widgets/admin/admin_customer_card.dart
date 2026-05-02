@@ -11,6 +11,7 @@ class AdminCustomerCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback? onResendCredentials;
+  final VoidCallback? onSendOtp;
 
   const AdminCustomerCard({
     super.key,
@@ -18,6 +19,7 @@ class AdminCustomerCard extends StatelessWidget {
     this.isSelected = false,
     required this.onTap,
     this.onResendCredentials,
+    this.onSendOtp,
   });
 
   String _displayName() {
@@ -128,7 +130,7 @@ class AdminCustomerCard extends StatelessWidget {
                       color: AppTheme.success,
                       size: 18,
                     ),
-                  if (onResendCredentials != null)
+                  if (onResendCredentials != null || onSendOtp != null)
                     PopupMenuButton<_CustomerAction>(
                       icon: const Icon(Icons.more_vert_rounded, size: 20),
                       color: Colors.white,
@@ -136,16 +138,24 @@ class AdminCustomerCard extends StatelessWidget {
                         borderRadius: AppTheme.radiusMd,
                       ),
                       itemBuilder: (context) => [
-                        PopupMenuItem<_CustomerAction>(
-                          value: _CustomerAction.resendCredentials,
-                          child: Text(
-                            l.tr('widgets_admin_admin_customer_card.009'),
+                        if (onResendCredentials != null)
+                          PopupMenuItem<_CustomerAction>(
+                            value: _CustomerAction.resendCredentials,
+                            child: Text(
+                              l.tr('widgets_admin_admin_customer_card.009'),
+                            ),
                           ),
-                        ),
+                        if (onSendOtp != null)
+                          const PopupMenuItem<_CustomerAction>(
+                            value: _CustomerAction.sendOtp,
+                            child: Text('إرسال OTP'),
+                          ),
                       ],
                       onSelected: (action) {
                         if (action == _CustomerAction.resendCredentials) {
                           onResendCredentials?.call();
+                        } else if (action == _CustomerAction.sendOtp) {
+                          onSendOtp?.call();
                         }
                       },
                     ),
@@ -257,4 +267,4 @@ class AdminCustomerCard extends StatelessWidget {
   }
 }
 
-enum _CustomerAction { resendCredentials }
+enum _CustomerAction { resendCredentials, sendOtp }

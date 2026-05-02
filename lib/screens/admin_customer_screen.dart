@@ -439,6 +439,55 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     }
   }
 
+  Future<void> _sendOtpToUser() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إرسال OTP'),
+        content: const Text(
+          'سيتم إرسال رمز تحقق للمستخدم عبر واتساب، وسيتم التحويل إلى SMS فقط إذا فشلت جميع قنوات واتساب. هل تريد المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(_t('screens_admin_customer_screen.002')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(_t('screens_admin_customer_screen.003')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final response = await _api.sendAdminUserOtp(
+        userId: _customer['id'].toString(),
+      );
+      if (!mounted) return;
+      setState(() => _busy = false);
+      await AppAlertService.showSuccess(
+        context,
+        title: 'إرسال OTP',
+        message:
+            response['message']?.toString() ?? 'تم إرسال رمز التحقق للمستخدم.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      await AppAlertService.showError(
+        context,
+        title: 'إرسال OTP',
+        message: ErrorMessageService.sanitize(e),
+      );
+    }
+  }
+
   Future<void> _showBalanceAdjustmentDialog({required bool isCredit}) async {
     if (!widget.canManageUsers) {
       return;
@@ -708,11 +757,22 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       style: AppTheme.bodyAction,
                     ),
                     const SizedBox(height: 16),
-                    ShwakelButton(
-                      label: _t('screens_admin_customer_screen.075'),
-                      icon: Icons.mark_chat_unread_rounded,
-                      onPressed: _busy ? null : _resendAccountDetails,
-                      isLoading: _busy,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        ShwakelButton(
+                          label: _t('screens_admin_customer_screen.075'),
+                          icon: Icons.mark_chat_unread_rounded,
+                          onPressed: _busy ? null : _resendAccountDetails,
+                          isLoading: _busy,
+                        ),
+                        ShwakelButton(
+                          label: 'إرسال OTP',
+                          icon: Icons.password_rounded,
+                          onPressed: _busy ? null : _sendOtpToUser,
+                        ),
+                      ],
                     ),
                   ],
                 ),

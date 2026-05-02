@@ -240,19 +240,24 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
               : context.loc.tr('widgets_barcode_scanner_dialog.001'))
         : widget.title;
     final scanner = _buildBodyContent();
+    final screenSize = MediaQuery.sizeOf(context);
+    final maxDialogHeight = screenSize.height * 0.88;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       backgroundColor: widget.backgroundColor ?? Colors.white,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: maxDialogHeight,
+        ),
         child: ShwakelCard(
           padding: const EdgeInsets.all(24),
           borderRadius: widget.borderRadius is BorderRadius
               ? widget.borderRadius as BorderRadius
               : AppTheme.radiusMd,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             children: [
               Row(
                 children: [
@@ -291,7 +296,11 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
                 const SizedBox(height: 18),
               ] else
                 const SizedBox(height: 8),
-              scanner,
+              Flexible(
+                child: SingleChildScrollView(
+                  child: scanner,
+                ),
+              ),
               if (showingResult &&
                   _resolvedResult?.primaryActionLabel != null) ...[
                 const SizedBox(height: 18),

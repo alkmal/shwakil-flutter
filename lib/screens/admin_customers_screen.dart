@@ -36,6 +36,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   bool _canManageUsers = false;
   bool _canManageMarketingAccounts = false;
   String? _resendBusyId;
+  String? _otpBusyId;
   int _customerPage = 1;
   int _customerLastPage = 1;
   int _loadRequestId = 0;
@@ -478,6 +479,72 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     }
   }
 
+  Future<void> _sendCustomerOtp(Map<String, dynamic> customer) async {
+    final l = context.loc;
+    final userId = customer['id']?.toString() ?? '';
+
+    if (userId.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        message: l.tr('screens_admin_customers_screen.027'),
+      );
+      return;
+    }
+
+    if (_otpBusyId == userId) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إرسال OTP'),
+        content: const Text(
+          'سيتم إرسال رمز تحقق للمستخدم عبر واتساب، وسيتم التحويل إلى SMS فقط إذا فشلت جميع قنوات واتساب. هل تريد المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l.tr('screens_admin_customers_screen.014')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l.tr('screens_admin_customers_screen.015')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _otpBusyId = userId);
+    try {
+      final response = await _apiService.sendAdminUserOtp(userId: userId);
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showSuccess(
+        context,
+        message:
+            response['message']?.toString() ?? 'تم إرسال رمز التحقق للمستخدم.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showError(
+        context,
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _otpBusyId = null);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
@@ -621,6 +688,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                       onTap: () => _openCustomerDetails(customer),
                       onResendCredentials: _canManageUsers
                           ? () => _resendCustomerCredentials(customer)
+                          : null,
+                      onSendOtp: _canManageUsers
+                          ? () => _sendCustomerOtp(customer)
                           : null,
                     ),
                   ),

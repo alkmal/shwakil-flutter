@@ -1306,6 +1306,16 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> sendAdminUserOtp({
+    required String userId,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users/$userId/send-otp'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> settleAdminUserPrintingDebt({
     required String userId,
     String notes = '',
