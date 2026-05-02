@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,11 +10,49 @@ import 'screens/index.dart';
 import 'services/index.dart';
 import 'utils/app_permissions.dart';
 import 'utils/app_theme.dart';
+import 'widgets/app_sidebar.dart';
 import 'widgets/shwakel_button.dart';
 import 'widgets/shwakel_logo.dart';
 
-final RouteObserver<ModalRoute<void>> appRouteObserver =
-    RouteObserver<ModalRoute<void>>();
+final AppRouteObserver appRouteObserver = AppRouteObserver();
+
+class AppRouteObserver extends RouteObserver<ModalRoute<void>>
+    with ChangeNotifier {
+  String? currentRouteName;
+
+  void _setCurrentRoute(Route<dynamic>? route) {
+    final nextName = route?.settings.name;
+    if (nextName == currentRouteName) {
+      return;
+    }
+    currentRouteName = nextName;
+    notifyListeners();
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _setCurrentRoute(route);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    _setCurrentRoute(previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _setCurrentRoute(newRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didRemove(route, previousRoute);
+    _setCurrentRoute(previousRoute);
+  }
+}
 
 final Map<String, WidgetBuilder> _appRoutes = {
   '/app-shell': (context) => const _AppLifecycleShell(),
@@ -233,7 +272,9 @@ class MyApp extends StatelessWidget {
                     data: MediaQuery.of(
                       context,
                     ).copyWith(textScaler: const TextScaler.linear(1)),
-                    child: child ?? const SizedBox.shrink(),
+                    child: _AdaptiveWebSidebarShell(
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   ),
                   const _GlobalConnectivityBanner(),
                 ],
@@ -244,6 +285,82 @@ class MyApp extends StatelessWidget {
           onGenerateInitialRoutes: (initialRouteName) {
             return [_buildNamedRoute(RouteSettings(name: initialRouteName))];
           },
+        );
+      },
+    );
+  }
+}
+
+class _AdaptiveWebSidebarShell extends StatelessWidget {
+  const _AdaptiveWebSidebarShell({required this.child});
+
+  static const double _desktopBreakpoint = 1100;
+  static const double _sidebarWidth = 340;
+  static const Set<String> _publicRoutes = {
+    '/login',
+    '/login-offline',
+    '/register',
+    '/forgot-password',
+    '/unlock',
+  };
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb) {
+      return child;
+    }
+
+    final cachedHasSession =
+        (AuthService.peekToken()?.isNotEmpty ?? false) ||
+        AuthService.peekCurrentUser() != null;
+    if (cachedHasSession) {
+      return _buildWithRouteState(context, hasSession: true);
+    }
+
+    return FutureBuilder<bool>(
+      future: AuthService().isLoggedIn(),
+      builder: (context, snapshot) {
+        return _buildWithRouteState(context, hasSession: snapshot.data == true);
+      },
+    );
+  }
+
+  Widget _buildWithRouteState(
+    BuildContext context, {
+    required bool hasSession,
+  }) {
+    return AnimatedBuilder(
+      animation: appRouteObserver,
+      builder: (context, _) {
+        final routeName = appRouteObserver.currentRouteName;
+        final showSidebar =
+            hasSession &&
+            !_publicRoutes.contains(routeName) &&
+            MediaQuery.sizeOf(context).width >= _desktopBreakpoint;
+
+        if (!showSidebar) {
+          return child;
+        }
+
+        final activeRouteName = routeName == '/app-shell' ? '/home' : routeName;
+        return ColoredBox(
+          color: AppTheme.background,
+          child: Row(
+            textDirection: Directionality.of(context),
+            children: [
+              SizedBox(
+                width: _sidebarWidth,
+                child: AppSidebar(
+                  embedded: true,
+                  currentRouteName: activeRouteName,
+                ),
+              ),
+              const VerticalDivider(width: 1, color: AppTheme.border),
+              Expanded(child: child),
+            ],
+          ),
         );
       },
     );

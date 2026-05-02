@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
@@ -1031,13 +1031,27 @@ class PDFService {
 
   Future<PdfSaveResult> savePDF(pw.Document pdf, String filename) async {
     final safeName = _safeFileName(filename);
-    await FileSaver.instance.saveFile(
+    final bytes = await pdf.save();
+    if (kIsWeb) {
+      final path = await FileSaver.instance.saveFile(
+        name: safeName,
+        bytes: bytes,
+        fileExtension: 'pdf',
+        mimeType: MimeType.pdf,
+      );
+      return PdfSaveResult(path.isEmpty ? '$safeName.pdf' : path);
+    }
+
+    final selectedPath = await FileSaver.instance.saveAs(
       name: safeName,
-      bytes: await pdf.save(),
+      bytes: bytes,
       fileExtension: 'pdf',
       mimeType: MimeType.pdf,
     );
-    return PdfSaveResult('$safeName.pdf');
+    if (selectedPath == null || selectedPath.trim().isEmpty) {
+      throw Exception('لم يتم اختيار مكان لحفظ الملف.');
+    }
+    return PdfSaveResult(selectedPath);
   }
 
   String _safeFileName(String filename) {
