@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 
 import '../models/index.dart';
@@ -25,6 +24,8 @@ class CreateCardScreen extends StatefulWidget {
 class _CreateCardScreenState extends State<CreateCardScreen> {
   static const int _cardsPerA4Page = 30;
   static const double _trialCardsLimit = 10;
+  static const int _printTitleMaxLength = 24;
+  static const int _valueUnitMaxLength = 10;
   static const Map<String, int> _cardTypeDisplayOrder = {
     'standard': 0,
     'delivery': 1,
@@ -43,6 +44,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   );
   final TextEditingController _titleC = TextEditingController();
   final TextEditingController _stampC = TextEditingController();
+  final TextEditingController _valueUnitC = TextEditingController();
   final TextEditingController _detailsTitleC = TextEditingController();
   final TextEditingController _detailsDescriptionC = TextEditingController();
   final TextEditingController _appointmentLocationC = TextEditingController();
@@ -78,6 +80,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _qtyC.dispose();
     _titleC.dispose();
     _stampC.dispose();
+    _valueUnitC.dispose();
     _detailsTitleC.dispose();
     _detailsDescriptionC.dispose();
     _appointmentLocationC.dispose();
@@ -738,6 +741,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       'stampText': _stampC.text.trim().isEmpty
           ? l.tr('screens_create_card_screen.019')
           : _stampC.text.trim(),
+      'valueUnitText': _valueUnitC.text.trim(),
       'logoUrl': (_showLogo && _useAccountLogo)
           ? (_user?['printLogoUrl'])?.toString()
           : null,
@@ -943,6 +947,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       stampText: _stampC.text.trim().isEmpty
           ? l.tr('screens_create_card_screen.019')
           : _stampC.text.trim(),
+      valueUnitText: _valueUnitC.text.trim(),
     );
     settings.logoUrl = (_showLogo && _useAccountLogo)
         ? (_user?['printLogoUrl'])?.toString()
@@ -2388,9 +2393,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           TextField(
             controller: _titleC,
             onChanged: (_) => setState(() {}),
+            maxLength: _printTitleMaxLength,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(_printTitleMaxLength),
+            ],
             decoration: InputDecoration(
               labelText: l.tr('screens_create_card_screen.046'),
               prefixIcon: const Icon(Icons.title_rounded),
+              counterText: '',
             ),
           ),
           const SizedBox(height: 16),
@@ -2400,6 +2410,22 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             decoration: InputDecoration(
               labelText: l.tr('screens_create_card_screen.047'),
               prefixIcon: const Icon(Icons.approval_rounded),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _valueUnitC,
+            onChanged: (_) => setState(() {}),
+            maxLength: _valueUnitMaxLength,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(_valueUnitMaxLength),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'نص بجانب القيمة',
+              hintText: 'شيكل، دولار، عينة...',
+              prefixIcon: Icon(Icons.sell_rounded),
+              counterText: '',
+              helperText: 'حتى 10 أحرف فقط',
             ),
           ),
           const SizedBox(height: 12),

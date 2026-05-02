@@ -1315,9 +1315,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
     final user = await _authService.currentUser();
-    await _pdfService.printCards([
-      card,
-    ], printedBy: user?['username'] ?? l.tr('screens_inventory_screen.010'));
+    final printedBy = UserDisplayName.fromMap(
+      user,
+      fallback: l.tr('screens_inventory_screen.010'),
+    );
+    await _pdfService.printCards([card], printedBy: printedBy);
     if (mounted) {
       AppAlertService.showSuccess(
         context,
@@ -1487,7 +1489,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final user = await _authService.currentUser();
     await _pdfService.printCards(
       cardsToPrint,
-      printedBy: user?['username']?.toString() ?? fallbackPrintedBy,
+      printedBy: UserDisplayName.fromMap(user, fallback: fallbackPrintedBy),
     );
     if (!mounted) {
       return;

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -16,11 +15,13 @@ class CardDesignSettings {
   String? logoText;
   String? logoUrl;
   String? stampText;
+  String? valueUnitText;
   CardDesignSettings({
     this.showLogo = true,
     this.showStamp = true,
     this.logoText = 'شواكل',
     this.stampText = 'صالح للتداول',
+    this.valueUnitText,
   });
 }
 
@@ -49,8 +50,11 @@ class PDFService {
   static const PdfColor _pageBackground = PdfColor.fromInt(0xFFF8FAFC);
   static const PdfColor _cardBackground = PdfColor.fromInt(0xFFFFF8EC);
   static const PdfColor _titleColor = PdfColor.fromInt(0xFF16302B);
-  static const PdfColor _mutedColor = PdfColor.fromInt(0xFF64748B);
-  static const PdfColor _stampColor = PdfColor.fromInt(0xFFDC2626);
+  static const String _fallbackBrandName = 'شواكل';
+  static const String _appDomain = 'shwakil.alkmal.com';
+  static const String _trustedDigitalCardText = 'شواكل بطاقتك الرقمية الموثقة';
+  static const int _maxBrandNameLength = 24;
+  static const int _maxValueUnitLength = 10;
   static const List<_DenominationPalette> _palettes = [
     _DenominationPalette(
       primary: PdfColor.fromInt(0xFF0F766E),
@@ -153,117 +157,49 @@ class PDFService {
     return _palettes[index];
   }
 
-  String _formatSerialNumber(int serialNumber) {
-    return serialNumber.toString().padLeft(4, '0');
-  }
-
   String _resolvedStampText() {
     final text = designSettings.stampText?.trim() ?? '';
     return text.isEmpty ? 'صالح للتداول' : text;
   }
 
-  String _valueInArabicWords(double value) {
-    final rounded = value.round();
-    if ((value - rounded).abs() < 0.001) {
-      return _integerToArabicWords(rounded);
-    }
-    return CurrencyFormatter.formatAmount(value);
+  String _brandName(String? printedBy) {
+    final displayName = (printedBy ?? '').trim();
+    final rawName = displayName.isNotEmpty
+        ? displayName
+        : (designSettings.logoText?.trim() ?? '');
+    final resolvedName = rawName.isEmpty ? _fallbackBrandName : rawName;
+    return _limitText(resolvedName, _maxBrandNameLength);
   }
 
-  String _integerToArabicWords(int number) {
-    if (number == 0) {
-      return 'صفر';
+  String _limitText(String value, int maxLength) {
+    final normalized = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.length <= maxLength) {
+      return normalized;
     }
-    const units = <int, String>{
-      1: 'واحد',
-      2: 'اثنان',
-      3: 'ثلاثة',
-      4: 'أربعة',
-      5: 'خمسة',
-      6: 'ستة',
-      7: 'سبعة',
-      8: 'ثمانية',
-      9: 'تسعة',
-      10: 'عشرة',
-      11: 'أحد عشر',
-      12: 'اثنا عشر',
-      13: 'ثلاثة عشر',
-      14: 'أربعة عشر',
-      15: 'خمسة عشر',
-      16: 'ستة عشر',
-      17: 'سبعة عشر',
-      18: 'ثمانية عشر',
-      19: 'تسعة عشر',
-    };
-    const tens = <int, String>{
-      20: 'عشرون',
-      30: 'ثلاثون',
-      40: 'أربعون',
-      50: 'خمسون',
-      60: 'ستون',
-      70: 'سبعون',
-      80: 'ثمانون',
-      90: 'تسعون',
-    };
-    const hundreds = <int, String>{
-      100: 'مائة',
-      200: 'مائتان',
-      300: 'ثلاثمائة',
-      400: 'أربعمائة',
-      500: 'خمسمائة',
-      600: 'ستمائة',
-      700: 'سبعمائة',
-      800: 'ثمانمائة',
-      900: 'تسعمائة',
-    };
-    if (number < 20) {
-      return units[number]!;
-    }
-    if (number < 100) {
-      final tenValue = (number ~/ 10) * 10;
-      final unitValue = number % 10;
-      if (unitValue == 0) {
-        return tens[tenValue]!;
-      }
-      return '${units[unitValue]} و${tens[tenValue]}';
-    }
-    if (number < 1000) {
-      final hundredValue = (number ~/ 100) * 100;
-      final remainder = number % 100;
-      if (remainder == 0) {
-        return hundreds[hundredValue]!;
-      }
-      return '${hundreds[hundredValue]} و${_integerToArabicWords(remainder)}';
-    }
-    if (number < 1000000) {
-      final thousands = number ~/ 1000;
-      final remainder = number % 1000;
-      String thousandsLabel;
-      if (thousands == 1) {
-        thousandsLabel = 'ألف';
-      } else if (thousands == 2) {
-        thousandsLabel = 'ألفان';
-      } else if (thousands <= 10) {
-        thousandsLabel = '${_integerToArabicWords(thousands)} آلاف';
-      } else {
-        thousandsLabel = '${_integerToArabicWords(thousands)} ألف';
-      }
-      if (remainder == 0) {
-        return thousandsLabel;
-      }
-      return '$thousandsLabel و${_integerToArabicWords(remainder)}';
-    }
-    return number.toString();
+    return normalized.substring(0, maxLength).trim();
   }
 
-  String _printedByLabel(String? printedBy) {
-    final name = (printedBy ?? '').trim();
-    return name.isEmpty ? 'الجهة الطابعة: غير محددة' : 'الجهة الطابعة: $name';
+  String _valueUnitText() {
+    final text = designSettings.valueUnitText?.trim() ?? '';
+    return _limitText(text, _maxValueUnitLength);
   }
 
-  String _originLabel(String? printedBy) {
-    final origin = (printedBy ?? '').trim();
-    return origin.isEmpty ? 'غير محددة' : origin;
+  String _formattedCardValue(VirtualCard card) {
+    final valueText = CurrencyFormatter.formatAmount(card.value);
+    final unitText = _valueUnitText();
+    if (unitText.isEmpty) {
+      return valueText;
+    }
+    final numericValue = card.value == card.value.roundToDouble()
+        ? card.value.round().toString()
+        : card.value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+    return '$numericValue $unitText';
+  }
+
+  pw.TextDirection _cardTitleDirection(VirtualCard card) {
+    return !_isTicketCard(card) && _valueUnitText().isNotEmpty
+        ? pw.TextDirection.ltr
+        : pw.TextDirection.rtl;
   }
 
   bool _isLocationSpecific(VirtualCard card) {
@@ -299,13 +235,6 @@ class PDFService {
     return 'بطاقة رصيد';
   }
 
-  String _cardTypeLabel(VirtualCard card) {
-    if (_isLocationSpecific(card)) {
-      return '${_cardKindLabel(card)} مخصصة لمكان محدد';
-    }
-    return '${_cardKindLabel(card)} ${_privacyLabel(card)}';
-  }
-
   String _cardBadgeLabel(VirtualCard card) {
     if (card.isSingleUse) {
       return 'بطاقة خاصة';
@@ -321,65 +250,72 @@ class PDFService {
       final title = card.title?.trim() ?? '';
       return title.isNotEmpty ? title : _cardKindLabel(card);
     }
-    return CurrencyFormatter.formatAmount(card.value);
-  }
-
-  String _cardSubtitle(VirtualCard card) {
-    if (card.isDelivery) {
-      return _isVisuallyPrivate(card)
-          ? 'بطاقة توصيل خاصة لمستفيدين محددين'
-          : 'بطاقة رصيد عامة للتوصيل والمدفوعات';
-    }
-    if (card.isSingleUse) {
-      return 'بطاقة خاصة داخل النظام';
-    }
-    if (card.isAppointment) {
-      return 'تذكرة موعد خاصة لمستفيدين محددين';
-    }
-    if (card.isQueueTicket) {
-      return 'تذكرة طابور خاصة لمستفيدين محددين';
-    }
-    return _isVisuallyPrivate(card)
-        ? 'بطاقة رصيد خاصة لمستفيدين محددين'
-        : 'بطاقة رصيد عامة - ${_valueInArabicWords(card.value)}';
+    return _formattedCardValue(card);
   }
 
   pw.Widget _topHeader(
     _DenominationPalette palette, {
     required bool compact,
     required VirtualCard card,
+    String? printedBy,
   }) {
     final badgeFont = compact ? 4.8 : 8.8;
-    return pw.Align(
-      alignment: pw.Alignment.centerRight,
-      child: pw.Container(
-        padding: pw.EdgeInsets.symmetric(
-          horizontal: compact ? 3.8 : 8,
-          vertical: compact ? 1.3 : 3,
-        ),
-        decoration: pw.BoxDecoration(
-          color: _isVisuallyPrivate(card)
-              ? const PdfColor.fromInt(0xFFFFE4E6)
-              : palette.soft,
-          borderRadius: pw.BorderRadius.circular(compact ? 6 : 10),
-          border: pw.Border.all(
-            color: _isVisuallyPrivate(card)
-                ? const PdfColor.fromInt(0xFFFB7185)
-                : palette.border,
-            width: compact ? 0.45 : 0.9,
+    return pw.SizedBox(
+      height: compact ? 12 : 24,
+      child: pw.Stack(
+        children: [
+          pw.Positioned(
+            right: 0,
+            top: 0,
+            child: pw.Container(
+              padding: pw.EdgeInsets.symmetric(
+                horizontal: compact ? 3.8 : 8,
+                vertical: compact ? 1.3 : 3,
+              ),
+              decoration: pw.BoxDecoration(
+                color: _isVisuallyPrivate(card)
+                    ? const PdfColor.fromInt(0xFFFFE4E6)
+                    : palette.soft,
+                borderRadius: pw.BorderRadius.circular(compact ? 6 : 10),
+                border: pw.Border.all(
+                  color: _isVisuallyPrivate(card)
+                      ? const PdfColor.fromInt(0xFFFB7185)
+                      : palette.border,
+                  width: compact ? 0.45 : 0.9,
+                ),
+              ),
+              child: pw.Text(
+                _cardBadgeLabel(card),
+                textDirection: pw.TextDirection.rtl,
+                style: _textStyle(
+                  fontSize: badgeFont,
+                  bold: true,
+                  color: _isVisuallyPrivate(card)
+                      ? const PdfColor.fromInt(0xFFBE123C)
+                      : palette.primary,
+                ),
+              ),
+            ),
           ),
-        ),
-        child: pw.Text(
-          _cardBadgeLabel(card),
-          textDirection: pw.TextDirection.rtl,
-          style: _textStyle(
-            fontSize: badgeFont,
-            bold: true,
-            color: _isVisuallyPrivate(card)
-                ? const PdfColor.fromInt(0xFFBE123C)
-                : palette.primary,
+          pw.Positioned(
+            left: 0,
+            top: compact ? 0.3 : 1,
+            child: pw.SizedBox(
+              width: compact ? 52 : 124,
+              child: pw.Text(
+                _brandName(printedBy),
+                maxLines: 2,
+                textAlign: pw.TextAlign.left,
+                textDirection: pw.TextDirection.rtl,
+                style: _textStyle(
+                  fontSize: compact ? 5.4 : 10.2,
+                  bold: true,
+                  color: palette.primary,
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -407,83 +343,90 @@ class PDFService {
     required bool compact,
   }) {
     final isTicket = _isTicketCard(card);
-    final logoSize = compact ? 26.0 : 58.0;
+    final logoSize = compact ? 23.0 : 50.0;
     final titleFontSize = isTicket
         ? (compact ? 7.1 : 12.5)
-        : (compact ? 14.2 : 24.0);
+        : (compact ? 15.0 : 26.0);
+    final logoImage = _accountLogoImage ?? _defaultLogoImage;
 
-    return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.center,
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
-      children: [
-        if (_defaultLogoImage != null) ...[
-          _buildHeaderLogoBox(
-            _defaultLogoImage!,
-            size: logoSize,
-            compact: compact,
-          ),
-          pw.SizedBox(width: compact ? 4 : 10),
-        ],
-        pw.Flexible(
-          child: pw.Text(
-            _cardTitle(card),
-            maxLines: 2,
-            textAlign: pw.TextAlign.center,
-            textDirection: pw.TextDirection.rtl,
-            style: _textStyle(
-              fontSize: titleFontSize,
-              bold: true,
-              color: isTicket ? palette.primary : palette.value,
+    return pw.SizedBox(
+      height: compact ? 28 : 60,
+      child: pw.Stack(
+        children: [
+          if (designSettings.showLogo && logoImage != null)
+            pw.Positioned(
+              right: 0,
+              top: compact ? 2.5 : 5,
+              child: _buildHeaderLogoBox(
+                logoImage,
+                size: logoSize,
+                compact: compact,
+              ),
+            ),
+          pw.Center(
+            child: pw.Padding(
+              padding: pw.EdgeInsets.only(
+                right: designSettings.showLogo
+                    ? logoSize + (compact ? 3 : 8)
+                    : 0,
+                left: designSettings.showLogo
+                    ? logoSize + (compact ? 3 : 8)
+                    : 0,
+              ),
+              child: pw.Text(
+                _cardTitle(card),
+                maxLines: 2,
+                textAlign: pw.TextAlign.center,
+                textDirection: _cardTitleDirection(card),
+                style: _textStyle(
+                  fontSize: titleFontSize,
+                  bold: true,
+                  color: isTicket ? palette.primary : palette.value,
+                ),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  pw.Widget _buildStampBadge({required bool compact}) {
-    final borderRadius = compact ? 4.0 : 8.0;
-    return pw.Transform.rotateBox(
-      angle: compact ? -0.22 : -0.26,
-      child: pw.Opacity(
-        opacity: compact ? 0.38 : 0.34,
-        child: pw.Container(
-          padding: pw.EdgeInsets.symmetric(
-            horizontal: compact ? 3.6 : 8.0,
-            vertical: compact ? 1.8 : 4.2,
-          ),
-          decoration: pw.BoxDecoration(
-            color: PdfColors.white,
-            border: pw.Border.all(color: _stampColor, width: compact ? 0.7 : 1),
-            borderRadius: pw.BorderRadius.circular(borderRadius),
-          ),
-          child: pw.Container(
-            padding: pw.EdgeInsets.symmetric(
-              horizontal: compact ? 2.2 : 4.6,
-              vertical: compact ? 1.0 : 2.2,
-            ),
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(
-                color: _stampColor,
-                width: compact ? 0.45 : 0.7,
-              ),
-              borderRadius: pw.BorderRadius.circular(
-                compact ? 2.4 : borderRadius - 2,
-              ),
-            ),
-            child: pw.Text(
-              _resolvedStampText(),
-              textAlign: pw.TextAlign.center,
-              textDirection: pw.TextDirection.rtl,
-              style: _textStyle(
-                fontSize: compact ? 4.2 : 8.8,
-                bold: true,
-                color: _stampColor,
-              ),
-            ),
+  pw.Widget _postBarcodeFooter({required bool compact}) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          _resolvedStampText(),
+          textAlign: pw.TextAlign.center,
+          textDirection: pw.TextDirection.rtl,
+          style: _textStyle(
+            fontSize: compact ? 4.9 : 9.4,
+            bold: true,
+            color: const PdfColor.fromInt(0xFF991B1B),
           ),
         ),
-      ),
+        pw.SizedBox(height: compact ? 0.3 : 1.2),
+        pw.Text(
+          _appDomain,
+          textAlign: pw.TextAlign.center,
+          textDirection: pw.TextDirection.ltr,
+          style: _textStyle(
+            fontSize: compact ? 4.3 : 8.2,
+            bold: true,
+            color: _titleColor,
+          ),
+        ),
+        pw.SizedBox(height: compact ? 0.2 : 1),
+        pw.Text(
+          _trustedDigitalCardText,
+          textAlign: pw.TextAlign.center,
+          textDirection: pw.TextDirection.rtl,
+          style: _textStyle(
+            fontSize: compact ? 4.2 : 8,
+            bold: true,
+            color: _titleColor,
+          ),
+        ),
+      ],
     );
   }
 
@@ -576,8 +519,8 @@ class PDFService {
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(_a4PagePrintMargin),
+        pageFormat: PdfPageFormat(cellWidth, cellHeight),
+        margin: pw.EdgeInsets.zero,
         theme: pw.ThemeData.withFont(
           base: _regularFont!,
           bold: _boldFont!,
@@ -587,17 +530,15 @@ class PDFService {
           textDirection: pw.TextDirection.rtl,
           child: pw.Container(
             color: _pageBackground,
-            child: pw.Center(
-              child: pw.SizedBox(
-                width: cellWidth,
-                height: cellHeight,
-                child: pw.Padding(
-                  padding: const pw.EdgeInsets.all(_cardCutGap),
-                  child: _buildSmallCardWidget(
-                    card,
-                    printedBy: printedBy,
-                    serialNumber: serialNumber,
-                  ),
+            child: pw.SizedBox(
+              width: cellWidth,
+              height: cellHeight,
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.all(_cardCutGap),
+                child: _buildSmallCardWidget(
+                  card,
+                  printedBy: printedBy,
+                  serialNumber: serialNumber,
                 ),
               ),
             ),
@@ -702,34 +643,17 @@ class PDFService {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  _topHeader(palette, compact: true, card: card),
-                  pw.SizedBox(height: 2.6),
+                  _topHeader(
+                    palette,
+                    compact: true,
+                    card: card,
+                    printedBy: printedBy,
+                  ),
+                  pw.SizedBox(height: 1.8),
                   pw.Column(
                     children: [
                       _cardTitleWithLogo(card, palette, compact: true),
-                      pw.SizedBox(height: 1.6),
-                      pw.Text(
-                        _isTicketCard(card)
-                            ? _cardSubtitle(card)
-                            : 'بطاقة رقمية للاستخدام الداخلي',
-                        textAlign: pw.TextAlign.center,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(fontSize: 5.2, color: _mutedColor),
-                      ),
-                      if (!_isTicketCard(card)) ...[
-                        pw.SizedBox(height: 1.5),
-                        pw.Text(
-                          _cardSubtitle(card),
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 5,
-                            bold: true,
-                            color: palette.primary,
-                          ),
-                        ),
-                      ],
-                      pw.SizedBox(height: 1.5),
+                      pw.SizedBox(height: 2.3),
                       pw.Container(
                         padding: const pw.EdgeInsets.symmetric(
                           horizontal: 2.2,
@@ -764,99 +688,17 @@ class PDFService {
                           font: pw.Font.courier(),
                         ),
                       ),
+                      if (designSettings.showStamp) ...[
+                        pw.SizedBox(height: 0.4),
+                        _postBarcodeFooter(compact: true),
+                      ],
                     ],
                   ),
                   pw.Spacer(),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                    children: [
-                      pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(
-                          horizontal: 3,
-                          vertical: 1.2,
-                        ),
-                        decoration: pw.BoxDecoration(
-                          color: palette.soft,
-                          borderRadius: pw.BorderRadius.circular(4),
-                        ),
-                        child: pw.Text(
-                          'التسلسل: ${_formatSerialNumber(serialNumber)}',
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 4.4,
-                            bold: true,
-                            color: palette.primary,
-                          ),
-                        ),
-                      ),
-                      pw.SizedBox(height: 0.7),
-                      pw.Text(
-                        _printedByLabel(printedBy),
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(
-                          fontSize: 4.2,
-                          bold: true,
-                          color: palette.primary,
-                        ),
-                      ),
-                      pw.SizedBox(height: 0.4),
-                      pw.Text(
-                        'تاريخ الإصدار: ${DateFormat('dd/MM/yyyy').format(card.createdAt)}',
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(fontSize: 4.1, color: _mutedColor),
-                      ),
-                      pw.Text(
-                        'منشأ البطاقة: ${_originLabel(printedBy)}',
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(fontSize: 4.1, color: _mutedColor),
-                      ),
-                      pw.Text(
-                        'نوع البطاقة: ${_cardTypeLabel(card)}',
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(
-                          fontSize: 4.1,
-                          color: palette.primary,
-                        ),
-                      ),
-                      if (card.issueCost > 0)
-                        pw.Text(
-                          _isTicketCard(card)
-                              ? 'تكلفة الإصدار: ${CurrencyFormatter.formatAmount(card.issueCost)}'
-                              : 'رسوم عند الاستخدام: ${CurrencyFormatter.formatAmount(card.issueCost)}',
-                          textAlign: pw.TextAlign.right,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 4.0,
-                            color: palette.primary,
-                          ),
-                        ),
-                      pw.SizedBox(height: 0.3),
-                      pw.Text(
-                        'shwakil.alkmal.com',
-                        textAlign: pw.TextAlign.center,
-                        textDirection: pw.TextDirection.ltr,
-                        style: _textStyle(
-                          fontSize: 4.2,
-                          color: palette.primary,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
           ),
-          if (designSettings.showStamp)
-            pw.Positioned(
-              top: 20,
-              left: 1,
-              child: _buildStampBadge(compact: true),
-            ),
         ],
       ),
     );
@@ -935,47 +777,17 @@ class PDFService {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  _topHeader(palette, compact: false, card: card),
-                  pw.SizedBox(height: 16),
+                  _topHeader(
+                    palette,
+                    compact: false,
+                    card: card,
+                    printedBy: printedBy,
+                  ),
+                  pw.SizedBox(height: 10),
                   pw.Column(
                     children: [
                       _cardTitleWithLogo(card, palette, compact: false),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        _isTicketCard(card)
-                            ? _cardSubtitle(card)
-                            : 'بطاقة رقمية للاستخدام الداخلي',
-                        textAlign: pw.TextAlign.center,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(fontSize: 9.2, color: _mutedColor),
-                      ),
-                      if (!_isTicketCard(card)) ...[
-                        pw.SizedBox(height: 7),
-                        pw.Text(
-                          _cardSubtitle(card),
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 10,
-                            bold: true,
-                            color: palette.primary,
-                          ),
-                        ),
-                      ],
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        card.isDelivery
-                            ? (_isVisuallyPrivate(card)
-                                  ? 'صالحة للمستفيدين المحددين فقط'
-                                  : 'بطاقة رصيد عامة يمكن استخدامها للمدفوعات')
-                            : _isTicketCard(card)
-                            ? 'صالحة للمستفيدين المحددين فقط'
-                            : 'قيمة داخلية صالحة للاستخدام داخل النظام',
-                        textAlign: pw.TextAlign.center,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(fontSize: 8.2, color: _titleColor),
-                      ),
-                      pw.SizedBox(height: 8),
+                      pw.SizedBox(height: 12),
                       pw.Container(
                         padding: const pw.EdgeInsets.symmetric(
                           horizontal: 8,
@@ -1010,96 +822,17 @@ class PDFService {
                           font: pw.Font.courier(),
                         ),
                       ),
+                      if (designSettings.showStamp) ...[
+                        pw.SizedBox(height: 2),
+                        _postBarcodeFooter(compact: false),
+                      ],
                     ],
                   ),
                   pw.Spacer(),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                    children: [
-                      pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: pw.BoxDecoration(
-                          color: palette.soft,
-                          borderRadius: pw.BorderRadius.circular(8),
-                        ),
-                        child: pw.Text(
-                          'الرقم المتسلسل: ${_formatSerialNumber(serialNumber)}',
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 8.6,
-                            bold: true,
-                            color: palette.primary,
-                          ),
-                        ),
-                      ),
-                      pw.SizedBox(height: 3),
-                      pw.Text(
-                        _printedByLabel(printedBy),
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(
-                          fontSize: 8.1,
-                          bold: true,
-                          color: palette.primary,
-                        ),
-                      ),
-                      pw.Text(
-                        'نوع البطاقة: ${_cardTypeLabel(card)}',
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(
-                          fontSize: 7.9,
-                          color: palette.primary,
-                        ),
-                      ),
-                      if (card.issueCost > 0)
-                        pw.Text(
-                          _isTicketCard(card)
-                              ? 'تكلفة الإصدار: ${CurrencyFormatter.formatAmount(card.issueCost)}'
-                              : 'رسوم عند الاستخدام: ${CurrencyFormatter.formatAmount(card.issueCost)}',
-                          textAlign: pw.TextAlign.right,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 7.6,
-                            color: palette.primary,
-                          ),
-                        ),
-                      pw.SizedBox(height: 2),
-                      pw.Text(
-                        'تاريخ الإصدار: ${DateFormat('yyyy-MM-dd').format(card.createdAt)}',
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(fontSize: 7.8, color: _mutedColor),
-                      ),
-                      pw.Text(
-                        'منشأ البطاقة: ${_originLabel(printedBy)}',
-                        textAlign: pw.TextAlign.right,
-                        textDirection: pw.TextDirection.rtl,
-                        style: _textStyle(fontSize: 7.8, color: _mutedColor),
-                      ),
-                      pw.SizedBox(height: 2),
-                      pw.Text(
-                        'shwakil.alkmal.com',
-                        textAlign: pw.TextAlign.center,
-                        textDirection: pw.TextDirection.ltr,
-                        style: _textStyle(fontSize: 8, color: palette.primary),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
           ),
-          if (designSettings.showStamp)
-            pw.Positioned(
-              top: 52,
-              left: 8,
-              child: _buildStampBadge(compact: false),
-            ),
         ],
       ),
     );
@@ -1172,6 +905,10 @@ class PDFService {
     designSettings.logoText = settings.logoText;
     designSettings.logoUrl = settings.logoUrl;
     designSettings.stampText = settings.stampText;
+    designSettings.valueUnitText = _limitText(
+      settings.valueUnitText ?? '',
+      _maxValueUnitLength,
+    );
     _loadedLogoSource = null;
   }
 }

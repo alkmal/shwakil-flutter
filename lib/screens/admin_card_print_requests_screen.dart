@@ -275,13 +275,27 @@ class _AdminCardPrintRequestsScreenState
   }
 
   CardDesignSettings _settingsFromRequest(Map<String, dynamic> request) {
-    final title = UserDisplayName.fromMap(request, fallback: 'شواكل');
+    final printDesign = Map<String, dynamic>.from(
+      request['printDesign'] as Map? ??
+          request['print_design'] as Map? ??
+          const {},
+    );
+    final title =
+        (printDesign['logoText']?.toString().trim().isNotEmpty == true)
+        ? printDesign['logoText'].toString().trim()
+        : UserDisplayName.fromMap(request, fallback: 'شواكل');
     final settings = CardDesignSettings(
       showLogo: true,
-      showStamp: true,
+      showStamp: printDesign['showStamp'] is bool
+          ? printDesign['showStamp'] as bool
+          : true,
       logoText: title,
+      stampText: printDesign['stampText']?.toString(),
+      valueUnitText: printDesign['valueUnitText']?.toString(),
     );
-    final logoUrl = request['printLogoUrl']?.toString().trim() ?? '';
+    final logoUrl = printDesign['logoUrl']?.toString().trim().isNotEmpty == true
+        ? printDesign['logoUrl'].toString().trim()
+        : request['printLogoUrl']?.toString().trim() ?? '';
     settings.logoUrl = logoUrl.isEmpty ? null : logoUrl;
     return settings;
   }
@@ -944,8 +958,9 @@ class _AdminCardPrintRequestsScreenState
                   ),
                 ),
                 OutlinedButton.icon(
-                  onPressed:
-                      busy ? null : () => _showOverrideStatusDialog(request),
+                  onPressed: busy
+                      ? null
+                      : () => _showOverrideStatusDialog(request),
                   icon: const Icon(Icons.edit_rounded),
                   label: const Text('تعديل الحالة'),
                 ),
@@ -1016,18 +1031,9 @@ class _AdminCardPrintRequestsScreenState
                     value: 'printing',
                     child: Text('قيد الطباعة'),
                   ),
-                  DropdownMenuItem(
-                    value: 'ready',
-                    child: Text('جاهز للتسليم'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'completed',
-                    child: Text('مكتمل'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'rejected',
-                    child: Text('مرفوض'),
-                  ),
+                  DropdownMenuItem(value: 'ready', child: Text('جاهز للتسليم')),
+                  DropdownMenuItem(value: 'completed', child: Text('مكتمل')),
+                  DropdownMenuItem(value: 'rejected', child: Text('مرفوض')),
                 ],
                 onChanged: (value) => selected = value ?? selected,
               ),
@@ -1074,8 +1080,8 @@ class _AdminCardPrintRequestsScreenState
         setState(() {
           _requests = _requests
               .map(
-                (item) => (item['id']?.toString() ==
-                        updatedMap['id']?.toString())
+                (item) =>
+                    (item['id']?.toString() == updatedMap['id']?.toString())
                     ? updatedMap
                     : item,
               )
