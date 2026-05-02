@@ -462,6 +462,116 @@ class PDFService {
     );
   }
 
+  String _dateLabel(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString().padLeft(4, '0')}';
+  }
+
+  pw.Widget _cardMetadataFooter(
+    VirtualCard card, {
+    String? printedBy,
+    required int serialNumber,
+    required _DenominationPalette palette,
+    required bool compact,
+  }) {
+    final origin = (printedBy ?? '').trim();
+    final printedByLabel = origin.isEmpty
+        ? 'الجهة الطابعة: غير محددة'
+        : 'الجهة الطابعة: $origin';
+    final originLabel = origin.isEmpty ? 'غير محددة' : origin;
+    final serialLabel = serialNumber.toString().padLeft(4, '0');
+    final fontSize = compact ? 4.1 : 8.0;
+    final boldFontSize = compact ? 4.3 : 8.2;
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: [
+        pw.Container(
+          padding: pw.EdgeInsets.symmetric(
+            horizontal: compact ? 3 : 6,
+            vertical: compact ? 1.2 : 2.2,
+          ),
+          decoration: pw.BoxDecoration(
+            color: palette.soft,
+            borderRadius: pw.BorderRadius.circular(compact ? 4 : 6),
+          ),
+          child: pw.Text(
+            'التسلسل: $serialLabel',
+            textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
+            style: _textStyle(
+              fontSize: boldFontSize,
+              bold: true,
+              color: palette.primary,
+            ),
+          ),
+        ),
+        pw.SizedBox(height: compact ? 0.6 : 1.5),
+        pw.Text(
+          printedByLabel,
+          textAlign: pw.TextAlign.right,
+          textDirection: pw.TextDirection.rtl,
+          style: _textStyle(
+            fontSize: boldFontSize,
+            bold: true,
+            color: palette.primary,
+          ),
+        ),
+        pw.SizedBox(height: compact ? 0.3 : 0.8),
+        pw.Text(
+          'تاريخ الإصدار: ${_dateLabel(card.createdAt)}',
+          textAlign: pw.TextAlign.right,
+          textDirection: pw.TextDirection.rtl,
+          style: _textStyle(
+            fontSize: fontSize,
+            color: const PdfColor.fromInt(0xFF64748B),
+          ),
+        ),
+        pw.Text(
+          'منشأ البطاقة: $originLabel',
+          maxLines: 1,
+          textAlign: pw.TextAlign.right,
+          textDirection: pw.TextDirection.rtl,
+          style: _textStyle(
+            fontSize: fontSize,
+            color: const PdfColor.fromInt(0xFF64748B),
+          ),
+        ),
+        pw.Text(
+          'نوع البطاقة: ${_cardTypeLabel(card)}',
+          maxLines: 1,
+          textAlign: pw.TextAlign.right,
+          textDirection: pw.TextDirection.rtl,
+          style: _textStyle(
+            fontSize: fontSize,
+            bold: true,
+            color: palette.primary,
+          ),
+        ),
+        if (card.issueCost > 0)
+          pw.Text(
+            !_isTicketCard(card)
+                ? 'رسوم عند الاستخدام: ${CurrencyFormatter.formatAmount(card.issueCost)}'
+                : 'تكلفة الإصدار: ${CurrencyFormatter.formatAmount(card.issueCost)}',
+            maxLines: 1,
+            textAlign: pw.TextAlign.right,
+            textDirection: pw.TextDirection.rtl,
+            style: _textStyle(
+              fontSize: fontSize,
+              bold: true,
+              color: palette.primary,
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _cardTypeLabel(VirtualCard card) {
+    if (_isLocationSpecific(card)) {
+      return '${_cardKindLabel(card)} مخصصة لمكان محدد';
+    }
+    return '${_cardKindLabel(card)} ${_privacyLabel(card)}';
+  }
+
   Future<pw.Document> createCardPDF(
     VirtualCard card, {
     String? printedBy,
@@ -738,6 +848,13 @@ class PDFService {
                     ],
                   ),
                   pw.Spacer(),
+                  _cardMetadataFooter(
+                    card,
+                    printedBy: printedBy,
+                    serialNumber: serialNumber,
+                    palette: palette,
+                    compact: true,
+                  ),
                 ],
               ),
             ),
@@ -883,6 +1000,13 @@ class PDFService {
                     ],
                   ),
                   pw.Spacer(),
+                  _cardMetadataFooter(
+                    card,
+                    printedBy: printedBy,
+                    serialNumber: serialNumber,
+                    palette: palette,
+                    compact: false,
+                  ),
                 ],
               ),
             ),

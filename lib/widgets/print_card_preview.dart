@@ -265,6 +265,48 @@ class PrintCardPreview extends StatelessWidget {
 
   String get _serialLabel => serialNumber.toString().padLeft(4, '0');
 
+  Widget _postBarcodeFooter(_PrintPreviewPalette palette) {
+    if (!designSettings.showStamp) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        Text(
+          _stampText,
+          textAlign: TextAlign.center,
+          style: AppTheme.caption.copyWith(
+            fontSize: 4.9,
+            color: const Color(0xFF991B1B),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 0.3),
+        Text(
+          'shwakil.alkmal.com',
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.ltr,
+          style: AppTheme.caption.copyWith(
+            fontSize: 4.3,
+            color: const Color(0xFF16302B),
+            fontWeight: FontWeight.w800,
+            fontFamily: 'monospace',
+          ),
+        ),
+        const SizedBox(height: 0.2),
+        Text(
+          'شواكل بطاقتك الرقمية الموثقة',
+          textAlign: TextAlign.center,
+          style: AppTheme.caption.copyWith(
+            fontSize: 4.2,
+            color: const Color(0xFF16302B),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = _palette;
@@ -431,6 +473,8 @@ class PrintCardPreview extends StatelessWidget {
                                 letterSpacing: 0.3,
                               ),
                             ),
+                            const SizedBox(height: 0.4),
+                            _postBarcodeFooter(palette),
                           ],
                         ),
                         const Spacer(),
@@ -502,69 +546,11 @@ class PrintCardPreview extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                            const SizedBox(height: 0.3),
-                            Text(
-                              'shwakil.alkmal.com',
-                              textAlign: TextAlign.center,
-                              textDirection: TextDirection.ltr,
-                              style: AppTheme.caption.copyWith(
-                                fontSize: 4.2,
-                                color: palette.primary,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  if (designSettings.showStamp)
-                    Positioned(
-                      top: 20,
-                      left: 1,
-                      child: Transform.rotate(
-                        angle: -0.22,
-                        child: Opacity(
-                          opacity: 0.38,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 3.6,
-                              vertical: 1.8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(
-                                color: const Color(0xFFDC2626),
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 2.2,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(0xFFDC2626),
-                                  width: 0.45,
-                                ),
-                                borderRadius: BorderRadius.circular(2.4),
-                              ),
-                              child: Text(
-                                _stampText,
-                                textAlign: TextAlign.center,
-                                style: AppTheme.caption.copyWith(
-                                  fontSize: 4.2,
-                                  color: const Color(0xFFDC2626),
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
