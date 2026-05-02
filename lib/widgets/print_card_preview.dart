@@ -284,21 +284,25 @@ class PrintCardPreview extends StatelessWidget {
         const SizedBox(height: 0.3),
         Text(
           'shwakil.alkmal.com',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           textDirection: TextDirection.ltr,
           style: AppTheme.caption.copyWith(
-            fontSize: 4.3,
+            fontSize: 5.5,
             color: const Color(0xFF16302B),
             fontWeight: FontWeight.w800,
             fontFamily: 'monospace',
           ),
         ),
-        const SizedBox(height: 0.2),
+        const SizedBox(height: 0.35),
         Text(
           'شواكل بطاقتك الرقمية الموثقة',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: AppTheme.caption.copyWith(
-            fontSize: 4.2,
+            fontSize: 5.1,
             color: const Color(0xFF16302B),
             fontWeight: FontWeight.w800,
           ),

@@ -438,22 +438,24 @@ class PDFService {
         pw.SizedBox(height: compact ? 0.3 : 1.2),
         pw.Text(
           _appDomain,
+          maxLines: 1,
           textAlign: pw.TextAlign.center,
           textDirection: pw.TextDirection.ltr,
           style: _textStyle(
-            fontSize: compact ? 4.3 : 8.2,
+            fontSize: compact ? 5.5 : 10.5,
             bold: true,
             color: _titleColor,
             font: pw.Font.helveticaBold(),
           ),
         ),
-        pw.SizedBox(height: compact ? 0.2 : 1),
+        pw.SizedBox(height: compact ? 0.35 : 1.1),
         pw.Text(
           _trustedDigitalCardText,
+          maxLines: 1,
           textAlign: pw.TextAlign.center,
           textDirection: pw.TextDirection.rtl,
           style: _textStyle(
-            fontSize: compact ? 4.2 : 8,
+            fontSize: compact ? 5.1 : 10,
             bold: true,
             color: _titleColor,
           ),
