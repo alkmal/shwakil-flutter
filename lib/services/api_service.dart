@@ -1309,7 +1309,7 @@ class ApiService {
   Future<Map<String, dynamic>> sendAdminUserOtp({
     required String userId,
   }) async {
-    final response = await http.post(
+    final response = await http.get(
       AppConfig.apiUri('admin/users/$userId/send-otp'),
       headers: await _headers(),
     );
