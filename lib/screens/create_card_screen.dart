@@ -182,7 +182,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _isAttendanceCard;
   bool get _isTrialMode =>
       (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
-      'approved';
+          'approved' &&
+      (_cardType.trim().isEmpty || _isBalanceCard);
   int get _minimumCardQuantity {
     final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
     return raw < 1 ? 1 : raw;
