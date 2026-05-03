@@ -788,6 +788,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     setState(() => _isSearching = true);
     final result = await _lookupCard(barcode);
     if (!mounted) return;
+    final plainPrepaidPayload = result.card == null
+        ? _tryParsePlainPrepaidCardNumber(barcode)
+        : null;
+    if (plainPrepaidPayload != null &&
+        result.errorMessage == context.loc.tr('screens_scan_card_screen.040')) {
+      setState(() {
+        _card = null;
+        _isSearching = false;
+      });
+      await _handlePrepaidMultipayScan(plainPrepaidPayload);
+      return;
+    }
     setState(() {
       _card = result.card;
       _isSearching = false;
@@ -1745,6 +1757,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     return _tryParsePrepaidDelimitedPayload(trimmed);
   }
 
+  _PrepaidMultipayScanPayload? _tryParsePlainPrepaidCardNumber(String value) {
+    final digits = value.replaceAll(RegExp(r'\D+'), '');
+    if (!RegExp(r'^90\d{14}$').hasMatch(digits)) {
+      return null;
+    }
+
+    return _PrepaidMultipayScanPayload.fromMap({
+      'type': 'prepaid_multipay_card',
+      'cardNumber': digits,
+    });
+  }
+
   List<String> _prepaidPayloadCandidates(String value) {
     final candidates = <String>[value];
     final uri = Uri.tryParse(value);
@@ -1888,6 +1912,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         context,
         title: 'NFC غير متاح',
         message: 'فعّل NFC على الجهاز ثم حاول القراءة من شاشة الفحص.',
+        includeSupportGuidance: false,
+        reportVisibleError: false,
       );
       return;
     }
@@ -1920,6 +1946,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         context,
         title: 'تعذر قراءة NFC',
         message: ErrorMessageService.sanitize(error),
+        includeSupportGuidance: false,
+        reportVisibleError: false,
       );
     } finally {
       if (mounted) {
@@ -1986,6 +2014,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final lookup = await _lookupCard(scannedValue);
     if (!mounted) {
       return null;
+    }
+    final plainPrepaidPayload = lookup.card == null
+        ? _tryParsePlainPrepaidCardNumber(scannedValue)
+        : null;
+    if (plainPrepaidPayload != null &&
+        lookup.errorMessage == _t('screens_scan_card_screen.040')) {
+      setState(() {
+        _bcC.text = scannedValue;
+        _card = null;
+      });
+      return _resolvePrepaidMultipayDialogResult(plainPrepaidPayload);
     }
     setState(() {
       _bcC.text = scannedValue;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -23,21 +25,29 @@ class SupportContactCard extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l.tr('widgets_support_contact_card.001'))));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l.tr('widgets_support_contact_card.001'))),
+    );
   }
 
   Future<void> _openWhatsapp(BuildContext context) async {
     final l = context.loc;
     final uri = Uri.parse('https://wa.me/$phoneNumber');
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (opened || !context.mounted) {
-      return;
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      ).timeout(const Duration(seconds: 8));
+    } catch (_) {
+      opened = false;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l.tr('widgets_support_contact_card.002'))));
+    if (!context.mounted) return;
+    if (!opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.tr('widgets_support_contact_card.002'))),
+      );
+    }
   }
 
   @override

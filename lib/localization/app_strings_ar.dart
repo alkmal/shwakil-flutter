@@ -1098,9 +1098,9 @@ const Map<String, String> appStringsAr = {
   'screens_withdrawal_requests_screen.027':
       'لا توجد طلبات سحب مطابقة للفلاتر الحالية.',
   'screens_withdrawal_requests_screen.028': 'تحديث حالة طلب السحب',
-  'widgets_support_contact_card.001': 'هل تحتاج إلى مساعدة؟',
+  'widgets_support_contact_card.001': 'تم نسخ رقم الدعم',
   'widgets_support_contact_card.002':
-      'تواصل مع فريق الدعم مباشرة عبر رقم الدعم.',
+      'تعذر فتح الشات الآن. تحقق من اتصال الإنترنت أو انسخ الرقم وتواصل يدويًا.',
   'widgets_support_contact_card.003': 'الدعم المباشر',
   'widgets_support_contact_card.004': 'فتح واتساب',
   'widgets_support_contact_card.005': 'نسخ الرقم',

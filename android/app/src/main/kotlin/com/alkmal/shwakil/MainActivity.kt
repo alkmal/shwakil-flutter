@@ -11,6 +11,10 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterFragmentActivity() {
     companion object {
         private const val REFERRAL_CHANNEL = "com.alkmal.shwakil/referrals"
+        private const val HCE_CHANNEL = "com.alkmal.shwakil/hce"
+        private const val HCE_PREFS = "shwakil_hce_payment"
+        private const val HCE_PAYLOAD_KEY = "payload"
+        private const val HCE_EXPIRES_AT_KEY = "expires_at"
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -23,6 +27,39 @@ class MainActivity : FlutterFragmentActivity() {
             when (call.method) {
                 "getInitialReferralPayload" -> {
                     getInitialReferralPayload(result)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            HCE_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setPaymentPayload" -> {
+                    val payload = call.argument<String>("payload")?.trim().orEmpty()
+                    val expiresAt = call.argument<Number>("expiresAtMillis")?.toLong() ?: 0L
+                    if (payload.isEmpty() || expiresAt <= System.currentTimeMillis()) {
+                        result.error("invalid_payload", "Invalid HCE payment payload.", null)
+                        return@setMethodCallHandler
+                    }
+                    getSharedPreferences(HCE_PREFS, MODE_PRIVATE)
+                        .edit()
+                        .putString(HCE_PAYLOAD_KEY, payload)
+                        .putLong(HCE_EXPIRES_AT_KEY, expiresAt)
+                        .apply()
+                    result.success(true)
+                }
+
+                "clearPaymentPayload" -> {
+                    getSharedPreferences(HCE_PREFS, MODE_PRIVATE)
+                        .edit()
+                        .remove(HCE_PAYLOAD_KEY)
+                        .remove(HCE_EXPIRES_AT_KEY)
+                        .apply()
+                    result.success(true)
                 }
 
                 else -> result.notImplemented()

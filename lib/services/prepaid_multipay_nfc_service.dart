@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/ndef_record.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-// ignore: implementation_imports
-import 'package:nfc_manager/src/nfc_manager_android/tags/ndef_formatable.dart';
+import 'package:nfc_manager/nfc_manager_android.dart';
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
 
 class PrepaidMultipayNfcPayload {
@@ -145,7 +145,29 @@ class PrepaidMultipayNfcService {
   const PrepaidMultipayNfcService();
 
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  static const MethodChannel _hceChannel = MethodChannel(
+    'com.alkmal.shwakil/hce',
+  );
   static final Ed25519 _ed25519 = Ed25519();
+  static final Uint8List _hceSelectApdu = Uint8List.fromList([
+    0x00,
+    0xA4,
+    0x04,
+    0x00,
+    0x0A,
+    0xA0,
+    0x00,
+    0x00,
+    0x08,
+    0x58,
+    0x53,
+    0x48,
+    0x57,
+    0x4B,
+    0x01,
+    0x00,
+  ]);
+  static const int _hceReadChunkSize = 220;
 
   static String _privateKeyKey(String cardId) =>
       'prepaid_multipay_nfc_private_$cardId';
@@ -381,6 +403,33 @@ class PrepaidMultipayNfcService {
     );
   }
 
+  Future<void> publishHcePaymentAuthorization(
+    PrepaidMultipayNfcPaymentAuthorization authorization,
+  ) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      throw Exception('دفع NFC بدون وسم مدعوم على Android فقط.');
+    }
+
+    final expiresAtMillis = authorization.expiresAt
+        .toUtc()
+        .millisecondsSinceEpoch;
+    if (DateTime.now().toUtc().millisecondsSinceEpoch >= expiresAtMillis) {
+      throw Exception('انتهت صلاحية إذن NFC.');
+    }
+
+    await _hceChannel.invokeMethod<bool>('setPaymentPayload', {
+      'payload': jsonEncode(authorization.toJson()),
+      'expiresAtMillis': expiresAtMillis,
+    });
+  }
+
+  Future<void> clearHcePaymentAuthorization() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    await _hceChannel.invokeMethod<bool>('clearPaymentPayload');
+  }
+
   Future<PrepaidMultipayNfcPaymentAuthorization>
   readPaymentAuthorization() async {
     await _ensureAvailable();
@@ -437,6 +486,17 @@ class PrepaidMultipayNfcService {
         try {
           final ndef = Ndef.from(tag);
           if (ndef == null) {
+            final hceAuthorization = await _tryReadHcePaymentAuthorization(tag);
+            if (hceAuthorization != null) {
+              await NfcManager.instance.stopSession();
+              if (!completer.isCompleted) {
+                completer.complete(
+                  PrepaidMultipayNfcPaymentReadResult(hceAuthorization),
+                );
+              }
+              return;
+            }
+
             throw Exception(_unsupportedNdefMessage);
           }
 
@@ -480,6 +540,67 @@ class PrepaidMultipayNfcService {
     }
   }
 
+  Future<PrepaidMultipayNfcPaymentAuthorization?>
+  _tryReadHcePaymentAuthorization(NfcTag tag) async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return null;
+    }
+
+    final isoDep = IsoDepAndroid.from(tag);
+    if (isoDep == null) {
+      return null;
+    }
+
+    await isoDep.setTimeout(5000);
+    final selectResponse = await isoDep.transceive(_hceSelectApdu);
+    if (!_isSuccessStatus(selectResponse)) {
+      return null;
+    }
+
+    final bytes = <int>[];
+    var offset = 0;
+    while (true) {
+      final readApdu = Uint8List.fromList([
+        0x80,
+        0xCA,
+        (offset >> 8) & 0xff,
+        offset & 0xff,
+        _hceReadChunkSize,
+      ]);
+      final response = await isoDep.transceive(readApdu);
+      if (!_isSuccessStatus(response)) {
+        return null;
+      }
+      final chunk = response.sublist(0, response.length - 2);
+      if (chunk.isEmpty) {
+        break;
+      }
+      bytes.addAll(chunk);
+      offset += chunk.length;
+      if (chunk.length < _hceReadChunkSize) {
+        break;
+      }
+    }
+
+    if (bytes.isEmpty) {
+      return null;
+    }
+
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) {
+      return null;
+    }
+    return PrepaidMultipayNfcPaymentAuthorization.fromJson(
+      Map<String, dynamic>.from(decoded),
+    );
+  }
+
+  bool _isSuccessStatus(Uint8List response) {
+    return response.length >= 2 &&
+        response[response.length - 2] == 0x90 &&
+        response[response.length - 1] == 0x00;
+  }
+
   Future<void> _formatWritableTag(
     NfcTag tag, {
     required NdefMessage message,
@@ -495,7 +616,7 @@ class PrepaidMultipayNfcService {
   }
 
   static const String _unsupportedNdefMessage =
-      'هذا الوسم لا يدعم NDEF أو غير مهيأ للقراءة داخل شواكل. استخدم وسم NTAG213 أو NTAG215 أو NTAG216، أو اكتب بيانات البطاقة عليه من التطبيق أولًا.';
+      'لم يتم العثور على بيانات شواكل قابلة للقراءة على هذا الوسم. إذا كان الوسم جديدًا فاكتب بيانات البطاقة عليه من شاشة البطاقة أولًا، واستخدم وسم NTAG213 أو NTAG215 أو NTAG216.';
 
   NdefMessage _messageFromPayload(PrepaidMultipayNfcPayload payload) {
     final jsonPayload = jsonEncode(payload.toJson());

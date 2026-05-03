@@ -53,6 +53,8 @@ class AppAlertService {
     String? title,
     required String message,
     Map<String, dynamic>? extraContext,
+    bool includeSupportGuidance = true,
+    bool reportVisibleError = true,
   }) {
     return _show(
       context,
@@ -60,6 +62,8 @@ class AppAlertService {
       title: title ?? context.loc.tr('services_app_alert_service.002'),
       message: message,
       extraContext: extraContext,
+      includeSupportGuidance: includeSupportGuidance,
+      reportVisibleError: reportVisibleError,
     );
   }
 
@@ -259,14 +263,17 @@ class AppAlertService {
     required String title,
     required String message,
     Map<String, dynamic>? extraContext,
+    bool includeSupportGuidance = true,
+    bool reportVisibleError = true,
   }) async {
     final style = _styleFor(type);
     final cleanTitle = ErrorMessageService.forUser(title);
     final cleanMessage = ErrorMessageService.forUser(
       message,
-      includeSupportGuidance: type == AppAlertType.error,
+      includeSupportGuidance:
+          type == AppAlertType.error && includeSupportGuidance,
     );
-    if (type == AppAlertType.error) {
+    if (type == AppAlertType.error && reportVisibleError) {
       unawaited(
         _reportVisibleError(
           title: cleanTitle,
@@ -556,7 +563,24 @@ class AppAlertService {
   static Future<void> _openWhatsApp(String phone) async {
     final normalized = phone.replaceAll(RegExp(r'\D'), '');
     final uri = Uri.parse('https://wa.me/$normalized');
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      ).timeout(const Duration(seconds: 8));
+    } catch (_) {
+      opened = false;
+    }
+    final context = navigatorKey.currentContext;
+    if (!opened && context != null && context.mounted) {
+      showSnack(
+        context,
+        message:
+            'تعذر فتح الشات الآن. تحقق من اتصال الإنترنت أو انسخ الرقم وتواصل يدويًا.',
+        type: AppAlertType.error,
+      );
+    }
   }
 
   static String? _extractWhatsAppNumber(String message) {

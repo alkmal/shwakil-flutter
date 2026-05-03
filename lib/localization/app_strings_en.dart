@@ -1260,7 +1260,8 @@ const Map<String, String> appStringsEn = {
       'A proof image is required before approving the withdrawal request.',
   'screens_withdrawal_requests_screen.028': 'Write a short note for the user',
   'widgets_support_contact_card.001': 'Support number copied',
-  'widgets_support_contact_card.002': 'Could not open WhatsApp on this device',
+  'widgets_support_contact_card.002':
+      'Could not open chat right now. Check your internet connection or copy the number and contact support manually.',
   'widgets_support_contact_card.003': 'Support & Contact',
   'widgets_support_contact_card.004': 'Open WhatsApp',
   'widgets_support_contact_card.005': 'Copy number',

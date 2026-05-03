@@ -189,10 +189,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     required Color color,
   }) {
     return ShwakelCard(
-      onTap: url == null
-          ? null
-          : () =>
-                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      onTap: url == null ? null : () => _openExternalContactUrl(url),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -219,6 +216,30 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  Future<void> _openExternalContactUrl(String url) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      ).timeout(const Duration(seconds: 8));
+    } catch (_) {
+      opened = false;
+    }
+    if (!mounted || opened) {
+      return;
+    }
+    AppAlertService.showSnack(
+      context,
+      message: url.contains('wa.me')
+          ? 'تعذر فتح الشات الآن. تحقق من اتصال الإنترنت أو انسخ الرقم وتواصل يدويًا.'
+          : ErrorMessageService.sanitize(
+              'تعذر فتح الرابط الآن. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.',
+            ),
+      type: AppAlertType.error,
     );
   }
 }

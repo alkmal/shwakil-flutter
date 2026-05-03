@@ -1200,6 +1200,82 @@ class _PrepaidMultipayCardsScreenState
     }
   }
 
+  Future<void> _publishHcePaymentAuthorization(
+    Map<String, dynamic> card,
+  ) async {
+    if (!await _ensureNfcFeatureEnabled()) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    final status = card['status']?.toString() ?? '';
+    if (status != 'active') {
+      await AppAlertService.showError(
+        context,
+        title: 'بطاقة غير نشطة',
+        message: 'يمكن تجهيز دفع NFC للبطاقات النشطة فقط.',
+      );
+      return;
+    }
+
+    final input = await _showNfcPaymentInput();
+    if (!mounted || input == null) {
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(context);
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    setState(() => _isWritingNfcPayment = true);
+    try {
+      final cardId = card['id']?.toString() ?? '';
+      final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+      final appVersion = await AppVersionService.currentVersion();
+      final prepared = await _api.preparePrepaidMultipayNfcPayment(
+        cardId: cardId,
+        amount: input.amount,
+        pin: input.pin,
+        deviceId: deviceId,
+        appVersion: appVersion,
+        otpCode: security.otpCode,
+        localAuthMethod: security.method,
+      );
+      final authorization = await _nfc.signAuthorization(
+        cardId: cardId,
+        authorization: Map<String, dynamic>.from(
+          prepared['authorization'] as Map? ?? const {},
+        ),
+      );
+      await _nfc.publishHcePaymentAuthorization(authorization);
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم تجهيز دفع بدون وسم',
+        message:
+            'قرّب هذا الهاتف من هاتف التاجر قبل ${_formatDateTime(authorization.expiresAt.toLocal())}. يجب أن يستخدم التاجر زر فحص NFC من شاشة الفحص.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تجهيز دفع بدون وسم',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isWritingNfcPayment = false);
+      }
+    }
+  }
+
   Future<bool> _ensureNfcFeatureEnabled() async {
     if (_nfcEnabled) {
       return true;
@@ -1824,6 +1900,11 @@ class _PrepaidMultipayCardsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_canUsePrepaidCards &&
+              (status == 'active' || status == 'frozen')) ...[
+            _buildVisualCard(card),
+            const SizedBox(height: 16),
+          ],
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -1906,6 +1987,16 @@ class _PrepaidMultipayCardsScreenState
                   icon: const Icon(Icons.tap_and_play_rounded),
                   label: Text(
                     _isWritingNfcPayment ? 'جاري التجهيز' : 'دفع NFC',
+                  ),
+                ),
+              if (status == 'active' && showNfcActions)
+                OutlinedButton.icon(
+                  onPressed: _isWritingNfcPayment
+                      ? null
+                      : () => _publishHcePaymentAuthorization(card),
+                  icon: const Icon(Icons.contactless_rounded),
+                  label: Text(
+                    _isWritingNfcPayment ? 'جاري التجهيز' : 'دفع بدون وسم',
                   ),
                 ),
               if (showNfcActions)
