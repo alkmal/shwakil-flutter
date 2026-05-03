@@ -640,11 +640,17 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     final baseTitle = _detailsTitleC.text.trim();
+    final trialCardType =
+        _cardType.trim().isEmpty ? 'standard' : _cardType.trim();
+    final trialIsBalanceCard =
+        trialCardType == 'standard' || trialCardType == 'delivery';
+    final trialValue = trialIsBalanceCard ? amount : 0.0;
+    final trialDetails = _currentCardDetails();
     final items = List.generate(quantity, (index) {
       return <String, dynamic>{
-        'value': amount,
-        'cardType': _cardType,
-        'cardDetails': _currentCardDetails(),
+        'value': trialValue,
+        'cardType': trialCardType,
+        'cardDetails': trialDetails,
         if (baseTitle.isNotEmpty)
           'title': quantity == 1 ? baseTitle : '$baseTitle ${index + 1}',
       };
@@ -655,6 +661,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       try {
         final cards = await _apiService.issueTrialCards(
           items: items,
+          cardType: trialCardType,
           otpCode: securityResult.otpCode,
           localAuthMethod: securityResult.method,
         );
