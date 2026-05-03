@@ -1192,7 +1192,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.046': 'Close',
   'screens_account_settings_screen.056': 'Delete account',
   'screens_account_settings_screen.057':
-      'The account will appear as deleted and you will be signed out. You cannot create a new account with the same phone number unless admin restores this account. Do you want to continue?',
+      'The account will be permanently deleted from the app and you will be signed out from this device. Do you want to continue?',
   'screens_account_settings_screen.058': 'Cancel',
   'screens_account_settings_screen.059': 'Could not delete account',
   'screens_account_settings_screen.060':
@@ -1203,7 +1203,7 @@ const Map<String, String> appStringsEn = {
   'screens_account_settings_screen.063': 'Go to sign in',
   'screens_account_settings_screen.064': 'Help',
   'screens_account_settings_screen.065':
-      'You can delete the account from here. To use the same phone number again, contact admin to restore this account.',
+      'You can start deleting the account permanently from here.',
   'screens_account_settings_screen.066': 'Quick help',
   'screens_account_settings_screen.067':
       'This section is for updating account details and password. Important notices appear above the form only when needed.',

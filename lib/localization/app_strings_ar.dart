@@ -1033,7 +1033,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.046': 'إغلاق',
   'screens_account_settings_screen.056': 'حذف الحساب',
   'screens_account_settings_screen.057':
-      'سيظهر الحساب كمحذوف وسيتم تسجيل خروجك. لا يمكنك إنشاء حساب جديد بنفس الرقم إلا عبر مراجعة الإدارة لاستعادة الحساب. هل تريد المتابعة؟',
+      'سيتم حذف الحساب نهائيًا من داخل التطبيق وتسجيل خروجك من هذا الجهاز. هل تريد المتابعة؟',
   'screens_account_settings_screen.058': 'إلغاء',
   'screens_account_settings_screen.059': 'تعذر حذف الحساب',
   'screens_account_settings_screen.060': 'لا تملك صلاحية عرض إعدادات الحساب',
@@ -1043,7 +1043,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.063': 'الانتقال إلى تسجيل الدخول',
   'screens_account_settings_screen.064': 'مساعدة',
   'screens_account_settings_screen.065':
-      'يمكنك حذف الحساب من هنا. إذا أردت استخدام نفس الرقم مرة أخرى ستحتاج لمراجعة الإدارة لاستعادة الحساب.',
+      'يمكنك بدء حذف الحساب نهائيًا من هنا مباشرة.',
   'screens_account_settings_screen.066': 'مساعدة سريعة',
   'screens_account_settings_screen.067':
       'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',

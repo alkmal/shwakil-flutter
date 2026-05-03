@@ -2397,15 +2397,11 @@ class ApiService {
 
   Future<List<VirtualCard>> issueTrialCards({
     required List<Map<String, dynamic>> items,
-    String cardType = 'standard',
     String? otpCode,
     String? localAuthMethod,
   }) async {
-    final normalizedCardType =
-        cardType.trim().isEmpty ? 'standard' : cardType.trim();
     final payload = <String, dynamic>{
       'items': items,
-      'cardType': normalizedCardType,
       if (otpCode != null && otpCode.trim().isNotEmpty)
         'otpCode': otpCode.trim(),
       if (otpCode == null || otpCode.trim().isEmpty)

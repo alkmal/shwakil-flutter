@@ -73,11 +73,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _load();
-      }
-    });
+    _load();
   }
 
   @override
@@ -114,9 +110,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         _user = user;
         _feeSettings = feeSettings;
         _isAuthorized = permissions.canIssueCards;
-        final isTrialMode =
-            (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
-            'approved';
+        final isTrialMode = user?['canIssueTrialCards'] == true;
         final accountName = UserDisplayName.fromMap(
           user,
           fallback: l.tr('screens_create_card_screen.001'),
@@ -179,9 +173,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _isQueueCard ||
       _isSubscriptionCard ||
       _isAttendanceCard;
-  bool get _isTrialMode =>
-      (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
-      'approved';
+  bool get _isTrialMode => _user?['canIssueTrialCards'] == true;
   int get _minimumCardQuantity {
     final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
     return raw < 1 ? 1 : raw;
@@ -648,17 +640,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     final baseTitle = _detailsTitleC.text.trim();
-    final trialCardType =
-        _cardType.trim().isEmpty ? 'standard' : _cardType.trim();
-    final trialIsBalanceCard =
-        trialCardType == 'standard' || trialCardType == 'delivery';
-    final trialValue = trialIsBalanceCard ? amount : 0.0;
-    final trialDetails = _currentCardDetails();
     final items = List.generate(quantity, (index) {
       return <String, dynamic>{
-        'value': trialValue,
-        'cardType': trialCardType,
-        'cardDetails': trialDetails,
+        'value': amount,
         if (baseTitle.isNotEmpty)
           'title': quantity == 1 ? baseTitle : '$baseTitle ${index + 1}',
       };
@@ -669,7 +653,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       try {
         final cards = await _apiService.issueTrialCards(
           items: items,
-          cardType: trialCardType,
           otpCode: securityResult.otpCode,
           localAuthMethod: securityResult.method,
         );

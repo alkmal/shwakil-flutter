@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../localization/app_localization.dart';
 
@@ -8,6 +8,95 @@ import '../localization/app_localization.dart';
 /// shown in multiple screens (admin customer, sub-users, settings), and we
 /// want consistent wording.
 class PermissionCatalog {
+  static const List<PermissionGroup> groups = [
+    PermissionGroup(
+      title: 'الواجهة والعرض',
+      icon: Icons.visibility_rounded,
+      keys: [
+        'canViewBalance',
+        'canViewTransactions',
+        'canViewInventory',
+        'canViewAffiliateCenter',
+        'canViewContact',
+        'canViewLocations',
+        'canViewUsagePolicy',
+        'canViewSecuritySettings',
+        'canViewAccountSettings',
+        'canRequestVerification',
+      ],
+    ),
+    PermissionGroup(
+      title: 'المحفظة والديون',
+      icon: Icons.account_balance_wallet_rounded,
+      keys: [
+        'canTransfer',
+        'canWithdraw',
+        'canRedeemCards',
+        'canManageDebtBook',
+      ],
+    ),
+    PermissionGroup(
+      title: 'إصدار البطاقات والتذاكر',
+      icon: Icons.credit_card_rounded,
+      keys: [
+        'canIssueCards',
+        'canIssueSubShekelCards',
+        'canIssueHighValueCards',
+        'canIssuePrivateCards',
+        'canIssueSingleUseTickets',
+        'canIssueAppointmentTickets',
+        'canIssueQueueTickets',
+      ],
+    ),
+    PermissionGroup(
+      title: 'فحص البطاقات والتحكم بها',
+      icon: Icons.qr_code_scanner_rounded,
+      keys: [
+        'canScanCards',
+        'canOfflineCardScan',
+        'canViewPrivateCards',
+        'canReadOwnPrivateCardsOnly',
+        'canDeleteCards',
+        'canResellCards',
+      ],
+    ),
+    PermissionGroup(
+      title: 'الطباعة',
+      icon: Icons.print_rounded,
+      keys: [
+        'canRequestCardPrinting',
+        'canManageCardPrintRequests',
+      ],
+    ),
+    PermissionGroup(
+      title: 'الدفع المسبق',
+      icon: Icons.contactless_rounded,
+      keys: [
+        'canUsePrepaidMultipayCards',
+        'canAcceptPrepaidMultipayPayments',
+        'canUsePrepaidMultipayNfc',
+      ],
+    ),
+    PermissionGroup(
+      title: 'الإدارة والمراجعات',
+      icon: Icons.admin_panel_settings_rounded,
+      keys: [
+        'canViewCustomers',
+        'canLookupMembers',
+        'canManageUsers',
+        'canFinanceTopup',
+        'canManageMarketingAccounts',
+        'canManageSubUsers',
+        'canManageLocations',
+        'canManageSystemSettings',
+        'canReviewWithdrawals',
+        'canReviewTopups',
+        'canReviewDevices',
+        'canExportCustomerTransactions',
+      ],
+    ),
+  ];
+
   static String label(BuildContext context, String key) {
     final l = context.loc;
     final localizedKey = _localizedLabels[key];
@@ -45,8 +134,8 @@ class PermissionCatalog {
     'canViewTransactions': 'عرض الحركات المالية',
     'canViewInventory': 'عرض المخزون',
     'canTransfer': 'تحويل الرصيد',
-    'canWithdraw': 'طلب السحب',
-    'canRedeemCards': 'استرداد/سحب رصيد البطاقات',
+    'canWithdraw': 'سحب رصيد المحفظة',
+    'canRedeemCards': 'اعتماد واسترداد البطاقات',
     'canIssueCards': 'إصدار البطاقات',
     'canIssueSubShekelCards': 'إصدار بطاقات منخفضة القيمة',
     'canIssueHighValueCards': 'إصدار بطاقات عالية القيمة',
@@ -79,7 +168,7 @@ class PermissionCatalog {
     'canReviewDevices': 'مراجعة الأجهزة',
     'canExportCustomerTransactions': 'تصدير حركات المستخدمين',
     'canViewAffiliateCenter': 'عرض مركز التسويق',
-    'canManageDebtBook': 'إدارة دفتر الديون',
+    'canManageDebtBook': 'دفتر الديون',
   };
 
   static const Map<String, String> _arabicDescriptions = {
@@ -87,8 +176,9 @@ class PermissionCatalog {
     'canViewTransactions': 'السماح بعرض سجل الحركات المالية.',
     'canViewInventory': 'السماح بعرض/إدارة المخزون المرتبط بالحساب.',
     'canTransfer': 'تنفيذ تحويلات رصيد (إرسال).',
-    'canWithdraw': 'إنشاء طلب سحب رصيد من المحفظة.',
-    'canRedeemCards': 'اعتماد البطاقة وتحويل قيمتها إلى رصيد (استرداد).',
+    'canWithdraw': 'إنشاء طلب سحب من رصيد المحفظة عند توفره.',
+    'canRedeemCards':
+        'اعتماد البطاقة وتحويل قيمتها إلى رصيد. الحسابات العادية مقيدة ببطاقاتها فقط.',
     'canIssueCards': 'إنشاء/إصدار بطاقات جديدة.',
     'canIssueSubShekelCards': 'السماح بإصدار بطاقات بقيم صغيرة جدا.',
     'canIssueHighValueCards': 'السماح بإصدار بطاقات بقيم عالية.',
@@ -123,6 +213,18 @@ class PermissionCatalog {
     'canReviewDevices': 'مراجعة واعتماد الأجهزة المرتبطة بالحسابات.',
     'canExportCustomerTransactions': 'تصدير حركات المستخدمين (CSV).',
     'canViewAffiliateCenter': 'فتح شاشة مركز التسويق.',
-    'canManageDebtBook': 'إدارة دفتر الديون للحساب.',
+    'canManageDebtBook': 'فتح دفتر الديون وإدارة الديون المرتبطة بالحساب.',
   };
+}
+
+class PermissionGroup {
+  const PermissionGroup({
+    required this.title,
+    required this.icon,
+    required this.keys,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<String> keys;
 }
