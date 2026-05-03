@@ -3318,6 +3318,8 @@ class ApiService {
     required String signature,
     required String idempotencyKey,
     String? merchantDeviceId,
+    String? acceptedAt,
+    bool offlineAccepted = false,
   }) async {
     final response = await http.post(
       AppConfig.apiUri('prepaid-multipay-cards/nfc/payments'),
@@ -3328,6 +3330,9 @@ class ApiService {
         'idempotencyKey': idempotencyKey,
         if (merchantDeviceId != null && merchantDeviceId.trim().isNotEmpty)
           'merchantDeviceId': merchantDeviceId.trim(),
+        if (acceptedAt != null && acceptedAt.trim().isNotEmpty)
+          'acceptedAt': acceptedAt.trim(),
+        if (offlineAccepted) 'offlineAccepted': true,
       }),
     );
     final body = _decodeObject(response);

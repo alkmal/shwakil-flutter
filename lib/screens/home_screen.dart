@@ -30,10 +30,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
   final DebtBookService _debtBookService = DebtBookService();
+  final PrepaidMultipayOfflineCacheService _prepaidOfflineCache =
+      const PrepaidMultipayOfflineCacheService();
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
   bool _hasOfflineWorkspace = false;
+  bool _hasOfflinePrepaidCards = false;
   bool _isSyncingOfflineWorkspace = false;
   bool _didPromptLocalSecuritySetup = false;
   bool _isBalanceVisible = true;
@@ -102,6 +105,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return AppPermissions.fromUser(_user).canOfflineCardScan;
   }
 
+  bool get _canOpenPrepaidOfflineCards {
+    return _hasOfflinePrepaidCards ||
+        AppPermissions.fromUser(_user).canOpenPrepaidMultipayCards;
+  }
+
   bool get _canOpenCardTools {
     return AppPermissions.fromUser(_user).canOpenCardTools;
   }
@@ -165,10 +173,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     required bool isLoading,
   }) async {
     final hasOfflineWorkspaceFuture = _resolveOfflineWorkspace(user);
+    final hasOfflinePrepaidCardsFuture = _prepaidOfflineCache.hasCards();
     final offlineOverviewFuture = _resolveOfflineOverview(user);
     final isBalanceVisibleFuture = _resolveBalanceVisibility(user);
 
     final hasOfflineWorkspace = await hasOfflineWorkspaceFuture;
+    final hasOfflinePrepaidCards = await hasOfflinePrepaidCardsFuture;
     final offlineOverview = await offlineOverviewFuture;
     final isBalanceVisible = await isBalanceVisibleFuture;
 
@@ -178,6 +188,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     setState(() {
       _user = user;
       _hasOfflineWorkspace = hasOfflineWorkspace;
+      _hasOfflinePrepaidCards = hasOfflinePrepaidCards;
       _isBalanceVisible = isBalanceVisible;
       _pendingOfflineCount =
           (offlineOverview['pendingCount'] as num?)?.toInt() ?? 0;
@@ -295,7 +306,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     _lastKnownDeviceOnline = isOnline;
 
     if (lostConnection) {
-      final canOffline = _canOfflineScan;
+      final canOffline = _canOfflineScan || _hasOfflinePrepaidCards;
       if (canOffline) {
         OfflineSessionService.setOfflineMode(true);
         AppAlertService.showSnack(
@@ -631,7 +642,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     String routeName, {
     Object? arguments,
   }) async {
-    if (OfflineSessionService.isOfflineMode && routeName != '/inventory') {
+    if (OfflineSessionService.isOfflineMode &&
+        routeName != '/inventory' &&
+        routeName != '/prepaid-multipay-cards') {
       await _showOfflineBlockedMessage();
       return;
     }
@@ -700,7 +713,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
-    final canOpenPrepaidMultipayCards = permissions.canOpenPrepaidMultipayCards;
+    final canOpenPrepaidMultipayCards = _canOpenPrepaidOfflineCards;
     final canAcceptNfcPayments = permissions.canAcceptPrepaidMultipayPayments;
     final l = context.loc;
     final showOfflineSyncAction =
@@ -775,6 +788,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             color: AppTheme.textSecondary,
             kind: _HomeServiceKind.inventory,
             onTap: () => unawaited(_openOnlineOnlyRoute('/inventory')),
+          ),
+        if (canOpenPrepaidMultipayCards)
+          _HomeServiceItem(
+            title: l.tr('screens_home_screen.118'),
+            subtitle: 'بطاقات محفوظة على الجهاز للعرض والدفع بدون تلامس.',
+            icon: Icons.credit_card_rounded,
+            color: const Color(0xFF334155),
+            kind: _HomeServiceKind.prepaidMultipay,
+            onTap: () =>
+                Navigator.pushNamed(context, '/prepaid-multipay-cards'),
+            badgeIcon: Icons.offline_bolt_rounded,
+            badgeColor: AppTheme.warning,
           ),
       ];
     }
@@ -887,14 +912,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _HomeServiceItem(
           title: l.tr('screens_home_screen.121'),
           subtitle: l.tr('screens_home_screen.122'),
-          icon: Icons.nfc_rounded,
+          icon: Icons.contactless_rounded,
           color: const Color(0xFF0F766E),
           kind: _HomeServiceKind.prepaidMultipay,
-          onTap: () => unawaited(
-            _openOnlineOnlyRoute(
-              '/prepaid-multipay-cards',
-              arguments: const {'openPaymentsTab': true, 'autoAcceptNfc': true},
-            ),
+          onTap: () => Navigator.pushNamed(
+            context,
+            '/prepaid-multipay-contactless-accept',
+            arguments: const {'autoReadNfc': true},
           ),
           badgeIcon: Icons.contactless_rounded,
           badgeColor: AppTheme.success,

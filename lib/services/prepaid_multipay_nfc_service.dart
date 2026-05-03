@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
@@ -173,6 +174,8 @@ class PrepaidMultipayNfcService {
       'prepaid_multipay_nfc_private_$cardId';
   static String _publicKeyKey(String cardId) =>
       'prepaid_multipay_nfc_public_$cardId';
+  static String _bindingKey(String cardId) =>
+      'prepaid_multipay_nfc_binding_$cardId';
 
   Future<bool> isAvailable() async {
     if (kIsWeb) {
@@ -318,6 +321,116 @@ class PrepaidMultipayNfcService {
   Future<void> deleteSigningKeyPair(String cardId) async {
     await _secureStorage.delete(key: _privateKeyKey(cardId));
     await _secureStorage.delete(key: _publicKeyKey(cardId));
+    await _secureStorage.delete(key: _bindingKey(cardId));
+  }
+
+  Future<void> savePaymentBinding({
+    required String cardId,
+    required String deviceId,
+    required String cardRef,
+    int lastSequence = 0,
+  }) async {
+    final normalizedCardId = cardId.trim();
+    final normalizedDeviceId = deviceId.trim();
+    final normalizedCardRef = cardRef.trim();
+    if (normalizedCardId.isEmpty ||
+        normalizedDeviceId.isEmpty ||
+        normalizedCardRef.isEmpty) {
+      return;
+    }
+    final existing = await paymentBinding(normalizedCardId);
+    await _secureStorage.write(
+      key: _bindingKey(normalizedCardId),
+      value: jsonEncode({
+        'deviceId': normalizedDeviceId,
+        'cardRef': normalizedCardRef,
+        'lastSequence': max(
+          lastSequence,
+          (existing?['lastSequence'] as num?)?.toInt() ?? 0,
+        ),
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      }),
+    );
+  }
+
+  Future<Map<String, dynamic>?> paymentBinding(String cardId) async {
+    final raw = await _secureStorage.read(key: _bindingKey(cardId.trim()));
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return null;
+      }
+      final cardRef = decoded['cardRef']?.toString().trim() ?? '';
+      final deviceId = decoded['deviceId']?.toString().trim() ?? '';
+      if (cardRef.isEmpty || deviceId.isEmpty) {
+        return null;
+      }
+      return {
+        'cardRef': cardRef,
+        'deviceId': deviceId,
+        'lastSequence': (decoded['lastSequence'] as num?)?.toInt() ?? 0,
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> rememberPaymentSequence({
+    required String cardId,
+    required int sequence,
+  }) async {
+    final binding = await paymentBinding(cardId);
+    if (binding == null) {
+      return;
+    }
+    await savePaymentBinding(
+      cardId: cardId,
+      deviceId: binding['deviceId']?.toString() ?? '',
+      cardRef: binding['cardRef']?.toString() ?? '',
+      lastSequence: sequence,
+    );
+  }
+
+  Future<PrepaidMultipayNfcPaymentAuthorization>
+  buildOfflinePaymentAuthorization({
+    required String cardId,
+    required double amount,
+    String merchantId = '',
+    String appVersion = '',
+  }) async {
+    final binding = await paymentBinding(cardId);
+    if (binding == null) {
+      throw Exception(
+        'يجب تجهيز الجهاز للدفع بدون تلامس مرة واحدة أثناء الاتصال بالإنترنت.',
+      );
+    }
+
+    final sequence = ((binding['lastSequence'] as num?)?.toInt() ?? 0) + 1;
+    final issuedAt = DateTime.now().toUtc();
+    final expiresAt = issuedAt.add(const Duration(seconds: 60));
+    final authorization = await signAuthorization(
+      cardId: cardId,
+      authorization: {
+        'version': 1,
+        'type': 'prepaid_multipay_nfc_payment',
+        'cardRef': binding['cardRef']?.toString() ?? '',
+        'deviceId': binding['deviceId']?.toString() ?? '',
+        'merchantId': merchantId.trim(),
+        'amount': amount.toStringAsFixed(2),
+        'currency': 'ILS',
+        'nonce': _randomHex(16),
+        'sequence': sequence,
+        'issuedAt': issuedAt.toIso8601String(),
+        'expiresAt': expiresAt.toIso8601String(),
+        'appVersion': appVersion.trim(),
+        'offlinePrepared': true,
+      },
+    );
+    await rememberPaymentSequence(cardId: cardId, sequence: sequence);
+    return authorization;
   }
 
   Future<PrepaidMultipayNfcPaymentAuthorization> signAuthorization({
@@ -744,5 +857,14 @@ class PrepaidMultipayNfcService {
             ? _canonicalize(Map<String, dynamic>.from(value[key] as Map))
             : value[key],
     };
+  }
+
+  String _randomHex(int byteCount) {
+    final random = Random.secure();
+    final buffer = StringBuffer();
+    for (var i = 0; i < byteCount; i++) {
+      buffer.write(random.nextInt(256).toRadixString(16).padLeft(2, '0'));
+    }
+    return buffer.toString();
   }
 }

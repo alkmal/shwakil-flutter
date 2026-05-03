@@ -24,4 +24,5 @@ export 'offline_session_service.dart';
 export 'connectivity_service.dart';
 export 'debt_book_service.dart';
 export 'prepaid_multipay_nfc_service.dart';
+export 'prepaid_multipay_offline_cache_service.dart';
 export '../localization/index.dart';

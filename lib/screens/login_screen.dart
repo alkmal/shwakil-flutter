@@ -40,11 +40,14 @@ class _LoginScreenState extends State<LoginScreen> {
   );
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
+  final PrepaidMultipayOfflineCacheService _prepaidOfflineCache =
+      const PrepaidMultipayOfflineCacheService();
 
   bool _isLoading = false;
   bool _isWaitingForDeviceApproval = false;
   bool _obscurePassword = true;
   bool _registrationEnabled = true;
+  bool _hasOfflinePrepaidCards = false;
   String? _supportWhatsapp;
 
   String get _postAuthRoute => widget.redirectRoute?.trim().isNotEmpty == true
@@ -60,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
         : (kDebugMode ? 'debug_admin' : '');
     OfflineSessionService.setOfflineMode(widget.offlineMode);
     _loadAuthSettings();
+    _loadOfflinePrepaidCardsState();
   }
 
   @override
@@ -87,6 +91,17 @@ class _LoginScreenState extends State<LoginScreen> {
         _supportWhatsapp = ContactInfoService.supportWhatsapp(contact);
       });
     } catch (_) {}
+  }
+
+  Future<void> _loadOfflinePrepaidCardsState() async {
+    if (!widget.offlineMode) {
+      return;
+    }
+    final hasCards = await _prepaidOfflineCache.hasCards();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _hasOfflinePrepaidCards = hasCards);
   }
 
   String? _validateLoginInputs({
@@ -475,6 +490,19 @@ class _LoginScreenState extends State<LoginScreen> {
             icon: Icons.login_rounded,
             gradient: AppTheme.primaryGradient,
           ),
+          if (widget.offlineMode && _hasOfflinePrepaidCards) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ShwakelButton(
+                label: 'فتح البطاقات المحفوظة',
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/prepaid-multipay-cards'),
+                icon: Icons.credit_card_rounded,
+                isSecondary: true,
+              ),
+            ),
+          ],
           if (!widget.offlineMode) ...[
             const SizedBox(height: 12),
             SizedBox(

@@ -42,6 +42,9 @@ class ScanCardScreen extends StatefulWidget {
 }
 
 class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
+  static const String _offlineNfcQueueKey =
+      'prepaid_multipay_nfc_merchant_queue_v1';
+
   final TextEditingController _bcC = TextEditingController();
   final ApiService _api = ApiService();
   final AuthService _auth = AuthService();
@@ -152,6 +155,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         });
       }
       if (widget.offlineMode &&
+          !widget.autoReadNfc &&
           !await _ensureOfflinePermissionAllowed(redirectIfDenied: true)) {
         return;
       }
@@ -165,6 +169,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         _refreshOfflineCardStatus(),
         _loadOfflineTransferSlotCount(),
         _ensureOfflineTemporaryTransferSlots(),
+        _syncOfflineNfcPayments(),
       ]);
       _maybeOpenScannerAutomatically();
       if (widget.openTemporaryTransferCreator && mounted) {
@@ -404,6 +409,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (isOnline) {
       unawaited(_ensureOfflineTemporaryTransferSlots());
       unawaited(_syncOfflineCardsForCurrentUser());
+      unawaited(_syncOfflineNfcPayments());
     } else {
       unawaited(_loadOfflineTransferSlotCount());
     }
@@ -1901,7 +1907,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Future<void> _readNfcFromUnifiedScanner() async {
-    if (widget.offlineMode || _isReadingNfc || _isPreparingScreen) {
+    if (_isReadingNfc || _isPreparingScreen) {
       return;
     }
     if (!await _nfc.isAvailable()) {
@@ -1910,8 +1916,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
       await AppAlertService.showError(
         context,
-        title: 'NFC غير متاح',
-        message: 'فعّل NFC على الجهاز ثم حاول القراءة من شاشة الفحص.',
+        title: 'الدفع بدون تلامس غير متاح',
+        message: 'فعّل الاتصال القريب على الجهاز ثم حاول القراءة مرة أخرى.',
         includeSupportGuidance: false,
         reportVisibleError: false,
       );
@@ -1944,7 +1950,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر قراءة NFC',
+        title: 'تعذر قراءة الدفع بدون تلامس',
         message: ErrorMessageService.sanitize(error),
         includeSupportGuidance: false,
         reportVisibleError: false,
@@ -1960,7 +1966,23 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     PrepaidMultipayNfcPaymentAuthorization authorization,
   ) async {
     if (DateTime.now().toUtc().isAfter(authorization.expiresAt.toUtc())) {
-      throw Exception('انتهت صلاحية إذن NFC. اطلب من المشتري إنشاء إذن جديد.');
+      throw Exception(
+        'انتهت صلاحية إذن الدفع بدون تلامس. اطلب من المشتري إنشاء إذن جديد.',
+      );
+    }
+
+    if (widget.offlineMode || _isDeviceOffline) {
+      await _enqueueOfflineNfcPayment(authorization);
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم حفظ الدفع',
+        message:
+            'تم حفظ ${CurrencyFormatter.ils(authorization.amount)} محليًا وسيتم اعتماده تلقائيًا عند توفر الإنترنت.',
+      );
+      return;
     }
 
     final response = await _api.acceptPrepaidMultipayNfcPayment(
@@ -1988,7 +2010,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (status == 'approved') {
       await AppAlertService.showSuccess(
         context,
-        title: 'تم قبول NFC',
+        title: 'تم قبول الدفع بدون تلامس',
         message:
             'تم استلام ${CurrencyFormatter.ils(authorization.amount)} من شاشة الفحص الموحدة.',
       );
@@ -1996,6 +2018,82 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
 
     throw Exception(response['message']?.toString() ?? 'تعذر اعتماد العملية.');
+  }
+
+  Future<void> _enqueueOfflineNfcPayment(
+    PrepaidMultipayNfcPaymentAuthorization authorization,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = _decodeOfflineNfcQueue(
+      prefs.getString(_offlineNfcQueueKey),
+    );
+    existing.add({
+      'signedPayload': authorization.signedPayload,
+      'signature': authorization.signature,
+      'idempotencyKey': _newPrepaidPaymentKey(),
+      'merchantDeviceId': await LocalSecurityService.getOrCreateDeviceId(),
+      'amount': authorization.amount,
+      'acceptedAt': DateTime.now().toUtc().toIso8601String(),
+      'queuedAt': DateTime.now().toUtc().toIso8601String(),
+    });
+    await prefs.setString(_offlineNfcQueueKey, jsonEncode(existing));
+  }
+
+  Future<void> _syncOfflineNfcPayments() async {
+    if (_isDeviceOffline) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final queue = _decodeOfflineNfcQueue(prefs.getString(_offlineNfcQueueKey));
+    if (queue.isEmpty) {
+      return;
+    }
+
+    final remaining = <Map<String, dynamic>>[];
+    var synced = 0;
+    for (final item in queue) {
+      try {
+        await _api.acceptPrepaidMultipayNfcPayment(
+          signedPayload: item['signedPayload']?.toString() ?? '',
+          signature: item['signature']?.toString() ?? '',
+          idempotencyKey: item['idempotencyKey']?.toString() ?? '',
+          merchantDeviceId: item['merchantDeviceId']?.toString(),
+          acceptedAt: item['acceptedAt']?.toString(),
+          offlineAccepted: true,
+        );
+        synced++;
+      } catch (_) {
+        remaining.add(item);
+      }
+    }
+
+    await prefs.setString(_offlineNfcQueueKey, jsonEncode(remaining));
+    if (!mounted || synced == 0) {
+      return;
+    }
+    await AppAlertService.showSuccess(
+      context,
+      title: 'تمت مزامنة الدفع',
+      message: 'تم اعتماد $synced عملية دفع بدون تلامس محفوظة.',
+    );
+  }
+
+  List<Map<String, dynamic>> _decodeOfflineNfcQueue(String? raw) {
+    if (raw == null || raw.isEmpty) {
+      return <Map<String, dynamic>>[];
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return <Map<String, dynamic>>[];
+      }
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
   }
 
   Future<BarcodeScannerDialogResult?> _resolveScannerDialogResult(
@@ -2701,7 +2799,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    if (!_canAccessScanScreen && _user != null) {
+    if (!_canAccessScanScreen && _user != null && !widget.autoReadNfc) {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -2999,8 +3097,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     if (!widget.offlineMode) ...[
                       const SizedBox(height: 12),
                       ShwakelButton(
-                        label: _isReadingNfc ? 'جاري قراءة NFC' : 'فحص NFC',
-                        icon: Icons.nfc_rounded,
+                        label: _isReadingNfc
+                            ? 'جاري قراءة الدفع'
+                            : 'قبول دفع بدون تلامس',
+                        icon: Icons.contactless_rounded,
                         isSecondary: true,
                         onPressed: _isReadingNfc
                             ? null
@@ -3039,8 +3139,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ShwakelButton(
-                        label: _isReadingNfc ? 'جاري قراءة NFC' : 'فحص NFC',
-                        icon: Icons.nfc_rounded,
+                        label: _isReadingNfc
+                            ? 'جاري قراءة الدفع'
+                            : 'قبول دفع بدون تلامس',
+                        icon: Icons.contactless_rounded,
                         isSecondary: true,
                         onPressed: _isReadingNfc
                             ? null

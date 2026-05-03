@@ -18,6 +18,8 @@ class OfflineSessionService {
 
   static const Set<String> _offlineAllowedRoutes = {
     '/home',
+    '/prepaid-multipay-cards',
+    '/prepaid-multipay-contactless-accept',
     '/scan-card-offline',
     '/scan-card-offline-camera',
     '/debt-book',

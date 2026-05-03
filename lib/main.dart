@@ -86,6 +86,10 @@ final Map<String, WidgetBuilder> _appRoutes = {
       autoAcceptNfc: options['autoAcceptNfc'] == true,
     );
   },
+  '/prepaid-multipay-contactless-accept': (context) => ScanCardScreen(
+    offlineMode: OfflineSessionService.isOfflineMode,
+    autoReadNfc: true,
+  ),
   '/quick-transfer': (context) => const QuickTransferScreen(),
   '/card-print-requests': (context) => const CardPrintRequestsScreen(),
   '/scan-card': (context) {
@@ -99,10 +103,35 @@ final Map<String, WidgetBuilder> _appRoutes = {
           options['openTemporaryTransferCreator'] == true,
     );
   },
-  '/scan-card-camera': (context) => const ScanCardScreen(autoOpenScanner: true),
-  '/scan-card-offline': (context) => const ScanCardScreen(offlineMode: true),
-  '/scan-card-offline-camera': (context) =>
-      const ScanCardScreen(offlineMode: true, autoOpenScanner: true),
+  '/scan-card-camera': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return ScanCardScreen(
+      autoOpenScanner: true,
+      initialBarcode: options['initialBarcode']?.toString(),
+      autoReadNfc: options['autoReadNfc'] == true,
+    );
+  },
+  '/scan-card-offline': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return ScanCardScreen(
+      offlineMode: true,
+      initialBarcode: options['initialBarcode']?.toString(),
+      autoOpenScanner: options['autoOpenScanner'] == true,
+      autoReadNfc: options['autoReadNfc'] == true,
+    );
+  },
+  '/scan-card-offline-camera': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return ScanCardScreen(
+      offlineMode: true,
+      autoOpenScanner: true,
+      initialBarcode: options['initialBarcode']?.toString(),
+      autoReadNfc: options['autoReadNfc'] == true,
+    );
+  },
   '/inventory': (context) => const InventoryScreen(),
   '/transactions': (context) => const TransactionsScreen(),
   '/notifications': (context) => const NotificationsScreen(),
@@ -767,6 +796,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   }
 
   Future<bool> _canOpenOfflineWorkspace(Map<String, dynamic>? user) async {
+    if (await const PrepaidMultipayOfflineCacheService().hasCards()) {
+      return true;
+    }
     if (user == null || user['id'] == null) {
       return false;
     }
