@@ -643,6 +643,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final items = List.generate(quantity, (index) {
       return <String, dynamic>{
         'value': amount,
+        'cardType': _cardType,
+        'cardDetails': _currentCardDetails(),
         if (baseTitle.isNotEmpty)
           'title': quantity == 1 ? baseTitle : '$baseTitle ${index + 1}',
       };
