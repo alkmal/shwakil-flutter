@@ -869,6 +869,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final delta = (tx['balanceDelta'] as num?)?.toDouble() ?? 0;
     final accent = _transactionAccentColor(type, delta);
     final isPositive = delta >= 0;
+    final performedBy = _transactionPerformedByLine(metadata);
+    final source = _transactionSourceLine(metadata);
+    final related = _transactionActorLine(type, metadata);
+    final trailLine = _transactionTrailLine(
+      performedBy: performedBy,
+      source: source,
+      related: related,
+    );
 
     return ShwakelCard(
       onTap: () => _showTransactionDetails(tx),
@@ -909,6 +917,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         color: AppTheme.textSecondary,
                       ),
                     ),
+                    if (trailLine != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        trailLine,
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -992,6 +1009,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final delta = (tx['balanceDelta'] as num?)?.toDouble() ?? 0;
     final accent = _transactionAccentColor(type, delta);
     final actor = _transactionActorLine(type, metadata);
+    final performedBy = _transactionPerformedByLine(metadata);
+    final source = _transactionSourceLine(metadata);
 
     await showModalBottomSheet<void>(
       context: context,
@@ -1102,6 +1121,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       CurrencyFormatter.ils(currentBalance),
                       AppTheme.primary,
                     ),
+                    if (performedBy != null) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.102'),
+                        performedBy,
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                    if (source != null) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.103'),
+                        source,
+                        AppTheme.textPrimary,
+                      ),
+                    ],
                     if (actor != null) ...[
                       const SizedBox(height: 10),
                       _buildDetailRow(
@@ -1164,6 +1199,148 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ),
       ],
     );
+  }
+
+  String? _transactionTrailLine({
+    required String? performedBy,
+    required String? source,
+    required String? related,
+  }) {
+    final parts = <String>[];
+    if (performedBy != null && performedBy.isNotEmpty) {
+      parts.add(
+        _t('screens_transactions_screen.104', params: {'actor': performedBy}),
+      );
+    }
+    if (source != null && source.isNotEmpty && source != performedBy) {
+      parts.add(
+        _t('screens_transactions_screen.105', params: {'source': source}),
+      );
+    }
+    if (parts.isEmpty && related != null && related.isNotEmpty) {
+      parts.add(related);
+    }
+
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  String? _transactionPerformedByLine(Map<String, dynamic> metadata) {
+    return _metadataPersonLabel(
+          metadata,
+          const [
+            'byDisplayName',
+            'byFullName',
+            'byName',
+            'byAdminDisplayName',
+            'byAdminFullName',
+            'actorDisplayName',
+            'actorFullName',
+            'approvedByDisplayName',
+            'approvedByFullName',
+            'issuerDisplayName',
+            'issuedByDisplayName',
+            'redeemedByDisplayName',
+            'sellerDisplayName',
+            'merchantDisplayName',
+          ],
+          const [
+            'byUsername',
+            'byAdminUsername',
+            'actorUsername',
+            'approvedByUsername',
+            'issuerUsername',
+            'issuedByUsername',
+            'redeemedByUsername',
+            'sellerUsername',
+            'merchantUsername',
+          ],
+        ) ??
+        _metadataPersonLabel(metadata, const [], const ['username']);
+  }
+
+  String? _transactionSourceLine(Map<String, dynamic> metadata) {
+    final personSource = _metadataPersonLabel(
+      metadata,
+      const [
+        'sourceDisplayName',
+        'sourceFullName',
+        'cardSourceDisplayName',
+        'cardSourceFullName',
+        'senderDisplayName',
+        'buyerDisplayName',
+        'ownerDisplayName',
+        'targetDisplayName',
+      ],
+      const [
+        'sourceUsername',
+        'cardSourceUsername',
+        'senderUsername',
+        'buyerUsername',
+        'ownerUsername',
+        'targetUsername',
+      ],
+    );
+    if (personSource != null) {
+      return personSource;
+    }
+
+    final sourceType = metadata['sourceType']?.toString().trim();
+    if (sourceType == null || sourceType.isEmpty) {
+      return null;
+    }
+
+    return _sourceTypeLabel(sourceType);
+  }
+
+  String? _metadataPersonLabel(
+    Map<String, dynamic> metadata,
+    List<String> displayKeys,
+    List<String> usernameKeys,
+  ) {
+    for (final key in displayKeys) {
+      final value = metadata[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+    for (final key in usernameKeys) {
+      final value = metadata[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return value.startsWith('@') ? value : '@$value';
+      }
+    }
+    return null;
+  }
+
+  String _sourceTypeLabel(String sourceType) {
+    switch (sourceType) {
+      case 'topup':
+      case 'finance_topup':
+        return _t('screens_transactions_screen.111');
+      case 'transfer':
+        return _t('screens_transactions_screen.112');
+      case 'card_redeem':
+      case 'redeem_card':
+        return _t('screens_transactions_screen.113');
+      case 'card_resell':
+      case 'resell_card':
+        return _t('screens_transactions_screen.114');
+      case 'card_print_request':
+        return _t('screens_transactions_screen.106');
+      case 'admin_manual_credit':
+        return _t('screens_transactions_screen.107');
+      case 'admin_manual_deduction':
+        return _t('screens_transactions_screen.108');
+      case 'printing_debt_settlement':
+        return _t('widgets_admin_transaction_audit_card.010');
+      case 'prepaid_multipay_card':
+        return _t('screens_transactions_screen.109');
+      case 'prepaid_multipay_card_payment':
+      case 'prepaid_multipay_nfc_payment':
+        return _t('screens_transactions_screen.110');
+      default:
+        return sourceType;
+    }
   }
 
   String _transactionTypeLabel(String type, Map<String, dynamic> metadata) {

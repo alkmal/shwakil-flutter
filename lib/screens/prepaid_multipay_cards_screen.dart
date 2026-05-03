@@ -15,7 +15,6 @@ import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
-import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class PrepaidMultipayCardsScreen extends StatefulWidget {
@@ -37,12 +36,10 @@ class _PrepaidMultipayCardsScreenState
     extends State<PrepaidMultipayCardsScreen> {
   final ApiService _api = ApiService();
   final PrepaidMultipayNfcService _nfc = const PrepaidMultipayNfcService();
-  final _labelC = TextEditingController();
-  final _amountC = TextEditingController();
-  final _codeC = TextEditingController();
+  final PrepaidMultipayOfflineCacheService _offlineCache =
+      const PrepaidMultipayOfflineCacheService();
 
   bool _isLoading = true;
-  bool _isSubmitting = false;
   bool _isReloading = false;
   bool _isRegisteringNfc = false;
   bool _isWritingNfc = false;
@@ -52,20 +49,18 @@ class _PrepaidMultipayCardsScreenState
   bool _canAcceptPrepaidPayments = false;
   bool _canUsePrepaidNfc = false;
   bool _nfcEnabled = false;
+  bool _isShowingOfflineCards = false;
   static const List<int> _validityYearOptions = [1, 2, 3, 4, 5];
   List<Map<String, dynamic>> _cards = const [];
-  List<Map<String, dynamic>> _payments = const [];
-  Map<String, dynamic> _summary = const {};
   final Set<String> _revealedCardIds = <String>{};
-  int _validityYears = 1;
   String? _selectedCardId;
   String _activityFilter = 'all';
   String _cardsPane = 'list';
-  String _activeSection = 'cards';
   bool _showCardTechnicalDetails = false;
   bool _didApplyInitialAction = false;
   pw.Font? _pdfRegularFont;
   pw.Font? _pdfBoldFont;
+  pw.MemoryImage? _pdfLogoImage;
 
   @override
   void initState() {
@@ -75,9 +70,6 @@ class _PrepaidMultipayCardsScreenState
 
   @override
   void dispose() {
-    _labelC.dispose();
-    _amountC.dispose();
-    _codeC.dispose();
     super.dispose();
   }
 
@@ -101,6 +93,9 @@ class _PrepaidMultipayCardsScreenState
       final canUsePrepaidNfc = permissions.canUsePrepaidMultipayNfc;
 
       if (!permissions.canOpenPrepaidMultipayCards) {
+        if (await _loadOfflinePrepaidCards()) {
+          return;
+        }
         if (!mounted) {
           return;
         }
@@ -135,13 +130,10 @@ class _PrepaidMultipayCardsScreenState
         _canUsePrepaidCards = canUsePrepaidCards;
         _canAcceptPrepaidPayments = canAcceptPrepaidPayments;
         _canUsePrepaidNfc = canUsePrepaidNfc;
+        _isShowingOfflineCards = false;
         _nfcEnabled =
             ((payload['settings'] as Map?)?['nfc'] as Map?)?['enabled'] == true;
         _cards = cards;
-        _payments = payments;
-        _summary = Map<String, dynamic>.from(
-          payload['summary'] as Map? ?? const {},
-        );
         _revealedCardIds.removeWhere(
           (id) => !_cards.any((card) => card['id']?.toString() == id),
         );
@@ -152,14 +144,20 @@ class _PrepaidMultipayCardsScreenState
               : _cards.first['id']?.toString();
         }
         _isLoading = false;
-        if (!_canUsePrepaidCards && _canAcceptPrepaidPayments) {
-          _activeSection = 'payments';
-        } else if (_canUsePrepaidCards && !_canAcceptPrepaidPayments) {
-          _activeSection = 'cards';
-        }
       });
+      await _cachePrepaidCardsForOffline(
+        cards: cards,
+        payments: payments,
+        nfcEnabled: _nfcEnabled,
+        canUsePrepaidCards: canUsePrepaidCards,
+        canAcceptPrepaidPayments: canAcceptPrepaidPayments,
+        canUsePrepaidNfc: canUsePrepaidNfc,
+      );
       _applyInitialAction();
     } catch (error) {
+      if (await _loadOfflinePrepaidCards()) {
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -172,65 +170,54 @@ class _PrepaidMultipayCardsScreenState
     }
   }
 
-  Future<void> _create() async {
-    final label = _labelC.text.trim();
-    final amount = double.tryParse(_amountC.text.trim()) ?? 0;
-    final code = _codeC.text.trim();
-
-    if (label.isEmpty || amount <= 0 || !RegExp(r'^\d{3}$').hasMatch(code)) {
-      await AppAlertService.showError(
-        context,
-        title: 'بيانات البطاقة غير مكتملة',
-        message: 'أدخل اسم البطاقة، مبلغًا صحيحًا، وكود أمان من 3 أرقام.',
-      );
+  Future<void> _cachePrepaidCardsForOffline({
+    required List<Map<String, dynamic>> cards,
+    required List<Map<String, dynamic>> payments,
+    required bool nfcEnabled,
+    required bool canUsePrepaidCards,
+    required bool canAcceptPrepaidPayments,
+    required bool canUsePrepaidNfc,
+  }) async {
+    if (cards.isEmpty || !canUsePrepaidCards) {
       return;
     }
 
-    final security = await TransferSecurityService.confirmTransfer(context);
-    if (!mounted || !security.isVerified) {
-      return;
+    await _offlineCache.save(
+      cards: cards,
+      payments: payments,
+      nfcEnabled: nfcEnabled,
+      canUsePrepaidCards: canUsePrepaidCards,
+      canAcceptPrepaidPayments: canAcceptPrepaidPayments,
+      canUsePrepaidNfc: canUsePrepaidNfc,
+    );
+  }
+
+  Future<bool> _loadOfflinePrepaidCards() async {
+    final cached = await _offlineCache.load();
+    if (cached == null) {
+      return false;
     }
 
-    setState(() => _isSubmitting = true);
-    try {
-      final payload = await _api.createPrepaidMultipayCard(
-        label: label,
-        amount: amount,
-        pin: code,
-        validityYears: _validityYears,
-        otpCode: security.otpCode,
-        localAuthMethod: security.method,
-      );
-      _labelC.clear();
-      _amountC.clear();
-      _codeC.clear();
-      _validityYears = 1;
-      _selectedCardId = (payload['card'] as Map?)?['id']?.toString();
-      _cardsPane = 'details';
-      await _load();
-      if (!mounted) {
-        return;
-      }
-      await AppAlertService.showSuccess(
-        context,
-        title: 'تم إنشاء البطاقة',
-        message:
-            'تم إنشاء البطاقة وحجز الرصيد فيها، وهي الآن بانتظار موافقة الإدارة قبل التفعيل.',
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      await AppAlertService.showError(
-        context,
-        title: 'تعذر إنشاء البطاقة',
-        message: ErrorMessageService.sanitize(error),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+    final cards = List<Map<String, dynamic>>.from(cached['cards'] as List);
+    if (cards.isEmpty || !mounted) {
+      return false;
     }
+
+    setState(() {
+      _isAuthorized = true;
+      _canUsePrepaidCards = true;
+      _canAcceptPrepaidPayments = cached['canAcceptPrepaidPayments'] == true;
+      _canUsePrepaidNfc = cached['canUsePrepaidNfc'] == true;
+      _nfcEnabled = cached['nfcEnabled'] == true;
+      _isShowingOfflineCards = true;
+      _cards = cards;
+      if (_selectedCardId == null ||
+          !_cards.any((card) => card['id']?.toString() == _selectedCardId)) {
+        _selectedCardId = _cards.first['id']?.toString();
+      }
+      _isLoading = false;
+    });
+    return true;
   }
 
   Future<void> _showReloadCardDialog(Map<String, dynamic> card) async {
@@ -574,6 +561,12 @@ class _PrepaidMultipayCardsScreenState
     _pdfBoldFont ??= pw.Font.ttf(
       await rootBundle.load('assets/fonts/NotoSansArabic-Bold.ttf'),
     );
+    if (_pdfLogoImage == null) {
+      final logoBytes = await rootBundle.load(
+        'assets/images/shwakel_app_icon.png',
+      );
+      _pdfLogoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
+    }
   }
 
   Future<void> _showCardForDirectPayment(Map<String, dynamic> card) async {
@@ -664,13 +657,31 @@ class _PrepaidMultipayCardsScreenState
       final expiry = card['expiryLabel']?.toString() ?? '-';
       final ownerName = _cardOwnerName();
       final issuerPhone = _cardIssuerLocalPhone();
-      final barcodePayload = _prepaidCardBarcodePayload(card);
+      final logoImage = _pdfLogoImage;
       final pdf = pw.Document();
+      final cardWidth = 85.6 * PdfPageFormat.mm;
+      final cardHeight = 53.98 * PdfPageFormat.mm;
+      final cardGap = 4 * PdfPageFormat.mm;
+      final cards = List<pw.Widget>.generate(
+        8,
+        (_) => _buildPrepaidPdfCard(
+          width: cardWidth,
+          height: cardHeight,
+          logoImage: logoImage,
+          cardNumber: cardNumber,
+          rawNumber: rawNumber,
+          label: label,
+          balance: balance,
+          expiry: expiry,
+          ownerName: ownerName,
+          issuerPhone: issuerPhone,
+        ),
+      );
 
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.a6,
-          margin: const pw.EdgeInsets.all(14),
+          pageFormat: PdfPageFormat.a4,
+          margin: pw.EdgeInsets.all(8 * PdfPageFormat.mm),
           theme: pw.ThemeData.withFont(
             base: _pdfRegularFont!,
             bold: _pdfBoldFont!,
@@ -678,174 +689,11 @@ class _PrepaidMultipayCardsScreenState
           textDirection: pw.TextDirection.rtl,
           build: (_) => pw.Directionality(
             textDirection: pw.TextDirection.rtl,
-            child: pw.Container(
-              padding: const pw.EdgeInsets.all(16),
-              decoration: pw.BoxDecoration(
-                gradient: const pw.LinearGradient(
-                  colors: [
-                    PdfColor(0.06, 0.09, 0.16),
-                    PdfColor(0.02, 0.45, 0.41),
-                  ],
-                  begin: pw.Alignment.topRight,
-                  end: pw.Alignment.bottomLeft,
-                ),
-                borderRadius: pw.BorderRadius.circular(16),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Row(
-                    children: [
-                      pw.Expanded(
-                        child: pw.Text(
-                          'شواكل',
-                          style: pw.TextStyle(
-                            font: _pdfBoldFont,
-                            fontSize: 18,
-                            color: PdfColors.white,
-                          ),
-                        ),
-                      ),
-                      pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.circular(20),
-                        ),
-                        child: pw.Text(
-                          'PREPAID',
-                          textDirection: pw.TextDirection.ltr,
-                          style: pw.TextStyle(
-                            font: _pdfBoldFont,
-                            fontSize: 8,
-                            color: PdfColors.teal800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(height: 16),
-                  pw.Container(
-                    width: 38,
-                    height: 28,
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.amber200,
-                      borderRadius: pw.BorderRadius.circular(5),
-                    ),
-                  ),
-                  pw.SizedBox(height: 12),
-                  pw.Text(
-                    cardNumber,
-                    textAlign: pw.TextAlign.left,
-                    textDirection: pw.TextDirection.ltr,
-                    style: pw.TextStyle(
-                      font: _pdfBoldFont,
-                      fontSize: 17,
-                      color: PdfColors.white,
-                    ),
-                  ),
-                  pw.SizedBox(height: 6),
-                  pw.Text(
-                    label,
-                    textAlign: pw.TextAlign.left,
-                    style: pw.TextStyle(
-                      font: _pdfBoldFont,
-                      fontSize: 12,
-                      color: PdfColors.white,
-                    ),
-                  ),
-                  pw.SizedBox(height: 10),
-                  pw.Row(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Expanded(
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text(
-                              'الرصيد',
-                              style: const pw.TextStyle(
-                                fontSize: 8,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                            pw.Text(
-                              CurrencyFormatter.ils(balance),
-                              style: pw.TextStyle(
-                                font: _pdfBoldFont,
-                                fontSize: 11,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                            pw.SizedBox(height: 8),
-                            pw.Text(
-                              'الصلاحية',
-                              style: const pw.TextStyle(
-                                fontSize: 8,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                            pw.Text(
-                              expiry,
-                              textDirection: pw.TextDirection.ltr,
-                              style: pw.TextStyle(
-                                font: _pdfBoldFont,
-                                fontSize: 11,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      pw.Container(
-                        width: 86,
-                        height: 86,
-                        padding: const pw.EdgeInsets.all(5),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.circular(8),
-                        ),
-                        child: pw.BarcodeWidget(
-                          barcode: pw.Barcode.qrCode(),
-                          data: barcodePayload,
-                          drawText: false,
-                        ),
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Text(
-                    ownerName.isEmpty ? 'CARD HOLDER' : ownerName,
-                    style: pw.TextStyle(
-                      font: _pdfBoldFont,
-                      fontSize: 10,
-                      color: PdfColors.white,
-                    ),
-                  ),
-                  if (issuerPhone.isNotEmpty)
-                    pw.Text(
-                      issuerPhone,
-                      textDirection: pw.TextDirection.ltr,
-                      style: const pw.TextStyle(
-                        fontSize: 8,
-                        color: PdfColors.white,
-                      ),
-                    ),
-                  pw.Spacer(),
-                  pw.Container(
-                    width: double.infinity,
-                    padding: const pw.EdgeInsets.all(7),
-                    decoration: pw.BoxDecoration(color: PdfColors.white),
-                    child: pw.Text(
-                      'تستخدم داخل شواكل فقط. اقرأ الباركود من شاشة فحص البطاقات ثم أدخل المبلغ وكود التحقق الثلاثي.',
-                      textAlign: pw.TextAlign.center,
-                      style: const pw.TextStyle(fontSize: 8),
-                    ),
-                  ),
-                ],
+            child: pw.Center(
+              child: pw.Wrap(
+                spacing: cardGap,
+                runSpacing: cardGap,
+                children: cards,
               ),
             ),
           ),
@@ -868,6 +716,190 @@ class _PrepaidMultipayCardsScreenState
     }
   }
 
+  pw.Widget _buildPrepaidPdfCard({
+    required double width,
+    required double height,
+    required pw.MemoryImage? logoImage,
+    required String cardNumber,
+    required String rawNumber,
+    required String label,
+    required double balance,
+    required String expiry,
+    required String ownerName,
+    required String issuerPhone,
+  }) {
+    return pw.Container(
+      width: width,
+      height: height,
+      padding: pw.EdgeInsets.all(5.2 * PdfPageFormat.mm),
+      decoration: pw.BoxDecoration(
+        gradient: const pw.LinearGradient(
+          colors: [
+            PdfColor(0.06, 0.09, 0.16),
+            PdfColor(0.02, 0.45, 0.41),
+            PdfColor(0.08, 0.37, 0.46),
+          ],
+          begin: pw.Alignment.topRight,
+          end: pw.Alignment.bottomLeft,
+        ),
+        borderRadius: pw.BorderRadius.circular(9),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              if (logoImage != null) ...[
+                pw.Container(
+                  width: 22,
+                  height: 22,
+                  padding: const pw.EdgeInsets.all(2),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(6),
+                  ),
+                  child: pw.Image(logoImage, fit: pw.BoxFit.cover),
+                ),
+                pw.SizedBox(width: 6),
+              ],
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'شواكل',
+                      style: pw.TextStyle(
+                        font: _pdfBoldFont,
+                        fontSize: 12,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                    pw.Text(
+                      label,
+                      maxLines: 1,
+                      style: const pw.TextStyle(
+                        fontSize: 6.5,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 3,
+                ),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.circular(12),
+                ),
+                child: pw.Text(
+                  'PREPAID',
+                  textDirection: pw.TextDirection.ltr,
+                  style: pw.TextStyle(
+                    font: _pdfBoldFont,
+                    fontSize: 6,
+                    color: PdfColors.teal800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 9),
+          pw.Container(
+            width: 25,
+            height: 18,
+            decoration: pw.BoxDecoration(
+              color: PdfColors.amber200,
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            cardNumber,
+            textAlign: pw.TextAlign.left,
+            textDirection: pw.TextDirection.ltr,
+            maxLines: 1,
+            style: pw.TextStyle(
+              font: _pdfBoldFont,
+              fontSize: 11,
+              color: PdfColors.white,
+            ),
+          ),
+          pw.SizedBox(height: 7),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      ownerName.isEmpty ? 'CARD HOLDER' : ownerName,
+                      maxLines: 1,
+                      style: pw.TextStyle(
+                        font: _pdfBoldFont,
+                        fontSize: 7.5,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                    if (issuerPhone.isNotEmpty)
+                      pw.Text(
+                        issuerPhone,
+                        textDirection: pw.TextDirection.ltr,
+                        style: const pw.TextStyle(
+                          fontSize: 6,
+                          color: PdfColors.white,
+                        ),
+                      ),
+                    pw.SizedBox(height: 5),
+                    pw.Text(
+                      'الرصيد ${CurrencyFormatter.ils(balance)}',
+                      style: pw.TextStyle(
+                        font: _pdfBoldFont,
+                        fontSize: 7,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                    pw.Text(
+                      'MM/YY $expiry',
+                      textDirection: pw.TextDirection.ltr,
+                      style: const pw.TextStyle(
+                        fontSize: 6,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.Container(
+                width: 35 * PdfPageFormat.mm,
+                height: 13 * PdfPageFormat.mm,
+                padding: const pw.EdgeInsets.all(3),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.circular(5),
+                ),
+                child: pw.BarcodeWidget(
+                  barcode: pw.Barcode.code128(),
+                  data: rawNumber,
+                  drawText: false,
+                ),
+              ),
+            ],
+          ),
+          pw.Spacer(),
+          pw.Text(
+            'للاستخدام داخل شواكل فقط',
+            textAlign: pw.TextAlign.center,
+            style: const pw.TextStyle(fontSize: 5.8, color: PdfColors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _writeCardToNfc(Map<String, dynamic> card) async {
     if (!await _ensureNfcFeatureEnabled()) {
       return;
@@ -881,7 +913,7 @@ class _PrepaidMultipayCardsScreenState
       await AppAlertService.showError(
         context,
         title: 'بطاقة غير نشطة',
-        message: 'يمكن كتابة بطاقة NFC للبطاقات النشطة فقط.',
+        message: 'يمكن حفظ البطاقة على وسم للبطاقات النشطة فقط.',
       );
       return;
     }
@@ -894,9 +926,9 @@ class _PrepaidMultipayCardsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('كتابة NFC'),
+        title: const Text('حفظ البطاقة على وسم'),
         content: const Text(
-          'قرّب وسم NFC فارغ أو قابل للكتابة من الجهاز. لن يتم تخزين الرقم السري للبطاقة داخل الوسم.',
+          'قرّب وسمًا فارغًا أو قابلًا للكتابة من الجهاز. لن يتم تخزين الرقم السري للبطاقة داخل الوسم.',
         ),
         actions: [
           TextButton(
@@ -922,8 +954,8 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تمت كتابة NFC',
-        message: 'تم حفظ بيانات البطاقة على وسم NFC بنجاح.',
+        title: 'تم حفظ البطاقة',
+        message: 'تم حفظ بيانات البطاقة على الوسم بنجاح.',
       );
     } catch (error) {
       if (!mounted) {
@@ -931,7 +963,7 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر كتابة NFC',
+        title: 'تعذر حفظ البطاقة',
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -978,7 +1010,7 @@ class _PrepaidMultipayCardsScreenState
       await AppAlertService.showError(
         context,
         title: 'بطاقة غير نشطة',
-        message: 'يمكن تفعيل دفع NFC للبطاقات النشطة فقط.',
+        message: 'يمكن تجهيز الدفع بدون تلامس للبطاقات النشطة فقط.',
       );
       return;
     }
@@ -990,8 +1022,8 @@ class _PrepaidMultipayCardsScreenState
     if (!available) {
       await AppAlertService.showError(
         context,
-        title: 'NFC غير متاح',
-        message: 'فعّل NFC على الجهاز ثم حاول مرة أخرى.',
+        title: 'الاتصال القريب غير متاح',
+        message: 'فعّل الاتصال القريب على الجهاز ثم حاول مرة أخرى.',
       );
       return;
     }
@@ -999,7 +1031,7 @@ class _PrepaidMultipayCardsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تفعيل دفع NFC'),
+        title: const Text('تجهيز الدفع بدون تلامس'),
         content: const Text(
           'سيتم ربط هذه البطاقة بهذا الجهاز وإنشاء مفتاح توقيع محفوظ محليًا. البطاقة داخلية لشواكل وليست بطاقة دولية.',
         ),
@@ -1030,7 +1062,7 @@ class _PrepaidMultipayCardsScreenState
       final keys = await _nfc.getOrCreateSigningKeyPair(cardId);
       final deviceId = await LocalSecurityService.getOrCreateDeviceId();
       final deviceName = await LocalSecurityService.currentDeviceDisplayName();
-      await _api.registerPrepaidMultipayNfcDevice(
+      final registerResponse = await _api.registerPrepaidMultipayNfcDevice(
         cardId: cardId,
         deviceId: deviceId,
         deviceName: deviceName,
@@ -1039,13 +1071,29 @@ class _PrepaidMultipayCardsScreenState
         otpCode: security.otpCode,
         localAuthMethod: security.method,
       );
+      final device = Map<String, dynamic>.from(
+        registerResponse['device'] as Map? ?? const {},
+      );
+      final cardRef =
+          registerResponse['cardRef']?.toString() ??
+          device['cardRef']?.toString() ??
+          '';
+      if (cardRef.isNotEmpty) {
+        await _nfc.savePaymentBinding(
+          cardId: cardId,
+          deviceId: deviceId,
+          cardRef: cardRef,
+          lastSequence: (device['lastSequence'] as num?)?.toInt() ?? 0,
+        );
+      }
       if (!mounted) {
         return;
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم تفعيل NFC',
-        message: 'أصبح هذا الجهاز مخولًا بإنشاء أذونات دفع NFC لهذه البطاقة.',
+        title: 'تم تجهيز الجهاز',
+        message:
+            'أصبح هذا الجهاز مخولًا بإنشاء أذونات دفع بدون تلامس لهذه البطاقة.',
       );
     } catch (error) {
       if (!mounted) {
@@ -1053,7 +1101,7 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تفعيل NFC',
+        title: 'تعذر تجهيز الجهاز',
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1067,9 +1115,9 @@ class _PrepaidMultipayCardsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('إلغاء ربط NFC'),
+        title: const Text('إلغاء ربط الجهاز'),
         content: const Text(
-          'سيتم منع هذا الجهاز من إنشاء أذونات دفع NFC جديدة لهذه البطاقة.',
+          'سيتم منع هذا الجهاز من إنشاء أذونات دفع بدون تلامس جديدة لهذه البطاقة.',
         ),
         actions: [
           TextButton(
@@ -1109,7 +1157,7 @@ class _PrepaidMultipayCardsScreenState
       await AppAlertService.showSuccess(
         context,
         title: 'تم إلغاء الربط',
-        message: 'تم إيقاف NFC لهذه البطاقة على هذا الجهاز.',
+        message: 'تم إيقاف الدفع بدون تلامس لهذه البطاقة على هذا الجهاز.',
       );
     } catch (error) {
       if (!mounted) {
@@ -1117,85 +1165,12 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر إلغاء NFC',
+        title: 'تعذر إلغاء ربط الجهاز',
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
       if (mounted) {
         setState(() => _isRegisteringNfc = false);
-      }
-    }
-  }
-
-  Future<void> _writeNfcPaymentAuthorization(Map<String, dynamic> card) async {
-    if (!await _ensureNfcFeatureEnabled()) {
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-
-    final input = await _showNfcPaymentInput();
-    if (!mounted || input == null) {
-      return;
-    }
-
-    final security = await TransferSecurityService.confirmTransfer(context);
-    if (!mounted || !security.isVerified) {
-      return;
-    }
-
-    setState(() => _isWritingNfcPayment = true);
-    try {
-      final cardId = card['id']?.toString() ?? '';
-      final deviceId = await LocalSecurityService.getOrCreateDeviceId();
-      final appVersion = await AppVersionService.currentVersion();
-      final prepared = await _api.preparePrepaidMultipayNfcPayment(
-        cardId: cardId,
-        amount: input.amount,
-        pin: input.pin,
-        deviceId: deviceId,
-        appVersion: appVersion,
-        otpCode: security.otpCode,
-        localAuthMethod: security.method,
-      );
-      final authorization = await _nfc.signAuthorization(
-        cardId: cardId,
-        authorization: Map<String, dynamic>.from(
-          prepared['authorization'] as Map? ?? const {},
-        ),
-      );
-      if (!mounted) {
-        return;
-      }
-      await AppAlertService.showInfo(
-        context,
-        title: 'قرّب وسم NFC',
-        message:
-            'سيتم كتابة إذن دفع صالح حتى ${_formatDateTime(authorization.expiresAt.toLocal())}.',
-      );
-      await _nfc.writePaymentAuthorization(authorization);
-      if (!mounted) {
-        return;
-      }
-      await AppAlertService.showSuccess(
-        context,
-        title: 'تم تجهيز دفع NFC',
-        message:
-            'تمت كتابة إذن دفع بقيمة ${CurrencyFormatter.ils(input.amount)}. يستطيع التاجر قراءته واعتماده الآن.',
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      await AppAlertService.showError(
-        context,
-        title: 'تعذر تجهيز دفع NFC',
-        message: ErrorMessageService.sanitize(error),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isWritingNfcPayment = false);
       }
     }
   }
@@ -1215,7 +1190,7 @@ class _PrepaidMultipayCardsScreenState
       await AppAlertService.showError(
         context,
         title: 'بطاقة غير نشطة',
-        message: 'يمكن تجهيز دفع NFC للبطاقات النشطة فقط.',
+        message: 'يمكن تجهيز الدفع بدون تلامس للبطاقات النشطة فقط.',
       );
       return;
     }
@@ -1235,30 +1210,63 @@ class _PrepaidMultipayCardsScreenState
       final cardId = card['id']?.toString() ?? '';
       final deviceId = await LocalSecurityService.getOrCreateDeviceId();
       final appVersion = await AppVersionService.currentVersion();
-      final prepared = await _api.preparePrepaidMultipayNfcPayment(
-        cardId: cardId,
-        amount: input.amount,
-        pin: input.pin,
-        deviceId: deviceId,
-        appVersion: appVersion,
-        otpCode: security.otpCode,
-        localAuthMethod: security.method,
-      );
-      final authorization = await _nfc.signAuthorization(
-        cardId: cardId,
-        authorization: Map<String, dynamic>.from(
-          prepared['authorization'] as Map? ?? const {},
-        ),
-      );
+      PrepaidMultipayNfcPaymentAuthorization authorization;
+      var preparedOffline = false;
+      if (!ConnectivityService.instance.isOnline.value) {
+        authorization = await _nfc.buildOfflinePaymentAuthorization(
+          cardId: cardId,
+          amount: input.amount,
+          appVersion: appVersion,
+        );
+        preparedOffline = true;
+      } else {
+        try {
+          final prepared = await _api.preparePrepaidMultipayNfcPayment(
+            cardId: cardId,
+            amount: input.amount,
+            pin: input.pin,
+            deviceId: deviceId,
+            appVersion: appVersion,
+            otpCode: security.otpCode,
+            localAuthMethod: security.method,
+          );
+          final authorizationPayload = Map<String, dynamic>.from(
+            prepared['authorization'] as Map? ?? const {},
+          );
+          authorization = await _nfc.signAuthorization(
+            cardId: cardId,
+            authorization: authorizationPayload,
+          );
+          await _nfc.savePaymentBinding(
+            cardId: cardId,
+            deviceId: deviceId,
+            cardRef: authorizationPayload['cardRef']?.toString() ?? '',
+            lastSequence:
+                (authorizationPayload['sequence'] as num?)?.toInt() ?? 0,
+          );
+        } catch (_) {
+          if (ConnectivityService.instance.isOnline.value) {
+            rethrow;
+          }
+          authorization = await _nfc.buildOfflinePaymentAuthorization(
+            cardId: cardId,
+            amount: input.amount,
+            appVersion: appVersion,
+          );
+          preparedOffline = true;
+        }
+      }
       await _nfc.publishHcePaymentAuthorization(authorization);
       if (!mounted) {
         return;
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم تجهيز دفع بدون وسم',
+        title: preparedOffline
+            ? 'تم تجهيز دفع محفوظ محليًا'
+            : 'تم تجهيز دفع بدون تلامس',
         message:
-            'قرّب هذا الهاتف من هاتف التاجر قبل ${_formatDateTime(authorization.expiresAt.toLocal())}. يجب أن يستخدم التاجر زر فحص NFC من شاشة الفحص.',
+            'قرّب هذا الهاتف من هاتف التاجر قبل ${_formatDateTime(authorization.expiresAt.toLocal())}. يستخدم التاجر اختصار قبول الدفع بدون تلامس.',
       );
     } catch (error) {
       if (!mounted) {
@@ -1282,8 +1290,8 @@ class _PrepaidMultipayCardsScreenState
     }
     await AppAlertService.showError(
       context,
-      title: 'NFC غير مفعل',
-      message: 'دفع NFC غير مفعل حاليًا من إعدادات النظام.',
+      title: 'الدفع بدون تلامس غير مفعل',
+      message: 'الدفع بدون تلامس غير مفعل حاليًا من إعدادات النظام.',
     );
     return false;
   }
@@ -1294,7 +1302,7 @@ class _PrepaidMultipayCardsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('دفع NFC'),
+        title: const Text('الدفع بدون تلامس'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1504,7 +1512,7 @@ class _PrepaidMultipayCardsScreenState
   int _validityYearsFromCard(Map<String, dynamic> card) {
     final expiresAt = DateTime.tryParse(card['expiresAt']?.toString() ?? '');
     if (expiresAt == null) {
-      return _validityYears;
+      return 1;
     }
 
     final now = DateTime.now();
@@ -1521,7 +1529,7 @@ class _PrepaidMultipayCardsScreenState
     if (!_canAcceptPrepaidPayments) {
       return;
     }
-    setState(() => _activeSection = 'payments');
+    _openUnifiedScanner(openCamera: false);
   }
 
   void _openUnifiedScanner({bool openCamera = true, String? initialBarcode}) {
@@ -1559,19 +1567,17 @@ class _PrepaidMultipayCardsScreenState
       if (!mounted || !_canAcceptPrepaidPayments) {
         return;
       }
-      _openPaymentsTab();
       if (widget.autoAcceptNfc) {
         _openUnifiedScanner(openCamera: false);
+        return;
       }
+      _openPaymentsTab();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final hasAnySection = _canUsePrepaidCards || _canAcceptPrepaidPayments;
-    final body = _activeSection == 'payments' && _canAcceptPrepaidPayments
-        ? _buildPaymentsTab()
-        : _buildCardsTab();
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -1589,49 +1595,14 @@ class _PrepaidMultipayCardsScreenState
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSummary(),
-                  const SizedBox(height: 16),
-                  _buildSectionActions(),
-                  const SizedBox(height: 16),
-                  Expanded(child: body),
+                  if (_isShowingOfflineCards) ...[
+                    _offlineAccessBanner(),
+                    const SizedBox(height: 16),
+                  ],
+                  Expanded(child: _buildCardsTab()),
                 ],
               ),
       ),
-    );
-  }
-
-  Widget _buildSectionActions() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        if (_canUsePrepaidCards)
-          FilledButton.icon(
-            onPressed: () => setState(() => _activeSection = 'cards'),
-            icon: const Icon(Icons.credit_card_rounded),
-            label: const Text('البطاقات'),
-            style: _activeSection == 'cards'
-                ? null
-                : FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppTheme.primary,
-                    side: const BorderSide(color: AppTheme.border),
-                  ),
-          ),
-        if (_canAcceptPrepaidPayments)
-          FilledButton.icon(
-            onPressed: () => setState(() => _activeSection = 'payments'),
-            icon: const Icon(Icons.point_of_sale_rounded),
-            label: const Text('الدفع والحركات'),
-            style: _activeSection == 'payments'
-                ? null
-                : FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppTheme.primary,
-                    side: const BorderSide(color: AppTheme.border),
-                  ),
-          ),
-      ],
     );
   }
 
@@ -1642,9 +1613,7 @@ class _PrepaidMultipayCardsScreenState
       onRefresh: _load,
       child: ListView(
         children: [
-          if (_cardsPane == 'create')
-            _buildCreateCardPane()
-          else if (_cardsPane == 'details' && selected != null)
+          if (_cardsPane == 'details' && selected != null)
             _buildCardDetailsPane(selected)
           else
             _buildCardsListPane(),
@@ -1660,16 +1629,11 @@ class _PrepaidMultipayCardsScreenState
         Row(
           children: [
             Expanded(child: Text('قائمة البطاقات', style: AppTheme.h2)),
-            FilledButton.icon(
-              onPressed: () => setState(() => _cardsPane = 'create'),
-              icon: const Icon(Icons.add_card_rounded),
-              label: const Text('إضافة'),
-            ),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          'اضغط على أي بطاقة لفتح شاشة مستقلة للتفاصيل والتعديل والحركات.',
+          'اضغط على أي بطاقة لعرض التفاصيل والدفع والباركود.',
           style: AppTheme.bodyAction,
         ),
         const SizedBox(height: 16),
@@ -1682,27 +1646,6 @@ class _PrepaidMultipayCardsScreenState
               child: _buildCardListItem(card),
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildCreateCardPane() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              tooltip: 'رجوع',
-              onPressed: () => setState(() => _cardsPane = 'list'),
-              icon: const Icon(Icons.arrow_back_rounded),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Text('إضافة بطاقة', style: AppTheme.h2)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildCreateForm(),
       ],
     );
   }
@@ -1732,70 +1675,24 @@ class _PrepaidMultipayCardsScreenState
           ],
         ),
         const SizedBox(height: 12),
-        _buildVisualCard(card, isLarge: true),
-        const SizedBox(height: 14),
         _buildSelectedCardDetails(card),
       ],
     );
   }
 
-  Widget _buildPaymentsTab() {
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        children: [
-          _buildPaymentForm(),
-          const SizedBox(height: 16),
-          _buildRecentPayments(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummary() {
-    final count = (_summary['count'] as num?)?.toInt() ?? 0;
-    final active = (_summary['activeCount'] as num?)?.toInt() ?? 0;
-    final spent = (_summary['spentCount'] as num?)?.toInt() ?? 0;
-    final total = (_summary['totalBalance'] as num?)?.toDouble() ?? 0;
-
+  Widget _offlineAccessBanner() {
     return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      gradient: AppTheme.primaryGradient,
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          _summaryPill(Icons.credit_card_rounded, 'البطاقات', '$count'),
-          _summaryPill(Icons.check_circle_rounded, 'النشطة', '$active'),
-          _summaryPill(Icons.task_alt_rounded, 'المستهلكة', '$spent'),
-          _summaryPill(
-            Icons.account_balance_wallet_rounded,
-            'الرصيد داخل البطاقات',
-            CurrencyFormatter.ils(total),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryPill(IconData icon, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white24),
-      ),
+      padding: const EdgeInsets.all(16),
+      color: AppTheme.warning.withValues(alpha: 0.08),
+      borderColor: AppTheme.warning.withValues(alpha: 0.22),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 18),
-          const SizedBox(width: 8),
-          Text(
-            '$label: $value',
-            style: AppTheme.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+          Icon(Icons.offline_bolt_rounded, color: AppTheme.warning),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'تظهر هذه البطاقات من النسخة المحفوظة على الجهاز. يمكنك عرض البطاقة والباركود وتجهيز الدفع بدون تلامس إذا كان هذا الجهاز مخولًا مسبقًا.',
+              style: AppTheme.bodyAction,
             ),
           ),
         ],
@@ -1967,37 +1864,29 @@ class _PrepaidMultipayCardsScreenState
                 ),
               if (status == 'active' && showNfcActions)
                 OutlinedButton.icon(
-                  onPressed: _isWritingNfc ? null : () => _writeCardToNfc(card),
-                  icon: const Icon(Icons.nfc_rounded),
-                  label: Text(_isWritingNfc ? 'جاري الكتابة' : 'كتابة NFC'),
-                ),
-              if (status == 'active' && showNfcActions)
-                OutlinedButton.icon(
                   onPressed: _isRegisteringNfc
                       ? null
                       : () => _activateNfcPayment(card),
                   icon: const Icon(Icons.phonelink_lock_rounded),
-                  label: Text(_isRegisteringNfc ? 'جاري الربط' : 'تفعيل NFC'),
+                  label: Text(
+                    _isRegisteringNfc ? 'جاري التجهيز' : 'تجهيز الجهاز',
+                  ),
                 ),
               if (status == 'active' && showNfcActions)
                 FilledButton.icon(
                   onPressed: _isWritingNfcPayment
                       ? null
-                      : () => _writeNfcPaymentAuthorization(card),
-                  icon: const Icon(Icons.tap_and_play_rounded),
+                      : () => _publishHcePaymentAuthorization(card),
+                  icon: const Icon(Icons.contactless_rounded),
                   label: Text(
-                    _isWritingNfcPayment ? 'جاري التجهيز' : 'دفع NFC',
+                    _isWritingNfcPayment ? 'جاري التجهيز' : 'الدفع بدون تلامس',
                   ),
                 ),
               if (status == 'active' && showNfcActions)
                 OutlinedButton.icon(
-                  onPressed: _isWritingNfcPayment
-                      ? null
-                      : () => _publishHcePaymentAuthorization(card),
-                  icon: const Icon(Icons.contactless_rounded),
-                  label: Text(
-                    _isWritingNfcPayment ? 'جاري التجهيز' : 'دفع بدون وسم',
-                  ),
+                  onPressed: _isWritingNfc ? null : () => _writeCardToNfc(card),
+                  icon: const Icon(Icons.sensors_rounded),
+                  label: Text(_isWritingNfc ? 'جاري الحفظ' : 'حفظ على وسم'),
                 ),
               if (showNfcActions)
                 OutlinedButton.icon(
@@ -2005,15 +1894,19 @@ class _PrepaidMultipayCardsScreenState
                       ? null
                       : () => _revokeThisNfcDevice(card),
                   icon: const Icon(Icons.link_off_rounded),
-                  label: const Text('إلغاء NFC للجهاز'),
+                  label: const Text('إلغاء ربط الجهاز'),
+                ),
+              if (canUseForPayment)
+                FilledButton.icon(
+                  onPressed: () => _openUnifiedScanner(openCamera: false),
+                  icon: const Icon(Icons.contactless_rounded),
+                  label: const Text('قبول دفع بدون تلامس'),
                 ),
               if (canUseForPayment)
                 OutlinedButton.icon(
-                  onPressed: () => _openUnifiedScanner(
-                    initialBarcode: _prepaidCardBarcodePayload(card),
-                  ),
+                  onPressed: () => _openUnifiedScanner(),
                   icon: const Icon(Icons.point_of_sale_rounded),
-                  label: const Text('فحص واعتماد الدفع'),
+                  label: const Text('قبول دفع بالباركود'),
                 ),
               if (canReload)
                 OutlinedButton.icon(
@@ -2172,195 +2065,6 @@ class _PrepaidMultipayCardsScreenState
     );
   }
 
-  Widget _buildCreateForm() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('إضافة بطاقة جديدة', style: AppTheme.h3),
-          const SizedBox(height: 8),
-          Text(
-            'أنشئ بطاقة جديدة برصيد مبدئي، ومدة صلاحية محددة، وكود أمان من 3 أرقام.',
-            style: AppTheme.bodyAction,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _labelC,
-            decoration: const InputDecoration(
-              labelText: 'اسم البطاقة',
-              prefixIcon: Icon(Icons.badge_rounded),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amountC,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'الرصيد المبدئي',
-              prefixIcon: Icon(Icons.payments_rounded),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _codeC,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            maxLength: 3,
-            decoration: const InputDecoration(
-              labelText: 'الرقم السري من 3 أرقام',
-              prefixIcon: Icon(Icons.pin_rounded),
-              counterText: '',
-            ),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<int>(
-            initialValue: _validityYears,
-            decoration: const InputDecoration(
-              labelText: 'مدة البطاقة',
-              prefixIcon: Icon(Icons.event_available_rounded),
-            ),
-            items: _validityYearOptions
-                .map(
-                  (years) => DropdownMenuItem<int>(
-                    value: years,
-                    child: Text(_validityYearsLabel(years)),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) {
-                return;
-              }
-              setState(() => _validityYears = value);
-            },
-          ),
-          const SizedBox(height: 16),
-          ShwakelButton(
-            label: 'إنشاء البطاقة',
-            icon: Icons.add_card_rounded,
-            isLoading: _isSubmitting,
-            onPressed: _create,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentForm() {
-    final showNfcActions = _nfcEnabled && _canUsePrepaidNfc;
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('اعتماد دفع من بطاقة مسبقة', style: AppTheme.h3),
-          const SizedBox(height: 8),
-          Text(
-            'اعتماد بطاقات الدفع المسبق يتم من شاشة الفحص الموحدة. اقرأ باركود البطاقة أو NFC من هناك، ثم أدخل المبلغ وكود التحقق.',
-            style: AppTheme.bodyAction,
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.icon(
-                onPressed: () => _openUnifiedScanner(),
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-                label: const Text('فتح فحص الباركود'),
-              ),
-              if (showNfcActions)
-                OutlinedButton.icon(
-                  onPressed: () => _openUnifiedScanner(openCamera: false),
-                  icon: const Icon(Icons.nfc_rounded),
-                  label: const Text('فحص NFC الموحد'),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentPayments() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('آخر الحركات', style: AppTheme.h3),
-          const SizedBox(height: 12),
-          if (_payments.isEmpty)
-            Text('لا توجد حركات بطاقات حتى الآن.', style: AppTheme.bodyAction)
-          else
-            ..._payments
-                .take(12)
-                .map(
-                  (payment) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _buildPaymentTile(payment),
-                  ),
-                ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentTile(Map<String, dynamic> payment) {
-    final direction = payment['direction']?.toString() ?? 'out';
-    final amount = (payment['amount'] as num?)?.toDouble() ?? 0;
-    final note = payment['note']?.toString() ?? '';
-    final isIncoming = direction == 'in';
-    final color = isIncoming ? AppTheme.success : AppTheme.primary;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isIncoming ? Icons.call_received_rounded : Icons.call_made_rounded,
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isIncoming ? 'دفعة واردة' : 'دفعة صادرة',
-                  style: AppTheme.bodyBold,
-                ),
-                Text(
-                  note.isEmpty ? 'حركة بطاقة مسبقة' : note,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption,
-                ),
-                Text(
-                  _formatDateTime(
-                    DateTime.tryParse(payment['createdAt']?.toString() ?? ''),
-                  ),
-                  style: AppTheme.caption,
-                ),
-              ],
-            ),
-          ),
-          Text(
-            CurrencyFormatter.ils(amount),
-            style: AppTheme.bodyBold.copyWith(color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildVisualCard(Map<String, dynamic> card, {bool isLarge = false}) {
     final cardId = card['id']?.toString() ?? '';
     final isRevealed = _revealedCardIds.contains(cardId);
@@ -2370,7 +2074,9 @@ class _PrepaidMultipayCardsScreenState
         : '•••• •••• •••• ••••';
     final ownerName = _cardOwnerName();
     final issuerPhone = _cardIssuerLocalPhone();
-    final barcodePayload = _prepaidCardBarcodePayload(card);
+    final barcodeData = rawNumber.isNotEmpty
+        ? rawNumber
+        : _prepaidCardBarcodePayload(card);
 
     return Container(
       width: double.infinity,
@@ -2389,6 +2095,23 @@ class _PrepaidMultipayCardsScreenState
         children: [
           Row(
             children: [
+              Container(
+                width: isLarge ? 46 : 38,
+                height: isLarge ? 46 : 38,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(9),
+                  child: Image.asset(
+                    'assets/images/shwakel_app_icon.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'بطاقة دفع مسبق',
@@ -2437,23 +2160,23 @@ class _PrepaidMultipayCardsScreenState
           ),
           const SizedBox(height: 16),
           Container(
-            width: isLarge ? 118 : 96,
-            height: isLarge ? 118 : 96,
-            padding: const EdgeInsets.all(8),
+            width: double.infinity,
+            height: isLarge ? 96 : 82,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: isRevealed || rawNumber.isNotEmpty
+            child: isRevealed
                 ? bw.BarcodeWidget(
-                    barcode: bw.Barcode.qrCode(),
-                    data: barcodePayload,
+                    barcode: bw.Barcode.code128(),
+                    data: barcodeData,
                     drawText: false,
                   )
                 : Icon(
-                    Icons.qr_code_2_rounded,
+                    Icons.barcode_reader,
                     color: AppTheme.textTertiary.withValues(alpha: 0.45),
-                    size: isLarge ? 72 : 58,
+                    size: isLarge ? 58 : 46,
                   ),
           ),
           if (!isRevealed) ...[
@@ -2462,6 +2185,13 @@ class _PrepaidMultipayCardsScreenState
               rawNumber.isNotEmpty
                   ? 'الرقم مخفي، والباركود جاهز للفحص'
                   : 'أظهر الرقم لعرض باركود الدفع',
+              style: AppTheme.caption.copyWith(color: Colors.white70),
+            ),
+          ] else if (rawNumber.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              rawNumber,
+              textDirection: TextDirection.ltr,
               style: AppTheme.caption.copyWith(color: Colors.white70),
             ),
           ],

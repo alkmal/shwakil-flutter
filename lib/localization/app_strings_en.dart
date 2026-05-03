@@ -2548,7 +2548,7 @@ const Map<String, String> appStringsEn = {
       'Create multiple multipay cards with reserved balance and an expiry date.',
   'screens_home_screen.120':
       'Accept prepaid card payments from authorized customers.',
-  'screens_home_screen.121': 'Accept NFC',
+  'screens_home_screen.121': 'Accept contactless',
   'screens_home_screen.122':
       'Read the payment authorization from the customer phone and approve the operation directly.',
   'screens_home_screen.123': 'Temporary transfer code',
@@ -2814,6 +2814,19 @@ const Map<String, String> appStringsEn = {
   'screens_transactions_screen.100': 'These fees came from a card resale.',
   'screens_transactions_screen.101':
       'Service fees linked to a financial operation were credited to this account.',
+  'screens_transactions_screen.102': 'Performed by',
+  'screens_transactions_screen.103': 'Transaction source',
+  'screens_transactions_screen.104': 'By: {actor}',
+  'screens_transactions_screen.105': 'Source: {source}',
+  'screens_transactions_screen.106': 'Card print request',
+  'screens_transactions_screen.107': 'Administrative balance credit',
+  'screens_transactions_screen.108': 'Administrative balance deduction',
+  'screens_transactions_screen.109': 'Prepaid card',
+  'screens_transactions_screen.110': 'Prepaid card payment',
+  'screens_transactions_screen.111': 'Balance top-up',
+  'screens_transactions_screen.112': 'Balance transfer',
+  'screens_transactions_screen.113': 'Card redemption',
+  'screens_transactions_screen.114': 'Card resale',
   'screens_admin_verification_requests_screen.001':
       'Could not load verification requests',
   'screens_admin_verification_requests_screen.002': 'Verification approved',

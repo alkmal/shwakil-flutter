@@ -2458,7 +2458,7 @@ const Map<String, String> appStringsAr = {
       'أنشئ أكثر من بطاقة متعددة الدفع برصيد محجوز وتاريخ انتهاء.',
   'screens_home_screen.120':
       'اقبل دفعات البطاقات المسبقة من العملاء المصرح لهم.',
-  'screens_home_screen.121': 'قبول NFC',
+  'screens_home_screen.121': 'قبول دفع بدون تلامس',
   'screens_home_screen.122':
       'اقرأ إذن الدفع من هاتف العميل واعتمد العملية مباشرة.',
   'screens_home_screen.123': 'رمز تحويل مؤقت',
@@ -2702,6 +2702,19 @@ const Map<String, String> appStringsAr = {
   'screens_transactions_screen.100': 'هذه الرسوم ناتجة عن إعادة بيع بطاقة.',
   'screens_transactions_screen.101':
       'تمت إضافة رسوم خدمة مرتبطة بعملية مالية على هذا الحساب.',
+  'screens_transactions_screen.102': 'قام بالحركة',
+  'screens_transactions_screen.103': 'مصدر الحركة',
+  'screens_transactions_screen.104': 'نفذها: {actor}',
+  'screens_transactions_screen.105': 'المصدر: {source}',
+  'screens_transactions_screen.106': 'طلب طباعة بطاقات',
+  'screens_transactions_screen.107': 'إضافة رصيد إدارية',
+  'screens_transactions_screen.108': 'خصم رصيد إداري',
+  'screens_transactions_screen.109': 'بطاقة دفع مسبق',
+  'screens_transactions_screen.110': 'دفع بطاقة مسبقة',
+  'screens_transactions_screen.111': 'شحن رصيد',
+  'screens_transactions_screen.112': 'تحويل رصيد',
+  'screens_transactions_screen.113': 'استرداد بطاقة',
+  'screens_transactions_screen.114': 'إعادة بيع بطاقة',
   'screens_admin_verification_requests_screen.001': 'تعذر تحميل طلبات التوثيق',
   'screens_admin_verification_requests_screen.002': 'تم اعتماد التوثيق',
   'screens_admin_verification_requests_screen.003':

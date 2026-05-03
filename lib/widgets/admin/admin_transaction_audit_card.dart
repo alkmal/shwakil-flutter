@@ -231,6 +231,8 @@ class AdminTransactionAuditCard extends StatelessWidget {
     final status = transaction['status']?.toString() ?? 'completed';
     final isRejected = status == 'rejected' || type == 'withdrawal_rejected';
     final actorLine = _actorLine(context, type, metadata);
+    final performedBy = _performedByLine(context, metadata);
+    final sourceLine = _sourceLine(context, metadata);
     final accentColor = _accentColor(
       isRejected: isRejected,
       amount: amount,
@@ -298,6 +300,26 @@ class AdminTransactionAuditCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 actorLine,
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              ),
+            ],
+            if (performedBy != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                context.loc.tr(
+                  'screens_transactions_screen.104',
+                  params: {'actor': performedBy},
+                ),
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              ),
+            ],
+            if (sourceLine != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                context.loc.tr(
+                  'screens_transactions_screen.105',
+                  params: {'source': sourceLine},
+                ),
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
               ),
             ],
@@ -383,5 +405,122 @@ class AdminTransactionAuditCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  String? _performedByLine(
+    BuildContext context,
+    Map<String, dynamic> metadata,
+  ) {
+    return _metadataPersonLabel(
+      metadata,
+      const [
+        'byDisplayName',
+        'byFullName',
+        'byAdminDisplayName',
+        'byAdminFullName',
+        'actorDisplayName',
+        'actorFullName',
+        'approvedByDisplayName',
+        'approvedByFullName',
+        'issuerDisplayName',
+        'issuedByDisplayName',
+        'redeemedByDisplayName',
+        'sellerDisplayName',
+        'merchantDisplayName',
+      ],
+      const [
+        'byUsername',
+        'byAdminUsername',
+        'actorUsername',
+        'approvedByUsername',
+        'issuerUsername',
+        'issuedByUsername',
+        'redeemedByUsername',
+        'sellerUsername',
+        'merchantUsername',
+      ],
+    );
+  }
+
+  String? _sourceLine(BuildContext context, Map<String, dynamic> metadata) {
+    final personSource = _metadataPersonLabel(
+      metadata,
+      const [
+        'sourceDisplayName',
+        'sourceFullName',
+        'cardSourceDisplayName',
+        'cardSourceFullName',
+        'senderDisplayName',
+        'buyerDisplayName',
+        'ownerDisplayName',
+        'targetDisplayName',
+      ],
+      const [
+        'sourceUsername',
+        'cardSourceUsername',
+        'senderUsername',
+        'buyerUsername',
+        'ownerUsername',
+        'targetUsername',
+      ],
+    );
+    if (personSource != null) {
+      return personSource;
+    }
+
+    final sourceType = metadata['sourceType']?.toString().trim();
+    if (sourceType == null || sourceType.isEmpty) {
+      return null;
+    }
+
+    final l = context.loc;
+    switch (sourceType) {
+      case 'topup':
+      case 'finance_topup':
+        return l.tr('screens_transactions_screen.111');
+      case 'transfer':
+        return l.tr('screens_transactions_screen.112');
+      case 'card_redeem':
+      case 'redeem_card':
+        return l.tr('screens_transactions_screen.113');
+      case 'card_resell':
+      case 'resell_card':
+        return l.tr('screens_transactions_screen.114');
+      case 'card_print_request':
+        return l.tr('screens_transactions_screen.106');
+      case 'admin_manual_credit':
+        return l.tr('screens_transactions_screen.107');
+      case 'admin_manual_deduction':
+        return l.tr('screens_transactions_screen.108');
+      case 'printing_debt_settlement':
+        return l.tr('widgets_admin_transaction_audit_card.010');
+      case 'prepaid_multipay_card':
+        return l.tr('screens_transactions_screen.109');
+      case 'prepaid_multipay_card_payment':
+      case 'prepaid_multipay_nfc_payment':
+        return l.tr('screens_transactions_screen.110');
+      default:
+        return sourceType;
+    }
+  }
+
+  String? _metadataPersonLabel(
+    Map<String, dynamic> metadata,
+    List<String> displayKeys,
+    List<String> usernameKeys,
+  ) {
+    for (final key in displayKeys) {
+      final value = metadata[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+    for (final key in usernameKeys) {
+      final value = metadata[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return value.startsWith('@') ? value : '@$value';
+      }
+    }
+    return null;
   }
 }
