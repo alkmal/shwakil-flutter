@@ -69,15 +69,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   List<VirtualCard> _recent = [];
   List<Map<String, dynamic>> _selectedUsers = [];
   List<String> _selectedPhoneNumbers = [];
-  bool _didLoadDependencies = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_didLoadDependencies) {
-      return;
-    }
-    _didLoadDependencies = true;
+  void initState() {
+    super.initState();
     _load();
   }
 
@@ -649,17 +644,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     final baseTitle = _detailsTitleC.text.trim();
-    final trialCardType =
-        _cardType.trim().isEmpty ? 'standard' : _cardType.trim();
-    final trialIsBalanceCard =
-        trialCardType == 'standard' || trialCardType == 'delivery';
-    final trialValue = trialIsBalanceCard ? amount : 0.0;
-    final trialDetails = _currentCardDetails();
     final items = List.generate(quantity, (index) {
       return <String, dynamic>{
-        'value': trialValue,
-        'cardType': trialCardType,
-        'cardDetails': trialDetails,
+        'value': amount,
         if (baseTitle.isNotEmpty)
           'title': quantity == 1 ? baseTitle : '$baseTitle ${index + 1}',
       };
@@ -670,7 +657,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       try {
         final cards = await _apiService.issueTrialCards(
           items: items,
-          cardType: trialCardType,
           otpCode: securityResult.otpCode,
           localAuthMethod: securityResult.method,
         );
