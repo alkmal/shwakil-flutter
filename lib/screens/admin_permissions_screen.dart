@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
-import '../utils/permission_catalog.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -26,6 +25,64 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   bool _isAuthorized = false;
   List<Map<String, dynamic>> _roles = const [];
   Map<String, dynamic> _templates = const {};
+
+  static const List<Map<String, String>> _groups = [
+    {
+      'titleKey': 'public_pages',
+      'keys':
+          'canViewBalance,canViewTransactions,canViewInventory,canViewContact,canViewLocations,canViewUsagePolicy,canViewSecuritySettings,canViewAccountSettings,canRequestVerification,canViewAffiliateCenter',
+    },
+    {
+      'titleKey': 'cards_and_ops',
+      'keys':
+          'canIssueCards,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canIssueSingleUseTickets,canIssueAppointmentTickets,canIssueQueueTickets,canViewPrivateCards,canReadOwnPrivateCardsOnly,canDeleteCards,canResellCards,canUsePrepaidMultipayCards,canAcceptPrepaidMultipayPayments,canRequestCardPrinting,canScanCards,canOfflineCardScan,canTransfer,canWithdraw',
+    },
+    {
+      'titleKey': 'admin_followup',
+      'keys':
+          'canViewCustomers,canLookupMembers,canManageUsers,canFinanceTopup,canManageMarketingAccounts,canViewSubUsers,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canManageCardPrintRequests,canExportCustomerTransactions',
+    },
+  ];
+
+  static const List<Map<String, Object>> _cardOpsSections = [
+    {
+      'titleKey': 'issuance',
+      'icon': Icons.credit_card_rounded,
+      'keys': [
+        'canIssueCards',
+        'canIssueSubShekelCards',
+        'canIssueHighValueCards',
+        'canIssuePrivateCards',
+        'canIssueSingleUseTickets',
+        'canIssueAppointmentTickets',
+        'canIssueQueueTickets',
+      ],
+    },
+    {
+      'titleKey': 'access_followup',
+      'icon': Icons.qr_code_scanner_rounded,
+      'keys': [
+        'canViewPrivateCards',
+        'canReadOwnPrivateCardsOnly',
+        'canDeleteCards',
+        'canResellCards',
+        'canScanCards',
+        'canOfflineCardScan',
+      ],
+    },
+    {
+      'titleKey': 'payments_printing',
+      'icon': Icons.swap_horiz_rounded,
+      'keys': [
+        'canUsePrepaidMultipayCards',
+        'canAcceptPrepaidMultipayPayments',
+        'canRequestCardPrinting',
+        'canManageCardPrintRequests',
+        'canTransfer',
+        'canWithdraw',
+      ],
+    },
+  ];
 
   @override
   void initState() {
@@ -199,14 +256,46 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            ...PermissionCatalog.groups.map((group) {
+            ..._groups.map((group) {
+              final keys = (group['keys'] ?? '').split(',');
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: _buildPermissionSection(
-                  roleKey: roleKey,
-                  title: group.title,
-                  icon: group.icon,
-                  keys: group.keys,
+                child: ShwakelCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AdminSectionHeader(
+                        title: _groupTitle(group['titleKey'] ?? ''),
+                        icon: Icons.tune_rounded,
+                      ),
+                      const SizedBox(height: 8),
+                      ...(group['titleKey'] == 'cards_and_ops'
+                          ? _cardOpsSections.map(
+                              (section) => Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: _buildPermissionSection(
+                                  roleKey: roleKey,
+                                  title: _cardOpsSectionTitle(
+                                    section['titleKey']! as String,
+                                  ),
+                                  icon: section['icon']! as IconData,
+                                  keys: List<String>.from(
+                                    section['keys']! as List,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : [
+                              ...keys.map(
+                                (key) => _buildPermissionToggle(
+                                  roleKey: roleKey,
+                                  permissionKey: key,
+                                ),
+                              ),
+                            ]),
+                    ],
+                  ),
                 ),
               );
             }),
@@ -217,18 +306,56 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     );
   }
 
+  String _groupTitle(String key) {
+    final l = context.loc;
+    return switch (key) {
+      'public_pages' => l.tr('screens_admin_permissions_screen.006'),
+      'cards_and_ops' => l.tr('screens_admin_permissions_screen.007'),
+      _ => l.tr('screens_admin_permissions_screen.008'),
+    };
+  }
+
+  String _cardOpsSectionTitle(String key) {
+    final l = context.loc;
+    return switch (key) {
+      'issuance' => l.tr('screens_admin_permissions_screen.057'),
+      'access_followup' => l.tr('screens_admin_permissions_screen.058'),
+      _ => l.tr('screens_admin_permissions_screen.059'),
+    };
+  }
+
   Widget _buildPermissionSection({
     required String roleKey,
     required String title,
     required IconData icon,
     required List<String> keys,
   }) {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AdminSectionHeader(title: title, icon: icon),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: AppTheme.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(title, style: AppTheme.bodyBold)),
+            ],
+          ),
           const SizedBox(height: 10),
           ...keys.map(
             (key) =>
@@ -251,14 +378,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     return SwitchListTile(
       value: current,
       contentPadding: EdgeInsets.zero,
-      title: Text(PermissionCatalog.label(context, permissionKey)),
-      subtitle: () {
-        final description = PermissionCatalog.description(
-          context,
-          permissionKey,
-        ).trim();
-        return description.isEmpty ? null : Text(description);
-      }(),
+      title: Text(_permissionLabel(permissionKey)),
       onChanged: (value) {
         setState(() {
           final next = Map<String, dynamic>.from(
@@ -271,4 +391,68 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     );
   }
 
+  String _permissionLabel(String key) {
+    final l = context.loc;
+    return switch (key) {
+      'canViewBalance' => l.tr('screens_admin_permissions_screen.009'),
+      'canViewTransactions' => l.tr('screens_admin_permissions_screen.010'),
+      'canViewInventory' => l.tr('screens_admin_permissions_screen.011'),
+      'canViewContact' => l.tr('screens_admin_permissions_screen.013'),
+      'canViewLocations' => l.tr('screens_admin_permissions_screen.014'),
+      'canViewUsagePolicy' => l.tr('screens_admin_permissions_screen.015'),
+      'canViewSecuritySettings' => l.tr('screens_admin_permissions_screen.016'),
+      'canViewAccountSettings' => l.tr('screens_admin_permissions_screen.017'),
+      'canRequestVerification' => l.tr('screens_admin_permissions_screen.018'),
+      'canViewAffiliateCenter' => l.tr('screens_admin_permissions_screen.048'),
+      'canIssueCards' => l.tr('screens_admin_permissions_screen.019'),
+      'canIssueSubShekelCards' => l.tr('screens_admin_permissions_screen.020'),
+      'canIssueHighValueCards' => l.tr('screens_admin_permissions_screen.021'),
+      'canIssuePrivateCards' => l.tr('screens_admin_permissions_screen.022'),
+      'canIssueSingleUseTickets' => l.tr(
+        'screens_admin_permissions_screen.051',
+      ),
+      'canIssueAppointmentTickets' => l.tr(
+        'screens_admin_permissions_screen.052',
+      ),
+      'canIssueQueueTickets' => l.tr('screens_admin_permissions_screen.053'),
+      'canViewPrivateCards' => l.tr('screens_admin_permissions_screen.050'),
+      'canReadOwnPrivateCardsOnly' => l.tr(
+        'screens_admin_permissions_screen.060',
+      ),
+      'canDeleteCards' => l.tr('screens_admin_permissions_screen.023'),
+      'canResellCards' => l.tr('screens_admin_permissions_screen.024'),
+      'canUsePrepaidMultipayCards' => l.tr(
+        'screens_admin_permissions_screen.054',
+      ),
+      'canAcceptPrepaidMultipayPayments' => l.tr(
+        'screens_admin_permissions_screen.055',
+      ),
+      'canRequestCardPrinting' => l.tr('screens_admin_permissions_screen.025'),
+      'canScanCards' => l.tr('screens_admin_permissions_screen.026'),
+      'canOfflineCardScan' => l.tr('screens_admin_permissions_screen.042'),
+      'canTransfer' => l.tr('screens_admin_permissions_screen.027'),
+      'canWithdraw' => l.tr('screens_admin_permissions_screen.028'),
+      'canViewCustomers' => l.tr('screens_admin_permissions_screen.029'),
+      'canLookupMembers' => l.tr('screens_admin_permissions_screen.030'),
+      'canManageUsers' => l.tr('screens_admin_permissions_screen.031'),
+      'canFinanceTopup' => l.tr('screens_admin_permissions_screen.056'),
+      'canManageMarketingAccounts' => l.tr(
+        'screens_admin_permissions_screen.049',
+      ),
+      'canViewSubUsers' => l.tr('screens_admin_permissions_screen.047'),
+      'canManageSubUsers' => l.tr('screens_admin_permissions_screen.043'),
+      'canManageLocations' => l.tr('screens_admin_permissions_screen.032'),
+      'canManageSystemSettings' => l.tr('screens_admin_permissions_screen.033'),
+      'canReviewWithdrawals' => l.tr('screens_admin_permissions_screen.034'),
+      'canReviewTopups' => l.tr('screens_admin_permissions_screen.035'),
+      'canReviewDevices' => l.tr('screens_admin_permissions_screen.036'),
+      'canManageCardPrintRequests' => l.tr(
+        'screens_admin_permissions_screen.037',
+      ),
+      'canExportCustomerTransactions' => l.tr(
+        'screens_admin_permissions_screen.040',
+      ),
+      _ => key,
+    };
+  }
 }

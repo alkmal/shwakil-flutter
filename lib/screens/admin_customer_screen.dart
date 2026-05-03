@@ -74,6 +74,61 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   String _verification = 'unverified';
   int _txPage = 1;
   static const _perPage = 10;
+  static const List<Map<String, String>> _permissionGroups = [
+    {
+      'title': 'صلاحيات الحساب والعرض',
+      'keys':
+          'canViewBalance,canViewTransactions,canViewInventory,canTransfer,canWithdraw,canRedeemCards',
+    },
+    {
+      'title': 'البطاقات والتحصيل',
+      'keys':
+          'canIssueCards,canScanCards,canOfflineCardScan,canIssueSubShekelCards,canIssueHighValueCards,canIssuePrivateCards,canIssueSingleUseTickets,canIssueAppointmentTickets,canIssueQueueTickets,canViewPrivateCards,canReadOwnPrivateCardsOnly,canDeleteCards,canResellCards,canRequestCardPrinting,canManageCardPrintRequests',
+    },
+    {
+      'title': 'الدفع المسبق و NFC',
+      'keys':
+          'canUsePrepaidMultipayCards,canAcceptPrepaidMultipayPayments,canUsePrepaidMultipayNfc',
+    },
+    {
+      'title': 'الإدارة والمراجعات',
+      'keys':
+          'canViewCustomers,canLookupMembers,canManageUsers,canFinanceTopup,canManageMarketingAccounts,canManageSubUsers,canManageLocations,canManageSystemSettings,canReviewWithdrawals,canReviewTopups,canReviewDevices,canExportCustomerTransactions,canViewAffiliateCenter,canManageDebtBook',
+    },
+  ];
+  static const List<Map<String, Object>> _cardPermissionSections = [
+    {
+      'title': 'إصدار البطاقات والتذاكر',
+      'icon': Icons.credit_card_rounded,
+      'keys': [
+        'canIssueCards',
+        'canIssueSubShekelCards',
+        'canIssueHighValueCards',
+        'canIssuePrivateCards',
+        'canIssueSingleUseTickets',
+        'canIssueAppointmentTickets',
+        'canIssueQueueTickets',
+      ],
+    },
+    {
+      'title': 'الفحص والوصول والمتابعة',
+      'icon': Icons.qr_code_scanner_rounded,
+      'keys': [
+        'canScanCards',
+        'canOfflineCardScan',
+        'canRedeemCards',
+        'canViewPrivateCards',
+        'canReadOwnPrivateCardsOnly',
+        'canDeleteCards',
+        'canResellCards',
+      ],
+    },
+    {
+      'title': 'الطباعة والتحصيل',
+      'icon': Icons.print_rounded,
+      'keys': ['canRequestCardPrinting', 'canManageCardPrintRequests'],
+    },
+  ];
   AdminTransactionAuditFilter _auditFilter = AdminTransactionAuditFilter.all;
   bool _showTransactionFilters = false;
   bool _cardScanLimitExempt = false;
@@ -1592,19 +1647,44 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 isLoading: _busy,
               ),
               const SizedBox(height: 20),
-              for (final group in PermissionCatalog.groups) ...[
-                _buildPermissionSectionCard(
-                  title: group.title,
-                  icon: group.icon,
-                  permissionKeys: group.keys
+              for (final group in _permissionGroups) ...[
+                if (group['title'] == 'البطاقات والتحصيل')
+                  ..._cardPermissionSections.map(
+                    (section) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildPermissionSectionCard(
+                        title: section['title']! as String,
+                        icon: section['icon']! as IconData,
+                        permissionKeys:
+                            List<String>.from(section['keys']! as List)
+                                .where(
+                                  (key) =>
+                                      widget.canManageUsers ||
+                                      !_isAdminOnlyPermission(key),
+                                )
+                                .toList(),
+                        perms: perms,
+                      ),
+                    ),
+                  )
+                else ...[
+                  Text(group['title']!, style: AppTheme.bodyAction),
+                  const SizedBox(height: 8),
+                  ...group['keys']!
+                      .split(',')
                       .where(
                         (key) =>
                             widget.canManageUsers ||
                             !_isAdminOnlyPermission(key),
                       )
-                      .toList(),
-                  perms: perms,
-                ),
+                      .map(
+                        (key) => _permItem(
+                          PermissionCatalog.label(context, key),
+                          key,
+                          perms,
+                        ),
+                      ),
+                ],
                 const SizedBox(height: 16),
               ],
             ],

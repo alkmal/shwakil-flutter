@@ -114,7 +114,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         _user = user;
         _feeSettings = feeSettings;
         _isAuthorized = permissions.canIssueCards;
-        final isTrialMode = user?['canIssueTrialCards'] == true;
+        final isTrialMode =
+            (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
+            'approved';
         final accountName = UserDisplayName.fromMap(
           user,
           fallback: l.tr('screens_create_card_screen.001'),
@@ -177,7 +179,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _isQueueCard ||
       _isSubscriptionCard ||
       _isAttendanceCard;
-  bool get _isTrialMode => _user?['canIssueTrialCards'] == true;
+  bool get _isTrialMode =>
+      (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
+      'approved';
   int get _minimumCardQuantity {
     final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
     return raw < 1 ? 1 : raw;
