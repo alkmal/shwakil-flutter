@@ -657,26 +657,11 @@ class _PrepaidMultipayCardsScreenState
       final expiry = card['expiryLabel']?.toString() ?? '-';
       final ownerName = _cardOwnerName();
       final issuerPhone = _cardIssuerLocalPhone();
+      final checkUrl = AppConfig.prepaidMultipayCheckUri(rawNumber).toString();
       final logoImage = _pdfLogoImage;
       final pdf = pw.Document();
       final cardWidth = 85.6 * PdfPageFormat.mm;
       final cardHeight = 53.98 * PdfPageFormat.mm;
-      final cardGap = 4 * PdfPageFormat.mm;
-      final cards = List<pw.Widget>.generate(
-        8,
-        (_) => _buildPrepaidPdfCard(
-          width: cardWidth,
-          height: cardHeight,
-          logoImage: logoImage,
-          cardNumber: cardNumber,
-          rawNumber: rawNumber,
-          label: label,
-          balance: balance,
-          expiry: expiry,
-          ownerName: ownerName,
-          issuerPhone: issuerPhone,
-        ),
-      );
 
       pdf.addPage(
         pw.Page(
@@ -690,10 +675,18 @@ class _PrepaidMultipayCardsScreenState
           build: (_) => pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: pw.Center(
-              child: pw.Wrap(
-                spacing: cardGap,
-                runSpacing: cardGap,
-                children: cards,
+              child: _buildPrepaidPdfCard(
+                width: cardWidth,
+                height: cardHeight,
+                logoImage: logoImage,
+                cardNumber: cardNumber,
+                rawNumber: rawNumber,
+                label: label,
+                balance: balance,
+                expiry: expiry,
+                ownerName: ownerName,
+                issuerPhone: issuerPhone,
+                checkUrl: checkUrl,
               ),
             ),
           ),
@@ -727,6 +720,7 @@ class _PrepaidMultipayCardsScreenState
     required String expiry,
     required String ownerName,
     required String issuerPhone,
+    required String checkUrl,
   }) {
     return pw.Container(
       width: width,
@@ -873,27 +867,55 @@ class _PrepaidMultipayCardsScreenState
                   ],
                 ),
               ),
-              pw.Container(
-                width: 35 * PdfPageFormat.mm,
-                height: 13 * PdfPageFormat.mm,
-                padding: const pw.EdgeInsets.all(3),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
-                  borderRadius: pw.BorderRadius.circular(5),
-                ),
-                child: pw.BarcodeWidget(
-                  barcode: pw.Barcode.code128(),
-                  data: rawNumber,
-                  drawText: false,
-                ),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Container(
+                    width: 13 * PdfPageFormat.mm,
+                    height: 13 * PdfPageFormat.mm,
+                    padding: const pw.EdgeInsets.all(2),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: checkUrl,
+                      drawText: false,
+                    ),
+                  ),
+                  pw.SizedBox(width: 4),
+                  pw.Container(
+                    width: 32 * PdfPageFormat.mm,
+                    height: 15 * PdfPageFormat.mm,
+                    padding: const pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: pw.BorderRadius.circular(5),
+                    ),
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.code128(),
+                      data: rawNumber,
+                      drawText: false,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           pw.Spacer(),
           pw.Text(
+            'فحص الرصيد عبر الرابط الخاص: $checkUrl',
+            textDirection: pw.TextDirection.ltr,
+            textAlign: pw.TextAlign.center,
+            maxLines: 1,
+            style: const pw.TextStyle(fontSize: 4.6, color: PdfColors.white),
+          ),
+          pw.SizedBox(height: 1.5),
+          pw.Text(
             'للاستخدام داخل شواكل فقط',
             textAlign: pw.TextAlign.center,
-            style: const pw.TextStyle(fontSize: 5.8, color: PdfColors.white),
+            style: const pw.TextStyle(fontSize: 5.4, color: PdfColors.white),
           ),
         ],
       ),

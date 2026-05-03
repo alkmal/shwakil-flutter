@@ -19,10 +19,7 @@ class AppConfig {
       return [env];
     }
 
-    return {
-      _productionApiUrl,
-      _localDebugApiUrl,
-    }.toList();
+    return {_productionApiUrl, _localDebugApiUrl}.toList();
   }
 
   static Uri get baseUri => Uri.parse(baseUrl);
@@ -49,6 +46,13 @@ class AppConfig {
     );
   }
 
+  static Uri prepaidMultipayCheckUri(String cardNumber) {
+    final normalizedNumber = cardNumber.replaceAll(RegExp(r'\D+'), '');
+    return Uri.parse(
+      '${baseUri.origin}/prepaid-card/check/${Uri.encodeComponent(normalizedNumber)}',
+    );
+  }
+
   static Uri apiUri(String path, [Map<String, dynamic>? queryParameters]) {
     return apiCandidateUris(path, queryParameters).first;
   }
@@ -58,15 +62,17 @@ class AppConfig {
     Map<String, dynamic>? queryParameters,
   ]) {
     final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-    return apiBaseUrls.map((url) {
-      final uri = Uri.parse(url);
-      final basePath = uri.path.endsWith('/') ? uri.path : '${uri.path}/';
-      return uri.replace(
-        path: '$basePath$normalizedPath',
-        queryParameters: queryParameters?.map(
-          (key, value) => MapEntry(key, value?.toString()),
-        ),
-      );
-    }).toList(growable: false);
+    return apiBaseUrls
+        .map((url) {
+          final uri = Uri.parse(url);
+          final basePath = uri.path.endsWith('/') ? uri.path : '${uri.path}/';
+          return uri.replace(
+            path: '$basePath$normalizedPath',
+            queryParameters: queryParameters?.map(
+              (key, value) => MapEntry(key, value?.toString()),
+            ),
+          );
+        })
+        .toList(growable: false);
   }
 }
