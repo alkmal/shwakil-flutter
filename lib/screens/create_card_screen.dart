@@ -73,7 +73,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   @override
