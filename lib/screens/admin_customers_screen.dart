@@ -702,11 +702,6 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 l.tr('screens_admin_customers_screen.017'),
                 style: AppTheme.h1,
               ),
-              const SizedBox(height: 6),
-              Text(
-                l.tr('screens_admin_customers_screen.050'),
-                style: AppTheme.bodyAction.copyWith(height: 1.45),
-              ),
             ],
           ),
         ),
