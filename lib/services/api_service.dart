@@ -2401,8 +2401,9 @@ class ApiService {
     String? otpCode,
     String? localAuthMethod,
   }) async {
-    final normalizedCardType =
-        cardType.trim().isEmpty ? 'standard' : cardType.trim();
+    final normalizedCardType = cardType.trim().isEmpty
+        ? 'standard'
+        : cardType.trim();
     final payload = <String, dynamic>{
       'items': items,
       'cardType': normalizedCardType,
@@ -3656,15 +3657,6 @@ class ApiService {
     final fallbackMessage = _tr('services_api_service.001');
     final payloadTooLargeMessage = _tr('services_api_service.002');
 
-    if (response.statusCode == 401) {
-      unawaited(_redirectToLoginAfterExpiredSession());
-      throw Exception(_tr('services_error_message_service.011'));
-    }
-
-    if (response.statusCode == 403) {
-      throw Exception(_tr('services_error_message_service.002'));
-    }
-
     if (response.statusCode == 413) {
       throw Exception(payloadTooLargeMessage);
     }
@@ -3680,6 +3672,18 @@ class ApiService {
       body = jsonDecode(rawBody) as Map<String, dynamic>;
     } on FormatException {
       throw Exception(fallbackMessage);
+    }
+
+    if (response.statusCode == 401) {
+      final message = ErrorMessageService.sanitize(body['message']);
+      if (ErrorMessageService.requiresFreshLogin(message)) {
+        unawaited(_redirectToLoginAfterExpiredSession());
+      }
+      throw Exception(message);
+    }
+
+    if (response.statusCode == 403) {
+      throw Exception(ErrorMessageService.sanitize(body['message']));
     }
 
     if (response.statusCode >= 400) {

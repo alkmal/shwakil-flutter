@@ -124,11 +124,7 @@ class ErrorMessageService {
     final clean = sanitize(error);
     final lower = (error?.toString() ?? clean).toLowerCase();
     if (lower.contains('401') ||
-        lower.contains('403') ||
         lower.contains('unauthorized') ||
-        lower.contains('forbidden') ||
-        lower.contains('not authorized') ||
-        lower.contains('not permitted') ||
         lower.contains('session version') ||
         lower.contains('bearer ') ||
         lower.contains('jwt') ||
