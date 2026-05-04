@@ -186,6 +186,7 @@ class _AdminPendingRegistrationsScreenState
       context,
       title: l.tr('screens_admin_pending_registrations_screen.008'),
       confirmText: l.tr('shared.confirm_rejection'),
+      requireReason: false,
     );
 
     if (reason == null) {
