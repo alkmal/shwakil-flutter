@@ -1910,6 +1910,8 @@ class _BalanceScreenState extends State<BalanceScreen>
     final delta = (transaction['balanceDelta'] as num?)?.toDouble() ?? 0;
     final accentColor = _historyAccentColor(type: type, delta: delta);
     final actorLine = _historyActorLine(type: type, metadata: metadata);
+    final sourceLine = _historySourceLine(metadata);
+    final cardDetails = _historyCardLine(metadata);
 
     await showModalBottomSheet<void>(
       context: context,
@@ -2028,6 +2030,22 @@ class _BalanceScreenState extends State<BalanceScreen>
                         AppTheme.textPrimary,
                       ),
                     ],
+                    if (sourceLine != null) ...[
+                      const SizedBox(height: 10),
+                      _buildHistoryDetailRow(
+                        context.loc.tr('screens_transactions_screen.103'),
+                        sourceLine,
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                    if (cardDetails != null) ...[
+                      const SizedBox(height: 10),
+                      _buildHistoryDetailRow(
+                        context.loc.tr('screens_transactions_screen.115'),
+                        cardDetails,
+                        AppTheme.textPrimary,
+                      ),
+                    ],
                     if ((transaction['description']
                             ?.toString()
                             .trim()
@@ -2087,6 +2105,128 @@ class _BalanceScreenState extends State<BalanceScreen>
         ),
       ],
     );
+  }
+
+  String? _historySourceLine(Map<String, dynamic> metadata) {
+    final personSource = _historyMetadataPersonLabel(
+      metadata,
+      const [
+        'sourceDisplayName',
+        'sourceFullName',
+        'cardUsedByDisplayName',
+        'senderDisplayName',
+        'buyerDisplayName',
+        'ownerDisplayName',
+        'targetDisplayName',
+      ],
+      const [
+        'sourceUsername',
+        'cardUsedByUsername',
+        'senderUsername',
+        'buyerUsername',
+        'ownerUsername',
+        'targetUsername',
+      ],
+    );
+    if (personSource != null) {
+      return personSource;
+    }
+
+    final sourceType = metadata['sourceType']?.toString().trim();
+    if (sourceType == null || sourceType.isEmpty) {
+      return null;
+    }
+
+    return _historySourceTypeLabel(sourceType);
+  }
+
+  String _historySourceTypeLabel(String sourceType) {
+    switch (sourceType) {
+      case 'topup':
+      case 'finance_topup':
+        return context.loc.tr('screens_transactions_screen.111');
+      case 'transfer':
+        return context.loc.tr('screens_transactions_screen.112');
+      case 'card_redeem':
+      case 'redeem_card':
+        return context.loc.tr('screens_transactions_screen.113');
+      case 'card_resell':
+      case 'resell_card':
+        return context.loc.tr('screens_transactions_screen.114');
+      case 'card_print_request':
+        return context.loc.tr('screens_transactions_screen.106');
+      default:
+        return sourceType;
+    }
+  }
+
+  String? _historyCardLine(Map<String, dynamic> metadata) {
+    final l = context.loc;
+    final barcode = metadata['cardBarcode']?.toString().trim();
+    final cardId = metadata['cardId']?.toString().trim();
+    final usedBy = _historyMetadataPersonLabel(
+      metadata,
+      const ['cardUsedByDisplayName', 'scannerDisplayName'],
+      const ['cardUsedByUsername', 'scannerUsername'],
+    );
+    final customer = metadata['cardCustomerName']?.toString().trim();
+    final usedAt = metadata['cardUsedAt']?.toString().trim();
+
+    if ((barcode == null || barcode.isEmpty) &&
+        (cardId == null || cardId.isEmpty) &&
+        usedBy == null &&
+        (customer == null || customer.isEmpty) &&
+        (usedAt == null || usedAt.isEmpty)) {
+      return null;
+    }
+
+    return <String>[
+      if (barcode != null && barcode.isNotEmpty)
+        l.tr(
+          'widgets_admin_transaction_audit_card.038',
+          params: {'card': barcode},
+        )
+      else if (cardId != null && cardId.isNotEmpty)
+        l.tr(
+          'widgets_admin_transaction_audit_card.038',
+          params: {'card': cardId},
+        ),
+      if (usedBy != null)
+        l.tr(
+          'widgets_admin_transaction_audit_card.039',
+          params: {'user': usedBy},
+        ),
+      if (customer != null && customer.isNotEmpty)
+        l.tr(
+          'widgets_admin_transaction_audit_card.040',
+          params: {'customer': customer},
+        ),
+      if (usedAt != null && usedAt.isNotEmpty)
+        l.tr(
+          'widgets_admin_transaction_audit_card.041',
+          params: {'time': usedAt},
+        ),
+    ].join(' - ');
+  }
+
+  String? _historyMetadataPersonLabel(
+    Map<String, dynamic> metadata,
+    List<String> displayKeys,
+    List<String> usernameKeys,
+  ) {
+    for (final key in displayKeys) {
+      final value = metadata[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+    for (final key in usernameKeys) {
+      final value = metadata[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return value.startsWith('@') ? value : '@$value';
+      }
+    }
+    return null;
   }
 
   String _historyConfirmationText(

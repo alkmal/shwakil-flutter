@@ -233,6 +233,10 @@ class AdminTransactionAuditCard extends StatelessWidget {
     final actorLine = _actorLine(context, type, metadata);
     final performedBy = _performedByLine(context, metadata);
     final sourceLine = _sourceLine(context, metadata);
+    final cardLine = _cardLine(context, metadata);
+    final feeSourceLine = _feeSourceLine(context, type, metadata);
+    final description = transaction['description']?.toString().trim() ?? '';
+    final fee = (transaction['fee'] as num?)?.toDouble() ?? 0;
     final accentColor = _accentColor(
       isRejected: isRejected,
       amount: amount,
@@ -293,7 +297,10 @@ class AdminTransactionAuditCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              createdAt,
+              context.loc.tr(
+                'widgets_admin_transaction_audit_card.032',
+                params: {'time': createdAt.isEmpty ? '-' : createdAt},
+              ),
               style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
             ),
             if (actorLine != null) ...[
@@ -323,6 +330,54 @@ class AdminTransactionAuditCard extends StatelessWidget {
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
               ),
             ],
+            if (feeSourceLine != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                feeSourceLine,
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              ),
+            ],
+            if (cardLine != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                cardLine,
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              ),
+            ],
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(description, style: AppTheme.bodyText),
+            ],
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _detailChip(
+                  context,
+                  context.loc.tr('widgets_admin_transaction_audit_card.033'),
+                  _currency(amount),
+                ),
+                _detailChip(
+                  context,
+                  context.loc.tr('widgets_admin_transaction_audit_card.034'),
+                  _currency(fee),
+                ),
+                if ((transaction['cardId']?.toString().trim().isNotEmpty ??
+                    false))
+                  _detailChip(
+                    context,
+                    context.loc.tr('widgets_admin_transaction_audit_card.035'),
+                    transaction['cardId'].toString(),
+                  ),
+                if ((transaction['id']?.toString().trim().isNotEmpty ?? false))
+                  _detailChip(
+                    context,
+                    context.loc.tr('widgets_admin_transaction_audit_card.036'),
+                    transaction['id'].toString(),
+                  ),
+              ],
+            ),
           ],
         );
 
@@ -404,6 +459,26 @@ class AdminTransactionAuditCard extends StatelessWidget {
                 ),
         );
       },
+    );
+  }
+
+  Widget _detailChip(BuildContext context, String label, String value) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AppTheme.caption.copyWith(fontSize: 11)),
+          const SizedBox(height: 2),
+          Text(value, style: AppTheme.bodyBold.copyWith(fontSize: 12)),
+        ],
+      ),
     );
   }
 
@@ -502,6 +577,80 @@ class AdminTransactionAuditCard extends StatelessWidget {
       default:
         return sourceType;
     }
+  }
+
+  String? _feeSourceLine(
+    BuildContext context,
+    String type,
+    Map<String, dynamic> metadata,
+  ) {
+    if (type != 'app_fee_credit' && type != 'app_fee_reversal') {
+      return null;
+    }
+
+    final source = _sourceLine(context, metadata);
+    final sourceUser = _metadataPersonLabel(
+      metadata,
+      const ['sourceDisplayName', 'sourceFullName', 'cardUsedByDisplayName'],
+      const ['sourceUsername', 'cardUsedByUsername'],
+    );
+    final card = _cardLine(context, metadata);
+
+    final parts = <String>[?source, ?sourceUser, ?card];
+    if (parts.isEmpty) {
+      return null;
+    }
+
+    return context.loc.tr(
+      'widgets_admin_transaction_audit_card.037',
+      params: {'source': parts.join(' - ')},
+    );
+  }
+
+  String? _cardLine(BuildContext context, Map<String, dynamic> metadata) {
+    final barcode = metadata['cardBarcode']?.toString().trim();
+    final cardId = metadata['cardId']?.toString().trim();
+    final usedBy = _metadataPersonLabel(
+      metadata,
+      const ['cardUsedByDisplayName', 'scannerDisplayName'],
+      const ['cardUsedByUsername', 'scannerUsername'],
+    );
+    final customer = metadata['cardCustomerName']?.toString().trim();
+    final usedAt = metadata['cardUsedAt']?.toString().trim();
+
+    if ((barcode == null || barcode.isEmpty) &&
+        (cardId == null || cardId.isEmpty) &&
+        usedBy == null &&
+        (customer == null || customer.isEmpty)) {
+      return null;
+    }
+
+    final cardLabel = barcode != null && barcode.isNotEmpty
+        ? barcode
+        : (cardId != null && cardId.isNotEmpty ? cardId : '-');
+    final details = <String>[
+      context.loc.tr(
+        'widgets_admin_transaction_audit_card.038',
+        params: {'card': cardLabel},
+      ),
+      if (usedBy != null)
+        context.loc.tr(
+          'widgets_admin_transaction_audit_card.039',
+          params: {'user': usedBy},
+        ),
+      if (customer != null && customer.isNotEmpty)
+        context.loc.tr(
+          'widgets_admin_transaction_audit_card.040',
+          params: {'customer': customer},
+        ),
+      if (usedAt != null && usedAt.isNotEmpty)
+        context.loc.tr(
+          'widgets_admin_transaction_audit_card.041',
+          params: {'time': usedAt},
+        ),
+    ];
+
+    return details.join(' - ');
   }
 
   String? _metadataPersonLabel(
