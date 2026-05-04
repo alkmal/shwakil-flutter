@@ -26,6 +26,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _searchDebounce;
 
   List<Map<String, dynamic>> _customers = const [];
@@ -35,6 +36,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   bool _isAuthorized = false;
   bool _canManageUsers = false;
   bool _canManageMarketingAccounts = false;
+  bool _showSummaryInline = false;
   String? _resendBusyId;
   String? _otpBusyId;
   int _customerPage = 1;
@@ -51,6 +53,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -595,13 +598,19 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         actions: [
           IconButton(
             tooltip: l.tr('screens_admin_customers_screen.049'),
-            onPressed: () => _showSummarySheet(totalCustomers),
-            icon: const Icon(Icons.analytics_rounded),
+            onPressed: () {
+              setState(() => _showSummaryInline = !_showSummaryInline);
+            },
+            icon: Icon(
+              _showSummaryInline
+                  ? Icons.analytics_outlined
+                  : Icons.analytics_rounded,
+            ),
           ),
           IconButton(
             tooltip: l.tr('screens_admin_customers_screen.040'),
-            onPressed: _showSearchSheet,
-            icon: const Icon(Icons.manage_search_rounded),
+            onPressed: () => _searchFocusNode.requestFocus(),
+            icon: const Icon(Icons.search_rounded),
           ),
           if (_canManageUsers)
             IconButton(
@@ -631,70 +640,28 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   padding: EdgeInsets.only(bottom: 16),
                   child: LinearProgressIndicator(minHeight: 3),
                 ),
-              _buildHeader(totalCustomers),
+              _buildPageHeader(totalCustomers),
               const SizedBox(height: 16),
-              _buildOverviewCard(totalCustomers),
-              const SizedBox(height: 16),
-              ShwakelCard(
-                padding: const EdgeInsets.all(18),
-                color: AppTheme.surfaceVariant,
-                borderRadius: BorderRadius.circular(24),
-                shadowLevel: ShwakelShadowLevel.none,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.manage_search_rounded,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        l.tr('screens_admin_customers_screen.056'),
-                        style: AppTheme.bodyAction.copyWith(
-                          color: AppTheme.textSecondary,
-                          height: 1.45,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildSearchPanel(totalCustomers),
+              if (_showSummaryInline) ...[
+                const SizedBox(height: 16),
+                _buildOverviewCard(totalCustomers),
+              ],
               const SizedBox(height: 16),
               if (_customers.isEmpty)
                 ShwakelCard(
                   padding: const EdgeInsets.all(28),
                   child: Center(
                     child: Text(
-                      l.tr('screens_admin_customers_screen.038'),
+                      _searchController.text.trim().isEmpty
+                          ? l.tr('screens_admin_customers_screen.038')
+                          : l.tr('screens_admin_customers_screen.001'),
                       style: AppTheme.bodyAction,
                     ),
                   ),
                 )
               else ...[
-                ..._customers.map(
-                  (customer) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: AdminCustomerCard(
-                      customer: customer,
-                      onTap: () => _openCustomerDetails(customer),
-                      onResendCredentials: _canManageUsers
-                          ? () => _resendCustomerCredentials(customer)
-                          : null,
-                      onSendOtp: _canManageUsers
-                          ? () => _sendCustomerOtp(customer)
-                          : null,
-                    ),
-                  ),
-                ),
+                _buildCustomersGrid(),
                 AdminPaginationFooter(
                   currentPage: _customerPage,
                   lastPage: _customerLastPage,
@@ -711,61 +678,171 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     );
   }
 
-  Widget _buildHeader(int totalCustomers) {
+  Widget _buildPageHeader(int totalCustomers) {
     final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(24),
-      gradient: AppTheme.heroGradient,
-      shadowLevel: ShwakelShadowLevel.premium,
-      borderColor: Colors.white.withValues(alpha: 0.18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: const Icon(
-              Icons.groups_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.12)),
           ),
-          const SizedBox(height: 16),
-          Text(
-            l.tr('screens_admin_customers_screen.017'),
-            style: AppTheme.h1.copyWith(color: Colors.white, height: 1.2),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_admin_customers_screen.050'),
-            style: AppTheme.bodyAction.copyWith(
-              color: Colors.white.withValues(alpha: 0.90),
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          child: const Icon(Icons.groups_rounded, color: AppTheme.primary),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _heroChip(
-                icon: Icons.people_alt_rounded,
-                label:
-                    '$totalCustomers ${l.tr('screens_admin_customers_screen.051')}',
+              Text(
+                l.tr('screens_admin_customers_screen.017'),
+                style: AppTheme.h1,
               ),
-              _heroChip(
-                icon: Icons.search_rounded,
-                label: l.tr('screens_admin_customers_screen.040'),
+              const SizedBox(height: 6),
+              Text(
+                l.tr('screens_admin_customers_screen.050'),
+                style: AppTheme.bodyAction.copyWith(height: 1.45),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        _countPill(icon: Icons.people_alt_rounded, label: '$totalCustomers'),
+      ],
+    );
+  }
+
+  Widget _buildSearchPanel(int totalCustomers) {
+    final l = context.loc;
+    final hasQuery = _searchController.text.trim().isNotEmpty;
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              labelText: l.tr('screens_admin_customers_screen.040'),
+              hintText: l.tr('screens_admin_customers_screen.023'),
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: hasQuery
+                  ? IconButton(
+                      tooltip: l.tr('screens_admin_customers_screen.039'),
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: _clearSearch,
+                    )
+                  : null,
+            ),
+            onChanged: _onSearchChanged,
+            onSubmitted: (_) => _submitSearch(force: true),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l.tr(
+                    'screens_admin_customers_screen.043',
+                    params: {
+                      'shown': '${_customers.length}',
+                      'total': '$totalCustomers',
+                    },
+                  ),
+                  style: AppTheme.caption,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() => _showSummaryInline = !_showSummaryInline);
+                },
+                icon: Icon(
+                  _showSummaryInline
+                      ? Icons.expand_less_rounded
+                      : Icons.query_stats_rounded,
+                  size: 18,
+                ),
+                label: Text(l.tr('screens_admin_customers_screen.049')),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _countPill({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomersGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useGrid = constraints.maxWidth >= 760;
+        if (!useGrid) {
+          return Column(
+            children: _customers
+                .map(
+                  (customer) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _customerCard(customer),
+                  ),
+                )
+                .toList(),
+          );
+        }
+
+        return Wrap(
+          spacing: 14,
+          runSpacing: 14,
+          children: _customers
+              .map(
+                (customer) => SizedBox(
+                  width: (constraints.maxWidth - 14) / 2,
+                  child: _customerCard(customer),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _customerCard(Map<String, dynamic> customer) {
+    return AdminCustomerCard(
+      customer: customer,
+      onTap: () => _openCustomerDetails(customer),
+      onResendCredentials: _canManageUsers
+          ? () => _resendCustomerCredentials(customer)
+          : null,
+      onSendOtp: _canManageUsers ? () => _sendCustomerOtp(customer) : null,
     );
   }
 
@@ -898,117 +975,6 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     );
   }
 
-  Widget _heroChip({required IconData icon, required String label}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showSummarySheet(int totalCustomers) async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_admin_customers_screen.049'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.tr('screens_admin_customers_screen.050'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildOverviewCard(totalCustomers),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showSearchSheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_admin_customers_screen.040'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.tr('screens_admin_customers_screen.042'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ShwakelCard(
-              padding: const EdgeInsets.all(18),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: context.loc.tr(
-                    'screens_admin_customers_screen.023',
-                  ),
-                  prefixIcon: const Icon(Icons.search_rounded),
-                ),
-                onChanged: (_) {
-                  _searchDebounce?.cancel();
-                  _searchDebounce = Timer(
-                    const Duration(milliseconds: 550),
-                    () {
-                      if (!mounted) {
-                        return;
-                      }
-                      _submitSearch();
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _showHelpDialog() {
     return showDialog<void>(
       context: context,
@@ -1025,9 +991,27 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     );
   }
 
-  void _submitSearch() {
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (!mounted) {
+        return;
+      }
+      _submitSearch();
+    });
+    setState(() {});
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    _submitSearch(force: true);
+    setState(() {});
+  }
+
+  void _submitSearch({bool force = false}) {
     final query = _searchController.text.trim();
-    if (query == _lastSubmittedQuery) {
+    if (!force && query == _lastSubmittedQuery) {
       return;
     }
     _lastSubmittedQuery = query;
