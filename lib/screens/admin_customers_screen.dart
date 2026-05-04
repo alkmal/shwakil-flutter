@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
@@ -27,7 +25,6 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  Timer? _searchDebounce;
 
   List<Map<String, dynamic>> _customers = const [];
   Map<String, dynamic> _summary = const {};
@@ -52,7 +49,6 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
     _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
@@ -729,13 +725,30 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
               labelText: l.tr('screens_admin_customers_screen.040'),
               hintText: l.tr('screens_admin_customers_screen.023'),
               prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: hasQuery
-                  ? IconButton(
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasQuery)
+                    IconButton(
                       tooltip: l.tr('screens_admin_customers_screen.039'),
                       icon: const Icon(Icons.close_rounded),
                       onPressed: _clearSearch,
-                    )
-                  : null,
+                    ),
+                  IconButton(
+                    tooltip: l.tr('screens_admin_customers_screen.057'),
+                    icon: _isLoadingCustomers
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.manage_search_rounded),
+                    onPressed: _isLoadingCustomers
+                        ? null
+                        : () => _submitSearch(force: true),
+                  ),
+                ],
+              ),
             ),
             onChanged: _onSearchChanged,
             onSubmitted: (_) => _submitSearch(force: true),
@@ -987,18 +1000,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   }
 
   void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 450), () {
-      if (!mounted) {
-        return;
-      }
-      _submitSearch();
-    });
     setState(() {});
   }
 
   void _clearSearch() {
-    _searchDebounce?.cancel();
     _searchController.clear();
     _submitSearch(force: true);
     setState(() {});

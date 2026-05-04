@@ -3245,4 +3245,5 @@ const Map<String, String> appStringsEn = {
       'These are the admin sections most commonly used in the daily workflow. Start here for faster access.',
   'screens_admin_customers_screen.056':
       'Use search to reach a customer quickly, then open their page to review profile data, permissions, and financial actions from one place.',
+  'screens_admin_customers_screen.057': 'Run search',
 };
