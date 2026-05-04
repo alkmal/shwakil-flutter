@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -325,6 +326,27 @@ class _AdminPendingRegistrationsScreenState
     }
   }
 
+  Future<void> _copyPhoneNumber(Map<String, dynamic> request) async {
+    final rawPhone = request['whatsapp']?.toString().trim() ?? '';
+    if (rawPhone.isEmpty) {
+      return;
+    }
+    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    final value = rawPhone.startsWith('+') ? rawPhone : '+$digits';
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) {
+      return;
+    }
+    AppAlertService.showSnack(
+      context,
+      message: context.loc.tr(
+        'screens_admin_pending_registrations_screen.034',
+        params: {'phone': value},
+      ),
+      type: AppAlertType.info,
+    );
+  }
+
   List<Map<String, dynamic>> get _filteredRequests {
     final query = _searchQuery.trim().toLowerCase();
     if (query.isEmpty) {
@@ -523,6 +545,7 @@ class _AdminPendingRegistrationsScreenState
                 Icons.call_rounded,
                 request['whatsapp']?.toString() ?? '-',
               ),
+              _copyPhoneChip(request),
               if ((request['nationalId']?.toString().trim().isNotEmpty ??
                   false))
                 _infoChip(
@@ -650,6 +673,28 @@ class _AdminPendingRegistrationsScreenState
           Text(label, style: AppTheme.caption),
         ],
       ),
+    );
+  }
+
+  Widget _copyPhoneChip(Map<String, dynamic> request) {
+    final phone = request['whatsapp']?.toString().trim() ?? '';
+    if (phone.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return ActionChip(
+      avatar: const Icon(Icons.copy_rounded, size: 16),
+      label: Text(
+        context.loc.tr('screens_admin_pending_registrations_screen.035'),
+      ),
+      onPressed: () => _copyPhoneNumber(request),
+      backgroundColor: AppTheme.infoLight,
+      labelStyle: AppTheme.caption.copyWith(
+        color: AppTheme.info,
+        fontWeight: FontWeight.w800,
+      ),
+      side: BorderSide(color: AppTheme.info.withValues(alpha: 0.18)),
+      shape: const StadiumBorder(),
     );
   }
 }

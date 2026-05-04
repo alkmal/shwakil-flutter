@@ -2857,6 +2857,8 @@ const Map<String, String> appStringsAr = {
   'shared.delivery_sms': 'رسالة نصية',
   'screens_admin_pending_registrations_screen.033':
       'اختر طريقة إرسال كلمة المرور للمستخدم بعد الاعتماد.',
+  'screens_admin_pending_registrations_screen.034': 'تم نسخ الرقم {phone}',
+  'screens_admin_pending_registrations_screen.035': 'نسخ الرقم',
   'screens_balance_screen.108': 'بيانات الشحن',
   'screens_balance_screen.109': 'جهة السحب',
   'screens_balance_screen.110': 'تفاصيل المبلغ',

@@ -2979,6 +2979,8 @@ const Map<String, String> appStringsEn = {
   'shared.delivery_sms': 'Text message',
   'screens_admin_pending_registrations_screen.033':
       'Choose how the password should be sent to the user after approval.',
+  'screens_admin_pending_registrations_screen.034': 'Copied {phone}',
+  'screens_admin_pending_registrations_screen.035': 'Copy number',
   'screens_balance_screen.108': 'Top-up details',
   'screens_balance_screen.109': 'Withdrawal destination',
   'screens_balance_screen.110': 'Amount details',
