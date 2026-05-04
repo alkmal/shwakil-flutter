@@ -1659,6 +1659,9 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.180': 'إظهار الرصيد',
   'screens_scan_card_screen.181':
       'اعرض هذا الرمز للطرف المستلم. تنتهي صلاحيته تلقائيًا بعد دقيقة واحدة من وقت إنشائه.',
+  'screens_scan_card_screen.182': 'تم الاعتماد بنجاح',
+  'screens_scan_card_screen.183':
+      'تم استرداد البطاقة وإضافة الرصيد بنجاح. افحص البطاقة مرة أخرى لعرض حالتها الجديدة.',
   'screens_scan_card_screen.155': 'البطاقات المتزامنة',
   'screens_scan_card_screen.156': 'آخر تحديث',
   'screens_scan_card_screen.157': 'مدة السماح',

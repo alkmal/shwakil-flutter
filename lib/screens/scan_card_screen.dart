@@ -2177,8 +2177,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           : (canResellCards ? Icons.autorenew_rounded : null),
       onPrimaryAction: canRedeemCards
           ? () async {
-              await _redeemCard(card, showFeedback: false);
-              return _resolveScannerDialogResult(card.barcode);
+              final redeemed = await _redeemCard(card, showFeedback: false);
+              if (!redeemed || !mounted) {
+                return _resolveScannerDialogResult(card.barcode);
+              }
+              await AppAlertService.showInfo(
+                context,
+                title: _t('screens_scan_card_screen.182'),
+                message: _t('screens_scan_card_screen.183'),
+              );
+              return null;
             }
           : (canResellCards
                 ? () async {
@@ -2266,19 +2274,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         location: location,
       );
       final updatedBalance = (response['balance'] as num?)?.toDouble();
-      final refreshed = await _lookupCard(card.barcode);
       if (!mounted) return false;
       setState(() {
-        _card = refreshed.card;
+        _card = null;
+        _bcC.clear();
+        _lastAutoRedeemedBarcode = null;
         if (updatedBalance != null) {
           _user = {...?_user, 'balance': updatedBalance};
         }
       });
       if (showFeedback) {
-        AppAlertService.showSuccess(
+        AppAlertService.showInfo(
           context,
-          title: l.tr('screens_scan_card_screen.044'),
-          message: l.tr('screens_scan_card_screen.045'),
+          title: l.tr('screens_scan_card_screen.182'),
+          message: l.tr('screens_scan_card_screen.183'),
         );
       }
       return true;

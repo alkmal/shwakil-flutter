@@ -1723,6 +1723,9 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.180': 'Show balance',
   'screens_scan_card_screen.181':
       'Show this code to the recipient. It expires automatically one minute after it is created.',
+  'screens_scan_card_screen.182': 'Approved successfully',
+  'screens_scan_card_screen.183':
+      'The card was redeemed and the balance was added. Scan it again to view its new status.',
   'screens_scan_card_screen.155': 'Synced cards',
   'screens_scan_card_screen.156': 'Last update',
   'screens_scan_card_screen.157': 'Allowed period',
