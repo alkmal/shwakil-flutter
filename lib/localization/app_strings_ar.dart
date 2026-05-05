@@ -2144,6 +2144,8 @@ const Map<String, String> appStringsAr = {
   'screens_notifications_screen.086': 'مكتمل',
   'screens_notifications_screen.087': 'مرفوض',
   'screens_notifications_screen.088': 'فشل التنفيذ',
+  'screens_notifications_screen.089': 'رمز التتبع: {trace}',
+  'screens_notifications_screen.090': 'الأثر البرمجي',
   'screens_transactions_screen.042': 'بحث سريع',
   'screens_transactions_screen.043': 'نطاق زمني',
   'screens_transactions_screen.044': 'نوع العملية',

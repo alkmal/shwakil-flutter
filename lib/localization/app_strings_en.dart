@@ -2219,6 +2219,8 @@ const Map<String, String> appStringsEn = {
   'screens_notifications_screen.086': 'Completed',
   'screens_notifications_screen.087': 'Rejected',
   'screens_notifications_screen.088': 'Failed',
+  'screens_notifications_screen.089': 'Trace: {trace}',
+  'screens_notifications_screen.090': 'Stack trace',
   'screens_transactions_screen.042': 'Quick search',
   'screens_transactions_screen.043': 'Time range',
   'screens_transactions_screen.044': 'Transaction type',
