@@ -316,7 +316,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           duration: const Duration(seconds: 4),
         );
       } else {
-        // User cannot operate offline; require secure logout to avoid broken flows.
         if (!_connectivityNoticeOpen) {
           _connectivityNoticeOpen = true;
           unawaited(() async {
@@ -324,11 +323,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               context,
               title: 'تم فصل الانترنت',
               message:
-                  'لا تملك صلاحية استخدام التطبيق بدون اتصال. سيتم تحويلك لتسجيل خروج آمن.',
+                  'لا تملك صلاحية استخدام التطبيق بدون اتصال. ستبقى جلستك محفوظة، ويمكنك المتابعة تلقائيًا عند عودة الاتصال.',
             );
             if (!mounted) return;
             _connectivityNoticeOpen = false;
-            await QuickLogoutAction.logout(context);
           }());
         }
       }

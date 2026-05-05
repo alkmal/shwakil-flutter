@@ -132,11 +132,7 @@ class ErrorMessageService {
       return true;
     }
 
-    return _matchesAnyMessage(clean, [
-      'services_error_message_service.002',
-      'services_error_message_service.010',
-      'services_error_message_service.011',
-    ]);
+    return _matchesAnyMessage(clean, ['services_error_message_service.011']);
   }
 
   static String fromResponseBody(String body) {

@@ -173,8 +173,129 @@ Route<dynamic> _buildNamedRoute(RouteSettings settings) {
 
   return MaterialPageRoute<void>(
     settings: RouteSettings(name: resolvedName, arguments: settings.arguments),
-    builder: builder,
+    builder: (context) => _OfflineRouteGuard(
+      routeName: resolvedName,
+      child: builder(context),
+    ),
   );
+}
+
+bool _isOfflineOnlyRoute(String? routeName) {
+  return routeName == '/login-offline' ||
+      routeName == '/offline-sync' ||
+      routeName == '/scan-card-offline' ||
+      routeName == '/scan-card-offline-camera';
+}
+
+bool _isOfflinePermittedRoute(String? routeName) {
+  return _isOfflineOnlyRoute(routeName) || OfflineSessionService.isOfflineMode;
+}
+
+Future<bool> _canUseOfflineWorkspaceForUser(
+  Map<String, dynamic>? user,
+) async {
+  if (user == null || user['id'] == null) {
+    return false;
+  }
+
+  final permissions = AppPermissions.fromUser(user);
+  return permissions.canOfflineCardScan &&
+      await OfflineCardService().hasOfflineWorkspace(user['id'].toString());
+}
+
+Future<bool> _canUseOfflineCardScanForUser(Map<String, dynamic>? user) async {
+  if (user == null || user['id'] == null) {
+    return false;
+  }
+  final permissions = AppPermissions.fromUser(user);
+  return permissions.canOfflineCardScan &&
+      await OfflineCardService().hasOfflineWorkspace(user['id'].toString());
+}
+
+class _OfflineRouteGuard extends StatelessWidget {
+  const _OfflineRouteGuard({required this.routeName, required this.child});
+
+  final String routeName;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isOfflinePermittedRoute(routeName)) {
+      return child;
+    }
+
+    return FutureBuilder<bool>(
+      future: _isOfflineOnlyRoute(routeName)
+          ? _canOpenOfflineOnlyRoute(routeName)
+          : _canStayInOfflineMode(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const _SplashScreen();
+        }
+        if (snapshot.data == true) {
+          return child;
+        }
+
+        OfflineSessionService.setOfflineMode(false);
+        return const _OfflineAccessFallback();
+      },
+    );
+  }
+
+  Future<bool> _canStayInOfflineMode() async {
+    final user = await AuthService().currentUser();
+    return _canUseOfflineWorkspaceForUser(user);
+  }
+
+  Future<bool> _canOpenOfflineOnlyRoute(String routeName) async {
+    final user = await AuthService().currentUser();
+    switch (routeName) {
+      case '/scan-card-offline':
+      case '/scan-card-offline-camera':
+        return _canUseOfflineCardScanForUser(user);
+      case '/offline-sync':
+        return user != null &&
+            user['id'] != null &&
+            AppPermissions.fromUser(user).canOfflineCardScan;
+      case '/login-offline':
+        return _canUseOfflineWorkspaceForUser(user);
+      default:
+        return _canUseOfflineWorkspaceForUser(user);
+    }
+  }
+}
+
+class _OfflineAccessFallback extends StatefulWidget {
+  const _OfflineAccessFallback();
+
+  @override
+  State<_OfflineAccessFallback> createState() => _OfflineAccessFallbackState();
+}
+
+class _OfflineAccessFallbackState extends State<_OfflineAccessFallback> {
+  bool _scheduled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_scheduled) {
+      _scheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) {
+          return;
+        }
+        final navigator = Navigator.of(context);
+        final hasSession = await AuthService().isLoggedIn();
+        if (!mounted) {
+          return;
+        }
+        navigator.pushNamedAndRemoveUntil(
+          hasSession ? '/home' : '/login',
+          (route) => false,
+        );
+      });
+    }
+    return const _SplashScreen();
+  }
 }
 
 Future<void> main() async {
@@ -746,9 +867,22 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       await authService.refreshCurrentUser().timeout(
         const Duration(milliseconds: 1500),
       );
-    } catch (_) {
+    } catch (error) {
       unawaited(RealtimeNotificationService.stop());
-      _debugLaunchDecision('login(refreshFailedKeepToken)', stopwatch.elapsed);
+      if (ErrorMessageService.requiresFreshLogin(
+        ErrorMessageService.sanitize(error),
+      )) {
+        await authService.logout();
+        _debugLaunchDecision('login(expiredToken)', stopwatch.elapsed);
+        return const _LaunchDecision(state: _LaunchState.login);
+      }
+      final fallbackUser = await authService.currentUser();
+      if (fallbackUser != null) {
+        unawaited(RealtimeNotificationService.start());
+        _debugLaunchDecision('home(refreshUnavailable)', stopwatch.elapsed);
+        return const _LaunchDecision(state: _LaunchState.home);
+      }
+      _debugLaunchDecision('login(noCachedUser)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
     }
     unawaited(RealtimeNotificationService.start());
@@ -796,17 +930,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   }
 
   Future<bool> _canOpenOfflineWorkspace(Map<String, dynamic>? user) async {
-    if (await const PrepaidMultipayOfflineCacheService().hasCards()) {
-      return true;
-    }
-    if (user == null || user['id'] == null) {
-      return false;
-    }
-    final permissions = AppPermissions.fromUser(user);
-    if (!permissions.canOfflineCardScan) {
-      return false;
-    }
-    return OfflineCardService().hasOfflineWorkspace(user['id'].toString());
+    return _canUseOfflineWorkspaceForUser(user);
   }
 
   Future<void> _finishOnboarding() async {
