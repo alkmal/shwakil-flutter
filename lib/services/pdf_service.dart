@@ -222,7 +222,11 @@ class PDFService {
   }
 
   bool _isTicketCard(VirtualCard card) =>
-      card.isSingleUse || card.isAppointment || card.isQueueTicket;
+      card.isSingleUse ||
+      card.isAppointment ||
+      card.isQueueTicket ||
+      card.isSubscription ||
+      card.isAttendance;
 
   bool _isVisuallyPrivate(VirtualCard card) =>
       card.isPrivate || _isLocationSpecific(card) || _isTicketCard(card);
@@ -243,6 +247,12 @@ class PDFService {
     if (card.isQueueTicket) {
       return 'تذكرة طابور';
     }
+    if (card.isSubscription) {
+      return 'بطاقة اشتراك';
+    }
+    if (card.isAttendance) {
+      return 'بطاقة حضور وانصراف';
+    }
     return 'بطاقة رصيد';
   }
 
@@ -260,6 +270,15 @@ class PDFService {
     }
     if (card.isQueueTicket) {
       return 'تذكرة طابور خاصة لمستفيدين محددين';
+    }
+    if (card.isSubscription) {
+      final until = card.validUntil;
+      return until == null
+          ? 'بطاقة اشتراك خاصة لمستفيد محدد'
+          : 'اشتراك صالح حتى ${_dateLabel(until)}';
+    }
+    if (card.isAttendance) {
+      return 'بطاقة موظف لتسجيل الحضور والانصراف';
     }
     return _isVisuallyPrivate(card)
         ? 'بطاقة رصيد خاصة لمستفيدين محددين'

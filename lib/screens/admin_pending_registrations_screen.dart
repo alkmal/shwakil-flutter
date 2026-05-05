@@ -327,6 +327,84 @@ class _AdminPendingRegistrationsScreenState
     }
   }
 
+  Future<void> _editWhatsapp(Map<String, dynamic> request) async {
+    final requestId = request['id']?.toString() ?? '';
+    if (requestId.isEmpty) {
+      return;
+    }
+
+    final controller = TextEditingController(
+      text: request['whatsapp']?.toString() ?? '',
+    );
+    final updatedPhone = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تعديل رقم المستخدم'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'رقم المستخدم',
+            helperText: 'بعد التعديل يمكنك إعادة إرسال رمز التحقق للرقم الجديد.',
+            prefixIcon: Icon(Icons.phone_rounded),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              context.loc.tr('screens_admin_pending_registrations_screen.010'),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            icon: const Icon(Icons.save_rounded),
+            label: const Text('حفظ الرقم'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (updatedPhone == null || updatedPhone.trim().isEmpty) {
+      return;
+    }
+
+    setState(() => _busyId = requestId);
+    try {
+      final response = await _apiService.updatePendingRegistrationWhatsapp(
+        requestId,
+        whatsapp: updatedPhone,
+        countryCode: request['countryCode']?.toString() ?? '970',
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم تحديث الرقم',
+        message:
+            response['message']?.toString() ??
+            'تم تحديث رقم المستخدم ويمكنك متابعة الطلب.',
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحديث الرقم',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
+    }
+  }
+
   Future<void> _copyPhoneNumber(Map<String, dynamic> request) async {
     final rawPhone = request['whatsapp']?.toString().trim() ?? '';
     if (rawPhone.isEmpty) {
@@ -547,6 +625,20 @@ class _AdminPendingRegistrationsScreenState
                 request['whatsapp']?.toString() ?? '-',
               ),
               _copyPhoneChip(request),
+              ActionChip(
+                avatar: const Icon(Icons.edit_rounded, size: 16),
+                label: const Text('تعديل الرقم'),
+                onPressed: isBusy ? null : () => _editWhatsapp(request),
+                backgroundColor: AppTheme.primarySoft,
+                labelStyle: AppTheme.caption.copyWith(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+                side: BorderSide(
+                  color: AppTheme.primary.withValues(alpha: 0.18),
+                ),
+                shape: const StadiumBorder(),
+              ),
               if ((request['nationalId']?.toString().trim().isNotEmpty ??
                   false))
                 _infoChip(

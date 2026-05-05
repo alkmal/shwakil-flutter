@@ -2135,6 +2135,23 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> updatePendingRegistrationWhatsapp(
+    String requestId, {
+    required String whatsapp,
+    String countryCode = '970',
+  }) async {
+    final normalizedWhatsapp = PhoneNumberService.normalize(
+      input: whatsapp.trim(),
+      defaultDialCode: countryCode.trim(),
+    );
+    final response = await http.put(
+      AppConfig.apiUri('admin/registrations/$requestId/whatsapp'),
+      headers: await _headers(),
+      body: jsonEncode({'whatsapp': normalizedWhatsapp}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> rejectPendingRegistrationRequest(
     String requestId, {
     String reason = '',
