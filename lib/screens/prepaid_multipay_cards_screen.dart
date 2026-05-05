@@ -306,6 +306,158 @@ class _PrepaidMultipayCardsScreenState
     }
   }
 
+  Future<void> _showCreateCardDialog() async {
+    final labelC = TextEditingController();
+    final amountC = TextEditingController();
+    final pinC = TextEditingController();
+    var selectedValidityYears = 1;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('إضافة بطاقة دفع مسبق'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: labelC,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'اسم البطاقة',
+                    prefixIcon: Icon(Icons.badge_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountC,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'مبلغ البطاقة',
+                    prefixIcon: Icon(Icons.payments_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pinC,
+                  keyboardType: TextInputType.number,
+                  maxLength: 3,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'رمز البطاقة',
+                    prefixIcon: Icon(Icons.pin_rounded),
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: selectedValidityYears,
+                  decoration: const InputDecoration(
+                    labelText: 'مدة البطاقة',
+                    prefixIcon: Icon(Icons.event_available_rounded),
+                  ),
+                  items: _validityYearOptions
+                      .map(
+                        (years) => DropdownMenuItem<int>(
+                          value: years,
+                          child: Text(_validityYearsLabel(years)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setDialogState(() => selectedValidityYears = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              icon: const Icon(Icons.add_card_rounded),
+              label: const Text('إضافة البطاقة'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final label = labelC.text.trim();
+    final amount = double.tryParse(amountC.text.trim()) ?? 0;
+    final pin = pinC.text.trim();
+    labelC.dispose();
+    amountC.dispose();
+    pinC.dispose();
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    if (label.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'اسم البطاقة مطلوب',
+        message: 'أدخل اسمًا واضحًا للبطاقة قبل المتابعة.',
+      );
+      return;
+    }
+
+    if (amount <= 0 || !RegExp(r'^\d{3}$').hasMatch(pin)) {
+      await AppAlertService.showError(
+        context,
+        title: 'بيانات غير صالحة',
+        message: 'أدخل مبلغًا أكبر من صفر ورمزًا مكوّنًا من 3 أرقام.',
+      );
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(context);
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    try {
+      final payload = await _api.createPrepaidMultipayCard(
+        label: label,
+        amount: amount,
+        pin: pin,
+        validityYears: selectedValidityYears,
+        otpCode: security.otpCode,
+        localAuthMethod: security.method,
+      );
+      _selectedCardId = (payload['card'] as Map?)?['id']?.toString();
+      _cardsPane = 'details';
+      await _load();
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تمت إضافة البطاقة',
+        message: 'تم إنشاء بطاقة الدفع المسبق وإرسالها للمراجعة.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إنشاء البطاقة',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
   Future<void> _renewCard(Map<String, dynamic> card) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1605,7 +1757,16 @@ class _PrepaidMultipayCardsScreenState
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('بطاقات الدفع المسبق'),
-        actions: const [AppNotificationAction(), QuickLogoutAction()],
+        actions: [
+          if (_canUsePrepaidCards && !_isLoading && !_isShowingOfflineCards)
+            IconButton(
+              onPressed: _showCreateCardDialog,
+              tooltip: 'إضافة بطاقة',
+              icon: const Icon(Icons.add_card_rounded),
+            ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: ResponsiveScaffoldContainer(
@@ -1651,6 +1812,12 @@ class _PrepaidMultipayCardsScreenState
         Row(
           children: [
             Expanded(child: Text('قائمة البطاقات', style: AppTheme.h2)),
+            if (_canUsePrepaidCards && !_isShowingOfflineCards)
+              FilledButton.icon(
+                onPressed: _showCreateCardDialog,
+                icon: const Icon(Icons.add_card_rounded),
+                label: const Text('إضافة بطاقة'),
+              ),
           ],
         ),
         const SizedBox(height: 8),

@@ -310,6 +310,13 @@ class _AdminPrepaidMultipayApprovalsScreenState
       appBar: AppBar(
         title: const Text('إدارة البطاقات المسبقة'),
         actions: [
+          if (permissions.canUsePrepaidMultipayCards)
+            IconButton(
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/prepaid-multipay-cards'),
+              tooltip: 'إضافة بطاقة',
+              icon: const Icon(Icons.add_card_rounded),
+            ),
           IconButton(
             onPressed: _isLoading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
@@ -392,7 +399,10 @@ class _AdminPrepaidMultipayApprovalsScreenState
                 'معلقة',
                 '${(_summary['pendingCount'] as num?)?.toInt() ?? 0}',
               ),
-              _info('نشطة', '${(_summary['activeCount'] as num?)?.toInt() ?? 0}'),
+              _info(
+                'نشطة',
+                '${(_summary['activeCount'] as num?)?.toInt() ?? 0}',
+              ),
               _info(
                 'الرصيد',
                 CurrencyFormatter.ils(
@@ -494,9 +504,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
                 ),
                 child: Text(
                   _statusLabel(card['status']?.toString() ?? ''),
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.warning,
-                  ),
+                  style: AppTheme.caption.copyWith(color: AppTheme.warning),
                 ),
               ),
             ],
@@ -553,7 +561,9 @@ class _AdminPrepaidMultipayApprovalsScreenState
               ],
               if ((card['status']?.toString() ?? '') == 'active')
                 OutlinedButton.icon(
-                  onPressed: acting ? null : () => _setCardStatus(card, 'freeze'),
+                  onPressed: acting
+                      ? null
+                      : () => _setCardStatus(card, 'freeze'),
                   icon: const Icon(Icons.pause_circle_rounded),
                   label: const Text('تجميد'),
                 ),
@@ -570,9 +580,11 @@ class _AdminPrepaidMultipayApprovalsScreenState
                 icon: const Icon(Icons.account_balance_wallet_rounded),
                 label: const Text('شحن/خصم'),
               ),
-              if (['pending_approval', 'active', 'frozen'].contains(
-                card['status']?.toString() ?? '',
-              ))
+              if ([
+                'pending_approval',
+                'active',
+                'frozen',
+              ].contains(card['status']?.toString() ?? ''))
                 OutlinedButton.icon(
                   onPressed: acting ? null : () => _cancelCard(card),
                   icon: const Icon(Icons.block_rounded),
