@@ -267,13 +267,21 @@ class AppAlertService {
     bool reportVisibleError = true,
   }) async {
     final style = _styleFor(type);
-    final cleanTitle = ErrorMessageService.forUser(title);
+    final networkIssue =
+        type == AppAlertType.error &&
+        ErrorMessageService.isNetworkIssue(message);
+    final cleanTitle = networkIssue
+        ? (navigatorKey.currentContext?.loc.tr(
+                'services_app_alert_service.007',
+              ) ??
+              ErrorMessageService.forUser(title))
+        : ErrorMessageService.forUser(title);
     final cleanMessage = ErrorMessageService.forUser(
       message,
       includeSupportGuidance:
-          type == AppAlertType.error && includeSupportGuidance,
+          type == AppAlertType.error && includeSupportGuidance && !networkIssue,
     );
-    if (type == AppAlertType.error && reportVisibleError) {
+    if (type == AppAlertType.error && reportVisibleError && !networkIssue) {
       unawaited(
         _reportVisibleError(
           title: cleanTitle,

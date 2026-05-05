@@ -35,6 +35,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   bool _isLoading = true;
   bool _isAuthorized = false;
   bool _canRequestCardPrinting = false;
+  bool _canPrintCards = false;
+  bool _canDeleteCards = false;
   bool _canUseAdminInventory = false;
   bool _canMonitorOfflineWorkflow = false;
   int _page = 1;
@@ -47,6 +49,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   bool _isOfflineData = false;
   Set<String> _revealedBarcodes = const <String>{};
   Map<String, dynamic>? _offlineOverview;
+  Map<String, dynamic> _summary = const {};
 
   @override
   void initState() {
@@ -90,6 +93,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final isOnline = await ConnectivityService.instance.checkNow();
       late final List<VirtualCard> cards;
       late final Map<String, dynamic> pagination;
+      late final Map<String, dynamic> summary;
       late final Set<String> revealedBarcodes;
       Map<String, dynamic>? offlineOverview;
       var isOfflineData = false;
@@ -110,6 +114,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
           }
         }).toList();
         pagination = {'lastPage': 1, 'currentPage': 1, 'total': cards.length};
+        summary = {
+          'total': cards.length,
+          'unusedCount': cards
+              .where((card) => card.status == CardStatus.unused)
+              .length,
+          'usedCount': cards
+              .where((card) => card.status == CardStatus.used)
+              .length,
+          'archivedCount': cards
+              .where((card) => card.status == CardStatus.archived)
+              .length,
+        };
         isOfflineData = true;
       } else {
         final payload = canUseAdminInventory
@@ -131,6 +147,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
         cards = List<VirtualCard>.from(payload['cards'] as List? ?? const []);
         pagination = Map<String, dynamic>.from(
           payload['pagination'] as Map? ?? const {},
+        );
+        summary = Map<String, dynamic>.from(
+          payload['summary'] as Map? ?? const {},
         );
         revealedBarcodes = <String>{};
         if (!canUseAdminInventory && userId.isNotEmpty) {
@@ -165,6 +184,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       setState(() {
         _isAuthorized = true;
         _canRequestCardPrinting = permissions.canRequestCardPrinting;
+        _canPrintCards = permissions.canPrintCards;
+        _canDeleteCards = permissions.canDeleteCards;
         _canUseAdminInventory = canUseAdminInventory;
         _canMonitorOfflineWorkflow = canMonitorOfflineWorkflow;
         _cards = cards;
@@ -174,6 +195,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _isOfflineData = isOfflineData;
         _revealedBarcodes = revealedBarcodes;
         _offlineOverview = offlineOverview;
+        _summary = summary;
         _isLoading = false;
       });
     } catch (_) {
@@ -277,15 +299,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildOfflineFollowupCard(),
                 ),
-              if (_canUseAdminInventory && _cards.isNotEmpty)
+              if (_canUseAdminInventory)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: ShwakelButton(
-                      label: l.tr('screens_inventory_screen.021'),
-                      icon: Icons.print_rounded,
-                      onPressed: _reprintFilteredCards,
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        ShwakelButton(
+                          label: 'إنشاء بطاقة لمستخدم',
+                          icon: Icons.add_card_rounded,
+                          onPressed: _createAdminCard,
+                        ),
+                        if (_canPrintCards && _cards.isNotEmpty)
+                          ShwakelButton(
+                            label: l.tr('screens_inventory_screen.021'),
+                            icon: Icons.print_rounded,
+                            onPressed: _reprintFilteredCards,
+                            isSecondary: true,
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -342,15 +377,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Widget _buildOverviewCard() {
     final l = context.loc;
-    final unusedCount = _cards
-        .where((card) => card.status == CardStatus.unused)
-        .length;
-    final usedCount = _cards
-        .where((card) => card.status == CardStatus.used)
-        .length;
-    final archivedCount = _cards
-        .where((card) => card.status == CardStatus.archived)
-        .length;
+    final unusedCount = (_summary['unusedCount'] as num?)?.toInt() ?? 0;
+    final usedCount = (_summary['usedCount'] as num?)?.toInt() ?? 0;
+    final archivedCount = (_summary['archivedCount'] as num?)?.toInt() ?? 0;
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(24),
@@ -1249,11 +1278,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Widget _buildPopup(VirtualCard card) {
     final l = context.loc;
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded),
-      onSelected: (value) =>
-          value == 'print' ? _reprint(card) : _delete(card.id),
-      itemBuilder: (context) => [
+    final menuItems = <PopupMenuEntry<String>>[
+      if (_canPrintCards)
         PopupMenuItem(
           value: 'print',
           child: Row(
@@ -1264,25 +1290,65 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ],
           ),
         ),
-        if (card.status == CardStatus.unused)
-          PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.delete_rounded,
-                  size: 18,
-                  color: AppTheme.error,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l.tr('screens_inventory_screen.009'),
-                  style: const TextStyle(color: AppTheme.error),
-                ),
-              ],
-            ),
+      if (!_canUseAdminInventory && _canDeleteCards && card.status == CardStatus.unused)
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              const Icon(
+                Icons.delete_rounded,
+                size: 18,
+                color: AppTheme.error,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l.tr('screens_inventory_screen.009'),
+                style: const TextStyle(color: AppTheme.error),
+              ),
+            ],
           ),
-      ],
+        ),
+      if (_canUseAdminInventory)
+        const PopupMenuItem(
+          value: 'transfer',
+          child: Row(
+            children: [
+              Icon(Icons.swap_horiz_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('نقل لمستخدم آخر'),
+            ],
+          ),
+        ),
+      if (_canUseAdminInventory && card.status == CardStatus.unused)
+        const PopupMenuItem(
+          value: 'admin_delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_forever_rounded, size: 18, color: AppTheme.error),
+              SizedBox(width: 8),
+              Text('حذف إداري', style: TextStyle(color: AppTheme.error)),
+            ],
+          ),
+        ),
+    ];
+    if (menuItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert_rounded),
+      onSelected: (value) {
+        if (value == 'print') {
+          _reprint(card);
+        } else if (value == 'transfer') {
+          _transferAdminCard(card);
+        } else if (value == 'admin_delete') {
+          _deleteAdminCard(card.id);
+        } else {
+          _delete(card.id);
+        }
+      },
+      itemBuilder: (context) => menuItems,
     );
   }
 
@@ -1454,8 +1520,255 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
+  Future<void> _deleteAdminCard(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف البطاقة'),
+        content: const Text('سيتم حذف البطاقة وإرجاع قيمتها إلى رصيد صاحبها.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await _apiService.deleteAdminCard(id);
+      await _load();
+      if (mounted) {
+        AppAlertService.showSuccess(context, message: 'تم حذف البطاقة.');
+      }
+    } catch (error) {
+      if (mounted) {
+        AppAlertService.showError(
+          context,
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _selectUserDialog(String title) async {
+    final searchController = TextEditingController();
+    var results = <Map<String, dynamic>>[];
+    var isSearching = false;
+    try {
+      return showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> search() async {
+              final query = searchController.text.trim();
+              if (query.isEmpty) {
+                return;
+              }
+              setDialogState(() => isSearching = true);
+              try {
+                final found = await _apiService.searchUsers(query);
+                if (dialogContext.mounted) {
+                  setDialogState(() => results = found);
+                }
+              } finally {
+                if (dialogContext.mounted) {
+                  setDialogState(() => isSearching = false);
+                }
+              }
+            }
+
+            return AlertDialog(
+              title: Text(title),
+              content: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      onSubmitted: (_) => search(),
+                      decoration: InputDecoration(
+                        labelText: 'بحث عن المستخدم',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: IconButton(
+                          onPressed: isSearching ? null : search,
+                          icon: isSearching
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.arrow_forward_rounded),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: results.length,
+                        itemBuilder: (context, index) {
+                          final user = results[index];
+                          final username = user['username']?.toString() ?? '';
+                          final name = UserDisplayName.fromMap(
+                            user,
+                            fallback: username,
+                          );
+                          return ListTile(
+                            leading: const Icon(Icons.person_rounded),
+                            title: Text(name),
+                            subtitle: Text(username),
+                            onTap: () => Navigator.pop(dialogContext, user),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('إلغاء'),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    } finally {
+      searchController.dispose();
+    }
+  }
+
+  Future<void> _transferAdminCard(VirtualCard card) async {
+    final target = await _selectUserDialog('نقل البطاقة إلى مستخدم');
+    if (target == null) {
+      return;
+    }
+
+    try {
+      await _apiService.transferAdminCard(
+        cardId: card.id,
+        targetUserId: target['id']?.toString() ?? '',
+      );
+      await _load();
+      if (mounted) {
+        AppAlertService.showSuccess(context, message: 'تم نقل البطاقة.');
+      }
+    } catch (error) {
+      if (mounted) {
+        AppAlertService.showError(
+          context,
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+    }
+  }
+
+  Future<void> _createAdminCard() async {
+    final target = await _selectUserDialog('إنشاء بطاقة لمستخدم');
+    if (target == null) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    final valueController = TextEditingController(text: '1');
+    final quantityController = TextEditingController(text: '1');
+    var cardType = 'standard';
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: const Text('إنشاء بطاقة لمستخدم'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: cardType,
+                  decoration: const InputDecoration(labelText: 'نوع البطاقة'),
+                  items: const [
+                    DropdownMenuItem(value: 'standard', child: Text('رصيد')),
+                    DropdownMenuItem(value: 'delivery', child: Text('توصيل')),
+                    DropdownMenuItem(value: 'single_use', child: Text('دخول')),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() => cardType = value ?? 'standard');
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: valueController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(labelText: 'القيمة'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'العدد'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('إنشاء'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmed != true) {
+        return;
+      }
+
+      await _apiService.createAdminCardForUser(
+        userId: target['id']?.toString() ?? '',
+        value: double.tryParse(valueController.text.trim()) ?? 0,
+        quantity: int.tryParse(quantityController.text.trim()) ?? 1,
+        cardType: cardType,
+      );
+      await _load();
+      if (mounted) {
+        AppAlertService.showSuccess(context, message: 'تم إنشاء البطاقة.');
+      }
+    } catch (error) {
+      if (mounted) {
+        AppAlertService.showError(
+          context,
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+    } finally {
+      valueController.dispose();
+      quantityController.dispose();
+    }
+  }
+
   Future<void> _reprintFilteredCards() async {
     if (_cards.isEmpty) {
+      return;
+    }
+    if (!_canPrintCards) {
       return;
     }
     if (!await _confirmCardOutputSecurity()) {

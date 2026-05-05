@@ -533,7 +533,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'type': item['type']?.toString() ?? 'general',
       'category': item['category']?.toString() ?? 'general',
       'title': item['title']?.toString() ?? '',
-      'body': item['body']?.toString() ?? '',
+      'body': _hideStackTraceFromNotificationBody(item['body']),
       'data': _extractDataMap(item['data']),
       'sourceType': item['sourceType']?.toString(),
       'sourceId': item['sourceId']?.toString(),
@@ -553,6 +553,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     return const <String, dynamic>{};
+  }
+
+  String _hideStackTraceFromNotificationBody(Object? value) {
+    final body = value?.toString() ?? '';
+    final markerIndex = body.indexOf('الأثر البرمجي:');
+
+    if (markerIndex < 0) {
+      return body;
+    }
+
+    final beforeMarker = body.substring(0, markerIndex).trimRight();
+    final stackLine = 'الأثر البرمجي: متوفر في سجلات الخادم';
+
+    return beforeMarker.isEmpty ? stackLine : '$beforeMarker\n$stackLine';
   }
 }
 

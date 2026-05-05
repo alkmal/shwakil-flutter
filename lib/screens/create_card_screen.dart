@@ -455,18 +455,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (!_isTrialMode && quantity % _cardsPerA4Page != 0) {
-      await AppAlertService.showError(
-        context,
-        title: l.tr('screens_create_card_screen.075'),
-        message: l.tr(
-          'screens_create_card_screen.076',
-          params: {'count': '$_cardsPerA4Page'},
-        ),
-      );
-      return;
-    }
-
     if (_isTrialMode) {
       final totalAmount = amount * quantity;
       if (totalAmount > _trialCardsRemainingAmount) {
