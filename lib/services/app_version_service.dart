@@ -180,7 +180,8 @@ class AppVersionService {
   }
 
   static List<int> _normalizeVersion(String version) {
-    return version
+    final releaseVersion = version.split('+').first;
+    return releaseVersion
         .split(RegExp(r'[^0-9]+'))
         .where((segment) => segment.isNotEmpty)
         .map((segment) => int.tryParse(segment) ?? 0)
