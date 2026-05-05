@@ -2575,7 +2575,9 @@ class ApiService {
     );
     final body = _decodeObject(response);
     if (body['card'] is Map) {
-      body['card'] = _cardFromApi(Map<String, dynamic>.from(body['card'] as Map));
+      body['card'] = _cardFromApi(
+        Map<String, dynamic>.from(body['card'] as Map),
+      );
     }
     return body;
   }
@@ -3174,6 +3176,26 @@ class ApiService {
       });
     }
     return body;
+  }
+
+  Future<Map<String, dynamic>> adminCreatePrepaidMultipayCardForUser({
+    required String userId,
+    required String label,
+    required double amount,
+    required String pin,
+    required int validityYears,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users/$userId/prepaid-multipay-cards'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'label': label.trim(),
+        'amount': amount,
+        'pin': pin.trim(),
+        'validityYears': validityYears,
+      }),
+    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> reloadPrepaidMultipayCard({
