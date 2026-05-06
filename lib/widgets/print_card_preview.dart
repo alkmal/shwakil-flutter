@@ -467,11 +467,11 @@ class PrintCardPreview extends StatelessWidget {
                             ),
                             const SizedBox(height: 1),
                             Text(
-                              card.barcode,
+                              'رقم البطاقة: ${card.barcode}',
                               textAlign: TextAlign.center,
-                              textDirection: TextDirection.ltr,
+                              textDirection: TextDirection.rtl,
                               style: AppTheme.bodyBold.copyWith(
-                                fontSize: 5.7,
+                                fontSize: 5.3,
                                 color: const Color(0xFF16302B),
                                 fontFamily: 'monospace',
                                 letterSpacing: 0.3,

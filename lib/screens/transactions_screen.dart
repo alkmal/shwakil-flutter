@@ -1011,6 +1011,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final actor = _transactionActorLine(type, metadata);
     final performedBy = _transactionPerformedByLine(metadata);
     final source = _transactionSourceLine(metadata);
+    final cardDetails = _transactionCardLine(metadata);
 
     await showModalBottomSheet<void>(
       context: context,
@@ -1142,6 +1143,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       _buildDetailRow(
                         _t('screens_transactions_screen.070'),
                         actor,
+                        AppTheme.textPrimary,
+                      ),
+                    ],
+                    if (cardDetails != null) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.115'),
+                        cardDetails,
                         AppTheme.textPrimary,
                       ),
                     ],
@@ -1292,6 +1301,54 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return _sourceTypeLabel(sourceType);
   }
 
+  String? _transactionCardLine(Map<String, dynamic> metadata) {
+    final barcode = metadata['cardBarcode']?.toString().trim();
+    final cardId = metadata['cardId']?.toString().trim();
+    final usedBy = _metadataPersonLabel(
+      metadata,
+      const ['cardUsedByDisplayName', 'scannerDisplayName'],
+      const ['cardUsedByUsername', 'scannerUsername'],
+    );
+    final customer = metadata['cardCustomerName']?.toString().trim();
+    final usedAt = metadata['cardUsedAt']?.toString().trim();
+
+    if ((barcode == null || barcode.isEmpty) &&
+        (cardId == null || cardId.isEmpty) &&
+        usedBy == null &&
+        (customer == null || customer.isEmpty) &&
+        (usedAt == null || usedAt.isEmpty)) {
+      return null;
+    }
+
+    return <String>[
+      if (barcode != null && barcode.isNotEmpty)
+        _t(
+          'widgets_admin_transaction_audit_card.038',
+          params: {'card': barcode},
+        )
+      else if (cardId != null && cardId.isNotEmpty)
+        _t(
+          'widgets_admin_transaction_audit_card.038',
+          params: {'card': cardId},
+        ),
+      if (usedBy != null)
+        _t(
+          'widgets_admin_transaction_audit_card.039',
+          params: {'user': usedBy},
+        ),
+      if (customer != null && customer.isNotEmpty)
+        _t(
+          'widgets_admin_transaction_audit_card.040',
+          params: {'customer': customer},
+        ),
+      if (usedAt != null && usedAt.isNotEmpty)
+        _t(
+          'widgets_admin_transaction_audit_card.041',
+          params: {'time': usedAt},
+        ),
+    ].join(' - ');
+  }
+
   String? _metadataPersonLabel(
     Map<String, dynamic> metadata,
     List<String> displayKeys,
@@ -1378,11 +1435,36 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   String? _transactionActorLine(String type, Map<String, dynamic> metadata) {
-    final recipient = metadata['recipientUsername']?.toString().trim();
-    final sender = metadata['senderUsername']?.toString().trim();
-    final byUser = metadata['byUsername']?.toString().trim();
-    final target = metadata['targetUsername']?.toString().trim();
-    final sourceUser = metadata['sourceUsername']?.toString().trim();
+    final recipient = _metadataPersonLabel(
+      metadata,
+      const ['recipientDisplayName', 'recipientFullName'],
+      const ['recipientUsername'],
+    );
+    final sender = _metadataPersonLabel(
+      metadata,
+      const ['senderDisplayName', 'senderFullName'],
+      const ['senderUsername'],
+    );
+    final byUser = _metadataPersonLabel(
+      metadata,
+      const [
+        'byDisplayName',
+        'byFullName',
+        'byAdminDisplayName',
+        'byAdminFullName',
+      ],
+      const ['byUsername', 'byAdminUsername'],
+    );
+    final target = _metadataPersonLabel(
+      metadata,
+      const ['targetDisplayName', 'targetFullName'],
+      const ['targetUsername'],
+    );
+    final sourceUser = _metadataPersonLabel(
+      metadata,
+      const ['sourceDisplayName', 'sourceFullName'],
+      const ['sourceUsername'],
+    );
     final sourceType = metadata['sourceType']?.toString().trim();
     if (recipient != null && recipient.isNotEmpty) {
       return _t(

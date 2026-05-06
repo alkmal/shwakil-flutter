@@ -44,6 +44,16 @@ class AdminCustomerCard extends StatelessWidget {
     return '$year/$month/$day $hour:$minute';
   }
 
+  String _contactLine() {
+    final parts = <String>[
+      customer['username']?.toString().trim() ?? '',
+      customer['whatsapp']?.toString().trim() ?? '',
+      customer['email']?.toString().trim() ?? '',
+    ].where((item) => item.isNotEmpty).toList();
+
+    return parts.isEmpty ? '-' : parts.join('  |  ');
+  }
+
   String _roleLabel(BuildContext context) {
     final explicit = customer['roleLabel']?.toString().trim() ?? '';
     if (explicit.isNotEmpty) {
@@ -99,17 +109,29 @@ class AdminCustomerCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor:
-                        (role == 'admin' ? AppTheme.accent : AppTheme.primary)
-                            .withValues(alpha: 0.10),
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color:
+                          (role == 'admin' ? AppTheme.accent : AppTheme.primary)
+                              .withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color:
+                            (role == 'admin'
+                                    ? AppTheme.accent
+                                    : AppTheme.primary)
+                                .withValues(alpha: 0.12),
+                      ),
+                    ),
                     child: Icon(
                       role == 'admin'
                           ? Icons.admin_panel_settings_rounded
                           : Icons.person_rounded,
-                      size: 20,
+                      size: 21,
                       color: role == 'admin'
                           ? AppTheme.accent
                           : AppTheme.primary,
@@ -117,11 +139,27 @@ class AdminCustomerCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      _displayName(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.bodyBold,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _displayName(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.bodyBold,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _contactLine(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.start,
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (verificationStatus == 'approved')
@@ -161,107 +199,68 @@ class AdminCustomerCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceVariant,
-                  borderRadius: AppTheme.radiusMd,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l.tr('widgets_admin_admin_customer_card.004'),
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      _currency(balance),
-                      style: AppTheme.bodyBold.copyWith(
-                        color: isNegative
-                            ? AppTheme.warning
-                            : (balance > 0
-                                  ? AppTheme.primary
-                                  : AppTheme.textPrimary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text(
+                  _infoChip(
+                    l.tr('widgets_admin_admin_customer_card.004'),
+                    _currency(balance),
+                    isNegative
+                        ? AppTheme.warning
+                        : (balance > 0
+                              ? AppTheme.primary
+                              : AppTheme.textPrimary),
+                  ),
+                  _infoChip(
                     role == 'admin'
                         ? l.tr('widgets_admin_admin_customer_card.005')
                         : l.tr('widgets_admin_admin_customer_card.006'),
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  Text(
                     role == 'admin' ? _roleLabel(context) : statusLabel,
-                    style: AppTheme.caption.copyWith(
-                      color: role == 'admin'
-                          ? AppTheme.accent
-                          : verificationStatus == 'approved'
-                          ? AppTheme.success
-                          : AppTheme.textSecondary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    role == 'admin'
+                        ? AppTheme.accent
+                        : verificationStatus == 'approved'
+                        ? AppTheme.success
+                        : AppTheme.textSecondary,
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
+                  _infoChip(
                     l.tr('screens_admin_customers_screen.055'),
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  Flexible(
-                    child: Text(
-                      _formatCreatedAt(),
-                      textAlign: TextAlign.end,
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    _formatCreatedAt(),
+                    AppTheme.textSecondary,
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              if (role == 'admin')
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accent.withValues(alpha: 0.1),
-                    borderRadius: AppTheme.radiusSm,
-                  ),
-                  child: Text(
-                    _roleLabel(context),
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.accent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _infoChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTheme.caption),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

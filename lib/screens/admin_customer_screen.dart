@@ -638,6 +638,154 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     }
   }
 
+  Future<void> _createPrepaidCardForUser() async {
+    final labelController = TextEditingController();
+    final amountController = TextEditingController();
+    final pinController = TextEditingController();
+    var selectedValidityYears = 1;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('إنشاء بطاقة دفع مسبق للمستخدم'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_customerDisplayName, style: AppTheme.bodyBold),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: labelController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'اسم البطاقة',
+                    prefixIcon: Icon(Icons.badge_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'مبلغ البطاقة',
+                    prefixIcon: Icon(Icons.payments_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pinController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 3,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'رمز البطاقة',
+                    prefixIcon: Icon(Icons.pin_rounded),
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: selectedValidityYears,
+                  decoration: const InputDecoration(
+                    labelText: 'مدة البطاقة',
+                    prefixIcon: Icon(Icons.event_available_rounded),
+                  ),
+                  items: const [1, 2, 3, 4, 5]
+                      .map(
+                        (years) => DropdownMenuItem<int>(
+                          value: years,
+                          child: Text(
+                            years == 1 ? 'سنة واحدة' : '$years سنوات',
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setDialogState(() => selectedValidityYears = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              icon: const Icon(Icons.add_card_rounded),
+              label: const Text('إنشاء البطاقة'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final label = labelController.text.trim();
+    final amount =
+        double.tryParse(amountController.text.trim().replaceAll(',', '.')) ?? 0;
+    final pin = pinController.text.trim();
+    labelController.dispose();
+    amountController.dispose();
+    pinController.dispose();
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    if (label.isEmpty || amount <= 0 || !RegExp(r'^\d{3}$').hasMatch(pin)) {
+      await AppAlertService.showError(
+        context,
+        title: 'بيانات غير صالحة',
+        message: 'أدخل اسم البطاقة والمبلغ ورمزًا مكوّنًا من 3 أرقام.',
+      );
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final response = await _api.adminCreatePrepaidMultipayCardForUser(
+        userId: _customer['id'].toString(),
+        label: label,
+        amount: amount,
+        pin: pin,
+        validityYears: selectedValidityYears,
+      );
+      if (!mounted) {
+        return;
+      }
+      await _loadCustomer(full: true);
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم إنشاء البطاقة',
+        message:
+            response['message']?.toString() ??
+            'تم إنشاء بطاقة الدفع المسبق للمستخدم بنجاح.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _busy = false);
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إنشاء البطاقة',
+        message: ErrorMessageService.sanitize(e),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_firstLoad) {
@@ -761,6 +909,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       spacing: 12,
                       runSpacing: 12,
                       children: [
+                        ShwakelButton(
+                          label: 'إنشاء بطاقة دفع مسبق',
+                          icon: Icons.add_card_rounded,
+                          onPressed: _busy ? null : _createPrepaidCardForUser,
+                        ),
                         ShwakelButton(
                           label: _t('screens_admin_customer_screen.075'),
                           icon: Icons.mark_chat_unread_rounded,

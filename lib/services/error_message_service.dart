@@ -49,7 +49,8 @@ class ErrorMessageService {
 
     if (lower.contains('timed out') ||
         lower.contains('timeout') ||
-        lower.contains('err_connection_timed_out')) {
+        lower.contains('err_connection_timed_out') ||
+        lower.contains('operation timed out')) {
       return _tr('services_error_message_service.003');
     }
 
@@ -57,6 +58,16 @@ class ErrorMessageService {
         lower.contains('connection refused') ||
         lower.contains('connection reset') ||
         lower.contains('connection closed') ||
+        lower.contains('connection aborted') ||
+        lower.contains('connection terminated') ||
+        lower.contains('network is unreachable') ||
+        lower.contains('network unreachable') ||
+        lower.contains('no address associated with hostname') ||
+        lower.contains('software caused connection abort') ||
+        lower.contains('broken pipe') ||
+        lower.contains('httpexception') ||
+        lower.contains('handshakeexception') ||
+        lower.contains('connection terminated during handshake') ||
         lower.contains('clientexception') ||
         lower.contains('xmlhttprequest error') ||
         lower.contains('net::err_') ||
@@ -111,6 +122,15 @@ class ErrorMessageService {
     return '$clean\n$guidance';
   }
 
+  static bool isNetworkIssue(Object? error) {
+    final clean = sanitize(error);
+    return _matchesAnyMessage(clean, [
+      'services_error_message_service.003',
+      'services_error_message_service.004',
+      'services_error_message_service.005',
+    ]);
+  }
+
   static String sanitizeRegistration(Object? error) {
     final text = (error?.toString() ?? '').trim();
     if (text.isEmpty) {
@@ -124,11 +144,7 @@ class ErrorMessageService {
     final clean = sanitize(error);
     final lower = (error?.toString() ?? clean).toLowerCase();
     if (lower.contains('401') ||
-        lower.contains('403') ||
         lower.contains('unauthorized') ||
-        lower.contains('forbidden') ||
-        lower.contains('not authorized') ||
-        lower.contains('not permitted') ||
         lower.contains('session version') ||
         lower.contains('bearer ') ||
         lower.contains('jwt') ||
@@ -136,11 +152,7 @@ class ErrorMessageService {
       return true;
     }
 
-    return _matchesAnyMessage(clean, [
-      'services_error_message_service.002',
-      'services_error_message_service.010',
-      'services_error_message_service.011',
-    ]);
+    return _matchesAnyMessage(clean, ['services_error_message_service.011']);
   }
 
   static String fromResponseBody(String body) {

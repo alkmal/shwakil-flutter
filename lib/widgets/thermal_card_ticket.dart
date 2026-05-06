@@ -147,12 +147,12 @@ class ThermalCardTicket extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              card.barcode,
+              'رقم البطاقة: ${card.barcode}',
               textAlign: TextAlign.center,
               style: AppTheme.bodyBold.copyWith(
                 color: Colors.black,
-                fontSize: 14,
-                letterSpacing: 1.2,
+                fontSize: 13,
+                letterSpacing: 0.4,
               ),
             ),
             const SizedBox(height: 10),

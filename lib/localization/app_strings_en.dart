@@ -895,6 +895,16 @@ const Map<String, String> appStringsEn = {
   'widgets_admin_transaction_audit_card.029': 'Rejected',
   'widgets_admin_transaction_audit_card.030': 'Near branch',
   'widgets_admin_transaction_audit_card.031': 'Outside branches',
+  'widgets_admin_transaction_audit_card.032': 'Transaction time: {time}',
+  'widgets_admin_transaction_audit_card.033': 'Amount',
+  'widgets_admin_transaction_audit_card.034': 'Fee',
+  'widgets_admin_transaction_audit_card.035': 'Card ID',
+  'widgets_admin_transaction_audit_card.036': 'Transaction ID',
+  'widgets_admin_transaction_audit_card.037': 'Fee source: {source}',
+  'widgets_admin_transaction_audit_card.038': 'Card: {card}',
+  'widgets_admin_transaction_audit_card.039': 'Used by: {user}',
+  'widgets_admin_transaction_audit_card.040': 'Customer: {customer}',
+  'widgets_admin_transaction_audit_card.041': 'Used at: {time}',
   'widgets_admin_admin_customer_card.001': 'Verified',
   'widgets_admin_admin_customer_card.002': 'Under review',
   'widgets_admin_admin_customer_card.003': 'Unverified',
@@ -1192,7 +1202,7 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.046': 'Close',
   'screens_account_settings_screen.056': 'Delete account',
   'screens_account_settings_screen.057':
-      'The account will be permanently deleted from the app and you will be signed out from this device. Do you want to continue?',
+      'The account will appear as deleted and you will be signed out. You cannot create a new account with the same phone number unless admin restores this account. Do you want to continue?',
   'screens_account_settings_screen.058': 'Cancel',
   'screens_account_settings_screen.059': 'Could not delete account',
   'screens_account_settings_screen.060':
@@ -1203,7 +1213,7 @@ const Map<String, String> appStringsEn = {
   'screens_account_settings_screen.063': 'Go to sign in',
   'screens_account_settings_screen.064': 'Help',
   'screens_account_settings_screen.065':
-      'You can start deleting the account permanently from here.',
+      'You can delete the account from here. To use the same phone number again, contact admin to restore this account.',
   'screens_account_settings_screen.066': 'Quick help',
   'screens_account_settings_screen.067':
       'This section is for updating account details and password. Important notices appear above the form only when needed.',
@@ -1713,6 +1723,9 @@ const Map<String, String> appStringsEn = {
   'screens_scan_card_screen.180': 'Show balance',
   'screens_scan_card_screen.181':
       'Show this code to the recipient. It expires automatically one minute after it is created.',
+  'screens_scan_card_screen.182': 'Approved successfully',
+  'screens_scan_card_screen.183':
+      'The card was redeemed and the balance was added. Scan it again to view its new status.',
   'screens_scan_card_screen.155': 'Synced cards',
   'screens_scan_card_screen.156': 'Last update',
   'screens_scan_card_screen.157': 'Allowed period',
@@ -2206,6 +2219,8 @@ const Map<String, String> appStringsEn = {
   'screens_notifications_screen.086': 'Completed',
   'screens_notifications_screen.087': 'Rejected',
   'screens_notifications_screen.088': 'Failed',
+  'screens_notifications_screen.089': 'Trace: {trace}',
+  'screens_notifications_screen.090': 'Stack trace',
   'screens_transactions_screen.042': 'Quick search',
   'screens_transactions_screen.043': 'Time range',
   'screens_transactions_screen.044': 'Transaction type',
@@ -2827,6 +2842,7 @@ const Map<String, String> appStringsEn = {
   'screens_transactions_screen.112': 'Balance transfer',
   'screens_transactions_screen.113': 'Card redemption',
   'screens_transactions_screen.114': 'Card resale',
+  'screens_transactions_screen.115': 'Card details',
   'screens_admin_verification_requests_screen.001':
       'Could not load verification requests',
   'screens_admin_verification_requests_screen.002': 'Verification approved',
@@ -2965,6 +2981,8 @@ const Map<String, String> appStringsEn = {
   'shared.delivery_sms': 'Text message',
   'screens_admin_pending_registrations_screen.033':
       'Choose how the password should be sent to the user after approval.',
+  'screens_admin_pending_registrations_screen.034': 'Copied {phone}',
+  'screens_admin_pending_registrations_screen.035': 'Copy number',
   'screens_balance_screen.108': 'Top-up details',
   'screens_balance_screen.109': 'Withdrawal destination',
   'screens_balance_screen.110': 'Amount details',
@@ -3229,4 +3247,5 @@ const Map<String, String> appStringsEn = {
       'These are the admin sections most commonly used in the daily workflow. Start here for faster access.',
   'screens_admin_customers_screen.056':
       'Use search to reach a customer quickly, then open their page to review profile data, permissions, and financial actions from one place.',
+  'screens_admin_customers_screen.057': 'Run search',
 };

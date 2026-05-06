@@ -58,6 +58,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool _showLogo = true;
   bool _showStamp = true;
   bool _useAccountLogo = true;
+  String _loadingHeadline = '';
+  String _loadingDetails = '';
   String _cardType = '';
   String _visibilityScope = 'general';
   DateTime? _validFrom;
@@ -69,10 +71,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   List<VirtualCard> _recent = [];
   List<Map<String, dynamic>> _selectedUsers = [];
   List<String> _selectedPhoneNumbers = [];
+  bool _didLoadDependencies = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadDependencies) {
+      return;
+    }
+    _didLoadDependencies = true;
     _load();
   }
 
@@ -127,6 +134,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         if (_cardType.isNotEmpty && !issuableCardTypes.contains(_cardType)) {
           _cardType = '';
         }
+        if (_cardType.isEmpty && issuableCardTypes.length == 1) {
+          _applyCardTypeDefaults(issuableCardTypes.first);
+        }
         if (isTrialMode) {
           _visibilityScope = 'restricted';
           if ((_qtyC.text.trim()).isEmpty ||
@@ -177,10 +187,29 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _isAttendanceCard;
   bool get _isTrialMode =>
       (_user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
-      'approved';
+          'approved' &&
+      (_cardType.trim().isEmpty || _isBalanceCard);
   int get _minimumCardQuantity {
+    if (_hasSelectedCardType && !_isBalanceCard) {
+      return 1;
+    }
     final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
     return raw < 1 ? 1 : raw;
+  }
+
+  void _setLoadingState(
+    bool value, {
+    String headline = '',
+    String details = '',
+  }) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isLoading = value;
+      _loadingHeadline = value ? headline : '';
+      _loadingDetails = value ? details : '';
+    });
   }
 
   double get _trialCardsRemainingAmount =>
@@ -216,18 +245,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         return values;
       }
     }
+    final permissions = AppPermissions.fromUser(user);
+    if (!permissions.canIssueCards) {
+      return const [];
+    }
     if (user?['role']?.toString() == 'driver') {
       return const ['delivery'];
     }
-    return const [
-      'standard',
-      'delivery',
-      'single_use',
-      'appointment',
-      'queue',
-      'subscription',
-      'attendance',
-    ];
+    final values = <String>['standard', 'delivery'];
+    if (permissions.canIssueSingleUseTickets) {
+      values.add('single_use');
+    }
+    if (permissions.canIssueAppointmentTickets) {
+      values.addAll(['appointment', 'subscription', 'attendance']);
+    }
+    if (permissions.canIssueQueueTickets) {
+      values.add('queue');
+    }
+    return values;
   }
 
   String _cardTypeLabel(AppLocalizer l, String type) {
@@ -271,7 +306,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   String _cardTypeDescription(String type) {
     switch (type) {
       case 'single_use':
-        return 'بطاقة خاصة تظهر ضمن البطاقات الخاصة بدون قيمة مالية.';
+        return 'بطاقة خاصة لخدمة أو دخول بدون قيمة مالية.';
       case 'delivery':
         return 'بطاقة مخصصة للتسليم مع رصيد قابل للاستخدام.';
       case 'appointment':
@@ -279,9 +314,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       case 'queue':
         return 'تذكرة دور أو خدمة مع بيانات تنظيمية واضحة.';
       case 'subscription':
-        return 'بطاقة اشتراك بمدة محددة، تظهر فعالة باللون الأخضر داخل فترة الاشتراك.';
+        return 'بطاقة اشتراك بمدة محددة، ويظهر عند الفحص هل الاشتراك فعال أو منتهي.';
       case 'attendance':
-        return 'بطاقة تعريف حضور وانصراف قابلة للربط مع أنظمة الموظفين والبصمة.';
+        return 'بطاقة واحدة لكل موظف لتسجيل الحضور والانصراف وتقرير شهري.';
       default:
         return 'بطاقة رصيد قياسية مناسبة للاستخدام العام.';
     }
@@ -299,7 +334,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (_isAppointmentCard) return 'عنوان الموعد';
     if (_isQueueCard) return 'اسم الخدمة أو الطابور';
     if (_isSubscriptionCard) return 'اسم الاشتراك';
-    if (_isAttendanceCard) return 'اسم الموظف أو عنوان البطاقة';
+    if (_isAttendanceCard) return 'اسم الموظف';
     return 'العنوان';
   }
 
@@ -314,7 +349,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   String _typeDescriptionFieldLabel() {
     if (_isAppointmentCard) return 'ملاحظات أو تعليمات';
     if (_isSubscriptionCard) return 'تفاصيل الاشتراك';
-    if (_isAttendanceCard) return 'مرجع الربط أو نظام الحضور';
+    if (_isAttendanceCard) return 'رقم الموظف أو مرجع الربط';
     return 'ملاحظات إضافية';
   }
 
@@ -449,18 +484,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (!_isTrialMode && quantity % _cardsPerA4Page != 0) {
-      await AppAlertService.showError(
-        context,
-        title: l.tr('screens_create_card_screen.075'),
-        message: l.tr(
-          'screens_create_card_screen.076',
-          params: {'count': '$_cardsPerA4Page'},
-        ),
-      );
-      return;
-    }
-
     if (_isTrialMode) {
       final totalAmount = amount * quantity;
       if (totalAmount > _trialCardsRemainingAmount) {
@@ -527,13 +550,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       }
     }
 
-    if (_isAttendanceCard && _detailsTitleC.text.trim().isEmpty) {
-      await AppAlertService.showError(
-        context,
-        title: 'بيانات الحضور غير مكتملة',
-        message: 'أدخل اسم الموظف أو عنوان بطاقة الحضور والانصراف.',
-      );
-      return;
+    if (_isAttendanceCard) {
+      if (_detailsTitleC.text.trim().isEmpty) {
+        await AppAlertService.showError(
+          context,
+          title: 'بيانات الحضور غير مكتملة',
+          message: 'أدخل اسم الموظف أو عنوان بطاقة الحضور والانصراف.',
+        );
+        return;
+      }
+      if (quantity > 1) {
+        await AppAlertService.showError(
+          context,
+          title: 'بطاقة واحدة لكل موظف',
+          message:
+              'بطاقات الحضور والانصراف تصدر بطاقة واحدة لكل موظف حتى يكون التقرير الشهري واضحًا لكل بطاقة.',
+        );
+        return;
+      }
     }
 
     if (_validFrom != null &&
@@ -565,9 +599,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
     setState(() {
       _recent = cards;
-      _isLoading = false;
     });
+    _setLoadingState(
+      true,
+      headline: 'جارٍ حفظ الدفعة الأخيرة',
+      details: 'نحدّث بيانات الحساب ونجهز البطاقات لتظهر مباشرة في المخزون.',
+    );
     await _load();
+    _setLoadingState(false);
     if (mounted) {
       _showSuccess(cards);
     }
@@ -584,7 +623,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     for (var attempt = 0; attempt < 2; attempt++) {
-      setState(() => _isLoading = true);
+      _setLoadingState(
+        true,
+        headline: 'جارٍ إنشاء البطاقات',
+        details: 'قد يستغرق الأمر قليلًا مع ضعف الإنترنت. نتابع العملية الآن.',
+      );
       try {
         final cards = await _apiService.issueCards(
           value: amount,
@@ -610,7 +653,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           return null;
         }
         final message = ErrorMessageService.sanitize(error);
-        setState(() => _isLoading = false);
+        _setLoadingState(false);
 
         if (attempt == 0 && _isLocalSecurityRequiredMessage(message)) {
           securityResult = await TransferSecurityService.confirmTransfer(
@@ -644,19 +687,33 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     final baseTitle = _detailsTitleC.text.trim();
+    final trialCardType = _cardType.trim().isEmpty
+        ? 'standard'
+        : _cardType.trim();
+    final trialIsBalanceCard =
+        trialCardType == 'standard' || trialCardType == 'delivery';
+    final trialValue = trialIsBalanceCard ? amount : 0.0;
+    final trialDetails = _currentCardDetails();
     final items = List.generate(quantity, (index) {
       return <String, dynamic>{
-        'value': amount,
+        'value': trialValue,
+        'cardType': trialCardType,
+        'cardDetails': trialDetails,
         if (baseTitle.isNotEmpty)
           'title': quantity == 1 ? baseTitle : '$baseTitle ${index + 1}',
       };
     });
 
     for (var attempt = 0; attempt < 2; attempt++) {
-      setState(() => _isLoading = true);
+      _setLoadingState(
+        true,
+        headline: 'جارٍ إنشاء البطاقات التجريبية',
+        details: 'نجهز الدفعة ونحفظها لحسابك مع متابعة الاتصال الحالي.',
+      );
       try {
         final cards = await _apiService.issueTrialCards(
           items: items,
+          cardType: trialCardType,
           otpCode: securityResult.otpCode,
           localAuthMethod: securityResult.method,
         );
@@ -670,7 +727,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           return null;
         }
         final message = ErrorMessageService.sanitize(error);
-        setState(() => _isLoading = false);
+        _setLoadingState(false);
 
         if (attempt == 0 && _isLocalSecurityRequiredMessage(message)) {
           securityResult = await TransferSecurityService.confirmTransfer(
@@ -699,7 +756,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     required List<VirtualCard> cards,
   }) async {
     try {
-      await _offlineCardService.cacheCards(userId: userId, cards: cards);
+      await _offlineCardService.mergeCardsIntoCache(
+        userId: userId,
+        cards: cards,
+      );
     } catch (_) {
       // Offline cache should never make a successful card issue look failed.
     }
@@ -871,7 +931,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     } else if (_isAttendanceCard) {
       details['ticketKind'] = 'attendance';
       details['employeeName'] = _detailsTitleC.text.trim();
+      if (_appointmentLocationC.text.trim().isNotEmpty) {
+        details['department'] = _appointmentLocationC.text.trim();
+        details['attendanceSystem'] = _appointmentLocationC.text.trim();
+      }
       if (_detailsDescriptionC.text.trim().isNotEmpty) {
+        details['employeeCode'] = _detailsDescriptionC.text.trim();
         details['integrationReference'] = _detailsDescriptionC.text.trim();
       }
     }
@@ -1206,16 +1271,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _applyCurrentPdfDesignSettings();
     try {
       final exportCards = _cardsWithPrintFallbacks(cards);
-      final pdf = exportCards.length == 1
-          ? await _pdfService.createCardPDF(
-              exportCards.first,
-              printedBy: printedBy,
-              serialNumber: 1,
-            )
-          : await _pdfService.createMultiCardPDF(
-              exportCards,
-              printedBy: printedBy,
-            );
+      final pdf = await _pdfService.createMultiCardPDF(
+        exportCards,
+        printedBy: printedBy,
+      );
       final timestamp = DateTime.now().toIso8601String().replaceAll(
         RegExp(r'[:.]'),
         '-',
@@ -1299,6 +1358,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   },
                 ),
               ],
+              const SizedBox(height: 8),
+              ShwakelButton(
+                label: 'فتح مخزون البطاقات',
+                icon: Icons.inventory_2_rounded,
+                isSecondary: true,
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.pushNamed(context, '/inventory');
+                },
+              ),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
@@ -1585,44 +1654,94 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ),
         ),
         drawer: const AppSidebar(),
-        body: TabBarView(
+        body: Stack(
           children: [
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHero(),
-                    const SizedBox(height: 24),
-                    _buildForm(),
-                  ],
+            TabBarView(
+              children: [
+                SingleChildScrollView(
+                  child: ResponsiveScaffoldContainer(
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHero(),
+                        const SizedBox(height: 24),
+                        _buildForm(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHero(),
-                    const SizedBox(height: 24),
-                    _buildRecent(),
-                  ],
+                SingleChildScrollView(
+                  child: ResponsiveScaffoldContainer(
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHero(),
+                        const SizedBox(height: 24),
+                        _buildRecent(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [_buildPreviewAndPrintWorkspace()],
+                SingleChildScrollView(
+                  child: ResponsiveScaffoldContainer(
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [_buildPreviewAndPrintWorkspace()],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
+            if (_isLoading) _buildLoadingOverlay(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.16),
+        alignment: Alignment.center,
+        child: ShwakelCard(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+          borderRadius: BorderRadius.circular(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _loadingHeadline.trim().isEmpty
+                      ? 'جارٍ تنفيذ العملية'
+                      : _loadingHeadline,
+                  style: AppTheme.h3.copyWith(fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                if (_loadingDetails.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _loadingDetails,
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1735,7 +1854,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 Text('البيانات الأساسية', style: AppTheme.bodyBold),
                 const SizedBox(height: 6),
                 Text(
-                  'ابدأ بنوع البطاقة ثم أدخل القيمة والعدد. ستظهر التفاصيل الإضافية فقط عند الحاجة.',
+                  'تظهر هنا الأنواع المتاحة لحسابك فقط. العدد الافتراضي 30 لأنه يملأ صفحة A4، ويمكنك تغييره إلى 1 أو أي عدد مناسب.',
                   style: AppTheme.caption.copyWith(fontSize: 12),
                 ),
               ],
@@ -1772,7 +1891,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 prefixIcon: const Icon(Icons.pin_rounded),
                 helperText: _isTrialMode
                     ? 'الحد الأدنى $_minimumCardQuantity بطاقة. يمكنك إصدار أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.'
-                    : 'الحد الأدنى $_minimumCardQuantity بطاقة. أدخل مضاعفات $_cardsPerA4Page فقط مثل $_cardsPerA4Page أو ${_cardsPerA4Page * 2} أو ${_cardsPerA4Page * 3}.',
+                    : _isAttendanceCard
+                    ? 'بطاقة واحدة لكل موظف. لإصدار بطاقات لموظفين آخرين كرر العملية لكل موظف.'
+                    : 'الحد الأدنى $_minimumCardQuantity. العدد الافتراضي $_cardsPerA4Page لأنه يملأ صفحة A4، ويمكن إصدار بطاقة واحدة أو أي عدد.',
               ),
             ),
             const SizedBox(height: 16),
@@ -1901,6 +2022,21 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                           initialValue: _validUntil ?? _validFrom,
                           onChanged: (value) =>
                               setState(() => _validUntil = value),
+                        ),
+                      ),
+                    ],
+                    if (_isAttendanceCard) ...[
+                      const SizedBox(height: 12),
+                      ShwakelCard(
+                        padding: const EdgeInsets.all(14),
+                        color: AppTheme.warning.withValues(alpha: 0.06),
+                        borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                        child: Text(
+                          'كل بطاقة تمثل موظفًا واحدًا. عند فحصها يسجل النظام دخولًا ثم خروجًا بالتناوب، ويظهر تقرير شهري من تقارير الحضور والانصراف.',
+                          style: AppTheme.bodyAction.copyWith(
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
                         ),
                       ),
                     ],
@@ -2160,30 +2296,39 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   void _selectCardType(String type) {
     setState(() {
-      _cardType = type;
-      if (_requiresTargetedPrivateCard) {
-        _visibilityScope = 'restricted';
-      } else if (!_isTrialMode && _cardType == 'standard') {
-        // Default to public issuance for standard balance cards.
-        _visibilityScope = 'general';
-      } else if (_cardType == 'delivery') {
-        _visibilityScope = 'general';
-        _selectedUsers = [];
-        _selectedPhoneNumbers = [];
-      }
-      if (_cardType != 'appointment') {
-        _appointmentStartsAt = null;
-        _appointmentEndsAt = null;
-      }
-      if (!_needsTypeDetails) {
-        _appointmentLocationC.clear();
-        _detailsTitleC.clear();
-        _detailsDescriptionC.clear();
-      }
-      if (_cardType == 'single_use' && _detailsTitleC.text.trim().isEmpty) {
-        _detailsTitleC.text = 'بطاقة خاصة';
-      }
+      _applyCardTypeDefaults(type);
     });
+  }
+
+  void _applyCardTypeDefaults(String type) {
+    _cardType = type;
+    if (_requiresTargetedPrivateCard) {
+      _visibilityScope = 'restricted';
+    } else if (!_isTrialMode && _cardType == 'standard') {
+      _visibilityScope = 'general';
+    } else if (_cardType == 'delivery') {
+      _visibilityScope = 'general';
+      _selectedUsers = [];
+      _selectedPhoneNumbers = [];
+    }
+    if (_cardType != 'appointment') {
+      _appointmentStartsAt = null;
+      _appointmentEndsAt = null;
+    }
+    if (!_needsTypeDetails) {
+      _appointmentLocationC.clear();
+      _detailsTitleC.clear();
+      _detailsDescriptionC.clear();
+    }
+    if (_cardType == 'single_use' && _detailsTitleC.text.trim().isEmpty) {
+      _detailsTitleC.text = 'بطاقة خاصة';
+    }
+    if (_cardType == 'attendance') {
+      _qtyC.text = '1';
+    } else if (_qtyC.text.trim().isEmpty ||
+        (int.tryParse(_qtyC.text.trim()) ?? 0) <= 0) {
+      _qtyC.text = '$_cardsPerA4Page';
+    }
   }
 
   void _clearSelectedCardType() {
@@ -2233,13 +2378,25 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Widget _buildCardTypeSelector() {
     final l = context.loc;
-    final visibleTypes = _hasSelectedCardType
-        ? _sortedIssuableCardTypes.where((type) => type == _cardType).toList()
-        : _sortedIssuableCardTypes;
+    final visibleTypes = _cardType.trim().isEmpty
+        ? _sortedIssuableCardTypes
+        : _sortedIssuableCardTypes.where((type) => type == _cardType).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l.tr('screens_create_card_screen.034'), style: AppTheme.bodyBold),
+        if (visibleTypes.isEmpty) ...[
+          const SizedBox(height: 12),
+          ShwakelCard(
+            padding: const EdgeInsets.all(16),
+            color: AppTheme.warning.withValues(alpha: 0.06),
+            borderColor: AppTheme.warning.withValues(alpha: 0.15),
+            child: Text(
+              'لا توجد أنواع بطاقات متاحة لحسابك حاليًا. تواصل مع الإدارة لتفعيل صلاحية الإصدار المناسبة.',
+              style: AppTheme.bodyAction.copyWith(fontSize: 13, height: 1.5),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {

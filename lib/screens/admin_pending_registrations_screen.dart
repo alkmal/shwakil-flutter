@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -185,6 +186,7 @@ class _AdminPendingRegistrationsScreenState
       context,
       title: l.tr('screens_admin_pending_registrations_screen.008'),
       confirmText: l.tr('shared.confirm_rejection'),
+      requireReason: false,
     );
 
     if (reason == null) {
@@ -323,6 +325,105 @@ class _AdminPendingRegistrationsScreenState
         setState(() => _busyId = null);
       }
     }
+  }
+
+  Future<void> _editWhatsapp(Map<String, dynamic> request) async {
+    final requestId = request['id']?.toString() ?? '';
+    if (requestId.isEmpty) {
+      return;
+    }
+
+    final controller = TextEditingController(
+      text: request['whatsapp']?.toString() ?? '',
+    );
+    final updatedPhone = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تعديل رقم المستخدم'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'رقم المستخدم',
+            helperText: 'بعد التعديل يمكنك إعادة إرسال رمز التحقق للرقم الجديد.',
+            prefixIcon: Icon(Icons.phone_rounded),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              context.loc.tr('screens_admin_pending_registrations_screen.010'),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            icon: const Icon(Icons.save_rounded),
+            label: const Text('حفظ الرقم'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (updatedPhone == null || updatedPhone.trim().isEmpty) {
+      return;
+    }
+
+    setState(() => _busyId = requestId);
+    try {
+      final response = await _apiService.updatePendingRegistrationWhatsapp(
+        requestId,
+        whatsapp: updatedPhone,
+        countryCode: request['countryCode']?.toString() ?? '970',
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم تحديث الرقم',
+        message:
+            response['message']?.toString() ??
+            'تم تحديث رقم المستخدم ويمكنك متابعة الطلب.',
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحديث الرقم',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyId = null);
+      }
+    }
+  }
+
+  Future<void> _copyPhoneNumber(Map<String, dynamic> request) async {
+    final rawPhone = request['whatsapp']?.toString().trim() ?? '';
+    if (rawPhone.isEmpty) {
+      return;
+    }
+    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    final value = rawPhone.startsWith('+') ? rawPhone : '+$digits';
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) {
+      return;
+    }
+    AppAlertService.showSnack(
+      context,
+      message: context.loc.tr(
+        'screens_admin_pending_registrations_screen.034',
+        params: {'phone': value},
+      ),
+      type: AppAlertType.info,
+    );
   }
 
   List<Map<String, dynamic>> get _filteredRequests {
@@ -523,6 +624,21 @@ class _AdminPendingRegistrationsScreenState
                 Icons.call_rounded,
                 request['whatsapp']?.toString() ?? '-',
               ),
+              _copyPhoneChip(request),
+              ActionChip(
+                avatar: const Icon(Icons.edit_rounded, size: 16),
+                label: const Text('تعديل الرقم'),
+                onPressed: isBusy ? null : () => _editWhatsapp(request),
+                backgroundColor: AppTheme.primarySoft,
+                labelStyle: AppTheme.caption.copyWith(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+                side: BorderSide(
+                  color: AppTheme.primary.withValues(alpha: 0.18),
+                ),
+                shape: const StadiumBorder(),
+              ),
               if ((request['nationalId']?.toString().trim().isNotEmpty ??
                   false))
                 _infoChip(
@@ -650,6 +766,28 @@ class _AdminPendingRegistrationsScreenState
           Text(label, style: AppTheme.caption),
         ],
       ),
+    );
+  }
+
+  Widget _copyPhoneChip(Map<String, dynamic> request) {
+    final phone = request['whatsapp']?.toString().trim() ?? '';
+    if (phone.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return ActionChip(
+      avatar: const Icon(Icons.copy_rounded, size: 16),
+      label: Text(
+        context.loc.tr('screens_admin_pending_registrations_screen.035'),
+      ),
+      onPressed: () => _copyPhoneNumber(request),
+      backgroundColor: AppTheme.infoLight,
+      labelStyle: AppTheme.caption.copyWith(
+        color: AppTheme.info,
+        fontWeight: FontWeight.w800,
+      ),
+      side: BorderSide(color: AppTheme.info.withValues(alpha: 0.18)),
+      shape: const StadiumBorder(),
     );
   }
 }

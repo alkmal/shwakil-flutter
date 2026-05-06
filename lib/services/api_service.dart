@@ -97,6 +97,7 @@ class ApiService {
       'pagination': Map<String, dynamic>.from(
         body['pagination'] as Map? ?? const {},
       ),
+      'summary': Map<String, dynamic>.from(body['summary'] as Map? ?? const {}),
     };
   }
 
@@ -2134,6 +2135,23 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> updatePendingRegistrationWhatsapp(
+    String requestId, {
+    required String whatsapp,
+    String countryCode = '970',
+  }) async {
+    final normalizedWhatsapp = PhoneNumberService.normalize(
+      input: whatsapp.trim(),
+      defaultDialCode: countryCode.trim(),
+    );
+    final response = await http.put(
+      AppConfig.apiUri('admin/registrations/$requestId/whatsapp'),
+      headers: await _headers(),
+      body: jsonEncode({'whatsapp': normalizedWhatsapp}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> rejectPendingRegistrationRequest(
     String requestId, {
     String reason = '',
@@ -2397,11 +2415,16 @@ class ApiService {
 
   Future<List<VirtualCard>> issueTrialCards({
     required List<Map<String, dynamic>> items,
+    String cardType = 'standard',
     String? otpCode,
     String? localAuthMethod,
   }) async {
+    final normalizedCardType = cardType.trim().isEmpty
+        ? 'standard'
+        : cardType.trim();
     final payload = <String, dynamic>{
       'items': items,
+      'cardType': normalizedCardType,
       if (otpCode != null && otpCode.trim().isNotEmpty)
         'otpCode': otpCode.trim(),
       if (otpCode == null || otpCode.trim().isEmpty)
@@ -2457,6 +2480,7 @@ class ApiService {
       'pagination': Map<String, dynamic>.from(
         body['pagination'] as Map? ?? const {},
       ),
+      'summary': Map<String, dynamic>.from(body['summary'] as Map? ?? const {}),
     };
   }
 
@@ -2505,8 +2529,66 @@ class ApiService {
       'pagination': Map<String, dynamic>.from(
         body['pagination'] as Map? ?? const {},
       ),
+      'summary': Map<String, dynamic>.from(body['summary'] as Map? ?? const {}),
       'filters': Map<String, dynamic>.from(body['filters'] as Map? ?? const {}),
     };
+  }
+
+  Future<Map<String, dynamic>> createAdminCardForUser({
+    required String userId,
+    required double value,
+    required int quantity,
+    String cardType = 'standard',
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users/$userId/cards'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'value': value,
+        'quantity': quantity,
+        'cardType': cardType,
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    final rawCards = List<dynamic>.from(body['cards'] as List? ?? const []);
+    return {
+      ...body,
+      'cards': rawCards
+          .map((item) => _cardFromApi(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+    };
+  }
+
+  Future<Map<String, dynamic>> transferAdminCard({
+    required String cardId,
+    required String targetUserId,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/cards/$cardId/transfer'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'targetUserId': targetUserId,
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+    final body = _decodeObject(response);
+    if (body['card'] is Map) {
+      body['card'] = _cardFromApi(
+        Map<String, dynamic>.from(body['card'] as Map),
+      );
+    }
+    return body;
+  }
+
+  Future<void> deleteAdminCard(String cardId) async {
+    final response = await http.delete(
+      AppConfig.apiUri('admin/cards/$cardId'),
+      headers: await _headers(),
+    );
+    _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> getOfflineCardCache() async {
@@ -2929,10 +3011,14 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminPendingPrepaidMultipayApprovals({
+    String status = 'all',
+    String search = '',
     int perPage = 50,
   }) async {
     final response = await http.get(
       AppConfig.apiUri('admin/prepaid-multipay/approvals', {
+        if (status.trim().isNotEmpty) 'status': status.trim(),
+        if (search.trim().isNotEmpty) 'q': search.trim(),
         'perPage': perPage.toString(),
       }),
       headers: await _headers(),
@@ -2965,6 +3051,53 @@ class ApiService {
       headers: await _headers(),
       body: jsonEncode({
         'action': action.trim(),
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateAdminPrepaidMultipayCardStatus({
+    required String cardId,
+    required String action,
+    String? note,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/status'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'action': action.trim(),
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> adjustAdminPrepaidMultipayCardBalance({
+    required String cardId,
+    required double amount,
+    String? note,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/adjust-balance'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'amount': amount,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> cancelAdminPrepaidMultipayCard({
+    required String cardId,
+    String? note,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/cancel'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'confirmed': true,
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
       }),
     );
@@ -3044,6 +3177,26 @@ class ApiService {
       });
     }
     return body;
+  }
+
+  Future<Map<String, dynamic>> adminCreatePrepaidMultipayCardForUser({
+    required String userId,
+    required String label,
+    required double amount,
+    required String pin,
+    required int validityYears,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/users/$userId/prepaid-multipay-cards'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'label': label.trim(),
+        'amount': amount,
+        'pin': pin.trim(),
+        'validityYears': validityYears,
+      }),
+    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> reloadPrepaidMultipayCard({
@@ -3652,15 +3805,6 @@ class ApiService {
     final fallbackMessage = _tr('services_api_service.001');
     final payloadTooLargeMessage = _tr('services_api_service.002');
 
-    if (response.statusCode == 401) {
-      unawaited(_redirectToLoginAfterExpiredSession());
-      throw Exception(_tr('services_error_message_service.011'));
-    }
-
-    if (response.statusCode == 403) {
-      throw Exception(_tr('services_error_message_service.002'));
-    }
-
     if (response.statusCode == 413) {
       throw Exception(payloadTooLargeMessage);
     }
@@ -3676,6 +3820,18 @@ class ApiService {
       body = jsonDecode(rawBody) as Map<String, dynamic>;
     } on FormatException {
       throw Exception(fallbackMessage);
+    }
+
+    if (response.statusCode == 401) {
+      final message = ErrorMessageService.sanitize(body['message']);
+      if (ErrorMessageService.requiresFreshLogin(message)) {
+        unawaited(_redirectToLoginAfterExpiredSession());
+      }
+      throw Exception(message);
+    }
+
+    if (response.statusCode == 403) {
+      throw Exception(ErrorMessageService.sanitize(body['message']));
     }
 
     if (response.statusCode >= 400) {

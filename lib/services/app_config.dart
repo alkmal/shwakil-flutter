@@ -1,6 +1,6 @@
 class AppConfig {
   static const String _productionApiUrl = 'https://shwakil.alkmal.com/api';
-  static const String _localDebugApiUrl = 'https://wa.alkmal.com/api';
+  static const String _localDebugApiUrl = 'https://shwakil.alkmal.com/api';
   static const String _trustedClientKey = String.fromEnvironment(
     'API_CLIENT_KEY',
   );
@@ -19,7 +19,11 @@ class AppConfig {
       return [env];
     }
 
-    return {_productionApiUrl, _localDebugApiUrl}.toList();
+    if (_productionApiUrl == _localDebugApiUrl) {
+      return [_productionApiUrl];
+    }
+
+    return [_productionApiUrl, _localDebugApiUrl];
   }
 
   static Uri get baseUri => Uri.parse(baseUrl);

@@ -10,6 +10,7 @@ Future<String?> showRejectionReasonDialog(
   String? hintText,
   String? emptyMessage,
   String initialValue = '',
+  bool requireReason = true,
 }) async {
   final l = context.loc;
   final controller = TextEditingController(text: initialValue);
@@ -44,7 +45,7 @@ Future<String?> showRejectionReasonDialog(
           FilledButton(
             onPressed: () {
               final value = controller.text.trim();
-              if (value.isEmpty) {
+              if (requireReason && value.isEmpty) {
                 setDialogState(() {
                   errorText =
                       emptyMessage ?? l.tr('shared.rejection_reason_required');

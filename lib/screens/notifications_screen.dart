@@ -533,10 +533,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'type': item['type']?.toString() ?? 'general',
       'category': item['category']?.toString() ?? 'general',
       'title': item['title']?.toString() ?? '',
-      'body': item['body']?.toString() ?? '',
+      'body': _hideStackTraceFromNotificationBody(item['body']),
       'data': _extractDataMap(item['data']),
       'sourceType': item['sourceType']?.toString(),
       'sourceId': item['sourceId']?.toString(),
+      'traceId': item['traceId']?.toString(),
       'isRead': item['isRead'] == true,
       'readAt': item['readAt']?.toString(),
       'createdAt': item['createdAt']?.toString() ?? '',
@@ -553,6 +554,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     return const <String, dynamic>{};
+  }
+
+  String _hideStackTraceFromNotificationBody(Object? value) {
+    final body = value?.toString() ?? '';
+    final markerIndex = body.indexOf('الأثر البرمجي:');
+
+    if (markerIndex < 0) {
+      return body;
+    }
+
+    final beforeMarker = body.substring(0, markerIndex).trimRight();
+    final stackLine = 'الأثر البرمجي: متوفر في سجلات الخادم';
+
+    return beforeMarker.isEmpty ? stackLine : '$beforeMarker\n$stackLine';
   }
 }
 
@@ -789,6 +804,16 @@ class _NotificationDetailsSheet extends StatelessWidget {
     final status = _notificationStatusValue(item);
     final statusLabel = _notificationStatusLabel(context, status);
     final statusColor = _notificationStatusColor(status);
+    final traceId = _firstNonEmptyString(
+      item,
+      const ['traceId'],
+      metadataKeys: const ['traceId'],
+    );
+    final stackTrace = _firstNonEmptyString(
+      item,
+      const [],
+      metadataKeys: const ['stackTrace', 'stackTracePreview'],
+    );
 
     return SafeArea(
       child: Padding(
@@ -862,6 +887,14 @@ class _NotificationDetailsSheet extends StatelessWidget {
                       icon: Icons.priority_high_rounded,
                       label: _notificationPriorityLabel(context, priority),
                     ),
+                  if (traceId != null)
+                    _InfoChip(
+                      icon: Icons.bug_report_rounded,
+                      label: context.loc.tr(
+                        'screens_notifications_screen.089',
+                        params: {'trace': traceId},
+                      ),
+                    ),
                 ],
               ),
               if (description.isNotEmpty) ...[
@@ -871,6 +904,30 @@ class _NotificationDetailsSheet extends StatelessWidget {
               if (details.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(details, style: AppTheme.bodyAction.copyWith(height: 1.5)),
+              ],
+              if (stackTrace != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  context.loc.tr('screens_notifications_screen.090'),
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: SelectableText(
+                    stackTrace,
+                    style: AppTheme.caption.copyWith(
+                      fontFamily: 'monospace',
+                      height: 1.45,
+                    ),
+                  ),
+                ),
               ],
               if ((actionRoute.isNotEmpty || resolvedActionRoute != null)) ...[
                 const SizedBox(height: 16),

@@ -44,6 +44,8 @@ class AppPermissions {
     'canIssueQueueTickets',
     'canViewPrivateCards',
     'canReadOwnPrivateCardsOnly',
+    'canPrintCards',
+    'canDeleteCards',
     'canRequestCardPrinting',
     'canScanCards',
     'canOfflineCardScan',
@@ -114,6 +116,9 @@ class AppPermissions {
   bool get canViewPrivateCards => _isEnabled('canViewPrivateCards');
   bool get canReadOwnPrivateCardsOnly =>
       _isEnabled('canReadOwnPrivateCardsOnly');
+  bool get canPrintCards =>
+      _isEnabled('canPrintCards') || canRequestCardPrinting;
+  bool get canDeleteCards => _isEnabled('canDeleteCards');
   bool get canRequestCardPrinting => _isEnabled('canRequestCardPrinting');
   bool get canScanCards => _isEnabled('canScanCards');
   bool get canOfflineCardScan => _isEnabled('canOfflineCardScan');
@@ -132,7 +137,9 @@ class AppPermissions {
       _isEnabled('canAcceptPrepaidMultipayPayments');
   bool get canUsePrepaidMultipayNfc => _isEnabled('canUsePrepaidMultipayNfc');
   bool get canOpenPrepaidMultipayCards =>
-      canUsePrepaidMultipayCards || canAcceptPrepaidMultipayPayments;
+      canUsePrepaidMultipayCards ||
+      canAcceptPrepaidMultipayPayments ||
+      _raw['hasPrepaidMultipayCards'] == true;
   bool get canAccessRegulatedWalletFeatures =>
       canViewBalance ||
       canViewTransactions ||

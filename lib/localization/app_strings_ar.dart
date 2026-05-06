@@ -754,6 +754,16 @@ const Map<String, String> appStringsAr = {
   'widgets_admin_transaction_audit_card.029': 'مرفوض',
   'widgets_admin_transaction_audit_card.030': 'بالقرب من فرع',
   'widgets_admin_transaction_audit_card.031': 'خارج نطاق الفروع',
+  'widgets_admin_transaction_audit_card.032': 'وقت الحركة: {time}',
+  'widgets_admin_transaction_audit_card.033': 'المبلغ',
+  'widgets_admin_transaction_audit_card.034': 'الرسوم',
+  'widgets_admin_transaction_audit_card.035': 'معرف البطاقة',
+  'widgets_admin_transaction_audit_card.036': 'معرف الحركة',
+  'widgets_admin_transaction_audit_card.037': 'مصدر الرسوم: {source}',
+  'widgets_admin_transaction_audit_card.038': 'البطاقة: {card}',
+  'widgets_admin_transaction_audit_card.039': 'استخدمها: {user}',
+  'widgets_admin_transaction_audit_card.040': 'العميل: {customer}',
+  'widgets_admin_transaction_audit_card.041': 'وقت الاستخدام: {time}',
   'widgets_admin_admin_customer_card.001': 'موثق',
   'widgets_admin_admin_customer_card.002': 'قيد المراجعة',
   'widgets_admin_admin_customer_card.003': 'غير موثق',
@@ -1033,7 +1043,7 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.046': 'إغلاق',
   'screens_account_settings_screen.056': 'حذف الحساب',
   'screens_account_settings_screen.057':
-      'سيتم حذف الحساب نهائيًا من داخل التطبيق وتسجيل خروجك من هذا الجهاز. هل تريد المتابعة؟',
+      'سيظهر الحساب كمحذوف وسيتم تسجيل خروجك. لا يمكنك إنشاء حساب جديد بنفس الرقم إلا عبر مراجعة الإدارة لاستعادة الحساب. هل تريد المتابعة؟',
   'screens_account_settings_screen.058': 'إلغاء',
   'screens_account_settings_screen.059': 'تعذر حذف الحساب',
   'screens_account_settings_screen.060': 'لا تملك صلاحية عرض إعدادات الحساب',
@@ -1043,7 +1053,7 @@ const Map<String, String> appStringsAr = {
   'screens_account_settings_screen.063': 'الانتقال إلى تسجيل الدخول',
   'screens_account_settings_screen.064': 'مساعدة',
   'screens_account_settings_screen.065':
-      'يمكنك بدء حذف الحساب نهائيًا من هنا مباشرة.',
+      'يمكنك حذف الحساب من هنا. إذا أردت استخدام نفس الرقم مرة أخرى ستحتاج لمراجعة الإدارة لاستعادة الحساب.',
   'screens_account_settings_screen.066': 'مساعدة سريعة',
   'screens_account_settings_screen.067':
       'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
@@ -1649,6 +1659,9 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.180': 'إظهار الرصيد',
   'screens_scan_card_screen.181':
       'اعرض هذا الرمز للطرف المستلم. تنتهي صلاحيته تلقائيًا بعد دقيقة واحدة من وقت إنشائه.',
+  'screens_scan_card_screen.182': 'تم الاعتماد بنجاح',
+  'screens_scan_card_screen.183':
+      'تم استرداد البطاقة وإضافة الرصيد بنجاح. افحص البطاقة مرة أخرى لعرض حالتها الجديدة.',
   'screens_scan_card_screen.155': 'البطاقات المتزامنة',
   'screens_scan_card_screen.156': 'آخر تحديث',
   'screens_scan_card_screen.157': 'مدة السماح',
@@ -2131,6 +2144,8 @@ const Map<String, String> appStringsAr = {
   'screens_notifications_screen.086': 'مكتمل',
   'screens_notifications_screen.087': 'مرفوض',
   'screens_notifications_screen.088': 'فشل التنفيذ',
+  'screens_notifications_screen.089': 'رمز التتبع: {trace}',
+  'screens_notifications_screen.090': 'الأثر البرمجي',
   'screens_transactions_screen.042': 'بحث سريع',
   'screens_transactions_screen.043': 'نطاق زمني',
   'screens_transactions_screen.044': 'نوع العملية',
@@ -2715,6 +2730,7 @@ const Map<String, String> appStringsAr = {
   'screens_transactions_screen.112': 'تحويل رصيد',
   'screens_transactions_screen.113': 'استرداد بطاقة',
   'screens_transactions_screen.114': 'إعادة بيع بطاقة',
+  'screens_transactions_screen.115': 'تفاصيل البطاقة',
   'screens_admin_verification_requests_screen.001': 'تعذر تحميل طلبات التوثيق',
   'screens_admin_verification_requests_screen.002': 'تم اعتماد التوثيق',
   'screens_admin_verification_requests_screen.003':
@@ -2843,6 +2859,8 @@ const Map<String, String> appStringsAr = {
   'shared.delivery_sms': 'رسالة نصية',
   'screens_admin_pending_registrations_screen.033':
       'اختر طريقة إرسال كلمة المرور للمستخدم بعد الاعتماد.',
+  'screens_admin_pending_registrations_screen.034': 'تم نسخ الرقم {phone}',
+  'screens_admin_pending_registrations_screen.035': 'نسخ الرقم',
   'screens_balance_screen.108': 'بيانات الشحن',
   'screens_balance_screen.109': 'جهة السحب',
   'screens_balance_screen.110': 'تفاصيل المبلغ',
@@ -3097,4 +3115,5 @@ const Map<String, String> appStringsAr = {
       'هذه أقسام الإدارة الأكثر استخدامًا بحسب ترتيب العمل اليومي. يمكنك البدء منها للوصول السريع.',
   'screens_admin_customers_screen.056':
       'استخدم البحث للوصول السريع إلى العميل، ثم افتح صفحته لمراجعة بياناته وصلاحياته ورسائله المالية من مكان واحد.',
+  'screens_admin_customers_screen.057': 'تنفيذ البحث',
 };

@@ -20,6 +20,7 @@ class OfflineCardService {
   static const double _defaultMaxPendingAmount = 500;
   static const int _defaultMaxPendingCount = 50;
   static const int _defaultSyncIntervalMinutes = 60;
+  static const int _revealedCardRetryDelayMinutes = 5;
   static final AesGcm _cipher = AesGcm.with256bits();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
@@ -87,6 +88,29 @@ class OfflineCardService {
         await _encodeStoredObject(settings),
       );
     }
+  }
+
+  Future<void> mergeCardsIntoCache({
+    required String userId,
+    required List<VirtualCard> cards,
+  }) async {
+    if (cards.isEmpty) {
+      return;
+    }
+
+    final existingCards = await _loadCards(userId);
+    final byBarcode = <String, VirtualCard>{
+      for (final card in existingCards) card.barcode: card,
+    };
+
+    for (final card in cards) {
+      if (card.barcode.trim().isEmpty) {
+        continue;
+      }
+      byBarcode[card.barcode] = card;
+    }
+
+    await _storeCards(userId, byBarcode.values.toList());
   }
 
   Future<VirtualCard?> findCachedCard(String userId, String barcode) async {
@@ -244,6 +268,7 @@ class OfflineCardService {
   }
 
   Future<List<String>> getRevealedCards(String userId) async {
+    await _pruneRevealedCards(userId);
     final prefs = await SharedPreferences.getInstance();
     final entries = await _decodeStoredList(
       prefs.getString('$_revealedCardsKeyPrefix$userId'),
@@ -259,13 +284,18 @@ class OfflineCardService {
     return revealed.contains(barcode);
   }
 
-  Future<void> markCardRevealed(String userId, String barcode) async {
+  Future<void> markCardRevealed(
+    String userId,
+    String barcode, {
+    required bool allowRetryAfterReconnect,
+  }) async {
     if (barcode.trim().isEmpty) {
       return;
     }
     final prefs = await SharedPreferences.getInstance();
     final key = '$_revealedCardsKeyPrefix$userId';
     final entries = await _decodeStoredList(prefs.getString(key));
+    final now = DateTime.now();
     final exists = entries.any(
       (item) => item['barcode']?.toString() == barcode,
     );
@@ -274,7 +304,14 @@ class OfflineCardService {
     }
     entries.add({
       'barcode': barcode.trim(),
-      'revealedAt': DateTime.now().toIso8601String(),
+      'revealedAt': now.toIso8601String(),
+      'retryAllowedAt': allowRetryAfterReconnect
+          ? now
+                .add(
+                  const Duration(minutes: _revealedCardRetryDelayMinutes),
+                )
+                .toIso8601String()
+          : null,
     });
     await prefs.setString(key, await _encodeStoredList(entries));
   }
@@ -299,6 +336,68 @@ class OfflineCardService {
     }
     final unknown = await getUnknownCardLookups(userId);
     return unknown.isNotEmpty;
+  }
+
+  Future<void> syncRevealedCards(
+    String userId, {
+    required Iterable<VirtualCard> currentCards,
+    required bool online,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_revealedCardsKeyPrefix$userId';
+    final entries = await _decodeStoredList(prefs.getString(key));
+    if (entries.isEmpty) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final cardsByBarcode = <String, VirtualCard>{
+      for (final card in currentCards) card.barcode: card,
+    };
+    final updatedEntries = <Map<String, dynamic>>[];
+
+    for (final entry in entries) {
+      final barcode = entry['barcode']?.toString().trim() ?? '';
+      if (barcode.isEmpty) {
+        continue;
+      }
+
+      final card = cardsByBarcode[barcode];
+      if (card == null || card.status == CardStatus.used) {
+        continue;
+      }
+
+      final retryAllowedAt = DateTime.tryParse(
+        entry['retryAllowedAt']?.toString() ?? '',
+      );
+
+      if (online) {
+        if (retryAllowedAt != null && !now.isBefore(retryAllowedAt)) {
+          continue;
+        }
+
+        updatedEntries.add({
+          ...entry,
+          'retryAllowedAt':
+              retryAllowedAt?.toIso8601String() ??
+              now
+                  .add(
+                    const Duration(minutes: _revealedCardRetryDelayMinutes),
+                  )
+                  .toIso8601String(),
+        });
+        continue;
+      }
+
+      updatedEntries.add(entry);
+    }
+
+    if (updatedEntries.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+
+    await prefs.setString(key, await _encodeStoredList(updatedEntries));
   }
 
   Future<Map<String, dynamic>> offlineOverview(String userId) async {
@@ -459,6 +558,43 @@ class OfflineCardService {
     final key = '$_cardsKeyPrefix$userId';
     final payload = cards.map((card) => card.toMap()).toList();
     await prefs.setString(key, await _encodeStoredList(payload));
+  }
+
+  Future<void> _pruneRevealedCards(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_revealedCardsKeyPrefix$userId';
+    final entries = await _decodeStoredList(prefs.getString(key));
+    if (entries.isEmpty) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final filtered = entries.where((entry) {
+      final barcode = entry['barcode']?.toString().trim() ?? '';
+      if (barcode.isEmpty) {
+        return false;
+      }
+
+      final retryAllowedAt = DateTime.tryParse(
+        entry['retryAllowedAt']?.toString() ?? '',
+      );
+      if (retryAllowedAt != null && !now.isBefore(retryAllowedAt)) {
+        return false;
+      }
+
+      return true;
+    }).toList();
+
+    if (filtered.length == entries.length) {
+      return;
+    }
+
+    if (filtered.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+
+    await prefs.setString(key, await _encodeStoredList(filtered));
   }
 
   Future<String> _encodeStoredList(List<Map<String, dynamic>> payload) async {
