@@ -58,6 +58,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool _showLogo = true;
   bool _showStamp = true;
   bool _useAccountLogo = true;
+  String _loadingHeadline = '';
+  String _loadingDetails = '';
   String _cardType = '';
   String _visibilityScope = 'general';
   DateTime? _validFrom;
@@ -193,6 +195,21 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
     final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
     return raw < 1 ? 1 : raw;
+  }
+
+  void _setLoadingState(
+    bool value, {
+    String headline = '',
+    String details = '',
+  }) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isLoading = value;
+      _loadingHeadline = value ? headline : '';
+      _loadingDetails = value ? details : '';
+    });
   }
 
   double get _trialCardsRemainingAmount =>
@@ -582,9 +599,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
     setState(() {
       _recent = cards;
-      _isLoading = false;
     });
+    _setLoadingState(
+      true,
+      headline: 'جارٍ حفظ الدفعة الأخيرة',
+      details: 'نحدّث بيانات الحساب ونجهز البطاقات لتظهر مباشرة في المخزون.',
+    );
     await _load();
+    _setLoadingState(false);
     if (mounted) {
       _showSuccess(cards);
     }
@@ -601,7 +623,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     for (var attempt = 0; attempt < 2; attempt++) {
-      setState(() => _isLoading = true);
+      _setLoadingState(
+        true,
+        headline: 'جارٍ إنشاء البطاقات',
+        details: 'قد يستغرق الأمر قليلًا مع ضعف الإنترنت. نتابع العملية الآن.',
+      );
       try {
         final cards = await _apiService.issueCards(
           value: amount,
@@ -627,7 +653,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           return null;
         }
         final message = ErrorMessageService.sanitize(error);
-        setState(() => _isLoading = false);
+        _setLoadingState(false);
 
         if (attempt == 0 && _isLocalSecurityRequiredMessage(message)) {
           securityResult = await TransferSecurityService.confirmTransfer(
@@ -678,7 +704,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     });
 
     for (var attempt = 0; attempt < 2; attempt++) {
-      setState(() => _isLoading = true);
+      _setLoadingState(
+        true,
+        headline: 'جارٍ إنشاء البطاقات التجريبية',
+        details: 'نجهز الدفعة ونحفظها لحسابك مع متابعة الاتصال الحالي.',
+      );
       try {
         final cards = await _apiService.issueTrialCards(
           items: items,
@@ -696,7 +726,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           return null;
         }
         final message = ErrorMessageService.sanitize(error);
-        setState(() => _isLoading = false);
+        _setLoadingState(false);
 
         if (attempt == 0 && _isLocalSecurityRequiredMessage(message)) {
           securityResult = await TransferSecurityService.confirmTransfer(
@@ -725,7 +755,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     required List<VirtualCard> cards,
   }) async {
     try {
-      await _offlineCardService.cacheCards(userId: userId, cards: cards);
+      await _offlineCardService.mergeCardsIntoCache(
+        userId: userId,
+        cards: cards,
+      );
     } catch (_) {
       // Offline cache should never make a successful card issue look failed.
     }
@@ -1331,6 +1364,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ),
               ],
               const SizedBox(height: 8),
+              ShwakelButton(
+                label: 'فتح مخزون البطاقات',
+                icon: Icons.inventory_2_rounded,
+                isSecondary: true,
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.pushNamed(context, '/inventory');
+                },
+              ),
+              const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(l.tr('screens_create_card_screen.022')),
@@ -1616,44 +1659,94 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ),
         ),
         drawer: const AppSidebar(),
-        body: TabBarView(
+        body: Stack(
           children: [
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHero(),
-                    const SizedBox(height: 24),
-                    _buildForm(),
-                  ],
+            TabBarView(
+              children: [
+                SingleChildScrollView(
+                  child: ResponsiveScaffoldContainer(
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHero(),
+                        const SizedBox(height: 24),
+                        _buildForm(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHero(),
-                    const SizedBox(height: 24),
-                    _buildRecent(),
-                  ],
+                SingleChildScrollView(
+                  child: ResponsiveScaffoldContainer(
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHero(),
+                        const SizedBox(height: 24),
+                        _buildRecent(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [_buildPreviewAndPrintWorkspace()],
+                SingleChildScrollView(
+                  child: ResponsiveScaffoldContainer(
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [_buildPreviewAndPrintWorkspace()],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
+            if (_isLoading) _buildLoadingOverlay(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.16),
+        alignment: Alignment.center,
+        child: ShwakelCard(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+          borderRadius: BorderRadius.circular(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _loadingHeadline.trim().isEmpty
+                      ? 'جارٍ تنفيذ العملية'
+                      : _loadingHeadline,
+                  style: AppTheme.h3.copyWith(fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                if (_loadingDetails.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _loadingDetails,
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

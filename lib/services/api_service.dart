@@ -2480,6 +2480,7 @@ class ApiService {
       'pagination': Map<String, dynamic>.from(
         body['pagination'] as Map? ?? const {},
       ),
+      'summary': Map<String, dynamic>.from(body['summary'] as Map? ?? const {}),
     };
   }
 

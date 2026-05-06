@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 
 import '../models/index.dart';
@@ -33,6 +35,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   List<VirtualCard> _cards = const [];
   CardStatus _filter = CardStatus.unused;
   bool _isLoading = true;
+  bool _isActionInProgress = false;
   bool _isAuthorized = false;
   bool _canRequestCardPrinting = false;
   bool _canPrintCards = false;
@@ -44,12 +47,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
   static const int _adminPerPage = 24;
   int _lastPage = 1;
   int _totalCards = 0;
+  int _filteredTotalCards = 0;
   DateTime? _issuedFrom;
   DateTime? _issuedTo;
   bool _isOfflineData = false;
   Set<String> _revealedBarcodes = const <String>{};
   Map<String, dynamic>? _offlineOverview;
   Map<String, dynamic> _summary = const {};
+  String _actionStatusMessage = '';
 
   @override
   void initState() {
@@ -115,14 +120,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
         }).toList();
         pagination = {'lastPage': 1, 'currentPage': 1, 'total': cards.length};
         summary = {
-          'total': cards.length,
-          'unusedCount': cards
+          'total': cachedCards.length,
+          'unusedCount': cachedCards
               .where((card) => card.status == CardStatus.unused)
               .length,
-          'usedCount': cards
+          'usedCount': cachedCards
               .where((card) => card.status == CardStatus.used)
               .length,
-          'archivedCount': cards
+          'archivedCount': cachedCards
               .where((card) => card.status == CardStatus.archived)
               .length,
         };
@@ -151,10 +156,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
         summary = Map<String, dynamic>.from(
           payload['summary'] as Map? ?? const {},
         );
-        revealedBarcodes = <String>{};
         if (!canUseAdminInventory && userId.isNotEmpty) {
           await _offlineCardService.cacheCards(userId: userId, cards: cards);
-          await _offlineCardService.clearRevealedCards(userId);
+          await _offlineCardService.syncRevealedCards(
+            userId,
+            currentCards: cards,
+            online: true,
+          );
+          revealedBarcodes = (await _offlineCardService.getRevealedCards(
+            userId,
+          )).toSet();
+        } else {
+          revealedBarcodes = <String>{};
         }
       }
 
@@ -191,7 +204,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _cards = cards;
         _page = normalizedPage;
         _lastPage = lastPage;
-        _totalCards = (pagination['total'] as num?)?.toInt() ?? _cards.length;
+        _filteredTotalCards =
+            (pagination['total'] as num?)?.toInt() ?? _cards.length;
+        _totalCards =
+            (summary['total'] as num?)?.toInt() ??
+            (pagination['total'] as num?)?.toInt() ??
+            _cards.length;
         _isOfflineData = isOfflineData;
         _revealedBarcodes = revealedBarcodes;
         _offlineOverview = offlineOverview;
@@ -272,13 +290,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ],
       ),
       drawer: const AppSidebar(),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ResponsiveScaffoldContainer(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
+      body: Stack(
+        children: [
+          RefreshIndicator(
+            onRefresh: _load,
+            child: ResponsiveScaffoldContainer(
+              padding: const EdgeInsets.all(AppTheme.spacingLg),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
               if (_isOfflineData)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -313,7 +333,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           icon: Icons.add_card_rounded,
                           onPressed: _createAdminCard,
                         ),
-                        if (_canPrintCards && _cards.isNotEmpty)
+                        if (_canPrintCards && _printableCards(_cards).isNotEmpty)
                           ShwakelButton(
                             label: l.tr('screens_inventory_screen.021'),
                             icon: Icons.print_rounded,
@@ -321,6 +341,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             isSecondary: true,
                           ),
                       ],
+                    ),
+                  ),
+                ),
+              if (!_canUseAdminInventory &&
+                  _canPrintCards &&
+                  _printableCards(_cards).isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ShwakelButton(
+                      label: 'طباعة البطاقات الظاهرة',
+                      icon: Icons.print_rounded,
+                      isSecondary: true,
+                      onPressed: _reprintFilteredCards,
                     ),
                   ),
                 ),
@@ -336,7 +371,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 AdminPaginationFooter(
                   currentPage: _page,
                   lastPage: _lastPage,
-                  totalItems: _totalCards,
+                  totalItems: _filteredTotalCards,
                   itemsPerPage: _canUseAdminInventory
                       ? _adminPerPage
                       : _perPage,
@@ -346,7 +381,43 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   },
                 ),
               ],
-            ],
+                ],
+              ),
+            ),
+          ),
+          if (_isActionInProgress) _buildBusyOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBusyOverlay() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.16),
+          alignment: Alignment.center,
+          child: ShwakelCard(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            borderRadius: BorderRadius.circular(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  _actionStatusMessage.trim().isEmpty
+                      ? 'جارٍ تنفيذ الطلب...'
+                      : _actionStatusMessage,
+                  style: AppTheme.bodyBold,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1276,10 +1347,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  void _setBusyState(bool value, {String message = ''}) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isActionInProgress = value;
+      _actionStatusMessage = value ? message : '';
+    });
+  }
+
+  List<VirtualCard> _printableCards(Iterable<VirtualCard> cards) {
+    return cards.where((card) => card.status == CardStatus.unused).toList();
+  }
+
   Widget _buildPopup(VirtualCard card) {
     final l = context.loc;
     final menuItems = <PopupMenuEntry<String>>[
-      if (_canPrintCards)
+      if (_canPrintCards && card.status == CardStatus.unused)
         PopupMenuItem(
           value: 'print',
           child: Row(
@@ -1377,20 +1462,33 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Future<void> _reprint(VirtualCard card) async {
     final l = context.loc;
+    if (card.status != CardStatus.unused) {
+      await AppAlertService.showInfo(
+        context,
+        title: 'الطباعة غير متاحة',
+        message: 'لا يمكن طباعة بطاقة مستخدمة أو مؤرشفة.',
+      );
+      return;
+    }
     if (!await _confirmCardOutputSecurity()) {
       return;
     }
     final user = await _authService.currentUser();
-    final printedBy = UserDisplayName.fromMap(
-      user,
-      fallback: l.tr('screens_inventory_screen.010'),
-    );
-    await _pdfService.printCards([card], printedBy: printedBy);
-    if (mounted) {
-      AppAlertService.showSuccess(
-        context,
-        message: l.tr('screens_inventory_screen.016'),
+    _setBusyState(true, message: 'جارٍ تجهيز البطاقة للطباعة...');
+    try {
+      final printedBy = UserDisplayName.fromMap(
+        user,
+        fallback: l.tr('screens_inventory_screen.010'),
       );
+      await _pdfService.printCards([card], printedBy: printedBy);
+      if (mounted) {
+        AppAlertService.showSuccess(
+          context,
+          message: l.tr('screens_inventory_screen.016'),
+        );
+      }
+    } finally {
+      _setBusyState(false);
     }
   }
 
@@ -1403,10 +1501,48 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
     final userId = user?['id']?.toString() ?? '';
+    final isOnline = await ConnectivityService.instance.checkNow();
+    var previewCard = card;
+
+    if (isOnline) {
+      _setBusyState(true, message: 'جارٍ تحديث بيانات البطاقة...');
+      try {
+        final freshCard = await _apiService.getCardByBarcode(card.barcode);
+        if (!mounted) {
+          return;
+        }
+        if (freshCard == null || freshCard.status != CardStatus.unused) {
+          await _load();
+          if (!context.mounted) {
+            return;
+          }
+          await AppAlertService.showInfo(
+            context,
+            title: 'تم تحديث حالة البطاقة',
+            message: 'هذه البطاقة لم تعد متاحة للعرض الآن.',
+          );
+          return;
+        }
+        previewCard = freshCard;
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+        await AppAlertService.showError(
+          context,
+          title: 'تعذر تحديث البطاقة',
+          message: ErrorMessageService.sanitize(error),
+        );
+        return;
+      } finally {
+        _setBusyState(false);
+      }
+    }
+
     if (userId.isNotEmpty) {
       final alreadyRevealed = await _offlineCardService.isCardRevealed(
         userId,
-        card.barcode,
+        previewCard.barcode,
       );
       if (!mounted) {
         return;
@@ -1415,15 +1551,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
         await AppAlertService.showInfo(
           context,
           title: 'تم عرض البطاقة مسبقًا',
-          message:
-              'هذه البطاقة تم فتحها مرة واحدة بالفعل. أعد الاتصال بالإنترنت أولًا حتى يمكن فتحها مرة أخرى.',
+          message: isOnline
+              ? 'هذه البطاقة عُرضت مؤخرًا. إذا لم تُستخدم فستتمكن من عرضها مجددًا بعد خمس دقائق.'
+              : 'هذه البطاقة عُرضت سابقًا في وضع الأوفلاين. عند عودة الإنترنت سنحدّث حالتها، وإذا بقيت غير مستخدمة فستتاح مجددًا بعد خمس دقائق.',
         );
         return;
       }
-      await _offlineCardService.markCardRevealed(userId, card.barcode);
+      await _offlineCardService.markCardRevealed(
+        userId,
+        previewCard.barcode,
+        allowRetryAfterReconnect: isOnline,
+      );
       if (mounted) {
         setState(() {
-          _revealedBarcodes = {..._revealedBarcodes, card.barcode};
+          _revealedBarcodes = {..._revealedBarcodes, previewCard.barcode};
         });
       }
       if (!mounted) {
@@ -1431,6 +1572,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       }
     }
     final issuerName = UserDisplayName.fromMap(user, fallback: 'Shwakel');
+    if (!context.mounted) {
+      return;
+    }
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -1443,7 +1587,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ThermalCardTicket(
-                  card: card,
+                  card: previewCard,
                   issuerName: issuerName,
                   title: issuerName,
                 ),
@@ -1502,6 +1646,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
 
     try {
+      _setBusyState(true, message: 'جارٍ حذف البطاقة وتحديث الرصيد...');
       await _apiService.deleteCard(id);
       await _load();
       if (mounted) {
@@ -1543,6 +1688,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
 
     try {
+      _setBusyState(true, message: 'جارٍ حذف البطاقة إداريًا...');
       await _apiService.deleteAdminCard(id);
       await _load();
       if (mounted) {
@@ -1555,6 +1701,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           message: ErrorMessageService.sanitize(error),
         );
       }
+    } finally {
+      _setBusyState(false);
     }
   }
 
@@ -1658,6 +1806,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
 
     try {
+      _setBusyState(true, message: 'جارٍ نقل البطاقة إلى المستخدم المحدد...');
       await _apiService.transferAdminCard(
         cardId: card.id,
         targetUserId: target['id']?.toString() ?? '',
@@ -1673,6 +1822,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           message: ErrorMessageService.sanitize(error),
         );
       }
+    } finally {
+      _setBusyState(false);
     }
   }
 
@@ -1741,6 +1892,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         return;
       }
 
+      _setBusyState(true, message: 'جارٍ إنشاء البطاقة للمستخدم...');
       await _apiService.createAdminCardForUser(
         userId: target['id']?.toString() ?? '',
         value: double.tryParse(valueController.text.trim()) ?? 0,
@@ -1759,13 +1911,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
       }
     } finally {
+      _setBusyState(false);
       valueController.dispose();
       quantityController.dispose();
     }
   }
 
   Future<void> _reprintFilteredCards() async {
-    if (_cards.isEmpty) {
+    final initialPrintableCards = _printableCards(_cards);
+    if (initialPrintableCards.isEmpty) {
+      if (mounted) {
+        await AppAlertService.showInfo(
+          context,
+          title: 'لا توجد بطاقات صالحة للطباعة',
+          message: 'يمكن طباعة البطاقات غير المستخدمة فقط ضمن النتائج الحالية.',
+        );
+      }
       return;
     }
     if (!_canPrintCards) {
@@ -1778,7 +1939,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
     final fallbackPrintedBy = context.loc.tr('screens_inventory_screen.010');
-    var cardsToPrint = _cards;
+    var cardsToPrint = initialPrintableCards;
     if (_canUseAdminInventory && _totalCards > _cards.length) {
       final statusMap = {
         CardStatus.used: 'used',
@@ -1799,18 +1960,34 @@ class _InventoryScreenState extends State<InventoryScreen> {
         payload['cards'] as List? ?? cardsToPrint,
       );
     }
-    final user = await _authService.currentUser();
-    await _pdfService.printCards(
-      cardsToPrint,
-      printedBy: UserDisplayName.fromMap(user, fallback: fallbackPrintedBy),
-    );
-    if (!mounted) {
+    cardsToPrint = _printableCards(cardsToPrint);
+    if (cardsToPrint.isEmpty) {
+      if (mounted) {
+        await AppAlertService.showInfo(
+          context,
+          title: 'لا توجد بطاقات صالحة للطباعة',
+          message: 'النتائج المفلترة الحالية لا تحتوي على بطاقات غير مستخدمة.',
+        );
+      }
       return;
     }
-    AppAlertService.showSuccess(
-      context,
-      message: context.loc.tr('screens_inventory_screen.032'),
-    );
+    final user = await _authService.currentUser();
+    _setBusyState(true, message: 'جارٍ تجهيز البطاقات للطباعة...');
+    try {
+      await _pdfService.printCards(
+        cardsToPrint,
+        printedBy: UserDisplayName.fromMap(user, fallback: fallbackPrintedBy),
+      );
+      if (!mounted) {
+        return;
+      }
+      AppAlertService.showSuccess(
+        context,
+        message: context.loc.tr('screens_inventory_screen.032'),
+      );
+    } finally {
+      _setBusyState(false);
+    }
   }
 
   Widget _adminFilterField({
