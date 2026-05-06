@@ -687,8 +687,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     final baseTitle = _detailsTitleC.text.trim();
-    final trialCardType =
-        _cardType.trim().isEmpty ? 'standard' : _cardType.trim();
+    final trialCardType = _cardType.trim().isEmpty
+        ? 'standard'
+        : _cardType.trim();
     final trialIsBalanceCard =
         trialCardType == 'standard' || trialCardType == 'delivery';
     final trialValue = trialIsBalanceCard ? amount : 0.0;
@@ -2383,7 +2384,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Widget _buildCardTypeSelector() {
     final l = context.loc;
-    final visibleTypes = _sortedIssuableCardTypes;
+    final visibleTypes = _cardType.trim().isEmpty
+        ? _sortedIssuableCardTypes
+        : _sortedIssuableCardTypes.where((type) => type == _cardType).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

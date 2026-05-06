@@ -2,6 +2,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
+import 'package:barcode/barcode.dart' as barcode;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -600,12 +601,14 @@ class PDFService {
   }) async {
     await _ensureFontsLoaded();
     final pdf = pw.Document();
+    final pageFormat = PdfPageFormat(
+      100 * PdfPageFormat.mm,
+      65 * PdfPageFormat.mm,
+    );
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(
-          100 * PdfPageFormat.mm,
-          65 * PdfPageFormat.mm,
-        ),
+        pageFormat: pageFormat,
+        margin: pw.EdgeInsets.zero,
         theme: pw.ThemeData.withFont(
           base: _regularFont!,
           bold: _boldFont!,
@@ -613,10 +616,14 @@ class PDFService {
         ),
         build: (context) => pw.Directionality(
           textDirection: pw.TextDirection.rtl,
-          child: _buildCardContainer(
-            card,
-            printedBy: printedBy,
-            serialNumber: serialNumber,
+          child: pw.SizedBox(
+            width: pageFormat.width,
+            height: pageFormat.height,
+            child: _buildCardContainer(
+              card,
+              printedBy: printedBy,
+              serialNumber: serialNumber,
+            ),
           ),
         ),
       ),
@@ -843,11 +850,12 @@ class PDFService {
                         ),
                         child: pw.SizedBox(
                           height: 15,
-                          child: pw.BarcodeWidget(
-                            barcode: pw.Barcode.code128(),
-                            data: card.barcode,
-                            drawText: false,
-                            color: _titleColor,
+                          child: pw.SvgImage(
+                            svg: _barcodeSvg(
+                              card.barcode,
+                              width: 112,
+                              height: 36,
+                            ),
                           ),
                         ),
                       ),
@@ -995,11 +1003,12 @@ class PDFService {
                         ),
                         child: pw.SizedBox(
                           height: 44,
-                          child: pw.BarcodeWidget(
-                            barcode: pw.Barcode.code128(),
-                            data: card.barcode,
-                            drawText: false,
-                            color: _titleColor,
+                          child: pw.SvgImage(
+                            svg: _barcodeSvg(
+                              card.barcode,
+                              width: 280,
+                              height: 88,
+                            ),
                           ),
                         ),
                       ),
@@ -1083,6 +1092,21 @@ class PDFService {
     return normalized.isEmpty
         ? 'shwakil_cards_${DateTime.now().millisecondsSinceEpoch}'
         : normalized;
+  }
+
+  String _barcodeSvg(
+    String value, {
+    required double width,
+    required double height,
+  }) {
+    final normalized = value.replaceAll(RegExp(r'\D+'), '');
+    final generator = barcode.Barcode.code128();
+    return generator.toSvg(
+      normalized,
+      width: width,
+      height: height,
+      drawText: false,
+    );
   }
 
   void setDesignSettings(CardDesignSettings settings) {

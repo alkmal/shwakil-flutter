@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:barcode/barcode.dart' as barcode;
 import 'package:barcode_widget/barcode_widget.dart' as bw;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -1092,11 +1093,7 @@ class _PrepaidMultipayCardsScreenState
                       color: PdfColors.white,
                       borderRadius: pw.BorderRadius.circular(5),
                     ),
-                    child: pw.BarcodeWidget(
-                      barcode: pw.Barcode.code128(),
-                      data: rawNumber,
-                      drawText: false,
-                    ),
+                    child: pw.SvgImage(svg: _prepaidPdfBarcodeSvg(rawNumber)),
                   ),
                 ],
               ),
@@ -2569,6 +2566,17 @@ class _PrepaidMultipayCardsScreenState
     return RegExp(r'[\u0600-\u06FF]').hasMatch(value)
         ? pw.TextDirection.rtl
         : pw.TextDirection.ltr;
+  }
+
+  String _prepaidPdfBarcodeSvg(String rawNumber) {
+    final normalized = rawNumber.replaceAll(RegExp(r'\D+'), '');
+    final generator = barcode.Barcode.code128();
+    return generator.toSvg(
+      normalized,
+      width: 180,
+      height: 54,
+      drawText: false,
+    );
   }
 
   Widget _buildCardWarnings(Map<String, dynamic> card) {
