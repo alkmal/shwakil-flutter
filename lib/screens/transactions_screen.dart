@@ -1435,11 +1435,36 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   String? _transactionActorLine(String type, Map<String, dynamic> metadata) {
-    final recipient = metadata['recipientUsername']?.toString().trim();
-    final sender = metadata['senderUsername']?.toString().trim();
-    final byUser = metadata['byUsername']?.toString().trim();
-    final target = metadata['targetUsername']?.toString().trim();
-    final sourceUser = metadata['sourceUsername']?.toString().trim();
+    final recipient = _metadataPersonLabel(
+      metadata,
+      const ['recipientDisplayName', 'recipientFullName'],
+      const ['recipientUsername'],
+    );
+    final sender = _metadataPersonLabel(
+      metadata,
+      const ['senderDisplayName', 'senderFullName'],
+      const ['senderUsername'],
+    );
+    final byUser = _metadataPersonLabel(
+      metadata,
+      const [
+        'byDisplayName',
+        'byFullName',
+        'byAdminDisplayName',
+        'byAdminFullName',
+      ],
+      const ['byUsername', 'byAdminUsername'],
+    );
+    final target = _metadataPersonLabel(
+      metadata,
+      const ['targetDisplayName', 'targetFullName'],
+      const ['targetUsername'],
+    );
+    final sourceUser = _metadataPersonLabel(
+      metadata,
+      const ['sourceDisplayName', 'sourceFullName'],
+      const ['sourceUsername'],
+    );
     final sourceType = metadata['sourceType']?.toString().trim();
     if (recipient != null && recipient.isNotEmpty) {
       return _t(

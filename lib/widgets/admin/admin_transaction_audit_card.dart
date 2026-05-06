@@ -57,12 +57,37 @@ class AdminTransactionAuditCard extends StatelessWidget {
     Map<String, dynamic> metadata,
   ) {
     final l = context.loc;
-    final byUsername = metadata['byUsername']?.toString().trim();
-    final senderUsername = metadata['senderUsername']?.toString().trim();
-    final recipientUsername = metadata['recipientUsername']?.toString().trim();
+    final byUsername = _metadataPersonLabel(
+      metadata,
+      const [
+        'byDisplayName',
+        'byFullName',
+        'byAdminDisplayName',
+        'byAdminFullName',
+      ],
+      const ['byUsername', 'byAdminUsername'],
+    );
+    final senderUsername = _metadataPersonLabel(
+      metadata,
+      const ['senderDisplayName', 'senderFullName'],
+      const ['senderUsername'],
+    );
+    final recipientUsername = _metadataPersonLabel(
+      metadata,
+      const ['recipientDisplayName', 'recipientFullName'],
+      const ['recipientUsername'],
+    );
     final customerName = metadata['customerName']?.toString().trim();
-    final targetUsername = metadata['targetUsername']?.toString().trim();
-    final sourceUsername = metadata['sourceUsername']?.toString().trim();
+    final targetUsername = _metadataPersonLabel(
+      metadata,
+      const ['targetDisplayName', 'targetFullName'],
+      const ['targetUsername'],
+    );
+    final sourceUsername = _metadataPersonLabel(
+      metadata,
+      const ['sourceDisplayName', 'sourceFullName'],
+      const ['sourceUsername'],
+    );
     final sourceType = metadata['sourceType']?.toString().trim();
 
     switch (type) {

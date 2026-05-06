@@ -912,6 +912,8 @@ class _PrepaidMultipayCardsScreenState
     final ownerAlignment = ownerDirection == pw.TextDirection.ltr
         ? pw.CrossAxisAlignment.end
         : pw.CrossAxisAlignment.start;
+    final balanceLabel = CurrencyFormatter.ils(balance);
+    final normalizedLabel = label.trim().isEmpty ? 'Shwakil Prepaid' : label.trim();
 
     return pw.Container(
       width: width,
@@ -920,155 +922,200 @@ class _PrepaidMultipayCardsScreenState
       decoration: pw.BoxDecoration(
         gradient: const pw.LinearGradient(
           colors: [
-            PdfColor(0.06, 0.09, 0.16),
-            PdfColor(0.02, 0.45, 0.41),
-            PdfColor(0.08, 0.37, 0.46),
+            PdfColor(0.05, 0.10, 0.18),
+            PdfColor(0.05, 0.26, 0.42),
+            PdfColor(0.07, 0.48, 0.46),
           ],
-          begin: pw.Alignment.topRight,
+          begin: pw.Alignment.topLeft,
           end: pw.Alignment.bottomLeft,
         ),
         borderRadius: pw.BorderRadius.circular(9),
       ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+      child: pw.Stack(
         children: [
-          pw.Row(
-            children: [
-              if (logoImage != null) ...[
+          pw.Positioned(
+            top: -10,
+            right: -8,
+            child: pw.Container(
+              width: 48,
+              height: 48,
+              decoration: pw.BoxDecoration(
+                shape: pw.BoxShape.circle,
+                color: const PdfColor(1, 1, 1, 0.07),
+              ),
+            ),
+          ),
+          pw.Positioned(
+            bottom: 14,
+            right: 16,
+            child: pw.Row(
+              children: [
                 pw.Container(
                   width: 22,
                   height: 22,
-                  padding: const pw.EdgeInsets.all(2),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.circular(6),
+                  decoration: const pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    color: PdfColor(0.95, 0.46, 0.12, 0.92),
                   ),
-                  child: pw.Image(logoImage, fit: pw.BoxFit.cover),
                 ),
-                pw.SizedBox(width: 6),
+                pw.SizedBox(width: 8),
+                pw.Container(
+                  width: 22,
+                  height: 22,
+                  decoration: const pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    color: PdfColor(0.98, 0.78, 0.15, 0.92),
+                  ),
+                ),
               ],
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'شواكل',
-                      style: pw.TextStyle(
-                        font: _pdfBoldFont,
-                        fontSize: 12,
-                        color: PdfColors.white,
-                      ),
-                    ),
-                    pw.Directionality(
-                      textDirection: labelDirection,
-                      child: pw.Text(
-                        label,
-                        maxLines: 1,
-                        style: const pw.TextStyle(
-                          fontSize: 6.5,
-                          color: PdfColors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 3,
-                ),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
-                  borderRadius: pw.BorderRadius.circular(12),
-                ),
-                child: pw.Text(
-                  'PREPAID',
-                  textDirection: pw.TextDirection.ltr,
-                  style: pw.TextStyle(
-                    font: _pdfBoldFont,
-                    fontSize: 6,
-                    color: PdfColors.teal800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          pw.SizedBox(height: 9),
-          pw.Container(
-            width: 25,
-            height: 18,
-            decoration: pw.BoxDecoration(
-              color: PdfColors.amber200,
-              borderRadius: pw.BorderRadius.circular(4),
             ),
           ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            cardNumber,
-            textAlign: pw.TextAlign.left,
-            textDirection: pw.TextDirection.ltr,
-            maxLines: 1,
-            style: pw.TextStyle(
-              font: _pdfBoldFont,
-              fontSize: 11,
-              color: PdfColors.white,
-            ),
-          ),
-          pw.SizedBox(height: 7),
-          pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.end,
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: ownerAlignment,
-                  children: [
-                    pw.Directionality(
-                      textDirection: ownerDirection,
-                      child: pw.Text(
-                        ownerName.isEmpty ? 'CARD HOLDER' : ownerName,
-                        maxLines: 1,
-                        textAlign: ownerDirection == pw.TextDirection.ltr
-                            ? pw.TextAlign.left
-                            : pw.TextAlign.right,
-                        style: pw.TextStyle(
-                          font: _pdfBoldFont,
-                          fontSize: 7.5,
-                          color: PdfColors.white,
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'SHWAKIL',
+                          textDirection: pw.TextDirection.ltr,
+                          style: pw.TextStyle(
+                            font: _pdfBoldFont,
+                            fontSize: 12.6,
+                            color: PdfColors.white,
+                            letterSpacing: 1.1,
+                          ),
                         ),
+                        pw.Text(
+                          'بطاقة دفع مسبق',
+                          textDirection: pw.TextDirection.rtl,
+                          style: pw.TextStyle(
+                            font: _pdfBoldFont,
+                            fontSize: 7.2,
+                            color: const PdfColor(1, 1, 1, 0.86),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (logoImage != null)
+                    pw.Container(
+                      width: 24,
+                      height: 24,
+                      padding: const pw.EdgeInsets.all(2),
+                      decoration: pw.BoxDecoration(
+                        color: const PdfColor(1, 1, 1, 0.94),
+                        borderRadius: pw.BorderRadius.circular(7),
+                      ),
+                      child: pw.Image(logoImage, fit: pw.BoxFit.cover),
+                    ),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              pw.Row(
+                children: [
+                  pw.Container(
+                    width: 25,
+                    height: 18,
+                    decoration: pw.BoxDecoration(
+                      borderRadius: pw.BorderRadius.circular(4),
+                      gradient: const pw.LinearGradient(
+                        colors: [
+                          PdfColor(0.96, 0.84, 0.49),
+                          PdfColor(0.78, 0.58, 0.19),
+                        ],
                       ),
                     ),
-                    if (issuerPhone.isNotEmpty)
-                      pw.Text(
-                        issuerPhone,
-                        textDirection: pw.TextDirection.ltr,
-                        style: const pw.TextStyle(
-                          fontSize: 6,
-                          color: PdfColors.white,
-                        ),
+                  ),
+                  pw.Spacer(),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor(1, 1, 1, 0.12),
+                      borderRadius: pw.BorderRadius.circular(12),
+                      border: pw.Border.all(
+                        color: const PdfColor(1, 1, 1, 0.14),
+                        width: 0.5,
                       ),
-                    pw.SizedBox(height: 5),
-                    pw.Text(
-                      'الرصيد ${CurrencyFormatter.ils(balance)}',
+                    ),
+                    child: pw.Text(
+                      'PREPAID',
+                      textDirection: pw.TextDirection.ltr,
                       style: pw.TextStyle(
                         font: _pdfBoldFont,
-                        fontSize: 7,
-                        color: PdfColors.white,
-                      ),
-                    ),
-                    pw.Text(
-                      'MM/YY $expiry',
-                      textDirection: pw.TextDirection.ltr,
-                      style: const pw.TextStyle(
                         fontSize: 6,
                         color: PdfColors.white,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 10),
+              pw.Directionality(
+                textDirection: pw.TextDirection.ltr,
+                child: pw.Text(
+                  cardNumber,
+                  maxLines: 1,
+                  style: pw.TextStyle(
+                    font: _pdfBoldFont,
+                    fontSize: 11.8,
+                    color: PdfColors.white,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ),
+              pw.SizedBox(height: 6),
+              pw.Directionality(
+                textDirection: labelDirection,
+                child: pw.Text(
+                  normalizedLabel,
+                  maxLines: 1,
+                  style: pw.TextStyle(
+                    font: _pdfBoldFont,
+                    fontSize: 7.1,
+                    color: const PdfColor(1, 1, 1, 0.88),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 4),
+              pw.Directionality(
+                textDirection: ownerDirection,
+                child: pw.Text(
+                  ownerName.isEmpty ? 'صاحب البطاقة' : ownerName,
+                  maxLines: 1,
+                  style: const pw.TextStyle(
+                    fontSize: 6.2,
+                    color: PdfColor(1, 1, 1, 0.75),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 9),
               pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Expanded(
+                    child: _buildPrepaidPdfInfoPill(
+                      title: 'الرصيد المتاح',
+                      value: balanceLabel,
+                    ),
+                  ),
+                  pw.SizedBox(width: 6),
+                  pw.Expanded(
+                    child: _buildPrepaidPdfInfoPill(
+                      title: 'تاريخ الانتهاء',
+                      value: expiry,
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Container(
                     width: 13 * PdfPageFormat.mm,
@@ -1085,33 +1132,122 @@ class _PrepaidMultipayCardsScreenState
                     ),
                   ),
                   pw.SizedBox(width: 4),
-                  pw.Container(
-                    width: 32 * PdfPageFormat.mm,
-                    height: 15 * PdfPageFormat.mm,
-                    padding: const pw.EdgeInsets.all(3),
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.white,
-                      borderRadius: pw.BorderRadius.circular(5),
+                  pw.Expanded(
+                    child: pw.Container(
+                      height: 19 * PdfPageFormat.mm,
+                      padding: const pw.EdgeInsets.all(3),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.white,
+                        borderRadius: pw.BorderRadius.circular(5),
+                      ),
+                      child: pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                        children: [
+                          pw.Expanded(
+                            child: pw.SvgImage(
+                              svg: _prepaidPdfBarcodeSvg(rawNumber),
+                            ),
+                          ),
+                          if (rawNumber.trim().isNotEmpty) ...[
+                            pw.SizedBox(height: 1.2),
+                            pw.Text(
+                              'رقم البطاقة: ${rawNumber.trim()}',
+                              textDirection: pw.TextDirection.rtl,
+                              textAlign: pw.TextAlign.center,
+                              style: pw.TextStyle(
+                                fontSize: 4.8,
+                                color: PdfColors.black,
+                                font: pw.Font.courier(),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    child: pw.SvgImage(svg: _prepaidPdfBarcodeSvg(rawNumber)),
+                  ),
+                ],
+              ),
+              pw.Spacer(),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: ownerAlignment,
+                      children: [
+                        pw.Text(
+                          'شواكل بطاقتك الرقمية الموثقة',
+                          textAlign: pw.TextAlign.right,
+                          textDirection: pw.TextDirection.rtl,
+                          style: pw.TextStyle(
+                            font: _pdfBoldFont,
+                            fontSize: 6.1,
+                            color: PdfColors.white,
+                          ),
+                        ),
+                        if (issuerPhone.isNotEmpty) ...[
+                          pw.SizedBox(height: 2),
+                          pw.Text(
+                            'هاتف المصدر: $issuerPhone',
+                            textDirection: pw.TextDirection.ltr,
+                            style: const pw.TextStyle(
+                              fontSize: 5.3,
+                              color: PdfColor(1, 1, 1, 0.76),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(width: 8),
+                  pw.Text(
+                    'SH',
+                    textDirection: pw.TextDirection.ltr,
+                    style: pw.TextStyle(
+                      font: _pdfBoldFont,
+                      fontSize: 10,
+                      color: const PdfColor(1, 1, 1, 0.78),
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ],
               ),
             ],
           ),
-          pw.Spacer(),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildPrepaidPdfInfoPill({
+    required String title,
+    required String value,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor(1, 1, 1, 0.12),
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: const PdfColor(1, 1, 1, 0.12), width: 0.6),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
           pw.Text(
-            'فحص الرصيد عبر الرابط الخاص: $checkUrl',
-            textDirection: pw.TextDirection.ltr,
-            textAlign: pw.TextAlign.center,
-            maxLines: 1,
-            style: const pw.TextStyle(fontSize: 4.6, color: PdfColors.white),
+            title,
+            textDirection: pw.TextDirection.rtl,
+            style: const pw.TextStyle(fontSize: 5.2, color: PdfColors.white),
           ),
-          pw.SizedBox(height: 1.5),
+          pw.SizedBox(height: 3),
           pw.Text(
-            'للاستخدام داخل شواكل فقط',
-            textAlign: pw.TextAlign.center,
-            style: const pw.TextStyle(fontSize: 5.4, color: PdfColors.white),
+            value,
+            maxLines: 1,
+            textDirection: _pdfTextDirection(value),
+            style: pw.TextStyle(
+              font: _pdfBoldFont,
+              fontSize: 6.7,
+              color: PdfColors.white,
+            ),
           ),
         ],
       ),
@@ -2356,9 +2492,15 @@ class _PrepaidMultipayCardsScreenState
         : '•••• •••• •••• ••••';
     final ownerName = _cardOwnerName();
     final issuerPhone = _cardIssuerLocalPhone();
+    final label = card['label']?.toString().trim() ?? '';
+    final expiry = card['expiryLabel']?.toString().trim() ?? '-';
+    final balanceLabel = CurrencyFormatter.ils(
+      (card['balance'] as num?)?.toDouble() ?? 0,
+    );
     final barcodeData = rawNumber.isNotEmpty
         ? rawNumber
         : _prepaidCardBarcodePayload(card);
+    final normalizedLabel = label.isEmpty ? 'Shwakil Prepaid' : label;
 
     return Material(
       color: Colors.transparent,
@@ -2370,176 +2512,286 @@ class _PrepaidMultipayCardsScreenState
           padding: EdgeInsets.all(isLarge ? 22 : 18),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF155E75)],
-              begin: Alignment.topRight,
+              colors: [Color(0xFF081521), Color(0xFF0C3555), Color(0xFF117867)],
+              begin: Alignment.topLeft,
               end: Alignment.bottomLeft,
             ),
             borderRadius: BorderRadius.circular(24),
             boxShadow: AppTheme.mediumShadow,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: isLarge ? 46 : 38,
-                    height: isLarge ? 46 : 38,
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(9),
-                      child: Image.asset(
-                        'assets/images/shwakel_app_icon.png',
-                        fit: BoxFit.cover,
+              Positioned(
+                top: -20,
+                right: -12,
+                child: Container(
+                  width: isLarge ? 92 : 76,
+                  height: isLarge ? 92 : 76,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 18,
+                right: 14,
+                child: Row(
+                  children: [
+                    Container(
+                      width: isLarge ? 30 : 24,
+                      height: isLarge ? 30 : 24,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFF97316),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: isLarge ? 30 : 24,
+                      height: isLarge ? 30 : 24,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFFBBF24),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'SHWAKIL',
+                              style: AppTheme.h3.copyWith(
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'بطاقة دفع مسبق',
+                              style: AppTheme.caption.copyWith(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: isLarge ? 46 : 38,
+                        height: isLarge ? 46 : 38,
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(9),
+                          child: Image.asset(
+                            'assets/images/shwakel_app_icon.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'بطاقة دفع مسبق',
-                      style: AppTheme.bodyBold.copyWith(color: Colors.white),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Container(
+                        width: isLarge ? 34 : 28,
+                        height: isLarge ? 24 : 20,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFEFD79F), Color(0xFFAF8736)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.10),
+                          ),
+                        ),
+                        child: Text(
+                          _statusLabel(card['status']?.toString() ?? 'active'),
+                          style: AppTheme.caption.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isLarge ? 18 : 14),
+                  Text(
+                    displayNumber,
+                    textDirection: TextDirection.ltr,
+                    style: AppTheme.h2.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 1.1,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    normalizedLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.bodyBold.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    ownerName.isEmpty ? 'صاحب البطاقة' : ownerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(color: Colors.white70),
+                  ),
+                  SizedBox(height: isLarge ? 20 : 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildPrepaidInfoPill(
+                          title: 'الرصيد المتاح',
+                          value: balanceLabel,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildPrepaidInfoPill(
+                          title: 'تاريخ الانتهاء',
+                          value: expiry,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Container(
+                    width: double.infinity,
+                    height: isLarge ? 96 : 82,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
-                      vertical: 6,
+                      vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(
-                      _statusLabel(card['status']?.toString() ?? 'active'),
-                      style: AppTheme.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    child: isRevealed
+                        ? bw.BarcodeWidget(
+                            barcode: bw.Barcode.code128(),
+                            data: barcodeData,
+                            drawText: false,
+                          )
+                        : Icon(
+                            Icons.barcode_reader,
+                            color: AppTheme.textTertiary.withValues(alpha: 0.45),
+                            size: isLarge ? 58 : 46,
+                          ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                card['label']?.toString() ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.h3.copyWith(color: Colors.white),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                ownerName.isEmpty
-                    ? 'هذه البطاقة ملك لصاحبها'
-                    : 'هذه البطاقة ملك لـ $ownerName',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.caption.copyWith(color: Colors.white70),
-              ),
-              SizedBox(height: isLarge ? 26 : 18),
-              Text(
-                displayNumber,
-                style: AppTheme.h2.copyWith(
-                  color: Colors.white,
-                  letterSpacing: 0,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                height: isLarge ? 96 : 82,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: isRevealed
-                    ? bw.BarcodeWidget(
-                        barcode: bw.Barcode.code128(),
-                        data: barcodeData,
-                        drawText: false,
-                      )
-                    : Icon(
-                        Icons.barcode_reader,
-                        color: AppTheme.textTertiary.withValues(alpha: 0.45),
-                        size: isLarge ? 58 : 46,
-                      ),
-              ),
-              if (!isRevealed) ...[
-                const SizedBox(height: 8),
-                Text(
-                  rawNumber.isNotEmpty
-                      ? 'اضغط على البطاقة لإظهار الباركود'
-                      : 'اضغط على البطاقة لإظهار بيانات الدفع',
-                  style: AppTheme.caption.copyWith(color: Colors.white70),
-                ),
-              ] else if (rawNumber.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  rawNumber,
-                  textDirection: TextDirection.ltr,
-                  style: AppTheme.caption.copyWith(color: Colors.white70),
-                ),
-              ],
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'الرصيد المتاح',
-                          style: AppTheme.caption.copyWith(
-                            color: Colors.white70,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          CurrencyFormatter.ils(
-                            (card['balance'] as num?)?.toDouble() ?? 0,
-                          ),
-                          style: AppTheme.bodyBold.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
+                  if (!isRevealed) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      rawNumber.isNotEmpty
+                          ? 'اضغط على البطاقة لإظهار الباركود'
+                          : 'اضغط على البطاقة لإظهار بيانات الدفع',
+                      style: AppTheme.caption.copyWith(color: Colors.white70),
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  ] else if (rawNumber.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'رقم البطاقة: $rawNumber',
+                      textDirection: TextDirection.rtl,
+                      style: AppTheme.caption.copyWith(color: Colors.white70),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
-                        'MM/YY',
-                        style: AppTheme.caption.copyWith(color: Colors.white70),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'شواكل بطاقتك الرقمية الموثقة',
+                              style: AppTheme.caption.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (issuerPhone.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'هاتف المصدر: $issuerPhone',
+                                textDirection: TextDirection.ltr,
+                                style: AppTheme.caption.copyWith(
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
                       Text(
-                        card['expiryLabel']?.toString() ?? '-',
-                        style: AppTheme.bodyBold.copyWith(color: Colors.white),
+                        'SH',
+                        style: AppTheme.bodyBold.copyWith(
+                          color: Colors.white70,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
-              if (issuerPhone.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  'هاتف مصدر البطاقة: $issuerPhone',
-                  textDirection: TextDirection.ltr,
-                  style: AppTheme.caption.copyWith(color: Colors.white70),
-                ),
-              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPrepaidInfoPill({required String title, required String value}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTheme.caption.copyWith(color: Colors.white70)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.bodyBold.copyWith(color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -2571,12 +2823,7 @@ class _PrepaidMultipayCardsScreenState
   String _prepaidPdfBarcodeSvg(String rawNumber) {
     final normalized = rawNumber.replaceAll(RegExp(r'\D+'), '');
     final generator = barcode.Barcode.code128();
-    return generator.toSvg(
-      normalized,
-      width: 180,
-      height: 54,
-      drawText: false,
-    );
+    return generator.toSvg(normalized, width: 180, height: 54, drawText: false);
   }
 
   Widget _buildCardWarnings(Map<String, dynamic> card) {

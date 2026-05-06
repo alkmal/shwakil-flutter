@@ -1770,12 +1770,37 @@ class _BalanceScreenState extends State<BalanceScreen>
     required Map<String, dynamic> metadata,
   }) {
     final l = context.loc;
-    final byUsername = metadata['byUsername']?.toString().trim();
-    final senderUsername = metadata['senderUsername']?.toString().trim();
-    final recipientUsername = metadata['recipientUsername']?.toString().trim();
+    final byUsername = _historyMetadataPersonLabel(
+      metadata,
+      const [
+        'byDisplayName',
+        'byFullName',
+        'byAdminDisplayName',
+        'byAdminFullName',
+      ],
+      const ['byUsername', 'byAdminUsername'],
+    );
+    final senderUsername = _historyMetadataPersonLabel(
+      metadata,
+      const ['senderDisplayName', 'senderFullName'],
+      const ['senderUsername'],
+    );
+    final recipientUsername = _historyMetadataPersonLabel(
+      metadata,
+      const ['recipientDisplayName', 'recipientFullName'],
+      const ['recipientUsername'],
+    );
     final customerName = metadata['customerName']?.toString().trim();
-    final targetUsername = metadata['targetUsername']?.toString().trim();
-    final sourceUsername = metadata['sourceUsername']?.toString().trim();
+    final targetUsername = _historyMetadataPersonLabel(
+      metadata,
+      const ['targetDisplayName', 'targetFullName'],
+      const ['targetUsername'],
+    );
+    final sourceUsername = _historyMetadataPersonLabel(
+      metadata,
+      const ['sourceDisplayName', 'sourceFullName'],
+      const ['sourceUsername'],
+    );
     final sourceType = metadata['sourceType']?.toString().trim();
 
     switch (type) {
