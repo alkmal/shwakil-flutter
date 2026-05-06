@@ -78,8 +78,12 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       setState(() {
         _verification = verification;
         _isApproved = status == 'approved';
-        _requestedRole = latestRequest['requestedRole']?.toString() == 'driver'
+        final latestRequestedRole =
+            latestRequest['requestedRole']?.toString() ?? 'verified_member';
+        _requestedRole = latestRequestedRole == 'driver'
             ? 'driver'
+            : latestRequestedRole == 'basic'
+            ? 'basic'
             : 'verified_member';
         _isLoading = false;
         if (fullName.isNotEmpty) {
@@ -347,25 +351,24 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             ),
           );
 
-          final content = Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('screens_account_verification_screen.005'),
-                  style: AppTheme.h2.copyWith(color: Colors.white),
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l.tr('screens_account_verification_screen.005'),
+                style: AppTheme.h2.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l.tr('screens_account_verification_screen.018'),
+                style: AppTheme.bodyAction.copyWith(
+                  color: Colors.white70,
+                  height: 1.6,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  l.tr('screens_account_verification_screen.018'),
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white70,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
+          final rowContent = Expanded(child: content);
 
           if (isCompact) {
             return Column(
@@ -374,7 +377,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             );
           }
 
-          return Row(children: [iconBox, const SizedBox(width: 20), content]);
+          return Row(
+            children: [iconBox, const SizedBox(width: 20), rowContent],
+          );
         },
       ),
     );
@@ -396,6 +401,8 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         ? latestRequest['requestedRoleLabel'].toString().trim()
         : (_requestedRole == 'driver'
               ? l.tr('shared.role_driver')
+              : _requestedRole == 'basic'
+              ? l.tr('shared.role_basic')
               : l.tr('shared.role_verified_member'));
 
     switch (status) {
@@ -604,6 +611,12 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 return Column(
                   children: [
                     _roleChoiceCard(
+                      value: 'basic',
+                      label: l.tr('shared.role_basic'),
+                      icon: Icons.person_rounded,
+                    ),
+                    const SizedBox(height: 12),
+                    _roleChoiceCard(
                       value: 'verified_member',
                       label: l.tr('shared.role_verified_member'),
                       icon: Icons.storefront_rounded,
@@ -620,6 +633,11 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
               return SegmentedButton<String>(
                 segments: [
+                  ButtonSegment<String>(
+                    value: 'basic',
+                    icon: const Icon(Icons.person_rounded),
+                    label: Text(l.tr('shared.role_basic')),
+                  ),
                   ButtonSegment<String>(
                     value: 'verified_member',
                     icon: const Icon(Icons.storefront_rounded),
@@ -642,6 +660,8 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           Text(
             _requestedRole == 'driver'
                 ? context.loc.tr('account_verification.delivery_driver_note')
+                : _requestedRole == 'basic'
+                ? context.loc.tr('account_verification.basic_member_note')
                 : context.loc.tr('account_verification.verified_member_note'),
             style: AppTheme.caption.copyWith(height: 1.5, fontSize: 13),
           ),

@@ -2851,6 +2851,7 @@ const Map<String, String> appStringsAr = {
   'shared.rejection_reason_hint': 'اكتب سبب الرفض بوضوح.',
   'shared.rejection_reason_required': 'يجب إدخال سبب الرفض قبل المتابعة.',
   'shared.confirm_rejection': 'تأكيد الرفض',
+  'shared.role_basic': 'مستخدم',
   'shared.role_driver': 'سائق',
   'shared.role_verified_member': 'تاجر',
   'shared.role_advanced_member': 'تاجر',
@@ -2897,6 +2898,8 @@ const Map<String, String> appStringsAr = {
   'account_verification.requested_role_label': 'نوع الحساب المطلوب',
   'account_verification.rejection_reason_label': 'سبب الرفض',
   'account_verification.post_verification_role': 'نوع الحساب',
+  'account_verification.basic_member_note':
+      'سيُفعّل الحساب كمستخدم موثق بعد مراجعة طلب التوثيق.',
   'account_verification.delivery_driver_note':
       'سيُفعّل الحساب كسائق مع مزامنة بطاقات التوصيل فقط في الأوف لاين.',
   'account_verification.verified_member_note':

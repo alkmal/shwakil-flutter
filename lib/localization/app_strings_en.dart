@@ -2973,6 +2973,7 @@ const Map<String, String> appStringsEn = {
   'shared.rejection_reason_required':
       'A rejection reason is required before you continue.',
   'shared.confirm_rejection': 'Confirm rejection',
+  'shared.role_basic': 'User',
   'shared.role_driver': 'Driver',
   'shared.role_verified_member': 'Merchant',
   'shared.role_advanced_member': 'Merchant',
@@ -3020,6 +3021,8 @@ const Map<String, String> appStringsEn = {
   'account_verification.requested_role_label': 'Requested account type',
   'account_verification.rejection_reason_label': 'Rejection reason',
   'account_verification.post_verification_role': 'Account type',
+  'account_verification.basic_member_note':
+      'The account will be activated as a verified user after the verification request is reviewed.',
   'account_verification.delivery_driver_note':
       'The account will be activated as a driver, and only delivery cards will sync in offline mode.',
   'account_verification.verified_member_note':
