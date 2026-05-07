@@ -2628,6 +2628,23 @@ class ApiService {
     });
   }
 
+  Future<VirtualCard> updateCardAudience(
+    String cardId, {
+    List<String> allowedUserIds = const [],
+    List<String> allowedUserPhones = const [],
+  }) async {
+    final response = await http.put(
+      AppConfig.apiUri('cards/$cardId/audience'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'allowedUserIds': allowedUserIds,
+        'allowedUserPhones': allowedUserPhones,
+      }),
+    );
+    final body = _decodeObject(response);
+    return _cardFromApi(Map<String, dynamic>.from(body['card'] as Map));
+  }
+
   Future<VirtualCard?> getCardByBarcode(
     String barcode, {
     bool autoRedeem = false,
