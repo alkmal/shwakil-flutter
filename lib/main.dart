@@ -175,9 +175,140 @@ Route<dynamic> _buildNamedRoute(RouteSettings settings) {
     settings: RouteSettings(name: resolvedName, arguments: settings.arguments),
     builder: (context) => _OfflineRouteGuard(
       routeName: resolvedName,
-      child: builder(context),
+      child: _PermissionRouteGuard(
+        routeName: resolvedName,
+        child: builder(context),
+      ),
     ),
   );
+}
+
+bool _isPublicRoute(String? routeName) {
+  return routeName == '/login' ||
+      routeName == '/login-offline' ||
+      routeName == '/register' ||
+      routeName == '/forgot-password' ||
+      routeName == '/unlock';
+}
+
+bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
+  if (_isPublicRoute(routeName) || routeName == '/app-shell') {
+    return true;
+  }
+  if (user == null) {
+    return false;
+  }
+
+  final permissions = AppPermissions.fromUser(user);
+  return switch (routeName) {
+    '/home' || '/offline-sync' => true,
+    '/balance' => permissions.canViewBalance,
+    '/notifications' =>
+      permissions.canViewTransactions || permissions.canViewBalance,
+    '/create-card' => permissions.canIssueCards,
+    '/card-print-requests' => permissions.canRequestCardPrinting,
+    '/inventory' => permissions.canViewInventory && permissions.canIssueCards,
+    '/scan-card' || '/scan-card-camera' =>
+      permissions.canOpenCardTools || permissions.canReviewCards,
+    '/scan-card-offline' ||
+    '/scan-card-offline-camera' => permissions.canOfflineCardScan,
+    '/prepaid-multipay-cards' || '/prepaid-multipay-contactless-accept' =>
+      permissions.canOpenPrepaidMultipayCards,
+    '/quick-transfer' => permissions.canTransfer,
+    '/transactions' => permissions.canViewTransactions,
+    '/withdrawal-requests' =>
+      permissions.canWithdraw || permissions.canReviewWithdrawals,
+    '/topup-requests' =>
+      permissions.canReviewTopups || permissions.canFinanceTopup,
+    '/security-settings' => permissions.canViewSecuritySettings,
+    '/account-settings' => permissions.canViewAccountSettings,
+    '/account-verification' => permissions.canRequestVerification,
+    '/sub-users' => permissions.canViewSubUsers,
+    '/debt-book' => permissions.canManageDebtBook,
+    '/affiliate-center' => permissions.canViewAffiliateCenter,
+    '/usage-policy' => permissions.canViewUsagePolicy,
+    '/contact-us' => permissions.canViewContact,
+    '/supported-locations' ||
+    '/approved-merchants' => permissions.canViewLocations,
+    '/admin-dashboard' => permissions.hasAdminWorkspaceAccess,
+    '/admin-customers' => permissions.canViewCustomers,
+    '/admin-pending-registrations' =>
+      permissions.canManageUsers || permissions.canManageMarketingAccounts,
+    '/admin-verification-requests' => permissions.canManageUsers,
+    '/admin-device-requests' => permissions.canReviewDevices,
+    '/admin-locations' => permissions.canManageLocations,
+    '/admin-notifications' =>
+      permissions.canManageUsers || permissions.canManageSystemSettings,
+    '/admin-prepaid-multipay-approvals' => permissions.canManageUsers,
+    '/admin-system-settings' => permissions.canManageSystemSettings,
+    '/admin-permissions' => permissions.canManageUsers,
+    '/admin-debt-book' => permissions.canManageDebtBook,
+    '/admin-card-print-requests' => permissions.canManageCardPrintRequests,
+    '/admin-card-scan-reports' =>
+      permissions.canManageUsers ||
+          permissions.canReviewDevices ||
+          permissions.canManageCardPrintRequests,
+    _ => true,
+  };
+}
+
+class _PermissionRouteGuard extends StatelessWidget {
+  const _PermissionRouteGuard({required this.routeName, required this.child});
+
+  final String routeName;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: AuthService().currentUser(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData && !_isPublicRoute(routeName)) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const _SplashScreen();
+          }
+        }
+
+        final user = snapshot.data;
+        if (_routeAllowedForUser(routeName, user)) {
+          return child;
+        }
+
+        return _PermissionDeniedFallback(isLoggedIn: user != null);
+      },
+    );
+  }
+}
+
+class _PermissionDeniedFallback extends StatefulWidget {
+  const _PermissionDeniedFallback({required this.isLoggedIn});
+
+  final bool isLoggedIn;
+
+  @override
+  State<_PermissionDeniedFallback> createState() =>
+      _PermissionDeniedFallbackState();
+}
+
+class _PermissionDeniedFallbackState extends State<_PermissionDeniedFallback> {
+  bool _scheduled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_scheduled) {
+      _scheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          widget.isLoggedIn ? '/home' : '/login',
+          (route) => false,
+        );
+      });
+    }
+    return const _SplashScreen();
+  }
 }
 
 bool _isOfflineOnlyRoute(String? routeName) {
@@ -191,9 +322,7 @@ bool _isOfflinePermittedRoute(String? routeName) {
   return _isOfflineOnlyRoute(routeName) || OfflineSessionService.isOfflineMode;
 }
 
-Future<bool> _canUseOfflineWorkspaceForUser(
-  Map<String, dynamic>? user,
-) async {
+Future<bool> _canUseOfflineWorkspaceForUser(Map<String, dynamic>? user) async {
   if (user == null || user['id'] == null) {
     return false;
   }

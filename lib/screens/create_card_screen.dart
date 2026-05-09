@@ -239,7 +239,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (raw is List) {
       final values = raw
           .map((item) => item.toString().trim())
-          .where((item) => item.isNotEmpty)
+          .where((item) => item.isNotEmpty && item != 'delivery')
           .toList();
       if (values.isNotEmpty) {
         return values;
@@ -250,9 +250,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return const [];
     }
     if (user?['role']?.toString() == 'driver') {
-      return const ['delivery'];
+      return const ['standard'];
     }
-    final values = <String>['standard', 'delivery'];
+    final values = <String>['standard'];
     if (permissions.canIssueSingleUseTickets) {
       values.add('single_use');
     }
@@ -2510,11 +2510,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   Widget _buildIssueCostSummary() {
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
     final isDeferred = !_isTrialMode && _isBalanceCard && !_isPrivateIssuance;
-    final note = _isTrialMode
-        ? 'في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.'
-        : isDeferred
-        ? 'رسوم الإصدار لهذه البطاقة لا تُخصم الآن، وتُحتسب لاحقًا عند استخدام البطاقة.'
-        : 'رسوم الإصدار لهذه العملية تُضاف ضمن المبلغ المخصوم الآن.';
+    final note = _issueCostPolicyNote(isDeferred: isDeferred);
 
     return ShwakelCard(
       padding: const EdgeInsets.all(18),
@@ -2531,7 +2527,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ),
           const SizedBox(height: 14),
           _buildPreviewSummaryRow(
-            'قيمة البطاقة الواحدة',
+            _isPrivateIssuance && _isBalanceCard
+                ? 'قيمة البطاقة للمستفيد'
+                : 'قيمة البطاقة الواحدة',
             CurrencyFormatter.ils(_currentCardFaceValue),
           ),
           const SizedBox(height: 8),
@@ -2567,6 +2565,25 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ],
       ),
     );
+  }
+
+  String _issueCostPolicyNote({required bool isDeferred}) {
+    if (_isTrialMode) {
+      return 'في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.';
+    }
+
+    if (_isBalanceCard && _isPrivateIssuance) {
+      return 'هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار، ويُخصم الآن رسم الإصدار فقط.';
+    }
+
+    if (_isBalanceCard && !_isPrivateIssuance) {
+      final feePart = isDeferred
+          ? 'ورسوم الإصدار لا تُخصم الآن وتُحتسب لاحقًا عند استخدام البطاقة.'
+          : 'ولا توجد رسوم إصدار إضافية مؤجلة.';
+      return 'هذه بطاقة رصيد عامة: يتم خصم قيمة البطاقة من رصيدك الآن، $feePart';
+    }
+
+    return 'رسوم الإصدار لهذه العملية تُضاف ضمن المبلغ المخصوم الآن.';
   }
 
   Widget _buildPreviewAndPrintWorkspace() {

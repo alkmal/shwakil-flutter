@@ -18,6 +18,7 @@ class ConnectivityService {
   bool _isChecking = false;
   bool _started = false;
   DateTime? _lastCheckedAt;
+  int _consecutiveFailures = 0;
   static const Duration _minimumCheckGap = Duration(seconds: 4);
 
   Future<void> startMonitoring({
@@ -50,12 +51,16 @@ class ConnectivityService {
           .get(AppConfig.apiUri('health'))
           .timeout(const Duration(seconds: 3));
       final nextValue = response.statusCode < 500;
+      if (nextValue) {
+        _consecutiveFailures = 0;
+      }
       if (isOnline.value != nextValue) {
         isOnline.value = nextValue;
       }
       return nextValue;
     } catch (_) {
-      if (isOnline.value) {
+      _consecutiveFailures += 1;
+      if (isOnline.value && _consecutiveFailures >= 2) {
         isOnline.value = false;
       }
       return false;

@@ -22,10 +22,9 @@ class CardPrintRequestsScreen extends StatefulWidget {
 class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   static const Map<String, int> _cardTypeDisplayOrder = {
     'standard': 0,
-    'delivery': 1,
-    'single_use': 2,
-    'appointment': 3,
-    'queue': 4,
+    'single_use': 1,
+    'appointment': 2,
+    'queue': 3,
   };
 
   final ApiService _apiService = ApiService();
@@ -48,7 +47,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   double? _limitAsDouble(String key) =>
       (_subUserOperationalLimits[key] as num?)?.toDouble();
 
-  bool get _isDriverAccount => _user?['role']?.toString() == 'driver';
   bool get _isVerifiedAccount =>
       (_user?['transferVerificationStatus']?.toString() ?? 'unverified') ==
       'approved';
@@ -104,16 +102,27 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     if (raw is List) {
       final values = raw
           .map((item) => item.toString().trim())
-          .where((item) => item.isNotEmpty)
+          .where((item) => item.isNotEmpty && item != 'delivery')
           .toList();
       if (values.isNotEmpty) {
         return values;
       }
     }
-    if (_isDriverAccount) {
-      return const ['delivery'];
+    final permissions = AppPermissions.fromUser(_user);
+    if (!permissions.canIssueCards) {
+      return const [];
     }
-    return const ['standard', 'delivery', 'single_use', 'appointment', 'queue'];
+    final values = <String>['standard'];
+    if (permissions.canIssueSingleUseTickets) {
+      values.add('single_use');
+    }
+    if (permissions.canIssueAppointmentTickets) {
+      values.add('appointment');
+    }
+    if (permissions.canIssueQueueTickets) {
+      values.add('queue');
+    }
+    return values;
   }
 
   List<String> _sortedPrintableTypes() {
@@ -252,9 +261,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final selectedUsers = <Map<String, dynamic>>[];
     final selectedPhoneNumbers = <String>[];
     final availableTypes = _sortedPrintableTypes();
-    var cardType =
-        availableTypes.contains(_isDriverAccount ? 'delivery' : 'standard')
-        ? (_isDriverAccount ? 'delivery' : 'standard')
+    var cardType = availableTypes.contains('standard')
+        ? 'standard'
         : (availableTypes.isNotEmpty ? availableTypes.first : 'standard');
 
     await showDialog<void>(
