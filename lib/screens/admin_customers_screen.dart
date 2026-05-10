@@ -40,6 +40,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   int _customerLastPage = 1;
   int _loadRequestId = 0;
   String _lastSubmittedQuery = '';
+  String _sortMode = 'newest';
 
   @override
   void initState() {
@@ -87,6 +88,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         query: _searchController.text.trim(),
         page: _customerPage,
         perPage: 12,
+        sort: _sortMode,
       );
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
@@ -754,6 +756,23 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             onSubmitted: (_) => _submitSearch(force: true),
           ),
           const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('الأحدث'),
+                selected: _sortMode == 'newest',
+                onSelected: (_) => _changeSortMode('newest'),
+              ),
+              ChoiceChip(
+                label: const Text('الأكثر ربحًا'),
+                selected: _sortMode == 'profit_desc',
+                onSelected: (_) => _changeSortMode('profit_desc'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -854,12 +873,22 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     );
   }
 
+  void _changeSortMode(String mode) {
+    if (_sortMode == mode) {
+      return;
+    }
+    setState(() => _sortMode = mode);
+    _loadCustomers(reset: true);
+  }
+
   Widget _buildOverviewCard(int totalCustomers) {
     final totalBalances = (_summary['totalBalances'] as num?)?.toDouble() ?? 0;
     final totalPrintingDebt =
         (_summary['totalPrintingDebt'] as num?)?.toDouble() ?? 0;
     final printingDebtUsers =
         (_summary['printingDebtUsersCount'] as num?)?.toInt() ?? 0;
+    final totalAdminProfits =
+        (_summary['totalAdminProfits'] as num?)?.toDouble() ?? 0;
 
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
@@ -923,6 +952,12 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 CurrencyFormatter.formatAmount(totalPrintingDebt),
                 Icons.print_rounded,
                 AppTheme.warning,
+              ),
+              _summaryCard(
+                'أرباح التطبيق',
+                CurrencyFormatter.formatAmount(totalAdminProfits),
+                Icons.analytics_rounded,
+                AppTheme.accent,
               ),
               _summaryCard(
                 context.loc.tr('screens_admin_customers_screen.054'),

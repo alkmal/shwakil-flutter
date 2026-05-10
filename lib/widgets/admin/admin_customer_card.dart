@@ -78,6 +78,8 @@ class AdminCustomerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.loc;
     final balance = (customer['balance'] as num?)?.toDouble() ?? 0;
+    final adminProfitTotal =
+        (customer['adminProfitTotal'] as num?)?.toDouble() ?? 0;
     final isNegative = balance < 0;
     final role = customer['role']?.toString() ?? '';
     final verificationStatus =
@@ -221,6 +223,13 @@ class AdminCustomerCard extends StatelessWidget {
                     role == 'admin'
                         ? AppTheme.accent
                         : verificationStatus == 'approved'
+                        ? AppTheme.success
+                        : AppTheme.textSecondary,
+                  ),
+                  _infoChip(
+                    'أرباحه للتطبيق',
+                    _currency(adminProfitTotal),
+                    adminProfitTotal > 0
                         ? AppTheme.success
                         : AppTheme.textSecondary,
                   ),

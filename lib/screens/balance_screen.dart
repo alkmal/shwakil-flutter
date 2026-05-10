@@ -27,6 +27,7 @@ class _BalanceScreenState extends State<BalanceScreen>
   final ApiService _apiService = ApiService();
 
   Map<String, dynamic>? _user;
+  Map<String, dynamic> _balanceSummary = const {};
   List<dynamic> _transactions = const [];
   bool _isLoading = true;
   _BalanceAuditFilter _auditFilter = _BalanceAuditFilter.all;
@@ -142,6 +143,7 @@ class _BalanceScreenState extends State<BalanceScreen>
       }
       setState(() {
         _user = cachedUser;
+        _balanceSummary = const {};
         _transactions = const [];
         _isLoading = false;
       });
@@ -181,6 +183,9 @@ class _BalanceScreenState extends State<BalanceScreen>
         );
         _transactions = List<dynamic>.from(
           data['transactions'] as List? ?? const [],
+        );
+        _balanceSummary = Map<String, dynamic>.from(
+          data['summary'] as Map? ?? const {},
         );
         _topupRequestEnabled = topupSettings['enabled'] == true;
         _page = normalizedPage;
@@ -1008,6 +1013,10 @@ class _BalanceScreenState extends State<BalanceScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildBalanceOverviewCard(isPhone: isPhone),
+                    if (_showAdminProfitSummary) ...[
+                      const SizedBox(height: 14),
+                      _buildAdminProfitSummaryCard(isPhone: isPhone),
+                    ],
                     const SizedBox(height: 14),
                     _buildTopTabs(isPhone: isPhone),
                     const SizedBox(height: 16),
@@ -1324,6 +1333,151 @@ class _BalanceScreenState extends State<BalanceScreen>
                     color: Colors.white,
                     fontSize: 14,
                   ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool get _showAdminProfitSummary {
+    final profits = _adminProfits;
+    return _appPermissions.hasAdminWorkspaceAccess &&
+        profits.isNotEmpty &&
+        _adminProfitAmount('totalAppFees') > 0;
+  }
+
+  Map<String, dynamic> get _adminProfits {
+    final raw = _balanceSummary['adminProfits'];
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return const {};
+  }
+
+  double _adminProfitAmount(String key) {
+    final value = _adminProfits[key];
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  Widget _buildAdminProfitSummaryCard({required bool isPhone}) {
+    final items = [
+      _AdminProfitSummaryItem(
+        icon: Icons.qr_code_scanner_rounded,
+        label: 'أرباح قراءة البطاقات',
+        value: _adminProfitAmount('cardReadProfits'),
+        color: AppTheme.success,
+      ),
+      _AdminProfitSummaryItem(
+        icon: Icons.swap_horiz_rounded,
+        label: 'رسوم التحويلات',
+        value: _adminProfitAmount('transferFees'),
+        color: AppTheme.accent,
+      ),
+      _AdminProfitSummaryItem(
+        icon: Icons.toll_rounded,
+        label: 'رسوم التطبيق الأخرى',
+        value: _adminProfitAmount('otherAppFees'),
+        color: AppTheme.warning,
+      ),
+      _AdminProfitSummaryItem(
+        icon: Icons.summarize_rounded,
+        label: 'إجمالي رسوم التطبيق',
+        value: _adminProfitAmount('totalAppFees'),
+        color: AppTheme.primary,
+      ),
+    ];
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.analytics_rounded,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ملخص أرباح الإدارة', style: AppTheme.h3),
+                    const SizedBox(height: 4),
+                    Text(
+                      'تظهر كإجماليات فقط ولا تتكرر داخل كشف الحركات.',
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: items
+                .map(
+                  (item) => SizedBox(
+                    width: isPhone ? double.infinity : 210,
+                    child: _buildAdminProfitSummaryTile(item),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminProfitSummaryTile(_AdminProfitSummaryItem item) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: item.color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: item.color.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        children: [
+          Icon(item.icon, color: item.color, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  CurrencyFormatter.ils(item.value),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold.copyWith(fontSize: 14),
                 ),
               ],
             ),
@@ -3628,6 +3782,20 @@ class _BalanceOverviewItem {
   final IconData icon;
   final String label;
   final String value;
+  final Color color;
+}
+
+class _AdminProfitSummaryItem {
+  const _AdminProfitSummaryItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final double value;
   final Color color;
 }
 

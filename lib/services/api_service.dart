@@ -450,10 +450,12 @@ class ApiService {
     String query = '',
     int page = 1,
     int perPage = 25,
+    String sort = 'newest',
   }) async {
     final params = <String, String>{
       'page': page.toString(),
       'perPage': perPage.toString(),
+      'sort': sort,
     };
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();
