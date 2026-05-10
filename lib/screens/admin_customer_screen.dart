@@ -390,7 +390,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('إرسال OTP'),
         content: const Text(
-          'سيتم إرسال رمز تحقق للمستخدم عبر واتساب، وسيتم التحويل إلى SMS فقط إذا فشلت جميع قنوات واتساب. هل تريد المتابعة؟',
+          'سيتم إرسال رمز تحقق عبر قناة واحدة فقط. كل إعادة إرسال تستخدم القناة التالية حتى تصل إلى SMS. هل تريد المتابعة؟',
         ),
         actions: [
           TextButton(
