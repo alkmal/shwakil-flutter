@@ -203,8 +203,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
   return switch (routeName) {
     '/home' || '/offline-sync' => true,
     '/balance' => permissions.canViewBalance,
-    '/notifications' =>
-      permissions.canViewTransactions || permissions.canViewBalance,
+    '/notifications' => true,
     '/create-card' => permissions.canIssueCards,
     '/card-print-requests' => permissions.canRequestCardPrinting,
     '/inventory' => permissions.canViewInventory && permissions.canIssueCards,
@@ -413,12 +412,12 @@ class _OfflineAccessFallbackState extends State<_OfflineAccessFallback> {
           return;
         }
         final navigator = Navigator.of(context);
-        final hasSession = await AuthService().isLoggedIn();
+        final user = await AuthService().currentUser();
         if (!mounted) {
           return;
         }
         navigator.pushNamedAndRemoveUntil(
-          hasSession ? '/home' : '/login',
+          user != null ? '/home' : '/login',
           (route) => false,
         );
       });
@@ -433,6 +432,7 @@ Future<void> main() async {
       WidgetsFlutterBinding.ensureInitialized();
       FlutterError.onError = (details) {
         FlutterError.presentError(details);
+        final fullDetails = details.toString();
         assert(() {
           debugPrint('FlutterError: ${details.exceptionAsString()}');
           debugPrintStack(stackTrace: details.stack);
@@ -442,8 +442,16 @@ Future<void> main() async {
           AppAlertService.reportUnhandledCrash(
             title: 'Flutter framework error',
             message: details.exceptionAsString(),
-            details: details.summary.toDescription(),
+            details: fullDetails,
             stackTrace: details.stack?.toString(),
+            route: appRouteObserver.currentRouteName,
+            extraContext: {
+              'errorKind': 'flutter_framework_error',
+              'exceptionClass': details.exception.runtimeType.toString(),
+              if (details.library != null) 'library': details.library,
+              if (details.context != null)
+                'flutterContext': details.context!.toDescription(),
+            },
           ),
         );
       };
@@ -458,6 +466,11 @@ Future<void> main() async {
             title: 'Unhandled platform error',
             message: error.toString(),
             stackTrace: stack.toString(),
+            route: appRouteObserver.currentRouteName,
+            extraContext: {
+              'errorKind': 'platform_dispatcher_error',
+              'exceptionClass': error.runtimeType.toString(),
+            },
           ),
         );
         return true;
@@ -473,6 +486,11 @@ Future<void> main() async {
           title: 'Unhandled zoned error',
           message: error.toString(),
           stackTrace: stack.toString(),
+          route: appRouteObserver.currentRouteName,
+          extraContext: {
+            'errorKind': 'zoned_error',
+            'exceptionClass': error.runtimeType.toString(),
+          },
         ),
       );
     },
@@ -547,7 +565,7 @@ class MyApp extends StatelessWidget {
               ),
             );
             return Directionality(
-              textDirection: context.loc.textDirection,
+              textDirection: localizer.textDirection,
               child: Stack(
                 children: [
                   MediaQuery(
@@ -716,6 +734,8 @@ class _GlobalConnectivityBannerState extends State<_GlobalConnectivityBanner> {
   bool _visible = false;
   bool _showRecoveredState = false;
   Timer? _hideTimer;
+  Timer? _offlineShowTimer;
+  bool _offlineBannerWasShown = false;
 
   @override
   void initState() {
@@ -729,6 +749,7 @@ class _GlobalConnectivityBannerState extends State<_GlobalConnectivityBanner> {
   void dispose() {
     ConnectivityService.instance.isOnline.removeListener(_handleConnectivity);
     _hideTimer?.cancel();
+    _offlineShowTimer?.cancel();
     super.dispose();
   }
 
@@ -742,15 +763,26 @@ class _GlobalConnectivityBannerState extends State<_GlobalConnectivityBanner> {
     }
 
     _hideTimer?.cancel();
+    _offlineShowTimer?.cancel();
     if (!mounted) {
       return;
     }
 
     if (!isOnline) {
-      setState(() {
-        _visible = true;
-        _showRecoveredState = false;
+      _offlineShowTimer = Timer(const Duration(seconds: 2), () {
+        if (!mounted || ConnectivityService.instance.isOnline.value) {
+          return;
+        }
+        setState(() {
+          _visible = true;
+          _showRecoveredState = false;
+          _offlineBannerWasShown = true;
+        });
       });
+      return;
+    }
+
+    if (!_visible && !_offlineBannerWasShown) {
       return;
     }
 
@@ -790,8 +822,8 @@ class _GlobalConnectivityBannerState extends State<_GlobalConnectivityBanner> {
               child: Container(
                 margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
+                  horizontal: 12,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -807,34 +839,18 @@ class _GlobalConnectivityBannerState extends State<_GlobalConnectivityBanner> {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, color: color, size: 20),
-                    ),
-                    const SizedBox(width: 12),
+                    Icon(icon, color: color, size: 19),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            style: AppTheme.bodyBold.copyWith(color: color),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            message,
-                            style: AppTheme.caption.copyWith(
-                              color: AppTheme.textSecondary,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        '$title - $message',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textPrimary,
+                          height: 1.35,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -854,8 +870,6 @@ enum _LaunchState {
   unlock,
   home,
   securitySetup,
-  loginOffline,
-  scanOffline,
   homeOffline,
   updateRequired,
 }
@@ -935,24 +949,32 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
     final cachedUser = await cachedUserFuture;
     final isLoggedIn = await isLoggedInFuture;
-    final isOnline = await ConnectivityService.instance.checkNow().timeout(
-      const Duration(milliseconds: 900),
-      onTimeout: () => ConnectivityService.instance.isOnline.value,
-    );
+    final connectivityProbe = await ConnectivityService.instance
+        .checkNow()
+        .timeout(
+          const Duration(milliseconds: 900),
+          onTimeout: () => ConnectivityService.instance.isOnline.value,
+        );
+    final isOnline =
+        connectivityProbe || ConnectivityService.instance.isOnline.value;
     if (!isLoggedIn) {
-      if (await _canOpenOfflineWorkspace(cachedUser)) {
-        unawaited(RealtimeNotificationService.stop());
-        _debugLaunchDecision('loginOffline', stopwatch.elapsed);
-        return const _LaunchDecision(state: _LaunchState.loginOffline);
-      }
       unawaited(RealtimeNotificationService.stop());
       _debugLaunchDecision('login', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
     }
-    if (!isOnline && await _canOpenOfflineWorkspace(cachedUser)) {
+    if (cachedUser == null) {
       unawaited(RealtimeNotificationService.stop());
-      _debugLaunchDecision('homeOffline(noConnection)', stopwatch.elapsed);
-      return const _LaunchDecision(state: _LaunchState.homeOffline);
+      _debugLaunchDecision('login(noCachedUser)', stopwatch.elapsed);
+      return const _LaunchDecision(state: _LaunchState.login);
+    }
+    if (!isOnline) {
+      unawaited(RealtimeNotificationService.stop());
+      if (await _canOpenOfflineWorkspace(cachedUser)) {
+        _debugLaunchDecision('homeOffline(noConnection)', stopwatch.elapsed);
+        return const _LaunchDecision(state: _LaunchState.homeOffline);
+      }
+      _debugLaunchDecision('login(noConnectionNoOffline)', stopwatch.elapsed);
+      return const _LaunchDecision(state: _LaunchState.login);
     }
     final hasLocalSecurity =
         await LocalSecurityService.hasConfiguredLocalSecurity().timeout(
@@ -974,28 +996,23 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         _debugLaunchDecision('unlock', stopwatch.elapsed);
         return const _LaunchDecision(state: _LaunchState.unlock);
       }
-      if (await _canOpenOfflineWorkspace(cachedUser)) {
-        _debugLaunchDecision('homeOffline(relock)', stopwatch.elapsed);
-        return const _LaunchDecision(state: _LaunchState.homeOffline);
-      }
       await authService.logout();
       _debugLaunchDecision('login(relock)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.login);
     }
-    if (cachedUser != null) {
-      unawaited(
-        authService.refreshCurrentUser().timeout(
-          const Duration(milliseconds: 1500),
-        ),
-      );
-      unawaited(RealtimeNotificationService.start());
-      _debugLaunchDecision('home(cachedUser)', stopwatch.elapsed);
-      return const _LaunchDecision(state: _LaunchState.home);
-    }
     try {
-      await authService.refreshCurrentUser().timeout(
-        const Duration(milliseconds: 1500),
-      );
+      final refreshed = await authService.tryRefreshCurrentUser();
+      if (!refreshed) {
+        final fallbackUser = await authService.currentUser();
+        if (fallbackUser != null) {
+          unawaited(RealtimeNotificationService.start());
+          _debugLaunchDecision(
+            'home(refreshNetworkUnavailable)',
+            stopwatch.elapsed,
+          );
+          return const _LaunchDecision(state: _LaunchState.home);
+        }
+      }
     } catch (error) {
       unawaited(RealtimeNotificationService.stop());
       if (ErrorMessageService.requiresFreshLogin(
@@ -1031,16 +1048,14 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final cachedUser = await authService.currentUser();
     final isLoggedIn = await authService.isLoggedIn();
 
-    if (await _canOpenOfflineWorkspace(cachedUser)) {
-      unawaited(RealtimeNotificationService.stop());
-      return isLoggedIn
-          ? const _LaunchDecision(state: _LaunchState.homeOffline)
-          : const _LaunchDecision(state: _LaunchState.loginOffline);
-    }
-
     if (!isLoggedIn || cachedUser == null) {
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
+    }
+    if (!ConnectivityService.instance.isOnline.value &&
+        await _canOpenOfflineWorkspace(cachedUser)) {
+      unawaited(RealtimeNotificationService.stop());
+      return const _LaunchDecision(state: _LaunchState.homeOffline);
     }
     final hasLocalSecurity =
         await LocalSecurityService.hasConfiguredLocalSecurity().timeout(
@@ -1097,12 +1112,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
           case _LaunchState.securitySetup:
             OfflineSessionService.setOfflineMode(false);
             return const SecuritySettingsScreen(showSetupHint: true);
-          case _LaunchState.loginOffline:
-            OfflineSessionService.setOfflineMode(true);
-            return const LoginScreen(redirectRoute: '/home', offlineMode: true);
-          case _LaunchState.scanOffline:
-            OfflineSessionService.setOfflineMode(true);
-            return const ScanCardScreen(offlineMode: true);
           case _LaunchState.homeOffline:
             OfflineSessionService.setOfflineMode(true);
             return const HomeScreen();

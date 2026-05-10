@@ -64,7 +64,11 @@ class ThermalCardTicket extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: Container(
         width: 320,
-        color: Colors.white,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF8EC),
+          border: Border.all(color: const Color(0xFF5EEAD4), width: 2),
+          borderRadius: BorderRadius.circular(14),
+        ),
         padding: const EdgeInsets.all(14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -74,7 +78,7 @@ class ThermalCardTicket extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: AppTheme.bodyBold.copyWith(
-                color: Colors.black,
+                color: const Color(0xFF0F766E),
                 fontSize: 18,
               ),
             ),
@@ -83,8 +87,9 @@ class ThermalCardTicket extends StatelessWidget {
               _typeLabel,
               textAlign: TextAlign.center,
               style: AppTheme.bodyAction.copyWith(
-                color: Colors.black87,
+                color: const Color(0xFFBE123C),
                 fontSize: 13,
+                fontWeight: FontWeight.w900,
               ),
             ),
             if (card.isLoadedAsDeliveryForDriver) ...[
@@ -114,7 +119,8 @@ class ThermalCardTicket extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.black12),
+                color: const Color(0xFFDDF7F1),
+                border: Border.all(color: const Color(0xFF5EEAD4)),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -138,24 +144,45 @@ class ThermalCardTicket extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            BarcodeWidget(
-              data: card.barcode,
-              barcode: Barcode.code128(),
-              drawText: false,
-              height: 56,
-              color: Colors.black,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFF5EEAD4)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: BarcodeWidget(
+                data: card.barcode,
+                barcode: Barcode.code128(),
+                drawText: false,
+                height: 56,
+                color: Colors.black,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
-              'رقم البطاقة: ${card.barcode}',
+              card.barcode,
+              textDirection: TextDirection.ltr,
               textAlign: TextAlign.center,
               style: AppTheme.bodyBold.copyWith(
-                color: Colors.black,
+                color: const Color(0xFF16302B),
                 fontSize: 13,
                 letterSpacing: 0.4,
               ),
             ),
             const SizedBox(height: 10),
+            Text(
+              'shwakil.alkmal.com',
+              textDirection: TextDirection.ltr,
+              textAlign: TextAlign.center,
+              style: AppTheme.caption.copyWith(
+                color: const Color(0xFF16302B),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
               'الجهة: $issuerName',
               textAlign: TextAlign.center,

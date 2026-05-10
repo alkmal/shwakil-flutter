@@ -3590,6 +3590,7 @@ class ApiService {
   Future<Map<String, dynamic>> _fetchNotificationSummary() async {
     final response = await _getNotificationWithFallback(
       'notifications/summary',
+      query: const {'sync': 'false'},
     );
     final payload = _decodeObject(response);
     _cachedNotificationSummary = Map<String, dynamic>.from(payload);
@@ -3608,6 +3609,7 @@ class ApiService {
         'filter': filter,
         'page': page.toString(),
         'perPage': perPage.toString(),
+        'sync': 'false',
       },
     );
     return _decodeObject(response);

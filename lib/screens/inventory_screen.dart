@@ -1461,7 +1461,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _reprint(VirtualCard card) async {
-    final l = context.loc;
     if (card.status != CardStatus.unused) {
       await AppAlertService.showInfo(
         context,
@@ -1473,20 +1472,47 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (!await _confirmCardOutputSecurity()) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+    final fallbackPrintedBy = context.loc.tr('screens_inventory_screen.010');
+    final successMessage = context.loc.tr('screens_inventory_screen.016');
     final user = await _authService.currentUser();
     _setBusyState(true, message: 'جارٍ تجهيز البطاقة للطباعة...');
     try {
       final printedBy = UserDisplayName.fromMap(
         user,
-        fallback: l.tr('screens_inventory_screen.010'),
+        fallback: fallbackPrintedBy,
       );
       await _pdfService.printCards([card], printedBy: printedBy);
       if (mounted) {
         AppAlertService.showSuccess(
           context,
-          message: l.tr('screens_inventory_screen.016'),
+          message: successMessage,
         );
       }
+    } catch (error, stackTrace) {
+      await AppAlertService.reportUnhandledCrash(
+        title: 'Card reprint failed',
+        message: ErrorMessageService.sanitize(error),
+        details:
+            'action: reprint_card\nbarcode: ${card.barcode}\ncardId: ${card.id}\nerrorType: ${error.runtimeType}\nerror: $error',
+        stackTrace: stackTrace.toString(),
+        route: '/inventory',
+        extraContext: {
+          'errorKind': 'card_reprint_failed',
+          'barcode': card.barcode,
+          'cardId': card.id,
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إعادة طباعة البطاقة',
+        message: ErrorMessageService.sanitize(error),
+      );
     } finally {
       _setBusyState(false);
     }
@@ -1939,6 +1965,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
     final fallbackPrintedBy = context.loc.tr('screens_inventory_screen.010');
+    final successMessage = context.loc.tr('screens_inventory_screen.032');
     var cardsToPrint = initialPrintableCards;
     if (_canUseAdminInventory && _totalCards > _cards.length) {
       final statusMap = {
@@ -1983,7 +2010,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
       }
       AppAlertService.showSuccess(
         context,
-        message: context.loc.tr('screens_inventory_screen.032'),
+        message: successMessage,
+      );
+    } catch (error, stackTrace) {
+      await AppAlertService.reportUnhandledCrash(
+        title: 'Filtered card reprint failed',
+        message: ErrorMessageService.sanitize(error),
+        details:
+            'action: reprint_filtered_cards\ncount: ${cardsToPrint.length}\nerrorType: ${error.runtimeType}\nerror: $error',
+        stackTrace: stackTrace.toString(),
+        route: '/inventory',
+        extraContext: {
+          'errorKind': 'filtered_card_reprint_failed',
+          'cardCount': cardsToPrint.length,
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إعادة طباعة البطاقات',
+        message: ErrorMessageService.sanitize(error),
       );
     } finally {
       _setBusyState(false);

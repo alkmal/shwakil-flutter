@@ -920,14 +920,10 @@ class _PrepaidMultipayCardsScreenState
       height: height,
       padding: pw.EdgeInsets.all(5.2 * PdfPageFormat.mm),
       decoration: pw.BoxDecoration(
-        gradient: const pw.LinearGradient(
-          colors: [
-            PdfColor(0.05, 0.10, 0.18),
-            PdfColor(0.05, 0.26, 0.42),
-            PdfColor(0.07, 0.48, 0.46),
-          ],
-          begin: pw.Alignment.topLeft,
-          end: pw.Alignment.bottomLeft,
+        color: const PdfColor.fromInt(0xFFFFF8EC),
+        border: pw.Border.all(
+          color: const PdfColor.fromInt(0xFF5EEAD4),
+          width: 2,
         ),
         borderRadius: pw.BorderRadius.circular(9),
       ),
@@ -941,7 +937,7 @@ class _PrepaidMultipayCardsScreenState
               height: 48,
               decoration: pw.BoxDecoration(
                 shape: pw.BoxShape.circle,
-                color: const PdfColor(1, 1, 1, 0.07),
+                color: const PdfColor.fromInt(0x1A0F766E),
               ),
             ),
           ),
@@ -955,7 +951,7 @@ class _PrepaidMultipayCardsScreenState
                   height: 22,
                   decoration: const pw.BoxDecoration(
                     shape: pw.BoxShape.circle,
-                    color: PdfColor(0.95, 0.46, 0.12, 0.92),
+                    color: PdfColor.fromInt(0x220F766E),
                   ),
                 ),
                 pw.SizedBox(width: 8),
@@ -964,7 +960,7 @@ class _PrepaidMultipayCardsScreenState
                   height: 22,
                   decoration: const pw.BoxDecoration(
                     shape: pw.BoxShape.circle,
-                    color: PdfColor(0.98, 0.78, 0.15, 0.92),
+                    color: PdfColor.fromInt(0x2214B8A6),
                   ),
                 ),
               ],
@@ -980,13 +976,12 @@ class _PrepaidMultipayCardsScreenState
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Text(
-                          'SHWAKIL',
-                          textDirection: pw.TextDirection.ltr,
+                          'شواكل',
+                          textDirection: pw.TextDirection.rtl,
                           style: pw.TextStyle(
                             font: _pdfBoldFont,
                             fontSize: 12.6,
-                            color: PdfColors.white,
-                            letterSpacing: 1.1,
+                            color: const PdfColor.fromInt(0xFF0F766E),
                           ),
                         ),
                         pw.Text(
@@ -995,7 +990,7 @@ class _PrepaidMultipayCardsScreenState
                           style: pw.TextStyle(
                             font: _pdfBoldFont,
                             fontSize: 7.2,
-                            color: const PdfColor(1, 1, 1, 0.86),
+                            color: const PdfColor.fromInt(0xFF64748B),
                           ),
                         ),
                       ],
@@ -1007,7 +1002,7 @@ class _PrepaidMultipayCardsScreenState
                       height: 24,
                       padding: const pw.EdgeInsets.all(2),
                       decoration: pw.BoxDecoration(
-                        color: const PdfColor(1, 1, 1, 0.94),
+                        color: PdfColors.white,
                         borderRadius: pw.BorderRadius.circular(7),
                       ),
                       child: pw.Image(logoImage, fit: pw.BoxFit.cover),
@@ -1037,20 +1032,20 @@ class _PrepaidMultipayCardsScreenState
                       vertical: 3,
                     ),
                     decoration: pw.BoxDecoration(
-                      color: const PdfColor(1, 1, 1, 0.12),
+                      color: const PdfColor.fromInt(0xFFFFE4E6),
                       borderRadius: pw.BorderRadius.circular(12),
                       border: pw.Border.all(
-                        color: const PdfColor(1, 1, 1, 0.14),
+                        color: const PdfColor.fromInt(0xFFFB7185),
                         width: 0.5,
                       ),
                     ),
                     child: pw.Text(
-                      'PREPAID',
-                      textDirection: pw.TextDirection.ltr,
+                      'بطاقة دفع مسبق',
+                      textDirection: pw.TextDirection.rtl,
                       style: pw.TextStyle(
                         font: _pdfBoldFont,
                         fontSize: 6,
-                        color: PdfColors.white,
+                        color: const PdfColor.fromInt(0xFFBE123C),
                       ),
                     ),
                   ),
@@ -1065,7 +1060,7 @@ class _PrepaidMultipayCardsScreenState
                   style: pw.TextStyle(
                     font: _pdfBoldFont,
                     fontSize: 11.8,
-                    color: PdfColors.white,
+                    color: const PdfColor.fromInt(0xFF047857),
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -1079,7 +1074,7 @@ class _PrepaidMultipayCardsScreenState
                   style: pw.TextStyle(
                     font: _pdfBoldFont,
                     fontSize: 7.1,
-                    color: const PdfColor(1, 1, 1, 0.88),
+                    color: const PdfColor.fromInt(0xFF16302B),
                   ),
                 ),
               ),
@@ -1091,7 +1086,7 @@ class _PrepaidMultipayCardsScreenState
                   maxLines: 1,
                   style: const pw.TextStyle(
                     fontSize: 6.2,
-                    color: PdfColor(1, 1, 1, 0.75),
+                    color: PdfColor.fromInt(0xFF64748B),
                   ),
                 ),
               ),
@@ -1138,6 +1133,10 @@ class _PrepaidMultipayCardsScreenState
                       padding: const pw.EdgeInsets.all(3),
                       decoration: pw.BoxDecoration(
                         color: PdfColors.white,
+                        border: pw.Border.all(
+                          color: const PdfColor.fromInt(0xFF5EEAD4),
+                          width: 0.7,
+                        ),
                         borderRadius: pw.BorderRadius.circular(5),
                       ),
                       child: pw.Column(
@@ -1151,13 +1150,13 @@ class _PrepaidMultipayCardsScreenState
                           if (rawNumber.trim().isNotEmpty) ...[
                             pw.SizedBox(height: 1.2),
                             pw.Text(
-                              'رقم البطاقة: ${rawNumber.trim()}',
-                              textDirection: pw.TextDirection.rtl,
+                              rawNumber.trim(),
+                              textDirection: pw.TextDirection.ltr,
                               textAlign: pw.TextAlign.center,
                               style: pw.TextStyle(
-                                fontSize: 4.8,
-                                color: PdfColors.black,
-                                font: pw.Font.courier(),
+                                fontSize: 5.0,
+                                color: const PdfColor.fromInt(0xFF16302B),
+                                font: pw.Font.courierBold(),
                               ),
                             ),
                           ],
@@ -1182,7 +1181,17 @@ class _PrepaidMultipayCardsScreenState
                           style: pw.TextStyle(
                             font: _pdfBoldFont,
                             fontSize: 6.1,
-                            color: PdfColors.white,
+                            color: const PdfColor.fromInt(0xFF0F766E),
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          'shwakil.alkmal.com',
+                          textDirection: pw.TextDirection.ltr,
+                          style: pw.TextStyle(
+                            font: pw.Font.helveticaBold(),
+                            fontSize: 5.5,
+                            color: const PdfColor.fromInt(0xFF16302B),
                           ),
                         ),
                         if (issuerPhone.isNotEmpty) ...[
@@ -1192,7 +1201,7 @@ class _PrepaidMultipayCardsScreenState
                             textDirection: pw.TextDirection.ltr,
                             style: const pw.TextStyle(
                               fontSize: 5.3,
-                              color: PdfColor(1, 1, 1, 0.76),
+                              color: PdfColor.fromInt(0xFF64748B),
                             ),
                           ),
                         ],
@@ -1206,7 +1215,7 @@ class _PrepaidMultipayCardsScreenState
                     style: pw.TextStyle(
                       font: _pdfBoldFont,
                       fontSize: 10,
-                      color: const PdfColor(1, 1, 1, 0.78),
+                      color: const PdfColor.fromInt(0xFF0F766E),
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -1226,9 +1235,12 @@ class _PrepaidMultipayCardsScreenState
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: pw.BoxDecoration(
-        color: const PdfColor(1, 1, 1, 0.12),
+        color: const PdfColor.fromInt(0xFFDDF7F1),
         borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(color: const PdfColor(1, 1, 1, 0.12), width: 0.6),
+        border: pw.Border.all(
+          color: const PdfColor.fromInt(0xFF5EEAD4),
+          width: 0.6,
+        ),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1236,7 +1248,10 @@ class _PrepaidMultipayCardsScreenState
           pw.Text(
             title,
             textDirection: pw.TextDirection.rtl,
-            style: const pw.TextStyle(fontSize: 5.2, color: PdfColors.white),
+            style: const pw.TextStyle(
+              fontSize: 5.2,
+              color: PdfColor.fromInt(0xFF64748B),
+            ),
           ),
           pw.SizedBox(height: 3),
           pw.Text(
@@ -1246,7 +1261,7 @@ class _PrepaidMultipayCardsScreenState
             style: pw.TextStyle(
               font: _pdfBoldFont,
               fontSize: 6.7,
-              color: PdfColors.white,
+              color: const PdfColor.fromInt(0xFF0F766E),
             ),
           ),
         ],
@@ -2511,11 +2526,8 @@ class _PrepaidMultipayCardsScreenState
           width: double.infinity,
           padding: EdgeInsets.all(isLarge ? 22 : 18),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF081521), Color(0xFF0C3555), Color(0xFF117867)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomLeft,
-            ),
+            color: const Color(0xFFFFF8EC),
+            border: Border.all(color: const Color(0xFF5EEAD4), width: 2),
             borderRadius: BorderRadius.circular(24),
             boxShadow: AppTheme.mediumShadow,
           ),
@@ -2566,12 +2578,11 @@ class _PrepaidMultipayCardsScreenState
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                        children: [
                             Text(
-                              'SHWAKIL',
+                              'شواكل',
                               style: AppTheme.h3.copyWith(
-                                color: Colors.white,
-                                letterSpacing: 1.2,
+                                color: const Color(0xFF0F766E),
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -2579,7 +2590,7 @@ class _PrepaidMultipayCardsScreenState
                             Text(
                               'بطاقة دفع مسبق',
                               style: AppTheme.caption.copyWith(
-                                color: Colors.white70,
+                                color: const Color(0xFF64748B),
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -2626,16 +2637,16 @@ class _PrepaidMultipayCardsScreenState
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
+                          color: const Color(0xFFFFE4E6),
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.10),
+                            color: const Color(0xFFFB7185),
                           ),
                         ),
                         child: Text(
                           _statusLabel(card['status']?.toString() ?? 'active'),
                           style: AppTheme.caption.copyWith(
-                            color: Colors.white,
+                            color: const Color(0xFFBE123C),
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -2647,7 +2658,7 @@ class _PrepaidMultipayCardsScreenState
                     displayNumber,
                     textDirection: TextDirection.ltr,
                     style: AppTheme.h2.copyWith(
-                      color: Colors.white,
+                      color: const Color(0xFF047857),
                       letterSpacing: 1.1,
                       fontWeight: FontWeight.w900,
                     ),
@@ -2658,7 +2669,7 @@ class _PrepaidMultipayCardsScreenState
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.bodyBold.copyWith(
-                      color: Colors.white,
+                      color: const Color(0xFF16302B),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -2666,7 +2677,9 @@ class _PrepaidMultipayCardsScreenState
                     ownerName.isEmpty ? 'صاحب البطاقة' : ownerName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTheme.caption.copyWith(color: Colors.white70),
+                    style: AppTheme.caption.copyWith(
+                      color: const Color(0xFF64748B),
+                    ),
                   ),
                   SizedBox(height: isLarge ? 20 : 16),
                   Row(
@@ -2697,6 +2710,7 @@ class _PrepaidMultipayCardsScreenState
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF5EEAD4)),
                     ),
                     child: isRevealed
                         ? bw.BarcodeWidget(
@@ -2713,17 +2727,23 @@ class _PrepaidMultipayCardsScreenState
                   if (!isRevealed) ...[
                     const SizedBox(height: 8),
                     Text(
-                      rawNumber.isNotEmpty
+                        rawNumber.isNotEmpty
                           ? 'اضغط على البطاقة لإظهار الباركود'
                           : 'اضغط على البطاقة لإظهار بيانات الدفع',
-                      style: AppTheme.caption.copyWith(color: Colors.white70),
+                      style: AppTheme.caption.copyWith(
+                        color: const Color(0xFF64748B),
+                      ),
                     ),
                   ] else if (rawNumber.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'رقم البطاقة: $rawNumber',
-                      textDirection: TextDirection.rtl,
-                      style: AppTheme.caption.copyWith(color: Colors.white70),
+                      rawNumber,
+                      textDirection: TextDirection.ltr,
+                      textAlign: TextAlign.center,
+                      style: AppTheme.caption.copyWith(
+                        color: const Color(0xFF16302B),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 14),
@@ -2737,7 +2757,16 @@ class _PrepaidMultipayCardsScreenState
                             Text(
                               'شواكل بطاقتك الرقمية الموثقة',
                               style: AppTheme.caption.copyWith(
-                                color: Colors.white,
+                                color: const Color(0xFF0F766E),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'shwakil.alkmal.com',
+                              textDirection: TextDirection.ltr,
+                              style: AppTheme.caption.copyWith(
+                                color: const Color(0xFF16302B),
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -2747,7 +2776,7 @@ class _PrepaidMultipayCardsScreenState
                                 'هاتف المصدر: $issuerPhone',
                                 textDirection: TextDirection.ltr,
                                 style: AppTheme.caption.copyWith(
-                                  color: Colors.white70,
+                                  color: const Color(0xFF64748B),
                                 ),
                               ),
                             ],
@@ -2757,7 +2786,7 @@ class _PrepaidMultipayCardsScreenState
                       Text(
                         'SH',
                         style: AppTheme.bodyBold.copyWith(
-                          color: Colors.white70,
+                          color: const Color(0xFF0F766E),
                           letterSpacing: 1.2,
                         ),
                       ),
@@ -2776,20 +2805,23 @@ class _PrepaidMultipayCardsScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: const Color(0xFFDDF7F1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: const Color(0xFF5EEAD4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTheme.caption.copyWith(color: Colors.white70)),
+          Text(
+            title,
+            style: AppTheme.caption.copyWith(color: const Color(0xFF64748B)),
+          ),
           const SizedBox(height: 4),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTheme.bodyBold.copyWith(color: Colors.white),
+            style: AppTheme.bodyBold.copyWith(color: const Color(0xFF0F766E)),
           ),
         ],
       ),

@@ -67,6 +67,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    if (_isRegisterFlow) {
+      OfflineSessionService.setOfflineMode(false);
+      unawaited(_authService.logout());
+    }
     _pendingRegistrationId = widget.pendingRegistrationId;
     _debugCode = widget.initialDebugOtpCode;
     _statusMessage = widget.statusMessage?.trim();

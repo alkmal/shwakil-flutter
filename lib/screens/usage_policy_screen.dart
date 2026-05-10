@@ -25,11 +25,14 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   Future<void> _load() async {
-    final l = context.loc;
     try {
       final payload = await _apiService.getUsagePolicy();
       if (!mounted) {
@@ -38,7 +41,7 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
       setState(() {
         _title =
             payload['title']?.toString() ??
-            l.tr('screens_usage_policy_screen.001');
+            context.loc.tr('screens_usage_policy_screen.001');
         _content = payload['content']?.toString() ?? '';
         _isLoading = false;
       });

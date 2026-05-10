@@ -190,11 +190,14 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   Future<void> _load() async {
-    final l = context.loc;
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
@@ -221,7 +224,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: l.tr('screens_card_print_requests_screen.001'),
+        title: context.loc.tr('screens_card_print_requests_screen.001'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -230,10 +233,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   Future<Map<String, dynamic>?> _refreshAndReadCurrentUser() async {
     var user = await _authService.currentUser();
     try {
-      await _authService.refreshCurrentUser().timeout(
-        const Duration(milliseconds: 1800),
-      );
-      user = await _authService.currentUser();
+      final refreshed = await _authService.tryRefreshCurrentUser();
+      if (refreshed) {
+        user = await _authService.currentUser();
+      }
     } catch (_) {
       user ??= await _authService.currentUser();
     }

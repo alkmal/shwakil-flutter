@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/index.dart';
@@ -34,6 +36,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
+    OfflineSessionService.setOfflineMode(false);
+    unawaited(_authService.logout());
     _loadSettings();
     _loadPendingReferral();
     _checkPendingRegistrationForDevice();
@@ -76,14 +80,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _checkPendingRegistrationForDevice() async {
     try {
-      final result = await _authService.getPendingRegistrationForCurrentDevice();
+      final result = await _authService
+          .getPendingRegistrationForCurrentDevice();
       if (!mounted) {
         return;
       }
 
       final pendingRegistration = result.pendingRegistration;
       if (result.hasPendingRegistration && pendingRegistration != null) {
-        final whatsapp = pendingRegistration['whatsapp']?.toString().trim() ?? '';
+        final whatsapp =
+            pendingRegistration['whatsapp']?.toString().trim() ?? '';
         final fullName =
             pendingRegistration['fullName']?.toString().trim() ?? '';
         final countryCode =
@@ -188,7 +194,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         await AppAlertService.showInfo(
           context,
           title: l.tr('screens_register_screen.028'),
-          message: otp.message ?? 'هذا الرقم مرتبط مسبقًا، انتقل إلى تسجيل الدخول.',
+          message:
+              otp.message ?? 'هذا الرقم مرتبط مسبقًا، انتقل إلى تسجيل الدخول.',
         );
         if (!mounted) {
           return;
@@ -196,9 +203,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pushReplacementNamed(
           context,
           '/login',
-          arguments: {
-            'initialIdentifier': otp.loginIdentifier ?? whatsapp,
-          },
+          arguments: {'initialIdentifier': otp.loginIdentifier ?? whatsapp},
         );
         return;
       }

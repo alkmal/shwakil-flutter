@@ -2,7 +2,6 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
-import 'package:barcode/barcode.dart' as barcode;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -48,8 +47,8 @@ class _DenominationPalette {
 
 class PDFService {
   static final PDFService _instance = PDFService._internal();
-  static const int _cardsPerPage = 30;
-  static const int _rowsPerPage = 6;
+  static const int _cardsPerPage = 35;
+  static const int _rowsPerPage = 7;
   static const int _columnsPerPage = 5;
   static const double _a4PagePrintMargin = 3.5 * PdfPageFormat.mm;
   static const double _cardCutGap = 0.6 * PdfPageFormat.mm;
@@ -229,6 +228,9 @@ class PDFService {
       card.isSubscription ||
       card.isAttendance;
 
+  bool _isBalanceCard(VirtualCard card) =>
+      card.cardType == 'standard' || card.isDelivery;
+
   bool _isVisuallyPrivate(VirtualCard card) =>
       card.isPrivate || _isLocationSpecific(card) || _isTicketCard(card);
 
@@ -312,7 +314,7 @@ class PDFService {
   }) {
     final badgeFont = compact ? 4.8 : 8.8;
     return pw.SizedBox(
-      height: compact ? 12 : 24,
+      height: compact ? 15 : 28,
       child: pw.Stack(
         children: [
           pw.Positioned(
@@ -320,8 +322,8 @@ class PDFService {
             top: 0,
             child: pw.Container(
               padding: pw.EdgeInsets.symmetric(
-                horizontal: compact ? 3.8 : 8,
-                vertical: compact ? 1.3 : 3,
+                horizontal: compact ? 4.2 : 8,
+                vertical: compact ? 1.8 : 3.4,
               ),
               decoration: pw.BoxDecoration(
                 color: _isVisuallyPrivate(card)
@@ -446,30 +448,6 @@ class PDFService {
     return pw.Column(
       children: [
         pw.Text(
-          _resolvedStampText(),
-          textAlign: pw.TextAlign.center,
-          textDirection: pw.TextDirection.rtl,
-          style: _textStyle(
-            fontSize: compact ? 4.9 : 9.4,
-            bold: true,
-            color: const PdfColor.fromInt(0xFF991B1B),
-          ),
-        ),
-        pw.SizedBox(height: compact ? 0.3 : 1.2),
-        pw.Text(
-          _appDomain,
-          maxLines: 1,
-          textAlign: pw.TextAlign.center,
-          textDirection: pw.TextDirection.ltr,
-          style: _textStyle(
-            fontSize: compact ? 5.5 : 10.5,
-            bold: true,
-            color: _titleColor,
-            font: pw.Font.helveticaBold(),
-          ),
-        ),
-        pw.SizedBox(height: compact ? 0.35 : 1.1),
-        pw.Text(
           _trustedDigitalCardText,
           maxLines: 1,
           textAlign: pw.TextAlign.center,
@@ -486,6 +464,59 @@ class PDFService {
 
   String _dateLabel(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString().padLeft(4, '0')}';
+  }
+
+  pw.Widget _cardBarcodeBlock(
+    VirtualCard card,
+    _DenominationPalette palette, {
+    required bool compact,
+    required int serialNumber,
+  }) {
+    final barcodeValue = card.barcode.trim();
+    return pw.SizedBox(
+      height: compact ? 24.5 : 52,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          pw.Text(
+            barcodeValue.isEmpty ? 'NO-BARCODE' : barcodeValue,
+            maxLines: 1,
+            textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.ltr,
+            style: _textStyle(
+              fontSize: compact ? 5.3 : 10,
+              bold: true,
+              color: _titleColor,
+              font: pw.Font.courierBold(),
+            ),
+          ),
+          pw.SizedBox(height: compact ? 0.7 : 1.5),
+          pw.Container(
+            height: compact ? 17.2 : 39,
+            margin: pw.EdgeInsets.symmetric(horizontal: compact ? 2.0 : 4.0),
+            padding: pw.EdgeInsets.symmetric(
+              horizontal: compact ? 1.5 : 3.0,
+              vertical: compact ? 1.0 : 2.0,
+            ),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              borderRadius: pw.BorderRadius.circular(compact ? 4 : 7),
+              border: pw.Border.all(
+                color: palette.border,
+                width: compact ? 0.9 : 1.1,
+              ),
+            ),
+            child: pw.BarcodeWidget(
+              barcode: pw.Barcode.code128(),
+              data: barcodeValue.isEmpty ? 'NO-BARCODE' : barcodeValue,
+              drawText: false,
+              color: PdfColors.black,
+              backgroundColor: PdfColors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   pw.Widget _cardMetadataFooter(
@@ -761,7 +792,13 @@ class PDFService {
     required int serialNumber,
   }) {
     final palette = _paletteForCard(card);
+    final showTradeStamp = designSettings.showStamp && _isBalanceCard(card);
+    final topStampAngle = [-0.20, 0.14, -0.10, 0.22][serialNumber % 4];
+    final topStampLeft = [7.0, 18.0, 28.0, 12.0][serialNumber % 4];
+    final topStampTop = [7.0, 10.0, 6.5, 12.0][serialNumber % 4];
     return pw.Container(
+      width: double.infinity,
+      height: double.infinity,
       decoration: pw.BoxDecoration(
         color: _cardBackground,
         borderRadius: pw.BorderRadius.circular(4),
@@ -816,7 +853,7 @@ class PDFService {
           ),
           pw.Positioned.fill(
             child: pw.Padding(
-              padding: const pw.EdgeInsets.fromLTRB(3.4, 5.5, 3.4, 2.8),
+              padding: const pw.EdgeInsets.fromLTRB(3.4, 5.5, 3.4, 7.0),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
@@ -826,67 +863,31 @@ class PDFService {
                     card: card,
                     printedBy: printedBy,
                   ),
-                  pw.SizedBox(height: 1.8),
-                  pw.Expanded(
-                    child: pw.Column(
-                      mainAxisAlignment: pw.MainAxisAlignment.center,
-                      children: [
-                        _cardTitleWithLogo(card, palette, compact: true),
-                        pw.SizedBox(height: 0.7),
-                        pw.Text(
-                          _internalUseLabel(card),
-                          maxLines: 1,
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 4.6,
-                            color: const PdfColor.fromInt(0xFF64748B),
-                          ),
-                        ),
-                        pw.SizedBox(height: 1.2),
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(
-                            horizontal: 2.2,
-                            vertical: 1.4,
-                          ),
-                          decoration: pw.BoxDecoration(
-                            color: PdfColors.white,
-                            borderRadius: pw.BorderRadius.circular(4),
-                            border: pw.Border.all(
-                              color: palette.border,
-                              width: 0.9,
-                            ),
-                          ),
-                          child: pw.SizedBox(
-                            height: 15,
-                            child: pw.SvgImage(
-                              svg: _barcodeSvg(
-                                card.barcode,
-                                width: 112,
-                                height: 36,
-                              ),
-                            ),
-                          ),
-                        ),
-                        pw.SizedBox(height: 1),
-                        pw.Text(
-                          'رقم البطاقة: ${card.barcode}',
-                          textAlign: pw.TextAlign.center,
-                          textDirection: pw.TextDirection.rtl,
-                          style: _textStyle(
-                            fontSize: 5.3,
-                            color: _titleColor,
-                            font: pw.Font.courier(),
-                          ),
-                        ),
-                        if (designSettings.showStamp) ...[
-                          pw.SizedBox(height: 0.4),
-                          _postBarcodeFooter(compact: true),
-                        ],
-                      ],
+                  pw.SizedBox(height: 1.1),
+                  _cardTitleWithLogo(card, palette, compact: true),
+                  pw.SizedBox(height: 0.5),
+                  pw.Text(
+                    _internalUseLabel(card),
+                    maxLines: 1,
+                    textAlign: pw.TextAlign.center,
+                    textDirection: pw.TextDirection.rtl,
+                    style: _textStyle(
+                      fontSize: 4.4,
+                      color: const PdfColor.fromInt(0xFF64748B),
                     ),
                   ),
-                  pw.SizedBox(height: 1.2),
+                  pw.SizedBox(height: 0.9),
+                  _cardBarcodeBlock(
+                    card,
+                    palette,
+                    compact: true,
+                    serialNumber: serialNumber,
+                  ),
+                  if (designSettings.showStamp) ...[
+                    pw.SizedBox(height: 0.35),
+                    _postBarcodeFooter(compact: true),
+                  ],
+                  pw.Spacer(),
                   _cardMetadataFooter(
                     card,
                     printedBy: printedBy,
@@ -895,6 +896,53 @@ class PDFService {
                     compact: true,
                   ),
                 ],
+              ),
+            ),
+          ),
+          if (showTradeStamp)
+            pw.Positioned(
+              left: topStampLeft,
+              top: topStampTop,
+              child: pw.Transform.rotate(
+                angle: topStampAngle,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 3.2,
+                    vertical: 0.5,
+                  ),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(
+                      color: const PdfColor.fromInt(0xFF991B1B),
+                      width: 0.45,
+                    ),
+                    borderRadius: pw.BorderRadius.circular(3),
+                  ),
+                  child: pw.Text(
+                    _resolvedStampText(),
+                    textDirection: pw.TextDirection.rtl,
+                    style: _textStyle(
+                      fontSize: 4.2,
+                      bold: true,
+                      color: const PdfColor.fromInt(0xFF991B1B),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          pw.Positioned(
+            left: 4,
+            right: 4,
+            bottom: 1.9,
+            child: pw.Text(
+              _appDomain,
+              maxLines: 1,
+              textAlign: pw.TextAlign.center,
+              textDirection: pw.TextDirection.ltr,
+              style: _textStyle(
+                fontSize: 4.8,
+                bold: true,
+                color: _titleColor,
+                font: pw.Font.helveticaBold(),
               ),
             ),
           ),
@@ -949,33 +997,6 @@ class PDFService {
     return normalized.isEmpty
         ? 'shwakil_cards_${DateTime.now().millisecondsSinceEpoch}'
         : normalized;
-  }
-
-  String _barcodeSvg(
-    String value, {
-    required double width,
-    required double height,
-  }) {
-    final normalized = value.trim();
-    if (normalized.isEmpty) {
-      final safeWidth = width.toStringAsFixed(2);
-      final safeHeight = height.toStringAsFixed(2);
-      final midY = (height / 2).toStringAsFixed(2);
-      return '''
-<svg xmlns="http://www.w3.org/2000/svg" width="$safeWidth" height="$safeHeight" viewBox="0 0 $safeWidth $safeHeight">
-  <rect x="0" y="0" width="$safeWidth" height="$safeHeight" fill="#FFFFFF"/>
-  <rect x="1" y="1" width="${(width - 2).toStringAsFixed(2)}" height="${(height - 2).toStringAsFixed(2)}" fill="none" stroke="#CBD5E1" stroke-width="1"/>
-  <text x="${(width / 2).toStringAsFixed(2)}" y="$midY" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="#64748B">NO BARCODE</text>
-</svg>
-''';
-    }
-    final generator = barcode.Barcode.code128();
-    return generator.toSvg(
-      normalized,
-      width: width,
-      height: height,
-      drawText: false,
-    );
   }
 
   void setDesignSettings(CardDesignSettings settings) {

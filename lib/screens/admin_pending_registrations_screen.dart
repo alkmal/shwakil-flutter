@@ -34,7 +34,11 @@ class _AdminPendingRegistrationsScreenState
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   @override
@@ -44,7 +48,6 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _load() async {
-    final l = context.loc;
     setState(() => _isLoading = true);
     try {
       final currentUser = await _authService.currentUser();
@@ -77,7 +80,7 @@ class _AdminPendingRegistrationsScreenState
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: l.tr('screens_admin_pending_registrations_screen.004'),
+        title: context.loc.tr('screens_admin_pending_registrations_screen.004'),
         message: ErrorMessageService.sanitize(error),
       );
     }

@@ -281,20 +281,6 @@ class PrintCardPreview extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 0.3),
-        Text(
-          'shwakil.alkmal.com',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          textDirection: TextDirection.ltr,
-          style: AppTheme.caption.copyWith(
-            fontSize: 5.5,
-            color: const Color(0xFF16302B),
-            fontWeight: FontWeight.w800,
-            fontFamily: 'monospace',
-          ),
-        ),
         const SizedBox(height: 0.35),
         Text(
           'شواكل بطاقتك الرقمية الموثقة',
@@ -442,36 +428,45 @@ class PrintCardPreview extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 1.5),
-                            Container(
+                            Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 2.2,
-                                vertical: 1.4,
+                                horizontal: 2.0,
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: palette.border,
-                                  width: 0.9,
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 1.8,
+                                  vertical: 1.2,
                                 ),
-                              ),
-                              child: SizedBox(
-                                height: 15,
-                                child: BarcodeWidget(
-                                  barcode: Barcode.code128(),
-                                  data: card.barcode,
-                                  drawText: false,
-                                  color: const Color(0xFF16302B),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: palette.border,
+                                    width: 0.9,
+                                  ),
+                                ),
+                                child: SizedBox(
+                                  width: 100,
+                                  height: 18,
+                                  child: BarcodeWidget(
+                                    barcode: Barcode.code128(),
+                                    data: card.barcode,
+                                    drawText: false,
+                                    color: const Color(0xFF16302B),
+                                    width: 100,
+                                    height: 18,
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 1),
+                            const SizedBox(height: 0.8),
                             Text(
-                              'رقم البطاقة: ${card.barcode}',
+                              card.barcode,
                               textAlign: TextAlign.center,
-                              textDirection: TextDirection.rtl,
+                              textDirection: TextDirection.ltr,
                               style: AppTheme.bodyBold.copyWith(
-                                fontSize: 5.3,
+                                fontSize: 5.7,
                                 color: const Color(0xFF16302B),
                                 fontFamily: 'monospace',
                                 letterSpacing: 0.3,
@@ -501,6 +496,20 @@ class PrintCardPreview extends StatelessWidget {
                                   fontSize: 4.4,
                                   color: palette.primary,
                                 ),
+                              ),
+                            ),
+                            const SizedBox(height: 0.35),
+                            Text(
+                              'shwakil.alkmal.com',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              textDirection: TextDirection.ltr,
+                              style: AppTheme.caption.copyWith(
+                                fontSize: 4.8,
+                                color: const Color(0xFF16302B),
+                                fontWeight: FontWeight.w800,
+                                fontFamily: 'monospace',
                               ),
                             ),
                             const SizedBox(height: 0.7),
@@ -596,7 +605,7 @@ class _Header extends StatelessWidget {
       return Align(
         alignment: AlignmentDirectional.centerEnd,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 3.8, vertical: 1.3),
+          padding: const EdgeInsets.symmetric(horizontal: 4.2, vertical: 1.8),
           decoration: BoxDecoration(
             color: isPrivate ? const Color(0xFFFFE4E6) : palette.soft,
             borderRadius: BorderRadius.circular(6),
@@ -621,7 +630,7 @@ class _Header extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 3.8, vertical: 1.3),
+          padding: const EdgeInsets.symmetric(horizontal: 4.2, vertical: 1.8),
           decoration: BoxDecoration(
             color: isPrivate ? const Color(0xFFFFE4E6) : palette.soft,
             borderRadius: BorderRadius.circular(6),

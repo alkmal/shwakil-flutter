@@ -34,11 +34,14 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   Future<void> _load() async {
-    final l = context.loc;
     try {
       final currentUser =
           AuthService.peekCurrentUser() ?? await _authService.currentUser();
@@ -104,7 +107,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
       setState(() => _isLoading = false);
       await AppAlertService.showError(
         context,
-        title: l.tr('screens_affiliate_center_screen.001'),
+        title: context.loc.tr('screens_affiliate_center_screen.001'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -552,7 +555,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: compact ? 1.18 : 1.28,
+          childAspectRatio: compact ? 0.96 : 1.12,
           children: cards,
         );
       },
@@ -570,10 +573,17 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
             backgroundColor: AppTheme.primarySoft,
             child: Icon(icon, color: AppTheme.primary),
           ),
-          const Spacer(),
+          const SizedBox(height: 14),
           Text(value, style: AppTheme.h2),
           const SizedBox(height: 6),
-          Text(title, style: AppTheme.caption.copyWith(height: 1.5)),
+          Flexible(
+            child: Text(
+              title,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.caption.copyWith(height: 1.35),
+            ),
+          ),
         ],
       ),
     );

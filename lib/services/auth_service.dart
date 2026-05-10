@@ -401,6 +401,18 @@ class AuthService {
     }
   }
 
+  Future<bool> tryRefreshCurrentUser() async {
+    try {
+      await refreshCurrentUser();
+      return true;
+    } catch (error) {
+      if (ErrorMessageService.isNetworkIssue(error)) {
+        return false;
+      }
+      rethrow;
+    }
+  }
+
   Future<void> _refreshCurrentUserInternal() async {
     final authToken = await token();
     if (authToken == null || authToken.isEmpty) {

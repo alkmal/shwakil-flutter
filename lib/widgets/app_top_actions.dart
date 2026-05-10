@@ -76,10 +76,11 @@ class _AppNotificationActionState extends State<AppNotificationAction> {
     }
     setState(() => _isOpening = true);
     try {
-      await Navigator.of(
-        context,
-        rootNavigator: true,
-      ).pushNamed('/notifications');
+      final navigator = AppAlertService.navigatorKey.currentState;
+      if (navigator == null) {
+        throw StateError('Root navigator is not ready.');
+      }
+      await navigator.pushNamed('/notifications');
       if (!mounted) {
         return;
       }

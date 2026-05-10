@@ -50,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _offlineAccessExpired = false;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
-  bool _connectivityNoticeOpen = false;
 
   @override
   void initState() {
@@ -148,24 +147,49 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
     try {
       var user = await _authService.currentUser();
-      if (user != null) {
-        await _applyUserSnapshot(user, isLoading: false);
+      if (user == null) {
+        await _redirectToLogin();
+        return;
       }
+      await _applyUserSnapshot(user, isLoading: false);
 
       try {
-        await _authService.refreshCurrentUser().timeout(
-          const Duration(milliseconds: 1800),
-        );
-        user = await _authService.currentUser();
-      } catch (_) {
+        final refreshed = await _authService.tryRefreshCurrentUser();
+        if (refreshed) {
+          user = await _authService.currentUser();
+        }
+      } catch (error) {
+        if (ErrorMessageService.requiresFreshLogin(
+          ErrorMessageService.sanitize(error),
+        )) {
+          await _authService.logout();
+          await _redirectToLogin();
+          return;
+        }
         user ??= await _authService.currentUser();
       }
 
+      if (user == null) {
+        await _redirectToLogin();
+        return;
+      }
       await _applyUserSnapshot(user, isLoading: false);
     } catch (_) {
       final user = await _authService.currentUser();
+      if (user == null) {
+        await _redirectToLogin();
+        return;
+      }
       await _applyUserSnapshot(user, isLoading: false);
     }
+  }
+
+  Future<void> _redirectToLogin() async {
+    if (!mounted) {
+      return;
+    }
+    OfflineSessionService.setOfflineMode(false);
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   Future<void> _applyUserSnapshot(
@@ -302,51 +326,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
     final isOnline = ConnectivityService.instance.isOnline.value;
     final regainedConnection = !_lastKnownDeviceOnline && isOnline;
-    final lostConnection = _lastKnownDeviceOnline && !isOnline;
     _lastKnownDeviceOnline = isOnline;
-
-    if (lostConnection) {
-      final canOffline = _canOfflineScan || _hasOfflinePrepaidCards;
-      if (canOffline) {
-        OfflineSessionService.setOfflineMode(true);
-        AppAlertService.showSnack(
-          context,
-          message: 'تم فصل الانترنت. تم تفعيل وضع الأوفلاين.',
-          type: AppAlertType.info,
-          duration: const Duration(seconds: 4),
-        );
-      } else {
-        if (!_connectivityNoticeOpen) {
-          _connectivityNoticeOpen = true;
-          unawaited(() async {
-            await AppAlertService.showInfo(
-              context,
-              title: 'تم فصل الانترنت',
-              message:
-                  'لا تملك صلاحية استخدام التطبيق بدون اتصال. ستبقى جلستك محفوظة، ويمكنك المتابعة تلقائيًا عند عودة الاتصال.',
-            );
-            if (!mounted) return;
-            _connectivityNoticeOpen = false;
-          }());
-        }
-      }
-    }
 
     if (regainedConnection) {
       if (OfflineSessionService.isOfflineMode) {
         OfflineSessionService.setOfflineMode(false);
-        AppAlertService.showSnack(
-          context,
-          message: 'تم استعادة الاتصال. تم تفعيل وضع الأونلاين.',
-          type: AppAlertType.success,
-          duration: const Duration(seconds: 4),
-        );
-      } else {
-        AppAlertService.showSnack(
-          context,
-          message: 'تم استعادة الاتصال.',
-          type: AppAlertType.success,
-        );
       }
       _maybeSyncOfflineWorkspaceInBackground();
     }

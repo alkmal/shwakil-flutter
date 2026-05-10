@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -30,6 +31,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _lastPage = 1;
   int _total = 0;
   String? _loadErrorMessage;
+  String? _loadErrorDetails;
   static const int _perPage = 20;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
   int _loadRequestId = 0;
@@ -96,6 +98,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _notifications = notifications;
         _loadErrorMessage = null;
+        _loadErrorDetails = null;
         _unreadCount = (summary['unreadCount'] as num?)?.toInt() ?? 0;
         _page = normalizedPage;
         _lastPage = lastPage;
@@ -103,16 +106,59 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _isLoading = false;
         _isRefreshing = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted || requestId != _loadRequestId) {
         return;
       }
+      final sanitizedMessage = ErrorMessageService.sanitize(error);
+      final details = _buildLoadFailureDetails(
+        error: error,
+        stackTrace: stackTrace,
+        filter: _filter,
+        page: requestedPage,
+      );
+      unawaited(
+        AppAlertService.reportUnhandledCrash(
+          title: 'Notifications load failed',
+          message: sanitizedMessage,
+          details: details,
+          stackTrace: stackTrace.toString(),
+          route: '/notifications',
+          extraContext: {
+            'errorKind': 'notifications_load_failed',
+            'filter': _filter,
+            'page': requestedPage,
+            'perPage': _perPage,
+          },
+        ),
+      );
       setState(() {
         _isLoading = false;
         _isRefreshing = false;
-        _loadErrorMessage = ErrorMessageService.sanitize(error);
+        _loadErrorMessage = sanitizedMessage;
+        _loadErrorDetails = details;
       });
     }
+  }
+
+  String _buildLoadFailureDetails({
+    required Object error,
+    required StackTrace stackTrace,
+    required String filter,
+    required int page,
+  }) {
+    return [
+      'screen: NotificationsScreen',
+      'action: load_notifications',
+      'filter: $filter',
+      'page: $page',
+      'perPage: $_perPage',
+      'errorType: ${error.runtimeType}',
+      'error: $error',
+      '',
+      'stackTrace:',
+      stackTrace.toString(),
+    ].join('\n');
   }
 
   Future<void> _markAllAsRead() async {
@@ -208,7 +254,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             child: Center(child: CircularProgressIndicator()),
           )
         else if (_loadErrorMessage != null && _notifications.isEmpty)
-          _buildLoadErrorState(_loadErrorMessage!)
+          _buildLoadErrorState(_loadErrorMessage!, _loadErrorDetails)
         else if (_notifications.isEmpty)
           _buildEmptyState()
         else ...[
@@ -482,7 +528,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildLoadErrorState(String message) {
+  Widget _buildLoadErrorState(String message, String? details) {
     return ShwakelCard(
       padding: const EdgeInsets.all(28),
       child: Center(
@@ -508,6 +554,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               isSecondary: true,
               onPressed: _loadNotifications,
             ),
+            if (details != null && details.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ShwakelButton(
+                label: _t('screens_notifications_screen.091'),
+                icon: Icons.copy_rounded,
+                isSecondary: true,
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: details));
+                  if (!mounted) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(_t('screens_notifications_screen.092')),
+                    ),
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -810,9 +875,15 @@ class _NotificationDetailsSheet extends StatelessWidget {
       metadataKeys: const ['traceId'],
     );
     final stackTrace = _firstNonEmptyString(
-      item,
-      const [],
+      data,
+      const ['stackTrace', 'stackTracePreview'],
       metadataKeys: const ['stackTrace', 'stackTracePreview'],
+    );
+    final fullErrorReport = _buildCopyableErrorReport(
+      item: item,
+      data: data,
+      traceId: traceId,
+      stackTrace: stackTrace,
     );
 
     return SafeArea(
@@ -929,6 +1000,33 @@ class _NotificationDetailsSheet extends StatelessWidget {
                   ),
                 ),
               ],
+              if (fullErrorReport != null) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(
+                        ClipboardData(text: fullErrorReport),
+                      );
+                      if (!context.mounted) {
+                        return;
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            context.loc.tr('screens_notifications_screen.092'),
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.copy_rounded),
+                    label: Text(
+                      context.loc.tr('screens_notifications_screen.091'),
+                    ),
+                  ),
+                ),
+              ],
               if ((actionRoute.isNotEmpty || resolvedActionRoute != null)) ...[
                 const SizedBox(height: 16),
                 SizedBox(
@@ -965,6 +1063,70 @@ class _NotificationDetailsSheet extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _buildCopyableErrorReport({
+  required Map<String, dynamic> item,
+  required Map<String, dynamic> data,
+  required String? traceId,
+  required String? stackTrace,
+}) {
+  final type = item['type']?.toString().trim() ?? '';
+  final sourceType = item['sourceType']?.toString().trim() ?? '';
+  final title = item['title']?.toString().trim() ?? '';
+  final body = item['body']?.toString().trim() ?? '';
+  final createdAt = item['createdAt']?.toString().trim() ?? '';
+  final route = data['route']?.toString().trim() ?? '';
+  final platform = data['platform']?.toString().trim() ?? '';
+  final errorKind = data['errorKind']?.toString().trim() ?? '';
+  final exceptionClass = data['exceptionClass']?.toString().trim() ?? '';
+  final accountLabel = data['accountLabel']?.toString().trim() ?? '';
+  final details = data['details']?.toString().trim() ?? '';
+  final library = data['library']?.toString().trim() ?? '';
+  final flutterContext = data['flutterContext']?.toString().trim() ?? '';
+  final deviceId = data['deviceId']?.toString().trim() ?? '';
+  final appVersion = data['appVersion']?.toString().trim() ?? '';
+  final appBuild = data['appBuild']?.toString().trim() ?? '';
+  final reportedAt = data['reportedAt']?.toString().trim() ?? '';
+  final url = data['url']?.toString().trim() ?? '';
+  final method = data['method']?.toString().trim() ?? '';
+
+  final isErrorNotification =
+      type == 'admin_client_crash' ||
+      type == 'admin_client_error' ||
+      type == 'admin_app_error' ||
+      sourceType == 'admin_client_crash' ||
+      stackTrace != null ||
+      traceId != null;
+
+  if (!isErrorNotification) {
+    return null;
+  }
+
+  final lines = <String>[
+    'عنوان الإشعار: $title',
+    if (createdAt.isNotEmpty) 'وقت الإشعار: $createdAt',
+    if (traceId != null) 'رمز التتبع: $traceId',
+    if (type.isNotEmpty) 'نوع الإشعار: $type',
+    if (errorKind.isNotEmpty) 'نوع الخطأ: $errorKind',
+    if (exceptionClass.isNotEmpty) 'فئة الاستثناء: $exceptionClass',
+    if (library.isNotEmpty) 'مكتبة Flutter: $library',
+    if (flutterContext.isNotEmpty) 'سياق Flutter: $flutterContext',
+    if (platform.isNotEmpty) 'المنصة: $platform',
+    if (appVersion.isNotEmpty || appBuild.isNotEmpty)
+      'إصدار التطبيق: $appVersion+$appBuild',
+    if (deviceId.isNotEmpty) 'معرف الجهاز: $deviceId',
+    if (reportedAt.isNotEmpty) 'وقت البلاغ: $reportedAt',
+    if (route.isNotEmpty) 'المسار: $route',
+    if (method.isNotEmpty) 'طريقة الطلب: $method',
+    if (url.isNotEmpty) 'رابط الطلب: $url',
+    if (accountLabel.isNotEmpty) 'الحساب: $accountLabel',
+    if (body.isNotEmpty) ...['', 'نص الإشعار:', body],
+    if (details.isNotEmpty) ...['', 'التفاصيل الكاملة:', details],
+    if (stackTrace != null) ...['', 'الأثر البرمجي الكامل:', stackTrace],
+  ];
+
+  return lines.join('\n');
 }
 
 class _UnreadDot extends StatelessWidget {
