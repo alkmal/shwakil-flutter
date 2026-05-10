@@ -2425,12 +2425,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         _customer = Map<String, dynamic>.from(res['user']);
         _busy = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() => _busy = false);
         AppAlertService.showError(
           context,
-          message: 'تعذر حفظ تعديلات الصلاحيات. حاول مرة أخرى.',
+          message: ErrorMessageService.sanitize(e),
         );
       }
     }
