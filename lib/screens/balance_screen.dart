@@ -43,7 +43,6 @@ class _BalanceScreenState extends State<BalanceScreen>
   AppPermissions get _appPermissions => AppPermissions.fromUser(_user);
 
   bool get _canTransferAction => _appPermissions.canTransfer;
-  bool get _canWithdrawAction => _appPermissions.canWithdraw;
   bool get _canManageUsersAction =>
       _appPermissions.canManageUsers || _appPermissions.canFinanceTopup;
   bool get _canOpenBalanceWorkspace =>
@@ -270,15 +269,6 @@ class _BalanceScreenState extends State<BalanceScreen>
 
   Future<void> _openWithdrawalDialog() async {
     final l = context.loc;
-    if (!_canWithdrawAction || !_isVerifiedAccount) {
-      _showMessage(
-        l.tr('screens_balance_screen.007'),
-        isError: true,
-        operation: 'open_withdrawal_dialog',
-      );
-      return;
-    }
-
     Map<String, dynamic> options;
     try {
       options = await _apiService.getWithdrawalRequestOptions();
@@ -1575,16 +1565,14 @@ class _BalanceScreenState extends State<BalanceScreen>
         ),
       );
     }
-    if (_canWithdrawAction && _isVerifiedAccount) {
-      buttons.add(
-        ShwakelButton(
-          label: l.tr('screens_balance_screen.030'),
-          icon: Icons.outbox_rounded,
-          isSecondary: true,
-          onPressed: _openWithdrawalDialog,
-        ),
-      );
-    }
+    buttons.add(
+      ShwakelButton(
+        label: l.tr('screens_balance_screen.030'),
+        icon: Icons.outbox_rounded,
+        isSecondary: true,
+        onPressed: _openWithdrawalDialog,
+      ),
+    );
 
     return buttons;
   }

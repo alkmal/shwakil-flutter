@@ -2426,7 +2426,13 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         _busy = false;
       });
     } catch (_) {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+        AppAlertService.showError(
+          context,
+          message: 'تعذر حفظ تعديلات الصلاحيات. حاول مرة أخرى.',
+        );
+      }
     }
   }
 
