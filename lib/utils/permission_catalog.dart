@@ -8,6 +8,85 @@ import '../localization/app_localization.dart';
 /// shown in multiple screens (admin customer, sub-users, settings), and we
 /// want consistent wording.
 class PermissionCatalog {
+  static const List<Map<String, Object>> groups = [
+    {
+      'title': 'عام والحساب',
+      'icon': 0xe88a,
+      'keys': [
+        'canViewBalance',
+        'canViewTransactions',
+        'canViewInventory',
+        'canViewContact',
+        'canViewLocations',
+        'canViewUsagePolicy',
+        'canViewSecuritySettings',
+        'canViewAccountSettings',
+        'canRequestVerification',
+        'canViewAffiliateCenter',
+      ],
+    },
+    {
+      'title': 'إصدار البطاقات',
+      'icon': 0xe870,
+      'keys': [
+        'canIssueCards',
+        'canIssuePrivateCards',
+        'canIssueSubShekelCards',
+        'canIssueHighValueCards',
+        'canIssueSingleUseTickets',
+        'canIssueAppointmentTickets',
+        'canIssueQueueTickets',
+      ],
+    },
+    {
+      'title': 'قراءة ومتابعة البطاقات',
+      'icon': 0xe3f4,
+      'keys': [
+        'canScanCards',
+        'canOfflineCardScan',
+        'canReviewCards',
+        'canRedeemCards',
+        'canViewPrivateCards',
+        'canReadOwnPrivateCardsOnly',
+        'canDeleteCards',
+        'canResellCards',
+      ],
+    },
+    {
+      'title': 'المحفظة والدفع والطباعة',
+      'icon': 0xe8cc,
+      'keys': [
+        'canTransfer',
+        'canWithdraw',
+        'canUsePrepaidMultipayCards',
+        'canAcceptPrepaidMultipayPayments',
+        'canUsePrepaidMultipayNfc',
+        'canRequestCardPrinting',
+        'canManageCardPrintRequests',
+      ],
+    },
+    {
+      'title': 'الإدارة والمتابعة',
+      'icon': 0xe8b8,
+      'keys': [
+        'canViewCustomers',
+        'canLookupMembers',
+        'canManageUsers',
+        'canFinanceTopup',
+        'canReviewTopups',
+        'canReviewWithdrawals',
+        'canReviewDevices',
+        'canManageMarketingAccounts',
+        'canViewSubUsers',
+        'canManageSubUsers',
+        'canManageLocations',
+        'canManageSystemSettings',
+        'canManageDebtBook',
+        'canExportCustomerTransactions',
+      ],
+    },
+  ];
+
   static String label(BuildContext context, String key) {
     final l = context.loc;
     final localizedKey = _localizedLabels[key];

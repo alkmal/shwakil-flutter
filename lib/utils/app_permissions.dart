@@ -38,6 +38,8 @@ class AppPermissions {
     'canViewAccountSettings',
     'canRequestVerification',
     'canIssueCards',
+    'canIssueSubShekelCards',
+    'canIssueHighValueCards',
     'canIssuePrivateCards',
     'canIssueSingleUseTickets',
     'canIssueAppointmentTickets',
@@ -59,6 +61,7 @@ class AppPermissions {
     'canUsePrepaidMultipayNfc',
     'canRedeemCards',
     'canViewCustomers',
+    'canLookupMembers',
     'canManageUsers',
     'canFinanceTopup',
     'canManageMarketingAccounts',
@@ -75,6 +78,7 @@ class AppPermissions {
     'canReviewCardPrintRequests',
     'canPrepareCardPrintRequests',
     'canFinalizeCardPrintRequests',
+    'canExportCustomerTransactions',
     'canOpenQuickTransfer',
     'canOpenCardTools',
     'isAdmin',
@@ -108,6 +112,8 @@ class AppPermissions {
   bool get canViewAccountSettings => _raw['canViewAccountSettings'] != false;
   bool get canRequestVerification => _isEnabled('canRequestVerification');
   bool get canIssueCards => _isEnabled('canIssueCards');
+  bool get canIssueSubShekelCards => _isEnabled('canIssueSubShekelCards');
+  bool get canIssueHighValueCards => _isEnabled('canIssueHighValueCards');
   bool get canIssuePrivateCards => _isEnabled('canIssuePrivateCards');
   bool get canIssueSingleUseTickets => _isEnabled('canIssueSingleUseTickets');
   bool get canIssueAppointmentTickets =>
@@ -149,6 +155,7 @@ class AppPermissions {
       canOpenPrepaidMultipayCards;
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
+  bool get canLookupMembers => _isEnabled('canLookupMembers');
   bool get canManageUsers => _isEnabled('canManageUsers');
   bool get canFinanceTopup => _isEnabled('canFinanceTopup');
   bool get canManageMarketingAccounts =>
@@ -171,6 +178,8 @@ class AppPermissions {
   bool get canReviewCardPrintRequests => canManageCardPrintRequests;
   bool get canPrepareCardPrintRequests => canManageCardPrintRequests;
   bool get canFinalizeCardPrintRequests => canManageCardPrintRequests;
+  bool get canExportCustomerTransactions =>
+      _isEnabled('canExportCustomerTransactions');
 
   String get role => _raw['role']?.toString().trim().toLowerCase() ?? '';
   bool get isAdminRole =>
@@ -184,6 +193,7 @@ class AppPermissions {
 
   bool get hasAdminWorkspaceAccess =>
       canViewCustomers ||
+      canLookupMembers ||
       canManageUsers ||
       canFinanceTopup ||
       canManageMarketingAccounts ||
@@ -192,6 +202,7 @@ class AppPermissions {
       canReviewTopups ||
       canManageCardPrintRequests ||
       canReviewDevices ||
+      canExportCustomerTransactions ||
       canManageLocations ||
       canManageSystemSettings;
 

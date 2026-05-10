@@ -57,9 +57,12 @@ class NotificationNavigationService {
       return;
     }
 
+    final currentUser = await AuthService().currentUser();
+    final permissions = AppPermissions.fromUser(currentUser);
     final route = _resolveRoute(
       payload,
       includeDefaultNotificationsRoute: includeDefaultNotificationsRoute,
+      permissions: permissions,
     );
     if (route == null || route.isEmpty) {
       return;
@@ -74,6 +77,7 @@ class NotificationNavigationService {
     final handled = await _openCustomDestination(
       payload,
       includeDefaultNotificationsRoute: includeDefaultNotificationsRoute,
+      permissions: permissions,
     );
     if (handled) {
       return;
@@ -92,8 +96,21 @@ class NotificationNavigationService {
   static Future<bool> _openCustomDestination(
     Map<String, dynamic> payload, {
     required bool includeDefaultNotificationsRoute,
+    required AppPermissions permissions,
   }) async {
-    if (_isPendingVerificationNotification(payload)) {
+    if (_isErrorNotification(payload)) {
+      return true;
+    }
+
+    if (_isAdminUserContextNotification(payload, permissions)) {
+      final opened = await _openAdminCustomerDestination(payload, permissions);
+      if (opened) {
+        return true;
+      }
+    }
+
+    if (_isPendingVerificationNotification(payload) &&
+        permissions.canManageUsers) {
       final route = _normalizeRouteName('/admin-verification-requests');
       final navigator = AppAlertService.navigatorKey.currentState;
       if (route == null || navigator == null) {
@@ -104,7 +121,9 @@ class NotificationNavigationService {
       return true;
     }
 
-    if (!_isNewUserRequestNotification(payload)) {
+    if (!_isNewUserRequestNotification(payload) ||
+        !(permissions.canManageUsers ||
+            permissions.canManageMarketingAccounts)) {
       return false;
     }
 
@@ -127,6 +146,7 @@ class NotificationNavigationService {
       final fallbackRoute = _resolveRoute(
         payload,
         includeDefaultNotificationsRoute: includeDefaultNotificationsRoute,
+        permissions: permissions,
       );
       if (fallbackRoute == null || fallbackRoute.isEmpty) {
         return true;
@@ -140,8 +160,6 @@ class NotificationNavigationService {
       return true;
     }
 
-    final currentUser = await AuthService().currentUser();
-    final permissions = AppPermissions.fromUser(currentUser);
     final navigator = AppAlertService.navigatorKey.currentState;
     if (navigator == null) {
       _queuePayload(payload);
@@ -190,7 +208,12 @@ class NotificationNavigationService {
   static String? _resolveRoute(
     Map<String, dynamic> payload, {
     required bool includeDefaultNotificationsRoute,
+    AppPermissions? permissions,
   }) {
+    if (_isErrorNotification(payload)) {
+      return null;
+    }
+
     final explicitRoute = _normalizeRouteName(
       payload['actionRoute']?.toString() ?? payload['route']?.toString(),
     );
@@ -203,11 +226,42 @@ class NotificationNavigationService {
     );
     final category = _normalizedText(payload['category']);
     final type = _normalizedText(payload['transactionType'] ?? payload['type']);
+    final messageType = _normalizedText(payload['messageType']);
+    final currentPermissions = permissions;
+    final canUseAdminRoutes =
+        currentPermissions?.hasAdminWorkspaceAccess == true;
+
+    if (canUseAdminRoutes) {
+      final adminRoute = _resolveAdminRoute(
+        payload,
+        permissions: currentPermissions!,
+        sourceType: sourceType,
+        category: category,
+        type: type,
+        messageType: messageType,
+      );
+      if (adminRoute != null) {
+        return adminRoute;
+      }
+    }
+    if (currentPermissions == null) {
+      final adminPreviewRoute = _resolveAdminPreviewRoute(
+        payload,
+        sourceType: sourceType,
+        category: category,
+        type: type,
+        messageType: messageType,
+      );
+      if (adminPreviewRoute != null) {
+        return adminPreviewRoute;
+      }
+    }
 
     if (const {
       'card_print_request',
       'card_print_request_completed',
       'card_print_request_refund',
+      'admin_card_print_request',
     }.contains(type)) {
       return _normalizeRouteName('/card-print-requests');
     }
@@ -222,14 +276,14 @@ class NotificationNavigationService {
       return _normalizeRouteName('/inventory');
     }
 
-    if (type.contains('withdrawal') &&
+    if ((type.contains('withdrawal') || messageType.contains('withdrawal')) &&
         (sourceType == 'admin_custom_notification' ||
             category == 'account' ||
             category == 'general')) {
       return _normalizeRouteName('/withdrawal-requests');
     }
 
-    if (type.contains('topup') &&
+    if ((type.contains('topup') || messageType.contains('topup')) &&
         sourceType == 'admin_custom_notification' &&
         category != 'financial') {
       return _normalizeRouteName('/topup-requests');
@@ -255,14 +309,16 @@ class NotificationNavigationService {
       return _normalizeRouteName('/transactions');
     }
 
-    if (type.contains('verification')) {
+    if (type.contains('verification') || messageType.contains('verification')) {
       return _normalizeRouteName('/account-verification');
     }
 
     if (type.contains('security') ||
         type.contains('device') ||
         type.contains('password') ||
-        type.contains('credential')) {
+        type.contains('credential') ||
+        messageType.contains('device') ||
+        messageType.contains('security')) {
       return _normalizeRouteName('/security-settings');
     }
 
@@ -270,13 +326,143 @@ class NotificationNavigationService {
         type == 'account_event' ||
         type.startsWith('account_') ||
         type.contains('profile') ||
-        type.contains('registration')) {
+        type.contains('registration') ||
+        messageType.contains('registration')) {
       return _normalizeRouteName('/account-settings');
     }
 
     if (sourceType == 'admin_custom_notification' ||
         includeDefaultNotificationsRoute) {
       return _normalizeRouteName('/notifications');
+    }
+
+    return null;
+  }
+
+  static String? _resolveAdminPreviewRoute(
+    Map<String, dynamic> payload, {
+    required String sourceType,
+    required String category,
+    required String type,
+    required String messageType,
+  }) {
+    if (!(category == 'admin' ||
+        sourceType == 'admin_alert' ||
+        sourceType == 'registration_attempt' ||
+        type.startsWith('admin_') ||
+        messageType.startsWith('admin_'))) {
+      return null;
+    }
+
+    if (_isNewUserRequestNotification(payload) ||
+        type == 'registration_attempt' ||
+        sourceType == 'registration_attempt') {
+      return _normalizeRouteName('/admin-pending-registrations');
+    }
+    if (_isPendingVerificationNotification(payload) ||
+        type.contains('verification') ||
+        messageType.contains('verification')) {
+      return _normalizeRouteName('/admin-verification-requests');
+    }
+    if (type.contains('device_access') ||
+        messageType.contains('device_access')) {
+      return _normalizeRouteName('/admin-device-requests');
+    }
+    if (type == 'admin_card_print_request' ||
+        messageType == 'admin_card_print_request') {
+      return _normalizeRouteName('/admin-card-print-requests');
+    }
+    if (type.contains('prepaid_multipay') ||
+        messageType.contains('prepaid_multipay')) {
+      return _normalizeRouteName('/admin-prepaid-multipay-approvals');
+    }
+    if (type.contains('topup') || messageType.contains('topup')) {
+      return _normalizeRouteName('/topup-requests');
+    }
+    if (type.contains('withdrawal') || messageType.contains('withdrawal')) {
+      return _normalizeRouteName('/withdrawal-requests');
+    }
+    if (_hasUserContext(payload)) {
+      return _normalizeRouteName('/admin-customers');
+    }
+
+    return _normalizeRouteName('/admin-dashboard');
+  }
+
+  static String? _resolveAdminRoute(
+    Map<String, dynamic> payload, {
+    required AppPermissions permissions,
+    required String sourceType,
+    required String category,
+    required String type,
+    required String messageType,
+  }) {
+    if (_isNewUserRequestNotification(payload) ||
+        type == 'registration_attempt' ||
+        sourceType == 'registration_attempt' ||
+        messageType == 'registration_attempt') {
+      if (permissions.canManageUsers ||
+          permissions.canManageMarketingAccounts) {
+        return _normalizeRouteName('/admin-pending-registrations');
+      }
+    }
+
+    if (_isPendingVerificationNotification(payload) ||
+        type.contains('verification') ||
+        messageType.contains('verification')) {
+      if (permissions.canManageUsers) {
+        return _normalizeRouteName('/admin-verification-requests');
+      }
+    }
+
+    if (type == 'admin_pending_device_access_request' ||
+        messageType == 'admin_pending_device_access_request' ||
+        type.contains('device_access') ||
+        messageType.contains('device_access')) {
+      if (permissions.canReviewDevices) {
+        return _normalizeRouteName('/admin-device-requests');
+      }
+    }
+
+    if (type == 'admin_card_print_request' ||
+        messageType == 'admin_card_print_request' ||
+        sourceType == 'card_print_request') {
+      if (permissions.canManageCardPrintRequests) {
+        return _normalizeRouteName('/admin-card-print-requests');
+      }
+    }
+
+    if (type.contains('prepaid_multipay') ||
+        messageType.contains('prepaid_multipay')) {
+      if (permissions.canManageUsers) {
+        return _normalizeRouteName('/admin-prepaid-multipay-approvals');
+      }
+    }
+
+    if (type.contains('topup') || messageType.contains('topup')) {
+      if (permissions.canReviewTopups || permissions.canFinanceTopup) {
+        return _normalizeRouteName('/topup-requests');
+      }
+    }
+
+    if (type.contains('withdrawal') || messageType.contains('withdrawal')) {
+      if (permissions.canReviewWithdrawals) {
+        return _normalizeRouteName('/withdrawal-requests');
+      }
+    }
+
+    if (type.contains('transfer') || messageType.contains('transfer')) {
+      if (permissions.canViewTransactions || permissions.canFinanceTopup) {
+        return _normalizeRouteName('/transactions');
+      }
+    }
+
+    if (_hasUserContext(payload) && permissions.canViewCustomers) {
+      return _normalizeRouteName('/admin-customers');
+    }
+
+    if (category == 'admin' || sourceType == 'admin_alert') {
+      return _normalizeRouteName('/admin-dashboard');
     }
 
     return null;
@@ -295,6 +481,133 @@ class NotificationNavigationService {
     final messageType = _normalizedText(payload['messageType']);
     return type == 'admin_pending_verification_request' ||
         messageType == 'admin_pending_verification_request';
+  }
+
+  static bool _isErrorNotification(Map<String, dynamic> payload) {
+    final type = _normalizedText(payload['type']);
+    final messageType = _normalizedText(payload['messageType']);
+    final sourceType = _normalizedText(
+      payload['sourceType'] ?? payload['source_type'],
+    );
+    return const {
+          'admin_app_error',
+          'admin_client_crash',
+          'admin_client_error',
+        }.contains(type) ||
+        const {
+          'admin_app_error',
+          'admin_client_crash',
+          'admin_client_error',
+        }.contains(messageType) ||
+        const {
+          'admin_app_error',
+          'admin_client_crash',
+          'admin_client_error',
+        }.contains(sourceType) ||
+        _firstNonEmptyString(payload, const [
+              'traceId',
+              'stackTrace',
+              'stackTracePreview',
+              'errorKind',
+              'exceptionClass',
+            ]) !=
+            null;
+  }
+
+  static bool _isAdminUserContextNotification(
+    Map<String, dynamic> payload,
+    AppPermissions permissions,
+  ) {
+    if (!permissions.canViewCustomers || !permissions.hasAdminWorkspaceAccess) {
+      return false;
+    }
+    if (!_hasUserContext(payload)) {
+      return false;
+    }
+
+    final type = _normalizedText(payload['type']);
+    final messageType = _normalizedText(payload['messageType']);
+    final category = _normalizedText(payload['category']);
+    return category == 'admin' ||
+        type.startsWith('admin_') ||
+        messageType.startsWith('admin_') ||
+        type == 'account_event' ||
+        type.contains('account') ||
+        type.contains('profile') ||
+        type.contains('user') ||
+        messageType.contains('user') ||
+        messageType.contains('member') ||
+        messageType.contains('security');
+  }
+
+  static bool _hasUserContext(Map<String, dynamic> payload) {
+    return _firstNonEmptyString(payload, const [
+          'targetUserId',
+          'target_user_id',
+          'accountId',
+          'account_id',
+          'userId',
+          'user_id',
+          'memberId',
+          'member_id',
+          'customerId',
+          'customer_id',
+          'username',
+          'whatsapp',
+        ]) !=
+        null;
+  }
+
+  static Future<bool> _openAdminCustomerDestination(
+    Map<String, dynamic> payload,
+    AppPermissions permissions,
+  ) async {
+    final customer = await _findCustomerForNotification(payload);
+    if (customer == null) {
+      return false;
+    }
+
+    final navigator = AppAlertService.navigatorKey.currentState;
+    if (navigator == null) {
+      _queuePayload(payload);
+      return true;
+    }
+    await navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => AdminCustomerScreen(
+          customer: customer,
+          canManageUsers: permissions.canManageUsers,
+          canManageMarketingAccounts: permissions.canManageMarketingAccounts,
+          canExport: permissions.canExportCustomerTransactions,
+        ),
+      ),
+    );
+    return true;
+  }
+
+  static Future<Map<String, dynamic>?> _findCustomerForNotification(
+    Map<String, dynamic> payload,
+  ) async {
+    final userId = _firstNonEmptyString(payload, const [
+      'targetUserId',
+      'target_user_id',
+      'accountId',
+      'account_id',
+      'userId',
+      'user_id',
+      'memberId',
+      'member_id',
+      'customerId',
+      'customer_id',
+    ]);
+    final username = _firstNonEmptyString(payload, const ['username']);
+    final whatsapp = _firstNonEmptyString(payload, const ['whatsapp']);
+
+    return _findCustomerByAnyIdentity(
+      userId: userId,
+      username: username,
+      whatsapp: whatsapp,
+    );
   }
 
   static Future<Map<String, dynamic>?> _findPendingRegistration(
@@ -346,6 +659,18 @@ class NotificationNavigationService {
     final username = _firstNonEmptyString(payload, const ['username']);
     final whatsapp = _firstNonEmptyString(payload, const ['whatsapp']);
 
+    return _findCustomerByAnyIdentity(
+      userId: userId,
+      username: username,
+      whatsapp: whatsapp,
+    );
+  }
+
+  static Future<Map<String, dynamic>?> _findCustomerByAnyIdentity({
+    String? userId,
+    String? username,
+    String? whatsapp,
+  }) async {
     for (final query in [userId, username, whatsapp]) {
       if (query == null || query.isEmpty) {
         continue;

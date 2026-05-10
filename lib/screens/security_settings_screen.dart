@@ -176,6 +176,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
     return DefaultTabController(
       length: 3,
+      initialIndex: 1,
       child: Builder(
         builder: (context) {
           final tabController = DefaultTabController.of(context);
@@ -235,15 +236,21 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                             indicatorPadding: const EdgeInsets.all(6),
                             tabs: [
                               Tab(
-                                text: l.tr('screens_security_settings_screen.065'),
+                                text: l.tr(
+                                  'screens_security_settings_screen.065',
+                                ),
                                 icon: const Icon(Icons.shield_rounded),
                               ),
                               Tab(
-                                text: l.tr('screens_security_settings_screen.066'),
+                                text: l.tr(
+                                  'screens_security_settings_screen.066',
+                                ),
                                 icon: const Icon(Icons.pin_rounded),
                               ),
                               Tab(
-                                text: l.tr('screens_security_settings_screen.067'),
+                                text: l.tr(
+                                  'screens_security_settings_screen.067',
+                                ),
                                 icon: const Icon(Icons.devices_rounded),
                               ),
                             ],
