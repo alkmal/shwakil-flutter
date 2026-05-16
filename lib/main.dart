@@ -1134,6 +1134,8 @@ class _SplashScreen extends StatelessWidget {
   const _SplashScreen();
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -1167,8 +1169,8 @@ class _SplashScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'شواكل',
+              Text(
+                l.tr('main.001'),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 30,
@@ -1177,7 +1179,7 @@ class _SplashScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'بطاقات رقمية ورصيد داخلي لإدارة الاستخدام اليومي',
+                l.tr('main.006'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.92),
                   fontSize: 15,
@@ -1220,6 +1222,8 @@ class _ForcedUpdateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -1242,40 +1246,40 @@ class _ForcedUpdateScreen extends StatelessWidget {
                         const SizedBox(height: 20),
                         Text(
                           requirement.isForced
-                              ? 'تحديث إجباري للتطبيق'
-                              : 'يوجد تحديث جديد',
+                              ? l.tr('main.007')
+                              : l.tr('main.008'),
                           style: AppTheme.h1,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 10),
                         Text(
                           requirement.isForced
-                              ? 'نسختك الحالية لم تعد مدعومة. يجب تحديث التطبيق قبل المتابعة واستخدام أي شاشة داخل النظام.'
-                              : 'يتوفر إصدار أحدث من التطبيق. ننصح بالتحديث للحصول على أفضل أداء وتحسينات الأمان.',
+                              ? l.tr('main.009')
+                              : l.tr('main.010'),
                           style: AppTheme.bodyAction.copyWith(height: 1.6),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
                         _versionRow(
-                          'نسختك الحالية',
+                          l.tr('main.011'),
                           requirement.currentVersion,
                         ),
                         const SizedBox(height: 10),
                         _versionRow(
                           requirement.isForced
-                              ? 'أقل نسخة مسموحة'
-                              : 'النسخة المدعومة حاليًا',
+                              ? l.tr('main.012')
+                              : l.tr('main.013'),
                           requirement.minSupportedVersion.isEmpty
                               ? '-'
                               : requirement.minSupportedVersion,
                         ),
                         const SizedBox(height: 10),
-                        _versionRow('أحدث نسخة', requirement.latestVersion),
+                        _versionRow(l.tr('main.014'), requirement.latestVersion),
                         const SizedBox(height: 24),
                         ShwakelButton(
                           label: requirement.hasStoreUrl
-                              ? 'فتح صفحة التحديث'
-                              : 'رابط التحديث غير متوفر',
+                              ? l.tr('main.015')
+                              : l.tr('main.016'),
                           icon: Icons.system_update_rounded,
                           onPressed: requirement.hasStoreUrl
                               ? _openStore
@@ -1284,8 +1288,8 @@ class _ForcedUpdateScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         ShwakelButton(
                           label: requirement.isForced
-                              ? 'تحققت بعد التحديث'
-                              : 'إعادة التحقق',
+                              ? l.tr('main.017')
+                              : l.tr('main.018'),
                           isSecondary: true,
                           icon: Icons.refresh_rounded,
                           onPressed: onRetry,

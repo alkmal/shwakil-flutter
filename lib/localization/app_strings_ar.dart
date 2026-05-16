@@ -5,6 +5,297 @@ const Map<String, String> appStringsAr = {
       'تعذر الوصول إلى خدمات التطبيق الآن. تحقق من الإنترنت أو انتظر حتى يعود الاتصال.',
   'main.004': 'تمت استعادة الاتصال',
   'main.005': 'عاد الاتصال بالخدمات ويمكنك المتابعة بشكل طبيعي.',
+  'main.006': 'بطاقات رقمية ورصيد داخلي لإدارة الاستخدام اليومي',
+  'main.007': 'تحديث إجباري للتطبيق',
+  'main.008': 'يوجد تحديث جديد',
+  'main.009':
+      'نسختك الحالية لم تعد مدعومة. يجب تحديث التطبيق قبل المتابعة واستخدام أي شاشة داخل النظام.',
+  'main.010':
+      'يتوفر إصدار أحدث من التطبيق. ننصح بالتحديث للحصول على أفضل أداء وتحسينات الأمان.',
+  'main.011': 'نسختك الحالية',
+  'main.012': 'أقل نسخة مسموحة',
+  'main.013': 'النسخة المدعومة حاليًا',
+  'main.014': 'أحدث نسخة',
+  'main.015': 'فتح صفحة التحديث',
+  'main.016': 'رابط التحديث غير متوفر',
+  'main.017': 'تحققت بعد التحديث',
+  'main.018': 'إعادة التحقق',
+  'shared.cancel': 'إلغاء',
+  'shared.back': 'تراجع',
+  'shared.save': 'حفظ',
+  'screens_prepaid_multipay_cards_screen.001': 'تعذر تحميل البطاقات',
+  'screens_prepaid_multipay_cards_screen.002': 'شحن البطاقة',
+  'screens_prepaid_multipay_cards_screen.003': 'مبلغ الشحن',
+  'screens_prepaid_multipay_cards_screen.004': 'شحن',
+  'screens_prepaid_multipay_cards_screen.005': 'مبلغ غير صالح',
+  'screens_prepaid_multipay_cards_screen.006': 'أدخل مبلغ شحن أكبر من صفر.',
+  'screens_prepaid_multipay_cards_screen.007': 'تم شحن البطاقة',
+  'screens_prepaid_multipay_cards_screen.008':
+      'تمت إضافة {amount} إلى البطاقة المحددة.',
+  'screens_prepaid_multipay_cards_screen.009': 'تعذر شحن البطاقة',
+  'screens_prepaid_multipay_cards_screen.010':
+      'بطاقة الدفع المسبق متاحة مرة واحدة',
+  'screens_prepaid_multipay_cards_screen.011':
+      'يمكنك إنشاء بطاقة دفع مسبق واحدة فقط من حسابك. إذا كنت تحتاج بطاقات إضافية، راجع الإدارة.',
+  'screens_prepaid_multipay_cards_screen.012': 'إضافة بطاقة دفع مسبق',
+  'screens_prepaid_multipay_cards_screen.013': 'اسم البطاقة',
+  'screens_prepaid_multipay_cards_screen.014': 'مبلغ البطاقة',
+  'screens_prepaid_multipay_cards_screen.015': 'رمز البطاقة',
+  'screens_prepaid_multipay_cards_screen.016': 'مدة البطاقة',
+  'screens_prepaid_multipay_cards_screen.017': 'إضافة البطاقة',
+  'screens_prepaid_multipay_cards_screen.018': 'اسم البطاقة مطلوب',
+  'screens_prepaid_multipay_cards_screen.019':
+      'أدخل اسمًا واضحًا للبطاقة قبل المتابعة.',
+  'screens_prepaid_multipay_cards_screen.020': 'بيانات غير صالحة',
+  'screens_prepaid_multipay_cards_screen.021':
+      'أدخل مبلغًا أكبر من صفر ورمزًا مكوّنًا من 3 أرقام.',
+  'screens_prepaid_multipay_cards_screen.022': 'تمت إضافة البطاقة',
+  'screens_prepaid_multipay_cards_screen.023':
+      'تم إنشاء بطاقة الدفع المسبق وإرسالها للمراجعة.',
+  'screens_prepaid_multipay_cards_screen.024': 'تعذر إنشاء البطاقة',
+  'screens_prepaid_multipay_cards_screen.025': 'تجديد البطاقة',
+  'screens_prepaid_multipay_cards_screen.026':
+      'سيتم تجديد البطاقة لمدة سنة واحدة من تاريخ اليوم وإشعار الإدارة بعملية التجديد.',
+  'screens_prepaid_multipay_cards_screen.027': 'تجديد سنة',
+  'screens_prepaid_multipay_cards_screen.028': 'تم تجديد البطاقة',
+  'screens_prepaid_multipay_cards_screen.029':
+      'تم تمديد صلاحية البطاقة سنة واحدة وإشعار الإدارة.',
+  'screens_prepaid_multipay_cards_screen.030': 'تعذر تجديد البطاقة',
+  'screens_prepaid_multipay_cards_screen.031': 'تجميد',
+  'screens_prepaid_multipay_cards_screen.032': 'تفعيل',
+  'screens_prepaid_multipay_cards_screen.033': 'إلغاء',
+  'screens_prepaid_multipay_cards_screen.034': 'تحديث',
+  'screens_prepaid_multipay_cards_screen.035': '{action} البطاقة',
+  'screens_prepaid_multipay_cards_screen.036':
+      'سيتم إلغاء البطاقة وإرجاع الرصيد المتبقي إلى حسابك.',
+  'screens_prepaid_multipay_cards_screen.037':
+      'هل تريد تنفيذ هذا الإجراء الآن؟',
+  'screens_prepaid_multipay_cards_screen.038': 'تعذر تحديث البطاقة',
+  'screens_prepaid_multipay_cards_screen.039': 'تعديل البطاقة',
+  'screens_prepaid_multipay_cards_screen.040':
+      'أدخل اسمًا واضحًا للبطاقة قبل الحفظ.',
+  'screens_prepaid_multipay_cards_screen.041': 'تم تعديل البطاقة',
+  'screens_prepaid_multipay_cards_screen.042':
+      'تم حفظ اسم البطاقة ومدة الصلاحية.',
+  'screens_prepaid_multipay_cards_screen.043': 'تعذر تعديل البطاقة',
+  'screens_prepaid_multipay_cards_screen.044': 'سنة واحدة',
+  'screens_prepaid_multipay_cards_screen.045': 'سنتان',
+  'screens_prepaid_multipay_cards_screen.046': 'ثلاث سنوات',
+  'screens_prepaid_multipay_cards_screen.047': 'أربع سنوات',
+  'screens_prepaid_multipay_cards_screen.048': 'خمس سنوات',
+  'screens_prepaid_multipay_cards_screen.049': '{years} سنوات',
+  'screens_prepaid_multipay_cards_screen.050': 'بطاقات الدفع المسبق',
+  'screens_prepaid_multipay_cards_screen.051': 'قائمة البطاقات',
+  'screens_prepaid_multipay_cards_screen.052':
+      'اضغط على أي بطاقة لعرض التفاصيل والدفع والباركود.',
+  'screens_prepaid_multipay_cards_screen.053':
+      'حسابك يتيح {limit}. إذا كنت تحتاج بطاقات إضافية، تستطيع الإدارة إضافتها لك.',
+  'screens_prepaid_multipay_cards_screen.054': 'بطاقة دفع مسبق واحدة فقط',
+  'screens_prepaid_multipay_cards_screen.055':
+      'عددًا محدودًا من بطاقات الدفع المسبق',
+  'screens_prepaid_multipay_cards_screen.056': 'تفاصيل البطاقة',
+  'screens_prepaid_multipay_cards_screen.057':
+      'تظهر هذه البطاقات من النسخة المحفوظة على الجهاز. يمكنك عرض البطاقة والباركود وتجهيز الدفع بدون تلامس إذا كان هذا الجهاز مخولًا مسبقًا.',
+  'screens_prepaid_multipay_cards_screen.058': 'الرصيد الحالي',
+  'screens_prepaid_multipay_cards_screen.059': 'إجمالي الشحن',
+  'screens_prepaid_multipay_cards_screen.060': 'المصروف',
+  'screens_prepaid_multipay_cards_screen.061': 'الحالة',
+  'screens_prepaid_multipay_cards_screen.062': 'الاستخدام اليومي',
+  'screens_prepaid_multipay_cards_screen.063':
+      'تفعيل البطاقة على هذا الجهاز',
+  'screens_prepaid_multipay_cards_screen.064':
+      'فعّل البطاقة مرة واحدة على جهازك لتصبح جاهزة بسرعة عند الدفع بدون تلامس داخل شواكل.',
+  'screens_prepaid_multipay_cards_screen.065': 'جاري التفعيل',
+  'screens_prepaid_multipay_cards_screen.066': 'إخفاء الرقم',
+  'screens_prepaid_multipay_cards_screen.067': 'إظهار الرقم',
+  'screens_prepaid_multipay_cards_screen.068': 'مشاهدة للدفع',
+  'screens_prepaid_multipay_cards_screen.069': 'طباعة البطاقة',
+  'screens_prepaid_multipay_cards_screen.070': 'جاري التجهيز',
+  'screens_prepaid_multipay_cards_screen.071':
+      'استخدام للدفع بدون تلامس',
+  'screens_prepaid_multipay_cards_screen.072': 'جاري الحفظ',
+  'screens_prepaid_multipay_cards_screen.073': 'حفظ على وسم',
+  'screens_prepaid_multipay_cards_screen.074': 'إلغاء ربط الجهاز',
+  'screens_prepaid_multipay_cards_screen.075': 'قبول دفع بدون تلامس',
+  'screens_prepaid_multipay_cards_screen.076': 'قبول دفع بالباركود',
+  'screens_prepaid_multipay_cards_screen.077': 'جاري الشحن',
+  'screens_prepaid_multipay_cards_screen.078': 'تغيير الكود',
+  'screens_prepaid_multipay_cards_screen.079': 'إخفاء تفاصيل البطاقة',
+  'screens_prepaid_multipay_cards_screen.080': 'سجل النشاط',
+  'screens_prepaid_multipay_cards_screen.081': 'الكل',
+  'screens_prepaid_multipay_cards_screen.082': 'المدفوعات',
+  'screens_prepaid_multipay_cards_screen.083': 'الأمان',
+  'screens_prepaid_multipay_cards_screen.084':
+      'لا توجد أنشطة على هذه البطاقة حتى الآن.',
+  'screens_prepaid_multipay_cards_screen.085': 'حركات الدفع فقط',
+  'permission_catalog.group_general': 'عام والحساب',
+  'permission_catalog.group_card_issuance': 'إصدار البطاقات',
+  'permission_catalog.group_card_reading': 'قراءة ومتابعة البطاقات',
+  'permission_catalog.group_wallet': 'المحفظة والدفع والطباعة',
+  'permission_catalog.group_admin': 'الإدارة والمتابعة',
+  'permission_catalog.label.canViewBalance': 'عرض الرصيد',
+  'permission_catalog.label.canViewTransactions': 'عرض الحركات المالية',
+  'permission_catalog.label.canViewInventory': 'عرض المخزون',
+  'permission_catalog.label.canViewContact': 'عرض صفحة التواصل',
+  'permission_catalog.label.canViewLocations': 'عرض المواقع والفروع',
+  'permission_catalog.label.canViewUsagePolicy': 'عرض سياسة الاستخدام',
+  'permission_catalog.label.canViewSecuritySettings': 'عرض إعدادات الأمان',
+  'permission_catalog.label.canViewAccountSettings': 'عرض إعدادات الحساب',
+  'permission_catalog.label.canRequestVerification': 'طلب توثيق الحساب',
+  'permission_catalog.label.canViewAffiliateCenter': 'عرض مركز التسويق',
+  'permission_catalog.label.canTransfer': 'تحويل الرصيد',
+  'permission_catalog.label.canWithdraw': 'طلب السحب',
+  'permission_catalog.label.canRedeemCards': 'استرداد/سحب رصيد البطاقات',
+  'permission_catalog.label.canIssueCards': 'إصدار البطاقات',
+  'permission_catalog.label.canIssueSubShekelCards':
+      'إصدار بطاقات منخفضة القيمة',
+  'permission_catalog.label.canIssueHighValueCards':
+      'إصدار بطاقات عالية القيمة',
+  'permission_catalog.label.canIssuePrivateCards': 'إصدار بطاقات خاصة',
+  'permission_catalog.label.canIssueSingleUseTickets':
+      'إصدار تذاكر دخول لمرة واحدة',
+  'permission_catalog.label.canIssueAppointmentTickets': 'إصدار تذاكر مواعيد',
+  'permission_catalog.label.canIssueQueueTickets': 'إصدار تذاكر طوابير',
+  'permission_catalog.label.canScanCards': 'قراءة البطاقات',
+  'permission_catalog.label.canOfflineCardScan': 'قراءة البطاقات أوفلاين',
+  'permission_catalog.label.canReviewCards': 'مراجعة البطاقات',
+  'permission_catalog.label.canViewPrivateCards': 'عرض البطاقات الخاصة',
+  'permission_catalog.label.canReadOwnPrivateCardsOnly':
+      'قراءة بطاقاته الخاصة فقط',
+  'permission_catalog.label.canDeleteCards': 'حذف البطاقات',
+  'permission_catalog.label.canResellCards': 'إعادة بيع البطاقات',
+  'permission_catalog.label.canRequestCardPrinting': 'طلب طباعة البطاقات',
+  'permission_catalog.label.canManageCardPrintRequests':
+      'إدارة طلبات طباعة البطاقات',
+  'permission_catalog.label.canUsePrepaidMultipayCards':
+      'استخدام بطاقات الدفع المسبق',
+  'permission_catalog.label.canAcceptPrepaidMultipayPayments':
+      'قبول دفع البطاقات المسبقة',
+  'permission_catalog.label.canUsePrepaidMultipayNfc':
+      'استخدام NFC للبطاقات المسبقة',
+  'permission_catalog.label.canViewCustomers': 'عرض المستخدمين',
+  'permission_catalog.label.canLookupMembers': 'البحث عن الأعضاء',
+  'permission_catalog.label.canManageUsers': 'إدارة المستخدمين',
+  'permission_catalog.label.canFinanceTopup': 'شحن أرصدة المستخدمين (مالية)',
+  'permission_catalog.label.canReviewTopups': 'مراجعة عمليات الشحن',
+  'permission_catalog.label.canReviewWithdrawals': 'مراجعة طلبات السحب',
+  'permission_catalog.label.canReviewDevices': 'مراجعة الأجهزة',
+  'permission_catalog.label.canManageMarketingAccounts':
+      'إدارة حسابات التسويق',
+  'permission_catalog.label.canViewSubUsers': 'عرض المستخدمين الفرعيين',
+  'permission_catalog.label.canManageSubUsers': 'إدارة المستخدمين الفرعيين',
+  'permission_catalog.label.canManageLocations': 'إدارة الفروع والمواقع',
+  'permission_catalog.label.canManageSystemSettings': 'إدارة إعدادات النظام',
+  'permission_catalog.label.canManageDebtBook': 'إدارة دفتر الديون',
+  'permission_catalog.label.canExportCustomerTransactions':
+      'تصدير حركات المستخدمين',
+  'permission_catalog.description.canViewBalance': 'إظهار الرصيد داخل التطبيق.',
+  'permission_catalog.description.canViewTransactions':
+      'السماح بعرض سجل الحركات المالية.',
+  'permission_catalog.description.canViewInventory':
+      'السماح بعرض المخزون المرتبط بالحساب.',
+  'permission_catalog.description.canTransfer': 'تنفيذ تحويلات رصيد.',
+  'permission_catalog.description.canWithdraw':
+      'إنشاء طلب سحب رصيد من المحفظة.',
+  'permission_catalog.description.canRedeemCards':
+      'اعتماد البطاقة وتحويل قيمتها إلى رصيد.',
+  'permission_catalog.description.canIssueCards': 'إنشاء بطاقات جديدة.',
+  'permission_catalog.description.canIssueSubShekelCards':
+      'السماح بإصدار بطاقات بقيم صغيرة جدا.',
+  'permission_catalog.description.canIssueHighValueCards':
+      'السماح بإصدار بطاقات بقيم عالية.',
+  'permission_catalog.description.canIssuePrivateCards':
+      'السماح بإصدار بطاقات خاصة.',
+  'permission_catalog.description.canIssueSingleUseTickets':
+      'السماح بإصدار تذاكر استخدام لمرة واحدة.',
+  'permission_catalog.description.canIssueAppointmentTickets':
+      'السماح بإصدار تذاكر مواعيد.',
+  'permission_catalog.description.canIssueQueueTickets':
+      'السماح بإصدار تذاكر طوابير.',
+  'permission_catalog.description.canScanCards': 'السماح بقراءة البطاقات.',
+  'permission_catalog.description.canOfflineCardScan':
+      'السماح بالفحص بدون اتصال والمزامنة لاحقاً.',
+  'permission_catalog.description.canReviewCards':
+      'السماح بمراجعة عمليات البطاقات.',
+  'permission_catalog.description.canViewPrivateCards':
+      'السماح بعرض البطاقات الخاصة.',
+  'permission_catalog.description.canReadOwnPrivateCardsOnly':
+      'يقيد الاستخدام على بطاقات هذا الحساب الخاصة فقط.',
+  'permission_catalog.description.canDeleteCards':
+      'السماح بحذف البطاقات حسب قيود النظام.',
+  'permission_catalog.description.canResellCards':
+      'إعادة تفعيل أو إعادة بيع بطاقة مستخدمة.',
+  'permission_catalog.description.canRequestCardPrinting':
+      'إنشاء طلبات طباعة بطاقات.',
+  'permission_catalog.description.canManageCardPrintRequests':
+      'إدارة واعتماد تجهيز وتسليم طلبات الطباعة.',
+  'permission_catalog.description.canUsePrepaidMultipayCards':
+      'استخدام بطاقات الدفع المسبق داخل التطبيق.',
+  'permission_catalog.description.canAcceptPrepaidMultipayPayments':
+      'استقبال مدفوعات الدفع المسبق كتاجر.',
+  'permission_catalog.description.canUsePrepaidMultipayNfc':
+      'تمكين عمليات الدفع المسبق عبر NFC.',
+  'permission_catalog.description.canViewCustomers':
+      'الوصول لقائمة المستخدمين في لوحة الإدارة.',
+  'permission_catalog.description.canLookupMembers':
+      'البحث عن أعضاء حسب الاسم أو الهاتف.',
+  'permission_catalog.description.canManageUsers':
+      'تعديل حسابات المستخدمين وصلاحياتهم.',
+  'permission_catalog.description.canFinanceTopup':
+      'شحن أرصدة المستخدمين من حساب المالية.',
+  'permission_catalog.description.canReviewTopups':
+      'مراجعة واعتماد أو رفض طلبات الشحن.',
+  'permission_catalog.description.canReviewWithdrawals':
+      'مراجعة واعتماد أو رفض طلبات السحب.',
+  'permission_catalog.description.canReviewDevices':
+      'مراجعة واعتماد الأجهزة المرتبطة بالحسابات.',
+  'permission_catalog.description.canManageMarketingAccounts':
+      'إدارة حسابات التسويق والعمولات.',
+  'permission_catalog.description.canViewSubUsers':
+      'عرض المستخدمين الفرعيين المرتبطين بالحساب.',
+  'permission_catalog.description.canManageSubUsers':
+      'إنشاء وتعديل المستخدمين الفرعيين.',
+  'permission_catalog.description.canManageLocations':
+      'إدارة الفروع والمواقع المعتمدة.',
+  'permission_catalog.description.canManageSystemSettings':
+      'تعديل إعدادات النظام العامة.',
+  'permission_catalog.description.canManageDebtBook': 'إدارة دفتر الديون.',
+  'permission_catalog.description.canExportCustomerTransactions':
+      'تصدير حركات المستخدمين.',
+  'services_local_security_service.device_web': 'متصفح ويب',
+  'services_local_security_service.device_android': 'جهاز أندرويد',
+  'services_local_security_service.device_ios': 'جهاز آيفون / آيباد',
+  'services_local_security_service.device_windows': 'جهاز ويندوز',
+  'services_local_security_service.device_macos': 'جهاز ماك',
+  'services_local_security_service.device_linux': 'جهاز لينكس',
+  'services_local_security_service.device_fuchsia': 'جهاز فوشيا',
+  'services_offline_card_service.pending_lookup':
+      'بانتظار التحقق عند توفر الإنترنت.',
+  'services_offline_card_service.max_count_reached':
+      'وصلت إلى الحد الأعلى لعدد البطاقات في وضع الأوفلاين. اتصل بالإنترنت للمزامنة قبل المتابعة.',
+  'services_offline_card_service.max_amount_reached':
+      'وصلت إلى سقف رصيد البطاقات المعلّقة في وضع الأوفلاين. اتصل بالإنترنت للمزامنة قبل فحص المزيد.',
+  'shared.role_support': 'دعم',
+  'shared.role_admin': 'إداري',
+  'shared.role_basic': 'أساسي',
+  'shared.role_restricted': 'مقيد',
+  'shared.role_user': 'مستخدم',
+  'widgets_admin_admin_customer_card.010': 'إرسال OTP',
+  'widgets_admin_admin_customer_card.011': 'أرباحه للتطبيق',
+  'screens_account_verification_screen.118': 'رفع صورة الهوية',
+  'screens_account_verification_screen.119': 'رفع صورة السيلفي مع الهوية',
+  'screens_account_verification_screen.120': 'إدخال رقم الهوية',
+  'screens_account_verification_screen.121': 'اختيار تاريخ ميلاد صحيح',
+  'screens_account_verification_screen.122': 'الهوية واضحة وكاملة',
+  'screens_account_verification_screen.123': 'السيلفي يظهر الوجه والهوية',
+  'screens_account_verification_screen.124': 'الضغط يتم تلقائيًا',
+  'screens_account_verification_screen.125': 'حذف الصورة',
+  'screens_account_verification_screen.126': 'الطلب جاهز للإرسال',
+  'screens_account_verification_screen.127': 'المتبقي قبل الإرسال: {count}',
+  'screens_account_verification_screen.128':
+      'راجع هذه العناصر قبل إعادة الإرسال',
+  'screens_account_verification_screen.129': 'مكتمل',
+  'screens_account_verification_screen.130': 'مطلوب',
   'screens_account_settings_screen.001': 'تم الحفظ',
   'screens_account_settings_screen.002': 'تعذر الحفظ',
   'screens_account_settings_screen.003': 'بيانات ناقصة',
@@ -1357,6 +1648,63 @@ const Map<String, String> appStringsAr = {
   'screens_create_card_screen.085': 'نافذة الصلاحية غير صحيحة',
   'screens_create_card_screen.086':
       'وقت انتهاء الصلاحية يجب أن يكون بعد وقت البداية.',
+  'screens_create_card_screen.087': 'بطاقة اشتراك',
+  'screens_create_card_screen.088': 'بطاقة حضور وانصراف',
+  'screens_create_card_screen.089':
+      'بطاقة خاصة لخدمة أو دخول بدون قيمة مالية.',
+  'screens_create_card_screen.090':
+      'بطاقة مخصصة للتسليم مع رصيد قابل للاستخدام.',
+  'screens_create_card_screen.091':
+      'تذكرة موعد بوقت محدد ويمكن ربطها بتعليمات.',
+  'screens_create_card_screen.092':
+      'تذكرة دور أو خدمة مع بيانات تنظيمية واضحة.',
+  'screens_create_card_screen.093':
+      'بطاقة اشتراك بمدة محددة، ويظهر عند الفحص هل الاشتراك فعال أو منتهي.',
+  'screens_create_card_screen.094':
+      'بطاقة واحدة لكل موظف لتسجيل الحضور والانصراف وتقرير شهري.',
+  'screens_create_card_screen.095':
+      'بطاقة رصيد قياسية مناسبة للاستخدام العام.',
+  'screens_create_card_screen.096': 'تفاصيل الموعد المطلوبة',
+  'screens_create_card_screen.097': 'تفاصيل تذكرة الطابور',
+  'screens_create_card_screen.098': 'تفاصيل الاشتراك',
+  'screens_create_card_screen.099': 'تفاصيل الحضور والانصراف',
+  'screens_create_card_screen.100': 'تفاصيل البطاقة',
+  'screens_create_card_screen.101': 'عنوان الموعد',
+  'screens_create_card_screen.102': 'اسم الخدمة أو الطابور',
+  'screens_create_card_screen.103': 'اسم الاشتراك',
+  'screens_create_card_screen.104': 'اسم الموظف',
+  'screens_create_card_screen.105': 'العنوان',
+  'screens_create_card_screen.106': 'الموقع',
+  'screens_create_card_screen.107': 'الموقع أو القسم',
+  'screens_create_card_screen.108': 'الفرع أو الجهة',
+  'screens_create_card_screen.109': 'القسم أو موقع الدوام',
+  'screens_create_card_screen.110': 'ملاحظات أو تعليمات',
+  'screens_create_card_screen.111': 'رقم الموظف أو مرجع الربط',
+  'screens_create_card_screen.112': 'ملاحظات إضافية',
+  'screens_create_card_screen.113': 'اختر نوع البطاقة',
+  'screens_create_card_screen.114':
+      'حدد نوع البطاقة أولًا حتى تظهر تفاصيل الإنشاء والدفع.',
+  'screens_create_card_screen.115': 'بيانات الاشتراك غير مكتملة',
+  'screens_create_card_screen.116': 'أدخل اسم الاشتراك قبل إصدار البطاقة.',
+  'screens_create_card_screen.117': 'مدة الاشتراك مطلوبة',
+  'screens_create_card_screen.118':
+      'حدد بداية ونهاية الاشتراك قبل إصدار البطاقة.',
+  'screens_create_card_screen.119': 'بيانات الحضور غير مكتملة',
+  'screens_create_card_screen.120':
+      'أدخل اسم الموظف أو عنوان بطاقة الحضور والانصراف.',
+  'screens_create_card_screen.121': 'بطاقة واحدة لكل موظف',
+  'screens_create_card_screen.122':
+      'بطاقات الحضور والانصراف تصدر بطاقة واحدة لكل موظف حتى يكون التقرير الشهري واضحًا لكل بطاقة.',
+  'screens_create_card_screen.123': 'جارٍ حفظ الدفعة الأخيرة',
+  'screens_create_card_screen.124':
+      'نحدّث بيانات الحساب ونجهز البطاقات لتظهر مباشرة في المخزون.',
+  'screens_create_card_screen.125': 'جارٍ إنشاء البطاقات',
+  'screens_create_card_screen.126':
+      'قد يستغرق الأمر قليلًا مع ضعف الإنترنت. نتابع العملية الآن.',
+  'screens_create_card_screen.127': 'جارٍ إنشاء البطاقات التجريبية',
+  'screens_create_card_screen.128':
+      'نجهز الدفعة ونحفظها لحسابك مع متابعة الاتصال الحالي.',
+  'screens_create_card_screen.129': 'تعذر إصدار البطاقات التجريبية',
   'screens_contact_us_screen.001': 'رقم هاتف الدعم',
   'screens_contact_us_screen.002': 'البريد الإلكتروني الرسمي',
   'screens_contact_us_screen.003': 'المكتب الرئيسي',
@@ -2853,7 +3201,6 @@ const Map<String, String> appStringsAr = {
   'shared.rejection_reason_hint': 'اكتب سبب الرفض بوضوح.',
   'shared.rejection_reason_required': 'يجب إدخال سبب الرفض قبل المتابعة.',
   'shared.confirm_rejection': 'تأكيد الرفض',
-  'shared.role_basic': 'مستخدم',
   'shared.role_driver': 'سائق',
   'shared.role_verified_member': 'تاجر',
   'shared.role_advanced_member': 'تاجر',
@@ -3121,4 +3468,48 @@ const Map<String, String> appStringsAr = {
   'screens_admin_customers_screen.056':
       'استخدم البحث للوصول السريع إلى العميل، ثم افتح صفحته لمراجعة بياناته وصلاحياته ورسائله المالية من مكان واحد.',
   'screens_admin_customers_screen.057': 'تنفيذ البحث',
+  'screens_scan_card_screen.184': 'لا يمكن تعطيل السحب التلقائي',
+  'screens_scan_card_screen.185':
+      'لا يمكن تعطيل هذه الخاصية. تعطيل السحب التلقائي متوفر للمستخدمين الموثقين حساباتهم.',
+  'screens_scan_card_screen.186':
+      'السحب التلقائي مفعل من الإدارة ولا يمكن تعطيله إلا بعد مراجعة الإدارة.',
+  'screens_scan_card_screen.187': 'تفعيل السحب التلقائي',
+  'screens_scan_card_screen.188':
+      'بعد التفعيل سيتم استرداد أي بطاقة مباشرة بمجرد قراءتها، وستتحول إلى مستخدمة بدون خطوة تأكيد إضافية.',
+  'screens_scan_card_screen.189': 'تأكيد بالبصمة',
+  'screens_scan_card_screen.190': 'البصمة غير متاحة',
+  'screens_scan_card_screen.191':
+      'يجب تفعيل البصمة على الجهاز قبل استخدام السحب التلقائي.',
+  'screens_scan_card_screen.192': 'لم يتم التفعيل',
+  'screens_scan_card_screen.193':
+      'لم يتم تأكيد البصمة، وبقي السحب اليدوي مفعلاً.',
+  'screens_scan_card_screen.194': 'تم تفعيل السحب التلقائي عند الفحص.',
+  'screens_scan_card_screen.195': 'تم تعطيل السحب التلقائي عند الفحص.',
+  'screens_scan_card_screen.196': 'تعذر تحديث السحب التلقائي',
+  'screens_scan_card_screen.197':
+      'لا يوجد لديك رصيد محلي جاهز من الرموز المؤقتة. افتح الشاشة أثناء الاتصال لتجهيزها ثم يمكنك الإنشاء أوفلاين.',
+  'screens_scan_card_screen.198':
+      'هذه الميزة متاحة للحسابات التي تملك صلاحية تحويل الرصيد. راجع الإدارة إذا كانت الصلاحية غير مفعلة لحسابك.',
+  'screens_scan_card_screen.199':
+      'أدخل قيمة المبلغ المطلوب استلامه. سيبقى الرمز صالحًا لمدة دقيقة واحدة فقط.',
+  'screens_scan_card_screen.200': 'مثال: 25',
+  'screens_scan_card_screen.201': 'متابعة',
+  'screens_scan_card_screen.202': 'بطاقة دفع مسبق',
+  'screens_scan_card_screen.203':
+      'سحب البطاقات المسبقة يحتاج اتصالًا مباشرًا بالإنترنت.',
+  'screens_scan_card_screen.204': 'اعتماد الدفع',
+  'screens_scan_card_screen.205': 'اعتماد دفع بطاقة مسبقة',
+  'screens_scan_card_screen.206': 'إضافة قيمة الدفع',
+  'screens_scan_card_screen.207': 'الشهر',
+  'screens_scan_card_screen.208': 'السنة',
+  'screens_scan_card_screen.209': 'كود البطاقة الثلاثي',
+  'screens_scan_card_screen.210':
+      'سيتم اعتماد العملية من نفس شاشة الفحص وتحديث الرصيد مباشرة.',
+  'screens_scan_card_screen.211': 'اعتماد',
+  'screens_scan_card_screen.212': 'بيانات غير مكتملة',
+  'screens_scan_card_screen.213':
+      'أدخل مبلغ الدفع وكود التحقق المكوّن من 3 أرقام.',
+  'screens_scan_card_screen.214': 'بيانات البطاقة غير مكتملة',
+  'screens_scan_card_screen.215':
+      'تعذر تحديد شهر وسنة الانتهاء لهذه البطاقة.',
 };

@@ -66,11 +66,11 @@ class AdminCustomerCard extends StatelessWidget {
       'verified_member' => l.tr('shared.role_verified_member'),
       'advanced_member' => l.tr('shared.role_verified_member'),
       'marketer' => l.tr('shared.role_marketer'),
-      'support' => 'دعم',
-      'admin' => 'إداري',
-      'basic' => 'أساسي',
-      'restricted' => 'مقيد',
-      _ => 'مستخدم',
+      'support' => l.tr('shared.role_support'),
+      'admin' => l.tr('shared.role_admin'),
+      'basic' => l.tr('shared.role_basic'),
+      'restricted' => l.tr('shared.role_restricted'),
+      _ => l.tr('shared.role_user'),
     };
   }
 
@@ -186,9 +186,11 @@ class AdminCustomerCard extends StatelessWidget {
                             ),
                           ),
                         if (onSendOtp != null)
-                          const PopupMenuItem<_CustomerAction>(
+                          PopupMenuItem<_CustomerAction>(
                             value: _CustomerAction.sendOtp,
-                            child: Text('إرسال OTP'),
+                            child: Text(
+                              l.tr('widgets_admin_admin_customer_card.010'),
+                            ),
                           ),
                       ],
                       onSelected: (action) {
@@ -227,7 +229,7 @@ class AdminCustomerCard extends StatelessWidget {
                         : AppTheme.textSecondary,
                   ),
                   _infoChip(
-                    'أرباحه للتطبيق',
+                    l.tr('widgets_admin_admin_customer_card.011'),
                     _currency(adminProfitTotal),
                     adminProfitTotal > 0
                         ? AppTheme.success

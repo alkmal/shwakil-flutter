@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/index.dart';
+import '../localization/app_localization.dart';
 
 class OfflineCardService {
   static const _cardsKeyPrefix = 'offline_cards_cache_';
@@ -211,7 +213,7 @@ class OfflineCardService {
       'barcode': barcode,
       'status': 'pending_lookup',
       'queuedAt': DateTime.now().toIso8601String(),
-      'message': 'بانتظار التحقق عند توفر الإنترنت.',
+      'message': _tr('services_offline_card_service.pending_lookup'),
     });
     await replaceUnknownCardLookups(userId, existing);
   }
@@ -487,10 +489,10 @@ class OfflineCardService {
         _defaultMaxPendingCount;
 
     if (queue.length >= maxCount) {
-      return 'وصلت إلى الحد الأعلى لعدد البطاقات في وضع الأوفلاين. اتصل بالإنترنت للمزامنة قبل المتابعة.';
+      return _tr('services_offline_card_service.max_count_reached');
     }
     if (pendingAmount + cardValue > maxAmount) {
-      return 'وصلت إلى سقف رصيد البطاقات المعلّقة في وضع الأوفلاين. اتصل بالإنترنت للمزامنة قبل فحص المزيد.';
+      return _tr('services_offline_card_service.max_amount_reached');
     }
 
     return null;
@@ -696,6 +698,12 @@ class OfflineCardService {
         message.contains('bad_decrypt') ||
         message.contains('failed to unwrap key') ||
         message.contains('invalidkeyexception');
+  }
+
+  String _tr(String key) {
+    return AppLocalizer(
+      AppLocaleService.instance.locale ?? const Locale('ar'),
+    ).tr(key);
   }
 
   List<Map<String, dynamic>> _coerceList(dynamic decoded) {

@@ -201,6 +201,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
             const SizedBox(height: 20),
             ...PermissionCatalog.groups.map((group) {
               final keys = List<String>.from(group['keys']! as List);
+              final title = PermissionCatalog.groupTitle(context, group);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: ShwakelCard(
@@ -209,8 +210,11 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AdminSectionHeader(
-                        title: group['title']!.toString(),
-                        icon: _groupIcon(group['title']!.toString()),
+                        title: title,
+                        icon: IconData(
+                          group['icon']! as int,
+                          fontFamily: 'MaterialIcons',
+                        ),
                       ),
                       const SizedBox(height: 8),
                       ...keys.map(
@@ -229,14 +233,6 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         ),
       ),
     );
-  }
-
-  IconData _groupIcon(String title) {
-    if (title.contains('إصدار')) return Icons.credit_card_rounded;
-    if (title.contains('قراءة')) return Icons.qr_code_scanner_rounded;
-    if (title.contains('المحفظة')) return Icons.account_balance_wallet_rounded;
-    if (title.contains('الإدارة')) return Icons.admin_panel_settings_rounded;
-    return Icons.person_outline_rounded;
   }
 
   Widget _buildPermissionToggle({

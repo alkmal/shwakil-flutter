@@ -276,9 +276,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       case 'queue':
         return l.tr('screens_create_card_screen.070');
       case 'subscription':
-        return 'بطاقة اشتراك';
+        return l.tr('screens_create_card_screen.087');
       case 'attendance':
-        return 'بطاقة حضور وانصراف';
+        return l.tr('screens_create_card_screen.088');
       default:
         return l.tr('screens_create_card_screen.002');
     }
@@ -304,53 +304,58 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   String _cardTypeDescription(String type) {
+    final l = context.loc;
     switch (type) {
       case 'single_use':
-        return 'بطاقة خاصة لخدمة أو دخول بدون قيمة مالية.';
+        return l.tr('screens_create_card_screen.089');
       case 'delivery':
-        return 'بطاقة مخصصة للتسليم مع رصيد قابل للاستخدام.';
+        return l.tr('screens_create_card_screen.090');
       case 'appointment':
-        return 'تذكرة موعد بوقت محدد ويمكن ربطها بتعليمات.';
+        return l.tr('screens_create_card_screen.091');
       case 'queue':
-        return 'تذكرة دور أو خدمة مع بيانات تنظيمية واضحة.';
+        return l.tr('screens_create_card_screen.092');
       case 'subscription':
-        return 'بطاقة اشتراك بمدة محددة، ويظهر عند الفحص هل الاشتراك فعال أو منتهي.';
+        return l.tr('screens_create_card_screen.093');
       case 'attendance':
-        return 'بطاقة واحدة لكل موظف لتسجيل الحضور والانصراف وتقرير شهري.';
+        return l.tr('screens_create_card_screen.094');
       default:
-        return 'بطاقة رصيد قياسية مناسبة للاستخدام العام.';
+        return l.tr('screens_create_card_screen.095');
     }
   }
 
   String _typeDetailsTitle() {
-    if (_isAppointmentCard) return 'تفاصيل الموعد المطلوبة';
-    if (_isQueueCard) return 'تفاصيل تذكرة الطابور';
-    if (_isSubscriptionCard) return 'تفاصيل الاشتراك';
-    if (_isAttendanceCard) return 'تفاصيل الحضور والانصراف';
-    return 'تفاصيل البطاقة';
+    final l = context.loc;
+    if (_isAppointmentCard) return l.tr('screens_create_card_screen.096');
+    if (_isQueueCard) return l.tr('screens_create_card_screen.097');
+    if (_isSubscriptionCard) return l.tr('screens_create_card_screen.098');
+    if (_isAttendanceCard) return l.tr('screens_create_card_screen.099');
+    return l.tr('screens_create_card_screen.100');
   }
 
   String _typeTitleFieldLabel() {
-    if (_isAppointmentCard) return 'عنوان الموعد';
-    if (_isQueueCard) return 'اسم الخدمة أو الطابور';
-    if (_isSubscriptionCard) return 'اسم الاشتراك';
-    if (_isAttendanceCard) return 'اسم الموظف';
-    return 'العنوان';
+    final l = context.loc;
+    if (_isAppointmentCard) return l.tr('screens_create_card_screen.101');
+    if (_isQueueCard) return l.tr('screens_create_card_screen.102');
+    if (_isSubscriptionCard) return l.tr('screens_create_card_screen.103');
+    if (_isAttendanceCard) return l.tr('screens_create_card_screen.104');
+    return l.tr('screens_create_card_screen.105');
   }
 
   String _typeLocationFieldLabel() {
-    if (_isAppointmentCard) return 'الموقع';
-    if (_isQueueCard) return 'الموقع أو القسم';
-    if (_isSubscriptionCard) return 'الفرع أو الجهة';
-    if (_isAttendanceCard) return 'القسم أو موقع الدوام';
-    return 'الموقع';
+    final l = context.loc;
+    if (_isAppointmentCard) return l.tr('screens_create_card_screen.106');
+    if (_isQueueCard) return l.tr('screens_create_card_screen.107');
+    if (_isSubscriptionCard) return l.tr('screens_create_card_screen.108');
+    if (_isAttendanceCard) return l.tr('screens_create_card_screen.109');
+    return l.tr('screens_create_card_screen.106');
   }
 
   String _typeDescriptionFieldLabel() {
-    if (_isAppointmentCard) return 'ملاحظات أو تعليمات';
-    if (_isSubscriptionCard) return 'تفاصيل الاشتراك';
-    if (_isAttendanceCard) return 'رقم الموظف أو مرجع الربط';
-    return 'ملاحظات إضافية';
+    final l = context.loc;
+    if (_isAppointmentCard) return l.tr('screens_create_card_screen.110');
+    if (_isSubscriptionCard) return l.tr('screens_create_card_screen.098');
+    if (_isAttendanceCard) return l.tr('screens_create_card_screen.111');
+    return l.tr('screens_create_card_screen.112');
   }
 
   double _feeAmount(String key) =>
@@ -443,8 +448,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (!_hasSelectedCardType) {
       await AppAlertService.showError(
         context,
-        title: 'اختر نوع البطاقة',
-        message: 'حدد نوع البطاقة أولًا حتى تظهر تفاصيل الإنشاء والدفع.',
+        title: l.tr('screens_create_card_screen.113'),
+        message: l.tr('screens_create_card_screen.114'),
       );
       return;
     }
@@ -535,16 +540,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       if (_detailsTitleC.text.trim().isEmpty) {
         await AppAlertService.showError(
           context,
-          title: 'بيانات الاشتراك غير مكتملة',
-          message: 'أدخل اسم الاشتراك قبل إصدار البطاقة.',
+          title: l.tr('screens_create_card_screen.115'),
+          message: l.tr('screens_create_card_screen.116'),
         );
         return;
       }
       if (_validFrom == null || _validUntil == null) {
         await AppAlertService.showError(
           context,
-          title: 'مدة الاشتراك مطلوبة',
-          message: 'حدد بداية ونهاية الاشتراك قبل إصدار البطاقة.',
+          title: l.tr('screens_create_card_screen.117'),
+          message: l.tr('screens_create_card_screen.118'),
         );
         return;
       }
@@ -554,17 +559,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       if (_detailsTitleC.text.trim().isEmpty) {
         await AppAlertService.showError(
           context,
-          title: 'بيانات الحضور غير مكتملة',
-          message: 'أدخل اسم الموظف أو عنوان بطاقة الحضور والانصراف.',
+          title: l.tr('screens_create_card_screen.119'),
+          message: l.tr('screens_create_card_screen.120'),
         );
         return;
       }
       if (quantity > 1) {
         await AppAlertService.showError(
           context,
-          title: 'بطاقة واحدة لكل موظف',
-          message:
-              'بطاقات الحضور والانصراف تصدر بطاقة واحدة لكل موظف حتى يكون التقرير الشهري واضحًا لكل بطاقة.',
+          title: l.tr('screens_create_card_screen.121'),
+          message: l.tr('screens_create_card_screen.122'),
         );
         return;
       }
@@ -602,8 +606,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     });
     _setLoadingState(
       true,
-      headline: 'جارٍ حفظ الدفعة الأخيرة',
-      details: 'نحدّث بيانات الحساب ونجهز البطاقات لتظهر مباشرة في المخزون.',
+      headline: l.tr('screens_create_card_screen.123'),
+      details: l.tr('screens_create_card_screen.124'),
     );
     await _load();
     _setLoadingState(false);
@@ -625,8 +629,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     for (var attempt = 0; attempt < 2; attempt++) {
       _setLoadingState(
         true,
-        headline: 'جارٍ إنشاء البطاقات',
-        details: 'قد يستغرق الأمر قليلًا مع ضعف الإنترنت. نتابع العملية الآن.',
+        headline: l.tr('screens_create_card_screen.125'),
+        details: l.tr('screens_create_card_screen.126'),
       );
       try {
         final cards = await _apiService.issueCards(
@@ -681,6 +685,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     double amount,
     int quantity,
   ) async {
+    final l = context.loc;
     var securityResult = await TransferSecurityService.confirmTransfer(context);
     if (!mounted || !securityResult.isVerified) {
       return null;
@@ -707,8 +712,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     for (var attempt = 0; attempt < 2; attempt++) {
       _setLoadingState(
         true,
-        headline: 'جارٍ إنشاء البطاقات التجريبية',
-        details: 'نجهز الدفعة ونحفظها لحسابك مع متابعة الاتصال الحالي.',
+        headline: l.tr('screens_create_card_screen.127'),
+        details: l.tr('screens_create_card_screen.128'),
       );
       try {
         final cards = await _apiService.issueTrialCards(
@@ -741,7 +746,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
         await AppAlertService.showError(
           context,
-          title: 'تعذر إصدار البطاقات التجريبية',
+          title: l.tr('screens_create_card_screen.129'),
           message: message,
         );
         return null;

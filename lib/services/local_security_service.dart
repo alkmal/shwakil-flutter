@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +7,8 @@ import 'package:cryptography/cryptography.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+
+import '../localization/app_localization.dart';
 
 class LocalSecurityService {
   LocalSecurityService._();
@@ -84,16 +88,29 @@ class LocalSecurityService {
   }
 
   static Future<String> currentDeviceLabel() async {
+    final l = AppLocalizer(
+      AppLocaleService.instance.locale ?? const Locale('ar'),
+    );
     if (kIsWeb) {
-      return 'متصفح ويب';
+      return l.tr('services_local_security_service.device_web');
     }
     return switch (defaultTargetPlatform) {
-      TargetPlatform.android => 'جهاز أندرويد',
-      TargetPlatform.iOS => 'جهاز آيفون / آيباد',
-      TargetPlatform.windows => 'جهاز ويندوز',
-      TargetPlatform.macOS => 'جهاز ماك',
-      TargetPlatform.linux => 'جهاز لينكس',
-      TargetPlatform.fuchsia => 'جهاز فوشيا',
+      TargetPlatform.android => l.tr(
+        'services_local_security_service.device_android',
+      ),
+      TargetPlatform.iOS => l.tr('services_local_security_service.device_ios'),
+      TargetPlatform.windows => l.tr(
+        'services_local_security_service.device_windows',
+      ),
+      TargetPlatform.macOS => l.tr(
+        'services_local_security_service.device_macos',
+      ),
+      TargetPlatform.linux => l.tr(
+        'services_local_security_service.device_linux',
+      ),
+      TargetPlatform.fuchsia => l.tr(
+        'services_local_security_service.device_fuchsia',
+      ),
     };
   }
 

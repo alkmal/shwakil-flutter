@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../localization/app_localization.dart';
 import 'app_config.dart';
 import 'network_client_service.dart';
 
@@ -48,10 +49,15 @@ class AppVersionService {
     bool includeJsonContentType = false,
   }) async {
     final info = await _packageInfo();
+    final locale = AppLocaleService.instance.locale?.languageCode == 'en'
+        ? 'en'
+        : 'ar';
     return {
       'Accept': 'application/json',
+      'Accept-Language': locale,
       if (includeJsonContentType) 'Content-Type': 'application/json',
       'X-Requested-With': 'shwakil-flutter-client',
+      'X-App-Locale': locale,
       'X-App-Version': info.version.trim(),
       'X-App-Build': info.buildNumber.trim(),
       'X-App-Platform': _platformLabel,

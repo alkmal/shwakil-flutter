@@ -1748,8 +1748,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               const SizedBox(height: 20),
               for (final group in PermissionCatalog.groups) ...[
                 _buildPermissionSectionCard(
-                  title: group['title']!.toString(),
-                  icon: _permissionGroupIcon(group['title']!.toString()),
+                  title: PermissionCatalog.groupTitle(context, group),
+                  icon: IconData(
+                    group['icon']! as int,
+                    fontFamily: 'MaterialIcons',
+                  ),
                   permissionKeys: List<String>.from(group['keys']! as List)
                       .where(
                         (key) =>
@@ -1780,14 +1783,6 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       'canReviewDevices',
       'canExportCustomerTransactions',
     }.contains(key);
-  }
-
-  IconData _permissionGroupIcon(String title) {
-    if (title.contains('إصدار')) return Icons.credit_card_rounded;
-    if (title.contains('قراءة')) return Icons.qr_code_scanner_rounded;
-    if (title.contains('المحفظة')) return Icons.account_balance_wallet_rounded;
-    if (title.contains('الإدارة')) return Icons.admin_panel_settings_rounded;
-    return Icons.person_outline_rounded;
   }
 
   Widget _permissionHintChip(IconData icon, String label) {

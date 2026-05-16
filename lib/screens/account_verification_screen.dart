@@ -261,13 +261,13 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
     return [
       _VerificationRequirement(
-        label: 'رفع صورة الهوية',
+        label: l.tr('screens_account_verification_screen.118'),
         completed: _hasIdentityImage,
         highlighted: needsRefreshUploads || !_hasIdentityImage,
         icon: Icons.badge_rounded,
       ),
       _VerificationRequirement(
-        label: 'رفع صورة السيلفي مع الهوية',
+        label: l.tr('screens_account_verification_screen.119'),
         completed: _hasSelfieImage,
         highlighted: needsRefreshUploads || !_hasSelfieImage,
         icon: Icons.face_rounded,
@@ -279,13 +279,13 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         icon: Icons.person_rounded,
       ),
       _VerificationRequirement(
-        label: 'إدخال رقم الهوية',
+        label: l.tr('screens_account_verification_screen.120'),
         completed: _hasNationalId,
         highlighted: !_hasNationalId,
         icon: Icons.credit_card_rounded,
       ),
       _VerificationRequirement(
-        label: 'اختيار تاريخ ميلاد صحيح',
+        label: l.tr('screens_account_verification_screen.121'),
         completed: _hasValidBirthDate,
         highlighted: !_hasValidBirthDate,
         icon: Icons.cake_rounded,
@@ -588,13 +588,19 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _requirementChip(Icons.badge_rounded, 'الهوية واضحة وكاملة'),
+              _requirementChip(
+                Icons.badge_rounded,
+                l.tr('screens_account_verification_screen.122'),
+              ),
               _requirementChip(
                 Icons.face_rounded,
-                'السيلفي يظهر الوجه والهوية',
+                l.tr('screens_account_verification_screen.123'),
               ),
               _requirementChip(Icons.image_rounded, 'JPG / PNG / WEBP'),
-              _requirementChip(Icons.speed_rounded, 'الضغط يتم تلقائيًا'),
+              _requirementChip(
+                Icons.speed_rounded,
+                l.tr('screens_account_verification_screen.124'),
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -844,7 +850,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                     onPressed: onClear,
                     icon: const Icon(Icons.delete_outline_rounded, size: 20),
                     color: AppTheme.error,
-                    tooltip: 'حذف الصورة',
+                    tooltip: l.tr('screens_account_verification_screen.125'),
                     visualDensity: VisualDensity.compact,
                   ),
                 ],
@@ -883,9 +889,13 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     List<_VerificationRequirement> requirements,
   ) {
     final pendingCount = requirements.where((item) => !item.completed).length;
+    final l = context.loc;
     final title = pendingCount == 0
-        ? 'الطلب جاهز للإرسال'
-        : 'المتبقي قبل الإرسال: $pendingCount';
+        ? l.tr('screens_account_verification_screen.126')
+        : l.tr(
+            'screens_account_verification_screen.127',
+            params: {'count': pendingCount.toString()},
+          );
     final accent = pendingCount == 0 ? AppTheme.success : AppTheme.warning;
 
     return Container(
@@ -900,7 +910,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            status == 'rejected' ? 'راجع هذه العناصر قبل إعادة الإرسال' : title,
+            status == 'rejected'
+                ? l.tr('screens_account_verification_screen.128')
+                : title,
             style: AppTheme.bodyBold.copyWith(color: accent),
           ),
           const SizedBox(height: 10),
@@ -960,7 +972,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               ),
             ),
             Text(
-              item.completed ? 'مكتمل' : 'مطلوب',
+              item.completed
+                  ? context.loc.tr('screens_account_verification_screen.129')
+                  : context.loc.tr('screens_account_verification_screen.130'),
               style: AppTheme.caption.copyWith(
                 color: item.completed
                     ? AppTheme.success

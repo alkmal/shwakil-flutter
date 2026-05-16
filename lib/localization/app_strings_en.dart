@@ -6,6 +6,299 @@ const Map<String, String> appStringsEn = {
   'main.004': 'Connection restored',
   'main.005':
       'The connection to services is back and you can continue normally.',
+  'main.006': 'Digital cards and internal balance for everyday use',
+  'main.007': 'Required app update',
+  'main.008': 'A new update is available',
+  'main.009':
+      'Your current version is no longer supported. Update the app before continuing.',
+  'main.010':
+      'A newer app version is available. Updating is recommended for better performance and security improvements.',
+  'main.011': 'Your current version',
+  'main.012': 'Minimum allowed version',
+  'main.013': 'Currently supported version',
+  'main.014': 'Latest version',
+  'main.015': 'Open update page',
+  'main.016': 'Update link unavailable',
+  'main.017': 'I updated, check again',
+  'main.018': 'Check again',
+  'shared.cancel': 'Cancel',
+  'shared.back': 'Back',
+  'shared.save': 'Save',
+  'screens_prepaid_multipay_cards_screen.001': 'Could not load cards',
+  'screens_prepaid_multipay_cards_screen.002': 'Reload card',
+  'screens_prepaid_multipay_cards_screen.003': 'Reload amount',
+  'screens_prepaid_multipay_cards_screen.004': 'Reload',
+  'screens_prepaid_multipay_cards_screen.005': 'Invalid amount',
+  'screens_prepaid_multipay_cards_screen.006':
+      'Enter a reload amount greater than zero.',
+  'screens_prepaid_multipay_cards_screen.007': 'Card reloaded',
+  'screens_prepaid_multipay_cards_screen.008':
+      '{amount} was added to the selected card.',
+  'screens_prepaid_multipay_cards_screen.009': 'Could not reload card',
+  'screens_prepaid_multipay_cards_screen.010':
+      'Prepaid card is available once',
+  'screens_prepaid_multipay_cards_screen.011':
+      'You can create only one prepaid card from your account. If you need more cards, contact administration.',
+  'screens_prepaid_multipay_cards_screen.012': 'Add prepaid card',
+  'screens_prepaid_multipay_cards_screen.013': 'Card name',
+  'screens_prepaid_multipay_cards_screen.014': 'Card amount',
+  'screens_prepaid_multipay_cards_screen.015': 'Card code',
+  'screens_prepaid_multipay_cards_screen.016': 'Card duration',
+  'screens_prepaid_multipay_cards_screen.017': 'Add card',
+  'screens_prepaid_multipay_cards_screen.018': 'Card name is required',
+  'screens_prepaid_multipay_cards_screen.019':
+      'Enter a clear card name before continuing.',
+  'screens_prepaid_multipay_cards_screen.020': 'Invalid data',
+  'screens_prepaid_multipay_cards_screen.021':
+      'Enter an amount greater than zero and a 3-digit code.',
+  'screens_prepaid_multipay_cards_screen.022': 'Card added',
+  'screens_prepaid_multipay_cards_screen.023':
+      'The prepaid card was created and sent for review.',
+  'screens_prepaid_multipay_cards_screen.024': 'Could not create card',
+  'screens_prepaid_multipay_cards_screen.025': 'Renew card',
+  'screens_prepaid_multipay_cards_screen.026':
+      'The card will be renewed for one year from today and administration will be notified.',
+  'screens_prepaid_multipay_cards_screen.027': 'Renew one year',
+  'screens_prepaid_multipay_cards_screen.028': 'Card renewed',
+  'screens_prepaid_multipay_cards_screen.029':
+      'The card validity was extended by one year and administration was notified.',
+  'screens_prepaid_multipay_cards_screen.030': 'Could not renew card',
+  'screens_prepaid_multipay_cards_screen.031': 'Freeze',
+  'screens_prepaid_multipay_cards_screen.032': 'Activate',
+  'screens_prepaid_multipay_cards_screen.033': 'Cancel',
+  'screens_prepaid_multipay_cards_screen.034': 'Update',
+  'screens_prepaid_multipay_cards_screen.035': '{action} card',
+  'screens_prepaid_multipay_cards_screen.036':
+      'The card will be cancelled and the remaining balance returned to your account.',
+  'screens_prepaid_multipay_cards_screen.037':
+      'Do you want to perform this action now?',
+  'screens_prepaid_multipay_cards_screen.038': 'Could not update card',
+  'screens_prepaid_multipay_cards_screen.039': 'Edit card',
+  'screens_prepaid_multipay_cards_screen.040':
+      'Enter a clear card name before saving.',
+  'screens_prepaid_multipay_cards_screen.041': 'Card updated',
+  'screens_prepaid_multipay_cards_screen.042':
+      'The card name and validity duration were saved.',
+  'screens_prepaid_multipay_cards_screen.043': 'Could not edit card',
+  'screens_prepaid_multipay_cards_screen.044': 'One year',
+  'screens_prepaid_multipay_cards_screen.045': 'Two years',
+  'screens_prepaid_multipay_cards_screen.046': 'Three years',
+  'screens_prepaid_multipay_cards_screen.047': 'Four years',
+  'screens_prepaid_multipay_cards_screen.048': 'Five years',
+  'screens_prepaid_multipay_cards_screen.049': '{years} years',
+  'screens_prepaid_multipay_cards_screen.050': 'Prepaid cards',
+  'screens_prepaid_multipay_cards_screen.051': 'Cards list',
+  'screens_prepaid_multipay_cards_screen.052':
+      'Tap any card to view details, payment, and barcode.',
+  'screens_prepaid_multipay_cards_screen.053':
+      'Your account allows {limit}. If you need more cards, administration can add them for you.',
+  'screens_prepaid_multipay_cards_screen.054': 'one prepaid card only',
+  'screens_prepaid_multipay_cards_screen.055':
+      'a limited number of prepaid cards',
+  'screens_prepaid_multipay_cards_screen.056': 'Card details',
+  'screens_prepaid_multipay_cards_screen.057':
+      'These cards are shown from the copy saved on this device. You can view the card, barcode, and prepare contactless payment if this device was previously authorized.',
+  'screens_prepaid_multipay_cards_screen.058': 'Current balance',
+  'screens_prepaid_multipay_cards_screen.059': 'Total loaded',
+  'screens_prepaid_multipay_cards_screen.060': 'Spent',
+  'screens_prepaid_multipay_cards_screen.061': 'Status',
+  'screens_prepaid_multipay_cards_screen.062': 'Daily usage',
+  'screens_prepaid_multipay_cards_screen.063':
+      'Activate card on this device',
+  'screens_prepaid_multipay_cards_screen.064':
+      'Activate the card once on your device so it is ready quickly for Shwakil contactless payments.',
+  'screens_prepaid_multipay_cards_screen.065': 'Activating',
+  'screens_prepaid_multipay_cards_screen.066': 'Hide number',
+  'screens_prepaid_multipay_cards_screen.067': 'Show number',
+  'screens_prepaid_multipay_cards_screen.068': 'View for payment',
+  'screens_prepaid_multipay_cards_screen.069': 'Print card',
+  'screens_prepaid_multipay_cards_screen.070': 'Preparing',
+  'screens_prepaid_multipay_cards_screen.071':
+      'Use for contactless payment',
+  'screens_prepaid_multipay_cards_screen.072': 'Saving',
+  'screens_prepaid_multipay_cards_screen.073': 'Save to tag',
+  'screens_prepaid_multipay_cards_screen.074': 'Unlink device',
+  'screens_prepaid_multipay_cards_screen.075': 'Accept contactless payment',
+  'screens_prepaid_multipay_cards_screen.076': 'Accept barcode payment',
+  'screens_prepaid_multipay_cards_screen.077': 'Reloading',
+  'screens_prepaid_multipay_cards_screen.078': 'Change code',
+  'screens_prepaid_multipay_cards_screen.079': 'Hide card details',
+  'screens_prepaid_multipay_cards_screen.080': 'Activity log',
+  'screens_prepaid_multipay_cards_screen.081': 'All',
+  'screens_prepaid_multipay_cards_screen.082': 'Payments',
+  'screens_prepaid_multipay_cards_screen.083': 'Security',
+  'screens_prepaid_multipay_cards_screen.084':
+      'There is no activity on this card yet.',
+  'screens_prepaid_multipay_cards_screen.085': 'Payment activity only',
+  'permission_catalog.group_general': 'General and Account',
+  'permission_catalog.group_card_issuance': 'Card Issuance',
+  'permission_catalog.group_card_reading': 'Card Reading and Review',
+  'permission_catalog.group_wallet': 'Wallet, Payments, and Printing',
+  'permission_catalog.group_admin': 'Administration and Review',
+  'permission_catalog.label.canViewBalance': 'View balance',
+  'permission_catalog.label.canViewTransactions': 'View transactions',
+  'permission_catalog.label.canViewInventory': 'View inventory',
+  'permission_catalog.label.canViewContact': 'View contact page',
+  'permission_catalog.label.canViewLocations': 'View locations',
+  'permission_catalog.label.canViewUsagePolicy': 'View usage policy',
+  'permission_catalog.label.canViewSecuritySettings': 'View security settings',
+  'permission_catalog.label.canViewAccountSettings': 'View account settings',
+  'permission_catalog.label.canRequestVerification': 'Request verification',
+  'permission_catalog.label.canViewAffiliateCenter': 'View affiliate center',
+  'permission_catalog.label.canTransfer': 'Transfer balance',
+  'permission_catalog.label.canWithdraw': 'Request withdrawal',
+  'permission_catalog.label.canRedeemCards': 'Redeem card balance',
+  'permission_catalog.label.canIssueCards': 'Issue cards',
+  'permission_catalog.label.canIssueSubShekelCards': 'Issue low-value cards',
+  'permission_catalog.label.canIssueHighValueCards': 'Issue high-value cards',
+  'permission_catalog.label.canIssuePrivateCards': 'Issue private cards',
+  'permission_catalog.label.canIssueSingleUseTickets':
+      'Issue single-use tickets',
+  'permission_catalog.label.canIssueAppointmentTickets':
+      'Issue appointment tickets',
+  'permission_catalog.label.canIssueQueueTickets': 'Issue queue tickets',
+  'permission_catalog.label.canScanCards': 'Scan cards',
+  'permission_catalog.label.canOfflineCardScan': 'Offline card scan',
+  'permission_catalog.label.canReviewCards': 'Review cards',
+  'permission_catalog.label.canViewPrivateCards': 'View private cards',
+  'permission_catalog.label.canReadOwnPrivateCardsOnly':
+      'Read own private cards only',
+  'permission_catalog.label.canDeleteCards': 'Delete cards',
+  'permission_catalog.label.canResellCards': 'Resell cards',
+  'permission_catalog.label.canRequestCardPrinting': 'Request card printing',
+  'permission_catalog.label.canManageCardPrintRequests':
+      'Manage card print requests',
+  'permission_catalog.label.canUsePrepaidMultipayCards':
+      'Use prepaid multipay cards',
+  'permission_catalog.label.canAcceptPrepaidMultipayPayments':
+      'Accept prepaid multipay payments',
+  'permission_catalog.label.canUsePrepaidMultipayNfc':
+      'Use NFC for prepaid cards',
+  'permission_catalog.label.canViewCustomers': 'View users',
+  'permission_catalog.label.canLookupMembers': 'Look up members',
+  'permission_catalog.label.canManageUsers': 'Manage users',
+  'permission_catalog.label.canFinanceTopup': 'Top up user balances',
+  'permission_catalog.label.canReviewTopups': 'Review topups',
+  'permission_catalog.label.canReviewWithdrawals': 'Review withdrawals',
+  'permission_catalog.label.canReviewDevices': 'Review devices',
+  'permission_catalog.label.canManageMarketingAccounts':
+      'Manage marketing accounts',
+  'permission_catalog.label.canViewSubUsers': 'View sub-users',
+  'permission_catalog.label.canManageSubUsers': 'Manage sub-users',
+  'permission_catalog.label.canManageLocations': 'Manage locations',
+  'permission_catalog.label.canManageSystemSettings': 'Manage system settings',
+  'permission_catalog.label.canManageDebtBook': 'Manage debt book',
+  'permission_catalog.label.canExportCustomerTransactions':
+      'Export user transactions',
+  'permission_catalog.description.canViewBalance':
+      'Show the account balance in the app.',
+  'permission_catalog.description.canViewTransactions':
+      'Allow viewing the financial transaction history.',
+  'permission_catalog.description.canViewInventory':
+      'Allow viewing account inventory.',
+  'permission_catalog.description.canTransfer': 'Allow balance transfers.',
+  'permission_catalog.description.canWithdraw':
+      'Allow creating wallet withdrawal requests.',
+  'permission_catalog.description.canRedeemCards':
+      'Approve a card and convert its value into balance.',
+  'permission_catalog.description.canIssueCards': 'Create new cards.',
+  'permission_catalog.description.canIssueSubShekelCards':
+      'Allow issuing very low-value cards.',
+  'permission_catalog.description.canIssueHighValueCards':
+      'Allow issuing high-value cards.',
+  'permission_catalog.description.canIssuePrivateCards':
+      'Allow issuing private cards.',
+  'permission_catalog.description.canIssueSingleUseTickets':
+      'Allow issuing single-use tickets.',
+  'permission_catalog.description.canIssueAppointmentTickets':
+      'Allow issuing appointment tickets.',
+  'permission_catalog.description.canIssueQueueTickets':
+      'Allow issuing queue tickets.',
+  'permission_catalog.description.canScanCards': 'Allow card scanning.',
+  'permission_catalog.description.canOfflineCardScan':
+      'Allow scanning without connection and syncing later.',
+  'permission_catalog.description.canReviewCards':
+      'Allow reviewing card activity.',
+  'permission_catalog.description.canViewPrivateCards':
+      'Allow viewing private cards.',
+  'permission_catalog.description.canReadOwnPrivateCardsOnly':
+      'Restrict use to this account’s own private cards.',
+  'permission_catalog.description.canDeleteCards':
+      'Allow deleting cards subject to system rules.',
+  'permission_catalog.description.canResellCards':
+      'Reactivate or resell a used card.',
+  'permission_catalog.description.canRequestCardPrinting':
+      'Create card print requests.',
+  'permission_catalog.description.canManageCardPrintRequests':
+      'Manage, approve, prepare, and deliver print requests.',
+  'permission_catalog.description.canUsePrepaidMultipayCards':
+      'Use prepaid multipay cards in the app.',
+  'permission_catalog.description.canAcceptPrepaidMultipayPayments':
+      'Accept prepaid multipay payments as a merchant.',
+  'permission_catalog.description.canUsePrepaidMultipayNfc':
+      'Enable prepaid payments through NFC.',
+  'permission_catalog.description.canViewCustomers':
+      'Access the user list in the admin panel.',
+  'permission_catalog.description.canLookupMembers':
+      'Search members by name or phone.',
+  'permission_catalog.description.canManageUsers':
+      'Edit user accounts and permissions.',
+  'permission_catalog.description.canFinanceTopup':
+      'Top up user balances from a finance account.',
+  'permission_catalog.description.canReviewTopups':
+      'Review, approve, or reject topup requests.',
+  'permission_catalog.description.canReviewWithdrawals':
+      'Review, approve, or reject withdrawal requests.',
+  'permission_catalog.description.canReviewDevices':
+      'Review and approve devices linked to accounts.',
+  'permission_catalog.description.canManageMarketingAccounts':
+      'Manage marketing accounts and commissions.',
+  'permission_catalog.description.canViewSubUsers':
+      'View sub-users linked to the account.',
+  'permission_catalog.description.canManageSubUsers':
+      'Create and edit sub-users.',
+  'permission_catalog.description.canManageLocations':
+      'Manage approved branches and locations.',
+  'permission_catalog.description.canManageSystemSettings':
+      'Edit general system settings.',
+  'permission_catalog.description.canManageDebtBook': 'Manage the debt book.',
+  'permission_catalog.description.canExportCustomerTransactions':
+      'Export user transactions.',
+  'services_local_security_service.device_web': 'Web browser',
+  'services_local_security_service.device_android': 'Android device',
+  'services_local_security_service.device_ios': 'iPhone / iPad',
+  'services_local_security_service.device_windows': 'Windows device',
+  'services_local_security_service.device_macos': 'Mac device',
+  'services_local_security_service.device_linux': 'Linux device',
+  'services_local_security_service.device_fuchsia': 'Fuchsia device',
+  'services_offline_card_service.pending_lookup':
+      'Waiting for verification when internet is available.',
+  'services_offline_card_service.max_count_reached':
+      'You reached the maximum number of cards in offline mode. Connect to the internet and sync before continuing.',
+  'services_offline_card_service.max_amount_reached':
+      'You reached the pending card balance limit in offline mode. Connect to the internet and sync before scanning more cards.',
+  'shared.role_support': 'Support',
+  'shared.role_admin': 'Admin',
+  'shared.role_basic': 'Basic',
+  'shared.role_restricted': 'Restricted',
+  'shared.role_user': 'User',
+  'widgets_admin_admin_customer_card.010': 'Send OTP',
+  'widgets_admin_admin_customer_card.011': 'App earnings',
+  'screens_account_verification_screen.118': 'Upload ID image',
+  'screens_account_verification_screen.119': 'Upload selfie with ID',
+  'screens_account_verification_screen.120': 'Enter national ID number',
+  'screens_account_verification_screen.121': 'Choose a valid birth date',
+  'screens_account_verification_screen.122': 'Clear and complete ID',
+  'screens_account_verification_screen.123': 'Selfie shows face and ID',
+  'screens_account_verification_screen.124': 'Compression is automatic',
+  'screens_account_verification_screen.125': 'Delete image',
+  'screens_account_verification_screen.126': 'The request is ready to submit',
+  'screens_account_verification_screen.127':
+      'Remaining before submission: {count}',
+  'screens_account_verification_screen.128':
+      'Review these items before resubmitting',
+  'screens_account_verification_screen.129': 'Complete',
+  'screens_account_verification_screen.130': 'Required',
   'screens_account_settings_screen.001': 'Saved',
   'screens_account_settings_screen.002': 'Could not save',
   'screens_account_settings_screen.003': 'Missing data',
@@ -1525,6 +1818,64 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.085': 'Invalid validity window',
   'screens_create_card_screen.086':
       'The validity end time must be after the start time.',
+  'screens_create_card_screen.087': 'Subscription card',
+  'screens_create_card_screen.088': 'Attendance card',
+  'screens_create_card_screen.089':
+      'Private card for a service or entry without monetary value.',
+  'screens_create_card_screen.090':
+      'Delivery card with usable balance for handoff.',
+  'screens_create_card_screen.091':
+      'Timed appointment ticket that can include instructions.',
+  'screens_create_card_screen.092':
+      'Queue or service ticket with clear organization data.',
+  'screens_create_card_screen.093':
+      'Time-limited subscription card; scans show whether the subscription is active or expired.',
+  'screens_create_card_screen.094':
+      'One card per employee for check-in/check-out and monthly reporting.',
+  'screens_create_card_screen.095':
+      'Standard balance card suitable for general use.',
+  'screens_create_card_screen.096': 'Required appointment details',
+  'screens_create_card_screen.097': 'Queue ticket details',
+  'screens_create_card_screen.098': 'Subscription details',
+  'screens_create_card_screen.099': 'Attendance details',
+  'screens_create_card_screen.100': 'Card details',
+  'screens_create_card_screen.101': 'Appointment title',
+  'screens_create_card_screen.102': 'Service or queue name',
+  'screens_create_card_screen.103': 'Subscription name',
+  'screens_create_card_screen.104': 'Employee name',
+  'screens_create_card_screen.105': 'Title',
+  'screens_create_card_screen.106': 'Location',
+  'screens_create_card_screen.107': 'Location or department',
+  'screens_create_card_screen.108': 'Branch or organization',
+  'screens_create_card_screen.109': 'Department or work location',
+  'screens_create_card_screen.110': 'Notes or instructions',
+  'screens_create_card_screen.111': 'Employee number or link reference',
+  'screens_create_card_screen.112': 'Additional notes',
+  'screens_create_card_screen.113': 'Choose card type',
+  'screens_create_card_screen.114':
+      'Select the card type first so creation and payment details can appear.',
+  'screens_create_card_screen.115': 'Incomplete subscription data',
+  'screens_create_card_screen.116':
+      'Enter the subscription name before issuing the card.',
+  'screens_create_card_screen.117': 'Subscription duration is required',
+  'screens_create_card_screen.118':
+      'Select the subscription start and end before issuing the card.',
+  'screens_create_card_screen.119': 'Incomplete attendance data',
+  'screens_create_card_screen.120':
+      'Enter the employee name or attendance card title.',
+  'screens_create_card_screen.121': 'One card per employee',
+  'screens_create_card_screen.122':
+      'Attendance cards issue one card per employee so the monthly report stays clear for each card.',
+  'screens_create_card_screen.123': 'Saving the latest batch',
+  'screens_create_card_screen.124':
+      'Updating account data and preparing cards so they appear directly in inventory.',
+  'screens_create_card_screen.125': 'Creating cards',
+  'screens_create_card_screen.126':
+      'This may take a little while on a weak connection. The process is still running.',
+  'screens_create_card_screen.127': 'Creating trial cards',
+  'screens_create_card_screen.128':
+      'Preparing the batch and saving it to your account while tracking the current connection.',
+  'screens_create_card_screen.129': 'Could not issue trial cards',
   'screens_contact_us_screen.001': 'Support phone number',
   'screens_contact_us_screen.002': 'Official email',
   'screens_contact_us_screen.003': 'Head office',
@@ -2975,7 +3326,6 @@ const Map<String, String> appStringsEn = {
   'shared.rejection_reason_required':
       'A rejection reason is required before you continue.',
   'shared.confirm_rejection': 'Confirm rejection',
-  'shared.role_basic': 'User',
   'shared.role_driver': 'Driver',
   'shared.role_verified_member': 'Merchant',
   'shared.role_advanced_member': 'Merchant',
@@ -3253,4 +3603,48 @@ const Map<String, String> appStringsEn = {
   'screens_admin_customers_screen.056':
       'Use search to reach a customer quickly, then open their page to review profile data, permissions, and financial actions from one place.',
   'screens_admin_customers_screen.057': 'Run search',
+  'screens_scan_card_screen.184': 'Auto redeem cannot be disabled',
+  'screens_scan_card_screen.185':
+      'This option cannot be disabled. Disabling auto redeem is available for verified accounts.',
+  'screens_scan_card_screen.186':
+      'Auto redeem was enabled by administration and can only be disabled after contacting administration.',
+  'screens_scan_card_screen.187': 'Enable auto redeem',
+  'screens_scan_card_screen.188':
+      'After enabling, any card will be redeemed immediately when scanned and marked as used without an extra confirmation step.',
+  'screens_scan_card_screen.189': 'Confirm with biometrics',
+  'screens_scan_card_screen.190': 'Biometrics unavailable',
+  'screens_scan_card_screen.191':
+      'Enable biometrics on this device before using auto redeem.',
+  'screens_scan_card_screen.192': 'Not enabled',
+  'screens_scan_card_screen.193':
+      'Biometrics were not confirmed, so manual redeem remains active.',
+  'screens_scan_card_screen.194': 'Auto redeem on scan was enabled.',
+  'screens_scan_card_screen.195': 'Auto redeem on scan was disabled.',
+  'screens_scan_card_screen.196': 'Could not update auto redeem',
+  'screens_scan_card_screen.197':
+      'You do not have prepared local balance for temporary codes. Open this screen while online to prepare it, then you can create codes offline.',
+  'screens_scan_card_screen.198':
+      'This feature is available for accounts with balance transfer permission. Contact administration if it is not enabled for your account.',
+  'screens_scan_card_screen.199':
+      'Enter the amount you want to receive. The code stays valid for one minute only.',
+  'screens_scan_card_screen.200': 'Example: 25',
+  'screens_scan_card_screen.201': 'Continue',
+  'screens_scan_card_screen.202': 'Prepaid card',
+  'screens_scan_card_screen.203':
+      'Redeeming prepaid cards requires a live internet connection.',
+  'screens_scan_card_screen.204': 'Approve payment',
+  'screens_scan_card_screen.205': 'Approve prepaid card payment',
+  'screens_scan_card_screen.206': 'Add payment amount',
+  'screens_scan_card_screen.207': 'Month',
+  'screens_scan_card_screen.208': 'Year',
+  'screens_scan_card_screen.209': 'Three-digit card code',
+  'screens_scan_card_screen.210':
+      'The operation will be approved from this scan screen and the balance will update immediately.',
+  'screens_scan_card_screen.211': 'Approve',
+  'screens_scan_card_screen.212': 'Incomplete data',
+  'screens_scan_card_screen.213':
+      'Enter the payment amount and the 3-digit verification code.',
+  'screens_scan_card_screen.214': 'Incomplete card data',
+  'screens_scan_card_screen.215':
+      'Could not determine this card expiry month and year.',
 };
