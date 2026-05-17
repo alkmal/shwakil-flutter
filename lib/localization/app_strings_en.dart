@@ -1290,6 +1290,11 @@ const Map<String, String> appStringsEn = {
   'screens_device_unlock_screen.013': 'Unlock with biometrics',
   'screens_device_unlock_screen.014':
       'Too many incorrect attempts. Try again after {seconds} seconds.',
+  'screens_device_unlock_screen.015': 'Could not load account permissions',
+  'screens_device_unlock_screen.016':
+      'Local unlock succeeded, but the permission data is incomplete. Sign in again to refresh the account.',
+  'screens_device_unlock_screen.017':
+      'Local unlock succeeded, but permissions could not be refreshed from the server. Check your connection and try again.',
   'screens_security_settings_screen.001': 'Device Security',
   'screens_security_settings_screen.002': 'Remove trust from this device',
   'screens_security_settings_screen.003': 'Protection settings',

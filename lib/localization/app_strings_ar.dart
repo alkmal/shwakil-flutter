@@ -1143,6 +1143,11 @@ const Map<String, String> appStringsAr = {
   'screens_device_unlock_screen.013': 'فتح عبر البصمة',
   'screens_device_unlock_screen.014':
       'تم إيقاف المحاولة مؤقتًا. حاول مرة أخرى بعد {seconds} ثانية.',
+  'screens_device_unlock_screen.015': 'تعذر تحميل صلاحيات الحساب',
+  'screens_device_unlock_screen.016':
+      'تم فتح الحماية المحلية، لكن بيانات الصلاحيات غير مكتملة. سجّل الدخول مرة أخرى لتحديث الحساب.',
+  'screens_device_unlock_screen.017':
+      'تم فتح الحماية المحلية، لكن تعذر تحديث صلاحياتك من السيرفر. تأكد من الاتصال ثم حاول مرة أخرى.',
   'screens_security_settings_screen.001': 'أمان الجهاز',
   'screens_security_settings_screen.002': 'إزالة الثقة من هذا الجهاز',
   'screens_security_settings_screen.003': 'إعدادات الحماية',

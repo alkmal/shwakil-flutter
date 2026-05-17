@@ -147,7 +147,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         await _redirectToLogin();
         return;
       }
-      await _applyUserSnapshot(user, isLoading: false);
+      final cachedHasPermissions = AuthService.hasPermissionSnapshot(user);
+      if (cachedHasPermissions) {
+        await _applyUserSnapshot(user, isLoading: false);
+      }
 
       try {
         final refreshed = await _authService.tryRefreshCurrentUser();
@@ -169,10 +172,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         await _redirectToLogin();
         return;
       }
+      if (!AuthService.hasPermissionSnapshot(user)) {
+        await _authService.logout();
+        await _redirectToLogin();
+        return;
+      }
       await _applyUserSnapshot(user, isLoading: false);
     } catch (_) {
       final user = await _authService.currentUser();
-      if (user == null) {
+      if (user == null || !AuthService.hasPermissionSnapshot(user)) {
         await _redirectToLogin();
         return;
       }
