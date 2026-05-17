@@ -74,6 +74,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     });
     final requestedPage = _page;
     try {
+      try {
+        await _authService.tryRefreshCurrentUser();
+      } catch (_) {}
       final user = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(user);
       if (!permissions.canReviewTopups) {

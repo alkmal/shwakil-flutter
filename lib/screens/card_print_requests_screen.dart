@@ -146,12 +146,13 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   String _cardTypeDescription(String cardType) {
+    final l = context.loc;
     return switch (cardType) {
-      'single_use' => 'تذكرة استخدام سريع تُطبع لمستفيدين محددين.',
-      'delivery' => 'بطاقة توصيل برصيد قابل للاستخدام مع طباعة جاهزة.',
-      'appointment' => 'تذكرة موعد بتاريخ ووقت وتعليمات واضحة.',
-      'queue' => 'تذكرة دور أو خدمة مع تفاصيل تنظيمية.',
-      _ => 'بطاقة رصيد عامة مناسبة للطباعة والاستخدام المعتاد.',
+      'single_use' => l.tr('screens_card_print_requests_screen.065'),
+      'delivery' => l.tr('screens_card_print_requests_screen.066'),
+      'appointment' => l.tr('screens_card_print_requests_screen.067'),
+      'queue' => l.tr('screens_card_print_requests_screen.068'),
+      _ => l.tr('screens_card_print_requests_screen.069'),
     };
   }
 
@@ -314,9 +315,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             if (!_isVerifiedAccount) {
               AppAlertService.showInfo(
                 dialogContext,
-                title: 'إضافة المستفيدين غير متاحة',
-                message:
-                    'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط.',
+                title: l.tr('screens_card_print_requests_screen.070'),
+                message: l.tr('screens_card_print_requests_screen.071'),
               );
               return;
             }
@@ -593,41 +593,46 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('ملخص الخصم والرسوم', style: AppTheme.bodyBold),
+                          Text(
+                            l.tr('screens_card_print_requests_screen.103'),
+                            style: AppTheme.bodyBold,
+                          ),
                           const SizedBox(height: 10),
                           _metaItem(
-                            'قيمة البطاقات',
+                            l.tr('screens_card_print_requests_screen.072'),
                             CurrencyFormatter.ils(faceAmount),
                           ),
                           const SizedBox(height: 8),
                           _metaItem(
-                            'رسوم الإصدار المخصومة الآن',
+                            l.tr('screens_card_print_requests_screen.073'),
                             CurrencyFormatter.ils(chargedIssueCostAmount),
                           ),
                           if (deferredIssueCostAmount > 0) ...[
                             const SizedBox(height: 8),
                             _metaItem(
-                              'رسوم الإصدار المؤجلة',
+                              l.tr('screens_card_print_requests_screen.074'),
                               CurrencyFormatter.ils(deferredIssueCostAmount),
                             ),
                           ],
                           if (feeAmount > 0) ...[
                             const SizedBox(height: 8),
                             _metaItem(
-                              'رسوم طلب الطباعة',
+                              l.tr('screens_card_print_requests_screen.021'),
                               CurrencyFormatter.ils(feeAmount),
                             ),
                           ],
                           const SizedBox(height: 8),
                           _metaItem(
-                            'إجمالي الخصم الآن',
+                            l.tr('screens_card_print_requests_screen.075'),
                             CurrencyFormatter.ils(totalAmount),
                           ),
                           const SizedBox(height: 10),
                           Text(
                             deferredIssueCostAmount > 0
-                                ? 'هذا النوع يحتفظ برسوم إصدار مؤجلة تُحسب عند استخدام البطاقة، بينما يظهر في هذا الطلب فقط ما سيُخصم الآن.'
-                                : 'هذا الملخص يوضح كامل المبلغ الذي سيُخصم الآن عند إرسال طلب الطباعة.',
+                                ? l.tr('screens_card_print_requests_screen.076')
+                                : l.tr(
+                                    'screens_card_print_requests_screen.077',
+                                  ),
                             style: AppTheme.caption.copyWith(fontSize: 12),
                           ),
                         ],
@@ -647,14 +652,14 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'بطاقة خاصة',
+                              l.tr('screens_card_print_requests_screen.078'),
                               style: AppTheme.bodyBold.copyWith(
                                 color: const Color(0xFFBE123C),
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'هذا النوع يطبع لمستفيدين محددين فقط، وستظهر تكلفة الإصدار ضمن طلب الطباعة.',
+                              l.tr('screens_card_print_requests_screen.079'),
                               style: AppTheme.caption.copyWith(
                                 color: const Color(0xFF9F1239),
                               ),
@@ -666,9 +671,13 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                   child: TextField(
                                     controller: allowedPhoneController,
                                     keyboardType: TextInputType.phone,
-                                    decoration: const InputDecoration(
-                                      labelText: 'رقم هاتف المستفيد',
-                                      prefixIcon: Icon(Icons.phone_rounded),
+                                    decoration: InputDecoration(
+                                      labelText: l.tr(
+                                        'screens_card_print_requests_screen.080',
+                                      ),
+                                      prefixIcon: const Icon(
+                                        Icons.phone_rounded,
+                                      ),
                                     ),
                                     onSubmitted: (_) => addAllowedPhone(),
                                   ),
@@ -677,7 +686,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                 IconButton.filledTonal(
                                   onPressed: addAllowedPhone,
                                   icon: const Icon(Icons.add_rounded),
-                                  tooltip: 'إضافة الرقم',
+                                  tooltip: l.tr(
+                                    'screens_card_print_requests_screen.081',
+                                  ),
                                 ),
                               ],
                             ),
@@ -740,8 +751,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                 icon: const Icon(Icons.group_add_rounded),
                                 label: Text(
                                   selectedUsers.isEmpty
-                                      ? 'اختيار المستفيدين'
-                                      : 'تعديل المستفيدين',
+                                      ? l.tr(
+                                          'screens_card_print_requests_screen.082',
+                                        )
+                                      : l.tr(
+                                          'screens_card_print_requests_screen.083',
+                                        ),
                                 ),
                               ),
                             ),
@@ -753,26 +768,30 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         controller: detailsTitleController,
                         decoration: InputDecoration(
                           labelText: cardType == 'appointment'
-                              ? 'عنوان الموعد'
+                              ? l.tr('screens_card_print_requests_screen.084')
                               : cardType == 'queue'
-                              ? 'اسم خدمة الطابور'
-                              : 'عنوان التذكرة',
+                              ? l.tr('screens_card_print_requests_screen.085')
+                              : l.tr('screens_card_print_requests_screen.086'),
                         ),
                       ),
                       const SizedBox(height: 12),
                       if (cardType == 'appointment') ...[
                         TextField(
                           controller: startsAtController,
-                          decoration: const InputDecoration(
-                            labelText: 'وقت بداية الموعد',
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_card_print_requests_screen.087',
+                            ),
                             hintText: '2026-05-01 09:00',
                           ),
                         ),
                         const SizedBox(height: 12),
                         TextField(
                           controller: endsAtController,
-                          decoration: const InputDecoration(
-                            labelText: 'وقت نهاية الموعد',
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_card_print_requests_screen.088',
+                            ),
                             hintText: '2026-05-01 09:30',
                           ),
                         ),
@@ -781,25 +800,35 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       if (cardType == 'appointment' || cardType == 'queue') ...[
                         TextField(
                           controller: detailsLocationController,
-                          decoration: const InputDecoration(
-                            labelText: 'الموقع أو الفرع',
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_card_print_requests_screen.089',
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
                       ],
                       TextField(
                         controller: validFromController,
-                        decoration: const InputDecoration(
-                          labelText: 'بداية الصلاحية',
-                          hintText: 'اختياري - 2026-05-01 08:00',
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_card_print_requests_screen.090',
+                          ),
+                          hintText: l.tr(
+                            'screens_card_print_requests_screen.091',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: validUntilController,
-                        decoration: const InputDecoration(
-                          labelText: 'نهاية الصلاحية',
-                          hintText: 'اختياري - 2026-05-01 18:00',
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_card_print_requests_screen.092',
+                          ),
+                          hintText: l.tr(
+                            'screens_card_print_requests_screen.093',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -807,8 +836,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         controller: detailsDescriptionController,
                         minLines: 2,
                         maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'تفاصيل إضافية',
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_card_print_requests_screen.094',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -820,8 +851,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         labelText: l.tr(
                           'screens_card_print_requests_screen.013',
                         ),
-                        helperText:
-                            'الحد الأدنى لهذا الحساب هو $_minimumCardQuantity بطاقة.',
+                        helperText: l.tr(
+                          'screens_card_print_requests_screen.095',
+                          params: {'count': '$_minimumCardQuantity'},
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -882,9 +915,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     if (!_isVerifiedAccount) {
       await AppAlertService.showInfo(
         dialogContext,
-        title: 'اختيار المستفيدين غير متاح',
-        message:
-            'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط ولا يمكن البحث عن مستخدمين آخرين.',
+        title: context.loc.tr('screens_card_print_requests_screen.096'),
+        message: context.loc.tr('screens_card_print_requests_screen.097'),
       );
       return current;
     }
@@ -932,14 +964,19 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('اختيار المستفيدين', style: AppTheme.h3),
+                    Text(
+                      context.loc.tr('screens_card_print_requests_screen.082'),
+                      style: AppTheme.h3,
+                    ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: searchController,
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'ابحث بالاسم أو رقم الهاتف',
-                        prefixIcon: Icon(Icons.search_rounded),
+                      decoration: InputDecoration(
+                        labelText: context.loc.tr(
+                          'screens_card_print_requests_screen.098',
+                        ),
+                        prefixIcon: const Icon(Icons.search_rounded),
                       ),
                       onChanged: searchUsers,
                     ),
@@ -1009,12 +1046,20 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('إلغاء'),
+                          child: Text(
+                            context.loc.tr(
+                              'screens_card_print_requests_screen.015',
+                            ),
+                          ),
                         ),
                         const Spacer(),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(context, selected),
-                          child: const Text('اعتماد'),
+                          child: Text(
+                            context.loc.tr(
+                              'screens_card_print_requests_screen.099',
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -1365,6 +1410,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Widget _buildRequestCard(Map<String, dynamic> request) {
+    final l = context.loc;
     final status = request['status']?.toString() ?? 'pending_review';
     final cardTypeLabel = _cardTypeLabel(
       context,
@@ -1441,7 +1487,13 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _requestInfoChip(Icons.layers_rounded, '$quantity بطاقة'),
+                      _requestInfoChip(
+                        Icons.layers_rounded,
+                        l.tr(
+                          'screens_card_print_requests_screen.030',
+                          params: {'count': '$quantity'},
+                        ),
+                      ),
                       _requestInfoChip(
                         Icons.account_balance_wallet_rounded,
                         totalAmount,
@@ -1449,7 +1501,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       if (hasFees)
                         _requestInfoChip(
                           Icons.receipt_long_rounded,
-                          'يشمل تفاصيل الرسوم',
+                          l.tr('screens_card_print_requests_screen.104'),
                         ),
                     ],
                   ),
@@ -1517,7 +1569,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('تفاصيل طلب الطباعة', style: AppTheme.h3),
+                      child: Text(
+                        l.tr('screens_card_print_requests_screen.100'),
+                        style: AppTheme.h3,
+                      ),
                     ),
                     _statusChip(
                       request['status']?.toString() ?? 'pending_review',
@@ -1558,17 +1613,17 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     ),
                     if (chargedIssueCostAmount > 0)
                       _metaItem(
-                        'رسوم الإصدار المخصومة الآن',
+                        l.tr('screens_card_print_requests_screen.073'),
                         CurrencyFormatter.ils(chargedIssueCostAmount),
                       ),
                     if (deferredIssueCostAmount > 0)
                       _metaItem(
-                        'رسوم الإصدار المؤجلة',
+                        l.tr('screens_card_print_requests_screen.074'),
                         CurrencyFormatter.ils(deferredIssueCostAmount),
                       ),
                     if (((request['feeAmount'] as num?)?.toDouble() ?? 0) > 0)
                       _metaItem(
-                        'رسوم طلب الطباعة',
+                        l.tr('screens_card_print_requests_screen.021'),
                         CurrencyFormatter.ils(
                           (request['feeAmount'] as num?)?.toDouble() ?? 0,
                         ),
@@ -1622,8 +1677,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       shadowLevel: ShwakelShadowLevel.none,
                       child: Text(
                         deferredIssueCostAmount > 0
-                            ? 'تم عرض الرسوم المخصومة الآن والرسوم المؤجلة بشكل منفصل حتى تعرف ما يدخل ضمن خصم الطلب وما يُحتسب لاحقًا عند الاستخدام.'
-                            : 'جميع رسوم الإصدار الخاصة بهذا الطلب تدخل ضمن الخصم الحالي الظاهر أمامك.',
+                            ? l.tr('screens_card_print_requests_screen.101')
+                            : l.tr('screens_card_print_requests_screen.102'),
                         style: AppTheme.bodyAction,
                       ),
                     ),

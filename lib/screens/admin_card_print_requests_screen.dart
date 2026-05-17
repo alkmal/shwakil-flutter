@@ -49,8 +49,8 @@ class _AdminCardPrintRequestsScreenState
     return switch (cardType) {
       'single_use' => l.tr('screens_admin_card_print_requests_screen.018'),
       'delivery' => l.tr('shared.delivery_card_label'),
-      'appointment' => 'تذكرة موعد',
-      'queue' => 'تذكرة طابور',
+      'appointment' => l.tr('screens_card_print_requests_screen.055'),
+      'queue' => l.tr('screens_card_print_requests_screen.056'),
       _ => l.tr('screens_admin_card_print_requests_screen.019'),
     };
   }
@@ -86,6 +86,9 @@ class _AdminCardPrintRequestsScreenState
     });
     final requestedPage = _page;
     try {
+      try {
+        await _authService.tryRefreshCurrentUser();
+      } catch (_) {}
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
       if (!permissions.canManageCardPrintRequests) {
@@ -283,7 +286,10 @@ class _AdminCardPrintRequestsScreenState
     final title =
         (printDesign['logoText']?.toString().trim().isNotEmpty == true)
         ? printDesign['logoText'].toString().trim()
-        : UserDisplayName.fromMap(request, fallback: 'شواكل');
+        : UserDisplayName.fromMap(
+            request,
+            fallback: context.loc.tr('main.001'),
+          );
     final settings = CardDesignSettings(
       showLogo: true,
       showStamp: printDesign['showStamp'] is bool
@@ -962,7 +968,9 @@ class _AdminCardPrintRequestsScreenState
                       ? null
                       : () => _showOverrideStatusDialog(request),
                   icon: const Icon(Icons.edit_rounded),
-                  label: const Text('تعديل الحالة'),
+                  label: Text(
+                    l.tr('screens_admin_card_print_requests_screen.052'),
+                  ),
                 ),
                 if (status == 'pending_review')
                   _actionButton(
@@ -976,19 +984,9 @@ class _AdminCardPrintRequestsScreenState
                     busy,
                     () => _handleAction(request, 'reject'),
                   ),
-                if (status == 'approved')
-                  _actionButton(
-                    l.tr('screens_admin_card_print_requests_screen.025'),
-                    busy,
-                    () => _handleAction(request, 'start'),
-                  ),
-                if (status == 'printing')
-                  _actionButton(
-                    l.tr('screens_admin_card_print_requests_screen.026'),
-                    busy,
-                    () => _handleAction(request, 'ready'),
-                  ),
-                if (status == 'ready')
+                if (status == 'approved' ||
+                    status == 'printing' ||
+                    status == 'ready')
                   _actionButton(
                     l.tr('screens_admin_card_print_requests_screen.027'),
                     busy,
@@ -1004,12 +1002,13 @@ class _AdminCardPrintRequestsScreenState
 
   Future<void> _showOverrideStatusDialog(Map<String, dynamic> request) async {
     final currentStatus = request['status']?.toString() ?? 'pending_review';
+    final l = context.loc;
     final controller = TextEditingController();
     String selected = currentStatus;
     final result = await showDialog<Map<String, String>?>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تعديل حالة الطلب'),
+        title: Text(l.tr('screens_admin_card_print_requests_screen.053')),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Column(
@@ -1017,23 +1016,48 @@ class _AdminCardPrintRequestsScreenState
             children: [
               DropdownButtonFormField<String>(
                 initialValue: selected,
-                decoration: const InputDecoration(labelText: 'الحالة الجديدة'),
-                items: const [
+                decoration: InputDecoration(
+                  labelText: l.tr(
+                    'screens_admin_card_print_requests_screen.054',
+                  ),
+                ),
+                items: [
                   DropdownMenuItem(
                     value: 'pending_review',
-                    child: Text('بانتظار المراجعة'),
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.005'),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'approved',
-                    child: Text('تمت الموافقة'),
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.006'),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'printing',
-                    child: Text('قيد الطباعة'),
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.007'),
+                    ),
                   ),
-                  DropdownMenuItem(value: 'ready', child: Text('جاهز للتسليم')),
-                  DropdownMenuItem(value: 'completed', child: Text('مكتمل')),
-                  DropdownMenuItem(value: 'rejected', child: Text('مرفوض')),
+                  DropdownMenuItem(
+                    value: 'ready',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.008'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'completed',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.009'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'rejected',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.010'),
+                    ),
+                  ),
                 ],
                 onChanged: (value) => selected = value ?? selected,
               ),
@@ -1042,8 +1066,10 @@ class _AdminCardPrintRequestsScreenState
                 controller: controller,
                 minLines: 2,
                 maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'ملاحظة للإدارة (اختياري)',
+                decoration: InputDecoration(
+                  labelText: l.tr(
+                    'screens_admin_card_print_requests_screen.055',
+                  ),
                 ),
               ),
             ],
@@ -1052,14 +1078,14 @@ class _AdminCardPrintRequestsScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إلغاء'),
+            child: Text(l.tr('screens_card_print_requests_screen.015')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, {
               'status': selected,
               'notes': controller.text,
             }),
-            child: const Text('حفظ'),
+            child: Text(l.tr('screens_admin_card_print_requests_screen.056')),
           ),
         ],
       ),
@@ -1094,7 +1120,9 @@ class _AdminCardPrintRequestsScreenState
       if (!mounted) return;
       AppAlertService.showSuccess(
         context,
-        message: res['message']?.toString() ?? 'تم تحديث حالة الطلب.',
+        message:
+            res['message']?.toString() ??
+            l.tr('screens_admin_card_print_requests_screen.057'),
       );
     } catch (e) {
       if (!mounted) return;

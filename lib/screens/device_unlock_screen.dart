@@ -156,6 +156,18 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   Future<void> _completeUnlock() async {
     await LocalSecurityService.skipNextUnlock();
     await LocalSecurityService.clearRelockRequirement();
+    try {
+      await _auth.tryRefreshCurrentUser();
+    } catch (error) {
+      if (ErrorMessageService.requiresFreshLogin(error)) {
+        await _auth.logout();
+        if (!mounted) {
+          return;
+        }
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        return;
+      }
+    }
     await RealtimeNotificationService.start();
     await LocalSecurityService.clearSecuritySetupRequirement();
     if (!mounted) {

@@ -35,8 +35,7 @@ const Map<String, String> appStringsEn = {
   'screens_prepaid_multipay_cards_screen.008':
       '{amount} was added to the selected card.',
   'screens_prepaid_multipay_cards_screen.009': 'Could not reload card',
-  'screens_prepaid_multipay_cards_screen.010':
-      'Prepaid card is available once',
+  'screens_prepaid_multipay_cards_screen.010': 'Prepaid card is available once',
   'screens_prepaid_multipay_cards_screen.011':
       'You can create only one prepaid card from your account. If you need more cards, contact administration.',
   'screens_prepaid_multipay_cards_screen.012': 'Add prepaid card',
@@ -103,8 +102,7 @@ const Map<String, String> appStringsEn = {
   'screens_prepaid_multipay_cards_screen.060': 'Spent',
   'screens_prepaid_multipay_cards_screen.061': 'Status',
   'screens_prepaid_multipay_cards_screen.062': 'Daily usage',
-  'screens_prepaid_multipay_cards_screen.063':
-      'Activate card on this device',
+  'screens_prepaid_multipay_cards_screen.063': 'Activate card on this device',
   'screens_prepaid_multipay_cards_screen.064':
       'Activate the card once on your device so it is ready quickly for Shwakil contactless payments.',
   'screens_prepaid_multipay_cards_screen.065': 'Activating',
@@ -113,8 +111,7 @@ const Map<String, String> appStringsEn = {
   'screens_prepaid_multipay_cards_screen.068': 'View for payment',
   'screens_prepaid_multipay_cards_screen.069': 'Print card',
   'screens_prepaid_multipay_cards_screen.070': 'Preparing',
-  'screens_prepaid_multipay_cards_screen.071':
-      'Use for contactless payment',
+  'screens_prepaid_multipay_cards_screen.071': 'Use for contactless payment',
   'screens_prepaid_multipay_cards_screen.072': 'Saving',
   'screens_prepaid_multipay_cards_screen.073': 'Save to tag',
   'screens_prepaid_multipay_cards_screen.074': 'Unlink device',
@@ -1543,6 +1540,12 @@ const Map<String, String> appStringsEn = {
   'screens_admin_card_print_requests_screen.049': 'Charged issue fees now',
   'screens_admin_card_print_requests_screen.050': 'Deferred issue fees',
   'screens_admin_card_print_requests_screen.051': 'Print request fees',
+  'screens_admin_card_print_requests_screen.052': 'Edit status',
+  'screens_admin_card_print_requests_screen.053': 'Edit request status',
+  'screens_admin_card_print_requests_screen.054': 'New status',
+  'screens_admin_card_print_requests_screen.055': 'Admin note (optional)',
+  'screens_admin_card_print_requests_screen.056': 'Save',
+  'screens_admin_card_print_requests_screen.057': 'Request status was updated.',
   'screens_admin_device_requests_screen.010':
       'You do not have permission to review device requests.',
   'screens_admin_device_requests_screen.011': 'Help',
@@ -2761,6 +2764,59 @@ const Map<String, String> appStringsEn = {
   'screens_card_print_requests_screen.063': 'Queue details are incomplete',
   'screens_card_print_requests_screen.064':
       'Enter the queue title or service name before sending the print request.',
+  'screens_card_print_requests_screen.065':
+      'A private ticket printed for one or more beneficiaries.',
+  'screens_card_print_requests_screen.066':
+      'A printed delivery card prepared for use.',
+  'screens_card_print_requests_screen.067':
+      'An appointment ticket with clear time and details.',
+  'screens_card_print_requests_screen.068':
+      'A queue or service ticket for organized attendance.',
+  'screens_card_print_requests_screen.069':
+      'A general balance card for regular printing and use.',
+  'screens_card_print_requests_screen.070': 'Could not add beneficiary',
+  'screens_card_print_requests_screen.071':
+      'Verify the account before adding other beneficiaries.',
+  'screens_card_print_requests_screen.072': 'Card value',
+  'screens_card_print_requests_screen.073': 'Issue fee now',
+  'screens_card_print_requests_screen.074': 'Issue fee on use',
+  'screens_card_print_requests_screen.075': 'Amount charged now',
+  'screens_card_print_requests_screen.076':
+      'The shown amount is charged now. Deferred issue fees are charged when the card is used.',
+  'screens_card_print_requests_screen.077':
+      'This is the total amount that will be charged when the request is sent.',
+  'screens_card_print_requests_screen.078': 'Private card',
+  'screens_card_print_requests_screen.079':
+      'This card is printed for selected beneficiaries only.',
+  'screens_card_print_requests_screen.080': 'Beneficiary phone',
+  'screens_card_print_requests_screen.081': 'Add number',
+  'screens_card_print_requests_screen.082': 'Select beneficiaries',
+  'screens_card_print_requests_screen.083': 'Edit beneficiaries',
+  'screens_card_print_requests_screen.084': 'Appointment title',
+  'screens_card_print_requests_screen.085': 'Queue service name',
+  'screens_card_print_requests_screen.086': 'Ticket title',
+  'screens_card_print_requests_screen.087': 'Appointment start time',
+  'screens_card_print_requests_screen.088': 'Appointment end time',
+  'screens_card_print_requests_screen.089': 'Location or branch',
+  'screens_card_print_requests_screen.090': 'Valid from',
+  'screens_card_print_requests_screen.091': 'Optional - 2026-05-01 08:00',
+  'screens_card_print_requests_screen.092': 'Valid until',
+  'screens_card_print_requests_screen.093': 'Optional - 2026-05-01 18:00',
+  'screens_card_print_requests_screen.094': 'Additional details',
+  'screens_card_print_requests_screen.095':
+      'This account minimum is {count} cards.',
+  'screens_card_print_requests_screen.096': 'Beneficiary selection unavailable',
+  'screens_card_print_requests_screen.097':
+      'This account is not verified, so private cards are limited to your account.',
+  'screens_card_print_requests_screen.098': 'Search by name or phone',
+  'screens_card_print_requests_screen.099': 'Confirm',
+  'screens_card_print_requests_screen.100': 'Print request details',
+  'screens_card_print_requests_screen.101':
+      'Fees are separated so you know what is charged now and what is charged later on use.',
+  'screens_card_print_requests_screen.102':
+      'All fees for this request are included in the current charge.',
+  'screens_card_print_requests_screen.103': 'Charge summary',
+  'screens_card_print_requests_screen.104': 'Includes fees',
   'screens_login_screen.026':
       'Offline work mode is enabled. After sign-in, the scan screen will open directly.',
   'screens_debt_book_screen.049':

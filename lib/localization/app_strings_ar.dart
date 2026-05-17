@@ -101,8 +101,7 @@ const Map<String, String> appStringsAr = {
   'screens_prepaid_multipay_cards_screen.060': 'المصروف',
   'screens_prepaid_multipay_cards_screen.061': 'الحالة',
   'screens_prepaid_multipay_cards_screen.062': 'الاستخدام اليومي',
-  'screens_prepaid_multipay_cards_screen.063':
-      'تفعيل البطاقة على هذا الجهاز',
+  'screens_prepaid_multipay_cards_screen.063': 'تفعيل البطاقة على هذا الجهاز',
   'screens_prepaid_multipay_cards_screen.064':
       'فعّل البطاقة مرة واحدة على جهازك لتصبح جاهزة بسرعة عند الدفع بدون تلامس داخل شواكل.',
   'screens_prepaid_multipay_cards_screen.065': 'جاري التفعيل',
@@ -111,8 +110,7 @@ const Map<String, String> appStringsAr = {
   'screens_prepaid_multipay_cards_screen.068': 'مشاهدة للدفع',
   'screens_prepaid_multipay_cards_screen.069': 'طباعة البطاقة',
   'screens_prepaid_multipay_cards_screen.070': 'جاري التجهيز',
-  'screens_prepaid_multipay_cards_screen.071':
-      'استخدام للدفع بدون تلامس',
+  'screens_prepaid_multipay_cards_screen.071': 'استخدام للدفع بدون تلامس',
   'screens_prepaid_multipay_cards_screen.072': 'جاري الحفظ',
   'screens_prepaid_multipay_cards_screen.073': 'حفظ على وسم',
   'screens_prepaid_multipay_cards_screen.074': 'إلغاء ربط الجهاز',
@@ -180,8 +178,7 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.label.canReviewTopups': 'مراجعة عمليات الشحن',
   'permission_catalog.label.canReviewWithdrawals': 'مراجعة طلبات السحب',
   'permission_catalog.label.canReviewDevices': 'مراجعة الأجهزة',
-  'permission_catalog.label.canManageMarketingAccounts':
-      'إدارة حسابات التسويق',
+  'permission_catalog.label.canManageMarketingAccounts': 'إدارة حسابات التسويق',
   'permission_catalog.label.canViewSubUsers': 'عرض المستخدمين الفرعيين',
   'permission_catalog.label.canManageSubUsers': 'إدارة المستخدمين الفرعيين',
   'permission_catalog.label.canManageLocations': 'إدارة الفروع والمواقع',
@@ -1381,6 +1378,12 @@ const Map<String, String> appStringsAr = {
   'screens_admin_card_print_requests_screen.049': 'رسوم الإصدار المخصومة الآن',
   'screens_admin_card_print_requests_screen.050': 'رسوم الإصدار المؤجلة',
   'screens_admin_card_print_requests_screen.051': 'رسوم طلب الطباعة',
+  'screens_admin_card_print_requests_screen.052': 'تعديل الحالة',
+  'screens_admin_card_print_requests_screen.053': 'تعديل حالة الطلب',
+  'screens_admin_card_print_requests_screen.054': 'الحالة الجديدة',
+  'screens_admin_card_print_requests_screen.055': 'ملاحظة للإدارة (اختياري)',
+  'screens_admin_card_print_requests_screen.056': 'حفظ',
+  'screens_admin_card_print_requests_screen.057': 'تم تحديث حالة الطلب.',
   'screens_admin_device_requests_screen.010':
       'لا تملك صلاحية مراجعة طلبات الأجهزة',
   'screens_admin_device_requests_screen.011': 'مساعدة',
@@ -1650,8 +1653,7 @@ const Map<String, String> appStringsAr = {
       'وقت انتهاء الصلاحية يجب أن يكون بعد وقت البداية.',
   'screens_create_card_screen.087': 'بطاقة اشتراك',
   'screens_create_card_screen.088': 'بطاقة حضور وانصراف',
-  'screens_create_card_screen.089':
-      'بطاقة خاصة لخدمة أو دخول بدون قيمة مالية.',
+  'screens_create_card_screen.089': 'بطاقة خاصة لخدمة أو دخول بدون قيمة مالية.',
   'screens_create_card_screen.090':
       'بطاقة مخصصة للتسليم مع رصيد قابل للاستخدام.',
   'screens_create_card_screen.091':
@@ -1662,8 +1664,7 @@ const Map<String, String> appStringsAr = {
       'بطاقة اشتراك بمدة محددة، ويظهر عند الفحص هل الاشتراك فعال أو منتهي.',
   'screens_create_card_screen.094':
       'بطاقة واحدة لكل موظف لتسجيل الحضور والانصراف وتقرير شهري.',
-  'screens_create_card_screen.095':
-      'بطاقة رصيد قياسية مناسبة للاستخدام العام.',
+  'screens_create_card_screen.095': 'بطاقة رصيد قياسية مناسبة للاستخدام العام.',
   'screens_create_card_screen.096': 'تفاصيل الموعد المطلوبة',
   'screens_create_card_screen.097': 'تفاصيل تذكرة الطابور',
   'screens_create_card_screen.098': 'تفاصيل الاشتراك',
@@ -2674,6 +2675,57 @@ const Map<String, String> appStringsAr = {
   'screens_card_print_requests_screen.063': 'بيانات الطابور ناقصة',
   'screens_card_print_requests_screen.064':
       'أدخل عنوان أو اسم خدمة الطابور قبل إرسال طلب الطباعة.',
+  'screens_card_print_requests_screen.065':
+      'تذكرة خاصة تُطبع لمستفيد واحد أو أكثر.',
+  'screens_card_print_requests_screen.066':
+      'بطاقة توصيل مطبوعة ومجهزة للاستخدام.',
+  'screens_card_print_requests_screen.067': 'تذكرة موعد مع وقت ومعلومات واضحة.',
+  'screens_card_print_requests_screen.068': 'تذكرة دور أو خدمة لتنظيم الحضور.',
+  'screens_card_print_requests_screen.069':
+      'بطاقة رصيد عامة للطباعة والاستخدام اليومي.',
+  'screens_card_print_requests_screen.070': 'تعذر إضافة المستفيد',
+  'screens_card_print_requests_screen.071':
+      'يجب توثيق الحساب قبل إضافة مستفيدين آخرين.',
+  'screens_card_print_requests_screen.072': 'قيمة البطاقات',
+  'screens_card_print_requests_screen.073': 'رسوم الإصدار الآن',
+  'screens_card_print_requests_screen.074': 'رسوم الإصدار عند الاستخدام',
+  'screens_card_print_requests_screen.075': 'إجمالي الخصم الآن',
+  'screens_card_print_requests_screen.076':
+      'سيُخصم المبلغ الظاهر الآن، وتُحتسب رسوم الإصدار المؤجلة عند استخدام البطاقة.',
+  'screens_card_print_requests_screen.077':
+      'هذا هو إجمالي المبلغ الذي سيُخصم عند إرسال الطلب.',
+  'screens_card_print_requests_screen.078': 'بطاقة خاصة',
+  'screens_card_print_requests_screen.079':
+      'تُطبع هذه البطاقة لمستفيدين محددين فقط.',
+  'screens_card_print_requests_screen.080': 'رقم هاتف المستفيد',
+  'screens_card_print_requests_screen.081': 'إضافة الرقم',
+  'screens_card_print_requests_screen.082': 'اختيار المستفيدين',
+  'screens_card_print_requests_screen.083': 'تعديل المستفيدين',
+  'screens_card_print_requests_screen.084': 'عنوان الموعد',
+  'screens_card_print_requests_screen.085': 'اسم خدمة الطابور',
+  'screens_card_print_requests_screen.086': 'عنوان التذكرة',
+  'screens_card_print_requests_screen.087': 'وقت بداية الموعد',
+  'screens_card_print_requests_screen.088': 'وقت نهاية الموعد',
+  'screens_card_print_requests_screen.089': 'الموقع أو الفرع',
+  'screens_card_print_requests_screen.090': 'بداية الصلاحية',
+  'screens_card_print_requests_screen.091': 'اختياري - 2026-05-01 08:00',
+  'screens_card_print_requests_screen.092': 'نهاية الصلاحية',
+  'screens_card_print_requests_screen.093': 'اختياري - 2026-05-01 18:00',
+  'screens_card_print_requests_screen.094': 'تفاصيل إضافية',
+  'screens_card_print_requests_screen.095':
+      'الحد الأدنى لهذا الحساب هو {count} بطاقة.',
+  'screens_card_print_requests_screen.096': 'اختيار المستفيدين غير متاح',
+  'screens_card_print_requests_screen.097':
+      'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط.',
+  'screens_card_print_requests_screen.098': 'ابحث بالاسم أو رقم الهاتف',
+  'screens_card_print_requests_screen.099': 'اعتماد',
+  'screens_card_print_requests_screen.100': 'تفاصيل طلب الطباعة',
+  'screens_card_print_requests_screen.101':
+      'تم فصل الرسوم لتعرف ما يُخصم الآن وما يُحتسب لاحقًا عند الاستخدام.',
+  'screens_card_print_requests_screen.102':
+      'جميع رسوم هذا الطلب داخلة ضمن الخصم الحالي.',
+  'screens_card_print_requests_screen.103': 'ملخص الخصم',
+  'screens_card_print_requests_screen.104': 'يشمل الرسوم',
   'screens_login_screen.026':
       'وضع العمل دون إنترنت مفعّل. بعد تسجيل الدخول سيتم فتح شاشة الفحص مباشرة.',
   'screens_debt_book_screen.049':
@@ -3510,6 +3562,5 @@ const Map<String, String> appStringsAr = {
   'screens_scan_card_screen.213':
       'أدخل مبلغ الدفع وكود التحقق المكوّن من 3 أرقام.',
   'screens_scan_card_screen.214': 'بيانات البطاقة غير مكتملة',
-  'screens_scan_card_screen.215':
-      'تعذر تحديد شهر وسنة الانتهاء لهذه البطاقة.',
+  'screens_scan_card_screen.215': 'تعذر تحديد شهر وسنة الانتهاء لهذه البطاقة.',
 };

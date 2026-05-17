@@ -707,11 +707,22 @@ class _AppLifecycleShellState extends State<_AppLifecycleShell>
   Future<void> _handleAppResumed() async {
     final shouldRebuild = await LocalSecurityService.handleAppResumed();
     unawaited(ConnectivityService.instance.checkNow());
+    if (!LocalSecurityService.relockRequired) {
+      unawaited(_refreshCurrentUserAfterResume());
+    }
     if (!mounted) {
       return;
     }
     if (shouldRebuild) {
       setState(() => _appLifecycleVersion++);
+    }
+  }
+
+  Future<void> _refreshCurrentUserAfterResume() async {
+    try {
+      await AuthService().tryRefreshCurrentUser();
+    } catch (_) {
+      // Route guards and screens handle expired sessions when they next load.
     }
   }
 
@@ -1274,7 +1285,10 @@ class _ForcedUpdateScreen extends StatelessWidget {
                               : requirement.minSupportedVersion,
                         ),
                         const SizedBox(height: 10),
-                        _versionRow(l.tr('main.014'), requirement.latestVersion),
+                        _versionRow(
+                          l.tr('main.014'),
+                          requirement.latestVersion,
+                        ),
                         const SizedBox(height: 24),
                         ShwakelButton(
                           label: requirement.hasStoreUrl
