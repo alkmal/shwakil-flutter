@@ -143,9 +143,9 @@ class AppPermissions {
       _isEnabled('canAcceptPrepaidMultipayPayments');
   bool get canUsePrepaidMultipayNfc => _isEnabled('canUsePrepaidMultipayNfc');
   bool get canOpenPrepaidMultipayCards =>
-      canUsePrepaidMultipayCards ||
-      canAcceptPrepaidMultipayPayments ||
-      _raw['hasPrepaidMultipayCards'] == true;
+      canUsePrepaidMultipayCards || canAcceptPrepaidMultipayPayments;
+  bool get canAcceptPrepaidMultipayContactless =>
+      canAcceptPrepaidMultipayPayments && canUsePrepaidMultipayNfc;
   bool get canAccessRegulatedWalletFeatures =>
       canViewBalance ||
       canViewTransactions ||

@@ -30,13 +30,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
   final DebtBookService _debtBookService = DebtBookService();
-  final PrepaidMultipayOfflineCacheService _prepaidOfflineCache =
-      const PrepaidMultipayOfflineCacheService();
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
   bool _hasOfflineWorkspace = false;
-  bool _hasOfflinePrepaidCards = false;
   bool _isSyncingOfflineWorkspace = false;
   bool _didPromptLocalSecuritySetup = false;
   bool _isBalanceVisible = true;
@@ -105,8 +102,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   bool get _canOpenPrepaidOfflineCards {
-    return _hasOfflinePrepaidCards ||
-        AppPermissions.fromUser(_user).canOpenPrepaidMultipayCards;
+    return AppPermissions.fromUser(_user).canOpenPrepaidMultipayCards;
   }
 
   bool get _canOpenCardTools {
@@ -151,7 +147,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         await _redirectToLogin();
         return;
       }
-      await _applyUserSnapshot(user, isLoading: false);
+      final cachedHasPermissions = AuthService.hasPermissionSnapshot(user);
+      if (cachedHasPermissions) {
+        await _applyUserSnapshot(user, isLoading: false);
+      }
 
       try {
         final refreshed = await _authService.tryRefreshCurrentUser();
@@ -173,10 +172,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         await _redirectToLogin();
         return;
       }
+      if (!AuthService.hasPermissionSnapshot(user)) {
+        await _authService.logout();
+        await _redirectToLogin();
+        return;
+      }
       await _applyUserSnapshot(user, isLoading: false);
     } catch (_) {
       final user = await _authService.currentUser();
-      if (user == null) {
+      if (user == null || !AuthService.hasPermissionSnapshot(user)) {
         await _redirectToLogin();
         return;
       }
@@ -197,12 +201,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     required bool isLoading,
   }) async {
     final hasOfflineWorkspaceFuture = _resolveOfflineWorkspace(user);
-    final hasOfflinePrepaidCardsFuture = _prepaidOfflineCache.hasCards();
     final offlineOverviewFuture = _resolveOfflineOverview(user);
     final isBalanceVisibleFuture = _resolveBalanceVisibility(user);
 
     final hasOfflineWorkspace = await hasOfflineWorkspaceFuture;
-    final hasOfflinePrepaidCards = await hasOfflinePrepaidCardsFuture;
     final offlineOverview = await offlineOverviewFuture;
     final isBalanceVisible = await isBalanceVisibleFuture;
 
@@ -212,7 +214,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     setState(() {
       _user = user;
       _hasOfflineWorkspace = hasOfflineWorkspace;
-      _hasOfflinePrepaidCards = hasOfflinePrepaidCards;
       _isBalanceVisible = isBalanceVisible;
       _pendingOfflineCount =
           (offlineOverview['pendingCount'] as num?)?.toInt() ?? 0;
@@ -696,7 +697,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final canOpenPrepaidMultipayCards = _canOpenPrepaidOfflineCards;
-    final canAcceptNfcPayments = permissions.canAcceptPrepaidMultipayPayments;
+    final canAcceptNfcPayments =
+        permissions.canAcceptPrepaidMultipayContactless;
     final l = context.loc;
     final showOfflineSyncAction =
         _canOfflineScan &&

@@ -154,10 +154,26 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   }
 
   Future<void> _completeUnlock() async {
+    final l = context.loc;
     await LocalSecurityService.skipNextUnlock();
     await LocalSecurityService.clearRelockRequirement();
     try {
-      await _auth.tryRefreshCurrentUser();
+      final refreshed = await _auth.tryRefreshCurrentUser();
+      final user = await _auth.currentUser();
+      if (!AuthService.hasPermissionSnapshot(user)) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _isUnlocking = false);
+        await AppAlertService.showError(
+          context,
+          title: l.tr('screens_device_unlock_screen.015'),
+          message: refreshed
+              ? l.tr('screens_device_unlock_screen.016')
+              : l.tr('screens_device_unlock_screen.017'),
+        );
+        return;
+      }
     } catch (error) {
       if (ErrorMessageService.requiresFreshLogin(error)) {
         await _auth.logout();
@@ -167,6 +183,16 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
         return;
       }
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isUnlocking = false);
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_device_unlock_screen.015'),
+        message: l.tr('screens_device_unlock_screen.017'),
+      );
+      return;
     }
     await RealtimeNotificationService.start();
     await LocalSecurityService.clearSecuritySetupRequirement();

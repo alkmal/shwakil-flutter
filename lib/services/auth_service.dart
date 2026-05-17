@@ -82,6 +82,24 @@ class AuthService {
 
   static String? peekToken() => _cachedToken;
 
+  static bool hasPermissionSnapshot(Map<String, dynamic>? user) {
+    if (user == null) {
+      return false;
+    }
+    final permissions = user['permissions'];
+    if (permissions is Map && permissions.isNotEmpty) {
+      return true;
+    }
+    return const [
+      'canViewBalance',
+      'canViewTransactions',
+      'canIssueCards',
+      'canScanCards',
+      'canViewSecuritySettings',
+      'canManageUsers',
+    ].any(user.containsKey);
+  }
+
   static Future<SharedPreferences> _prefs() async {
     _cachedPrefs ??= await SharedPreferences.getInstance();
     return _cachedPrefs!;
