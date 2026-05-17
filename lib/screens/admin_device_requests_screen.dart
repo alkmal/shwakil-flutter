@@ -33,7 +33,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() => _isLoading = true); 
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
