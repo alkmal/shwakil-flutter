@@ -11,7 +11,7 @@ class PermissionCatalog {
   static const List<Map<String, Object>> groups = [
     {
       'titleKey': 'permission_catalog.group_general',
-      'icon': 0xe88a,
+      'icon': IconData(0xe88a, fontFamily: 'MaterialIcons'),
       'keys': [
         'canViewBalance',
         'canViewTransactions',
@@ -27,7 +27,7 @@ class PermissionCatalog {
     },
     {
       'titleKey': 'permission_catalog.group_card_issuance',
-      'icon': 0xe870,
+      'icon': IconData(0xe870, fontFamily: 'MaterialIcons'),
       'keys': [
         'canIssueCards',
         'canIssuePrivateCards',
@@ -40,7 +40,7 @@ class PermissionCatalog {
     },
     {
       'titleKey': 'permission_catalog.group_card_reading',
-      'icon': 0xe3f4,
+      'icon': IconData(0xe3f4, fontFamily: 'MaterialIcons'),
       'keys': [
         'canScanCards',
         'canOfflineCardScan',
@@ -54,7 +54,7 @@ class PermissionCatalog {
     },
     {
       'titleKey': 'permission_catalog.group_wallet',
-      'icon': 0xe8cc,
+      'icon': IconData(0xe8cc, fontFamily: 'MaterialIcons'),
       'keys': [
         'canTransfer',
         'canWithdraw',
@@ -67,7 +67,7 @@ class PermissionCatalog {
     },
     {
       'titleKey': 'permission_catalog.group_admin',
-      'icon': 0xe8b8,
+      'icon': IconData(0xe8b8, fontFamily: 'MaterialIcons'),
       'keys': [
         'canViewCustomers',
         'canLookupMembers',
