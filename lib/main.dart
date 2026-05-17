@@ -211,8 +211,9 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
       permissions.canOpenCardTools || permissions.canReviewCards,
     '/scan-card-offline' ||
     '/scan-card-offline-camera' => permissions.canOfflineCardScan,
-    '/prepaid-multipay-cards' || '/prepaid-multipay-contactless-accept' =>
-      permissions.canOpenPrepaidMultipayCards,
+    '/prepaid-multipay-cards' => permissions.canOpenPrepaidMultipayCards,
+    '/prepaid-multipay-contactless-accept' =>
+      permissions.canAcceptPrepaidMultipayContactless,
     '/quick-transfer' => permissions.canTransfer,
     '/transactions' => permissions.canViewTransactions,
     '/withdrawal-requests' =>

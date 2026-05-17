@@ -689,7 +689,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final canOpenPrepaidMultipayCards = _canOpenPrepaidOfflineCards;
-    final canAcceptNfcPayments = permissions.canAcceptPrepaidMultipayPayments;
+    final canAcceptNfcPayments =
+        permissions.canAcceptPrepaidMultipayContactless;
     final l = context.loc;
     final showOfflineSyncAction =
         _canOfflineScan &&
