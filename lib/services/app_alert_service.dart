@@ -491,6 +491,13 @@ class AppAlertService {
       final authService = AuthService();
       final token = await authService.token();
       final currentUser = await authService.currentUser();
+      final appHeaders = await AppVersionService.publicHeaders(
+        includeJsonContentType: true,
+      );
+      String? deviceId;
+      try {
+        deviceId = await LocalSecurityService.getOrCreateDeviceId();
+      } catch (_) {}
 
       final payload = <String, dynamic>{
         'title': title,
@@ -503,7 +510,13 @@ class AppAlertService {
         'platform': defaultTargetPlatform.name,
         'route': route ?? '',
         'errorKind': 'client_visible_error',
+        'appVersion': appHeaders['X-App-Version'] ?? '',
+        'appBuild': appHeaders['X-App-Build'] ?? '',
+        'reportedAt': DateTime.now().toIso8601String(),
       };
+      if (deviceId != null && deviceId.trim().isNotEmpty) {
+        payload['deviceId'] = deviceId.trim();
+      }
 
       if (currentUser != null) {
         payload['accountId'] = currentUser['id']?.toString();
@@ -530,9 +543,7 @@ class AppAlertService {
           .post(
             AppConfig.apiUri('app/report-crash'),
             headers: {
-              ...await AppVersionService.publicHeaders(
-                includeJsonContentType: true,
-              ),
+              ...appHeaders,
               if (token != null && token.isNotEmpty)
                 'Authorization': 'Bearer $token',
             },
