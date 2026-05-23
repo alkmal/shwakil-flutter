@@ -130,6 +130,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return _user?['isVerified'] == true || verificationStatus == 'approved';
   }
 
+  bool get _isVerificationPending {
+    final verificationStatus =
+        _user?['transferVerificationStatus']?.toString().trim().toLowerCase() ??
+        '';
+    return verificationStatus == 'pending';
+  }
+
   String get _verificationLabel {
     return _isVerifiedUser
         ? context.loc.tr('screens_balance_screen.036')
@@ -599,7 +606,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       unawaited(_showExpiredOfflineSyncRequired());
       return;
     }
-    Navigator.pushNamed(context, _scanCameraRoute);
+    unawaited(_openRoute(_scanCameraRoute, allowOffline: true));
   }
 
   Future<void> _showExpiredOfflineSyncRequired() {
@@ -621,20 +628,30 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Future<void> _openOnlineOnlyRoute(
+  Future<void> _openRoute(
     String routeName, {
     Object? arguments,
+    bool allowOffline = false,
   }) async {
-    if (OfflineSessionService.isOfflineMode &&
-        routeName != '/inventory' &&
-        routeName != '/prepaid-multipay-cards') {
+    if (OfflineSessionService.isOfflineMode && !allowOffline) {
       await _showOfflineBlockedMessage();
       return;
     }
     if (!mounted) {
       return;
     }
+
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName ||
+        (currentRoute == '/app-shell' && routeName == '/home')) {
+      return;
+    }
+
     Navigator.pushNamed(context, routeName, arguments: arguments);
+  }
+
+  Future<void> _openOnlineOnlyRoute(String routeName, {Object? arguments}) {
+    return _openRoute(routeName, arguments: arguments);
   }
 
   @override
@@ -753,16 +770,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             icon: Icons.menu_book_rounded,
             color: const Color(0xFF7C3AED),
             kind: _HomeServiceKind.debtBook,
-            onTap: () => Navigator.pushNamed(context, '/debt-book'),
-          ),
-        if (canViewAffiliateCenter)
-          _HomeServiceItem(
-            title: l.tr('screens_home_screen.082'),
-            subtitle: _t('screens_home_screen.113'),
-            icon: Icons.campaign_rounded,
-            color: const Color(0xFF0F766E),
-            kind: _HomeServiceKind.affiliate,
-            onTap: () => Navigator.pushNamed(context, '/affiliate-center'),
+            onTap: () =>
+                unawaited(_openRoute('/debt-book', allowOffline: true)),
           ),
         if (canViewInventory && canIssueCards && _hasOfflineWorkspace)
           _HomeServiceItem(
@@ -771,7 +780,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             icon: Icons.inventory_2_rounded,
             color: AppTheme.textSecondary,
             kind: _HomeServiceKind.inventory,
-            onTap: () => unawaited(_openOnlineOnlyRoute('/inventory')),
+            onTap: () =>
+                unawaited(_openRoute('/inventory', allowOffline: true)),
           ),
         if (canOpenPrepaidMultipayCards)
           _HomeServiceItem(
@@ -780,8 +790,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             icon: Icons.credit_card_rounded,
             color: const Color(0xFF334155),
             kind: _HomeServiceKind.prepaidMultipay,
-            onTap: () =>
-                Navigator.pushNamed(context, '/prepaid-multipay-cards'),
+            onTap: () => unawaited(
+              _openRoute('/prepaid-multipay-cards', allowOffline: true),
+            ),
             badgeIcon: Icons.offline_bolt_rounded,
             badgeColor: AppTheme.warning,
           ),
@@ -826,7 +837,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             icon: Icons.menu_book_rounded,
             color: const Color(0xFF7C3AED),
             kind: _HomeServiceKind.debtBook,
-            onTap: () => Navigator.pushNamed(context, '/debt-book'),
+            onTap: () =>
+                unawaited(_openRoute('/debt-book', allowOffline: true)),
           ),
       ];
     }
@@ -899,10 +911,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           icon: Icons.contactless_rounded,
           color: const Color(0xFF0F766E),
           kind: _HomeServiceKind.prepaidMultipay,
-          onTap: () => Navigator.pushNamed(
-            context,
-            '/prepaid-multipay-contactless-accept',
-            arguments: const {'autoReadNfc': true},
+          onTap: () => unawaited(
+            _openOnlineOnlyRoute(
+              '/prepaid-multipay-contactless-accept',
+              arguments: const {'autoReadNfc': true},
+            ),
           ),
           badgeIcon: Icons.contactless_rounded,
           badgeColor: AppTheme.success,
@@ -973,7 +986,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           icon: Icons.menu_book_rounded,
           color: const Color(0xFF7C3AED),
           kind: _HomeServiceKind.debtBook,
-          onTap: () => Navigator.pushNamed(context, '/debt-book'),
+          onTap: () => unawaited(_openOnlineOnlyRoute('/debt-book')),
         ),
       if (canViewSecuritySettings)
         _HomeServiceItem(
@@ -1296,6 +1309,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               _buildWelcomeCard(),
               if (scanShortcut != null) ...[
                 const SizedBox(height: 14),
+                if (!_isVerifiedUser) ...[
+                  _buildAccountVerificationReminder(),
+                  const SizedBox(height: 14),
+                ],
                 _buildScanShortcut(scanShortcut),
               ],
               const SizedBox(height: 18),
@@ -1313,7 +1330,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 Expanded(flex: 11, child: _buildWelcomeCard()),
                 if (scanShortcut != null) ...[
                   const SizedBox(width: 14),
-                  Expanded(flex: 9, child: _buildScanShortcut(scanShortcut)),
+                  Expanded(
+                    flex: 9,
+                    child: Column(
+                      children: [
+                        if (!_isVerifiedUser) ...[
+                          _buildAccountVerificationReminder(),
+                          const SizedBox(height: 14),
+                        ],
+                        _buildScanShortcut(scanShortcut),
+                      ],
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -1322,6 +1350,65 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildAccountVerificationReminder() {
+    final color = _isVerificationPending ? AppTheme.warning : AppTheme.primary;
+    final title = _isVerificationPending
+        ? 'طلب توثيق الحساب قيد المراجعة'
+        : 'حسابك غير موثق بعد';
+    final message = _isVerificationPending
+        ? 'تم استلام طلبك وسيتم مراجعته. هذه الحالة تخص الحساب، أما الجهاز الموثوق فهو فقط وسيلة دخول آمنة.'
+        : 'توثيق الجهاز لا يعني توثيق الحساب. وثق حسابك للاستفادة الكاملة من خدمات التطبيق وحماية حقوقك في العمليات المالية.';
+    final actionLabel = _isVerificationPending
+        ? 'متابعة الطلب'
+        : 'توثيق الحساب';
+
+    return ShwakelCard(
+      onTap: () => unawaited(_openOnlineOnlyRoute('/account-verification')),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(22),
+      color: color.withValues(alpha: 0.07),
+      borderColor: color.withValues(alpha: 0.18),
+      shadowLevel: ShwakelShadowLevel.medium,
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(Icons.verified_user_rounded, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTheme.bodyBold.copyWith(color: color)),
+                const SizedBox(height: 5),
+                Text(
+                  message,
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          FilledButton.icon(
+            onPressed: () =>
+                unawaited(_openOnlineOnlyRoute('/account-verification')),
+            icon: const Icon(Icons.arrow_forward_rounded),
+            label: Text(actionLabel),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1703,8 +1790,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             else
               _buildServicesGrid(
                 services,
-                crossAxisCount: isLandscapePhone ? 4 : 3,
-                childAspectRatio: isLandscapePhone ? 1.15 : 0.92,
+                crossAxisCount: isLandscapePhone ? 3 : 2,
+                childAspectRatio: isLandscapePhone ? 1.55 : 1.22,
               ),
           ],
         );
@@ -1767,7 +1854,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ],
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Stack(
                 clipBehavior: Clip.none,
@@ -1807,15 +1894,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ],
               ),
               const SizedBox(height: 10),
-              Text(
-                item.title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.caption.copyWith(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  height: 1.35,
+              Expanded(
+                child: Center(
+                  child: Text(
+                    item.title,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      height: 1.35,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1898,11 +1989,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.title, style: AppTheme.bodyBold),
+                        Text(
+                          item.title,
+                          style: AppTheme.bodyBold,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           item.subtitle,
                           style: AppTheme.bodyAction.copyWith(height: 1.35),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 10),
                         Icon(
@@ -1922,6 +2020,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           Text(
                             item.subtitle,
                             style: AppTheme.bodyAction.copyWith(height: 1.35),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),

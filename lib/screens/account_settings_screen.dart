@@ -88,7 +88,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _businessNameController.text = user['businessName']?.toString() ?? '';
       _fullNameController.text = user['fullName']?.toString() ?? '';
       _usernameController.text = user['username']?.toString() ?? '';
-      _whatsappController.text = user['whatsapp']?.toString() ?? '';
+      _whatsappController.text = PhoneNumberService.localDisplay(
+        user['whatsapp']?.toString(),
+      );
       _emailController.text = user['email']?.toString() ?? '';
       _addressController.text = user['address']?.toString() ?? '';
       _nationalIdController.text = user['nationalId']?.toString() ?? '';
@@ -520,7 +522,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     ),
                     child: Icon(
                       _hasLocalSecuritySetup
-                          ? Icons.verified_user_rounded
+                          ? Icons.lock_rounded
                           : Icons.lock_person_rounded,
                       color: warningColor,
                     ),

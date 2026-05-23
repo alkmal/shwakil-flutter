@@ -31,6 +31,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   final AuthService _authService = AuthService();
 
   List<Map<String, dynamic>> _requests = const [];
+  Map<String, dynamic> _usageReport = const {};
   Map<String, dynamic>? _user;
   Map<String, dynamic> _feeSettings = const {};
   bool _isLoading = true;
@@ -96,6 +97,23 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
 
   bool _isBalanceCardType(String cardType) =>
       cardType == 'standard' || cardType == 'delivery';
+
+  bool _canIssueGeneralBalanceCards() {
+    final permissions = AppPermissions.fromUser(_user);
+    return permissions.isAdminRole ||
+        permissions.canManageUsers ||
+        permissions.canManageCardPrintRequests;
+  }
+
+  bool _mustCreatePrivateBalanceCards(String cardType) {
+    if (!_isBalanceCardType(cardType)) {
+      return true;
+    }
+    final permissions = AppPermissions.fromUser(_user);
+    return !_canIssueGeneralBalanceCards() ||
+        permissions.isDriverRole ||
+        !_isVerifiedAccount;
+  }
 
   List<String> _issuablePrintCardTypes() {
     final raw = _user?['cardIssuanceOptions'];
@@ -188,6 +206,20 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     return fee > 0 ? fee : 0;
   }
 
+  double _creationIssueFeePerCard(
+    String cardType, {
+    required bool isPrivate,
+    required double cardValue,
+  }) {
+    final configured = _issueFeePerCard(cardType, isPrivate: isPrivate);
+    if (_isBalanceCardType(cardType) && isPrivate) {
+      final percentCost = double.parse((cardValue * 0.01).toStringAsFixed(2));
+      return [configured, percentCost, 0.02].reduce((a, b) => a > b ? a : b);
+    }
+
+    return configured;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -211,10 +243,26 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       }
       final user = results[1] as Map<String, dynamic>?;
       final permissions = AppPermissions.fromUser(user);
+      var usageReport = const <String, dynamic>{};
+      if (permissions.canRequestCardPrinting ||
+          permissions.canIssueCards ||
+          permissions.canViewInventory) {
+        try {
+          usageReport = await _apiService.getMyIssuedCardUsageReport(
+            perPage: 8,
+          );
+        } catch (_) {
+          usageReport = const <String, dynamic>{};
+        }
+      }
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _requests = List<Map<String, dynamic>>.from(results[0] as List);
         _user = user;
         _feeSettings = Map<String, dynamic>.from(results[2] as Map);
+        _usageReport = usageReport;
         _isAuthorized = permissions.canRequestCardPrinting;
         _isLoading = false;
       });
@@ -292,14 +340,19 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               0;
           final value = double.tryParse(valueController.text.trim()) ?? 0;
           final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
-          final faceAmount = isBalanceCard ? value * quantity : 0.0;
+          final forcePrivateRequest = _mustCreatePrivateBalanceCards(cardType);
           final isPrivateRequest =
+              forcePrivateRequest ||
               requiresTargetedUsers ||
               selectedUserIds.isNotEmpty ||
               selectedPhones.isNotEmpty;
-          final issueCostPerCard = _issueFeePerCard(
+          final faceAmount = isBalanceCard && !isPrivateRequest
+              ? value * quantity
+              : 0.0;
+          final issueCostPerCard = _creationIssueFeePerCard(
             cardType,
             isPrivate: isPrivateRequest,
+            cardValue: value,
           );
           final chargedIssueCostAmount = !isBalanceCard || isPrivateRequest
               ? issueCostPerCard * quantity
@@ -473,85 +526,137 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text(
-                        l.tr('screens_card_print_requests_screen.008'),
-                        style: AppTheme.bodyBold,
+                    if (availableTypes.length > 1) ...[
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          l.tr('screens_card_print_requests_screen.008'),
+                          style: AppTheme.bodyBold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: availableTypes.map((type) {
-                        final selected = cardType == type;
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(18),
-                          onTap: () {
-                            setDialogState(() {
-                              cardType = type;
-                              if (_isBalanceCardType(type)) {
-                                selectedUsers.clear();
-                                detailsTitleController.clear();
-                                detailsDescriptionController.clear();
-                                detailsLocationController.clear();
-                                startsAtController.clear();
-                                endsAtController.clear();
-                                validFromController.clear();
-                                validUntilController.clear();
-                              }
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            width: 198,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? AppTheme.primary.withValues(alpha: 0.08)
-                                  : AppTheme.surfaceVariant,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: availableTypes.map((type) {
+                          final selected = cardType == type;
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () {
+                              setDialogState(() {
+                                cardType = type;
+                                if (_isBalanceCardType(type)) {
+                                  selectedUsers.clear();
+                                  detailsTitleController.clear();
+                                  detailsDescriptionController.clear();
+                                  detailsLocationController.clear();
+                                  startsAtController.clear();
+                                  endsAtController.clear();
+                                  validFromController.clear();
+                                  validUntilController.clear();
+                                }
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 198,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
                                 color: selected
-                                    ? AppTheme.primary
-                                    : AppTheme.border,
+                                    ? AppTheme.primary.withValues(alpha: 0.08)
+                                    : AppTheme.surfaceVariant,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: selected
+                                      ? AppTheme.primary
+                                      : AppTheme.border,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        _cardTypeIcon(type),
+                                        color: selected
+                                            ? AppTheme.primary
+                                            : AppTheme.textSecondary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _cardTypeLabel(dialogContext, type),
+                                          style: AppTheme.bodyBold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _cardTypeDescription(type),
+                                    style: AppTheme.caption.copyWith(
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      _cardTypeIcon(type),
-                                      color: selected
-                                          ? AppTheme.primary
-                                          : AppTheme.textSecondary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _cardTypeLabel(dialogContext, type),
-                                        style: AppTheme.bodyBold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _cardTypeDescription(type),
-                                  style: AppTheme.caption.copyWith(
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (availableTypes.length == 1) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primarySoft.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.12),
                           ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _cardTypeIcon(cardType),
+                              color: AppTheme.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _cardTypeLabel(dialogContext, cardType),
+                                style: AppTheme.bodyBold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (forcePrivateRequest && isBalanceCard) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warning.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppTheme.warning.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Text(
+                          'سيتم إنشاء البطاقة كخاصة فقط لهذا الحساب. البطاقات العامة تحتاج صلاحية إدارية أو صلاحية إدارة طلبات الطباعة.',
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     if (cardType == 'delivery')
                       Container(
                         width: double.infinity,
@@ -1016,9 +1121,13 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                   fallback: id,
                                 );
                                 final subtitle =
-                                    user['whatsapp']?.toString() ??
-                                    user['username']?.toString() ??
-                                    '';
+                                    PhoneNumberService.localDisplay(
+                                      user['whatsapp']?.toString(),
+                                    ).isNotEmpty
+                                    ? PhoneNumberService.localDisplay(
+                                        user['whatsapp']?.toString(),
+                                      )
+                                    : user['username']?.toString() ?? '';
                                 return CheckboxListTile(
                                   value: checked,
                                   title: Text(title),
@@ -1200,6 +1309,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   ),
                 ],
                 const SizedBox(height: 16),
+                _buildIssuedCardsUsageReport(),
+                const SizedBox(height: 16),
                 if (_isLoading)
                   const Center(
                     child: Padding(
@@ -1223,6 +1334,166 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildIssuedCardsUsageReport() {
+    final summary = Map<String, dynamic>.from(
+      _usageReport['summary'] as Map? ?? const {},
+    );
+    final items = List<Map<String, dynamic>>.from(
+      (_usageReport['items'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.analytics_rounded, color: AppTheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'تقرير استخدام البطاقات الصادرة',
+                  style: AppTheme.h3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _usageSummaryTile(
+                'إجمالي البطاقات',
+                '${(summary['totalCards'] as num?)?.toInt() ?? 0}',
+                Icons.credit_card_rounded,
+              ),
+              _usageSummaryTile(
+                'المستخدمة',
+                '${(summary['usedCards'] as num?)?.toInt() ?? 0}',
+                Icons.task_alt_rounded,
+              ),
+              _usageSummaryTile(
+                'المستخدمة اليوم',
+                '${(summary['usedToday'] as num?)?.toInt() ?? 0}',
+                Icons.today_rounded,
+              ),
+              _usageSummaryTile(
+                'الخاصة',
+                '${(summary['privateCards'] as num?)?.toInt() ?? 0}',
+                Icons.lock_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (items.isEmpty)
+            Text(
+              'لا توجد استخدامات مسجلة للبطاقات الصادرة من حسابك ضمن النطاق الحالي.',
+              style: AppTheme.bodyAction,
+            )
+          else
+            ...items.map(_buildUsageReportRow),
+        ],
+      ),
+    );
+  }
+
+  Widget _usageSummaryTile(String label, String value, IconData icon) {
+    return Container(
+      width: 178,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.primary, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppTheme.caption),
+                const SizedBox(height: 3),
+                Text(value, style: AppTheme.bodyBold),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsageReportRow(Map<String, dynamic> card) {
+    final status = card['status']?.toString() ?? 'available';
+    final isUsed = status == 'used';
+    final usedBy =
+        (card['redeemedByDisplayName'] ??
+                card['redeemedByUsername'] ??
+                'غير مستخدمة')
+            .toString();
+    final usedAt = card['redeemedAt']?.toString() ?? '-';
+    final scope = card['visibilityScope']?.toString() == 'restricted'
+        ? 'خاصة'
+        : 'عامة';
+    final type = card['cardType']?.toString() ?? 'standard';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isUsed
+            ? AppTheme.success.withValues(alpha: 0.06)
+            : AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isUsed
+              ? AppTheme.success.withValues(alpha: 0.16)
+              : AppTheme.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isUsed ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+            color: isUsed ? AppTheme.success : AppTheme.textTertiary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_cardTypeLabel(context, type)} - $scope',
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isUsed
+                      ? 'استخدمت عند: $usedBy - وقت الاستخدام: $usedAt'
+                      : 'لم تستخدم بعد',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            card['barcode']?.toString() ?? '',
+            style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }

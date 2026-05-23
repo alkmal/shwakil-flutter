@@ -144,6 +144,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     super.dispose();
   }
 
+  void _openRoute(String routeName) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName);
+  }
+
   Future<void> _load() async {
     try {
       final user = await _auth.currentUser();
@@ -2158,7 +2166,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         !_isInformationalCard(card) &&
         _canCurrentUserRedeemCard(card, permissions);
     final canResellCards =
-        !widget.offlineMode && permissions.canResellCards && isUsed;
+        !widget.offlineMode &&
+        permissions.canResellCards &&
+        isUsed &&
+        !card.isPrivate;
 
     return BarcodeScannerDialogResult(
       headline: '',
@@ -2419,6 +2430,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
 
+    final offlineCardMessage = _offlineCardValidationMessage(_card!, user);
+    if (offlineCardMessage != null) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      await AppAlertService.showError(
+        context,
+        title: 'الفحص غير مسموح أوفلاين',
+        message: offlineCardMessage,
+      );
+      return;
+    }
+
     final userId = user['id'].toString();
     final limitMessage = await _offlineCardService.validateCanQueueRedeem(
       userId: userId,
@@ -2479,6 +2502,32 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       message:
           '${l.tr('screens_scan_card_screen.064')}\n${l.tr('screens_scan_card_screen.088', params: {'name': savedName})}',
     );
+  }
+
+  String? _offlineCardValidationMessage(
+    VirtualCard card,
+    Map<String, dynamic> user,
+  ) {
+    final permissions = AppPermissions.fromUser(user);
+    if (!permissions.isAdminRole && !permissions.canMonitorOfflineCards) {
+      if (permissions.isDriverRole) {
+        if (!card.isPrivate && !card.isDelivery) {
+          return 'الأوفلاين للسائق متاح للبطاقات الخاصة وبطاقات التوصيل فقط. حدث البيانات أو افحص البطاقة عند توفر اتصال.';
+        }
+      } else if (!card.isPrivate) {
+        return 'الأوفلاين متاح للبطاقات الخاصة فقط. البطاقات العامة تحتاج اتصال مباشر قبل اعتمادها.';
+      }
+    }
+
+    final now = DateTime.now();
+    if (card.validFrom != null && now.isBefore(card.validFrom!.toLocal())) {
+      return 'لم يبدأ وقت صلاحية هذه البطاقة بعد. يمكن فحصها من ${_formatDate(card.validFrom)}.';
+    }
+    if (card.validUntil != null && now.isAfter(card.validUntil!.toLocal())) {
+      return 'انتهى الوقت المخصص لهذه البطاقة. حدث البيانات أو تواصل مع الإدارة قبل الفحص.';
+    }
+
+    return null;
   }
 
   Future<String?> _promptOfflineCardOwnerName() async {
@@ -2813,25 +2862,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           automaticallyImplyLeading: !widget.offlineMode,
+          leading: _buildOfflineAppBarLeading(),
           title: const SizedBox.shrink(),
           actions: widget.offlineMode
-              ? [
-                  _buildOfflineStatusAction(),
-                  Builder(
-                    builder: (context) => IconButton(
-                      tooltip: _t('screens_scan_card_screen.175'),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                      icon: const Icon(Icons.menu_rounded),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: _t('screens_scan_card_screen.117'),
-                    onPressed: () => Navigator.pushNamed(context, '/debt-book'),
-                    icon: const Icon(Icons.menu_book_rounded),
-                  ),
-                ]
+              ? _buildOfflineAppBarActions()
               : const [AppNotificationAction(), QuickLogoutAction()],
         ),
+        drawer: widget.offlineMode ? const AppSidebar() : null,
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -2856,23 +2893,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: !widget.offlineMode,
+        leading: _buildOfflineAppBarLeading(),
         title: const SizedBox.shrink(),
         actions: widget.offlineMode
-            ? [
-                _buildOfflineStatusAction(),
-                Builder(
-                  builder: (context) => IconButton(
-                    tooltip: _t('screens_scan_card_screen.175'),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                    icon: const Icon(Icons.menu_rounded),
-                  ),
-                ),
-                IconButton(
-                  tooltip: _t('screens_scan_card_screen.117'),
-                  onPressed: () => Navigator.pushNamed(context, '/debt-book'),
-                  icon: const Icon(Icons.menu_book_rounded),
-                ),
-              ]
+            ? _buildOfflineAppBarActions()
             : [
                 IconButton(
                   tooltip: _canCreateTemporaryTransferCode
@@ -2911,6 +2935,43 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         ),
       ),
     );
+  }
+
+  Widget? _buildOfflineAppBarLeading() {
+    if (!widget.offlineMode) {
+      return null;
+    }
+
+    return Builder(
+      builder: (context) {
+        final navigator = Navigator.of(context);
+        final canGoBack = navigator.canPop();
+        return IconButton(
+          tooltip: canGoBack
+              ? context.loc.tr('shared.back')
+              : _t('screens_scan_card_screen.175'),
+          onPressed: () {
+            if (canGoBack) {
+              navigator.maybePop();
+              return;
+            }
+            Scaffold.of(context).openDrawer();
+          },
+          icon: Icon(canGoBack ? Icons.arrow_back_rounded : Icons.menu_rounded),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildOfflineAppBarActions() {
+    return [
+      _buildOfflineStatusAction(),
+      IconButton(
+        tooltip: _t('screens_scan_card_screen.117'),
+        onPressed: () => _openRoute('/debt-book'),
+        icon: const Icon(Icons.menu_book_rounded),
+      ),
+    ];
   }
 
   Widget _buildOfflineStatusAction() {
@@ -3485,7 +3546,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final appPermissions = AppPermissions.fromUser(_user);
     final canRedeemCards =
         appPermissions.canRedeemCards && !_isInformationalCard(card);
-    final canResellCards = !widget.offlineMode && appPermissions.canResellCards;
+    final canResellCards =
+        !widget.offlineMode && appPermissions.canResellCards && !card.isPrivate;
 
     return Container(
       key: ValueKey(card.barcode),
@@ -3737,6 +3799,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       children: [
         _buildCardSummaryPanel(card, forceSuccess: forceSuccess),
         const SizedBox(height: 14),
+        if (forceSuccess) ...[
+          _resultBadge(
+            'سحب تلقائي',
+            card.isPrivate
+                ? 'تم تأكيد استخدام البطاقة الخاصة تلقائيًا بدون إضافة رصيد.'
+                : 'تم سحب البطاقة تلقائيًا عند الفحص وإضافتها حسب الصلاحيات.',
+            AppTheme.success,
+            icon: Icons.flash_on_rounded,
+            isFullWidth: true,
+          ),
+          const SizedBox(height: 10),
+        ],
         _resultBadge(
           context.loc.tr('screens_scan_card_screen.024'),
           _cardTypeLabel(card),
@@ -3744,6 +3818,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           icon: Icons.category_rounded,
           isFullWidth: isFailed,
         ),
+        if (card.status == CardStatus.used) ...[
+          const SizedBox(height: 10),
+          _resultBadge(
+            forceSuccess ? 'تم الاستخدام الآن' : 'البطاقة مستخدمة',
+            _usedCardDetails(card),
+            forceSuccess ? AppTheme.success : AppTheme.error,
+            icon: forceSuccess
+                ? Icons.task_alt_rounded
+                : Icons.assignment_late_rounded,
+            isFullWidth: true,
+          ),
+        ],
         if (temporal != null) ...[
           const SizedBox(height: 10),
           _resultBadge(
@@ -3787,6 +3873,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Widget _buildCardSummaryPanel(VirtualCard card, {bool forceSuccess = false}) {
     final l = context.loc;
     final isUsed = card.status == CardStatus.used && !forceSuccess;
+    final isAutoRedeemed = card.status == CardStatus.used && forceSuccess;
     final accent = _cardAccent(card, forceSuccess: forceSuccess);
 
     return LayoutBuilder(
@@ -3881,7 +3968,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    isUsed
+                    isAutoRedeemed
+                        ? 'تم سحب البطاقة تلقائيًا'
+                        : isUsed
                         ? l.tr('screens_scan_card_screen.015')
                         : l.tr('screens_scan_card_screen.016'),
                     style: AppTheme.h3.copyWith(color: accent),
@@ -3914,6 +4003,21 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         );
       },
     );
+  }
+
+  String _usedCardDetails(VirtualCard card) {
+    final usedBy = (card.usedBy ?? '').trim().isNotEmpty
+        ? card.usedBy!.trim()
+        : 'غير معروف';
+    final usedAt = card.usedAt != null
+        ? _formatDate(card.usedAt!.toLocal())
+        : '-';
+    final customerName = (card.customerName ?? '').trim();
+    return [
+      'عند: $usedBy',
+      'وقت الاستخدام: $usedAt',
+      if (customerName.isNotEmpty) 'المستفيد: $customerName',
+    ].join('\n');
   }
 
   Color _cardAccent(VirtualCard card, {bool forceSuccess = false}) {

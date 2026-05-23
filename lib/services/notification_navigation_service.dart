@@ -90,7 +90,7 @@ class NotificationNavigationService {
       return;
     }
 
-    await navigator.pushNamed(route);
+    await _pushNamedIfDifferent(route);
   }
 
   static Future<bool> _openCustomDestination(
@@ -117,7 +117,7 @@ class NotificationNavigationService {
         _queuePayload(payload);
         return true;
       }
-      await navigator.pushNamed(route);
+      await _pushNamedIfDifferent(route);
       return true;
     }
 
@@ -136,7 +136,7 @@ class NotificationNavigationService {
           _queuePayload(payload);
           return true;
         }
-        await navigator.pushNamed(route);
+        await _pushNamedIfDifferent(route);
       }
       return true;
     }
@@ -156,7 +156,7 @@ class NotificationNavigationService {
         _queuePayload(payload);
         return true;
       }
-      await navigator.pushNamed(fallbackRoute);
+      await _pushNamedIfDifferent(fallbackRoute);
       return true;
     }
 
@@ -203,6 +203,23 @@ class NotificationNavigationService {
         }),
       );
     });
+  }
+
+  static Future<void> _pushNamedIfDifferent(String route) async {
+    final normalizedRoute = _normalizeRouteName(route) ?? route;
+    final navigator = AppAlertService.navigatorKey.currentState;
+    final context = AppAlertService.navigatorKey.currentContext;
+    if (navigator == null || context == null) {
+      return;
+    }
+
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == normalizedRoute ||
+        (currentRoute == '/app-shell' && normalizedRoute == '/home')) {
+      return;
+    }
+
+    await navigator.pushNamed(normalizedRoute);
   }
 
   static String? _resolveRoute(

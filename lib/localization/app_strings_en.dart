@@ -21,6 +21,11 @@ const Map<String, String> appStringsEn = {
   'main.016': 'Update link unavailable',
   'main.017': 'I updated, check again',
   'main.018': 'Check again',
+  'main.019': 'Exit the app?',
+  'main.020':
+      'You are on the first available screen. Do you want to close the app now?',
+  'main.021': 'Stay',
+  'main.022': 'Exit',
   'shared.cancel': 'Cancel',
   'shared.back': 'Back',
   'shared.save': 'Save',
@@ -990,7 +995,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.014': 'Birth date',
   'screens_register_screen.015': 'Contact Details',
   'screens_register_screen.016': 'Country',
-  'screens_register_screen.017': 'Phone number',
+  'screens_register_screen.017': 'Phone number without prefix',
   'screens_register_screen.018': 'Referral phone number',
   'screens_register_screen.019': 'Account follow-up',
   'screens_register_screen.020': 'Password',
@@ -1005,7 +1010,8 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.029': 'Please enter your full name correctly.',
   'screens_register_screen.030':
       'Username must use English letters or numbers only, with . _ - + and @ allowed.',
-  'screens_register_screen.031': 'Please enter a valid phone number.',
+  'screens_register_screen.031':
+      'Enter the local mobile number without a prefix. It must start with 05 and contain 10 digits.',
   'screens_register_screen.032': 'Referral phone number is invalid.',
   'screens_register_screen.033':
       'You do not need to enter a password during registration.',
@@ -1031,6 +1037,8 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.045':
       'Contact the administration directly using the support number to request account creation or registration access.',
   'screens_register_screen.046': 'Back to login',
+  'screens_register_screen.047':
+      'Enter the local number only, such as 059XXXXXXX, without 970, 972, or +.',
   'screens_topup_requests_screen.001': 'Top-up Requests',
   'screens_topup_requests_screen.002': 'Top-up Requests',
   'screens_topup_requests_screen.003': '{pending} pending',
@@ -1298,8 +1306,9 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.001': 'Device Security',
   'screens_security_settings_screen.002': 'Remove trust from this device',
   'screens_security_settings_screen.003': 'Protection settings',
-  'screens_security_settings_screen.004': 'Trusted device',
-  'screens_security_settings_screen.005': 'Untrusted device',
+  'screens_security_settings_screen.004': 'This device is trusted for sign-in',
+  'screens_security_settings_screen.005':
+      'This device is not trusted for sign-in',
   'screens_security_settings_screen.006': 'PIN enabled',
   'screens_security_settings_screen.007': 'PIN disabled',
   'screens_security_settings_screen.008': 'Biometrics enabled',
@@ -1308,13 +1317,13 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.011': 'PIN code',
   'screens_security_settings_screen.012': 'OTP',
   'screens_security_settings_screen.013':
-      'Manage PIN, biometrics, trusted devices, and relock settings from one place.',
+      'Manage PIN, biometrics, devices trusted for sign-in, and relock settings from one place. This does not mean account verification.',
   'screens_security_settings_screen.014': 'Security overview',
   'screens_security_settings_screen.015':
-      'See verification status, device trust, and the latest sign-in method.',
-  'screens_security_settings_screen.016': 'Device trust',
-  'screens_security_settings_screen.017': 'Trusted',
-  'screens_security_settings_screen.018': 'Untrusted',
+      'See this device protection status and the latest sign-in method. Account verification appears in the account verification screen.',
+  'screens_security_settings_screen.016': 'This device trust only',
+  'screens_security_settings_screen.017': 'Device trusted for sign-in',
+  'screens_security_settings_screen.018': 'Device not trusted for sign-in',
   'screens_security_settings_screen.019': 'Local PIN',
   'screens_security_settings_screen.020': 'Enabled',
   'screens_security_settings_screen.021': 'Disabled',
@@ -1325,7 +1334,7 @@ const Map<String, String> appStringsEn = {
   'screens_security_settings_screen.024':
       'This device does not support biometrics or it is not configured in the system.',
   'screens_security_settings_screen.025': 'Last verification method',
-  'screens_security_settings_screen.026': 'Trusted account on this device',
+  'screens_security_settings_screen.026': 'Saved sign-in name on this device',
   'screens_security_settings_screen.027': 'Local unlock methods',
   'screens_security_settings_screen.028':
       'Enable PIN, biometrics, or both to speed up app access and confirm sensitive actions.',
@@ -1514,10 +1523,10 @@ const Map<String, String> appStringsEn = {
       'This section is for updating account details and password. Important notices appear above the form only when needed.',
   'screens_account_settings_screen.068': 'Account',
   'screens_account_settings_screen.069': 'Security',
-  'screens_account_settings_screen.070': 'Security settings are enabled',
+  'screens_account_settings_screen.070': 'Device protection is enabled',
   'screens_account_settings_screen.071': 'Security settings must be enabled',
   'screens_account_settings_screen.072':
-      'Your account uses local protection on this device. You can review PIN or biometrics from Security Settings.',
+      'This device uses local protection for sign-in. This does not mean the account is verified; account verification is completed from the account verification page.',
   'screens_account_settings_screen.073':
       'Enable PIN or biometrics to protect account access and confirm sensitive actions quickly and safely.',
   'screens_account_settings_screen.074': 'Current protection status',

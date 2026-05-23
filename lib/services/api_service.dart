@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../localization/app_localization.dart';
 import '../localization/app_strings_ar.dart';
@@ -14,6 +15,7 @@ import 'app_version_service.dart';
 import 'app_alert_service.dart';
 import 'auth_service.dart';
 import 'error_message_service.dart';
+import 'local_security_service.dart';
 import 'network_client_service.dart';
 import 'phone_number_service.dart';
 
@@ -40,6 +42,10 @@ class ApiService {
     final headers = await AppVersionService.publicHeaders(
       includeJsonContentType: true,
     );
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    if (deviceId.trim().isNotEmpty) {
+      headers['X-Device-Id'] = deviceId.trim();
+    }
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -2711,6 +2717,32 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getMyIssuedCardUsageReport({
+    String scope = 'all',
+    String? from,
+    String? to,
+    String? query,
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    final params = <String, String>{
+      'scope': scope,
+      'page': page.toString(),
+      'perPage': perPage.toString(),
+    };
+    if (from != null && from.trim().isNotEmpty) params['from'] = from.trim();
+    if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
+    if (query != null && query.trim().isNotEmpty) {
+      params['query'] = query.trim();
+    }
+
+    final response = await http.get(
+      AppConfig.apiUri('cards/usage-report', params),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getAdminCardScanReportUserLocations(
     String userId, {
     String scope = 'private',
@@ -3652,6 +3684,241 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> createSupportTicket({
+    String name = '',
+    String whatsapp = '',
+    required String title,
+    required String details,
+  }) async {
+    final response = await _supportPost(
+      'support/tickets',
+      body: jsonEncode({
+        if (name.trim().isNotEmpty) 'name': name.trim(),
+        if (whatsapp.trim().isNotEmpty) 'whatsapp': whatsapp.trim(),
+        'title': title.trim(),
+        'details': details.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> requestSupportTicketAccess({
+    required String ticketId,
+    required String whatsapp,
+  }) async {
+    final response = await _supportPost(
+      'support/tickets/${ticketId.trim()}/request-access',
+      body: jsonEncode({'whatsapp': whatsapp.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createAdminSupportTicket({
+    String userId = '',
+    String name = '',
+    String whatsapp = '',
+    required String title,
+    required String details,
+  }) async {
+    final response = await _authenticatedPostWithFallback(
+      'admin/support/tickets',
+      body: jsonEncode({
+        if (userId.trim().isNotEmpty) 'userId': userId.trim(),
+        if (name.trim().isNotEmpty) 'name': name.trim(),
+        if (whatsapp.trim().isNotEmpty) 'whatsapp': whatsapp.trim(),
+        'title': title.trim(),
+        'details': details.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> requestSupportTicketPhoneAccess({
+    required String whatsapp,
+  }) async {
+    final response = await _supportPost(
+      'support/tickets/request-phone-access',
+      body: jsonEncode({'whatsapp': whatsapp.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> verifySupportTicketPhoneAccess({
+    required String whatsapp,
+    required String otpCode,
+  }) async {
+    final response = await _supportPost(
+      'support/tickets/verify-phone-access',
+      body: jsonEncode({
+        'whatsapp': whatsapp.trim(),
+        'otpCode': otpCode.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> verifySupportTicket({
+    required String ticketId,
+    required String otpCode,
+  }) async {
+    final response = await _supportPost(
+      'support/tickets/${ticketId.trim()}/verify',
+      body: jsonEncode({'otpCode': otpCode.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getMySupportTickets() async {
+    final body = _decodeObject(await _supportGet('support/tickets'));
+    return List<Map<String, dynamic>>.from(
+      (body['tickets'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> getSupportTicket({
+    required String ticketId,
+    String accessToken = '',
+  }) async {
+    return _decodeObject(
+      await _supportGet(
+        'support/tickets/${ticketId.trim()}',
+        guestToken: accessToken,
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> sendSupportTicketMessage({
+    required String ticketId,
+    required String body,
+    String accessToken = '',
+  }) async {
+    return _decodeObject(
+      await _supportPost(
+        'support/tickets/${ticketId.trim()}/messages',
+        guestToken: accessToken,
+        body: jsonEncode({'body': body.trim()}),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> uploadSupportTicketAttachment({
+    required String ticketId,
+    required String fileName,
+    required Uint8List bytes,
+    String accessToken = '',
+    bool admin = false,
+  }) async {
+    return _supportMultipart(
+      admin
+          ? 'admin/support/tickets/${ticketId.trim()}/attachments'
+          : 'support/tickets/${ticketId.trim()}/attachments',
+      guestToken: accessToken,
+      fileName: fileName,
+      bytes: bytes,
+    );
+  }
+
+  Future<Uint8List> downloadSupportTicketAttachment({
+    required String ticketId,
+    required String attachmentId,
+    String accessToken = '',
+  }) async {
+    Object? lastError;
+    final headers = await _headers();
+    if (accessToken.trim().isNotEmpty) {
+      headers['X-Support-Ticket-Token'] = accessToken.trim();
+    }
+    headers.remove('Content-Type');
+    headers.remove('content-type');
+
+    for (final uri in AppConfig.apiCandidateUris(
+      'support/tickets/${ticketId.trim()}/attachments/${attachmentId.trim()}',
+    )) {
+      try {
+        final response = await _client
+            .get(uri, headers: headers)
+            .timeout(_authenticatedRequestTimeout);
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return Uint8List.fromList(response.bodyBytes);
+        }
+        _decodeObject(response);
+      } on TimeoutException catch (error) {
+        lastError = error;
+      } on http.ClientException catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminSupportTickets() async {
+    final body = _decodeObject(
+      await _authenticatedGetWithFallback('admin/support/tickets'),
+    );
+    return List<Map<String, dynamic>>.from(
+      (body['tickets'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> claimSupportTicket(String ticketId) async {
+    return _decodeObject(
+      await _authenticatedPostWithFallback(
+        'admin/support/tickets/${ticketId.trim()}/claim',
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> sendAdminSupportTicketMessage({
+    required String ticketId,
+    required String body,
+    required String replyAs,
+  }) async {
+    return _decodeObject(
+      await _authenticatedPostWithFallback(
+        'admin/support/tickets/${ticketId.trim()}/messages',
+        body: jsonEncode({'body': body.trim(), 'replyAs': replyAs}),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminSupportTicketStatuses() async {
+    final body = _decodeObject(
+      await _authenticatedGetWithFallback(
+        'admin/support/tickets/status-options',
+      ),
+    );
+    return List<Map<String, dynamic>>.from(
+      (body['statuses'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> changeAdminSupportTicketStatus({
+    required String ticketId,
+    required String status,
+    String customStatusLabel = '',
+    String note = '',
+    String actorKind = 'support',
+  }) async {
+    return _decodeObject(
+      await _authenticatedPostWithFallback(
+        'admin/support/tickets/${ticketId.trim()}/status',
+        body: jsonEncode({
+          'status': status.trim(),
+          if (customStatusLabel.trim().isNotEmpty)
+            'customStatusLabel': customStatusLabel.trim(),
+          if (note.trim().isNotEmpty) 'note': note.trim(),
+          'actorKind': actorKind.trim(),
+        }),
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
     final response = await _authenticatedPostWithFallback(
       'notifications/$id/read',
@@ -3724,6 +3991,112 @@ class ApiService {
       return lastAuthFailure;
     }
     throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  Future<http.Response> _supportGet(
+    String path, {
+    String guestToken = '',
+  }) async {
+    return _supportRequestWithFallback(path, guestToken: guestToken);
+  }
+
+  Future<http.Response> _supportPost(
+    String path, {
+    String guestToken = '',
+    Object? body,
+  }) async {
+    return _supportRequestWithFallback(
+      path,
+      guestToken: guestToken,
+      body: body,
+      post: true,
+    );
+  }
+
+  Future<http.Response> _supportRequestWithFallback(
+    String path, {
+    String guestToken = '',
+    Object? body,
+    bool post = false,
+  }) async {
+    Object? lastError;
+    final headers = await _headers();
+    if (guestToken.trim().isNotEmpty) {
+      headers['X-Support-Ticket-Token'] = guestToken.trim();
+    }
+    for (final uri in AppConfig.apiCandidateUris(path)) {
+      try {
+        return await (post
+                ? _client.post(uri, headers: headers, body: body)
+                : _client.get(uri, headers: headers))
+            .timeout(_authenticatedRequestTimeout);
+      } on TimeoutException catch (error) {
+        lastError = error;
+      } on http.ClientException catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  Future<Map<String, dynamic>> _supportMultipart(
+    String path, {
+    required String fileName,
+    required Uint8List bytes,
+    String guestToken = '',
+  }) async {
+    Object? lastError;
+    final headers = await _headers();
+    headers.remove('Content-Type');
+    headers.remove('content-type');
+    if (guestToken.trim().isNotEmpty) {
+      headers['X-Support-Ticket-Token'] = guestToken.trim();
+    }
+    for (final uri in AppConfig.apiCandidateUris(path)) {
+      try {
+        final request = http.MultipartRequest('POST', uri);
+        request.headers.addAll(headers);
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            bytes,
+            filename: fileName,
+            contentType: _contentTypeForFileName(fileName),
+          ),
+        );
+        final streamed = await request.send().timeout(
+          _authenticatedRequestTimeout,
+        );
+        final response = await http.Response.fromStream(streamed);
+        return _decodeObject(response);
+      } on TimeoutException catch (error) {
+        lastError = error;
+      } on http.ClientException catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  MediaType _contentTypeForFileName(String fileName) {
+    final normalized = fileName.toLowerCase().trim();
+    if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) {
+      return MediaType('image', 'jpeg');
+    }
+    if (normalized.endsWith('.png')) {
+      return MediaType('image', 'png');
+    }
+    if (normalized.endsWith('.webp')) {
+      return MediaType('image', 'webp');
+    }
+    if (normalized.endsWith('.pdf')) {
+      return MediaType('application', 'pdf');
+    }
+    if (normalized.endsWith('.txt')) {
+      return MediaType('text', 'plain');
+    }
+
+    return MediaType('application', 'octet-stream');
   }
 
   Future<http.Response> _getNotificationWithFallback(

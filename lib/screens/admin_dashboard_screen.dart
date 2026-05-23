@@ -77,6 +77,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  void _openRoute(String routeName) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName);
+  }
+
   List<Map<String, dynamic>> _sortedDebtCustomers() {
     final customers = List<Map<String, dynamic>>.from(
       (_debtBookSnapshot['customers'] as List? ?? const []).map(
@@ -915,7 +923,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
             const SizedBox(height: 16),
             ShwakelCard(
-              onTap: () => Navigator.pushNamed(context, '/admin-debt-book'),
+              onTap: () => _openRoute('/admin-debt-book'),
               padding: const EdgeInsets.all(22),
               borderRadius: BorderRadius.circular(26),
               shadowLevel: ShwakelShadowLevel.medium,
@@ -1018,7 +1026,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _navCard(_AdminEntry item) {
     final isArabic = context.loc.isArabic;
     return ShwakelCard(
-      onTap: () => Navigator.pushNamed(context, item.routeName),
+      onTap: () => _openRoute(item.routeName),
       padding: const EdgeInsets.all(22),
       borderRadius: BorderRadius.circular(28),
       shadowLevel: ShwakelShadowLevel.medium,
@@ -1116,7 +1124,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final isArabic = context.loc.isArabic;
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: () => Navigator.pushNamed(context, item.routeName),
+      onTap: () => _openRoute(item.routeName),
       child: Container(
         constraints: const BoxConstraints(minWidth: 220),
         padding: const EdgeInsets.all(14),

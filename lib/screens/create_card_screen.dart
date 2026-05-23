@@ -97,6 +97,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     super.dispose();
   }
 
+  void _openRoute(String routeName) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName);
+  }
+
   Future<void> _load() async {
     final l = context.loc;
     try {
@@ -160,6 +168,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   AppPermissions get _appPermissions => AppPermissions.fromUser(_user);
 
   bool get _canIssuePrivateCards => _appPermissions.canIssuePrivateCards;
+  bool get _canIssueGeneralBalanceCards =>
+      _appPermissions.isAdminRole ||
+      _appPermissions.canManageUsers ||
+      _appPermissions.canManageCardPrintRequests;
   bool get _canPickTargetedUsers =>
       _canIssuePrivateCards || _requiresTargetedPrivateCard;
 
@@ -172,12 +184,22 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool get _isQueueCard => _cardType == 'queue';
   bool get _isSubscriptionCard => _cardType == 'subscription';
   bool get _isAttendanceCard => _cardType == 'attendance';
+  bool get _isVerifiedAccount =>
+      (_user?['transferVerificationStatus']?.toString() ?? 'unverified') ==
+      'approved';
 
   bool get _hasSelectedCardType => _cardType.trim().isNotEmpty;
   bool get _isBalanceCard => _cardType == 'standard' || _cardType == 'delivery';
   bool get _requiresTargetedPrivateCard => !_isBalanceCard;
+  bool get _mustCreatePrivateBalanceCard =>
+      _isBalanceCard &&
+      (!_canIssueGeneralBalanceCards ||
+          _appPermissions.isDriverRole ||
+          !_isVerifiedAccount);
   String get _effectiveVisibilityScope =>
-      _isTrialMode || _requiresTargetedPrivateCard
+      _isTrialMode ||
+          _requiresTargetedPrivateCard ||
+          _mustCreatePrivateBalanceCard
       ? 'restricted'
       : _visibilityScope;
   bool get _needsTypeDetails =>
@@ -389,8 +411,27 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     return fee > 0 ? fee : 0;
   }
 
-  double get _currentIssueFeePerCard =>
-      _issueFeePerCardForType(_cardType, isPrivate: _isPrivateIssuance);
+  double _creationIssueFeePerCardForType(
+    String type, {
+    required bool isPrivate,
+    required double cardValue,
+  }) {
+    final configured = _issueFeePerCardForType(type, isPrivate: isPrivate);
+    final normalizedType = type.trim().toLowerCase();
+    if (isPrivate &&
+        (normalizedType == 'standard' || normalizedType == 'delivery')) {
+      final percentCost = double.parse((cardValue * 0.01).toStringAsFixed(2));
+      return [configured, percentCost, 0.02].reduce((a, b) => a > b ? a : b);
+    }
+
+    return configured;
+  }
+
+  double get _currentIssueFeePerCard => _creationIssueFeePerCardForType(
+    _cardType,
+    isPrivate: _isPrivateIssuance,
+    cardValue: _currentCardFaceValue,
+  );
 
   double get _currentChargedIssueFeePerCard {
     if (_isTrialMode) {
@@ -1370,7 +1411,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 isSecondary: true,
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  Navigator.pushNamed(context, '/inventory');
+                  _openRoute('/inventory');
                 },
               ),
               const SizedBox(height: 8),
@@ -2310,7 +2351,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (_requiresTargetedPrivateCard) {
       _visibilityScope = 'restricted';
     } else if (!_isTrialMode && _cardType == 'standard') {
-      _visibilityScope = 'general';
+      _visibilityScope = _mustCreatePrivateBalanceCard
+          ? 'restricted'
+          : 'general';
     } else if (_cardType == 'delivery') {
       _visibilityScope = 'general';
       _selectedUsers = [];
@@ -2466,7 +2509,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                                   style: AppTheme.bodyBold,
                                 ),
                               ),
-                              if (isSelected)
+                              if (isSelected &&
+                                  _sortedIssuableCardTypes.length > 1)
                                 IconButton.filledTonal(
                                   tooltip: 'تغيير نوع البطاقة',
                                   onPressed: _clearSelectedCardType,

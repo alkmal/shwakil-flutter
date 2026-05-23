@@ -376,7 +376,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     style: AppTheme.caption,
                   ),
                   const SizedBox(height: 4),
-                  Text(widget.whatsapp!, style: AppTheme.bodyAction),
+                  Text(
+                    PhoneNumberService.localDisplay(widget.whatsapp),
+                    style: AppTheme.bodyAction,
+                  ),
                 ],
               ],
             ),

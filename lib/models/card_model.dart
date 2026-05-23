@@ -247,8 +247,12 @@ class VirtualCard {
       usedAt: usedAtValue == null
           ? null
           : DateTime.tryParse(usedAtValue.toString()),
-      usedBy: (map['usedBy'] ?? map['redeemedByUsername'] ?? map['used_by'])
-          ?.toString(),
+      usedBy:
+          (map['usedBy'] ??
+                  map['redeemedByDisplayName'] ??
+                  map['redeemedByUsername'] ??
+                  map['used_by'])
+              ?.toString(),
       soldPrice: (map['soldPrice'] ?? map['sold_price']) == null
           ? null
           : _doubleFromDynamic(map['soldPrice'] ?? map['sold_price']),

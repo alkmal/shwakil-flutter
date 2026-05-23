@@ -113,13 +113,7 @@ class ErrorMessageService {
 
   static String forUser(Object? error, {bool includeSupportGuidance = false}) {
     final clean = _normalizeMixedDirection(sanitize(error));
-    if (!includeSupportGuidance || !_shouldAppendSupportGuidance(clean)) {
-      return clean;
-    }
-    final guidance = _normalizeMixedDirection(
-      _tr('services_error_message_service.014'),
-    );
-    return '$clean\n$guidance';
+    return clean;
   }
 
   static bool isNetworkIssue(Object? error) {
@@ -167,22 +161,6 @@ class ErrorMessageService {
     } catch (_) {}
 
     return sanitize(body);
-  }
-
-  static bool _shouldAppendSupportGuidance(String message) {
-    final clean = message.trim();
-    if (clean.isEmpty ||
-        clean.contains(_tr('services_error_message_service.014')) ||
-        clean.contains(
-          appStringsAr['services_error_message_service.014'] ?? '',
-        ) ||
-        clean.contains(
-          appStringsEn['services_error_message_service.014'] ?? '',
-        )) {
-      return false;
-    }
-
-    return true;
   }
 
   static String _normalizeMixedDirection(String text) {

@@ -87,6 +87,14 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
     super.dispose();
   }
 
+  void _openRoute(String routeName) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName);
+  }
+
   Future<void> _load({bool syncIfPossible = true}) async {
     final user = await _auth.currentUser();
     if (!mounted) {
@@ -425,10 +433,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
             if (OfflineSessionService.isOfflineMode)
               IconButton(
                 tooltip: _t('screens_debt_book_screen.058'),
-                onPressed: () => Navigator.pushReplacementNamed(
-                  context,
-                  '/scan-card-offline',
-                ),
+                onPressed: () => _openRoute('/scan-card-offline'),
                 icon: const Icon(Icons.qr_code_scanner_rounded),
               ),
             IconButton(

@@ -78,6 +78,14 @@ class _AdminPrepaidMultipayApprovalsScreenState
     super.dispose();
   }
 
+  void _openRoute(String routeName) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName);
+  }
+
   Future<void> _reviewCard(Map<String, dynamic> card, String action) async {
     final noteController = TextEditingController();
     try {
@@ -312,8 +320,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
         actions: [
           if (permissions.canUsePrepaidMultipayCards)
             IconButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/prepaid-multipay-cards'),
+              onPressed: () => _openRoute('/prepaid-multipay-cards'),
               tooltip: 'إضافة بطاقة',
               icon: const Icon(Icons.add_card_rounded),
             ),

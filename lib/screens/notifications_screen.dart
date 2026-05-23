@@ -565,10 +565,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   if (!mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(_t('screens_notifications_screen.092')),
-                    ),
+                  AppAlertService.showSnack(
+                    context,
+                    message: _t('screens_notifications_screen.092'),
+                    type: AppAlertType.success,
                   );
                 },
               ),
@@ -1012,12 +1012,12 @@ class _NotificationDetailsSheet extends StatelessWidget {
                       if (!context.mounted) {
                         return;
                       }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            context.loc.tr('screens_notifications_screen.092'),
-                          ),
+                      AppAlertService.showSnack(
+                        context,
+                        message: context.loc.tr(
+                          'screens_notifications_screen.092',
                         ),
+                        type: AppAlertType.success,
                       );
                     },
                     icon: const Icon(Icons.copy_rounded),

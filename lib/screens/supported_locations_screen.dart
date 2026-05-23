@@ -107,7 +107,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
     final titleController = TextEditingController();
     final addressController = TextEditingController();
     final phoneController = TextEditingController(
-      text: _user?['whatsapp']?.toString() ?? '',
+      text: PhoneNumberService.localDisplay(_user?['whatsapp']?.toString()),
     );
     final typeController = TextEditingController(text: 'shop');
     final latController = TextEditingController(

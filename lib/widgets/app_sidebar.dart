@@ -60,10 +60,17 @@ class _AppSidebarState extends State<AppSidebar> {
     if (!mounted) {
       return;
     }
+    final navigator = Navigator.of(context);
+    final currentRoute =
+        widget.currentRouteName ?? ModalRoute.of(context)?.settings.name ?? '';
     if (!widget.embedded) {
-      Navigator.pop(context);
+      navigator.pop();
     }
-    Navigator.pushNamed(context, normalizedRoute);
+    if (currentRoute == normalizedRoute ||
+        (currentRoute == '/app-shell' && normalizedRoute == '/home')) {
+      return;
+    }
+    navigator.pushNamed(normalizedRoute);
   }
 
   @override
@@ -251,6 +258,15 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.007'),
                           routeName: '/card-print-requests',
                         ),
+                      if (canIssueCards ||
+                          canRequestCardPrinting ||
+                          canViewInventory)
+                        _buildItem(
+                          context,
+                          icon: Icons.analytics_rounded,
+                          title: 'تقارير استخدام البطاقات',
+                          routeName: '/card-usage-report',
+                        ),
                       if (canOpenPrepaidMultipayCards)
                         _buildItem(
                           context,
@@ -398,6 +414,15 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.tr('widgets_app_sidebar.043'),
                             routeName: '/admin-notifications',
                           ),
+                        if (permissions.isAdminRole ||
+                            permissions.isSupportRole ||
+                            permissions.canManageUsers)
+                          _buildItem(
+                            context,
+                            icon: Icons.support_agent_rounded,
+                            title: 'تذاكر التواصل',
+                            routeName: '/admin-support-tickets',
+                          ),
                         if (permissions.canManageUsers)
                           _buildItem(
                             context,
@@ -432,6 +457,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.022'),
                           routeName: '/contact-us',
                         ),
+                      _buildItem(
+                        context,
+                        icon: Icons.forum_rounded,
+                        title: 'تذاكر التواصل',
+                        routeName: '/support-tickets',
+                      ),
                       if (canViewLocations)
                         _buildItem(
                           context,
@@ -484,11 +515,13 @@ class _AppSidebarState extends State<AppSidebar> {
     var label = l.tr('widgets_app_sidebar.027');
     var color = Colors.white24;
     if (status == 'approved') {
-      label = l.tr('widgets_app_sidebar.028');
+      label = 'الحساب موثق';
       color = AppTheme.success.withValues(alpha: 0.28);
     } else if (status == 'pending') {
-      label = l.tr('widgets_app_sidebar.029');
+      label = 'توثيق الحساب قيد المراجعة';
       color = AppTheme.warning.withValues(alpha: 0.28);
+    } else {
+      label = 'الحساب غير موثق';
     }
 
     return Container(

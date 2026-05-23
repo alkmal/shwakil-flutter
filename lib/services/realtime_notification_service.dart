@@ -143,16 +143,15 @@ class RealtimeNotificationService {
 
   static Future<void> _registerToken(String token) async {
     final authToken = await _authService.token();
-    if (authToken == null || authToken.isEmpty) {
-      return;
-    }
 
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
     final packageInfo = await PackageInfo.fromPlatform();
     final headers = <String, String>{
       ...await AppVersionService.publicHeaders(includeJsonContentType: true),
-      'Authorization': 'Bearer $authToken',
     };
+    if (authToken != null && authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $authToken';
+    }
     final body = jsonEncode({
       'token': token,
       'platform': defaultTargetPlatform.name,

@@ -71,7 +71,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     'type': 'shwakel_transfer',
     'userId': _user?['id']?.toString() ?? '',
     'username': _user?['username']?.toString() ?? '',
-    'phone': _user?['whatsapp']?.toString() ?? '',
+    'phone': PhoneNumberService.localDisplay(_user?['whatsapp']?.toString()),
   });
 
   Future<void> _scan() async {
@@ -840,7 +840,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           ),
           if ((_user?['whatsapp']?.toString() ?? '').isNotEmpty)
             Text(
-              _user?['whatsapp']?.toString() ?? '',
+              PhoneNumberService.localDisplay(_user?['whatsapp']?.toString()),
               style: AppTheme.bodyBold.copyWith(color: Colors.white70),
               textAlign: TextAlign.center,
             ),
@@ -933,7 +933,9 @@ class _RecipientPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.loc;
     final username = recipient['username']?.toString().trim();
-    final phone = recipient['whatsapp']?.toString().trim() ?? '';
+    final phone = PhoneNumberService.localDisplay(
+      recipient['whatsapp']?.toString(),
+    );
     final role = recipient['role']?.toString().trim() ?? '';
     final displayName = UserDisplayName.fromMap(
       recipient,

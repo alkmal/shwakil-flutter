@@ -31,4 +31,24 @@ class PhoneNumberService {
     }
     return '$defaultDialCode$digits';
   }
+
+  static String localDisplay(String? input) {
+    var digits = (input ?? '').replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return '';
+    if (digits.startsWith('00')) {
+      digits = digits.substring(2);
+    }
+    for (final country in countries) {
+      final dialCode = country.dialCode;
+      if (digits.startsWith(dialCode) &&
+          digits.length > dialCode.length &&
+          digits.substring(dialCode.length).startsWith('5')) {
+        return '0${digits.substring(dialCode.length)}';
+      }
+    }
+    if (digits.startsWith('5') && digits.length == 9) {
+      return '0$digits';
+    }
+    return digits;
+  }
 }

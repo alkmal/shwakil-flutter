@@ -190,8 +190,11 @@ class AppPermissions {
   bool get isSupportRole => _raw['isSupport'] == true || role == 'support';
   bool get isFinanceRole => _raw['isFinance'] == true || role == 'finance';
   bool get isMarketerRole => role == 'marketer';
+  bool get isDriverRole => role == 'driver';
 
   bool get hasAdminWorkspaceAccess =>
+      isAdminRole ||
+      isSupportRole ||
       canViewCustomers ||
       canLookupMembers ||
       canManageUsers ||

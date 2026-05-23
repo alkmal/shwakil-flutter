@@ -418,7 +418,7 @@ class _BalanceScreenState extends State<BalanceScreen>
         text: UserDisplayName.fromMap(_user),
       );
       final senderPhoneController = TextEditingController(
-        text: _user?['whatsapp']?.toString() ?? '',
+        text: PhoneNumberService.localDisplay(_user?['whatsapp']?.toString()),
       );
       final transferReferenceController = TextEditingController();
       var selectedTransferredAt = DateTime.now();
@@ -3311,7 +3311,9 @@ class _BalanceScreenState extends State<BalanceScreen>
           if ((selectedUser['whatsapp']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              selectedUser['whatsapp']?.toString() ?? '',
+              PhoneNumberService.localDisplay(
+                selectedUser['whatsapp']?.toString(),
+              ),
               style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
             ),
           ],

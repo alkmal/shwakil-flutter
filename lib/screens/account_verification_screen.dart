@@ -99,7 +99,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       if (_isApproved) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            Navigator.pushReplacementNamed(context, '/account-settings');
+            _returnAfterApprovedStatus();
           }
         });
       }
@@ -108,6 +108,15 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _returnAfterApprovedStatus() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.maybePop();
+      return;
+    }
+    navigator.pushReplacementNamed('/account-settings');
   }
 
   Future<void> _pickImage(bool identity) async {

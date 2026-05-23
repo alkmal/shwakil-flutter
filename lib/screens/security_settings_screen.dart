@@ -823,6 +823,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Future<void> _createOrChangePin() async {
+    final wasPinEnabled = _hasPin;
     if (_hasPin) {
       final verified = await _confirmCurrentPinOrBiometric();
       if (!verified) {
@@ -838,7 +839,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     );
     if (pin != null && pin.length == 4) {
       await LocalSecurityService.savePin(pin);
-      _load();
+      if (!wasPinEnabled) {
+        await _returnHomeAfterSecuritySetup();
+        return;
+      }
+      await _load();
     }
   }
 
@@ -938,6 +943,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         return;
       }
       await LocalSecurityService.setBiometricEnabled(value);
+      if (value) {
+        await _returnHomeAfterSecuritySetup();
+        return;
+      }
       await _load();
     } finally {
       if (mounted) {
@@ -1022,6 +1031,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       return;
     }
     Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  Future<void> _returnHomeAfterSecuritySetup() async {
+    await LocalSecurityService.skipNextUnlock();
+    await LocalSecurityService.clearRelockRequirement();
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
   }
 }
 

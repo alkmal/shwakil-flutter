@@ -240,14 +240,10 @@ class AppAlertService {
       }
 
       (extraContext ?? const <String, dynamic>{}).forEach((key, value) {
-        if (value == null) {
-          return;
+        final sanitized = _safeTelemetryValue(key, value);
+        if (sanitized != null) {
+          payload[key] = sanitized;
         }
-        final text = value.toString().trim();
-        if (text.isEmpty) {
-          return;
-        }
-        payload[key] = text;
       });
 
       await _client
@@ -517,6 +513,10 @@ class AppAlertService {
       if (deviceId != null && deviceId.trim().isNotEmpty) {
         payload['deviceId'] = deviceId.trim();
       }
+      final details = _detailsFromExtraContext(extraContext);
+      if (details.isNotEmpty) {
+        payload['details'] = details;
+      }
 
       if (currentUser != null) {
         payload['accountId'] = currentUser['id']?.toString();
@@ -529,14 +529,10 @@ class AppAlertService {
       }
 
       (extraContext ?? const <String, dynamic>{}).forEach((key, value) {
-        if (value == null) {
-          return;
+        final sanitized = _safeTelemetryValue(key, value);
+        if (sanitized != null) {
+          payload[key] = sanitized;
         }
-        final text = value.toString().trim();
-        if (text.isEmpty) {
-          return;
-        }
-        payload[key] = text;
       });
 
       await _client
@@ -631,6 +627,39 @@ class AppAlertService {
           candidate.isNotEmpty &&
           message.contains(candidate),
     );
+  }
+
+  static String _detailsFromExtraContext(Map<String, dynamic>? extraContext) {
+    final entries = <String>[];
+    (extraContext ?? const <String, dynamic>{}).forEach((key, value) {
+      final sanitized = _safeTelemetryValue(key, value);
+      if (sanitized == null) {
+        return;
+      }
+      entries.add('$key: $sanitized');
+    });
+
+    return entries.join('\n');
+  }
+
+  static String? _safeTelemetryValue(String key, Object? value) {
+    if (value == null) {
+      return null;
+    }
+    final normalizedKey = key.toLowerCase();
+    if (normalizedKey.contains('password') ||
+        normalizedKey.contains('otp') ||
+        normalizedKey.contains('pin') ||
+        normalizedKey.contains('token') ||
+        normalizedKey.contains('secret')) {
+      return 'محجوب';
+    }
+    final text = value.toString().trim();
+    if (text.isEmpty) {
+      return null;
+    }
+
+    return text.length > 500 ? '${text.substring(0, 500)}...' : text;
   }
 
   static _AlertStyle _styleFor(AppAlertType type) {

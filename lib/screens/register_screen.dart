@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -8,7 +9,7 @@ import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_logo.dart';
-import '../widgets/support_contact_card.dart';
+import '../widgets/support_ticket_actions.dart';
 import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -19,6 +20,8 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  static const String _registrationDefaultCountryCode = '970';
+
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
 
@@ -29,7 +32,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isCheckingPendingRegistration = true;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
-  CountryOption _selectedCountry = PhoneNumberService.countries.first;
   String? _supportWhatsapp;
   String? _pendingReferralCode;
 
@@ -136,12 +138,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _validateContactStep() {
     final l = context.loc;
-    final whatsapp = PhoneNumberService.normalize(
-      input: _whatsappC.text,
-      defaultDialCode: _selectedCountry.dialCode,
-    );
-    if (whatsapp.isEmpty ||
-        whatsapp.length < _selectedCountry.dialCode.length + 8) {
+    final whatsapp = _registrationWhatsappInput();
+    if (!RegExp(r'^05\d{8}$').hasMatch(whatsapp)) {
       return l.tr('screens_register_screen.031');
     }
 
@@ -168,20 +166,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         context,
         title: l.tr('screens_register_screen.007'),
         message: localError,
+        extraContext: _registrationErrorContext(action: 'local_validation'),
       );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      final whatsapp = PhoneNumberService.normalize(
-        input: _whatsappC.text,
-        defaultDialCode: _selectedCountry.dialCode,
-      );
+      final whatsapp = _registrationWhatsappInput();
       final otp = await _authService.startRegistration(
         fullName: _fullNameC.text.trim(),
         whatsapp: whatsapp,
-        countryCode: _selectedCountry.dialCode,
+        countryCode: _registrationDefaultCountryCode,
         termsAccepted: true,
         referralPhone: _pendingReferralCode,
       );
@@ -219,7 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               whatsapp: otp.whatsapp?.trim().isNotEmpty == true
                   ? otp.whatsapp!.trim()
                   : whatsapp,
-              countryCode: _selectedCountry.dialCode,
+              countryCode: _registrationDefaultCountryCode,
               termsAccepted: true,
               referralPhone: _pendingReferralCode,
               pendingRegistrationId: pendingRegistrationId,
@@ -253,7 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             fullName: _fullNameC.text.trim(),
             username: '',
             whatsapp: whatsapp,
-            countryCode: _selectedCountry.dialCode,
+            countryCode: _registrationDefaultCountryCode,
             termsAccepted: true,
             referralPhone: _pendingReferralCode,
             pendingRegistrationId: pendingRegistrationId,
@@ -271,12 +267,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
         context,
         title: l.tr('screens_register_screen.008'),
         message: ErrorMessageService.sanitize(error),
+        extraContext: _registrationErrorContext(action: 'start_registration'),
       );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  String _registrationWhatsappInput() {
+    return _whatsappC.text.replaceAll(RegExp(r'\D+'), '');
+  }
+
+  Map<String, dynamic> _registrationErrorContext({required String action}) {
+    final normalizedWhatsapp = PhoneNumberService.normalize(
+      input: _whatsappC.text,
+      defaultDialCode: _registrationDefaultCountryCode,
+    );
+    return {
+      'screen': 'register',
+      'action': action,
+      'enteredFullName': _fullNameC.text.trim(),
+      'enteredWhatsapp': _whatsappC.text.trim(),
+      'normalizedWhatsapp': normalizedWhatsapp,
+      'countryCode': 'auto',
+      'defaultCountryCode': _registrationDefaultCountryCode,
+      'termsAccepted': _termsAccepted,
+      'referralPhone': _pendingReferralCode ?? '',
+    };
   }
 
   @override
@@ -292,183 +311,165 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return _buildDisabledState();
     }
 
-    final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: Stack(
-        children: [
-          _buildBackgroundDecor(),
-          SafeArea(
-            child: ResponsiveScaffoldContainer(
-              maxWidth: 1100,
-              padding: const EdgeInsets.all(AppTheme.spacingLg),
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const ShwakelLogo(size: 80, framed: true),
-                      const SizedBox(height: 24),
-                      Text(
-                        l.tr('screens_register_screen.009'),
-                        style: AppTheme.h1.copyWith(fontSize: 28),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l.tr('screens_register_screen.039'),
-                        textAlign: TextAlign.center,
-                        style: AppTheme.bodyAction.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 520),
-                        child: _buildFormCard(),
-                      ),
-                      const SizedBox(height: 16),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pushReplacementNamed(context, '/login'),
-                        child: Text(l.tr('screens_register_screen.040')),
-                      ),
-                      if ((_supportWhatsapp ?? '').isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 520),
-                          child: SupportContactCard(
-                            phoneNumber: _supportWhatsapp!,
-                            title: l.tr('screens_register_screen.028'),
-                            message: l.tr('screens_register_screen.045'),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.pageBackgroundGradient,
+        ),
+        child: SafeArea(
+          child: ResponsiveScaffoldContainer(
+            maxWidth: 1100,
+            padding: AppTheme.pagePadding(context, top: 20),
+            child: Center(
+              child: SingleChildScrollView(child: _buildRegistrationLayout()),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildFormCard() {
+  Widget _buildRegistrationLayout() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 780) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(flex: 5, child: _buildRegisterHero()),
+                const SizedBox(width: 28),
+                Expanded(flex: 6, child: _buildRegisterControls()),
+              ],
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildRegisterHero(),
+              const SizedBox(height: 22),
+              _buildRegisterControls(),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRegisterHero() {
     final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _field(
-            l.tr('screens_register_screen.011'),
-            _fullNameC,
-            Icons.badge_rounded,
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<CountryOption>(
-            initialValue: _selectedCountry,
-            decoration: InputDecoration(
-              labelText: l.tr('screens_register_screen.016'),
-              prefixIcon: const Icon(Icons.public_rounded),
-            ),
-            items: PhoneNumberService.countries
-                .map(
-                  (country) => DropdownMenuItem(
-                    value: country,
-                    child: Text('${country.name} (+${country.dialCode})'),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedCountry = value);
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-          _field(
-            l.tr('screens_register_screen.017'),
-            _whatsappC,
-            Icons.chat_rounded,
-            type: TextInputType.phone,
-            prefix: '+${_selectedCountry.dialCode} ',
-          ),
-          if ((_pendingReferralCode ?? '').isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildReferralAppliedCard(),
-          ],
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
-              borderRadius: AppTheme.radiusMd,
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Text(
-              l.tr('screens_register_screen.041'),
-              style: AppTheme.caption.copyWith(
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w700,
-                height: 1.6,
-              ),
-            ),
-          ),
+          const ShwakelLogo(size: 82, framed: true),
+          const SizedBox(height: 18),
+          Text(l.tr('main.001'), style: AppTheme.h1.copyWith(fontSize: 34)),
           const SizedBox(height: 8),
-          CheckboxListTile(
-            value: _termsAccepted,
-            onChanged: (value) {
-              setState(() => _termsAccepted = value ?? false);
-            },
-            title: Text(
-              l.tr('screens_register_screen.042'),
-              style: AppTheme.caption.copyWith(fontWeight: FontWeight.bold),
+          Text(
+            l.tr('main.006'),
+            style: AppTheme.bodyAction.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.6,
             ),
-            contentPadding: EdgeInsets.zero,
-            activeColor: AppTheme.primary,
-          ),
-          const SizedBox(height: 16),
-          ShwakelButton(
-            label: l.tr('screens_register_screen.023'),
-            onPressed: _register,
-            isLoading: _isLoading,
-            icon: Icons.assignment_turned_in_rounded,
-            iconAtEnd: true,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBackgroundDecor() {
-    return Stack(
+  Widget _buildRegisterControls() {
+    final l = context.loc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Positioned(
-          top: -100,
-          right: -100,
-          child: Container(
-            width: 300,
-            height: 300,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
+        Text(l.tr('screens_register_screen.009'), style: AppTheme.h1),
+        const SizedBox(height: 8),
+        Text(
+          l.tr('screens_register_screen.039'),
+          style: AppTheme.bodyAction.copyWith(
+            color: AppTheme.textSecondary,
+            height: 1.6,
           ),
         ),
-        Positioned(
-          bottom: -50,
-          left: -50,
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              color: AppTheme.accent.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
+        const SizedBox(height: 24),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _field(
+              l.tr('screens_register_screen.011'),
+              _fullNameC,
+              Icons.badge_rounded,
             ),
-          ),
+            const SizedBox(height: 16),
+            _field(
+              l.tr('screens_register_screen.017'),
+              _whatsappC,
+              Icons.chat_rounded,
+              type: TextInputType.phone,
+              helperText: l.tr('screens_register_screen.047'),
+            ),
+            if ((_pendingReferralCode ?? '').isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildReferralAppliedCard(),
+            ],
+            const SizedBox(height: 16),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton(
+                onPressed: () =>
+                    Navigator.pushReplacementNamed(context, '/login'),
+                child: Text(l.tr('screens_register_screen.040')),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: AppTheme.radiusMd,
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Text(
+                l.tr('screens_register_screen.041'),
+                style: AppTheme.caption.copyWith(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w700,
+                  height: 1.6,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              value: _termsAccepted,
+              onChanged: (value) {
+                setState(() => _termsAccepted = value ?? false);
+              },
+              title: Text(
+                l.tr('screens_register_screen.042'),
+                style: AppTheme.caption.copyWith(fontWeight: FontWeight.bold),
+              ),
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppTheme.primary,
+            ),
+            const SizedBox(height: 16),
+            ShwakelButton(
+              label: l.tr('screens_register_screen.023'),
+              onPressed: _register,
+              isLoading: _isLoading,
+              icon: Icons.assignment_turned_in_rounded,
+              iconAtEnd: true,
+            ),
+          ],
         ),
+        const SizedBox(height: 16),
+        SupportTicketActions(supportWhatsapp: _supportWhatsapp ?? ''),
       ],
     );
   }
@@ -510,11 +511,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   if ((_supportWhatsapp ?? '').isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    SupportContactCard(
-                      phoneNumber: _supportWhatsapp!,
-                      title: l.tr('screens_register_screen.028'),
-                      message: l.tr('screens_register_screen.045'),
-                    ),
+                    SupportTicketActions(supportWhatsapp: _supportWhatsapp!),
                   ],
                   const SizedBox(height: 24),
                   ShwakelButton(
@@ -590,11 +587,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool readOnly = false,
     VoidCallback? onTap,
     String? prefix,
+    String? helperText,
     Widget? suffixIcon,
   }) {
     return TextField(
       controller: controller,
       keyboardType: type,
+      inputFormatters: type == TextInputType.phone
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : null,
       obscureText: obscure,
       readOnly: readOnly,
       onTap: onTap,
@@ -602,6 +603,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         labelText: label,
         prefixIcon: Icon(icon, size: 20),
         prefixText: prefix,
+        helperText: helperText,
         suffixIcon: suffixIcon,
       ),
     );

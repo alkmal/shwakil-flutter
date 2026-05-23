@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,7 @@ final AppRouteObserver appRouteObserver = AppRouteObserver();
 class AppRouteObserver extends RouteObserver<ModalRoute<void>>
     with ChangeNotifier {
   String? currentRouteName;
+  bool _notifyScheduled = false;
 
   void _setCurrentRoute(Route<dynamic>? route) {
     final nextName = route?.settings.name;
@@ -26,7 +28,18 @@ class AppRouteObserver extends RouteObserver<ModalRoute<void>>
       return;
     }
     currentRouteName = nextName;
-    notifyListeners();
+    _notifyAfterBuild();
+  }
+
+  void _notifyAfterBuild() {
+    if (_notifyScheduled) {
+      return;
+    }
+    _notifyScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _notifyScheduled = false;
+      notifyListeners();
+    });
   }
 
   @override
@@ -75,6 +88,11 @@ final Map<String, WidgetBuilder> _appRoutes = {
     );
   },
   '/register': (context) => const RegisterScreen(),
+  '/support-tickets': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return SupportTicketsScreen(openTracking: options['tracking'] == true);
+  },
   '/unlock': (context) => const DeviceUnlockScreen(),
   '/balance': (context) => const BalanceScreen(),
   '/create-card': (context) => const CreateCardScreen(),
@@ -92,6 +110,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   ),
   '/quick-transfer': (context) => const QuickTransferScreen(),
   '/card-print-requests': (context) => const CardPrintRequestsScreen(),
+  '/card-usage-report': (context) => const IssuedCardUsageReportScreen(),
   '/scan-card': (context) {
     final args = ModalRoute.of(context)?.settings.arguments;
     final options = args is Map ? args : const <String, dynamic>{};
@@ -151,6 +170,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/admin-device-requests': (context) => const AdminDeviceRequestsScreen(),
   '/admin-locations': (context) => const AdminLocationsScreen(),
   '/admin-notifications': (context) => const AdminNotificationsScreen(),
+  '/admin-support-tickets': (context) => const AdminSupportTicketsScreen(),
   '/admin-prepaid-multipay-approvals': (context) =>
       const AdminPrepaidMultipayApprovalsScreen(),
   '/admin-system-settings': (context) => const AdminSystemSettingsScreen(),
@@ -187,6 +207,7 @@ bool _isPublicRoute(String? routeName) {
   return routeName == '/login' ||
       routeName == '/login-offline' ||
       routeName == '/register' ||
+      routeName == '/support-tickets' ||
       routeName == '/forgot-password' ||
       routeName == '/unlock';
 }
@@ -206,6 +227,10 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/notifications' => true,
     '/create-card' => permissions.canIssueCards,
     '/card-print-requests' => permissions.canRequestCardPrinting,
+    '/card-usage-report' =>
+      permissions.canIssueCards ||
+          permissions.canRequestCardPrinting ||
+          permissions.canViewInventory,
     '/inventory' => permissions.canViewInventory && permissions.canIssueCards,
     '/scan-card' || '/scan-card-camera' =>
       permissions.canOpenCardTools || permissions.canReviewCards,
@@ -228,6 +253,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/affiliate-center' => permissions.canViewAffiliateCenter,
     '/usage-policy' => permissions.canViewUsagePolicy,
     '/contact-us' => permissions.canViewContact,
+    '/support-tickets' => true,
     '/supported-locations' ||
     '/approved-merchants' => permissions.canViewLocations,
     '/admin-dashboard' => permissions.hasAdminWorkspaceAccess,
@@ -239,6 +265,10 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/admin-locations' => permissions.canManageLocations,
     '/admin-notifications' =>
       permissions.canManageUsers || permissions.canManageSystemSettings,
+    '/admin-support-tickets' =>
+      permissions.isAdminRole ||
+          permissions.isSupportRole ||
+          permissions.canManageUsers,
     '/admin-prepaid-multipay-approvals' => permissions.canManageUsers,
     '/admin-system-settings' => permissions.canManageSystemSettings,
     '/admin-permissions' => permissions.canManageUsers,
@@ -573,8 +603,10 @@ class MyApp extends StatelessWidget {
                     data: MediaQuery.of(
                       context,
                     ).copyWith(textScaler: const TextScaler.linear(1)),
-                    child: _AdaptiveWebSidebarShell(
-                      child: child ?? const SizedBox.shrink(),
+                    child: _RootBackNavigationGuard(
+                      child: _AdaptiveWebSidebarShell(
+                        child: child ?? const SizedBox.shrink(),
+                      ),
                     ),
                   ),
                   const _GlobalConnectivityBanner(),
@@ -588,6 +620,77 @@ class MyApp extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _RootBackNavigationGuard extends StatefulWidget {
+  const _RootBackNavigationGuard({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_RootBackNavigationGuard> createState() =>
+      _RootBackNavigationGuardState();
+}
+
+class _RootBackNavigationGuardState extends State<_RootBackNavigationGuard> {
+  bool _handlingBack = false;
+
+  Future<bool> _confirmExit() async {
+    final l = context.loc;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.tr('main.019')),
+        content: Text(l.tr('main.020')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l.tr('main.021')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l.tr('main.022')),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  Future<void> _handleBack() async {
+    if (_handlingBack) {
+      return;
+    }
+    _handlingBack = true;
+    try {
+      final navigator = AppAlertService.navigatorKey.currentState;
+      if (navigator != null && navigator.canPop()) {
+        navigator.pop();
+        return;
+      }
+
+      final shouldExit = await _confirmExit();
+      if (shouldExit) {
+        await SystemNavigator.pop();
+      }
+    } finally {
+      _handlingBack = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          return;
+        }
+        unawaited(_handleBack());
+      },
+      child: widget.child,
     );
   }
 }

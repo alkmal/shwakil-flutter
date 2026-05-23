@@ -42,11 +42,24 @@ class OfflineCardService {
       for (final item in pendingQueue) (item['barcode']?.toString() ?? ''),
     }..remove('');
     final byBarcode = <String, Map<String, dynamic>>{};
+    final offlineScope = settings['offlineScope']?.toString() ?? '';
+    final canCacheAllCards = offlineScope == 'all';
 
     for (final card in cards) {
       final isOwner = (card.ownerId ?? '') == userId;
       final isAllowed = card.allowedUserIds.contains(userId);
-      if (!isOwner && !isAllowed) {
+      if (!canCacheAllCards && !isOwner && !isAllowed) {
+        continue;
+      }
+      if (!canCacheAllCards &&
+          offlineScope == 'private_only' &&
+          !card.isPrivate) {
+        continue;
+      }
+      if (!canCacheAllCards &&
+          offlineScope == 'driver_private_delivery' &&
+          !card.isPrivate &&
+          !card.isDelivery) {
         continue;
       }
       final localCard = existingByBarcode[card.barcode];
@@ -309,9 +322,7 @@ class OfflineCardService {
       'revealedAt': now.toIso8601String(),
       'retryAllowedAt': allowRetryAfterReconnect
           ? now
-                .add(
-                  const Duration(minutes: _revealedCardRetryDelayMinutes),
-                )
+                .add(const Duration(minutes: _revealedCardRetryDelayMinutes))
                 .toIso8601String()
           : null,
     });
@@ -383,9 +394,7 @@ class OfflineCardService {
           'retryAllowedAt':
               retryAllowedAt?.toIso8601String() ??
               now
-                  .add(
-                    const Duration(minutes: _revealedCardRetryDelayMinutes),
-                  )
+                  .add(const Duration(minutes: _revealedCardRetryDelayMinutes))
                   .toIso8601String(),
         });
         continue;

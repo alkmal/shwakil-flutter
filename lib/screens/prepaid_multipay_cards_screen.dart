@@ -930,7 +930,9 @@ class _PrepaidMultipayCardsScreenState
         ? pw.CrossAxisAlignment.end
         : pw.CrossAxisAlignment.start;
     final balanceLabel = CurrencyFormatter.ils(balance);
-    final normalizedLabel = label.trim().isEmpty ? 'Shwakil Prepaid' : label.trim();
+    final normalizedLabel = label.trim().isEmpty
+        ? 'Shwakil Prepaid'
+        : label.trim();
 
     return pw.Container(
       width: width,
@@ -1922,11 +1924,18 @@ class _PrepaidMultipayCardsScreenState
     _openUnifiedScanner(openCamera: false);
   }
 
+  void _openRoute(String routeName, {Object? arguments}) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName, arguments: arguments);
+  }
+
   void _openUnifiedScanner({bool openCamera = true, String? initialBarcode}) {
     final normalizedInitial = initialBarcode?.trim() ?? '';
     if (normalizedInitial.isNotEmpty) {
-      Navigator.pushNamed(
-        context,
+      _openRoute(
         '/scan-card',
         arguments: {'initialBarcode': normalizedInitial},
       );
@@ -1934,15 +1943,11 @@ class _PrepaidMultipayCardsScreenState
     }
 
     if (openCamera) {
-      Navigator.pushNamed(context, '/scan-card-camera');
+      _openRoute('/scan-card-camera');
       return;
     }
 
-    Navigator.pushNamed(
-      context,
-      '/scan-card',
-      arguments: const {'autoReadNfc': true},
-    );
+    _openRoute('/scan-card', arguments: const {'autoReadNfc': true});
   }
 
   void _applyInitialAction() {
@@ -2336,13 +2341,17 @@ class _PrepaidMultipayCardsScreenState
                 OutlinedButton.icon(
                   onPressed: () => _showCardForDirectPayment(card),
                   icon: const Icon(Icons.smartphone_rounded),
-                  label: Text(l.tr('screens_prepaid_multipay_cards_screen.068')),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.068'),
+                  ),
                 ),
               if (canPrintCard)
                 OutlinedButton.icon(
                   onPressed: () => _printPrepaidCard(card),
                   icon: const Icon(Icons.print_rounded),
-                  label: Text(l.tr('screens_prepaid_multipay_cards_screen.069')),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.069'),
+                  ),
                 ),
               if (status == 'active' && showNfcActions)
                 FilledButton.icon(
@@ -2372,19 +2381,25 @@ class _PrepaidMultipayCardsScreenState
                       ? null
                       : () => _revokeThisNfcDevice(card),
                   icon: const Icon(Icons.link_off_rounded),
-                  label: Text(l.tr('screens_prepaid_multipay_cards_screen.074')),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.074'),
+                  ),
                 ),
               if (canUseForPayment)
                 FilledButton.icon(
                   onPressed: () => _openUnifiedScanner(openCamera: false),
                   icon: const Icon(Icons.contactless_rounded),
-                  label: Text(l.tr('screens_prepaid_multipay_cards_screen.075')),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.075'),
+                  ),
                 ),
               if (canUseForPayment)
                 OutlinedButton.icon(
                   onPressed: () => _openUnifiedScanner(),
                   icon: const Icon(Icons.point_of_sale_rounded),
-                  label: Text(l.tr('screens_prepaid_multipay_cards_screen.076')),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.076'),
+                  ),
                 ),
               if (canReload)
                 OutlinedButton.icon(
@@ -2402,13 +2417,17 @@ class _PrepaidMultipayCardsScreenState
                 FilledButton.icon(
                   onPressed: () => _renewCard(card),
                   icon: const Icon(Icons.autorenew_rounded),
-                  label: Text(l.tr('screens_prepaid_multipay_cards_screen.027')),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.027'),
+                  ),
                 ),
               if (canEditCard)
                 OutlinedButton.icon(
                   onPressed: () => _editCardDetails(card),
                   icon: const Icon(Icons.edit_rounded),
-                  label: Text(l.tr('screens_prepaid_multipay_cards_screen.039')),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.039'),
+                  ),
                 ),
             ],
           ),
@@ -2422,19 +2441,25 @@ class _PrepaidMultipayCardsScreenState
                   OutlinedButton.icon(
                     onPressed: () => _updateStatus(card, 'freeze'),
                     icon: const Icon(Icons.pause_circle_rounded),
-                    label: Text(l.tr('screens_prepaid_multipay_cards_screen.031')),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.031'),
+                    ),
                   ),
                 if (status == 'frozen')
                   OutlinedButton.icon(
                     onPressed: () => _updateStatus(card, 'activate'),
                     icon: const Icon(Icons.play_circle_rounded),
-                    label: Text(l.tr('screens_prepaid_multipay_cards_screen.032')),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.032'),
+                    ),
                   ),
                 if (status == 'active' || status == 'frozen')
                   OutlinedButton.icon(
                     onPressed: () => _changeSecurityCode(card),
                     icon: const Icon(Icons.password_rounded),
-                    label: Text(l.tr('screens_prepaid_multipay_cards_screen.078')),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.078'),
+                    ),
                   ),
               ],
             ),
@@ -2464,17 +2489,35 @@ class _PrepaidMultipayCardsScreenState
               const SizedBox(height: 18),
           ] else
             const SizedBox(height: 18),
-          Text(l.tr('screens_prepaid_multipay_cards_screen.080'), style: AppTheme.h3),
+          Text(
+            l.tr('screens_prepaid_multipay_cards_screen.080'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _activityChip('all', l.tr('screens_prepaid_multipay_cards_screen.081')),
-              _activityChip('payments', l.tr('screens_prepaid_multipay_cards_screen.082')),
-              _activityChip('reloads', l.tr('screens_prepaid_multipay_cards_screen.004')),
-              _activityChip('status', l.tr('screens_prepaid_multipay_cards_screen.061')),
-              _activityChip('security', l.tr('screens_prepaid_multipay_cards_screen.083')),
+              _activityChip(
+                'all',
+                l.tr('screens_prepaid_multipay_cards_screen.081'),
+              ),
+              _activityChip(
+                'payments',
+                l.tr('screens_prepaid_multipay_cards_screen.082'),
+              ),
+              _activityChip(
+                'reloads',
+                l.tr('screens_prepaid_multipay_cards_screen.004'),
+              ),
+              _activityChip(
+                'status',
+                l.tr('screens_prepaid_multipay_cards_screen.061'),
+              ),
+              _activityChip(
+                'security',
+                l.tr('screens_prepaid_multipay_cards_screen.083'),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -2492,7 +2535,10 @@ class _PrepaidMultipayCardsScreenState
             ),
           if (payments.isNotEmpty) ...[
             const SizedBox(height: 18),
-            Text(l.tr('screens_prepaid_multipay_cards_screen.085'), style: AppTheme.h3),
+            Text(
+              l.tr('screens_prepaid_multipay_cards_screen.085'),
+              style: AppTheme.h3,
+            ),
             const SizedBox(height: 12),
             ...payments.map(
               (payment) => Padding(
@@ -2628,7 +2674,7 @@ class _PrepaidMultipayCardsScreenState
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                          children: [
                             Text(
                               'شواكل',
                               style: AppTheme.h3.copyWith(
@@ -2689,9 +2735,7 @@ class _PrepaidMultipayCardsScreenState
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFE4E6),
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: const Color(0xFFFB7185),
-                          ),
+                          border: Border.all(color: const Color(0xFFFB7185)),
                         ),
                         child: Text(
                           _statusLabel(card['status']?.toString() ?? 'active'),
@@ -2770,14 +2814,16 @@ class _PrepaidMultipayCardsScreenState
                           )
                         : Icon(
                             Icons.barcode_reader,
-                            color: AppTheme.textTertiary.withValues(alpha: 0.45),
+                            color: AppTheme.textTertiary.withValues(
+                              alpha: 0.45,
+                            ),
                             size: isLarge ? 58 : 46,
                           ),
                   ),
                   if (!isRevealed) ...[
                     const SizedBox(height: 8),
                     Text(
-                        rawNumber.isNotEmpty
+                      rawNumber.isNotEmpty
                           ? 'اضغط على البطاقة لإظهار الباركود'
                           : 'اضغط على البطاقة لإظهار بيانات الدفع',
                       style: AppTheme.caption.copyWith(
@@ -2883,17 +2929,9 @@ class _PrepaidMultipayCardsScreenState
   }
 
   String _cardIssuerLocalPhone() {
-    final raw = AuthService.peekCurrentUser()?['whatsapp']?.toString() ?? '';
-    var digits = raw.replaceAll(RegExp(r'\D+'), '');
-    if (digits.startsWith('970') && digits.length > 9) {
-      digits = digits.substring(3);
-    } else if (digits.startsWith('972') && digits.length > 9) {
-      digits = '0${digits.substring(3)}';
-    }
-    if (digits.length == 9 && digits.startsWith('5')) {
-      digits = '0$digits';
-    }
-    return digits;
+    return PhoneNumberService.localDisplay(
+      AuthService.peekCurrentUser()?['whatsapp']?.toString(),
+    );
   }
 
   pw.TextDirection _pdfTextDirection(String value) {

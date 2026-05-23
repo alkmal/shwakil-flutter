@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../localization/index.dart';
+import '../services/app_alert_service.dart';
 import '../utils/app_theme.dart';
 
 class SupportContactCard extends StatelessWidget {
@@ -25,8 +26,10 @@ class SupportContactCard extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l.tr('widgets_support_contact_card.001'))),
+    AppAlertService.showSnack(
+      context,
+      message: l.tr('widgets_support_contact_card.001'),
+      type: AppAlertType.success,
     );
   }
 
@@ -44,8 +47,10 @@ class SupportContactCard extends StatelessWidget {
     }
     if (!context.mounted) return;
     if (!opened) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.tr('widgets_support_contact_card.002'))),
+      AppAlertService.showSnack(
+        context,
+        message: l.tr('widgets_support_contact_card.002'),
+        type: AppAlertType.error,
       );
     }
   }

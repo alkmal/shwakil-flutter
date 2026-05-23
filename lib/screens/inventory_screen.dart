@@ -70,6 +70,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
     super.dispose();
   }
 
+  void _openRoute(String routeName) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamed(context, routeName);
+  }
+
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final requestedPage = _page;
@@ -271,8 +279,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           if (_canRequestCardPrinting)
             IconButton(
               tooltip: l.tr('screens_inventory_screen.003'),
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/card-print-requests'),
+              onPressed: () => _openRoute('/card-print-requests'),
               icon: const Icon(Icons.print_rounded),
             ),
           IconButton(
@@ -299,88 +306,89 @@ class _InventoryScreenState extends State<InventoryScreen> {
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-              if (_isOfflineData)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: ShwakelCard(
-                    padding: const EdgeInsets.all(16),
-                    color: AppTheme.warning.withValues(alpha: 0.08),
-                    borderColor: AppTheme.warning.withValues(alpha: 0.15),
-                    child: Text(
-                      'أنت تعرض بطاقات محفوظة محليًا. يمكن فتح البطاقة غير المستخدمة واستخدامها حتى بدون إنترنت.',
-                      style: AppTheme.bodyAction.copyWith(fontSize: 14),
-                    ),
-                  ),
-                ),
-              if (_canMonitorOfflineWorkflow &&
-                  _offlineOverview != null &&
-                  !_canUseAdminInventory)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildOfflineFollowupCard(),
-                ),
-              if (_canUseAdminInventory)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        ShwakelButton(
-                          label: 'إنشاء بطاقة لمستخدم',
-                          icon: Icons.add_card_rounded,
-                          onPressed: _createAdminCard,
+                  if (_isOfflineData)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ShwakelCard(
+                        padding: const EdgeInsets.all(16),
+                        color: AppTheme.warning.withValues(alpha: 0.08),
+                        borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                        child: Text(
+                          'أنت تعرض بطاقات محفوظة محليًا. يمكن فتح البطاقة غير المستخدمة واستخدامها حتى بدون إنترنت.',
+                          style: AppTheme.bodyAction.copyWith(fontSize: 14),
                         ),
-                        if (_canPrintCards && _printableCards(_cards).isNotEmpty)
-                          ShwakelButton(
-                            label: l.tr('screens_inventory_screen.021'),
-                            icon: Icons.print_rounded,
-                            onPressed: _reprintFilteredCards,
-                            isSecondary: true,
-                          ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              if (!_canUseAdminInventory &&
-                  _canPrintCards &&
-                  _printableCards(_cards).isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: ShwakelButton(
-                      label: 'طباعة البطاقات الظاهرة',
-                      icon: Icons.print_rounded,
-                      isSecondary: true,
-                      onPressed: _reprintFilteredCards,
+                  if (_canMonitorOfflineWorkflow &&
+                      _offlineOverview != null &&
+                      !_canUseAdminInventory)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildOfflineFollowupCard(),
                     ),
-                  ),
-                ),
-              if (_cards.isEmpty)
-                _buildEmptyState()
-              else ...[
-                ..._cards.map(
-                  (card) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildCardTile(card),
-                  ),
-                ),
-                AdminPaginationFooter(
-                  currentPage: _page,
-                  lastPage: _lastPage,
-                  totalItems: _filteredTotalCards,
-                  itemsPerPage: _canUseAdminInventory
-                      ? _adminPerPage
-                      : _perPage,
-                  onPageChanged: (page) {
-                    setState(() => _page = page);
-                    _load();
-                  },
-                ),
-              ],
+                  if (_canUseAdminInventory)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            ShwakelButton(
+                              label: 'إنشاء بطاقة لمستخدم',
+                              icon: Icons.add_card_rounded,
+                              onPressed: _createAdminCard,
+                            ),
+                            if (_canPrintCards &&
+                                _printableCards(_cards).isNotEmpty)
+                              ShwakelButton(
+                                label: l.tr('screens_inventory_screen.021'),
+                                icon: Icons.print_rounded,
+                                onPressed: _reprintFilteredCards,
+                                isSecondary: true,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (!_canUseAdminInventory &&
+                      _canPrintCards &&
+                      _printableCards(_cards).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ShwakelButton(
+                          label: 'طباعة البطاقات الظاهرة',
+                          icon: Icons.print_rounded,
+                          isSecondary: true,
+                          onPressed: _reprintFilteredCards,
+                        ),
+                      ),
+                    ),
+                  if (_cards.isEmpty)
+                    _buildEmptyState()
+                  else ...[
+                    ..._cards.map(
+                      (card) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildCardTile(card),
+                      ),
+                    ),
+                    AdminPaginationFooter(
+                      currentPage: _page,
+                      lastPage: _lastPage,
+                      totalItems: _filteredTotalCards,
+                      itemsPerPage: _canUseAdminInventory
+                          ? _adminPerPage
+                          : _perPage,
+                      onPageChanged: (page) {
+                        setState(() => _page = page);
+                        _load();
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1375,16 +1383,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ],
           ),
         ),
-      if (!_canUseAdminInventory && _canDeleteCards && card.status == CardStatus.unused)
+      if (!_canUseAdminInventory &&
+          _canDeleteCards &&
+          card.status == CardStatus.unused)
         PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
-              const Icon(
-                Icons.delete_rounded,
-                size: 18,
-                color: AppTheme.error,
-              ),
+              const Icon(Icons.delete_rounded, size: 18, color: AppTheme.error),
               const SizedBox(width: 8),
               Text(
                 l.tr('screens_inventory_screen.009'),
@@ -1409,7 +1415,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
           value: 'admin_delete',
           child: Row(
             children: [
-              Icon(Icons.delete_forever_rounded, size: 18, color: AppTheme.error),
+              Icon(
+                Icons.delete_forever_rounded,
+                size: 18,
+                color: AppTheme.error,
+              ),
               SizedBox(width: 8),
               Text('حذف إداري', style: TextStyle(color: AppTheme.error)),
             ],
@@ -1486,10 +1496,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       );
       await _pdfService.printCards([card], printedBy: printedBy);
       if (mounted) {
-        AppAlertService.showSuccess(
-          context,
-          message: successMessage,
-        );
+        AppAlertService.showSuccess(context, message: successMessage);
       }
     } catch (error, stackTrace) {
       await AppAlertService.reportUnhandledCrash(
@@ -2008,10 +2015,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       if (!mounted) {
         return;
       }
-      AppAlertService.showSuccess(
-        context,
-        message: successMessage,
-      );
+      AppAlertService.showSuccess(context, message: successMessage);
     } catch (error, stackTrace) {
       await AppAlertService.reportUnhandledCrash(
         title: 'Filtered card reprint failed',

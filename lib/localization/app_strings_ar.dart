@@ -20,6 +20,10 @@ const Map<String, String> appStringsAr = {
   'main.016': 'رابط التحديث غير متوفر',
   'main.017': 'تحققت بعد التحديث',
   'main.018': 'إعادة التحقق',
+  'main.019': 'الخروج من التطبيق؟',
+  'main.020': 'أنت على أول شاشة متاحة. هل تريد إغلاق التطبيق الآن؟',
+  'main.021': 'البقاء',
+  'main.022': 'خروج',
   'shared.cancel': 'إلغاء',
   'shared.back': 'تراجع',
   'shared.save': 'حفظ',
@@ -852,7 +856,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.014': 'تاريخ الميلاد',
   'screens_register_screen.015': 'بيانات التواصل',
   'screens_register_screen.016': ' (مقدمة واتساب) الدولة',
-  'screens_register_screen.017': 'رقم الهاتف',
+  'screens_register_screen.017': 'رقم الهاتف بدون مقدمة',
   'screens_register_screen.018': 'رقم الإحالة',
   'screens_register_screen.019': 'متابعة الحساب',
   'screens_register_screen.020': 'كلمة المرور',
@@ -867,7 +871,8 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.029': 'يرجى إدخال اسمك الكامل بشكل صحيح.',
   'screens_register_screen.030':
       'يجب أن يتكون اسم المستخدم من أحرف أو أرقام إنجليزية فقط، مع السماح بالرموز . _ - + و @.',
-  'screens_register_screen.031': 'يرجى إدخال رقم هاتف صحيح.',
+  'screens_register_screen.031':
+      'أدخل رقم الجوال المحلي بدون مقدمة، ويجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
   'screens_register_screen.032': 'رقم الإحالة غير صالح.',
   'screens_register_screen.033': 'لا حاجة لإدخال كلمة مرور أثناء التسجيل.',
   'screens_register_screen.034':
@@ -883,12 +888,14 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.040': 'لديك حساب بالفعل؟ سجّل الدخول',
   'screens_register_screen.041':
       'لا تحتاج إلى إنشاء كلمة مرور الآن. بعد اعتماد التسجيل من الإدارة ستصلك كلمة المرور عبر SMS لتكمل تسجيل الدخول ومتابعة توثيق الحساب.',
-  'screens_register_screen.042': 'أوافق على الشروط والسياسات والرسوم المعروضة.',
+  'screens_register_screen.042': 'أوافق على الشروط والسياسات.',
   'screens_register_screen.043': 'التسجيل متوقف حاليا',
   'screens_register_screen.044': 'تواصل معنا لمزيد من التفاصيل.',
   'screens_register_screen.045':
       'تواصل مع الإدارة مباشرة عبر رقم الدعم لطلب إنشاء حساب أو السماح بالتسجيل.',
   'screens_register_screen.046': 'العودة إلى تسجيل الدخول',
+  'screens_register_screen.047':
+      'اكتب الرقم المحلي فقط مثل 059XXXXXXX، بدون 970 أو 972 أو علامة +.',
   'screens_topup_requests_screen.001': 'طلبات الشحن',
   'screens_topup_requests_screen.002': 'طلبات الشحن',
   'screens_topup_requests_screen.003': '{pending} معلّقة',
@@ -1151,8 +1158,8 @@ const Map<String, String> appStringsAr = {
   'screens_security_settings_screen.001': 'أمان الجهاز',
   'screens_security_settings_screen.002': 'إزالة الثقة من هذا الجهاز',
   'screens_security_settings_screen.003': 'إعدادات الحماية',
-  'screens_security_settings_screen.004': 'جهاز موثوق',
-  'screens_security_settings_screen.005': 'جهاز غير موثوق',
+  'screens_security_settings_screen.004': 'هذا الجهاز موثوق للدخول',
+  'screens_security_settings_screen.005': 'هذا الجهاز غير موثوق للدخول',
   'screens_security_settings_screen.006': 'PIN مفعّل',
   'screens_security_settings_screen.007': 'PIN غير مفعّل',
   'screens_security_settings_screen.008': 'البصمة مفعّلة',
@@ -1161,13 +1168,13 @@ const Map<String, String> appStringsAr = {
   'screens_security_settings_screen.011': 'رمز PIN',
   'screens_security_settings_screen.012': 'رمز التحقق (OTP)',
   'screens_security_settings_screen.013':
-      'أدر رمز PIN والبصمة والأجهزة الموثوقة وإعدادات إعادة القفل من مكان واحد.',
+      'أدر رمز PIN والبصمة والأجهزة الموثوقة للدخول وإعدادات إعادة القفل من مكان واحد. هذا لا يعني توثيق الحساب.',
   'screens_security_settings_screen.014': 'ملخص الأمان',
   'screens_security_settings_screen.015':
-      'اطلع على حالة التحقق وثقة الجهاز وآخر وسيلة دخول.',
-  'screens_security_settings_screen.016': 'ثقة الجهاز',
-  'screens_security_settings_screen.017': 'موثوق',
-  'screens_security_settings_screen.018': 'غير موثوق',
+      'اطلع على حالة حماية هذا الجهاز وآخر وسيلة دخول. توثيق الحساب يظهر في شاشة الحساب والتوثيق.',
+  'screens_security_settings_screen.016': 'ثقة هذا الجهاز فقط',
+  'screens_security_settings_screen.017': 'الجهاز موثوق للدخول',
+  'screens_security_settings_screen.018': 'الجهاز غير موثوق للدخول',
   'screens_security_settings_screen.019': 'PIN المحلي',
   'screens_security_settings_screen.020': 'مفعّل',
   'screens_security_settings_screen.021': 'غير مفعّل',
@@ -1178,7 +1185,7 @@ const Map<String, String> appStringsAr = {
   'screens_security_settings_screen.024':
       'هذا الجهاز لا يدعم البصمة أو أنها غير مضبوطة في النظام.',
   'screens_security_settings_screen.025': 'آخر وسيلة تحقق',
-  'screens_security_settings_screen.026': 'الحساب الموثوق على هذا الجهاز',
+  'screens_security_settings_screen.026': 'اسم الدخول المحفوظ على هذا الجهاز',
   'screens_security_settings_screen.027': 'وسائل الفتح المحلية',
   'screens_security_settings_screen.028':
       'فعّل PIN أو البصمة أو كليهما لتسريع الدخول إلى التطبيق وتأكيد العمليات الحساسة.',
@@ -1352,10 +1359,10 @@ const Map<String, String> appStringsAr = {
       'هذا القسم مخصص لتحديث بيانات الحساب وكلمة المرور. ستظهر التنبيهات المهمة فقط فوق النموذج عند الحاجة.',
   'screens_account_settings_screen.068': 'الحساب',
   'screens_account_settings_screen.069': 'الأمان',
-  'screens_account_settings_screen.070': 'إعدادات الأمان مفعّلة',
+  'screens_account_settings_screen.070': 'حماية الجهاز مفعّلة',
   'screens_account_settings_screen.071': 'يجب تفعيل إعدادات الأمان',
   'screens_account_settings_screen.072':
-      'حسابك يستخدم قفلًا محليًا لهذا الجهاز. يمكنك مراجعة PIN أو البصمة من شاشة إعدادات الأمان.',
+      'هذا الجهاز يستخدم قفلًا محليًا للدخول. هذا لا يعني أن الحساب موثق؛ توثيق الحساب يتم من صفحة توثيق الحساب.',
   'screens_account_settings_screen.073':
       'فعّل PIN أو البصمة لحماية الدخول للحساب وتأكيد العمليات الحساسة بسرعة وأمان.',
   'screens_account_settings_screen.074': 'حالة الحماية الحالية',
