@@ -1880,30 +1880,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(l.tr('screens_create_card_screen.032'), style: AppTheme.h3),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_create_card_screen.033'),
-            style: AppTheme.bodyAction.copyWith(fontSize: 14),
-          ),
           if (_isTrialMode) ...[
             const SizedBox(height: 18),
             _buildTrialInfoCard(),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           ShwakelCard(
             padding: const EdgeInsets.all(18),
             color: AppTheme.primary.withValues(alpha: 0.05),
             borderColor: AppTheme.primary.withValues(alpha: 0.12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('البيانات الأساسية', style: AppTheme.bodyBold),
-                const SizedBox(height: 6),
-                Text(
-                  'تظهر هنا الأنواع المتاحة لحسابك فقط. العدد الافتراضي 30 لأنه يملأ صفحة A4، ويمكنك تغييره إلى 1 أو أي عدد مناسب.',
-                  style: AppTheme.caption.copyWith(fontSize: 12),
-                ),
-              ],
+              children: [Text('البيانات الأساسية', style: AppTheme.bodyBold)],
             ),
           ),
           const SizedBox(height: 20),
@@ -1936,10 +1924,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 labelText: l.tr('screens_create_card_screen.037'),
                 prefixIcon: const Icon(Icons.pin_rounded),
                 helperText: _isTrialMode
-                    ? 'الحد الأدنى $_minimumCardQuantity بطاقة. يمكنك إصدار أي عدد من البطاقات ما دام مجموعها لا يتجاوز ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.'
+                    ? 'المتاح: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.'
                     : _isAttendanceCard
-                    ? 'بطاقة واحدة لكل موظف. لإصدار بطاقات لموظفين آخرين كرر العملية لكل موظف.'
-                    : 'الحد الأدنى $_minimumCardQuantity. العدد الافتراضي $_cardsPerA4Page لأنه يملأ صفحة A4، ويمكن إصدار بطاقة واحدة أو أي عدد.',
+                    ? 'بطاقة واحدة لكل موظف.'
+                    : 'الحد الأدنى $_minimumCardQuantity.',
               ),
             ),
             const SizedBox(height: 16),
@@ -2099,12 +2087,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
                 title: Text('إعدادات متقدمة', style: AppTheme.bodyBold),
-                subtitle: Text(
-                  _isTrialMode
-                      ? 'في الوضع التجريبي تكون البطاقة خاصة بحسابك تلقائيًا، ويمكنك تعديل الصلاحية من هنا والتصميم من تبويب المعاينة.'
-                      : 'الصلاحية والخصوصية. إعدادات التصميم والمعاينة موجودة في تبويب المعاينة والطباعة.',
-                  style: AppTheme.caption.copyWith(fontSize: 12),
-                ),
                 children: [
                   const SizedBox(height: 12),
                   ShwakelCard(
@@ -2114,11 +2096,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('نافذة الصلاحية', style: AppTheme.bodyBold),
-                        const SizedBox(height: 8),
-                        Text(
-                          'يمكن تحديد بداية ونهاية لاستخدام البطاقة. إذا تُركت فارغة تبقى البطاقة دون تقييد زمني.',
-                          style: AppTheme.caption.copyWith(fontSize: 12),
-                        ),
                         const SizedBox(height: 12),
                         _buildDateTimeField(
                           label: 'فعالة من',
@@ -2213,7 +2190,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       color: AppTheme.warning.withValues(alpha: 0.05),
                       borderColor: AppTheme.warning.withValues(alpha: 0.15),
                       child: Text(
-                        'هذا النوع من التذاكر خاص دائمًا. اختر المستفيدين المحددين قبل الإصدار، ولن تظهر التذكرة للعامة.',
+                        'هذا النوع خاص. اختر المستفيدين قبل الإصدار.',
                         style: AppTheme.bodyText.copyWith(fontSize: 13),
                       ),
                     ),
@@ -2319,7 +2296,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       color: AppTheme.warning.withValues(alpha: 0.05),
                       borderColor: AppTheme.warning.withValues(alpha: 0.15),
                       child: Text(
-                        'البطاقات التجريبية تُنشأ كبطاقات خاصة بحسابك فقط، ولا يمكن استخدامها في حساب آخر. بعد التوثيق يمكنك اعتمادها، وقبل ذلك يمكنك حذفها لإرجاع قيمتها إلى الرصيد.',
+                        'البطاقات التجريبية خاصة بحسابك فقط.',
                         style: AppTheme.bodyText.copyWith(fontSize: 13),
                       ),
                     ),

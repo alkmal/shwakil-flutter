@@ -330,11 +330,6 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
               onPressed: _showAddLocationDialog,
               icon: const Icon(Icons.add_business_rounded),
             ),
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.041'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -350,42 +345,6 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_canSubmit && !permissions.hasAdminWorkspaceAccess)
-                        ShwakelCard(
-                          padding: const EdgeInsets.all(18),
-                          borderRadius: BorderRadius.circular(22),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 52,
-                                height: 52,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(
-                                    alpha: 0.10,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Icon(
-                                  Icons.store_mall_directory_rounded,
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  l.tr(
-                                    'screens_supported_locations_screen.031',
-                                  ),
-                                  style: AppTheme.bodyAction.copyWith(
-                                    height: 1.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (_canSubmit && !permissions.hasAdminWorkspaceAccess)
-                        const SizedBox(height: 16),
                       ShwakelCard(
                         padding: const EdgeInsets.all(18),
                         borderRadius: BorderRadius.circular(22),
@@ -395,16 +354,6 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                             Text(
                               l.tr('screens_supported_locations_screen.041'),
                               style: AppTheme.h3,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              l.tr(
-                                'screens_supported_locations_screen.042',
-                                params: {'count': _locations.length.toString()},
-                              ),
-                              style: AppTheme.bodyAction.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
                             ),
                             const SizedBox(height: 14),
                             Wrap(
@@ -484,15 +433,6 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                 ),
               ),
             ),
-    );
-  }
-
-  Future<void> _showHelpDialog() async {
-    final l = context.loc;
-    await AppAlertService.showInfo(
-      context,
-      title: l.tr('screens_transactions_screen.039'),
-      message: l.tr('screens_supported_locations_screen.033'),
     );
   }
 
@@ -740,12 +680,6 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
             Text(
               l.tr('screens_supported_locations_screen.011'),
               style: AppTheme.h3.copyWith(color: AppTheme.textTertiary),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              l.tr('screens_supported_locations_screen.012'),
-              textAlign: TextAlign.center,
-              style: AppTheme.bodyAction,
             ),
           ],
         ),

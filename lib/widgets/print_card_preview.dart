@@ -50,10 +50,10 @@ class PrintCardPreview extends StatelessWidget {
     ),
     _PrintPreviewPalette(
       primary: Color(0xFF0F766E),
-      value: Color(0xFF1E40AF),
+      value: Color(0xFF0D635C),
       soft: Color(0xFFCCFBF1),
-      border: Color(0xFF93C5FD),
-      accent: Color(0xFF60A5FA),
+      border: Color(0xFF99F6E4),
+      accent: Color(0xFF14B8A6),
     ),
     _PrintPreviewPalette(
       primary: Color(0xFFB45309),

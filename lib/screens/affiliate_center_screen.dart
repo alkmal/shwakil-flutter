@@ -296,7 +296,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'يتم عرض بيانات التسويق المحفوظة محليًا. ستتحدث الأرقام عند الاتصال والمزامنة.',
+              'بيانات محفوظة محليًا.',
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.warning,
                 height: 1.45,

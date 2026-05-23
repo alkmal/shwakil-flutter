@@ -204,19 +204,9 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
 
   String _subtitle(AppLocalizer l) {
     if (_username.isEmpty) {
-      return _hasPin
-          ? l.tr('screens_device_unlock_screen.007')
-          : l.tr('screens_device_unlock_screen.008');
+      return _hasPin ? 'أدخل الرمز للمتابعة.' : 'تابع بتأكيد هويتك.';
     }
-    return _hasPin
-        ? l.tr(
-            'screens_device_unlock_screen.009',
-            params: {'username': _username},
-          )
-        : l.tr(
-            'screens_device_unlock_screen.010',
-            params: {'username': _username},
-          );
+    return 'أهلاً $_username';
   }
 
   @override
@@ -283,11 +273,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            l.tr('screens_device_unlock_screen.006'),
-            style: AppTheme.h2,
-            textAlign: TextAlign.center,
-          ),
+          Text('فتح التطبيق', style: AppTheme.h2, textAlign: TextAlign.center),
           const SizedBox(height: 10),
           Text(
             _subtitle(l),
@@ -353,25 +339,9 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   }
 
   Widget _buildDecor() {
-    return Stack(
-      children: [
-        Positioned(
-          top: -100,
-          right: -100,
-          child: CircleAvatar(
-            radius: 200,
-            backgroundColor: AppTheme.primary.withValues(alpha: 0.05),
-          ),
-        ),
-        Positioned(
-          bottom: -50,
-          left: -50,
-          child: CircleAvatar(
-            radius: 150,
-            backgroundColor: AppTheme.accent.withValues(alpha: 0.05),
-          ),
-        ),
-      ],
+    return const DecoratedBox(
+      decoration: BoxDecoration(gradient: AppTheme.pageBackgroundGradient),
+      child: SizedBox.expand(),
     );
   }
 }

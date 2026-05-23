@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
-import '../widgets/responsive_scaffold_container.dart';
+import '../widgets/auth_screen_shell.dart';
 import '../widgets/shwakel_button.dart';
-import '../widgets/shwakel_logo.dart';
-import '../widgets/support_ticket_actions.dart';
 import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -411,82 +409,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: Container(
-        decoration: BoxDecoration(gradient: AppTheme.pageBackgroundGradient),
-        child: SafeArea(
-          child: ResponsiveScaffoldContainer(
-            maxWidth: 1100,
-            padding: AppTheme.pagePadding(context, top: 20),
-            child: Center(
-              child: SingleChildScrollView(child: _buildFormCard(context)),
-            ),
-          ),
-        ),
-      ),
+    final l = context.loc;
+    return AuthScreenShell(
+      title: l.tr('screens_login_screen.004'),
+      subtitle: l.tr('main.006'),
+      child: _buildLoginControls(context),
     );
   }
 
-  Widget _buildFormCard(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth >= 780) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(flex: 5, child: _buildLoginHero(context)),
-                const SizedBox(width: 28),
-                Expanded(
-                  flex: 6,
-                  child: _buildLoginControls(context, includeHeader: true),
-                ),
-              ],
-            );
-          }
-
-          return _buildLoginControls(context, includeHero: true);
-        },
-      ),
-    );
-  }
-
-  Widget _buildLoginControls(
-    BuildContext context, {
-    bool includeHero = false,
-    bool includeHeader = false,
-  }) {
+  Widget _buildLoginControls(BuildContext context) {
     final l = context.loc;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (includeHero) ...[
-          _buildLoginHero(context),
-          const SizedBox(height: 22),
-        ],
-        if (includeHeader) ...[
-          Text(l.tr('screens_login_screen.004'), style: AppTheme.h1),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_login_screen.013'),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.6,
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
         if (widget.offlineMode) ...[
-          const SizedBox(height: 14),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: AppTheme.warning.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: AppTheme.radiusMd,
               border: Border.all(
                 color: AppTheme.warning.withValues(alpha: 0.18),
               ),
@@ -497,8 +440,8 @@ class _LoginScreenState extends State<LoginScreen> {
               textAlign: TextAlign.center,
             ),
           ),
+          const SizedBox(height: 18),
         ],
-        const SizedBox(height: 22),
         TextField(
           focusNode: _usernameFocusNode,
           controller: _usernameController,
@@ -530,7 +473,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
         ShwakelButton(
           label: _isWaitingForDeviceApproval
               ? 'بانتظار موافقة الجهاز'
@@ -553,17 +496,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
         if (!widget.offlineMode) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ShwakelButton(
-              label: l.tr('screens_login_screen.008'),
-              onPressed: () => _openRoute('/register'),
-              isSecondary: true,
-            ),
-          ),
-          const SizedBox(height: 18),
-          SupportTicketActions(supportWhatsapp: _supportWhatsapp ?? ''),
+          const SizedBox(height: 14),
+          _buildSecondaryActions(l),
         ],
         if (!_registrationEnabled) ...[
           const SizedBox(height: 16),
@@ -592,19 +526,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         l.tr('screens_login_screen.014'),
                         style: AppTheme.bodyBold,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        (_supportWhatsapp ?? '').isNotEmpty
-                            ? l.tr(
-                                'screens_login_screen.015',
-                                params: {'whatsapp': _supportWhatsapp ?? ''},
-                              )
-                            : l.tr('screens_login_screen.016'),
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.textSecondary,
-                          height: 1.6,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -616,27 +537,23 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginHero(BuildContext context) {
-    final l = context.loc;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ShwakelLogo(size: 82, framed: true),
-          const SizedBox(height: 18),
-          Text(l.tr('main.001'), style: AppTheme.h1.copyWith(fontSize: 34)),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('main.006'),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.6,
-            ),
+  Widget _buildSecondaryActions(AppLocalizer l) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        TextButton(
+          onPressed: () => _openRoute('/register'),
+          child: Text(l.tr('screens_login_screen.008')),
+        ),
+        if ((_supportWhatsapp ?? '').isNotEmpty)
+          TextButton(
+            onPressed: () => _openRoute('/support-tickets'),
+            child: const Text('الدعم'),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

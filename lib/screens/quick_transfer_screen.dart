@@ -13,7 +13,6 @@ import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class QuickTransferScreen extends StatefulWidget {
   const QuickTransferScreen({super.key});
@@ -512,12 +511,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         if (_showLookupTools) ...[
           _buildLookupCard(compact: true),
           const SizedBox(height: 18),
-        ] else ...[
-          ToolToggleHint(
-            message: context.loc.tr('screens_quick_transfer_screen.043'),
-            icon: Icons.manage_search_rounded,
-          ),
-          const SizedBox(height: 18),
         ],
         _buildScanCard(),
       ],
@@ -529,10 +522,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     final statusLabel = _canTransfer
         ? _t('screens_quick_transfer_screen.054')
         : _t('screens_quick_transfer_screen.055');
-    final statusHint = _canTransfer
-        ? _t('screens_quick_transfer_screen.056')
-        : _t('screens_quick_transfer_screen.057');
-
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(24),
@@ -561,63 +550,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(statusLabel, style: AppTheme.bodyBold),
-                    const SizedBox(height: 4),
-                    Text(
-                      statusHint,
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textSecondary,
-                        height: 1.45,
-                      ),
-                    ),
-                  ],
+                  children: [Text(statusLabel, style: AppTheme.bodyBold)],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _statusChip(
-                Icons.person_search_rounded,
-                _showLookupTools
-                    ? _t('screens_quick_transfer_screen.058')
-                    : _t('screens_quick_transfer_screen.059'),
-              ),
-              _statusChip(
-                Icons.qr_code_2_rounded,
-                _activeTab == 1
-                    ? _t('screens_quick_transfer_screen.060')
-                    : _t('screens_quick_transfer_screen.061'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppTheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ],
       ),
@@ -645,7 +581,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                 decoration: InputDecoration(
                   labelText: _t('screens_quick_transfer_screen.031'),
                   prefixIcon: const Icon(Icons.phone_rounded),
-                  helperText: _t('screens_quick_transfer_screen.030'),
                 ),
                 onSubmitted: (_) => _lookupRecipient(),
               );
@@ -772,12 +707,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                   context.loc.tr('screens_quick_transfer_screen.045'),
                   style: AppTheme.h3.copyWith(fontSize: 17),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  context.loc.tr('screens_quick_transfer_screen.046'),
-                  textAlign: TextAlign.center,
-                  style: AppTheme.caption.copyWith(fontSize: 14),
-                ),
               ],
             ),
           ),
@@ -807,13 +736,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             style: AppTheme.h2.copyWith(color: Colors.white),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 10),
-          Text(
-            _t('screens_quick_transfer_screen.035'),
-            style: AppTheme.caption.copyWith(color: Colors.white70),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -871,8 +794,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: AppTheme.h3),
-            const SizedBox(height: 4),
-            Text(subtitle, style: AppTheme.caption.copyWith(fontSize: 14)),
+            if (subtitle.trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(subtitle, style: AppTheme.caption.copyWith(fontSize: 14)),
+            ],
           ],
         );
 

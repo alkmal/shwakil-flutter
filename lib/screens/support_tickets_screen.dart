@@ -484,14 +484,6 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 'تواصل داخل التطبيق',
                 style: AppTheme.h2.copyWith(color: Colors.white),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'يفتح الشات بعد تأكيد رقم التواصل برمز OTP، وتبقى التذكرة لصاحب الرقم والإدارة فقط.',
-                style: AppTheme.bodyAction.copyWith(
-                  color: Colors.white70,
-                  height: 1.6,
-                ),
-              ),
             ],
           ),
         ),
@@ -641,13 +633,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('تأكيد رقم التواصل', style: AppTheme.h2),
-          const SizedBox(height: 8),
-          Text(
-            _phoneOtpPending
-                ? 'الرقم: $_pendingPhone'
-                : 'التذكرة: $_pendingTicketId\nالرقم: $_pendingPhone',
-            style: AppTheme.caption,
-          ),
+          const SizedBox(height: 12),
           if ((_debugOtp ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
             Text('رمز التجربة: $_debugOtp', style: AppTheme.bodyBold),

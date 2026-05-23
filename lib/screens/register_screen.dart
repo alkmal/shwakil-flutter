@@ -5,11 +5,10 @@ import 'package:flutter/services.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
+import '../widgets/auth_screen_shell.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/shwakel_logo.dart';
-import '../widgets/support_ticket_actions.dart';
 import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -311,75 +310,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return _buildDisabledState();
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.pageBackgroundGradient,
-        ),
-        child: SafeArea(
-          child: ResponsiveScaffoldContainer(
-            maxWidth: 1100,
-            padding: AppTheme.pagePadding(context, top: 20),
-            child: Center(
-              child: SingleChildScrollView(child: _buildRegistrationLayout()),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRegistrationLayout() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth >= 780) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(flex: 5, child: _buildRegisterHero()),
-                const SizedBox(width: 28),
-                Expanded(flex: 6, child: _buildRegisterControls()),
-              ],
-            );
-          }
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildRegisterHero(),
-              const SizedBox(height: 22),
-              _buildRegisterControls(),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildRegisterHero() {
-    final l = context.loc;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ShwakelLogo(size: 82, framed: true),
-          const SizedBox(height: 18),
-          Text(l.tr('main.001'), style: AppTheme.h1.copyWith(fontSize: 34)),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('main.006'),
-            style: AppTheme.bodyAction.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.6,
-            ),
-          ),
-        ],
-      ),
+    return AuthScreenShell(
+      title: context.loc.tr('screens_register_screen.009'),
+      subtitle: context.loc.tr('main.006'),
+      child: _buildRegisterControls(),
     );
   }
 
@@ -388,16 +322,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(l.tr('screens_register_screen.009'), style: AppTheme.h1),
-        const SizedBox(height: 8),
-        Text(
-          l.tr('screens_register_screen.039'),
-          style: AppTheme.bodyAction.copyWith(
-            color: AppTheme.textSecondary,
-            height: 1.6,
-          ),
-        ),
-        const SizedBox(height: 24),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -412,40 +336,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _whatsappC,
               Icons.chat_rounded,
               type: TextInputType.phone,
-              helperText: l.tr('screens_register_screen.047'),
             ),
             if ((_pendingReferralCode ?? '').isNotEmpty) ...[
               const SizedBox(height: 16),
               _buildReferralAppliedCard(),
             ],
-            const SizedBox(height: 16),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton(
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/login'),
-                child: Text(l.tr('screens_register_screen.040')),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceVariant,
-                borderRadius: AppTheme.radiusMd,
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: Text(
-                l.tr('screens_register_screen.041'),
-                style: AppTheme.caption.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w700,
-                  height: 1.6,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             CheckboxListTile(
               value: _termsAccepted,
               onChanged: (value) {
@@ -457,6 +353,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               contentPadding: EdgeInsets.zero,
               activeColor: AppTheme.primary,
+              controlAffinity: ListTileControlAffinity.leading,
             ),
             const SizedBox(height: 16),
             ShwakelButton(
@@ -468,8 +365,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        SupportTicketActions(supportWhatsapp: _supportWhatsapp ?? ''),
+        const SizedBox(height: 14),
+        _buildSecondaryActions(l),
       ],
     );
   }
@@ -509,11 +406,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       height: 1.6,
                     ),
                   ),
-                  if ((_supportWhatsapp ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    SupportTicketActions(supportWhatsapp: _supportWhatsapp!),
-                  ],
                   const SizedBox(height: 24),
+                  if ((_supportWhatsapp ?? '').isNotEmpty) ...[
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/support-tickets'),
+                      child: const Text('الدعم'),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   ShwakelButton(
                     label: l.tr('screens_register_screen.046'),
                     onPressed: () =>
@@ -526,6 +427,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSecondaryActions(AppLocalizer l) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        TextButton(
+          onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+          child: Text(l.tr('screens_register_screen.040')),
+        ),
+        if ((_supportWhatsapp ?? '').isNotEmpty)
+          TextButton(
+            onPressed: () => Navigator.pushNamed(context, '/support-tickets'),
+            child: const Text('الدعم'),
+          ),
+      ],
     );
   }
 

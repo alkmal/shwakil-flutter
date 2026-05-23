@@ -367,14 +367,6 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 l.tr('screens_account_verification_screen.005'),
                 style: AppTheme.h2.copyWith(color: Colors.white),
               ),
-              const SizedBox(height: 8),
-              Text(
-                l.tr('screens_account_verification_screen.018'),
-                style: AppTheme.bodyAction.copyWith(
-                  color: Colors.white70,
-                  height: 1.6,
-                ),
-              ),
             ],
           );
           final rowContent = Expanded(child: content);
@@ -546,51 +538,6 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           Text(
             l.tr('screens_account_verification_screen.009'),
             style: AppTheme.h3,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            l.tr('screens_account_verification_screen.022'),
-            style: AppTheme.bodyAction.copyWith(height: 1.6),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppTheme.warning.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: AppTheme.warning.withValues(alpha: 0.18),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.security_rounded,
-                  color: AppTheme.warning,
-                  size: 22,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    l.tr('screens_account_verification_screen.028'),
-                    style: AppTheme.bodyAction.copyWith(
-                      height: 1.6,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_account_verification_screen.027'),
-            style: AppTheme.caption.copyWith(
-              height: 1.5,
-              color: AppTheme.textSecondary,
-            ),
           ),
           const SizedBox(height: 14),
           Wrap(

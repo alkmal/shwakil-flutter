@@ -127,7 +127,6 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
   }
 
   Widget _buildSupportHero() {
-    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(30),
       gradient: AppTheme.primaryGradient,
@@ -153,12 +152,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.tr('screens_contact_us_screen.006'),
+                  'الدعم والمساعدة',
                   style: AppTheme.h2.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  l.tr('screens_contact_us_screen.007'),
+                  'اختر قناة التواصل المناسبة.',
                   style: AppTheme.bodyAction.copyWith(
                     color: Colors.white70,
                     height: 1.6,
@@ -235,10 +234,8 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     AppAlertService.showSnack(
       context,
       message: url.contains('wa.me')
-          ? 'تعذر فتح الشات الآن. تحقق من اتصال الإنترنت أو انسخ الرقم وتواصل يدويًا.'
-          : ErrorMessageService.sanitize(
-              'تعذر فتح الرابط الآن. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.',
-            ),
+          ? 'تعذر فتح الشات الآن.'
+          : ErrorMessageService.sanitize('تعذر فتح الرابط الآن.'),
       type: AppAlertType.error,
     );
   }

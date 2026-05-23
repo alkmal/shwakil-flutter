@@ -281,11 +281,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             l.tr('screens_security_settings_screen.003'),
             style: AppTheme.h2,
           ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_security_settings_screen.013'),
-            style: AppTheme.bodyAction,
-          ),
           const SizedBox(height: 14),
           Wrap(
             spacing: 10,
@@ -338,11 +333,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   l.tr('screens_security_settings_screen.072'),
                   style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  l.tr('screens_security_settings_screen.073'),
-                  style: AppTheme.bodyAction.copyWith(height: 1.5),
-                ),
               ],
             ),
           ),
@@ -384,11 +374,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           Text(
             l.tr('screens_security_settings_screen.014'),
             style: AppTheme.h3,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_security_settings_screen.015'),
-            style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
           _statusLine(
@@ -439,11 +424,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           Text(
             l.tr('screens_security_settings_screen.027'),
             style: AppTheme.h3,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_security_settings_screen.028'),
-            style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
           Container(
@@ -594,11 +574,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             l.tr('screens_security_settings_screen.035'),
             style: AppTheme.h3,
           ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_security_settings_screen.036'),
-            style: AppTheme.bodyAction,
-          ),
           const SizedBox(height: 18),
           DropdownButtonFormField<int>(
             initialValue: _relockTimeout,
@@ -634,11 +609,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           Text(
             l.tr('screens_security_settings_screen.038'),
             style: AppTheme.h3,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_security_settings_screen.039'),
-            style: AppTheme.bodyAction,
           ),
           const SizedBox(height: 18),
           if (_devices.isEmpty)

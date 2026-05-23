@@ -16,7 +16,6 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class WithdrawalRequestsScreen extends StatefulWidget {
   const WithdrawalRequestsScreen({super.key});
@@ -206,11 +205,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
             onPressed: _showFiltersSheet,
             icon: const Icon(Icons.filter_alt_rounded),
           ),
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.041'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -251,15 +245,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     );
   }
 
-  Future<void> _showHelpDialog() async {
-    final l = context.loc;
-    await AppAlertService.showInfo(
-      context,
-      title: l.tr('screens_transactions_screen.039'),
-      message: l.tr('screens_withdrawal_requests_screen.032'),
-    );
-  }
-
   Widget _buildOverviewCard() {
     final pendingCount = _requests
         .where((item) => item['status']?.toString() == 'pending')
@@ -296,11 +281,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            context.loc.tr('screens_withdrawal_requests_screen.031'),
-            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
-          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 10,
@@ -319,11 +299,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                 '$_page / $_lastPage',
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          ToolToggleHint(
-            message: context.loc.tr('screens_withdrawal_requests_screen.031'),
-            icon: Icons.filter_alt_rounded,
           ),
         ],
       ),
@@ -624,12 +599,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
           Text(
             l.tr('screens_withdrawal_requests_screen.019'),
             style: AppTheme.h3,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l.tr('screens_withdrawal_requests_screen.027'),
-            style: AppTheme.bodyAction,
-            textAlign: TextAlign.center,
           ),
         ],
       ),

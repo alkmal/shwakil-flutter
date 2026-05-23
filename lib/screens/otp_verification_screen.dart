@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
+import '../widgets/auth_screen_shell.dart';
 import '../widgets/shwakel_button.dart';
-import '../widgets/shwakel_card.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({
@@ -274,215 +274,142 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: Stack(
-        children: [
-          _buildDecor(),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: _buildMainCard(),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    final l = context.loc;
+    return AuthScreenShell(
+      title: l.tr('screens_otp_verification_screen.006'),
+      subtitle: _subtitle(l),
+      maxFormWidth: 500,
+      child: _buildMainCard(),
     );
   }
 
   Widget _buildMainCard() {
     final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(32),
-      shadowLevel: ShwakelShadowLevel.premium,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            width: 76,
-            height: 76,
-            margin: const EdgeInsets.symmetric(horizontal: 0),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Container(
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               color: AppTheme.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(22),
             ),
             child: const Icon(
               Icons.mark_email_read_rounded,
-              size: 38,
+              size: 32,
               color: AppTheme.primary,
             ),
           ),
-          const SizedBox(height: 24),
-          Text(
-            l.tr('screens_otp_verification_screen.006'),
-            style: AppTheme.h2,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            _subtitle(l),
-            textAlign: TextAlign.center,
-            style: AppTheme.bodyAction.copyWith(height: 1.6),
-          ),
-          if ((_statusMessage ?? '').isNotEmpty) ...[
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.08),
-                borderRadius: AppTheme.radiusMd,
-                border: Border.all(
-                  color: AppTheme.primary.withValues(alpha: 0.18),
-                ),
-              ),
-              child: Text(
-                _statusMessage!,
-                textAlign: TextAlign.center,
-                style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
-              ),
-            ),
-          ],
+        ),
+        if ((_statusMessage ?? '').isNotEmpty) ...[
           const SizedBox(height: 18),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
+              color: AppTheme.primary.withValues(alpha: 0.08),
               borderRadius: AppTheme.radiusMd,
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('screens_otp_verification_screen.007'),
-                  style: AppTheme.caption,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.username.trim().isEmpty
-                      ? l.tr('screens_otp_verification_screen.022')
-                      : widget.username,
-                  style: AppTheme.bodyBold,
-                ),
-                if ((widget.whatsapp ?? '').trim().isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    l.tr('screens_otp_verification_screen.008'),
-                    style: AppTheme.caption,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    PhoneNumberService.localDisplay(widget.whatsapp),
-                    style: AppTheme.bodyAction,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _otpController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            textAlign: TextAlign.center,
-            style: AppTheme.h1.copyWith(
-              letterSpacing: 10,
-              color: AppTheme.primary,
-            ),
-            decoration: InputDecoration(
-              hintText: '••••••',
-              counterText: '',
-              labelText: l.tr('screens_otp_verification_screen.009'),
-            ),
-          ),
-          if (_debugCode != null) ...[
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppTheme.warning.withValues(alpha: 0.07),
-                borderRadius: AppTheme.radiusMd,
-                border: Border.all(
-                  color: AppTheme.warning.withValues(alpha: 0.18),
-                ),
-              ),
-              child: Text(
-                l.tr(
-                  'screens_otp_verification_screen.010',
-                  params: {'debugCode': _debugCode ?? ''},
-                ),
-                textAlign: TextAlign.center,
-                style: AppTheme.bodyBold.copyWith(color: AppTheme.warning),
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.18),
               ),
             ),
-          ],
-          const SizedBox(height: 24),
-          ShwakelButton(
-            label: _isRegisterFlow
-                ? l.tr('screens_otp_verification_screen.011')
-                : l.tr('screens_otp_verification_screen.012'),
-            icon: Icons.verified_rounded,
-            onPressed: _verify,
-            isLoading: _isLoading,
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
-              borderRadius: AppTheme.radiusMd,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _resendLabel(l),
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: (_cooldown > 0 || _isResending) ? null : _resend,
-                  child: Text(
-                    _isResending
-                        ? l.tr('screens_otp_verification_screen.013')
-                        : l.tr('screens_otp_verification_screen.014'),
-                  ),
-                ),
-              ],
+            child: Text(
+              _statusMessage!,
+              textAlign: TextAlign.center,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
-      ),
+        const SizedBox(height: 22),
+        _buildDestinationLine(l),
+        const SizedBox(height: 18),
+        TextField(
+          controller: _otpController,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          textAlign: TextAlign.center,
+          style: AppTheme.h1.copyWith(
+            letterSpacing: 0,
+            color: AppTheme.primary,
+          ),
+          decoration: InputDecoration(
+            hintText: '••••••',
+            counterText: '',
+            labelText: l.tr('screens_otp_verification_screen.009'),
+          ),
+        ),
+        if (_debugCode != null) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.07),
+              borderRadius: AppTheme.radiusMd,
+              border: Border.all(
+                color: AppTheme.warning.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Text(
+              l.tr(
+                'screens_otp_verification_screen.010',
+                params: {'debugCode': _debugCode ?? ''},
+              ),
+              textAlign: TextAlign.center,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.warning,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        ShwakelButton(
+          label: _isRegisterFlow
+              ? l.tr('screens_otp_verification_screen.011')
+              : l.tr('screens_otp_verification_screen.012'),
+          icon: Icons.verified_rounded,
+          onPressed: _verify,
+          isLoading: _isLoading,
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _resendLabel(l),
+                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              ),
+            ),
+            TextButton(
+              onPressed: (_cooldown > 0 || _isResending) ? null : _resend,
+              child: Text(
+                _isResending
+                    ? l.tr('screens_otp_verification_screen.013')
+                    : l.tr('screens_otp_verification_screen.014'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildDecor() {
-    return Stack(
-      children: [
-        Positioned(
-          top: -50,
-          right: -50,
-          child: CircleAvatar(
-            radius: 100,
-            backgroundColor: AppTheme.primary.withValues(alpha: 0.05),
-          ),
-        ),
-        Positioned(
-          bottom: -60,
-          left: -40,
-          child: CircleAvatar(
-            radius: 130,
-            backgroundColor: AppTheme.accent.withValues(alpha: 0.05),
-          ),
-        ),
-      ],
+  Widget _buildDestinationLine(AppLocalizer l) {
+    final phone = (widget.whatsapp ?? '').trim();
+    final value = phone.isNotEmpty
+        ? PhoneNumberService.localDisplay(phone)
+        : (widget.username.trim().isEmpty
+              ? l.tr('screens_otp_verification_screen.022')
+              : widget.username);
+
+    return Text(
+      value,
+      textAlign: TextAlign.center,
+      style: AppTheme.bodyBold.copyWith(color: AppTheme.textSecondary),
     );
   }
 }

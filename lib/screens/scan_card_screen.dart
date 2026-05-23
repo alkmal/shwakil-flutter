@@ -1555,7 +1555,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       padding: EdgeInsets.all(isLarge ? 20 : 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF155E75)],
+          colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF14B8A6)],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
@@ -2863,7 +2863,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         appBar: AppBar(
           automaticallyImplyLeading: !widget.offlineMode,
           leading: _buildOfflineAppBarLeading(),
-          title: const SizedBox.shrink(),
+          title: const Text('فحص البطاقات'),
           actions: widget.offlineMode
               ? _buildOfflineAppBarActions()
               : const [AppNotificationAction(), QuickLogoutAction()],
@@ -2894,7 +2894,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       appBar: AppBar(
         automaticallyImplyLeading: !widget.offlineMode,
         leading: _buildOfflineAppBarLeading(),
-        title: const SizedBox.shrink(),
+        title: const Text('فحص البطاقات'),
         actions: widget.offlineMode
             ? _buildOfflineAppBarActions()
             : [
@@ -3058,6 +3058,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   Widget _buildScannerPanel() {
     final l = context.loc;
+    final permissions = AppPermissions.fromUser(_user);
+    final workspaceTitle = permissions.isDriverRole || widget.offlineMode
+        ? 'مساحة السائق'
+        : permissions.canIssueCards ||
+              permissions.canAcceptPrepaidMultipayPayments
+        ? 'مساحة التاجر'
+        : 'فحص البطاقة';
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       borderRadius: BorderRadius.circular(28),
@@ -3075,17 +3082,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Icon(
-                  Icons.manage_search_rounded,
+                  Icons.qr_code_scanner_rounded,
                   color: AppTheme.primary,
                 ),
               ),
               const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  _t('screens_scan_card_screen.178'),
-                  style: AppTheme.h3,
-                ),
-              ),
+              Expanded(child: Text(workspaceTitle, style: AppTheme.h3)),
             ],
           ),
           if (widget.offlineMode) ...[
@@ -3114,9 +3116,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     enabled: !_isPreparingScreen,
                     decoration: InputDecoration(
                       labelText: 'رقم الباركود',
-                      hintText: _isPreparingScreen
-                          ? 'جارٍ تجهيز الشاشة...'
-                          : 'اكتب الرقم ثم اضغط بحث',
+                      hintText: _isPreparingScreen ? 'جارٍ التجهيز...' : null,
                       prefixIcon: const Icon(Icons.qr_code_rounded),
                       suffixIcon: _isSearching
                           ? const Padding(
@@ -3446,8 +3446,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         ? 'السحب التلقائي مفعل'
         : 'السحب اليدوي مفعل';
     final subtitle = active
-        ? 'أي بطاقة تقرأها سيتم استردادها مباشرة وتحويلها إلى مستخدمة.'
-        : 'سيتم عرض البطاقة أولاً، ثم تختار السحب يدوياً.';
+        ? 'الاستخدام يتم مباشرة بعد القراءة.'
+        : 'اعرض البطاقة ثم أكد يدويًا.';
 
     return Material(
       color: Colors.transparent,

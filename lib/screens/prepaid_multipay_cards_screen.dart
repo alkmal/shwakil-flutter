@@ -2054,12 +2054,7 @@ class _PrepaidMultipayCardsScreenState
           ],
         ),
         const SizedBox(height: 8),
-        Text(
-          l.tr('screens_prepaid_multipay_cards_screen.052'),
-          style: AppTheme.bodyAction,
-        ),
         if (!_canManagePrepaidCards && _selfServiceLimitReached) ...[
-          const SizedBox(height: 8),
           Text(
             l.tr(
               'screens_prepaid_multipay_cards_screen.053',

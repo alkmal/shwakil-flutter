@@ -1264,15 +1264,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_card_print_requests_screen.018')),
-        actions: [
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.041'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
+        actions: [const AppNotificationAction(), const QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -1615,14 +1607,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Text(
-          l.tr('screens_card_print_requests_screen.019'),
-          style: AppTheme.caption.copyWith(
-            color: Colors.white.withValues(alpha: 0.76),
-            height: 1.5,
-          ),
-        ),
       ],
     );
   }
@@ -1668,15 +1652,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Future<void> _showHelpDialog() async {
-    final l = context.loc;
-    await AppAlertService.showInfo(
-      context,
-      title: l.tr('screens_admin_dashboard_screen.057'),
-      message: l.tr('screens_card_print_requests_screen.053'),
     );
   }
 

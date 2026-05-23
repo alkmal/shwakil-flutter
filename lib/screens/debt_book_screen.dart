@@ -532,10 +532,6 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (description != null) ...[
-            Text(description, style: AppTheme.bodyAction),
-            const SizedBox(height: 12),
-          ],
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -563,10 +559,6 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
   }
 
   Widget _buildCustomersTab(String lastSyncedAt) {
-    final summary = Map<String, dynamic>.from(
-      _snapshot['summary'] as Map? ?? const {},
-    );
-    final customersCount = (summary['customersCount'] as num?)?.toInt() ?? 0;
     final hasSearchQuery = _searchController.text.trim().isNotEmpty;
     final hasCustomFilter = _activeFilter != _DebtCustomerFilter.all;
     final showToolsPanel =
@@ -593,14 +585,6 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                           Text(
                             _t('screens_debt_book_screen.047'),
                             style: AppTheme.h3,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _t(
-                              'screens_debt_book_screen.050',
-                              params: {'count': '$customersCount'},
-                            ),
-                            style: AppTheme.caption,
                           ),
                         ],
                       ),

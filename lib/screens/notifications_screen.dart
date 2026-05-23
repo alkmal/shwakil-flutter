@@ -296,14 +296,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           shrinkWrap: true,
           children: [
             Text(_t('screens_notifications_screen.034'), style: AppTheme.h2),
-            const SizedBox(height: 8),
-            Text(
-              _t('screens_notifications_screen.035'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             ...stats.map(
               (item) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -330,14 +323,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           shrinkWrap: true,
           children: [
             Text(_t('screens_notifications_screen.036'), style: AppTheme.h2),
-            const SizedBox(height: 8),
-            Text(
-              _t('screens_notifications_screen.038'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildFilters(true),
           ],
         ),
@@ -425,8 +411,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   item.value,
                   style: AppTheme.h3.copyWith(color: item.color),
                 ),
-                const SizedBox(height: 4),
-                Text(item.hint, style: AppTheme.caption),
               ],
             ),
           ),
@@ -509,12 +493,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 18),
             Text(_t('screens_notifications_screen.043'), style: AppTheme.h3),
-            const SizedBox(height: 6),
-            Text(
-              _t('screens_notifications_screen.044'),
-              style: AppTheme.bodyText,
-              textAlign: TextAlign.center,
-            ),
             const SizedBox(height: 18),
             ShwakelButton(
               label: _t('screens_transactions_screen.011'),

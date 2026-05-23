@@ -287,11 +287,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             onPressed: _showFiltersSheet,
             icon: const Icon(Icons.filter_alt_rounded),
           ),
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.041'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -314,7 +309,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         color: AppTheme.warning.withValues(alpha: 0.08),
                         borderColor: AppTheme.warning.withValues(alpha: 0.15),
                         child: Text(
-                          'أنت تعرض بطاقات محفوظة محليًا. يمكن فتح البطاقة غير المستخدمة واستخدامها حتى بدون إنترنت.',
+                          'بطاقات محفوظة محليًا.',
                           style: AppTheme.bodyAction.copyWith(fontSize: 14),
                         ),
                       ),
@@ -432,23 +427,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Future<void> _showHelpDialog() {
-    final l = context.loc;
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.tr('screens_inventory_screen.001')),
-        content: Text(l.tr('screens_inventory_screen.019')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l.tr('screens_admin_customers_screen.046')),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<bool> _confirmCardOutputSecurity() async {
     final security = await TransferSecurityService.confirmTransfer(context);
     return mounted && security.isVerified;
@@ -515,14 +493,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                l.tr('screens_inventory_screen.014'),
-                style: AppTheme.bodyAction.copyWith(
-                  color: AppTheme.textSecondary,
-                  height: 1.4,
-                ),
               ),
               const SizedBox(height: 14),
               Wrap(

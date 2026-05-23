@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 
 /// Centralized Design System for Shwakel App
 class AppTheme {
-  // --- Primary Palettes ---
+  // --- Brand Palettes ---
+  // Change these values to update the app identity colors from one place.
   static const Color primary = Color(0xFF0F766E);
   static const Color primaryLight = Color(0xFF14B8A6);
   static const Color primaryDark = Color(0xFF0D635C);
@@ -14,9 +15,9 @@ class AppTheme {
   static const Color secondaryLight = Color(0xFF1E293B);
   static const Color secondarySoft = Color(0xFFE2E8F0);
 
-  static const Color accent = Color(0xFF0284C7);
-  static const Color accentLight = Color(0xFF38BDF8);
-  static const Color accentSoft = Color(0xFFE0F2FE);
+  static const Color accent = primary;
+  static const Color accentLight = primaryLight;
+  static const Color accentSoft = primarySoft;
   static const Color highlight = Color(0xFFF59E0B);
 
   // --- Neutral Palettes ---
@@ -48,8 +49,8 @@ class AppTheme {
   static const Color warningLight = Color(0xFFFEF3C7);
   static const Color error = Color(0xFFDC2626);
   static const Color errorLight = Color(0xFFFEE2E2);
-  static const Color info = Color(0xFF0284C7);
-  static const Color infoLight = Color(0xFFE0F2FE);
+  static const Color info = primary;
+  static const Color infoLight = primarySoft;
 
   // --- Spacing ---
   static const double spacingXs = 4.0;
@@ -108,13 +109,13 @@ class AppTheme {
   );
 
   static const LinearGradient pageBackgroundGradient = LinearGradient(
-    colors: [Color(0xFFF8FAFC), Color(0xFFF2FBF9), Color(0xFFF4F8FF)],
+    colors: [Color(0xFFF8FAFC), Color(0xFFF2FBF9), Color(0xFFF4FFFC)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient shellGradient = LinearGradient(
-    colors: [Color(0xFFF8FAFC), Color(0xFFEFFAF7), Color(0xFFF5FAFF)],
+    colors: [Color(0xFFF8FAFC), Color(0xFFEFFAF7), Color(0xFFF4FFFC)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );

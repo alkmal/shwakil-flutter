@@ -387,15 +387,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(l.tr('screens_account_settings_screen.008')),
-          actions: [
-            IconButton(
-              tooltip: l.tr('screens_account_settings_screen.064'),
-              onPressed: _showHelpDialog,
-              icon: const Icon(Icons.info_outline_rounded),
-            ),
-            const AppNotificationAction(),
-            const QuickLogoutAction(),
-          ],
+          actions: [const AppNotificationAction(), const QuickLogoutAction()],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(78),
             child: Padding(
@@ -537,13 +529,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                               ? l.tr('screens_account_settings_screen.070')
                               : l.tr('screens_account_settings_screen.071'),
                           style: AppTheme.h3.copyWith(color: warningColor),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _hasLocalSecuritySetup
-                              ? l.tr('screens_account_settings_screen.072')
-                              : l.tr('screens_account_settings_screen.073'),
-                          style: AppTheme.bodyAction.copyWith(height: 1.5),
                         ),
                       ],
                     ),
@@ -741,14 +726,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     l.tr('screens_account_settings_screen.053'),
                     style: AppTheme.h3,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l.tr('screens_account_settings_screen.054'),
-                    style: AppTheme.bodyAction.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   ShwakelButton(
                     label: l.tr('screens_account_settings_screen.055'),
                     icon: Icons.logout_rounded,
@@ -772,14 +750,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     l.tr('screens_account_settings_screen.056'),
                     style: AppTheme.h3.copyWith(color: AppTheme.error),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l.tr('screens_account_settings_screen.065'),
-                    style: AppTheme.bodyAction.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   ShwakelButton(
                     label: l.tr('screens_account_settings_screen.056'),
                     icon: Icons.delete_forever_rounded,
@@ -793,15 +764,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Future<void> _showHelpDialog() async {
-    final l = context.loc;
-    await AppAlertService.showInfo(
-      context,
-      title: l.tr('screens_account_settings_screen.066'),
-      message: l.tr('screens_account_settings_screen.067'),
     );
   }
 

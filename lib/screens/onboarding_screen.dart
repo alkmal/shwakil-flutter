@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -29,7 +29,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingSlideData(
       id: 'speed',
       icon: Icons.qr_code_scanner_rounded,
-      accentColor: Color(0xFF2563EB),
+      accentColor: AppTheme.primary,
     ),
     _OnboardingSlideData(
       id: 'security',
@@ -262,4 +262,3 @@ class _OnboardingSlideData {
   final IconData icon;
   final Color accentColor;
 }
-

@@ -360,23 +360,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Text(
-                        l.tr('screens_forgot_password_screen.017'),
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l.tr('screens_forgot_password_screen.041'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xFF64748B),
-                          height: 1.7,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('استعادة الحساب', style: AppTheme.h2),
                       const SizedBox(height: 18),
                       if ((_supportWhatsapp ?? '').isNotEmpty) ...[
                         SupportContactCard(
@@ -398,13 +382,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         child: Column(
                           children: [
-                            Text(
-                              l.tr('screens_forgot_password_screen.043'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
+                            Text('تحقق من بياناتك', style: AppTheme.bodyBold),
                             const SizedBox(height: 12),
                             TextField(
                               controller: _nationalIdController,
@@ -424,9 +402,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               decoration: InputDecoration(
                                 labelText: l.tr(
                                   'screens_forgot_password_screen.020',
-                                ),
-                                helperText: l.tr(
-                                  'screens_forgot_password_screen.044',
                                 ),
                                 prefixIcon: const Icon(Icons.cake_outlined),
                                 suffixIcon: IconButton(
@@ -496,9 +471,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         controller: _usernameController,
                         decoration: InputDecoration(
                           labelText: l.tr('screens_forgot_password_screen.045'),
-                          helperText: l.tr(
-                            'screens_forgot_password_screen.046',
-                          ),
                           prefixIcon: const Icon(Icons.person_outline_rounded),
                         ),
                       ),
@@ -564,7 +536,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildHeroCard() {
-    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       gradient: AppTheme.primaryGradient,
@@ -573,12 +544,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l.tr('screens_forgot_password_screen.029'),
+            'استعادة كلمة المرور',
             style: AppTheme.h2.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
-            l.tr('screens_forgot_password_screen.050'),
+            'تحقق سريع ثم عيّن كلمة مرور جديدة.',
             style: AppTheme.bodyAction.copyWith(color: Colors.white70),
           ),
         ],

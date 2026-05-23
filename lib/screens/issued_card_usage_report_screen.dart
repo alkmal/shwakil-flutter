@@ -165,12 +165,12 @@ class _IssuedCardUsageReportScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'متابعة استخدام البطاقات الصادرة من حسابك',
+            'استخدام البطاقات',
             style: AppTheme.h2.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
-            'يعرض التقرير عند من استخدمت البطاقة ووقت الاستخدام، مع فصل البطاقات الخاصة عن العامة.',
+            'تابع الحالة والاستخدام بسرعة.',
             style: AppTheme.bodyAction.copyWith(color: Colors.white70),
           ),
         ],
@@ -354,9 +354,7 @@ class _IssuedCardUsageReportScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isUsed
-                        ? 'استخدمت عند: $usedBy - وقت الاستخدام: $usedAt'
-                        : 'لم تستخدم بعد',
+                    isUsed ? '$usedBy - $usedAt' : 'لم تستخدم بعد',
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),

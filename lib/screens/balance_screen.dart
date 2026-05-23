@@ -979,11 +979,6 @@ class _BalanceScreenState extends State<BalanceScreen>
                     : Icons.filter_alt_rounded,
               ),
             ),
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.041'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -1251,14 +1246,6 @@ class _BalanceScreenState extends State<BalanceScreen>
                         height: 1.05,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l.tr('screens_balance_screen.123'),
-                      style: AppTheme.caption.copyWith(
-                        color: Colors.white.withValues(alpha: 0.72),
-                        height: 1.4,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -1496,14 +1483,7 @@ class _BalanceScreenState extends State<BalanceScreen>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l.tr('screens_balance_screen.026'), style: AppTheme.h3),
-          const SizedBox(height: 8),
-          Text(
-            actionButtons.isEmpty
-                ? l.tr('screens_balance_screen.027')
-                : l.tr('screens_balance_screen.028'),
-            style: AppTheme.bodyAction,
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           if (actionButtons.isEmpty)
             _buildLockedActionsHint()
           else if (isCompact)
@@ -2509,15 +2489,6 @@ class _BalanceScreenState extends State<BalanceScreen>
       default:
         return sanitized;
     }
-  }
-
-  Future<void> _showHelpDialog() async {
-    final l = context.loc;
-    await AppAlertService.showInfo(
-      context,
-      title: l.tr('screens_transactions_screen.039'),
-      message: l.tr('screens_balance_screen.080'),
-    );
   }
 
   Future<void> _showTransferSuccessReport(Map<String, dynamic> response) async {

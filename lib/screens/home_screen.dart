@@ -123,6 +123,60 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         '';
   }
 
+  _RoleExperience get _roleExperience {
+    final permissions = AppPermissions.fromUser(_user);
+    final role = permissions.role;
+    if (permissions.isDriverRole || permissions.canOfflineCardScan) {
+      return const _RoleExperience(
+        title: 'مساحة السائق',
+        subtitle: 'فحص سريع ومزامنة واضحة.',
+        icon: Icons.local_shipping_rounded,
+        gradient: LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF0F766E)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        accent: AppTheme.accent,
+        servicesTitle: 'مهام السائق',
+        scanTitle: 'فحص بطاقة',
+        scanSubtitle: 'افتح الكاميرا وابدأ مباشرة.',
+      );
+    }
+    if (permissions.canIssueCards ||
+        permissions.canRequestCardPrinting ||
+        permissions.canAcceptPrepaidMultipayPayments ||
+        role == 'merchant') {
+      return const _RoleExperience(
+        title: 'مساحة التاجر',
+        subtitle: 'أدوات البيع والبطاقات في مكان واحد.',
+        icon: Icons.storefront_rounded,
+        gradient: LinearGradient(
+          colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        accent: AppTheme.primary,
+        servicesTitle: 'أدوات التاجر',
+        scanTitle: 'قبول أو فحص بطاقة',
+        scanSubtitle: 'نفذ العملية الأساسية بدون خطوات إضافية.',
+      );
+    }
+    return const _RoleExperience(
+      title: 'مساحة المستخدم',
+      subtitle: 'رصيدك وتحويلاتك بشكل مختصر.',
+      icon: Icons.account_circle_rounded,
+      gradient: LinearGradient(
+        colors: [Color(0xFF0F172A), Color(0xFF0F766E)],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ),
+      accent: AppTheme.primary,
+      servicesTitle: 'الخدمات',
+      scanTitle: 'فحص بطاقة',
+      scanSubtitle: 'استخدم البطاقة أو تحقق منها بسرعة.',
+    );
+  }
+
   bool get _isVerifiedUser {
     final verificationStatus =
         _user?['transferVerificationStatus']?.toString().trim().toLowerCase() ??
@@ -768,7 +822,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             title: _t('screens_home_screen.071'),
             subtitle: _t('screens_home_screen.076'),
             icon: Icons.menu_book_rounded,
-            color: const Color(0xFF7C3AED),
+            color: AppTheme.primaryDark,
             kind: _HomeServiceKind.debtBook,
             onTap: () =>
                 unawaited(_openRoute('/debt-book', allowOffline: true)),
@@ -786,9 +840,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         if (canOpenPrepaidMultipayCards)
           _HomeServiceItem(
             title: l.tr('screens_home_screen.118'),
-            subtitle: 'بطاقات محفوظة على الجهاز للعرض والدفع بدون تلامس.',
+            subtitle: 'بطاقات محفوظة على الجهاز.',
             icon: Icons.credit_card_rounded,
-            color: const Color(0xFF334155),
+            color: AppTheme.secondaryLight,
             kind: _HomeServiceKind.prepaidMultipay,
             onTap: () => unawaited(
               _openRoute('/prepaid-multipay-cards', allowOffline: true),
@@ -835,7 +889,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             title: _t('screens_home_screen.071'),
             subtitle: _t('screens_home_screen.076'),
             icon: Icons.menu_book_rounded,
-            color: const Color(0xFF7C3AED),
+            color: AppTheme.primaryDark,
             kind: _HomeServiceKind.debtBook,
             onTap: () =>
                 unawaited(_openRoute('/debt-book', allowOffline: true)),
@@ -888,7 +942,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           title: l.tr('screens_home_screen.019'),
           subtitle: l.tr('screens_home_screen.020'),
           icon: Icons.add_card_rounded,
-          color: const Color(0xFF0B75B7),
+          color: AppTheme.primaryDark,
           kind: _HomeServiceKind.createCard,
           onTap: () => unawaited(_openOnlineOnlyRoute('/create-card')),
         ),
@@ -899,7 +953,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ? l.tr('screens_home_screen.119')
               : l.tr('screens_home_screen.120'),
           icon: Icons.credit_card_rounded,
-          color: const Color(0xFF334155),
+          color: AppTheme.secondaryLight,
           kind: _HomeServiceKind.prepaidMultipay,
           onTap: () =>
               unawaited(_openOnlineOnlyRoute('/prepaid-multipay-cards')),
@@ -984,7 +1038,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           title: _t('screens_home_screen.071'),
           subtitle: _t('screens_home_screen.079'),
           icon: Icons.menu_book_rounded,
-          color: const Color(0xFF7C3AED),
+          color: AppTheme.primaryDark,
           kind: _HomeServiceKind.debtBook,
           onTap: () => unawaited(_openOnlineOnlyRoute('/debt-book')),
         ),
@@ -1006,6 +1060,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final roleLabel = _roleLabel.isEmpty
         ? _t('screens_home_screen.085')
         : _roleLabel;
+    final experience = _roleExperience;
     final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
     final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
     final balanceTextColor = balance < 0
@@ -1016,11 +1071,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       padding: const EdgeInsets.all(24),
       borderRadius: BorderRadius.circular(26),
       shadowLevel: ShwakelShadowLevel.medium,
-      gradient: const LinearGradient(
-        colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-      ),
+      gradient: experience.gradient,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 520;
@@ -1065,10 +1116,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             runSpacing: 10,
             children: [
               infoChip(
-                icon: Icons.badge_rounded,
-                label: roleLabel,
+                icon: experience.icon,
+                label: experience.title,
                 color: Colors.white,
               ),
+              if (roleLabel != experience.title)
+                infoChip(
+                  icon: Icons.badge_rounded,
+                  label: roleLabel,
+                  color: Colors.white,
+                ),
               infoChip(
                 icon: _isVerifiedUser
                     ? Icons.verified_rounded
@@ -1226,6 +1283,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 6),
+                    Text(
+                      experience.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.caption.copyWith(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     metaBlock,
                   ],
@@ -1268,6 +1335,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 6),
+                          Text(
+                            experience.subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.caption.copyWith(
+                              color: Colors.white.withValues(alpha: 0.82),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1359,8 +1436,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ? 'طلب توثيق الحساب قيد المراجعة'
         : 'حسابك غير موثق بعد';
     final message = _isVerificationPending
-        ? 'تم استلام طلبك وسيتم مراجعته. هذه الحالة تخص الحساب، أما الجهاز الموثوق فهو فقط وسيلة دخول آمنة.'
-        : 'توثيق الجهاز لا يعني توثيق الحساب. وثق حسابك للاستفادة الكاملة من خدمات التطبيق وحماية حقوقك في العمليات المالية.';
+        ? 'طلبك قيد المراجعة.'
+        : 'وثق حسابك للاستفادة الكاملة من الخدمات.';
     final actionLabel = _isVerificationPending
         ? 'متابعة الطلب'
         : 'توثيق الحساب';
@@ -1401,11 +1478,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
           ),
           const SizedBox(width: 10),
-          FilledButton.icon(
+          FilledButton(
             onPressed: () =>
                 unawaited(_openOnlineOnlyRoute('/account-verification')),
-            icon: const Icon(Icons.arrow_forward_rounded),
-            label: Text(actionLabel),
+            child: Text(actionLabel),
           ),
         ],
       ),
@@ -1433,6 +1509,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget _buildScanShortcut(_HomeServiceItem item) {
+    final experience = _roleExperience;
     return ShwakelCard(
       onTap: item.onTap,
       padding: const EdgeInsets.all(22),
@@ -1457,7 +1534,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 Icon(Icons.camera_alt_rounded, size: 18, color: item.color),
                 const SizedBox(width: 6),
                 Text(
-                  _t('screens_home_screen.088'),
+                  experience.scanTitle,
                   style: AppTheme.caption.copyWith(
                     color: item.color,
                     fontWeight: FontWeight.w800,
@@ -1480,12 +1557,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _t('screens_home_screen.086'),
+                experience.scanTitle,
                 style: AppTheme.bodyBold.copyWith(fontSize: 17),
               ),
               const SizedBox(height: 6),
               Text(
-                _t('screens_home_screen.087'),
+                experience.scanSubtitle,
                 style: AppTheme.bodyAction.copyWith(height: 1.45),
               ),
             ],
@@ -1723,6 +1800,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Widget _buildServicesSection(List<_HomeServiceItem> services) {
     final l = context.loc;
+    final experience = _roleExperience;
     return LayoutBuilder(
       builder: (context, constraints) {
         final mediaQuery = MediaQuery.of(context);
@@ -1750,16 +1828,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(l.tr('screens_home_screen.004'), style: AppTheme.h2),
-                  const SizedBox(height: 4),
-                  Text(
-                    services.isEmpty
-                        ? l.tr('screens_home_screen.005')
-                        : l.tr(
-                            'screens_home_screen.034',
-                            params: {'count': services.length.toString()},
-                          ),
-                    style: AppTheme.bodyAction,
-                  ),
+                  const SizedBox(height: 2),
+                  Text(experience.servicesTitle, style: AppTheme.caption),
                 ],
               ),
             ),
@@ -2079,4 +2149,26 @@ enum _HomeServiceKind {
   affiliate,
   debtBook,
   security,
+}
+
+class _RoleExperience {
+  const _RoleExperience({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.gradient,
+    required this.accent,
+    required this.servicesTitle,
+    required this.scanTitle,
+    required this.scanSubtitle,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final LinearGradient gradient;
+  final Color accent;
+  final String servicesTitle;
+  final String scanTitle;
+  final String scanSubtitle;
 }

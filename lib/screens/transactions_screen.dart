@@ -253,11 +253,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             onPressed: _exportTransactions,
             icon: const Icon(Icons.download_rounded),
           ),
-          IconButton(
-            tooltip: context.loc.tr('screens_admin_customers_screen.041'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -316,14 +311,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Future<void> _showHelpDialog() async {
-    await AppAlertService.showInfo(
-      context,
-      title: context.loc.tr('screens_transactions_screen.039'),
-      message: context.loc.tr('screens_transactions_screen.040'),
-    );
-  }
-
   Future<void> _showSummarySheet() async {
     if (!mounted) {
       return;
@@ -337,14 +324,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           shrinkWrap: true,
           children: [
             Text(_t('screens_transactions_screen.039'), style: AppTheme.h2),
-            const SizedBox(height: 8),
-            Text(
-              _t('screens_transactions_screen.050'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildHeaderCard(isCompact: true),
           ],
         ),
@@ -366,14 +346,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           shrinkWrap: true,
           children: [
             Text(_t('screens_transactions_screen.037'), style: AppTheme.h2),
-            const SizedBox(height: 8),
-            Text(
-              _t('screens_transactions_screen.053'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildSearchAndFilters(isCompact: true),
           ],
         ),
@@ -406,7 +379,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         label: _t('screens_transactions_screen.061'),
         value: CurrencyFormatter.ils(net),
         icon: Icons.analytics_rounded,
-        color: const Color(0xFF7C3AED),
+        color: AppTheme.primaryDark,
       ),
     ];
 
@@ -421,12 +394,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             _t('screens_transactions_screen.005'),
             style: AppTheme.h2.copyWith(fontSize: isCompact ? 24 : 28),
           ),
-          const SizedBox(height: 6),
-          Text(
-            _t('screens_transactions_screen.050'),
-            style: AppTheme.bodyAction.copyWith(height: 1.35),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -757,12 +725,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             const SizedBox(height: 24),
             Text(_t('screens_transactions_screen.035'), style: AppTheme.h3),
-            const SizedBox(height: 8),
-            Text(
-              _t('screens_transactions_screen.052'),
-              style: AppTheme.bodyText,
-              textAlign: TextAlign.center,
-            ),
             const SizedBox(height: 18),
             SizedBox(
               width: 220,

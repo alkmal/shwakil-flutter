@@ -70,10 +70,10 @@ class PDFService {
     ),
     _DenominationPalette(
       primary: PdfColor.fromInt(0xFF0F766E),
-      value: PdfColor.fromInt(0xFF1E40AF),
+      value: PdfColor.fromInt(0xFF0D635C),
       soft: PdfColor.fromInt(0xFFCCFBF1),
-      border: PdfColor.fromInt(0xFF93C5FD),
-      accent: PdfColor.fromInt(0xFF60A5FA),
+      border: PdfColor.fromInt(0xFF99F6E4),
+      accent: PdfColor.fromInt(0xFF14B8A6),
     ),
     _DenominationPalette(
       primary: PdfColor.fromInt(0xFFB45309),
