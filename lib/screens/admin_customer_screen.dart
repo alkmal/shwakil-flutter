@@ -1042,11 +1042,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 640;
           final avatar = CircleAvatar(
-            radius: 40,
+            radius: 34,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Text(
               UserDisplayName.initialFromMap(_customer, fallback: 'U'),
-              style: AppTheme.h1.copyWith(color: Colors.white, fontSize: 32),
+              style: AppTheme.h2.copyWith(color: Colors.white),
             ),
           );
           final details = Column(

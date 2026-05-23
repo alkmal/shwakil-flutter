@@ -70,10 +70,12 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     final type = payload['type']?.toString().trim().toLowerCase() ?? '';
     final sourceType =
         payload['sourceType']?.toString().trim().toLowerCase() ?? '';
-    final ticketId = payload['ticketId']?.toString().trim() ??
+    final ticketId =
+        payload['ticketId']?.toString().trim() ??
         payload['sourceId']?.toString().split(':').first.trim() ??
         '';
-    final isSupportTicket = type.startsWith('support_ticket') ||
+    final isSupportTicket =
+        type.startsWith('support_ticket') ||
         sourceType == 'support_ticket' ||
         ticketId.isNotEmpty;
     if (!isSupportTicket) {
@@ -440,7 +442,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       AppAlertService.showSuccess(
         context,
         title: 'تم تغيير الحالة',
-        message: 'تم تحديث حالة التذكرة وإرسال إشعار للمتابعة داخل التطبيق.',
+        message: 'تم تحديث التذكرة.',
       );
     } catch (error) {
       if (!mounted) return;
@@ -707,7 +709,9 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                         style: AppTheme.bodyBold,
                       ),
                       Text(
-                        image ? 'عرض الصورة مباشرة - $size' : 'فتح أو تحميل - $size',
+                        image
+                            ? 'عرض الصورة مباشرة - $size'
+                            : 'فتح أو تحميل - $size',
                         style: AppTheme.caption,
                       ),
                     ],
@@ -770,8 +774,9 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     Uint8List bytes,
   ) async {
     final extension = _extensionFor(file);
-    final name = _safeFileName(file['name']?.toString() ?? 'support-file')
-        .replaceFirst(RegExp('\\.$extension\$'), '');
+    final name = _safeFileName(
+      file['name']?.toString() ?? 'support-file',
+    ).replaceFirst(RegExp('\\.$extension\$'), '');
     await FileSaver.instance.saveFile(
       name: name,
       bytes: bytes,

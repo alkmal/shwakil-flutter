@@ -1509,7 +1509,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       borderRadius: BorderRadius.circular(28),
       shadowLevel: ShwakelShadowLevel.premium,
       gradient: const LinearGradient(
-        colors: [Color(0xFF0F172A), Color(0xFF0F766E)],
+        colors: [AppTheme.secondary, AppTheme.primary],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),

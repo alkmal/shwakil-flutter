@@ -1061,10 +1061,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               : CurrencyFormatter.ils(card.value),
           style: AppTheme.h3,
         ),
-        Text(
-          card.barcode,
-          style: AppTheme.caption.copyWith(letterSpacing: 1.5),
-        ),
+        Text(card.barcode, style: AppTheme.caption.copyWith(letterSpacing: 0)),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1927,7 +1924,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         await AppAlertService.showInfo(
           context,
           title: 'لا توجد بطاقات صالحة للطباعة',
-          message: 'يمكن طباعة البطاقات غير المستخدمة فقط ضمن النتائج الحالية.',
+          message: 'اطبع البطاقات غير المستخدمة فقط.',
         );
       }
       return;
@@ -1970,7 +1967,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         await AppAlertService.showInfo(
           context,
           title: 'لا توجد بطاقات صالحة للطباعة',
-          message: 'النتائج المفلترة الحالية لا تحتوي على بطاقات غير مستخدمة.',
+          message: 'لا توجد بطاقات غير مستخدمة.',
         );
       }
       return;

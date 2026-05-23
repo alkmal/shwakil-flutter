@@ -2092,7 +2092,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
 
   Color _channelStatusColor(String status) {
     if (status.contains('سليم') || status.contains('تفعيله')) {
-      return const Color(0xFF0F766E);
+      return AppTheme.primary;
     }
     if (status.contains('غير')) {
       return const Color(0xFF92400E);

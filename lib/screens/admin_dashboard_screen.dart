@@ -437,7 +437,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (permissions.canManageUsers)
         const _AdminEntry(
           title: 'تقارير فحص البطاقات',
-          subtitle: 'قراءات بدون استخدام ونسب الاستخدام حسب المستخدم والموقع',
+          subtitle: 'قراءات ونسب الاستخدام.',
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.accent,
           routeName: '/admin-card-scan-reports',
@@ -656,17 +656,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 18),
               Text(
                 context.loc.tr('screens_admin_dashboard_screen.002'),
-                style: AppTheme.h1.copyWith(color: Colors.white, height: 1.2),
+                style: AppTheme.h2.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 10),
               Text(
-                context.loc.tr(
-                  'screens_admin_dashboard_screen.description',
-                  params: {'name': fullName},
-                ),
+                fullName,
                 style: AppTheme.bodyAction.copyWith(
                   color: Colors.white.withValues(alpha: 0.88),
-                  height: 1.6,
                 ),
               ),
               const SizedBox(height: 16),

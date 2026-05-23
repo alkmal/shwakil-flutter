@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_theme.dart';
+
 import '../localization/index.dart';
 
 class ShwakelLogo extends StatelessWidget {
@@ -7,7 +9,7 @@ class ShwakelLogo extends StatelessWidget {
     super.key,
     this.size = 84,
     this.showLabel = false,
-    this.labelColor = const Color(0xFF0F766E),
+    this.labelColor = AppTheme.primary,
     this.framed = false,
     this.framePadding,
     this.frameColor = const Color(0x14FFFFFF),

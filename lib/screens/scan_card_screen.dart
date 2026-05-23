@@ -1555,7 +1555,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       padding: EdgeInsets.all(isLarge ? 20 : 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF14B8A6)],
+          colors: [AppTheme.secondary, AppTheme.primary, AppTheme.primaryLight],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
@@ -1925,7 +1925,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       await AppAlertService.showError(
         context,
         title: 'الدفع بدون تلامس غير متاح',
-        message: 'فعّل الاتصال القريب على الجهاز ثم حاول القراءة مرة أخرى.',
+        message: 'فعّل الاتصال القريب ثم حاول مرة أخرى.',
         includeSupportGuidance: false,
         reportVisibleError: false,
       );

@@ -157,7 +157,7 @@ class _IssuedCardUsageReportScreenState
       padding: const EdgeInsets.all(22),
       borderRadius: BorderRadius.circular(24),
       gradient: const LinearGradient(
-        colors: [Color(0xFF0F172A), Color(0xFF0F766E)],
+        colors: [AppTheme.secondary, AppTheme.primary],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),

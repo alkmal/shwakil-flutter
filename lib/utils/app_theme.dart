@@ -6,10 +6,21 @@ import 'package:flutter/services.dart';
 class AppTheme {
   // --- Brand Palettes ---
   // Change these values to update the app identity colors from one place.
-  static const Color primary = Color(0xFF0F766E);
-  static const Color primaryLight = Color(0xFF14B8A6);
-  static const Color primaryDark = Color(0xFF0D635C);
-  static const Color primarySoft = Color(0xFFCCFBF1);
+  static const int primaryValue = 0xFF0F766E;
+  static const int primaryLightValue = 0xFF14B8A6;
+  static const int primaryDarkValue = 0xFF0D635C;
+  static const int primarySoftValue = 0xFFCCFBF1;
+  static const int primaryMistValue = 0xFFDDF7F1;
+  static const int primaryBorderValue = 0xFF5EEAD4;
+  static const int primaryBorderSoftValue = 0xFF99F6E4;
+
+  static const Color primary = Color(primaryValue);
+  static const Color primaryLight = Color(primaryLightValue);
+  static const Color primaryDark = Color(primaryDarkValue);
+  static const Color primarySoft = Color(primarySoftValue);
+  static const Color primaryMist = Color(primaryMistValue);
+  static const Color primaryBorder = Color(primaryBorderValue);
+  static const Color primaryBorderSoft = Color(primaryBorderSoftValue);
 
   static const Color secondary = Color(0xFF0F172A);
   static const Color secondaryLight = Color(0xFF1E293B);

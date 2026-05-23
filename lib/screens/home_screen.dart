@@ -132,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         subtitle: 'فحص سريع ومزامنة واضحة.',
         icon: Icons.local_shipping_rounded,
         gradient: LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF0F766E)],
+          colors: [AppTheme.secondary, AppTheme.primary],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         subtitle: 'أدوات البيع والبطاقات في مكان واحد.',
         icon: Icons.storefront_rounded,
         gradient: LinearGradient(
-          colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+          colors: [AppTheme.primary, AppTheme.primaryLight],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
@@ -166,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       subtitle: 'رصيدك وتحويلاتك بشكل مختصر.',
       icon: Icons.account_circle_rounded,
       gradient: LinearGradient(
-        colors: [Color(0xFF0F172A), Color(0xFF0F766E)],
+        colors: [AppTheme.secondary, AppTheme.primary],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),
@@ -963,7 +963,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           title: l.tr('screens_home_screen.121'),
           subtitle: l.tr('screens_home_screen.122'),
           icon: Icons.contactless_rounded,
-          color: const Color(0xFF0F766E),
+          color: AppTheme.primary,
           kind: _HomeServiceKind.prepaidMultipay,
           onTap: () => unawaited(
             _openOnlineOnlyRoute(
@@ -988,7 +988,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           title: l.tr('screens_home_screen.123'),
           subtitle: l.tr('screens_home_screen.124'),
           icon: Icons.qr_code_2_rounded,
-          color: const Color(0xFF0F766E),
+          color: AppTheme.primary,
           kind: _HomeServiceKind.temporaryTransfer,
           onTap: () => unawaited(
             _openOnlineOnlyRoute(
@@ -1029,7 +1029,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           title: l.tr('screens_home_screen.082'),
           subtitle: l.tr('screens_home_screen.083'),
           icon: Icons.campaign_rounded,
-          color: const Color(0xFF0F766E),
+          color: AppTheme.primary,
           kind: _HomeServiceKind.affiliate,
           onTap: () => unawaited(_openOnlineOnlyRoute('/affiliate-center')),
         ),

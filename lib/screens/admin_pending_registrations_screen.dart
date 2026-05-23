@@ -349,7 +349,6 @@ class _AdminPendingRegistrationsScreenState
           keyboardType: TextInputType.phone,
           decoration: const InputDecoration(
             labelText: 'رقم المستخدم',
-            helperText: 'بعد التعديل يمكنك إعادة إرسال رمز التحقق للرقم الجديد.',
             prefixIcon: Icon(Icons.phone_rounded),
           ),
         ),

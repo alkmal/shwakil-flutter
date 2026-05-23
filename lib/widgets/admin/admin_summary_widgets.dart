@@ -80,10 +80,7 @@ class AdminSummaryCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               value,
-              style: AppTheme.h2.copyWith(
-                color: themeColor,
-                letterSpacing: -0.5,
-              ),
+              style: AppTheme.h2.copyWith(color: themeColor, letterSpacing: 0),
             ),
           ],
         ),

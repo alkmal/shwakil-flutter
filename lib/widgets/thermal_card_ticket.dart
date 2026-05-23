@@ -66,7 +66,7 @@ class ThermalCardTicket extends StatelessWidget {
         width: 320,
         decoration: BoxDecoration(
           color: const Color(0xFFFFF8EC),
-          border: Border.all(color: const Color(0xFF5EEAD4), width: 2),
+          border: Border.all(color: AppTheme.primaryBorder, width: 2),
           borderRadius: BorderRadius.circular(14),
         ),
         padding: const EdgeInsets.all(14),
@@ -78,7 +78,7 @@ class ThermalCardTicket extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: AppTheme.bodyBold.copyWith(
-                color: const Color(0xFF0F766E),
+                color: AppTheme.primary,
                 fontSize: 18,
               ),
             ),
@@ -119,8 +119,8 @@ class ThermalCardTicket extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFDDF7F1),
-                border: Border.all(color: const Color(0xFF5EEAD4)),
+                color: AppTheme.primaryMist,
+                border: Border.all(color: AppTheme.primaryBorder),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -149,7 +149,7 @@ class ThermalCardTicket extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border.all(color: const Color(0xFF5EEAD4)),
+                border: Border.all(color: AppTheme.primaryBorder),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: BarcodeWidget(
@@ -168,7 +168,7 @@ class ThermalCardTicket extends StatelessWidget {
               style: AppTheme.bodyBold.copyWith(
                 color: const Color(0xFF16302B),
                 fontSize: 13,
-                letterSpacing: 0.4,
+                letterSpacing: 0,
               ),
             ),
             const SizedBox(height: 10),

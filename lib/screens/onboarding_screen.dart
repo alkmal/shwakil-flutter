@@ -24,7 +24,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingSlideData(
       id: 'wallet',
       icon: Icons.account_balance_wallet_rounded,
-      accentColor: Color(0xFF0F766E),
+      accentColor: AppTheme.primary,
     ),
     _OnboardingSlideData(
       id: 'speed',

@@ -290,7 +290,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               style: AppTheme.h1.copyWith(
-                letterSpacing: 20,
+                letterSpacing: 0,
                 color: AppTheme.primary,
               ),
               decoration: InputDecoration(

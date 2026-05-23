@@ -1199,7 +1199,7 @@ class _BalanceScreenState extends State<BalanceScreen>
       borderRadius: BorderRadius.circular(30),
       shadowLevel: ShwakelShadowLevel.premium,
       gradient: const LinearGradient(
-        colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF14B8A6)],
+        colors: [AppTheme.secondary, AppTheme.primary, AppTheme.primaryLight],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),

@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../models/index.dart';
+import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 
 class CardDesignSettings {
@@ -62,18 +63,18 @@ class PDFService {
   static const int _maxValueUnitLength = 10;
   static const List<_DenominationPalette> _palettes = [
     _DenominationPalette(
-      primary: PdfColor.fromInt(0xFF0F766E),
+      primary: PdfColor.fromInt(AppTheme.primaryValue),
       value: PdfColor.fromInt(0xFF047857),
-      soft: PdfColor.fromInt(0xFFDDF7F1),
-      border: PdfColor.fromInt(0xFF5EEAD4),
-      accent: PdfColor.fromInt(0xFF14B8A6),
+      soft: PdfColor.fromInt(AppTheme.primaryMistValue),
+      border: PdfColor.fromInt(AppTheme.primaryBorderValue),
+      accent: PdfColor.fromInt(AppTheme.primaryLightValue),
     ),
     _DenominationPalette(
-      primary: PdfColor.fromInt(0xFF0F766E),
-      value: PdfColor.fromInt(0xFF0D635C),
-      soft: PdfColor.fromInt(0xFFCCFBF1),
-      border: PdfColor.fromInt(0xFF99F6E4),
-      accent: PdfColor.fromInt(0xFF14B8A6),
+      primary: PdfColor.fromInt(AppTheme.primaryValue),
+      value: PdfColor.fromInt(AppTheme.primaryDarkValue),
+      soft: PdfColor.fromInt(AppTheme.primarySoftValue),
+      border: PdfColor.fromInt(AppTheme.primaryBorderSoftValue),
+      accent: PdfColor.fromInt(AppTheme.primaryLightValue),
     ),
     _DenominationPalette(
       primary: PdfColor.fromInt(0xFFB45309),

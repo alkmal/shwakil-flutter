@@ -62,13 +62,9 @@ class SupportContactCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFFFFF), Color(0xFFF0FDFA)],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        gradient: AppTheme.cardHighlightGradient,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFBEEAE1)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.16)),
         boxShadow: AppTheme.softShadow,
       ),
       child: Column(
@@ -77,23 +73,20 @@ class SupportContactCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
+              color: AppTheme.primarySoft.withValues(alpha: 0.72),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.support_agent_rounded,
-                  color: Color(0xFF0F766E),
+                  color: AppTheme.primary,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     title ?? l.tr('widgets_support_contact_card.003'),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
-                    ),
+                    style: AppTheme.bodyBold,
                   ),
                 ),
               ],
@@ -102,19 +95,17 @@ class SupportContactCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             phoneNumber,
-            style: const TextStyle(
+            style: AppTheme.h2.copyWith(
               fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF115E59),
+              color: AppTheme.primaryDark,
             ),
           ),
           if ((message ?? '').trim().isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               message!,
-              style: const TextStyle(
-                color: Color(0xFF334155),
-                fontWeight: FontWeight.w600,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textSecondary,
                 height: 1.6,
               ),
             ),

@@ -603,7 +603,6 @@ class _AppSidebarState extends State<AppSidebar> {
         l.tr('widgets_app_sidebar.025'),
         style: AppTheme.bodyText.copyWith(fontWeight: FontWeight.w600),
       ),
-      subtitle: Text(l.tr('widgets_app_sidebar.034'), style: AppTheme.caption),
       trailing: const Icon(
         Icons.translate_rounded,
         size: 20,
@@ -706,7 +705,6 @@ class _AppSidebarState extends State<AppSidebar> {
           fontWeight: FontWeight.w700,
         ),
       ),
-      subtitle: Text(l.tr('widgets_app_sidebar.052'), style: AppTheme.caption),
       trailing: const Icon(
         Icons.lock_clock_rounded,
         size: 20,
@@ -729,7 +727,7 @@ class _AppSidebarState extends State<AppSidebar> {
         style: AppTheme.caption.copyWith(
           color: AppTheme.textTertiary,
           fontWeight: FontWeight.w900,
-          letterSpacing: 0.2,
+          letterSpacing: 0,
         ),
       ),
     );

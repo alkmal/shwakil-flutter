@@ -8,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../localization/app_localization.dart';
 import '../localization/app_strings_ar.dart';
 import '../localization/app_strings_en.dart';
+import '../utils/app_theme.dart';
 import 'notification_navigation_service.dart';
 
 class LocalNotificationService {
@@ -148,7 +149,7 @@ class LocalNotificationService {
         channelDescription: _tr('services_local_notification_service.002'),
         importance: Importance.max,
         priority: Priority.high,
-        color: const Color(0xFF0F766E),
+        color: AppTheme.primary,
       ),
       iOS: const DarwinNotificationDetails(),
       macOS: const DarwinNotificationDetails(),

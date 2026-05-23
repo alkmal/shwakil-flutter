@@ -42,18 +42,18 @@ class PrintCardPreview extends StatelessWidget {
 
   static const List<_PrintPreviewPalette> _palettes = [
     _PrintPreviewPalette(
-      primary: Color(0xFF0F766E),
+      primary: AppTheme.primary,
       value: Color(0xFF047857),
-      soft: Color(0xFFDDF7F1),
-      border: Color(0xFF5EEAD4),
-      accent: Color(0xFF14B8A6),
+      soft: AppTheme.primaryMist,
+      border: AppTheme.primaryBorder,
+      accent: AppTheme.primaryLight,
     ),
     _PrintPreviewPalette(
-      primary: Color(0xFF0F766E),
-      value: Color(0xFF0D635C),
-      soft: Color(0xFFCCFBF1),
-      border: Color(0xFF99F6E4),
-      accent: Color(0xFF14B8A6),
+      primary: AppTheme.primary,
+      value: AppTheme.primaryDark,
+      soft: AppTheme.primarySoft,
+      border: AppTheme.primaryBorderSoft,
+      accent: AppTheme.primaryLight,
     ),
     _PrintPreviewPalette(
       primary: Color(0xFFB45309),
@@ -469,7 +469,7 @@ class PrintCardPreview extends StatelessWidget {
                                 fontSize: 5.7,
                                 color: const Color(0xFF16302B),
                                 fontFamily: 'monospace',
-                                letterSpacing: 0.3,
+                                letterSpacing: 0,
                               ),
                             ),
                             const SizedBox(height: 0.4),
