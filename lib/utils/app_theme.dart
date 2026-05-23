@@ -132,7 +132,7 @@ class AppTheme {
   );
 
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF0F172A), Color(0xFF0F766E), Color(0xFF2DD4BF)],
+    colors: [secondary, primary, primaryLight],
     begin: Alignment.topRight,
     end: Alignment.bottomLeft,
   );
