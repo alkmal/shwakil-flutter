@@ -1860,7 +1860,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             else
               _buildServicesGrid(
                 services,
-                crossAxisCount: isLandscapePhone ? 3 : 2,
+                crossAxisCount: isLandscapePhone ? 4 : 3,
                 childAspectRatio: isLandscapePhone ? 1.55 : 1.22,
               ),
           ],
