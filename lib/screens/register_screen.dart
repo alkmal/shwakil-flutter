@@ -138,7 +138,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validateContactStep() {
     final l = context.loc;
     final whatsapp = _registrationWhatsappInput();
-    if (!RegExp(r'^05\d{8}$').hasMatch(whatsapp)) {
+    if (!PhoneNumberService.isSupportedMobile(
+      whatsapp,
+      defaultDialCode: _registrationDefaultCountryCode,
+    )) {
       return l.tr('screens_register_screen.031');
     }
 
@@ -276,7 +279,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String _registrationWhatsappInput() {
-    return _whatsappC.text.replaceAll(RegExp(r'\D+'), '');
+    return PhoneNumberService.normalize(
+      input: _whatsappC.text,
+      defaultDialCode: _registrationDefaultCountryCode,
+    );
   }
 
   Map<String, dynamic> _registrationErrorContext({required String action}) {
@@ -515,7 +521,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       controller: controller,
       keyboardType: type,
       inputFormatters: type == TextInputType.phone
-          ? [FilteringTextInputFormatter.digitsOnly]
+          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))]
           : null,
       obscureText: obscure,
       readOnly: readOnly,

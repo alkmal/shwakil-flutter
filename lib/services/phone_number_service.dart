@@ -32,6 +32,17 @@ class PhoneNumberService {
     return '$defaultDialCode$digits';
   }
 
+  static bool isSupportedMobile(
+    String input, {
+    String defaultDialCode = '970',
+  }) {
+    final normalized = normalize(
+      input: input,
+      defaultDialCode: defaultDialCode,
+    );
+    return RegExp(r'^(970|972)5\d{8}$').hasMatch(normalized);
+  }
+
   static String localDisplay(String? input) {
     var digits = (input ?? '').replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) return '';
