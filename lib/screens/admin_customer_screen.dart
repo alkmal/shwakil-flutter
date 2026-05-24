@@ -1749,10 +1749,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               for (final group in PermissionCatalog.groups) ...[
                 _buildPermissionSectionCard(
                   title: PermissionCatalog.groupTitle(context, group),
-                  icon: IconData(
-                    group['icon']! as int,
-                    fontFamily: 'MaterialIcons',
-                  ),
+                  icon: group['icon']! as IconData,
                   permissionKeys: List<String>.from(group['keys']! as List)
                       .where(
                         (key) =>

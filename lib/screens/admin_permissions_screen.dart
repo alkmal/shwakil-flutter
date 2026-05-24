@@ -211,10 +211,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                     children: [
                       AdminSectionHeader(
                         title: title,
-                        icon: IconData(
-                          group['icon']! as int,
-                          fontFamily: 'MaterialIcons',
-                        ),
+                        icon: group['icon']! as IconData,
                       ),
                       const SizedBox(height: 8),
                       ...keys.map(
