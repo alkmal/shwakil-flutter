@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/index.dart';
 import '../utils/app_theme.dart';
 import 'shwakel_button.dart';
 import 'support_contact_card.dart';
@@ -11,18 +12,19 @@ class SupportTicketActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
             final openButton = ShwakelButton(
-              label: 'فتح تذكرة للتواصل',
+              label: l.text('فتح تذكرة للتواصل', 'Open support ticket'),
               onPressed: () => _openSupportTickets(context),
               icon: Icons.add_comment_rounded,
             );
             final trackingButton = ShwakelButton(
-              label: 'متابعة تذكرة',
+              label: l.text('متابعة تذكرة', 'Track ticket'),
               onPressed: () => _openSupportTickets(context, tracking: true),
               icon: Icons.forum_rounded,
               isSecondary: true,
@@ -53,7 +55,9 @@ class SupportTicketActions extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => _showWhatsappDetails(context),
             icon: const Icon(Icons.chat_rounded),
-            label: const Text('تواصل مباشر عبر واتس اب'),
+            label: Text(
+              l.text('تواصل مباشر عبر واتس اب', 'Direct WhatsApp contact'),
+            ),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
               foregroundColor: AppTheme.success,
@@ -78,6 +82,7 @@ class SupportTicketActions extends StatelessWidget {
   }
 
   Future<void> _showWhatsappDetails(BuildContext context) {
+    final l = context.loc;
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -88,9 +93,14 @@ class SupportTicketActions extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: SupportContactCard(
               phoneNumber: supportWhatsapp,
-              title: 'التواصل المباشر عبر واتس اب',
-              message:
-                  'يمكنك التواصل مباشرة أو فتح تذكرة لمتابعة الشات داخل التطبيق.',
+              title: l.text(
+                'التواصل المباشر عبر واتس اب',
+                'Direct WhatsApp contact',
+              ),
+              message: l.text(
+                'يمكنك التواصل مباشرة أو فتح تذكرة لمتابعة الشات داخل التطبيق.',
+                'You can contact us directly or open a ticket to follow the chat inside the app.',
+              ),
             ),
           ),
         ),

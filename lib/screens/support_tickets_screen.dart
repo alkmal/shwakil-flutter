@@ -12,6 +12,7 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
+import '../widgets/support_contact_card.dart';
 
 class SupportTicketsScreen extends StatefulWidget {
   const SupportTicketsScreen({super.key, this.openTracking = false});
@@ -38,6 +39,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   String _accessToken = '';
   String _pendingTicketId = '';
   String _pendingPhone = '';
+  String _supportWhatsapp = '';
   String? _debugOtp;
   bool _phoneOtpPending = false;
   bool _tracking = false;
@@ -98,6 +100,11 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   Future<void> _load() async {
     final user = await _auth.currentUser();
     var tickets = const <Map<String, dynamic>>[];
+    var supportWhatsapp = _supportWhatsapp;
+    try {
+      final contact = await ContactInfoService.getContactInfo();
+      supportWhatsapp = ContactInfoService.supportWhatsapp(contact);
+    } catch (_) {}
     if (user != null) {
       try {
         tickets = await _api.getMySupportTickets();
@@ -113,17 +120,29 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     setState(() {
       _user = user;
       _myTickets = tickets;
+      _supportWhatsapp = supportWhatsapp;
       _loading = false;
     });
   }
 
   Future<void> _start() async {
+    final l = context.loc;
     if (_title.text.trim().length < 3 || _details.text.trim().length < 4) {
-      return _error('أدخل عنوان التذكرة وتفاصيل التواصل بوضوح.');
+      return _error(
+        l.text(
+          'أدخل عنوان التذكرة وتفاصيل التواصل بوضوح.',
+          'Enter a clear ticket title and contact details.',
+        ),
+      );
     }
     if (_user == null &&
         (_name.text.trim().length < 2 || _phone.text.trim().length < 8)) {
-      return _error('أدخل الاسم ورقم واتساب للتواصل.');
+      return _error(
+        l.text(
+          'أدخل الاسم ورقم واتساب للتواصل.',
+          'Enter your name and WhatsApp number for contact.',
+        ),
+      );
     }
     setState(() => _busy = true);
     try {
@@ -149,7 +168,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         });
         await _success(
           response['message']?.toString() ??
-              'لديك تذكرة قائمة. تابع نفس التذكرة برقم واتساب و OTP.',
+              l.text(
+                'لديك تذكرة قائمة. تابع نفس التذكرة برقم واتساب و OTP.',
+                'You already have an open ticket. Continue it using your WhatsApp number and OTP.',
+              ),
         );
         return;
       }
@@ -160,7 +182,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         );
         _debugOtp = response['debugOtpCode']?.toString();
       });
-      await _success(response['message']?.toString() ?? 'تم إرسال الرمز.');
+      await _success(
+        response['message']?.toString() ??
+            l.text('تم إرسال الرمز.', 'The code was sent.'),
+      );
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
     } finally {
@@ -171,8 +196,14 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Future<void> _requestTrackingOtp() async {
+    final l = context.loc;
     if (_phone.text.trim().length < 8) {
-      return _error('أدخل رقم واتساب الذي تم فتح التذاكر عليه.');
+      return _error(
+        l.text(
+          'أدخل رقم واتساب الذي تم فتح التذاكر عليه.',
+          'Enter the WhatsApp number used to open the tickets.',
+        ),
+      );
     }
     setState(() => _busy = true);
     try {
@@ -190,7 +221,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         _phoneOtpPending = true;
         _phoneTickets = const [];
       });
-      await _success(response['message']?.toString() ?? 'تم إرسال الرمز.');
+      await _success(
+        response['message']?.toString() ??
+            l.text('تم إرسال الرمز.', 'The code was sent.'),
+      );
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
     } finally {
@@ -201,8 +235,9 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Future<void> _verify() async {
+    final l = context.loc;
     if (_otp.text.trim().length < 4) {
-      return _error('أدخل رمز التحقق.');
+      return _error(l.text('أدخل رمز التحقق.', 'Enter the verification code.'));
     }
     setState(() => _busy = true);
     try {
@@ -237,7 +272,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           _otp.clear();
         });
       }
-      await _success(response['message']?.toString() ?? 'تم فتح الشات.');
+      await _success(
+        response['message']?.toString() ??
+            l.text('تم فتح الشات.', 'The chat was opened.'),
+      );
       await _load();
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
@@ -272,7 +310,12 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     final id = summary['id']?.toString() ?? '';
     final token = summary['accessToken']?.toString() ?? '';
     if (id.isEmpty || token.isEmpty) {
-      return _error('تعذر فتح التذكرة، أعد التحقق من الرقم.');
+      return _error(
+        context.loc.text(
+          'تعذر فتح التذكرة، أعد التحقق من الرقم.',
+          'Could not open the ticket. Verify the number again.',
+        ),
+      );
     }
     setState(() => _busy = true);
     try {
@@ -425,19 +468,24 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       mimeType: _fileSaverMime(file),
     );
     if (mounted) {
-      await _success('تم تجهيز الملف للفتح أو التحميل من جهازك.');
+      await _success(
+        context.loc.text(
+          'تم تجهيز الملف للفتح أو التحميل من جهازك.',
+          'The file is ready to open or download from your device.',
+        ),
+      );
     }
   }
 
   Future<void> _error(String message) => AppAlertService.showError(
     context,
-    title: 'تعذر متابعة التذكرة',
+    title: context.loc.text('تعذر متابعة التذكرة', 'Could not continue ticket'),
     message: message,
   );
 
   Future<void> _success(String message) => AppAlertService.showSuccess(
     context,
-    title: 'تذاكر التواصل',
+    title: context.loc.text('تذاكر التواصل', 'Support tickets'),
     message: message,
   );
 
@@ -446,31 +494,41 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final content = _ticket != null
-        ? _chat()
-        : _pendingTicketId.isNotEmpty || _phoneOtpPending
+    final content = _pendingTicketId.isNotEmpty || _phoneOtpPending
         ? _otpStep()
         : _entry();
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('تذاكر التواصل'),
+        title: Text(context.loc.text('تذاكر التواصل', 'Support tickets')),
         actions: _user == null
             ? null
             : const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: _user == null ? null : const AppSidebar(),
-      body: SingleChildScrollView(
-        child: ResponsiveScaffoldContainer(
-          maxWidth: 860,
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: content,
-        ),
-      ),
+      body: _ticket != null
+          ? LayoutBuilder(
+              builder: (context, constraints) => ResponsiveScaffoldContainer(
+                maxWidth: 920,
+                padding: const EdgeInsets.all(AppTheme.spacingMd),
+                child: SizedBox(
+                  height: constraints.maxHeight - AppTheme.spacingLg,
+                  child: _chat(),
+                ),
+              ),
+            )
+          : SingleChildScrollView(
+              child: ResponsiveScaffoldContainer(
+                maxWidth: 860,
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
+                child: content,
+              ),
+            ),
     );
   }
 
   Widget _entry() {
+    final l = context.loc;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -481,7 +539,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'تواصل داخل التطبيق',
+                l.text('تواصل داخل التطبيق', 'In-app support'),
                 style: AppTheme.h2.copyWith(color: Colors.white),
               ),
             ],
@@ -489,16 +547,16 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         ),
         const SizedBox(height: 16),
         SegmentedButton<bool>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: false,
-              label: Text('فتح تذكرة'),
-              icon: Icon(Icons.add_comment_rounded),
+              label: Text(l.text('فتح تذكرة', 'Open ticket')),
+              icon: const Icon(Icons.add_comment_rounded),
             ),
             ButtonSegment(
               value: true,
-              label: Text('متابعة تذكرة'),
-              icon: Icon(Icons.forum_rounded),
+              label: Text(l.text('متابعة تذكرة', 'Track ticket')),
+              icon: const Icon(Icons.forum_rounded),
             ),
           ],
           selected: {_tracking},
@@ -506,10 +564,21 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
               setState(() => _tracking = value.first),
         ),
         const SizedBox(height: 16),
-        if (_tracking) _trackingForm() else _newTicketForm(),
+        if (_tracking)
+          _trackingForm()
+        else ...[
+          _newTicketForm(),
+          if (_supportWhatsapp.trim().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _directWhatsappSupport(),
+          ],
+        ],
         if (_phoneTickets.isNotEmpty) ...[
           const SizedBox(height: 18),
-          Text('تذاكر الرقم المؤكد', style: AppTheme.h3),
+          Text(
+            l.text('تذاكر الرقم المؤكد', 'Verified number tickets'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 10),
           ..._phoneTickets.map(
             (ticket) => Padding(
@@ -542,7 +611,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         ],
         if (_myTickets.isNotEmpty) ...[
           const SizedBox(height: 18),
-          Text('تذاكرك المرتبطة بالحساب', style: AppTheme.h3),
+          Text(
+            l.text('تذاكرك المرتبطة بالحساب', 'Tickets linked to your account'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 10),
           ..._myTickets.map(
             (ticket) => Padding(
@@ -578,22 +650,40 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Widget _newTicketForm() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           if (_user == null) ...[
-            _field(_name, 'الاسم', Icons.badge_outlined),
+            _field(_name, l.text('الاسم', 'Name'), Icons.badge_outlined),
             const SizedBox(height: 12),
-            _field(_phone, 'رقم واتساب', Icons.phone_outlined, phone: true),
+            _field(
+              _phone,
+              l.text('رقم واتساب', 'WhatsApp number'),
+              Icons.phone_outlined,
+              phone: true,
+            ),
             const SizedBox(height: 12),
           ],
-          _field(_title, 'عنوان التذكرة', Icons.subject_rounded),
+          _field(
+            _title,
+            l.text('عنوان التذكرة', 'Ticket title'),
+            Icons.subject_rounded,
+          ),
           const SizedBox(height: 12),
-          _field(_details, 'تفاصيل التواصل', Icons.notes_rounded, lines: 5),
+          _field(
+            _details,
+            l.text('تفاصيل التواصل', 'Contact details'),
+            Icons.notes_rounded,
+            lines: 5,
+          ),
           const SizedBox(height: 16),
           ShwakelButton(
-            label: 'إرسال رمز التحقق وفتح التذكرة',
+            label: l.text(
+              'إرسال رمز التحقق وفتح التذكرة',
+              'Send verification code and open ticket',
+            ),
             onPressed: _busy ? null : _start,
             isLoading: _busy,
             icon: Icons.verified_user_rounded,
@@ -603,20 +693,36 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     );
   }
 
+  Widget _directWhatsappSupport() {
+    final l = context.loc;
+    return SupportContactCard(
+      phoneNumber: _supportWhatsapp,
+      title: l.text('دعم فني مباشر عبر واتساب', 'Direct WhatsApp support'),
+      message: l.text(
+        'للحالات العاجلة يمكنك التواصل مباشرة عبر واتساب، أو فتح تذكرة ليبقى الشات محفوظًا داخل التطبيق.',
+        'For urgent cases, contact support directly on WhatsApp, or open a ticket to keep the chat saved inside the app.',
+      ),
+    );
+  }
+
   Widget _trackingForm() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           _field(
             _phone,
-            'رقم واتساب لعرض التذاكر',
+            l.text(
+              'رقم واتساب لعرض التذاكر',
+              'WhatsApp number to view tickets',
+            ),
             Icons.phone_outlined,
             phone: true,
           ),
           const SizedBox(height: 16),
           ShwakelButton(
-            label: 'إرسال رمز متابعة',
+            label: l.text('إرسال رمز متابعة', 'Send tracking code'),
             onPressed: _busy ? null : _requestTrackingOtp,
             isLoading: _busy,
             icon: Icons.sms_outlined,
@@ -627,22 +733,34 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Widget _otpStep() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('تأكيد رقم التواصل', style: AppTheme.h2),
+          Text(
+            l.text('تأكيد رقم التواصل', 'Confirm contact number'),
+            style: AppTheme.h2,
+          ),
           const SizedBox(height: 12),
           if ((_debugOtp ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('رمز التجربة: $_debugOtp', style: AppTheme.bodyBold),
+            Text(
+              l.text('رمز التجربة: $_debugOtp', 'Test code: $_debugOtp'),
+              style: AppTheme.bodyBold,
+            ),
           ],
           const SizedBox(height: 16),
-          _field(_otp, 'رمز OTP', Icons.password_rounded, phone: true),
+          _field(
+            _otp,
+            l.text('رمز OTP', 'OTP code'),
+            Icons.password_rounded,
+            phone: true,
+          ),
           const SizedBox(height: 16),
           ShwakelButton(
-            label: 'تأكيد وفتح الشات',
+            label: l.text('تأكيد وفتح الشات', 'Confirm and open chat'),
             onPressed: _busy ? null : _verify,
             isLoading: _busy,
             icon: Icons.lock_open_rounded,
@@ -653,6 +771,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Widget _chat() {
+    final l = context.loc;
     final messages = List<Map<String, dynamic>>.from(
       (_ticket?['messages'] as List? ?? const []).map(
         (item) => Map<String, dynamic>.from(item as Map),
@@ -668,120 +787,217 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         (item) => Map<String, dynamic>.from(item as Map),
       ),
     );
+    final hasTimeline =
+        statusEvents.isNotEmpty ||
+        messages.isNotEmpty ||
+        attachments.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ShwakelCard(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  setState(() => _ticket = null);
-                },
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _ticket?['title']?.toString() ?? '',
-                      style: AppTheme.h3,
-                    ),
-                    Text(
-                      'رقم التذكرة: ${_ticket?['id']}',
+        _chatHeader(l),
+        const SizedBox(height: 10),
+        Expanded(
+          child: ShwakelCard(
+            padding: EdgeInsets.zero,
+            color: AppTheme.surfaceVariant.withValues(alpha: 0.55),
+            shadowLevel: ShwakelShadowLevel.none,
+            child: hasTimeline
+                ? ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      ...statusEvents.map(_statusEventTile),
+                      ...messages.map(_messageBubble),
+                      if (attachments.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        _attachmentsPanel(attachments),
+                      ],
+                    ],
+                  )
+                : Center(
+                    child: Text(
+                      l.text(
+                        'لا توجد رسائل في هذه التذكرة بعد.',
+                        'There are no messages in this ticket yet.',
+                      ),
                       style: AppTheme.caption,
                     ),
-                    Text(
-                      'الحالة: ${_ticket?['statusLabel'] ?? _ticket?['status']}',
-                      style: AppTheme.caption,
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: _refreshTicket,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
-            ],
+                  ),
           ),
         ),
-        const SizedBox(height: 12),
-        ...statusEvents.map(_statusEventTile),
-        ...messages.map(_messageBubble),
-        if (attachments.isNotEmpty)
-          ShwakelCard(
-            padding: const EdgeInsets.all(16),
+        const SizedBox(height: 10),
+        _chatComposer(l),
+      ],
+    );
+  }
+
+  Widget _chatHeader(AppLocalizer l) {
+    return ShwakelCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: l.text('رجوع', 'Back'),
+            onPressed: () {
+              setState(() => _ticket = null);
+            },
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          const SizedBox(width: 4),
+          CircleAvatar(
+            backgroundColor: AppTheme.primarySoft,
+            child: const Icon(
+              Icons.support_agent_rounded,
+              color: AppTheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('المرفقات', style: AppTheme.bodyBold),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: attachments.map(_attachmentTile).toList(),
+                Text(
+                  _ticket?['title']?.toString() ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l.text(
+                    '#${_ticket?['id']} - ${_ticket?['statusLabel'] ?? _ticket?['status']}',
+                    '#${_ticket?['id']} - ${_ticket?['statusLabel'] ?? _ticket?['status']}',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption,
                 ),
               ],
             ),
           ),
-        const SizedBox(height: 12),
-        ShwakelCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              _field(_message, 'اكتب ردك', Icons.chat_outlined, lines: 3),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: ShwakelButton(
-                      label: 'إرسال',
-                      onPressed: _busy ? null : _sendMessage,
-                      isLoading: _busy,
-                      icon: Icons.send_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  IconButton.filledTonal(
-                    tooltip: 'إرفاق ملف',
-                    onPressed: _busy ? null : _upload,
-                    icon: const Icon(Icons.attach_file_rounded),
-                  ),
-                ],
-              ),
-            ],
+          IconButton(
+            tooltip: l.text('تحديث', 'Refresh'),
+            onPressed: _busy ? null : _refreshTicket,
+            icon: const Icon(Icons.refresh_rounded),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _chatComposer(AppLocalizer l) {
+    return ShwakelCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      shadowLevel: ShwakelShadowLevel.medium,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          IconButton.filledTonal(
+            tooltip: l.text('إرفاق ملف', 'Attach file'),
+            onPressed: _busy ? null : _upload,
+            icon: const Icon(Icons.attach_file_rounded),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _message,
+              onChanged: (_) => setState(() {}),
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.newline,
+              decoration: InputDecoration(
+                hintText: l.text('اكتب رسالة...', 'Write a message...'),
+                filled: true,
+                fillColor: AppTheme.background,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton.filled(
+            tooltip: l.text('إرسال', 'Send'),
+            onPressed: _busy || _message.text.trim().isEmpty
+                ? null
+                : _sendMessage,
+            icon: _busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.send_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _attachmentsPanel(List<Map<String, dynamic>> attachments) {
+    final l = context.loc;
+    return ShwakelCard(
+      padding: const EdgeInsets.all(14),
+      shadowLevel: ShwakelShadowLevel.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l.text('المرفقات', 'Attachments'), style: AppTheme.bodyBold),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: attachments.map(_attachmentTile).toList(),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _messageBubble(Map<String, dynamic> message) {
     final mine = message['senderKind']?.toString() == 'customer';
+    final l = context.loc;
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 620),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width >= 700 ? 620 : 300,
+        ),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: mine ? AppTheme.primarySoft : AppTheme.surface,
-          border: Border.all(color: AppTheme.border),
-          borderRadius: BorderRadius.circular(18),
+          color: mine ? AppTheme.primary : AppTheme.surface,
+          border: Border.all(color: mine ? AppTheme.primary : AppTheme.border),
+          borderRadius: BorderRadiusDirectional.only(
+            topStart: const Radius.circular(18),
+            topEnd: const Radius.circular(18),
+            bottomStart: Radius.circular(mine ? 18 : 6),
+            bottomEnd: Radius.circular(mine ? 6 : 18),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              message['displayName']?.toString() ?? '',
-              style: AppTheme.caption,
+              mine
+                  ? l.text('أنت', 'You')
+                  : (message['displayName']?.toString() ??
+                        l.text('الدعم', 'Support')),
+              style: AppTheme.caption.copyWith(
+                color: mine ? Colors.white70 : AppTheme.textSecondary,
+              ),
             ),
             const SizedBox(height: 5),
             SelectableText(
               message['body']?.toString() ?? '',
-              style: AppTheme.bodyText,
+              style: AppTheme.bodyText.copyWith(
+                color: mine ? Colors.white : AppTheme.textPrimary,
+              ),
             ),
           ],
         ),
@@ -790,6 +1006,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Widget _statusEventTile(Map<String, dynamic> event) {
+    final l = context.loc;
     final note = event['note']?.toString() ?? '';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -800,13 +1017,17 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         border: Border.all(color: AppTheme.primary.withValues(alpha: 0.14)),
       ),
       child: SelectableText(
-        'تم تغيير الحالة إلى ${event['toStatusLabel']} من ${event['actorDisplayName']}${note.isNotEmpty ? '\n$note' : ''}',
+        l.text(
+          'تم تغيير الحالة إلى ${event['toStatusLabel']} من ${event['actorDisplayName']}${note.isNotEmpty ? '\n$note' : ''}',
+          'Status changed to ${event['toStatusLabel']} by ${event['actorDisplayName']}${note.isNotEmpty ? '\n$note' : ''}',
+        ),
         style: AppTheme.caption,
       ),
     );
   }
 
   Widget _attachmentTile(Map<String, dynamic> file) {
+    final l = context.loc;
     final image = _isImageAttachment(file);
     final size = _formatBytes(file['sizeBytes']);
     return ConstrainedBox(
@@ -831,15 +1052,22 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        file['name']?.toString() ?? 'مرفق',
+                        file['name']?.toString() ??
+                            l.text('مرفق', 'Attachment'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.bodyBold,
                       ),
                       Text(
                         image
-                            ? 'عرض الصورة مباشرة - $size'
-                            : 'فتح أو تحميل - $size',
+                            ? l.text(
+                                'عرض الصورة مباشرة - $size',
+                                'View image directly - $size',
+                              )
+                            : l.text(
+                                'فتح أو تحميل - $size',
+                                'Open or download - $size',
+                              ),
                         style: AppTheme.caption,
                       ),
                     ],

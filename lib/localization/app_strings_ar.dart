@@ -856,7 +856,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.014': 'تاريخ الميلاد',
   'screens_register_screen.015': 'بيانات التواصل',
   'screens_register_screen.016': ' (مقدمة واتساب) الدولة',
-  'screens_register_screen.017': 'رقم الهاتف بدون مقدمة',
+  'screens_register_screen.017': 'رقم واتساب',
   'screens_register_screen.018': 'رقم الإحالة',
   'screens_register_screen.019': 'متابعة الحساب',
   'screens_register_screen.020': 'كلمة المرور',
@@ -872,7 +872,7 @@ const Map<String, String> appStringsAr = {
   'screens_register_screen.030':
       'يجب أن يتكون اسم المستخدم من أحرف أو أرقام إنجليزية فقط، مع السماح بالرموز . _ - + و @.',
   'screens_register_screen.031':
-      'أدخل رقم الجوال المحلي بدون مقدمة، ويجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
+      'أدخل رقم واتساب صحيحًا بصيغة 05XXXXXXXX أو مع المقدمة 970/972.',
   'screens_register_screen.032': 'رقم الإحالة غير صالح.',
   'screens_register_screen.033': 'لا حاجة لإدخال كلمة مرور أثناء التسجيل.',
   'screens_register_screen.034':
@@ -895,7 +895,7 @@ const Map<String, String> appStringsAr = {
       'تواصل مع الإدارة مباشرة عبر رقم الدعم لطلب إنشاء حساب أو السماح بالتسجيل.',
   'screens_register_screen.046': 'العودة إلى تسجيل الدخول',
   'screens_register_screen.047':
-      'اكتب الرقم المحلي فقط مثل 059XXXXXXX، بدون 970 أو 972 أو علامة +.',
+      'يمكنك كتابة الرقم محليًا مثل 059XXXXXXX أو كاملًا مثل +97059XXXXXXX أو +97259XXXXXXX.',
   'screens_topup_requests_screen.001': 'طلبات الشحن',
   'screens_topup_requests_screen.002': 'طلبات الشحن',
   'screens_topup_requests_screen.003': '{pending} معلّقة',

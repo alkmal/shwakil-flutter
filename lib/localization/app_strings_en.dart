@@ -995,7 +995,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.014': 'Birth date',
   'screens_register_screen.015': 'Contact Details',
   'screens_register_screen.016': 'Country',
-  'screens_register_screen.017': 'Phone number without prefix',
+  'screens_register_screen.017': 'WhatsApp number',
   'screens_register_screen.018': 'Referral phone number',
   'screens_register_screen.019': 'Account follow-up',
   'screens_register_screen.020': 'Password',
@@ -1011,7 +1011,7 @@ const Map<String, String> appStringsEn = {
   'screens_register_screen.030':
       'Username must use English letters or numbers only, with . _ - + and @ allowed.',
   'screens_register_screen.031':
-      'Enter the local mobile number without a prefix. It must start with 05 and contain 10 digits.',
+      'Enter a valid WhatsApp number as 05XXXXXXXX or with the 970/972 prefix.',
   'screens_register_screen.032': 'Referral phone number is invalid.',
   'screens_register_screen.033':
       'You do not need to enter a password during registration.',
@@ -1038,7 +1038,7 @@ const Map<String, String> appStringsEn = {
       'Contact the administration directly using the support number to request account creation or registration access.',
   'screens_register_screen.046': 'Back to login',
   'screens_register_screen.047':
-      'Enter the local number only, such as 059XXXXXXX, without 970, 972, or +.',
+      'You can enter the local number, such as 059XXXXXXX, or the full number, such as +97059XXXXXXX or +97259XXXXXXX.',
   'screens_topup_requests_screen.001': 'Top-up Requests',
   'screens_topup_requests_screen.002': 'Top-up Requests',
   'screens_topup_requests_screen.003': '{pending} pending',

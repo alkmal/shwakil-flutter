@@ -420,7 +420,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           _buildItem(
                             context,
                             icon: Icons.support_agent_rounded,
-                            title: 'تذاكر التواصل',
+                            title: l.text('تذاكر التواصل', 'Support tickets'),
                             routeName: '/admin-support-tickets',
                           ),
                         if (permissions.canManageUsers)
@@ -460,7 +460,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       _buildItem(
                         context,
                         icon: Icons.forum_rounded,
-                        title: 'تذاكر التواصل',
+                        title: l.text('تذاكر التواصل', 'Support tickets'),
                         routeName: '/support-tickets',
                       ),
                       if (canViewLocations)
