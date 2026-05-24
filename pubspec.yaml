@@ -138,9 +138,9 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: assets/images/shwakel_app_icon.png
-    background_color: "#F8FAFC"
+    background_color: "#0F766E"
     theme_color: "#0F766E"
   image_path: assets/images/shwakel_app_icon.png
-  adaptive_icon_background: "#F8FAFC"
+  adaptive_icon_background: "#0F766E"
   adaptive_icon_foreground: assets/images/shwakel_app_icon.png
   remove_alpha_ios: true

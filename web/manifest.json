@@ -4,7 +4,7 @@
     "start_url": "/app/",
     "scope": "/app/",
     "display": "standalone",
-    "background_color": "#F8FAFC",
+    "background_color": "#0F766E",
     "theme_color": "#0F766E",
     "description": "شواكل لإدارة البطاقات والنسخ الاحتياطي.",
     "orientation": "portrait-primary",
