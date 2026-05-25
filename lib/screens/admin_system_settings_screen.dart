@@ -1829,7 +1829,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     Expanded(
                       child: Text(
                         _isLoadingGatewayDashboard
-                            ? 'جار تحديث لوحة المتابعة...'
+                            ? 'جارٍ تحديث لوحة المتابعة...'
                             : 'يمكنك اختبار كل توكن، وإذا فشل سيتم إيقافه تلقائيًا حتى تعيد تفعيله يدويًا.',
                         style: AppTheme.caption.copyWith(
                           color: AppTheme.textSecondary,
@@ -1856,7 +1856,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          ...channels.map(_buildWhatsAppChannelCard),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: channels.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 14),
+            itemBuilder: (context, index) =>
+                _buildWhatsAppChannelCard(channels[index]),
+          ),
           if (channels.isEmpty)
             _card(
               const Text(
@@ -1886,125 +1893,130 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     final lastFailureReason =
         channel['lastFailureReason']?.toString().trim() ?? '';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: _card(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        channel['displayName']?.toString() ?? 'توكن واتساب',
-                        style: AppTheme.bodyBold,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'آخر 8 أحرف: ${channel['tokenLastEight'] ?? '-'}',
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _channelStatusColor(status).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    status,
-                    style: AppTheme.caption.copyWith(
-                      color: _channelStatusColor(status),
-                      fontWeight: FontWeight.w700,
+    return _card(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      channel['displayName']?.toString() ?? 'توكن واتساب',
+                      style: AppTheme.bodyBold,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'آخر 8 أحرف: ${channel['tokenLastEight'] ?? '-'}',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: _channelStatusColor(status).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  status,
+                  style: AppTheme.caption.copyWith(
+                    color: _channelStatusColor(status),
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _buildMiniInfoChip(
-                  'أرقام 24 ساعة',
-                  '${stats['uniqueRecipients24h'] ?? 0}',
-                ),
-                _buildMiniInfoChip(
-                  'إرسال 24 ساعة',
-                  '${stats['sentCount24h'] ?? 0}',
-                ),
-                _buildMiniInfoChip(
-                  'فشل 24 ساعة',
-                  '${stats['failedCount24h'] ?? 0}',
-                ),
-                _buildMiniInfoChip(
-                  'آخر نجاح',
-                  _shortDateTime(channel['lastSuccessAt']?.toString()),
-                ),
-                _buildMiniInfoChip(
-                  'آخر اختبار',
-                  _shortDateTime(channel['lastTestedAt']?.toString()),
-                ),
-              ],
-            ),
-            if (blockedReason.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'سبب الإيقاف: $blockedReason',
-                style: AppTheme.caption.copyWith(color: Colors.red.shade700),
               ),
             ],
-            if (lastFailureReason.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'آخر خطأ: $lastFailureReason',
-                style: AppTheme.caption.copyWith(color: Colors.red.shade700),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildMiniInfoChip(
+                'أرقام 24 ساعة',
+                '${stats['uniqueRecipients24h'] ?? 0}',
+              ),
+              _buildMiniInfoChip(
+                'إرسال 24 ساعة',
+                '${stats['sentCount24h'] ?? 0}',
+              ),
+              _buildMiniInfoChip(
+                'فشل 24 ساعة',
+                '${stats['failedCount24h'] ?? 0}',
+              ),
+              _buildMiniInfoChip(
+                'آخر نجاح',
+                _shortDateTime(channel['lastSuccessAt']?.toString()),
+              ),
+              _buildMiniInfoChip(
+                'آخر اختبار',
+                _shortDateTime(channel['lastTestedAt']?.toString()),
               ),
             ],
-            if (lastTestMessage.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'ملاحظة الاختبار: $lastTestMessage',
-                style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
-              ),
-            ],
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                ShwakelButton(
-                  label: 'اختبار',
-                  icon: Icons.play_arrow_rounded,
-                  onPressed: isBusy
-                      ? null
-                      : () => _testWhatsAppChannel(channelKey),
-                  isLoading: isBusy,
-                ),
-                ShwakelButton(
-                  label: isEnabled ? 'إيقاف يدوي' : 'تفعيل يدوي',
-                  icon: isEnabled
-                      ? Icons.pause_circle_filled_rounded
-                      : Icons.check_circle_rounded,
-                  onPressed: isBusy
-                      ? null
-                      : () => _toggleWhatsAppChannel(channelKey, !isEnabled),
-                ),
-              ],
+          ),
+          if (blockedReason.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'سبب الإيقاف: $blockedReason',
+              style: AppTheme.caption.copyWith(color: Colors.red.shade700),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
-        ),
+          if (lastFailureReason.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'آخر خطأ: $lastFailureReason',
+              style: AppTheme.caption.copyWith(color: Colors.red.shade700),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (lastTestMessage.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'ملاحظة الاختبار: $lastTestMessage',
+              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              ShwakelButton(
+                label: 'اختبار',
+                icon: Icons.play_arrow_rounded,
+                onPressed: isBusy
+                    ? null
+                    : () => _testWhatsAppChannel(channelKey),
+                isLoading: isBusy,
+              ),
+              ShwakelButton(
+                label: isEnabled ? 'إيقاف يدوي' : 'تفعيل يدوي',
+                icon: isEnabled
+                    ? Icons.pause_circle_filled_rounded
+                    : Icons.check_circle_rounded,
+                onPressed: isBusy
+                    ? null
+                    : () => _toggleWhatsAppChannel(channelKey, !isEnabled),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -2190,10 +2202,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     style: AppTheme.bodyAction,
                   )
                 else
-                  ..._topupPaymentMethods.map(
-                    (method) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Container(
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _topupPaymentMethods.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final method = _topupPaymentMethods[index];
+                      return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(18),
@@ -2208,11 +2224,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                                   Text(
                                     method['title']?.toString() ?? '-',
                                     style: AppTheme.bodyBold,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     method['accountNumber']?.toString() ?? '-',
                                     style: AppTheme.bodyAction,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -2228,8 +2248,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
               ],
             ),
@@ -2294,10 +2314,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     style: AppTheme.bodyAction,
                   )
                 else
-                  ..._withdrawalMethods.map(
-                    (method) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Container(
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _withdrawalMethods.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final method = _withdrawalMethods[index];
+                      return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(18),
@@ -2312,11 +2336,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                                   Text(
                                     method['title']?.toString() ?? '-',
                                     style: AppTheme.bodyBold,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     '${method['code']} | ${method['accountLabel']}',
                                     style: AppTheme.bodyAction,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -2332,8 +2360,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
               ],
             ),
@@ -2664,11 +2692,13 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     style: AppTheme.bodyAction,
                   )
                 else
-                  ..._prepaidReportPayments.map(
-                    (payment) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _buildPrepaidReportRow(payment),
-                    ),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _prepaidReportPayments.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) =>
+                        _buildPrepaidReportRow(_prepaidReportPayments[index]),
                   ),
               ],
             ),
@@ -2717,7 +2747,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$buyer ← $merchant', style: AppTheme.bodyBold),
+                Text(
+                  '$buyer ← $merchant',
+                  style: AppTheme.bodyBold,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 4),
                 Text(
                   note.isEmpty ? createdAt : '$note · $createdAt',

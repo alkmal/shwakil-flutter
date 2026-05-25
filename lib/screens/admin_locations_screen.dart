@@ -440,21 +440,20 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                         crossAxisCount: cols,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        mainAxisExtent: 220,
+                        mainAxisExtent: 252,
                       ),
                       itemCount: _locations.length,
                       itemBuilder: (context, index) => AdminLocationCard(
                         location: _locations[index],
-                        isSaving: _busyId == _locations[index]['id']?.toString(),
+                        isSaving:
+                            _busyId == _locations[index]['id']?.toString(),
                         onEdit: () =>
                             _showLocationDialog(location: _locations[index]),
                         onDelete: () => _deleteLocation(_locations[index]),
-                        onApprove:
-                            _locations[index]['status'] == 'pending'
+                        onApprove: _locations[index]['status'] == 'pending'
                             ? () => _approveLocation(_locations[index])
                             : null,
-                        onReject:
-                            _locations[index]['status'] == 'pending'
+                        onReject: _locations[index]['status'] == 'pending'
                             ? () => _rejectLocation(_locations[index])
                             : null,
                         onMap: () {},

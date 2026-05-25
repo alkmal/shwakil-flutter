@@ -80,6 +80,14 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.pushNamed(context, routeName);
   }
 
+  void _openOfflinePrepaidCards() {
+    Navigator.pushNamed(
+      context,
+      '/prepaid-multipay-cards',
+      arguments: const {'offlineOnly': true},
+    );
+  }
+
   Future<void> _loadAuthSettings() async {
     try {
       final results = await Future.wait<dynamic>([
@@ -99,9 +107,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loadOfflinePrepaidCardsState() async {
-    if (!widget.offlineMode) {
-      return;
-    }
     final hasCards = await _prepaidOfflineCache.hasCards();
     if (!mounted) {
       return;
@@ -483,13 +488,13 @@ class _LoginScreenState extends State<LoginScreen> {
           icon: Icons.login_rounded,
           gradient: AppTheme.primaryGradient,
         ),
-        if (widget.offlineMode && _hasOfflinePrepaidCards) ...[
+        if (_hasOfflinePrepaidCards) ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ShwakelButton(
-              label: 'فتح البطاقات المحفوظة',
-              onPressed: () => _openRoute('/prepaid-multipay-cards'),
+              label: 'فتح بطاقات الدفع المحفوظة',
+              onPressed: _openOfflinePrepaidCards,
               icon: Icons.credit_card_rounded,
               isSecondary: true,
             ),

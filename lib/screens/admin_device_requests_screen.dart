@@ -33,7 +33,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true); 
+    setState(() => _isLoading = true);
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
@@ -183,16 +183,21 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
                     ),
                   )
                 else
-                  ..._requests.map(
-                    (request) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: AdminDeviceRequestCard(
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _requests.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final request = _requests[index];
+                      return AdminDeviceRequestCard(
                         request: request,
                         isProcessing: _busyId == request['id']?.toString(),
                         onAction: (approve) => _handle(request, approve),
                         onTap: () {},
-                      ),
-                    ),
+                      );
+                    },
                   ),
               ],
             ),

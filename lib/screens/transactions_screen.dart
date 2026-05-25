@@ -265,44 +265,60 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isCompact = constraints.maxWidth < 860;
-              return ListView(
+              return ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  _buildResultsHeading(isCompact: isCompact),
-                  const SizedBox(height: 12),
-                  if (_isRefreshing)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: LinearProgressIndicator(minHeight: 3),
-                    ),
-                  if (_isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(40),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  else if (_transactions.isEmpty)
-                    _buildEmptyState()
-                  else ...[
-                    ..._transactions.map(
-                      (tx) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildLedgerTransactionCard(tx),
-                      ),
-                    ),
-                    AdminPaginationFooter(
-                      currentPage: _page,
-                      lastPage: _lastPage,
-                      totalItems: _totalTransactions,
-                      itemsPerPage: _perPage,
-                      onPageChanged: (page) {
-                        setState(() => _page = page);
-                        _loadTransactions();
-                      },
-                    ),
-                  ],
-                ],
+                itemCount: _isLoading || _transactions.isEmpty
+                    ? 3
+                    : _transactions.length + 3,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _buildResultsHeading(isCompact: isCompact);
+                  }
+                  if (index == 1) {
+                    if (_isRefreshing) {
+                      return const LinearProgressIndicator(minHeight: 3);
+                    }
+                    return const SizedBox.shrink();
+                  }
+
+                  if (_isLoading) {
+                    if (index == 2) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }
+
+                  if (_transactions.isEmpty) {
+                    if (index == 2) {
+                      return _buildEmptyState();
+                    }
+                    return const SizedBox.shrink();
+                  }
+
+                  final txIndex = index - 2;
+                  if (txIndex < _transactions.length) {
+                    final tx = _transactions[txIndex];
+                    return _buildLedgerTransactionCard(tx);
+                  }
+
+                  return AdminPaginationFooter(
+                    currentPage: _page,
+                    lastPage: _lastPage,
+                    totalItems: _totalTransactions,
+                    itemsPerPage: _perPage,
+                    onPageChanged: (page) {
+                      setState(() => _page = page);
+                      _loadTransactions();
+                    },
+                  );
+                },
               );
             },
           ),
@@ -824,10 +840,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       tx['metadata'] as Map? ?? const {},
     );
     final type = tx['type']?.toString() ?? '';
-    final amount = (tx['amount'] as num?)?.toDouble() ?? 0;
-    final fee = (tx['fee'] as num?)?.toDouble() ?? 0;
-    final previousBalance = (tx['previousBalance'] as num?)?.toDouble() ?? 0;
-    final currentBalance = (tx['balanceAfter'] as num?)?.toDouble() ?? 0;
     final delta = (tx['balanceDelta'] as num?)?.toDouble() ?? 0;
     final accent = _transactionAccentColor(type, delta);
     final isPositive = delta >= 0;
@@ -907,53 +919,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _buildLedgerMiniItem(
-                _t('screens_transactions_screen.063'),
-                CurrencyFormatter.ils(previousBalance),
-              ),
-              _buildLedgerMiniItem(
-                _t('screens_transactions_screen.064'),
-                CurrencyFormatter.ils(amount),
-              ),
-              _buildLedgerMiniItem(
-                _t('screens_transactions_screen.065'),
-                CurrencyFormatter.ils(fee),
-              ),
-              _buildLedgerMiniItem(
-                _t('screens_transactions_screen.066'),
-                CurrencyFormatter.ils(currentBalance),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _t('screens_transactions_screen.067'),
-            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLedgerMiniItem(String label, String value) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 132),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTheme.caption),
-          const SizedBox(height: 4),
-          Text(value, style: AppTheme.bodyBold.copyWith(fontSize: 13)),
         ],
       ),
     );

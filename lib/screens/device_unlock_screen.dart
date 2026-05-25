@@ -17,10 +17,13 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   final TextEditingController _pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
   final AuthService _auth = AuthService();
+  final PrepaidMultipayOfflineCacheService _prepaidOfflineCache =
+      const PrepaidMultipayOfflineCacheService();
 
   String _username = '';
   bool _hasPin = false;
   bool _biometricEnabled = false;
+  bool _hasOfflinePrepaidCards = false;
   bool _isLoading = true;
   bool _isUnlocking = false;
   bool _didAutoPromptBiometric = false;
@@ -46,11 +49,13 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
     final pinRetryAfterSeconds =
         await LocalSecurityService.pinRetryAfterSeconds();
+    final hasOfflinePrepaidCards = await _prepaidOfflineCache.hasCards();
     if (mounted) {
       setState(() {
         _username = trustedUsername;
         _hasPin = hasPin;
         _biometricEnabled = biometricEnabled && canUseBiometrics;
+        _hasOfflinePrepaidCards = hasOfflinePrepaidCards;
         _pinRetryAfterSeconds = pinRetryAfterSeconds;
         _isLoading = false;
       });
@@ -232,6 +237,19 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
                       const ShwakelLogo(size: 80, framed: true),
                       const SizedBox(height: 28),
                       _buildMainCard(),
+                      if (_hasOfflinePrepaidCards) ...[
+                        const SizedBox(height: 12),
+                        ShwakelButton(
+                          label: 'فتح بطاقات الدفع المحفوظة',
+                          icon: Icons.credit_card_rounded,
+                          isSecondary: true,
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            '/prepaid-multipay-cards',
+                            arguments: const {'offlineOnly': true},
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       TextButton(
                         onPressed: _loginAnotherAccount,

@@ -495,7 +495,15 @@ class _AdminVerificationRequestsScreenState
                   ),
                 )
               else
-                ..._requests.map(_buildRequestCard),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _requests.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
+                  itemBuilder: (context, index) =>
+                      _buildRequestCard(_requests[index]),
+                ),
             ],
           ),
         ),
@@ -515,87 +523,84 @@ class _AdminVerificationRequestsScreenState
         request['requestedRoleLabel']?.toString() ??
         _t('screens_admin_verification_requests_screen.034');
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: ShwakelCard(
-        onTap: () => _openDetails(request),
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: AppTheme.warning.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(
-                    Icons.assignment_ind_rounded,
-                    color: AppTheme.warning,
-                  ),
+    return ShwakelCard(
+      onTap: () => _openDetails(request),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(displayName, style: AppTheme.bodyBold),
-                      const SizedBox(height: 4),
-                      Text(
-                        '@${user['username']?.toString() ?? '-'}',
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
+                child: const Icon(
+                  Icons.assignment_ind_rounded,
+                  color: AppTheme.warning,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(displayName, style: AppTheme.bodyBold),
+                    const SizedBox(height: 4),
+                    Text(
+                      '@${user['username']?.toString() ?? '-'}',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
                       ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.warning.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    requestedRole,
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.warning,
-                      fontWeight: FontWeight.w800,
                     ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  requestedRole,
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.warning,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (phone != null && phone.isNotEmpty)
-                  _infoChip(Icons.phone_rounded, phone),
-                _infoChip(
-                  Icons.badge_rounded,
-                  request['nationalId']?.toString() ?? '-',
-                ),
-                _infoChip(
-                  Icons.calendar_today_rounded,
-                  request['birthDate']?.toString() ?? '-',
-                ),
-                _infoChip(
-                  Icons.schedule_rounded,
-                  request['createdAt']?.toString() ?? '-',
-                ),
-                _infoChip(Icons.touch_app_rounded, 'اضغط لعرض التفاصيل'),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (phone != null && phone.isNotEmpty)
+                _infoChip(Icons.phone_rounded, phone),
+              _infoChip(
+                Icons.badge_rounded,
+                request['nationalId']?.toString() ?? '-',
+              ),
+              _infoChip(
+                Icons.calendar_today_rounded,
+                request['birthDate']?.toString() ?? '-',
+              ),
+              _infoChip(
+                Icons.schedule_rounded,
+                request['createdAt']?.toString() ?? '-',
+              ),
+              _infoChip(Icons.touch_app_rounded, 'اضغط لعرض التفاصيل'),
+            ],
+          ),
+        ],
       ),
     );
   }

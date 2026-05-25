@@ -64,9 +64,19 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_displayName(), style: AppTheme.bodyBold),
+                      Text(
+                        _displayName(),
+                        style: AppTheme.bodyBold,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 2),
-                      Text('$method - $details', style: AppTheme.caption),
+                      Text(
+                        '$method - $details',
+                        style: AppTheme.caption,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -83,6 +93,8 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
                 child: Text(
                   _currency(amount),
                   style: AppTheme.h3.copyWith(color: AppTheme.secondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -101,6 +113,8 @@ class AdminWithdrawalRequestCard extends StatelessWidget {
                 params: {'date': createdAt},
               ),
               style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(height: 16),

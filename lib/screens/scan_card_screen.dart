@@ -1313,7 +1313,38 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return null;
     }
 
-    final amountController = TextEditingController();
+    if (!payload.hasExpiry) {
+      const message =
+          'بيانات انتهاء البطاقة غير موجودة في طلب الدفع. اطلب من صاحب البطاقة توليد طلب دفع جديد من شاشة البطاقة.';
+      if (showErrorAlert) {
+        await AppAlertService.showError(
+          context,
+          title: _t('screens_scan_card_screen.214'),
+          message: message,
+        );
+      }
+      return BarcodeScannerDialogResult.error(
+        headline: _t('screens_scan_card_screen.214'),
+        message: message,
+      );
+    }
+
+    if (payload.paymentAmount <= 0) {
+      const message =
+          'المبلغ غير موجود في طلب الدفع. اطلب من صاحب البطاقة تحديد المبلغ ثم عرض رمز الدفع من جديد.';
+      if (showErrorAlert) {
+        await AppAlertService.showError(
+          context,
+          title: _t('screens_scan_card_screen.212'),
+          message: message,
+        );
+      }
+      return BarcodeScannerDialogResult.error(
+        headline: _t('screens_scan_card_screen.212'),
+        message: message,
+      );
+    }
+
     final codeController = TextEditingController();
     final monthController = TextEditingController(
       text: payload.expiryMonth?.toString().padLeft(2, '0') ?? '',
@@ -1336,52 +1367,31 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               children: [
                 _buildPrepaidPaymentDialogCard(payload),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withValues(alpha: 0.08),
+                    borderRadius: AppTheme.radiusMd,
+                    border: Border.all(
+                      color: AppTheme.success.withValues(alpha: 0.18),
+                    ),
                   ),
-                  decoration: InputDecoration(
-                    labelText: _t('screens_scan_card_screen.206'),
-                    hintText: _t('screens_scan_card_screen.200'),
-                    prefixIcon: const Icon(Icons.payments_rounded),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (!payload.hasExpiry) ...[
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: monthController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 2,
-                          decoration: InputDecoration(
-                            labelText: _t('screens_scan_card_screen.207'),
-                            counterText: '',
-                            prefixIcon: const Icon(
-                              Icons.calendar_month_rounded,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: yearController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 2,
-                          decoration: InputDecoration(
-                            labelText: _t('screens_scan_card_screen.208'),
-                            counterText: '',
-                            prefixIcon: const Icon(Icons.event_rounded),
-                          ),
-                        ),
+                      Text('المبلغ المطلوب دفعه', style: AppTheme.caption),
+                      const SizedBox(height: 4),
+                      Text(
+                        payload.paymentAmount > 0
+                            ? CurrencyFormatter.ils(payload.paymentAmount)
+                            : 'غير محدد',
+                        style: AppTheme.h3.copyWith(color: AppTheme.success),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                ],
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: codeController,
                   keyboardType: TextInputType.number,
@@ -1412,7 +1422,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             FilledButton.icon(
               onPressed: () => Navigator.of(dialogContext).pop(
                 _PrepaidPaymentSubmission(
-                  amount: double.tryParse(amountController.text.trim()) ?? 0,
+                  amount: payload.paymentAmount,
                   code: codeController.text.trim(),
                   expiryMonth: monthController.text.trim(),
                   expiryYear: yearController.text.trim(),
@@ -1429,8 +1439,17 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         return null;
       }
 
-      if (submission.amount <= 0 ||
-          !RegExp(r'^\d{3}$').hasMatch(submission.code)) {
+      if (submission.amount <= 0) {
+        await AppAlertService.showError(
+          context,
+          title: _t('screens_scan_card_screen.212'),
+          message:
+              'المبلغ غير موجود في طلب الدفع. اطلب من صاحب البطاقة توليد طلب دفع جديد بالمبلغ المطلوب.',
+        );
+        return null;
+      }
+
+      if (!RegExp(r'^\d{3}$').hasMatch(submission.code)) {
         await AppAlertService.showError(
           context,
           title: _t('screens_scan_card_screen.212'),
@@ -1509,7 +1528,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         message: message,
       );
     } finally {
-      amountController.dispose();
       codeController.dispose();
       monthController.dispose();
       yearController.dispose();
@@ -1530,7 +1548,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           children: [
             _resultBadge(
               'الخطوة التالية',
-              'إضافة القيمة',
+              payload.paymentAmount > 0
+                  ? CurrencyFormatter.ils(payload.paymentAmount)
+                  : 'طلب دفع جديد',
               AppTheme.primary,
               icon: Icons.payments_rounded,
             ),
@@ -1615,9 +1635,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             children: [
               Expanded(
                 child: _prepaidMiniLabel(
-                  'طريقة الاعتماد',
-                  'فحص موحد',
-                  Icons.qr_code_scanner_rounded,
+                  'المبلغ',
+                  payload.paymentAmount > 0
+                      ? CurrencyFormatter.ils(payload.paymentAmount)
+                      : 'غير محدد',
+                  Icons.payments_rounded,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1721,7 +1743,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     isFullWidth: true,
                   ),
                   _resultBadge(
-                    'المبلغ المضاف',
+                    'المبلغ المدفوع',
                     CurrencyFormatter.ils(amount),
                     AppTheme.success,
                     icon: Icons.payments_rounded,
@@ -3168,7 +3190,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                       const SizedBox(height: 12),
                       ShwakelButton(
                         label: _isReadingNfc
-                            ? 'جاري قراءة الدفع'
+                            ? 'جارٍ قراءة الدفع'
                             : 'قبول دفع بدون تلامس',
                         icon: Icons.contactless_rounded,
                         isSecondary: true,
@@ -3210,7 +3232,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     Expanded(
                       child: ShwakelButton(
                         label: _isReadingNfc
-                            ? 'جاري قراءة الدفع'
+                            ? 'جارٍ قراءة الدفع'
                             : 'قبول دفع بدون تلامس',
                         icon: Icons.contactless_rounded,
                         isSecondary: true,
@@ -3275,7 +3297,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final statusLabel = _isOfflineUseBlocked
         ? 'يحتاج تحديث'
         : _isSyncingOfflineCards
-        ? 'جاري التحديث'
+        ? 'جارٍ التحديث'
         : _availableOfflineCardCount == 0
         ? 'غير محدث'
         : 'جاهز';
@@ -4728,6 +4750,7 @@ class _PrepaidMultipayScanPayload {
     required this.cardNumber,
     required this.expiryMonth,
     required this.expiryYear,
+    required this.paymentAmount,
     required this.label,
   });
 
@@ -4754,6 +4777,12 @@ class _PrepaidMultipayScanPayload {
       cardNumber: cardNumber,
       expiryMonth: expiryMonth,
       expiryYear: expiryYear,
+      paymentAmount: _firstDouble(map, const [
+        'paymentAmount',
+        'payment_amount',
+        'amount',
+        'value',
+      ]),
       label: _firstString(map, const ['label', 'name', 'title']),
     );
   }
@@ -4782,9 +4811,24 @@ class _PrepaidMultipayScanPayload {
     return null;
   }
 
+  static double _firstDouble(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value is num) {
+        return value.toDouble();
+      }
+      final parsed = double.tryParse(value?.toString().trim() ?? '');
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+    return 0;
+  }
+
   final String cardNumber;
   final int? expiryMonth;
   final int? expiryYear;
+  final double paymentAmount;
   final String? label;
 
   bool get hasExpiry => expiryMonth != null && expiryYear != null;

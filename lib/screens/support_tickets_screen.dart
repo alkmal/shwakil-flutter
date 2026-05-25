@@ -580,32 +580,15 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             style: AppTheme.h3,
           ),
           const SizedBox(height: 10),
-          ..._phoneTickets.map(
-            (ticket) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: ShwakelCard(
-                onTap: () => _openPhoneTicket(ticket),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.mark_chat_unread_outlined,
-                      color: AppTheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        ticket['title']?.toString() ?? '',
-                        style: AppTheme.bodyBold,
-                      ),
-                    ),
-                    Text(
-                      ticket['status']?.toString() ?? '',
-                      style: AppTheme.caption,
-                    ),
-                  ],
-                ),
-              ),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _phoneTickets.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemBuilder: (context, index) => _ticketSummaryTile(
+              _phoneTickets[index],
+              icon: Icons.mark_chat_unread_outlined,
+              onTap: () => _openPhoneTicket(_phoneTickets[index]),
             ),
           ),
         ],
@@ -616,36 +599,53 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             style: AppTheme.h3,
           ),
           const SizedBox(height: 10),
-          ..._myTickets.map(
-            (ticket) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: ShwakelCard(
-                onTap: () => _openOwnedTicket(ticket['id'].toString()),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      color: AppTheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        ticket['title']?.toString() ?? '',
-                        style: AppTheme.bodyBold,
-                      ),
-                    ),
-                    Text(
-                      ticket['status']?.toString() ?? '',
-                      style: AppTheme.caption,
-                    ),
-                  ],
-                ),
-              ),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _myTickets.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemBuilder: (context, index) => _ticketSummaryTile(
+              _myTickets[index],
+              icon: Icons.chat_bubble_outline_rounded,
+              onTap: () => _openOwnedTicket(_myTickets[index]['id'].toString()),
             ),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _ticketSummaryTile(
+    Map<String, dynamic> ticket, {
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return ShwakelCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              ticket['title']?.toString().trim().isNotEmpty == true
+                  ? ticket['title'].toString()
+                  : context.loc.text('تذكرة دعم', 'Support ticket'),
+              style: AppTheme.bodyBold,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            ticket['status']?.toString() ?? '',
+            style: AppTheme.caption,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
@@ -802,16 +802,23 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             color: AppTheme.surfaceVariant.withValues(alpha: 0.55),
             shadowLevel: ShwakelShadowLevel.none,
             child: hasTimeline
-                ? ListView(
+                ? ListView.separated(
                     padding: const EdgeInsets.all(12),
-                    children: [
-                      ...statusEvents.map(_statusEventTile),
-                      ...messages.map(_messageBubble),
-                      if (attachments.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        _attachmentsPanel(attachments),
-                      ],
-                    ],
+                    itemCount:
+                        statusEvents.length +
+                        messages.length +
+                        (attachments.isNotEmpty ? 1 : 0),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      if (index < statusEvents.length) {
+                        return _statusEventTile(statusEvents[index]);
+                      }
+                      final messageIndex = index - statusEvents.length;
+                      if (messageIndex < messages.length) {
+                        return _messageBubble(messages[messageIndex]);
+                      }
+                      return _attachmentsPanel(attachments);
+                    },
                   )
                 : Center(
                     child: Text(
@@ -1069,6 +1076,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                                 'Open or download - $size',
                               ),
                         style: AppTheme.caption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

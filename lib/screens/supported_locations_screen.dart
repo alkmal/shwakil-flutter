@@ -402,7 +402,15 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                           style: AppTheme.h3,
                         ),
                         const SizedBox(height: 10),
-                        ..._myLocations.map(_buildMyLocationTile),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _myLocations.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) =>
+                              _buildMyLocationTile(_myLocations[index]),
+                        ),
                         const SizedBox(height: 18),
                       ],
                       if (_viewMode == _SupportedLocationsView.map &&
@@ -427,7 +435,15 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
                       if (_locations.isEmpty)
                         _buildEmptyState()
                       else
-                        ..._locations.map(_buildLocationTile),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _locations.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 16),
+                          itemBuilder: (context, index) =>
+                              _buildLocationTile(_locations[index]),
+                        ),
                     ],
                   ),
                 ),
@@ -440,111 +456,111 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
     final l = context.loc;
     final distance = location['dist'] as double?;
     final linkedUsername = location['linkedUsername']?.toString().trim() ?? '';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: ShwakelCard(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppTheme.primary.withValues(alpha: 0.10),
-                  child: const Icon(
-                    Icons.storefront_rounded,
-                    color: AppTheme.primary,
-                  ),
+    return ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.10),
+                child: const Icon(
+                  Icons.storefront_rounded,
+                  color: AppTheme.primary,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        location['publicDisplayName']?.toString() ??
-                            location['title']?.toString() ??
-                            l.tr('screens_supported_locations_screen.008'),
-                        style: AppTheme.bodyBold,
-                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      location['publicDisplayName']?.toString() ??
+                          location['title']?.toString() ??
+                          l.tr('screens_supported_locations_screen.008'),
+                      style: AppTheme.bodyBold,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      location['type']?.toString() ??
+                          l.tr('screens_supported_locations_screen.009'),
+                      style: AppTheme.caption.copyWith(color: AppTheme.primary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (linkedUsername.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        location['type']?.toString() ??
-                            l.tr('screens_supported_locations_screen.009'),
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.primary,
+                        l.tr(
+                          'screens_supported_locations_screen.034',
+                          params: {'username': linkedUsername},
                         ),
+                        style: AppTheme.caption,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (linkedUsername.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          l.tr(
-                            'screens_supported_locations_screen.034',
-                            params: {'username': linkedUsername},
-                          ),
-                          style: AppTheme.caption,
-                        ),
-                      ],
                     ],
+                  ],
+                ),
+              ),
+              if (distance != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _formatDistance(distance),
+                    style: AppTheme.caption.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                 ),
-                if (distance != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      _formatDistance(distance),
-                      style: AppTheme.caption.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const Divider(height: 30),
-            _info(
-              Icons.location_on_rounded,
-              location['address']?.toString() ?? '-',
-            ),
-            const SizedBox(height: 10),
+            ],
+          ),
+          const Divider(height: 30),
+          _info(
+            Icons.location_on_rounded,
+            location['address']?.toString() ?? '-',
+          ),
+          const SizedBox(height: 10),
+          if ((location['displayPhone']?.toString().trim().isNotEmpty ??
+                  false) ||
+              (location['displayWhatsapp']?.toString().trim().isNotEmpty ??
+                  false)) ...[
+            if (location['displayPhone']?.toString().trim().isNotEmpty ?? false)
+              _info(
+                Icons.phone_rounded,
+                location['displayPhone']?.toString() ?? '-',
+              ),
             if ((location['displayPhone']?.toString().trim().isNotEmpty ??
-                    false) ||
+                    false) &&
                 (location['displayWhatsapp']?.toString().trim().isNotEmpty ??
-                    false)) ...[
-              if (location['displayPhone']?.toString().trim().isNotEmpty ??
-                  false)
-                _info(
-                  Icons.phone_rounded,
-                  location['displayPhone']?.toString() ?? '-',
-                ),
-              if ((location['displayPhone']?.toString().trim().isNotEmpty ??
-                      false) &&
-                  (location['displayWhatsapp']?.toString().trim().isNotEmpty ??
-                      false))
-                const SizedBox(height: 10),
-              if (location['displayWhatsapp']?.toString().trim().isNotEmpty ??
-                  false)
-                _info(
-                  Icons.chat_rounded,
-                  location['displayWhatsapp']?.toString() ?? '-',
-                ),
-            ] else
-              _info(Icons.phone_rounded, location['phone']?.toString() ?? '-'),
-            const SizedBox(height: 20),
-            ShwakelButton(
-              label: l.tr('screens_supported_locations_screen.045'),
-              icon: Icons.directions_rounded,
-              onPressed: () => _showMerchantActions(location),
-              width: double.infinity,
-            ),
-          ],
-        ),
+                    false))
+              const SizedBox(height: 10),
+            if (location['displayWhatsapp']?.toString().trim().isNotEmpty ??
+                false)
+              _info(
+                Icons.chat_rounded,
+                location['displayWhatsapp']?.toString() ?? '-',
+              ),
+          ] else
+            _info(Icons.phone_rounded, location['phone']?.toString() ?? '-'),
+          const SizedBox(height: 20),
+          ShwakelButton(
+            label: l.tr('screens_supported_locations_screen.045'),
+            icon: Icons.directions_rounded,
+            onPressed: () => _showMerchantActions(location),
+            width: double.infinity,
+          ),
+        ],
       ),
     );
   }
@@ -563,103 +579,102 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
       _ => l.tr('screens_supported_locations_screen.037'),
     };
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: ShwakelCard(
-        padding: const EdgeInsets.all(18),
-        borderRadius: BorderRadius.circular(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    location['title']?.toString() ?? '-',
-                    style: AppTheme.bodyBold,
-                  ),
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  location['title']?.toString() ?? '-',
+                  style: AppTheme.bodyBold,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    statusLabel,
-                    style: AppTheme.caption.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              location['address']?.toString() ?? '-',
-              style: AppTheme.caption,
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _myLocationChip(
-                  Icons.visibility_rounded,
-                  (location['isActive'] == true)
-                      ? context.loc.tr('screens_supported_locations_screen.049')
-                      : context.loc.tr(
-                          'screens_supported_locations_screen.050',
-                        ),
-                ),
-                if (location['displayName']?.toString().trim().isNotEmpty ??
-                    false)
-                  _myLocationChip(
-                    Icons.storefront_rounded,
-                    location['displayName']?.toString() ?? '-',
-                  ),
-                if (location['displayPhone']?.toString().trim().isNotEmpty ??
-                    false)
-                  _myLocationChip(
-                    Icons.phone_rounded,
-                    location['displayPhone']?.toString() ?? '-',
-                  ),
-                if (location['displayWhatsapp']?.toString().trim().isNotEmpty ??
-                    false)
-                  _myLocationChip(
-                    Icons.chat_rounded,
-                    location['displayWhatsapp']?.toString() ?? '-',
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ShwakelButton(
-                label: context.loc.tr('screens_supported_locations_screen.051'),
-                icon: Icons.edit_location_alt_rounded,
-                isSecondary: true,
-                onPressed: () => _showEditMyLocationDialog(location),
               ),
-            ),
-            if (status == 'rejected' &&
-                (location['rejectionReason']?.toString().trim().isNotEmpty ??
-                    false)) ...[
-              const SizedBox(height: 8),
-              Text(
-                l.tr(
-                  'screens_supported_locations_screen.038',
-                  params: {'reason': location['rejectionReason'].toString()},
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-                style: AppTheme.caption.copyWith(color: AppTheme.error),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: AppTheme.caption.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            location['address']?.toString() ?? '-',
+            style: AppTheme.caption,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _myLocationChip(
+                Icons.visibility_rounded,
+                (location['isActive'] == true)
+                    ? context.loc.tr('screens_supported_locations_screen.049')
+                    : context.loc.tr('screens_supported_locations_screen.050'),
+              ),
+              if (location['displayName']?.toString().trim().isNotEmpty ??
+                  false)
+                _myLocationChip(
+                  Icons.storefront_rounded,
+                  location['displayName']?.toString() ?? '-',
+                ),
+              if (location['displayPhone']?.toString().trim().isNotEmpty ??
+                  false)
+                _myLocationChip(
+                  Icons.phone_rounded,
+                  location['displayPhone']?.toString() ?? '-',
+                ),
+              if (location['displayWhatsapp']?.toString().trim().isNotEmpty ??
+                  false)
+                _myLocationChip(
+                  Icons.chat_rounded,
+                  location['displayWhatsapp']?.toString() ?? '-',
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ShwakelButton(
+              label: context.loc.tr('screens_supported_locations_screen.051'),
+              icon: Icons.edit_location_alt_rounded,
+              isSecondary: true,
+              onPressed: () => _showEditMyLocationDialog(location),
+            ),
+          ),
+          if (status == 'rejected' &&
+              (location['rejectionReason']?.toString().trim().isNotEmpty ??
+                  false)) ...[
+            const SizedBox(height: 8),
+            Text(
+              l.tr(
+                'screens_supported_locations_screen.038',
+                params: {'reason': location['rejectionReason'].toString()},
+              ),
+              style: AppTheme.caption.copyWith(color: AppTheme.error),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

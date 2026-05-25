@@ -267,7 +267,15 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                   if (recentReferrals.isEmpty)
                     _buildEmptyCard(l.tr('screens_affiliate_center_screen.008'))
                   else
-                    ...recentReferrals.map(_buildReferralCard),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: recentReferrals.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) =>
+                          _buildReferralCard(recentReferrals[index]),
+                    ),
                   const SizedBox(height: 20),
                   _buildSectionTitle(
                     l.tr('screens_affiliate_center_screen.009'),
@@ -277,7 +285,15 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
                   if (recentCommissions.isEmpty)
                     _buildEmptyCard(l.tr('screens_affiliate_center_screen.011'))
                   else
-                    ...recentCommissions.map(_buildCommissionCard),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: recentCommissions.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) =>
+                          _buildCommissionCard(recentCommissions[index]),
+                    ),
                 ],
               ),
             ),
@@ -555,7 +571,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: compact ? 0.96 : 1.12,
+          mainAxisExtent: compact ? 156 : 150,
           children: cards,
         );
       },

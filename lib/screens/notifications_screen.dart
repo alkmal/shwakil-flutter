@@ -245,29 +245,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildNotificationsList() {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        if (_isLoading)
-          const Padding(
+    if (_isLoading) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          Padding(
             padding: EdgeInsets.all(48),
             child: Center(child: CircularProgressIndicator()),
-          )
-        else if (_loadErrorMessage != null && _notifications.isEmpty)
-          _buildLoadErrorState(_loadErrorMessage!, _loadErrorDetails)
-        else if (_notifications.isEmpty)
-          _buildEmptyState()
-        else ...[
-          ..._notifications.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _NotificationCard(
-                item: item,
-                onTap: () => _openNotification(item),
-              ),
-            ),
           ),
-          AdminPaginationFooter(
+        ],
+      );
+    }
+
+    if (_loadErrorMessage != null && _notifications.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [_buildLoadErrorState(_loadErrorMessage!, _loadErrorDetails)],
+      );
+    }
+
+    if (_notifications.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [_buildEmptyState()],
+      );
+    }
+
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: _notifications.length + 1,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        if (index == _notifications.length) {
+          return AdminPaginationFooter(
             currentPage: _page,
             lastPage: _lastPage,
             totalItems: _total,
@@ -276,9 +286,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               setState(() => _page = page);
               _loadNotifications();
             },
-          ),
-        ],
-      ],
+          );
+        }
+        final item = _notifications[index];
+        return _NotificationCard(
+          item: item,
+          onTap: () => _openNotification(item),
+        );
+      },
     );
   }
 
@@ -297,11 +312,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           children: [
             Text(_t('screens_notifications_screen.034'), style: AppTheme.h2),
             const SizedBox(height: 12),
-            ...stats.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildStatCard(item),
-              ),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: stats.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _buildStatCard(stats[index]),
             ),
           ],
         ),
@@ -795,6 +811,8 @@ class _NotificationCard extends StatelessWidget {
           else
             Text(
               item['body']?.toString() ?? '',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AppTheme.bodyAction.copyWith(height: 1.5),
             ),
           const SizedBox(height: 12),

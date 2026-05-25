@@ -872,7 +872,14 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             style: AppTheme.bodyBold.copyWith(color: accent),
           ),
           const SizedBox(height: 10),
-          ...requirements.map(_buildRequirementRow),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: requirements.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) =>
+                _buildRequirementRow(requirements[index]),
+          ),
         ],
       ),
     );
@@ -886,61 +893,61 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         ? AppTheme.error.withValues(alpha: 0.08)
         : AppTheme.surfaceVariant;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: item.completed
-                ? AppTheme.success.withValues(alpha: 0.18)
-                : item.highlighted
-                ? AppTheme.error.withValues(alpha: 0.20)
-                : AppTheme.border,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: item.completed
+              ? AppTheme.success.withValues(alpha: 0.18)
+              : item.highlighted
+              ? AppTheme.error.withValues(alpha: 0.20)
+              : AppTheme.border,
         ),
-        child: Row(
-          children: [
-            Icon(
-              item.completed ? Icons.check_circle_rounded : item.icon,
-              color: item.completed
-                  ? AppTheme.success
-                  : item.highlighted
-                  ? AppTheme.error
-                  : color,
-              size: 18,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                item.label,
-                style: AppTheme.bodyAction.copyWith(
-                  color: item.completed
-                      ? AppTheme.success
-                      : item.highlighted
-                      ? AppTheme.error
-                      : AppTheme.textPrimary,
-                  fontWeight: item.highlighted ? FontWeight.w700 : null,
-                ),
-              ),
-            ),
-            Text(
-              item.completed
-                  ? context.loc.tr('screens_account_verification_screen.129')
-                  : context.loc.tr('screens_account_verification_screen.130'),
-              style: AppTheme.caption.copyWith(
+      ),
+      child: Row(
+        children: [
+          Icon(
+            item.completed ? Icons.check_circle_rounded : item.icon,
+            color: item.completed
+                ? AppTheme.success
+                : item.highlighted
+                ? AppTheme.error
+                : color,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              item.label,
+              style: AppTheme.bodyAction.copyWith(
                 color: item.completed
                     ? AppTheme.success
                     : item.highlighted
                     ? AppTheme.error
-                    : AppTheme.textSecondary,
+                    : AppTheme.textPrimary,
+                fontWeight: item.highlighted ? FontWeight.w700 : null,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            item.completed
+                ? context.loc.tr('screens_account_verification_screen.129')
+                : context.loc.tr('screens_account_verification_screen.130'),
+            style: AppTheme.caption.copyWith(
+              color: item.completed
+                  ? AppTheme.success
+                  : item.highlighted
+                  ? AppTheme.error
+                  : AppTheme.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

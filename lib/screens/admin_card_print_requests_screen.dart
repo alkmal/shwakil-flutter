@@ -499,23 +499,28 @@ class _AdminCardPrintRequestsScreenState
         onRefresh: _load,
         child: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: ListView(
+          child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              if (_isRefreshing)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: LinearProgressIndicator(minHeight: 3),
-                ),
-              if (_isLoading)
-                const Center(
+            itemCount: _isLoading || _requests.isEmpty
+                ? 2
+                : _requests.length + 2,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return _isRefreshing
+                    ? const LinearProgressIndicator(minHeight: 3)
+                    : const SizedBox.shrink();
+              }
+              if (_isLoading) {
+                return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(40),
                     child: CircularProgressIndicator(),
                   ),
-                )
-              else if (_requests.isEmpty)
-                ShwakelCard(
+                );
+              }
+              if (_requests.isEmpty) {
+                return ShwakelCard(
                   padding: const EdgeInsets.all(28),
                   child: Center(
                     child: Text(
@@ -525,20 +530,21 @@ class _AdminCardPrintRequestsScreenState
                       style: AppTheme.bodyAction,
                     ),
                   ),
-                )
-              else ...[
-                ..._requests.map(_buildRequestCard),
-                const SizedBox(height: 24),
-                AdminPaginationFooter(
-                  currentPage: _page,
-                  lastPage: _lastPage,
-                  onPageChanged: (page) {
-                    setState(() => _page = page);
-                    _load();
-                  },
-                ),
-              ],
-            ],
+                );
+              }
+              final requestIndex = index - 1;
+              if (requestIndex < _requests.length) {
+                return _buildRequestCard(_requests[requestIndex]);
+              }
+              return AdminPaginationFooter(
+                currentPage: _page,
+                lastPage: _lastPage,
+                onPageChanged: (page) {
+                  setState(() => _page = page);
+                  _load();
+                },
+              );
+            },
           ),
         ),
       ),

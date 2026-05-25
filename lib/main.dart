@@ -102,6 +102,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
     return PrepaidMultipayCardsScreen(
       openPaymentsTab: options['openPaymentsTab'] == true,
       autoAcceptNfc: options['autoAcceptNfc'] == true,
+      offlineOnly: options['offlineOnly'] == true,
     );
   },
   '/prepaid-multipay-contactless-accept': (context) => ScanCardScreen(
@@ -209,6 +210,7 @@ bool _isPublicRoute(String? routeName) {
       routeName == '/register' ||
       routeName == '/support-tickets' ||
       routeName == '/forgot-password' ||
+      routeName == '/prepaid-multipay-cards' ||
       routeName == '/unlock';
 }
 

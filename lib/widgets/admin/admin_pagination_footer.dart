@@ -74,8 +74,27 @@ class AdminPaginationFooter extends StatelessWidget {
               child: Text(
                 '$currentPage / $lastPage',
                 style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             );
+
+            if (constraints.maxWidth < 360) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  pageBadge,
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: previousButton),
+                      const SizedBox(width: 10),
+                      Expanded(child: nextButton),
+                    ],
+                  ),
+                ],
+              );
+            }
 
             return Row(
               mainAxisAlignment: MainAxisAlignment.center,

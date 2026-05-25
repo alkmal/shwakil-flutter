@@ -834,15 +834,12 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       builder: (context, constraints) {
         final useGrid = constraints.maxWidth >= 760;
         if (!useGrid) {
-          return Column(
-            children: _customers
-                .map(
-                  (customer) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _customerCard(customer),
-                  ),
-                )
-                .toList(),
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _customers.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, index) => _customerCard(_customers[index]),
           );
         }
 

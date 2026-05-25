@@ -359,7 +359,7 @@ class _AdminCardScanReportsScreenState
                         ? null
                         : _exportAttendance,
                     icon: const Icon(Icons.download_rounded),
-                    label: Text(_exporting ? 'جاري التصدير' : 'تصدير CSV'),
+                    label: Text(_exporting ? 'جارٍ التصدير' : 'تصدير CSV'),
                   ),
                 if (_attendanceMode)
                   OutlinedButton.icon(
@@ -603,65 +603,72 @@ class _AdminCardScanReportsScreenState
         children: [
           Text('ملخص يومي مختصر', style: AppTheme.bodyBold),
           const SizedBox(height: 10),
-          ...daily.map((item) {
-            final complete = item['status'] == 'complete';
-            final workedMinutes = (item['workedMinutes'] as num?)?.toInt();
-            final duration = workedMinutes == null
-                ? 'غير مكتمل'
-                : '${workedMinutes ~/ 60}س ${workedMinutes % 60}د';
-            final employee = item['employeeName']?.toString().trim() ?? '';
-            final code = item['employeeCode']?.toString().trim() ?? '';
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: daily.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) =>
+                _buildAttendanceDailySummaryRow(daily[index]),
+          ),
+        ],
+      ),
+    );
+  }
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: (complete ? AppTheme.success : AppTheme.warning)
-                        .withValues(alpha: 0.12),
-                  ),
-                ),
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _metricChip(
-                      label: 'اليوم',
-                      value: item['date']?.toString() ?? '',
-                      color: AppTheme.primary,
-                    ),
-                    _metricChip(
-                      label: 'الموظف',
-                      value: [
-                        if (employee.isNotEmpty) employee,
-                        if (code.isNotEmpty) code,
-                      ].join(' - '),
-                      color: AppTheme.info,
-                    ),
-                    _metricChip(
-                      label: 'الحضور',
-                      value: item['firstCheckInAt']?.toString() ?? '-',
-                      color: AppTheme.success,
-                    ),
-                    _metricChip(
-                      label: 'الانصراف',
-                      value: item['lastCheckOutAt']?.toString() ?? '-',
-                      color: AppTheme.accent,
-                    ),
-                    _metricChip(
-                      label: 'المدة',
-                      value: duration,
-                      color: complete ? AppTheme.success : AppTheme.warning,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
+  Widget _buildAttendanceDailySummaryRow(Map<String, dynamic> item) {
+    final complete = item['status'] == 'complete';
+    final workedMinutes = (item['workedMinutes'] as num?)?.toInt();
+    final duration = workedMinutes == null
+        ? 'غير مكتمل'
+        : '${workedMinutes ~/ 60}س ${workedMinutes % 60}د';
+    final employee = item['employeeName']?.toString().trim() ?? '';
+    final code = item['employeeCode']?.toString().trim() ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: (complete ? AppTheme.success : AppTheme.warning).withValues(
+            alpha: 0.12,
+          ),
+        ),
+      ),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          _metricChip(
+            label: 'اليوم',
+            value: item['date']?.toString() ?? '',
+            color: AppTheme.primary,
+          ),
+          _metricChip(
+            label: 'الموظف',
+            value: [
+              if (employee.isNotEmpty) employee,
+              if (code.isNotEmpty) code,
+            ].join(' - '),
+            color: AppTheme.info,
+          ),
+          _metricChip(
+            label: 'الحضور',
+            value: item['firstCheckInAt']?.toString() ?? '-',
+            color: AppTheme.success,
+          ),
+          _metricChip(
+            label: 'الانصراف',
+            value: item['lastCheckOutAt']?.toString() ?? '-',
+            color: AppTheme.accent,
+          ),
+          _metricChip(
+            label: 'المدة',
+            value: duration,
+            color: complete ? AppTheme.success : AppTheme.warning,
+          ),
         ],
       ),
     );

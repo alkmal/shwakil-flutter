@@ -298,13 +298,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
             onRefresh: _load,
             child: ResponsiveScaffoldContainer(
               padding: const EdgeInsets.all(AppTheme.spacingLg),
-              child: ListView(
+              child: ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  if (_isOfflineData)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: ShwakelCard(
+                itemCount: _inventoryListItemCount,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final item = _inventoryListItemAt(index);
+                  switch (item.kind) {
+                    case _InventoryListItemKind.offlineBanner:
+                      return ShwakelCard(
                         padding: const EdgeInsets.all(16),
                         color: AppTheme.warning.withValues(alpha: 0.08),
                         borderColor: AppTheme.warning.withValues(alpha: 0.15),
@@ -312,19 +315,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           'بطاقات محفوظة محليًا.',
                           style: AppTheme.bodyAction.copyWith(fontSize: 14),
                         ),
-                      ),
-                    ),
-                  if (_canMonitorOfflineWorkflow &&
-                      _offlineOverview != null &&
-                      !_canUseAdminInventory)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildOfflineFollowupCard(),
-                    ),
-                  if (_canUseAdminInventory)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Align(
+                      );
+                    case _InventoryListItemKind.offlineFollowup:
+                      return _buildOfflineFollowupCard();
+                    case _InventoryListItemKind.adminActions:
+                      return Align(
                         alignment: Alignment.centerRight,
                         child: Wrap(
                           spacing: 10,
@@ -345,14 +340,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               ),
                           ],
                         ),
-                      ),
-                    ),
-                  if (!_canUseAdminInventory &&
-                      _canPrintCards &&
-                      _printableCards(_cards).isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Align(
+                      );
+                    case _InventoryListItemKind.userPrintAction:
+                      return Align(
                         alignment: Alignment.centerRight,
                         child: ShwakelButton(
                           label: 'طباعة البطاقات الظاهرة',
@@ -360,31 +350,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           isSecondary: true,
                           onPressed: _reprintFilteredCards,
                         ),
-                      ),
-                    ),
-                  if (_cards.isEmpty)
-                    _buildEmptyState()
-                  else ...[
-                    ..._cards.map(
-                      (card) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildCardTile(card),
-                      ),
-                    ),
-                    AdminPaginationFooter(
-                      currentPage: _page,
-                      lastPage: _lastPage,
-                      totalItems: _filteredTotalCards,
-                      itemsPerPage: _canUseAdminInventory
-                          ? _adminPerPage
-                          : _perPage,
-                      onPageChanged: (page) {
-                        setState(() => _page = page);
-                        _load();
-                      },
-                    ),
-                  ],
-                ],
+                      );
+                    case _InventoryListItemKind.empty:
+                      return _buildEmptyState();
+                    case _InventoryListItemKind.card:
+                      return _buildCardTile(_cards[item.cardIndex]);
+                    case _InventoryListItemKind.pagination:
+                      return AdminPaginationFooter(
+                        currentPage: _page,
+                        lastPage: _lastPage,
+                        totalItems: _filteredTotalCards,
+                        itemsPerPage: _canUseAdminInventory
+                            ? _adminPerPage
+                            : _perPage,
+                        onPageChanged: (page) {
+                          setState(() => _page = page);
+                          _load();
+                        },
+                      );
+                  }
+                },
               ),
             ),
           ),
@@ -392,6 +377,46 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ],
       ),
     );
+  }
+
+  int get _inventoryListItemCount => _inventoryListItems.length;
+
+  _InventoryListItem _inventoryListItemAt(int index) =>
+      _inventoryListItems[index];
+
+  List<_InventoryListItem> get _inventoryListItems {
+    final items = <_InventoryListItem>[];
+    if (_isOfflineData) {
+      items.add(const _InventoryListItem(_InventoryListItemKind.offlineBanner));
+    }
+    if (_canMonitorOfflineWorkflow &&
+        _offlineOverview != null &&
+        !_canUseAdminInventory) {
+      items.add(
+        const _InventoryListItem(_InventoryListItemKind.offlineFollowup),
+      );
+    }
+    if (_canUseAdminInventory) {
+      items.add(const _InventoryListItem(_InventoryListItemKind.adminActions));
+    }
+    if (!_canUseAdminInventory &&
+        _canPrintCards &&
+        _printableCards(_cards).isNotEmpty) {
+      items.add(
+        const _InventoryListItem(_InventoryListItemKind.userPrintAction),
+      );
+    }
+    if (_cards.isEmpty) {
+      items.add(const _InventoryListItem(_InventoryListItemKind.empty));
+    } else {
+      for (var index = 0; index < _cards.length; index++) {
+        items.add(
+          _InventoryListItem(_InventoryListItemKind.card, cardIndex: index),
+        );
+      }
+      items.add(const _InventoryListItem(_InventoryListItemKind.pagination));
+    }
+    return items;
   }
 
   Widget _buildBusyOverlay() {
@@ -2112,4 +2137,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
     return double.tryParse(normalized);
   }
+}
+
+class _InventoryListItem {
+  const _InventoryListItem(this.kind, {this.cardIndex = -1});
+
+  final _InventoryListItemKind kind;
+  final int cardIndex;
+}
+
+enum _InventoryListItemKind {
+  offlineBanner,
+  offlineFollowup,
+  adminActions,
+  userPrintAction,
+  empty,
+  card,
+  pagination,
 }

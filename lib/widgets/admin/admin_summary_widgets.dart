@@ -76,11 +76,15 @@ class AdminSummaryCard extends StatelessWidget {
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 6),
             Text(
               value,
               style: AppTheme.h2.copyWith(color: themeColor, letterSpacing: 0),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

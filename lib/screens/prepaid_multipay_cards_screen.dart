@@ -23,10 +23,12 @@ class PrepaidMultipayCardsScreen extends StatefulWidget {
     super.key,
     this.openPaymentsTab = false,
     this.autoAcceptNfc = false,
+    this.offlineOnly = false,
   });
 
   final bool openPaymentsTab;
   final bool autoAcceptNfc;
+  final bool offlineOnly;
 
   @override
   State<PrepaidMultipayCardsScreen> createState() =>
@@ -89,6 +91,20 @@ class _PrepaidMultipayCardsScreenState
 
   Future<void> _load() async {
     try {
+      if (widget.offlineOnly) {
+        if (await _loadOfflinePrepaidCards()) {
+          return;
+        }
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
+
       final currentUser =
           AuthService.peekCurrentUser() ?? await AuthService().currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
@@ -745,13 +761,17 @@ class _PrepaidMultipayCardsScreenState
     }
   }
 
-  String _prepaidCardBarcodePayload(Map<String, dynamic> card) {
+  String _prepaidCardBarcodePayload(
+    Map<String, dynamic> card, {
+    double paymentAmount = 0,
+  }) {
     final rawNumber = _resolvedRawCardNumber(card);
     return jsonEncode({
       'type': 'prepaid_multipay_card',
       'cardNumber': rawNumber,
       'expiryMonth': (card['expiryMonth'] as num?)?.toInt(),
       'expiryYear': (card['expiryYear'] as num?)?.toInt(),
+      'amount': double.parse(paymentAmount.toStringAsFixed(2)),
       'label': card['label']?.toString(),
     });
   }
@@ -789,6 +809,14 @@ class _PrepaidMultipayCardsScreenState
     }
 
     final balance = (card['balance'] as num?)?.toDouble() ?? 0;
+    final paymentAmount = await _showDirectPaymentAmountDialog(balance);
+    if (paymentAmount == null || !mounted) {
+      return;
+    }
+    final paymentPayload = _prepaidCardBarcodePayload(
+      card,
+      paymentAmount: paymentAmount,
+    );
 
     await showDialog<void>(
       context: context,
@@ -801,37 +829,128 @@ class _PrepaidMultipayCardsScreenState
               _buildVisualCard(card, isLarge: true),
               const SizedBox(height: 12),
               Text(
-                'هذه بطاقة دفع مسبق داخل شواكل، مملوكة لصاحبها، ويمكن للتاجر إدخال رقمها مع المبلغ وكود التحقق لاعتماد الدفع.',
+                'اعرض هذا الرمز للتاجر. المبلغ وتاريخ الانتهاء مرفقان تلقائيًا، والتاجر يدخل كود البطاقة الثلاثي فقط.',
                 textAlign: TextAlign.center,
                 style: AppTheme.caption,
               ),
               const SizedBox(height: 8),
               SelectableText(
-                'الرصيد المتاح: ${CurrencyFormatter.ils(balance)}',
+                'المبلغ المطلوب دفعه: ${CurrencyFormatter.ils(paymentAmount)}',
                 textAlign: TextAlign.center,
-                style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                style: AppTheme.h3.copyWith(color: AppTheme.success),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: AppTheme.radiusMd,
+                  border: Border.all(color: AppTheme.primaryBorder),
+                ),
+                child: bw.BarcodeWidget(
+                  barcode: bw.Barcode.qrCode(),
+                  data: paymentPayload,
+                  width: 220,
+                  height: 220,
+                  drawText: false,
+                ),
               ),
             ],
           ),
         ),
         actions: [
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _openUnifiedScanner(
-                initialBarcode: _prepaidCardBarcodePayload(card),
-              );
-            },
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            label: const Text('فتح شاشة الفحص'),
-          ),
-          TextButton(
+          if (_canAcceptPrepaidPayments)
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _openUnifiedScanner(initialBarcode: paymentPayload);
+              },
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              label: const Text('فحص كتاجر'),
+            ),
+          FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إغلاق'),
+            child: const Text('تم'),
           ),
         ],
       ),
     );
+  }
+
+  Future<double?> _showDirectPaymentAmountDialog(double balance) async {
+    final amountC = TextEditingController();
+    try {
+      return showDialog<double>(
+        context: context,
+        builder: (dialogContext) {
+          String? errorText;
+          return StatefulBuilder(
+            builder: (dialogContext, setDialogState) => AlertDialog(
+              title: const Text('تحديد مبلغ الدفع'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'أدخل المبلغ المطلوب دفعه. سيظهر للتاجر جاهزًا، ولن يحتاج إلا إلى كود البطاقة الثلاثي.',
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: amountC,
+                    autofocus: true,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'المبلغ المطلوب',
+                      helperText: 'سيتم التحقق من الرصيد قبل إنشاء الطلب.',
+                      errorText: errorText,
+                      prefixIcon: const Icon(Icons.payments_rounded),
+                    ),
+                    onChanged: (_) {
+                      if (errorText != null) {
+                        setDialogState(() => errorText = null);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('إلغاء'),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    final amount = double.tryParse(amountC.text.trim()) ?? 0;
+                    if (amount <= 0) {
+                      setDialogState(() => errorText = 'أدخل مبلغًا صحيحًا.');
+                      return;
+                    }
+                    if (amount > balance) {
+                      setDialogState(
+                        () => errorText = 'المبلغ أكبر من الرصيد المتاح.',
+                      );
+                      return;
+                    }
+                    Navigator.pop(dialogContext, amount);
+                  },
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('متابعة'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } finally {
+      amountC.dispose();
+    }
   }
 
   Future<void> _printPrepaidCard(Map<String, dynamic> card) async {
@@ -853,7 +972,6 @@ class _PrepaidMultipayCardsScreenState
 
     try {
       await _ensurePdfFonts();
-      final balance = (card['balance'] as num?)?.toDouble() ?? 0;
       final cardNumber = _resolvedDisplayCardNumber(card);
       final label = card['label']?.toString() ?? 'بطاقة دفع مسبق';
       final expiry = card['expiryLabel']?.toString() ?? '-';
@@ -884,7 +1002,6 @@ class _PrepaidMultipayCardsScreenState
                 cardNumber: cardNumber,
                 rawNumber: rawNumber,
                 label: label,
-                balance: balance,
                 expiry: expiry,
                 ownerName: ownerName,
                 issuerPhone: issuerPhone,
@@ -918,7 +1035,6 @@ class _PrepaidMultipayCardsScreenState
     required String cardNumber,
     required String rawNumber,
     required String label,
-    required double balance,
     required String expiry,
     required String ownerName,
     required String issuerPhone,
@@ -929,7 +1045,6 @@ class _PrepaidMultipayCardsScreenState
     final ownerAlignment = ownerDirection == pw.TextDirection.ltr
         ? pw.CrossAxisAlignment.end
         : pw.CrossAxisAlignment.start;
-    final balanceLabel = CurrencyFormatter.ils(balance);
     final normalizedLabel = label.trim().isEmpty
         ? 'Shwakil Prepaid'
         : label.trim();
@@ -1112,23 +1227,7 @@ class _PrepaidMultipayCardsScreenState
                 ),
               ),
               pw.SizedBox(height: 9),
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                    child: _buildPrepaidPdfInfoPill(
-                      title: 'الرصيد المتاح',
-                      value: balanceLabel,
-                    ),
-                  ),
-                  pw.SizedBox(width: 6),
-                  pw.Expanded(
-                    child: _buildPrepaidPdfInfoPill(
-                      title: 'تاريخ الانتهاء',
-                      value: expiry,
-                    ),
-                  ),
-                ],
-              ),
+              _buildPrepaidPdfInfoPill(title: 'تاريخ الانتهاء', value: expiry),
               pw.SizedBox(height: 8),
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2025,65 +2124,78 @@ class _PrepaidMultipayCardsScreenState
 
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView(
-        children: [
-          if (_cardsPane == 'details' && selected != null)
-            _buildCardDetailsPane(selected)
-          else
-            _buildCardsListPane(),
-        ],
-      ),
-    );
-  }
+      child: _cardsPane == 'details' && selected != null
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [_buildCardDetailsPane(selected)],
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: _cards.isEmpty ? 2 : _cards.length + 1,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final l = context.loc;
+                if (index == 0) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l.tr('screens_prepaid_multipay_cards_screen.051'),
+                              style: AppTheme.h2,
+                            ),
+                          ),
+                          if (_canUsePrepaidCards &&
+                              !_isShowingOfflineCards &&
+                              _selfServiceCanCreateCard)
+                            FilledButton.icon(
+                              onPressed: _showCreateCardDialog,
+                              icon: const Icon(Icons.add_card_rounded),
+                              label: Text(
+                                l.tr(
+                                  'screens_prepaid_multipay_cards_screen.017',
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (!_canManagePrepaidCards &&
+                          _selfServiceLimitReached) ...[
+                        Text(
+                          l.tr(
+                            'screens_prepaid_multipay_cards_screen.053',
+                            params: {
+                              'limit': _selfServiceMaxCards == 1
+                                  ? l.tr(
+                                      'screens_prepaid_multipay_cards_screen.054',
+                                    )
+                                  : l.tr(
+                                      'screens_prepaid_multipay_cards_screen.055',
+                                    ),
+                            },
+                          ),
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                }
 
-  Widget _buildCardsListPane() {
-    final l = context.loc;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                l.tr('screens_prepaid_multipay_cards_screen.051'),
-                style: AppTheme.h2,
-              ),
-            ),
-            if (_canUsePrepaidCards &&
-                !_isShowingOfflineCards &&
-                _selfServiceCanCreateCard)
-              FilledButton.icon(
-                onPressed: _showCreateCardDialog,
-                icon: const Icon(Icons.add_card_rounded),
-                label: Text(l.tr('screens_prepaid_multipay_cards_screen.017')),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (!_canManagePrepaidCards && _selfServiceLimitReached) ...[
-          Text(
-            l.tr(
-              'screens_prepaid_multipay_cards_screen.053',
-              params: {
-                'limit': _selfServiceMaxCards == 1
-                    ? l.tr('screens_prepaid_multipay_cards_screen.054')
-                    : l.tr('screens_prepaid_multipay_cards_screen.055'),
+                if (_cards.isEmpty) {
+                  return _buildEmpty();
+                }
+
+                final cardIndex = index - 1;
+                final card = _cards[cardIndex];
+                return _buildCardListItem(card);
               },
             ),
-            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
-          ),
-        ],
-        const SizedBox(height: 16),
-        if (_cards.isEmpty)
-          _buildEmpty()
-        else
-          ..._cards.map(
-            (card) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildCardListItem(card),
-            ),
-          ),
-      ],
     );
   }
 
@@ -2183,12 +2295,6 @@ class _PrepaidMultipayCardsScreenState
                   runSpacing: 8,
                   children: [
                     _cardChip(
-                      Icons.account_balance_wallet_rounded,
-                      CurrencyFormatter.ils(
-                        (card['balance'] as num?)?.toDouble() ?? 0,
-                      ),
-                    ),
-                    _cardChip(
                       Icons.info_rounded,
                       _statusLabel(status),
                       color: _statusColor(status),
@@ -2250,40 +2356,6 @@ class _PrepaidMultipayCardsScreenState
             _buildVisualCard(card),
             const SizedBox(height: 16),
           ],
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _infoPill(
-                l.tr('screens_prepaid_multipay_cards_screen.058'),
-                CurrencyFormatter.ils(
-                  (card['balance'] as num?)?.toDouble() ?? 0,
-                ),
-              ),
-              _infoPill(
-                l.tr('screens_prepaid_multipay_cards_screen.059'),
-                CurrencyFormatter.ils(
-                  (card['loadedAmount'] as num?)?.toDouble() ?? 0,
-                ),
-              ),
-              _infoPill(
-                l.tr('screens_prepaid_multipay_cards_screen.060'),
-                CurrencyFormatter.ils(
-                  (card['spentAmount'] as num?)?.toDouble() ?? 0,
-                ),
-              ),
-              _infoPill(
-                l.tr('screens_prepaid_multipay_cards_screen.061'),
-                _statusLabel(status),
-              ),
-              _infoPill(
-                l.tr('screens_prepaid_multipay_cards_screen.062'),
-                '${CurrencyFormatter.ils(((card['dailyUsage'] as Map?)?['amount'] as num?)?.toDouble() ?? 0)} / ${CurrencyFormatter.ils(((card['dailyUsage'] as Map?)?['amountLimit'] as num?)?.toDouble() ?? 0)}',
-              ),
-            ],
-          ),
-          _buildCardWarnings(card),
-          const SizedBox(height: 16),
           if (showActivationGuide) ...[
             Container(
               width: double.infinity,
@@ -2465,89 +2537,91 @@ class _PrepaidMultipayCardsScreenState
               ],
             ),
           ],
-          if (_canManagePrepaidCards) ...[
-            const SizedBox(height: 18),
-            OutlinedButton.icon(
-              onPressed: () => setState(
-                () => _showCardTechnicalDetails = !_showCardTechnicalDetails,
-              ),
-              icon: Icon(
-                _showCardTechnicalDetails
-                    ? Icons.expand_less_rounded
-                    : Icons.info_outline_rounded,
-              ),
-              label: Text(
-                _showCardTechnicalDetails
-                    ? l.tr('screens_prepaid_multipay_cards_screen.079')
-                    : l.tr('screens_prepaid_multipay_cards_screen.056'),
-              ),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            onPressed: () => setState(
+              () => _showCardTechnicalDetails = !_showCardTechnicalDetails,
             ),
-            if (_showCardTechnicalDetails) ...[
-              const SizedBox(height: 10),
-              _detailsGrid(card),
-              const SizedBox(height: 18),
-            ] else
-              const SizedBox(height: 18),
-          ] else
-            const SizedBox(height: 18),
-          Text(
-            l.tr('screens_prepaid_multipay_cards_screen.080'),
-            style: AppTheme.h3,
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _activityChip(
-                'all',
-                l.tr('screens_prepaid_multipay_cards_screen.081'),
-              ),
-              _activityChip(
-                'payments',
-                l.tr('screens_prepaid_multipay_cards_screen.082'),
-              ),
-              _activityChip(
-                'reloads',
-                l.tr('screens_prepaid_multipay_cards_screen.004'),
-              ),
-              _activityChip(
-                'status',
-                l.tr('screens_prepaid_multipay_cards_screen.061'),
-              ),
-              _activityChip(
-                'security',
-                l.tr('screens_prepaid_multipay_cards_screen.083'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (filteredActivity.isEmpty)
-            Text(
-              l.tr('screens_prepaid_multipay_cards_screen.084'),
-              style: AppTheme.bodyAction,
-            )
-          else
-            ...filteredActivity.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _buildCardActivityRow(item),
-              ),
+            icon: Icon(
+              _showCardTechnicalDetails
+                  ? Icons.expand_less_rounded
+                  : Icons.info_outline_rounded,
             ),
-          if (payments.isNotEmpty) ...[
+            label: Text(
+              _showCardTechnicalDetails
+                  ? l.tr('screens_prepaid_multipay_cards_screen.079')
+                  : 'عرض تفاصيل البطاقة والاستخدام',
+            ),
+          ),
+          if (_showCardTechnicalDetails) ...[
+            const SizedBox(height: 12),
+            _detailsGrid(card),
+            _buildCardWarnings(card),
             const SizedBox(height: 18),
             Text(
-              l.tr('screens_prepaid_multipay_cards_screen.085'),
+              l.tr('screens_prepaid_multipay_cards_screen.080'),
               style: AppTheme.h3,
             ),
             const SizedBox(height: 12),
-            ...payments.map(
-              (payment) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _buildCardPaymentRow(payment),
-              ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _activityChip(
+                  'all',
+                  l.tr('screens_prepaid_multipay_cards_screen.081'),
+                ),
+                _activityChip(
+                  'payments',
+                  l.tr('screens_prepaid_multipay_cards_screen.082'),
+                ),
+                _activityChip(
+                  'reloads',
+                  l.tr('screens_prepaid_multipay_cards_screen.004'),
+                ),
+                _activityChip(
+                  'status',
+                  l.tr('screens_prepaid_multipay_cards_screen.061'),
+                ),
+                _activityChip(
+                  'security',
+                  l.tr('screens_prepaid_multipay_cards_screen.083'),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+            if (filteredActivity.isEmpty)
+              Text(
+                l.tr('screens_prepaid_multipay_cards_screen.084'),
+                style: AppTheme.bodyAction,
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: filteredActivity.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) =>
+                    _buildCardActivityRow(filteredActivity[index]),
+              ),
+            if (payments.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              Text(
+                l.tr('screens_prepaid_multipay_cards_screen.085'),
+                style: AppTheme.h3,
+              ),
+              const SizedBox(height: 12),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: payments.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) =>
+                    _buildCardPaymentRow(payments[index]),
+              ),
+            ],
           ],
+          const SizedBox(height: 18),
         ],
       ),
     );
@@ -2555,6 +2629,23 @@ class _PrepaidMultipayCardsScreenState
 
   Widget _detailsGrid(Map<String, dynamic> card) {
     final details = <MapEntry<String, String>>[
+      MapEntry(
+        'الرصيد المتاح',
+        CurrencyFormatter.ils((card['balance'] as num?)?.toDouble() ?? 0),
+      ),
+      MapEntry(
+        'إجمالي الشحن',
+        CurrencyFormatter.ils((card['loadedAmount'] as num?)?.toDouble() ?? 0),
+      ),
+      MapEntry(
+        'إجمالي المصروف',
+        CurrencyFormatter.ils((card['spentAmount'] as num?)?.toDouble() ?? 0),
+      ),
+      MapEntry('الحالة', _statusLabel(card['status']?.toString() ?? 'active')),
+      MapEntry(
+        'حد المبلغ اليومي',
+        '${CurrencyFormatter.ils(((card['dailyUsage'] as Map?)?['amount'] as num?)?.toDouble() ?? 0)} / ${CurrencyFormatter.ils(((card['dailyUsage'] as Map?)?['amountLimit'] as num?)?.toDouble() ?? 0)}',
+      ),
       MapEntry('رقم البطاقة', card['cardNumber']?.toString() ?? '-'),
       MapEntry('الانتهاء', card['expiryLabel']?.toString() ?? '-'),
       MapEntry(
@@ -2606,12 +2697,9 @@ class _PrepaidMultipayCardsScreenState
     final issuerPhone = _cardIssuerLocalPhone();
     final label = card['label']?.toString().trim() ?? '';
     final expiry = card['expiryLabel']?.toString().trim() ?? '-';
-    final balanceLabel = CurrencyFormatter.ils(
-      (card['balance'] as num?)?.toDouble() ?? 0,
-    );
     final barcodeData = rawNumber.isNotEmpty
         ? rawNumber
-        : _prepaidCardBarcodePayload(card);
+        : _prepaidCardBarcodePayload(card, paymentAmount: 0);
     final normalizedLabel = label.isEmpty ? 'Shwakil Prepaid' : label;
 
     return Material(
@@ -2777,23 +2865,7 @@ class _PrepaidMultipayCardsScreenState
                     ),
                   ),
                   SizedBox(height: isLarge ? 20 : 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildPrepaidInfoPill(
-                          title: 'الرصيد المتاح',
-                          value: balanceLabel,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildPrepaidInfoPill(
-                          title: 'تاريخ الانتهاء',
-                          value: expiry,
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildPrepaidInfoPill(title: 'تاريخ الانتهاء', value: expiry),
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
@@ -3120,25 +3192,6 @@ class _PrepaidMultipayCardsScreenState
       'security' => type == 'prepaid_multipay_pin_change',
       _ => true,
     };
-  }
-
-  Widget _infoPill(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, style: AppTheme.caption),
-          const SizedBox(height: 4),
-          Text(value, style: AppTheme.bodyBold),
-        ],
-      ),
-    );
   }
 
   Widget _cardChip(IconData icon, String label, {Color? color}) {

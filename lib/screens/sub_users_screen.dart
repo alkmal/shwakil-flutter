@@ -561,7 +561,14 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         if (_subUsers.isEmpty)
           _buildEmptyState()
         else
-          ..._subUsers.map(_buildSubUserCard),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _subUsers.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) =>
+                _buildSubUserCard(_subUsers[index]),
+          ),
       ],
     );
   }

@@ -555,11 +555,14 @@ class _AdminPendingRegistrationsScreenState
                       ),
                     )
                   else
-                    ...requests.map(
-                      (request) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _requestCard(request),
-                      ),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: requests.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) =>
+                          _requestCard(requests[index]),
                     ),
                 ],
               ),

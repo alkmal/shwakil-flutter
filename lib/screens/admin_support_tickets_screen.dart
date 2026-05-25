@@ -662,16 +662,23 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
             color: AppTheme.surfaceVariant.withValues(alpha: 0.55),
             shadowLevel: ShwakelShadowLevel.none,
             child: hasTimeline
-                ? ListView(
+                ? ListView.separated(
                     padding: const EdgeInsets.all(12),
-                    children: [
-                      ...statusEvents,
-                      ...messages.map(_adminMessageBubble),
-                      if (attachments.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        _adminAttachmentsPanel(attachments),
-                      ],
-                    ],
+                    itemCount:
+                        statusEvents.length +
+                        messages.length +
+                        (attachments.isNotEmpty ? 1 : 0),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      if (index < statusEvents.length) {
+                        return statusEvents[index];
+                      }
+                      final messageIndex = index - statusEvents.length;
+                      if (messageIndex < messages.length) {
+                        return _adminMessageBubble(messages[messageIndex]);
+                      }
+                      return _adminAttachmentsPanel(attachments);
+                    },
                   )
                 : Center(
                     child: Text(
@@ -950,6 +957,8 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                                 'Open or download - $size',
                               ),
                         style: AppTheme.caption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

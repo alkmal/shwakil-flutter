@@ -54,9 +54,19 @@ class AdminDeviceRequestCard extends StatelessWidget {
             ),
             title: InkWell(
               onTap: onTap,
-              child: Text(_displayName(), style: AppTheme.bodyBold),
+              child: Text(
+                _displayName(),
+                style: AppTheme.bodyBold,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            subtitle: Text('$deviceName • $deviceId', style: AppTheme.caption),
+            subtitle: Text(
+              '$deviceName • $deviceId',
+              style: AppTheme.caption,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const SizedBox(height: 12),
           Text(

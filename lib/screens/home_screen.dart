@@ -1491,7 +1491,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   Widget _buildServicesGrid(
     List<_HomeServiceItem> services, {
     required int crossAxisCount,
-    required double childAspectRatio,
+    required double tileExtent,
   }) {
     return GridView.builder(
       shrinkWrap: true,
@@ -1499,9 +1499,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       itemCount: services.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: childAspectRatio,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        mainAxisExtent: tileExtent,
       ),
       itemBuilder: (context, index) =>
           _buildCompactServiceTile(services[index]),
@@ -1861,7 +1861,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               _buildServicesGrid(
                 services,
                 crossAxisCount: isLandscapePhone ? 4 : 3,
-                childAspectRatio: isLandscapePhone ? 1.55 : 1.22,
+                tileExtent: isLandscapePhone ? 112 : 132,
               ),
           ],
         );
@@ -1907,13 +1907,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         onTap: item.onTap,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppTheme.border),
             boxShadow: [
               BoxShadow(
@@ -1924,7 +1924,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ],
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Stack(
                 clipBehavior: Clip.none,
@@ -1963,19 +1963,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    item.title,
-                    textAlign: TextAlign.center,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textPrimary,
-                      fontWeight: FontWeight.w800,
-                      height: 1.35,
-                    ),
+              const SizedBox(height: 9),
+              Flexible(
+                child: Text(
+                  _compactServiceTitle(item.title),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    height: 1.24,
                   ),
                 ),
               ),
@@ -2062,7 +2062,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         Text(
                           item.title,
                           style: AppTheme.bodyBold,
-                          maxLines: 2,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
@@ -2085,7 +2085,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item.title, style: AppTheme.bodyBold),
+                          Text(
+                            item.title,
+                            style: AppTheme.bodyBold,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             item.subtitle,
@@ -2110,6 +2115,20 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       ),
     );
+  }
+
+  String _compactServiceTitle(String title) {
+    final trimmed = title.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (trimmed.length <= 18) {
+      return trimmed;
+    }
+    final words = trimmed.split(' ');
+    if (words.length <= 2) {
+      return trimmed;
+    }
+
+    final midpoint = (words.length / 2).ceil();
+    return '${words.take(midpoint).join(' ')}\n${words.skip(midpoint).join(' ')}';
   }
 }
 

@@ -13,7 +13,6 @@ import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
-import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -214,31 +213,34 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         onRefresh: _load,
         child: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: ListView(
+          child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              if (_isRefreshing)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: LinearProgressIndicator(minHeight: 3),
-                ),
-              if (_requests.isEmpty)
-                _buildEmptyState()
-              else ...[
-                ..._requests.map(_buildRequestTile),
-                const SizedBox(height: 24),
-                AdminPaginationFooter(
-                  currentPage: _page,
-                  lastPage: _lastPage,
-                  totalItems: _totalRequests,
-                  itemsPerPage: _perPage,
-                  onPageChanged: (page) {
-                    setState(() => _page = page);
-                    _load();
-                  },
-                ),
-              ],
-            ],
+            itemCount: _requests.isEmpty ? 2 : _requests.length + 2,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return _isRefreshing
+                    ? const LinearProgressIndicator(minHeight: 3)
+                    : const SizedBox.shrink();
+              }
+              if (_requests.isEmpty) {
+                return _buildEmptyState();
+              }
+              final requestIndex = index - 1;
+              if (requestIndex < _requests.length) {
+                return _buildRequestTile(_requests[requestIndex]);
+              }
+              return AdminPaginationFooter(
+                currentPage: _page,
+                lastPage: _lastPage,
+                totalItems: _totalRequests,
+                itemsPerPage: _perPage,
+                onPageChanged: (page) {
+                  setState(() => _page = page);
+                  _load();
+                },
+              );
+            },
           ),
         ),
       ),
@@ -508,6 +510,16 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                 l.tr('screens_withdrawal_requests_screen.013'),
                 request['notes'] ?? '-',
               ),
+            if ((request['reviewNotes']?.toString() ?? '').isNotEmpty)
+              _infoLine(
+                l.text('ملاحظة الإدارة', 'Admin note'),
+                request['reviewNotes'] ?? '-',
+              ),
+            if ((request['approvalReceiptUrl']?.toString() ?? '').isNotEmpty)
+              _infoLine(
+                l.text('صورة الإدارة', 'Admin image'),
+                l.text('مرفقة', 'Attached'),
+              ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -643,22 +655,16 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
 
   Future<void> _approve(String requestId) async {
     final l = context.loc;
-    final approvalImage = await _pickApprovalImage();
-    if (approvalImage == null || approvalImage.isEmpty) {
-      if (mounted) {
-        AppAlertService.showError(
-          context,
-          title: l.tr('screens_withdrawal_requests_screen.038'),
-          message: l.tr('screens_withdrawal_requests_screen.027'),
-        );
-      }
+    final review = await _showWithdrawalReviewDialog(approve: true);
+    if (review == null) {
       return;
     }
     setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingWithdrawalRequest(
         requestId,
-        approvalImageBase64: approvalImage,
+        approvalImageBase64: review.imageBase64,
+        notes: review.notes,
       );
       if (!mounted) {
         return;
@@ -688,15 +694,8 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
 
   Future<void> _reject(String requestId) async {
     final l = context.loc;
-    final reason = await showRejectionReasonDialog(
-      context,
-      title: l.tr('screens_withdrawal_requests_screen.021'),
-      confirmText: l.tr('screens_withdrawal_requests_screen.024'),
-      labelText: l.tr('screens_withdrawal_requests_screen.022'),
-      hintText: l.tr('screens_withdrawal_requests_screen.028'),
-    );
-
-    if (reason == null) {
+    final review = await _showWithdrawalReviewDialog(approve: false);
+    if (review == null) {
       return;
     }
 
@@ -704,7 +703,8 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     try {
       final response = await _apiService.rejectPendingWithdrawalRequest(
         requestId,
-        notes: reason,
+        notes: review.notes,
+        approvalImageBase64: review.imageBase64,
       );
       if (!mounted) {
         return;
@@ -732,6 +732,122 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     }
   }
 
+  Future<_WithdrawalReviewResult?> _showWithdrawalReviewDialog({
+    required bool approve,
+  }) async {
+    final l = context.loc;
+    final notesController = TextEditingController();
+    String imageBase64 = '';
+    String errorText = '';
+
+    final result = await showDialog<_WithdrawalReviewResult>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(
+            approve
+                ? l.text('اعتماد طلب السحب', 'Approve withdrawal request')
+                : l.text('رفض طلب السحب', 'Reject withdrawal request'),
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: notesController,
+                  autofocus: !approve,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    labelText: approve
+                        ? l.text('ملاحظة للمستخدم', 'Note for the user')
+                        : l.tr('screens_withdrawal_requests_screen.022'),
+                    hintText: l.tr('screens_withdrawal_requests_screen.028'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await _pickApprovalImage();
+                    if (picked == null || picked.isEmpty) {
+                      return;
+                    }
+                    setDialogState(() {
+                      imageBase64 = picked;
+                      errorText = '';
+                    });
+                  },
+                  icon: Icon(
+                    imageBase64.isEmpty
+                        ? Icons.attach_file_rounded
+                        : Icons.check_circle_rounded,
+                  ),
+                  label: Text(
+                    imageBase64.isEmpty
+                        ? l.text('إرفاق صورة', 'Attach image')
+                        : l.text('تم إرفاق الصورة', 'Image attached'),
+                  ),
+                ),
+                if (errorText.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorText,
+                    style: AppTheme.caption.copyWith(color: AppTheme.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+              ),
+            ),
+            FilledButton(
+              onPressed: () {
+                final notes = notesController.text.trim();
+                if (approve && imageBase64.isEmpty) {
+                  setDialogState(() {
+                    errorText = l.tr('screens_withdrawal_requests_screen.027');
+                  });
+                  return;
+                }
+                if (!approve && notes.isEmpty) {
+                  setDialogState(() {
+                    errorText = l.text(
+                      'اكتب سبب الرفض قبل المتابعة.',
+                      'Write the rejection reason before continuing.',
+                    );
+                  });
+                  return;
+                }
+                Navigator.pop(
+                  dialogContext,
+                  _WithdrawalReviewResult(
+                    notes: notes,
+                    imageBase64: imageBase64,
+                  ),
+                );
+              },
+              child: Text(
+                approve
+                    ? l.tr('screens_withdrawal_requests_screen.014')
+                    : l.tr('screens_withdrawal_requests_screen.024'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    notesController.dispose();
+    return result;
+  }
+
   String _formatDate(String? raw) {
     final parsed = DateTime.tryParse(raw ?? '');
     if (parsed == null) {
@@ -749,4 +865,14 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     setState(() => _page = 1);
     _load(preserveContent: true);
   }
+}
+
+class _WithdrawalReviewResult {
+  const _WithdrawalReviewResult({
+    required this.notes,
+    required this.imageBase64,
+  });
+
+  final String notes;
+  final String imageBase64;
 }

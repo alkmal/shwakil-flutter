@@ -602,6 +602,8 @@ class _AppSidebarState extends State<AppSidebar> {
       title: Text(
         l.tr('widgets_app_sidebar.025'),
         style: AppTheme.bodyText.copyWith(fontWeight: FontWeight.w600),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
       trailing: const Icon(
         Icons.translate_rounded,
@@ -654,6 +656,8 @@ class _AppSidebarState extends State<AppSidebar> {
               : (isSelected ? AppTheme.primary : AppTheme.textPrimary),
           fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
       trailing: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
@@ -704,6 +708,8 @@ class _AppSidebarState extends State<AppSidebar> {
           color: AppTheme.error,
           fontWeight: FontWeight.w700,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
       trailing: const Icon(
         Icons.lock_clock_rounded,
@@ -729,6 +735,8 @@ class _AppSidebarState extends State<AppSidebar> {
           fontWeight: FontWeight.w900,
           letterSpacing: 0,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

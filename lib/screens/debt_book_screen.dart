@@ -890,46 +890,60 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
             Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: topDebtors.map((customer) {
-                final balance = _remainingAmount(customer);
-                return SizedBox(
-                  width: AppTheme.isPhone(context) ? double.infinity : 260,
-                  child: ShwakelCard(
-                    onTap: () => _openCustomer(customer),
-                    padding: const EdgeInsets.all(16),
-                    color: AppTheme.surface,
-                    withBorder: true,
-                    borderColor: AppTheme.borderLight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          UserDisplayName.fromMap(customer, fallback: '-'),
-                          style: AppTheme.bodyBold,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          customer['phone']?.toString().trim().isNotEmpty ==
-                                  true
-                              ? customer['phone'].toString()
-                              : _t('screens_debt_book_screen.035'),
-                          style: AppTheme.caption,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          CurrencyFormatter.ils(balance),
-                          style: AppTheme.bodyBold.copyWith(
-                            color: AppTheme.warning,
-                          ),
-                        ),
-                      ],
+              children: topDebtors
+                  .map(
+                    (customer) => _topDebtorCard(
+                      customer,
+                      width: AppTheme.isPhone(context) ? double.infinity : 260,
                     ),
-                  ),
-                );
-              }).toList(),
+                  )
+                  .toList(),
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _topDebtorCard(
+    Map<String, dynamic> customer, {
+    required double width,
+  }) {
+    final balance = _remainingAmount(customer);
+    final phone = customer['phone']?.toString().trim() ?? '';
+    return SizedBox(
+      width: width,
+      child: ShwakelCard(
+        onTap: () => _openCustomer(customer),
+        padding: const EdgeInsets.all(16),
+        color: AppTheme.surface,
+        withBorder: true,
+        borderColor: AppTheme.borderLight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              UserDisplayName.fromMap(customer, fallback: '-'),
+              style: AppTheme.bodyBold,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              phone.isNotEmpty ? phone : _t('screens_debt_book_screen.035'),
+              style: AppTheme.caption,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              CurrencyFormatter.ils(balance),
+              style: AppTheme.bodyBold.copyWith(color: AppTheme.warning),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -958,9 +972,19 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTheme.caption),
+                  Text(
+                    title,
+                    style: AppTheme.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
-                  Text(value, style: AppTheme.bodyBold),
+                  Text(
+                    value,
+                    style: AppTheme.bodyBold,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -981,12 +1005,20 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(title, style: AppTheme.caption),
+          Text(
+            title,
+            style: AppTheme.caption,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 6),
           Text(
             value,
             textAlign: TextAlign.center,
             style: AppTheme.bodyBold.copyWith(color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

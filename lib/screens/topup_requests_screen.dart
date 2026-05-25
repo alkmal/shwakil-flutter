@@ -220,31 +220,34 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         onRefresh: _load,
         child: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: ListView(
+          child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              if (_isRefreshing)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: LinearProgressIndicator(minHeight: 3),
-                ),
-              if (_requests.isEmpty)
-                _buildEmptyState()
-              else ...[
-                ..._requests.map(_buildRequestTile),
-                const SizedBox(height: 24),
-                AdminPaginationFooter(
-                  currentPage: _page,
-                  lastPage: _lastPage,
-                  totalItems: _totalRequests,
-                  itemsPerPage: _perPage,
-                  onPageChanged: (page) {
-                    setState(() => _page = page);
-                    _load();
-                  },
-                ),
-              ],
-            ],
+            itemCount: _requests.isEmpty ? 2 : _requests.length + 2,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return _isRefreshing
+                    ? const LinearProgressIndicator(minHeight: 3)
+                    : const SizedBox.shrink();
+              }
+              if (_requests.isEmpty) {
+                return _buildEmptyState();
+              }
+              final requestIndex = index - 1;
+              if (requestIndex < _requests.length) {
+                return _buildRequestTile(_requests[requestIndex]);
+              }
+              return AdminPaginationFooter(
+                currentPage: _page,
+                lastPage: _lastPage,
+                totalItems: _totalRequests,
+                itemsPerPage: _perPage,
+                onPageChanged: (page) {
+                  setState(() => _page = page);
+                  _load();
+                },
+              );
+            },
           ),
         ),
       ),

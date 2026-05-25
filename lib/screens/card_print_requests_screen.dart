@@ -1321,7 +1321,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                     ),
                   )
                 else
-                  ..._requests.map(_buildRequestCard),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _requests.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) =>
+                        _buildRequestCard(_requests[index]),
+                  ),
               ],
             ),
           ),
@@ -1392,7 +1400,14 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               style: AppTheme.bodyAction,
             )
           else
-            ...items.map(_buildUsageReportRow),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: items.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) =>
+                  _buildUsageReportRow(items[index]),
+            ),
         ],
       ),
     );
@@ -1440,7 +1455,6 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         : 'عامة';
     final type = card['cardType']?.toString() ?? 'standard';
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isUsed
@@ -1467,12 +1481,16 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 Text(
                   '${_cardTypeLabel(context, type)} - $scope',
                   style: AppTheme.bodyBold,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isUsed
                       ? 'استخدمت عند: $usedBy - وقت الاستخدام: $usedAt'
                       : 'لم تستخدم بعد',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.textSecondary,
                   ),
@@ -1481,9 +1499,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            card['barcode']?.toString() ?? '',
-            style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 120),
+            child: Text(
+              card['barcode']?.toString() ?? '',
+              style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+            ),
           ),
         ],
       ),

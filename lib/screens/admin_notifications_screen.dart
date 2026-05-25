@@ -782,11 +782,13 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
               ),
             )
           else
-            ..._recentBatches.map(
-              (batch) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _RecentAdminNotificationBatch(batch: batch),
-              ),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _recentBatches.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
+              itemBuilder: (context, index) =>
+                  _RecentAdminNotificationBatch(batch: _recentBatches[index]),
             ),
         ],
       ),

@@ -1017,13 +1017,18 @@ class _BalanceScreenState extends State<BalanceScreen>
                       else ...[
                         _buildHistoryResultsHeader(),
                         const SizedBox(height: 10),
-                        ..._transactions.map(
-                          (tx) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _buildBalanceHistoryCard(
-                              transaction: Map<String, dynamic>.from(tx),
-                            ),
-                          ),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _transactions.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) =>
+                              _buildBalanceHistoryCard(
+                                transaction: Map<String, dynamic>.from(
+                                  _transactions[index],
+                                ),
+                              ),
                         ),
                         AdminPaginationFooter(
                           currentPage: _page,
@@ -2823,6 +2828,8 @@ class _BalanceScreenState extends State<BalanceScreen>
                                               value: country.dialCode,
                                               child: Text(
                                                 '${country.name} (+${country.dialCode})',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           )
@@ -2882,6 +2889,8 @@ class _BalanceScreenState extends State<BalanceScreen>
                                               value: country.dialCode,
                                               child: Text(
                                                 '+${country.dialCode}',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           )
@@ -3492,6 +3501,8 @@ class _BalanceScreenState extends State<BalanceScreen>
                                       value: method['code']?.toString(),
                                       child: Text(
                                         method['title']?.toString() ?? '-',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   )

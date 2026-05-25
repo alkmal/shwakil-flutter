@@ -72,6 +72,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   List<Map<String, dynamic>> _selectedUsers = [];
   List<String> _selectedPhoneNumbers = [];
   bool _didLoadDependencies = false;
+  int _currentStep = 0;
+  String _cardPreviewSignature = '';
+  Future<Uint8List>? _cardPreviewFuture;
 
   @override
   void didChangeDependencies() {
@@ -144,6 +147,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         }
         if (_cardType.isEmpty && issuableCardTypes.length == 1) {
           _applyCardTypeDefaults(issuableCardTypes.first);
+          _currentStep = 1;
         }
         if (isTrialMode) {
           _visibilityScope = 'restricted';
@@ -437,25 +441,20 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (_isTrialMode) {
       return 0;
     }
-    if (_isBalanceCard && !_isPrivateIssuance) {
+    if (!_isPrivateIssuance) {
       return 0;
     }
     return _currentIssueFeePerCard;
   }
-
-  double get _currentDeferredIssueFeePerCard =>
-      (_currentIssueFeePerCard - _currentChargedIssueFeePerCard).clamp(
-        0,
-        double.infinity,
-      );
 
   double get _currentCardFaceValue {
     final amount = double.tryParse(_amountC.text.trim()) ?? 0;
     return _isBalanceCard || _isAppointmentCard ? amount : 0;
   }
 
-  double get _currentChargeNowPerCard =>
-      _currentCardFaceValue + _currentChargedIssueFeePerCard;
+  double get _currentChargeNowPerCard => _isPrivateIssuance
+      ? _currentChargedIssueFeePerCard
+      : _currentCardFaceValue + _currentChargedIssueFeePerCard;
 
   double get _currentTotalChargeNow {
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
@@ -1437,6 +1436,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       0,
       (sum, card) => sum + card.issueCost,
     );
+    final isPrivateBatch = first.visibilityScope == 'restricted';
+    final totalCharge = isPrivateBatch ? totalIssueCost : totalFaceValue;
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
       color: AppTheme.surfaceVariant,
@@ -1448,15 +1449,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           _buildPreviewSummaryRow('النوع', _cardTypeLabel(l, first.cardType)),
           const SizedBox(height: 8),
           _buildPreviewSummaryRow('عدد البطاقات', '${cards.length}'),
+          if (!isPrivateBatch) ...[
+            const SizedBox(height: 8),
+            _buildPreviewSummaryRow(
+              'إجمالي القيم',
+              CurrencyFormatter.ils(totalFaceValue),
+            ),
+          ],
+          if (isPrivateBatch) ...[
+            const SizedBox(height: 8),
+            _buildPreviewSummaryRow(
+              'إجمالي الرسوم',
+              CurrencyFormatter.ils(totalIssueCost),
+            ),
+          ],
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
-            'إجمالي القيم',
-            CurrencyFormatter.ils(totalFaceValue),
-          ),
-          const SizedBox(height: 8),
-          _buildPreviewSummaryRow(
-            'إجمالي الرسوم',
-            CurrencyFormatter.ils(totalIssueCost),
+            isPrivateBatch ? 'المخصوم من الرصيد' : 'إجمالي الخصم',
+            CurrencyFormatter.ils(totalCharge),
           ),
           if (first.title?.trim().isNotEmpty == true) ...[
             const SizedBox(height: 8),
@@ -1673,78 +1683,269 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       );
     }
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          title: Text(l.tr('screens_create_card_screen.029')),
-          actions: const [AppNotificationAction(), QuickLogoutAction()],
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: [
-              Tab(
-                icon: const Icon(Icons.add_card_rounded),
-                text: l.tr('screens_create_card_screen.066'),
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: Text(l.tr('screens_create_card_screen.029')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
+      ),
+      drawer: const AppSidebar(),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: ResponsiveScaffoldContainer(
+              padding: const EdgeInsets.all(AppTheme.spacingLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCreationStepper(),
+                  if (_recent.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _buildRecent(),
+                  ],
+                ],
               ),
-              Tab(
-                icon: const Icon(Icons.history_rounded),
-                text: l.tr('screens_create_card_screen.068'),
-              ),
-              const Tab(
-                icon: Icon(Icons.visibility_rounded),
-                text: 'المعاينة والطباعة',
-              ),
-            ],
+            ),
           ),
-        ),
-        drawer: const AppSidebar(),
-        body: Stack(
-          children: [
-            TabBarView(
+          if (_isLoading) _buildLoadingOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreationStepper() {
+    final canContinue = _canContinueCurrentStep();
+    return ShwakelCard(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Stepper(
+        currentStep: _currentStep,
+        type: StepperType.vertical,
+        physics: const NeverScrollableScrollPhysics(),
+        margin: EdgeInsets.zero,
+        controlsBuilder: (context, details) {
+          final isLast = _currentStep == 3;
+          return Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
               children: [
-                SingleChildScrollView(
-                  child: ResponsiveScaffoldContainer(
-                    padding: const EdgeInsets.all(AppTheme.spacingLg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHero(),
-                        const SizedBox(height: 24),
-                        _buildForm(),
-                      ],
-                    ),
-                  ),
+                ShwakelButton(
+                  label: isLast ? 'إصدار الدفعة الآن' : 'التالي',
+                  icon: isLast
+                      ? Icons.verified_user_rounded
+                      : Icons.arrow_forward_rounded,
+                  onPressed: canContinue
+                      ? () => _handleStepContinue(isLast: isLast)
+                      : null,
+                  isLoading: _isLoading,
+                  width: 180,
                 ),
-                SingleChildScrollView(
-                  child: ResponsiveScaffoldContainer(
-                    padding: const EdgeInsets.all(AppTheme.spacingLg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHero(),
-                        const SizedBox(height: 24),
-                        _buildRecent(),
-                      ],
-                    ),
+                if (_currentStep > 0)
+                  ShwakelButton(
+                    label: 'السابق',
+                    icon: Icons.arrow_back_rounded,
+                    isSecondary: true,
+                    onPressed: () => setState(() => _currentStep -= 1),
+                    width: 140,
                   ),
-                ),
-                SingleChildScrollView(
-                  child: ResponsiveScaffoldContainer(
-                    padding: const EdgeInsets.all(AppTheme.spacingLg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [_buildPreviewAndPrintWorkspace()],
-                    ),
-                  ),
-                ),
               ],
             ),
-            if (_isLoading) _buildLoadingOverlay(),
-          ],
-        ),
+          );
+        },
+        onStepTapped: (step) {
+          if (step <= _highestReachableStep) {
+            setState(() => _currentStep = step);
+          }
+        },
+        steps: [
+          Step(
+            title: const Text('اختيار نوع البطاقة'),
+            subtitle: const Text('تظهر الأنواع المتاحة حسب صلاحيات الحساب.'),
+            isActive: _currentStep >= 0,
+            state: _hasSelectedCardType
+                ? StepState.complete
+                : StepState.indexed,
+            content: _buildCardTypeStep(),
+          ),
+          Step(
+            title: const Text('البيانات والمستفيدون'),
+            subtitle: const Text('القيمة والكمية ونطاق الصلاحية والخصوصية.'),
+            isActive: _currentStep >= 1,
+            state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+            content: _hasSelectedCardType
+                ? _buildForm()
+                : _buildCardTypeEmptyState(),
+          ),
+          Step(
+            title: const Text('تصميم الطباعة والمعاينة'),
+            subtitle: const Text('تحديث مباشر للشعار والعنوان والختم.'),
+            isActive: _currentStep >= 2,
+            state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+            content: _hasSelectedCardType
+                ? _buildDesignStep()
+                : _buildCardTypeEmptyState(),
+          ),
+          Step(
+            title: const Text('ملخص الحساب والتأكيد'),
+            subtitle: const Text('مراجعة الرسوم والتكلفة قبل الإصدار.'),
+            isActive: _currentStep >= 3,
+            state: StepState.indexed,
+            content: _hasSelectedCardType
+                ? _buildConfirmationStep()
+                : _buildCardTypeEmptyState(),
+          ),
+        ],
       ),
+    );
+  }
+
+  int get _highestReachableStep {
+    if (!_hasSelectedCardType) {
+      return 0;
+    }
+    if (_propertiesStepValidationMessage() != null) {
+      return 1;
+    }
+    return 3;
+  }
+
+  bool _canContinueCurrentStep() {
+    if (_currentStep == 0) {
+      return _hasSelectedCardType;
+    }
+    return _hasSelectedCardType;
+  }
+
+  Future<void> _handleStepContinue({required bool isLast}) async {
+    if (_currentStep == 1) {
+      final message = _propertiesStepValidationMessage();
+      if (message != null) {
+        await AppAlertService.showError(
+          context,
+          title: 'تحقق من البيانات',
+          message: message,
+        );
+        return;
+      }
+    }
+
+    if (isLast) {
+      await _create();
+      return;
+    }
+
+    setState(() => _currentStep += 1);
+  }
+
+  String? _propertiesStepValidationMessage() {
+    if (!_hasSelectedCardType) {
+      return 'اختر نوع البطاقة أولًا.';
+    }
+
+    final amount = double.tryParse(_amountC.text.trim()) ?? 0;
+    final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+
+    if (quantity <= 0) {
+      return 'أدخل كمية صحيحة للبطاقات.';
+    }
+
+    if (quantity < _minimumCardQuantity) {
+      return 'الكمية أقل من الحد الأدنى $_minimumCardQuantity.';
+    }
+
+    final amountValidation = _validateAmountForCardType(amount);
+    if (amountValidation != null) {
+      return amountValidation;
+    }
+
+    if (_isAppointmentCard &&
+        (_detailsTitleC.text.trim().isEmpty || _appointmentStartsAt == null)) {
+      return 'أدخل عنوان الموعد ووقت بدايته قبل المتابعة.';
+    }
+
+    if (_isAppointmentCard &&
+        _appointmentEndsAt != null &&
+        !_appointmentEndsAt!.isAfter(_appointmentStartsAt!)) {
+      return 'نهاية الموعد يجب أن تكون بعد بدايته.';
+    }
+
+    if (_isQueueCard && _detailsTitleC.text.trim().isEmpty) {
+      return 'أدخل عنوان التذكرة التنظيمية قبل المتابعة.';
+    }
+
+    if (_isSubscriptionCard) {
+      if (_detailsTitleC.text.trim().isEmpty) {
+        return 'أدخل اسم الاشتراك قبل المتابعة.';
+      }
+      if (_validFrom == null || _validUntil == null) {
+        return 'حدد بداية ونهاية الاشتراك قبل المتابعة.';
+      }
+    }
+
+    if (_isAttendanceCard) {
+      if (_detailsTitleC.text.trim().isEmpty) {
+        return 'أدخل اسم الموظف أو عنوان بطاقة الحضور قبل المتابعة.';
+      }
+      if (quantity > 1) {
+        return 'بطاقات الحضور تصدر بطاقة واحدة لكل موظف.';
+      }
+    }
+
+    if (_validFrom != null &&
+        _validUntil != null &&
+        !_validUntil!.isAfter(_validFrom!)) {
+      return 'تاريخ انتهاء الصلاحية يجب أن يكون بعد تاريخ البداية.';
+    }
+
+    return null;
+  }
+
+  Widget _buildCardTypeStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isTrialMode) ...[
+          _buildTrialInfoCard(),
+          const SizedBox(height: 16),
+        ],
+        _buildCardTypeSelector(),
+      ],
+    );
+  }
+
+  Widget _buildDesignStep() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 820;
+        final preview = _buildPrintPreviewPanel(isCompact: isCompact);
+        final settings = _buildPreviewSettingsPanel();
+        if (isCompact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [preview, const SizedBox(height: 16), settings],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 6, child: preview),
+            const SizedBox(width: 18),
+            Expanded(flex: 5, child: settings),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildConfirmationStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildPreviewActionPanel(showIssueButton: false),
+        const SizedBox(height: 16),
+        _buildIssueCostSummary(),
+      ],
     );
   }
 
@@ -1793,85 +1994,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
-  Widget _buildHero() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(24),
-      gradient: AppTheme.primaryGradient,
-      withBorder: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 560;
-          return Flex(
-            direction: isCompact ? Axis.vertical : Axis.horizontal,
-            crossAxisAlignment: isCompact
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: AppTheme.radiusMd,
-                ),
-                child: const Icon(
-                  Icons.add_card_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              SizedBox(width: isCompact ? 0 : 18, height: isCompact ? 14 : 0),
-              if (isCompact)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.tr('screens_create_card_screen.030'),
-                      style: AppTheme.h2.copyWith(
-                        color: Colors.white,
-                        fontSize: 22,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      l.tr('screens_create_card_screen.031'),
-                      style: AppTheme.caption.copyWith(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l.tr('screens_create_card_screen.030'),
-                        style: AppTheme.h2.copyWith(
-                          color: Colors.white,
-                          fontSize: 22,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        l.tr('screens_create_card_screen.031'),
-                        style: AppTheme.caption.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildForm() {
     final l = context.loc;
     return ShwakelCard(
@@ -1879,11 +2001,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.tr('screens_create_card_screen.032'), style: AppTheme.h3),
-          if (_isTrialMode) ...[
-            const SizedBox(height: 18),
-            _buildTrialInfoCard(),
-          ],
+          Text('البيانات المالية والمستفيدون', style: AppTheme.h3),
           const SizedBox(height: 18),
           ShwakelCard(
             padding: const EdgeInsets.all(18),
@@ -1895,8 +2013,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildCardTypeSelector(),
-          const SizedBox(height: 16),
           if (!_hasSelectedCardType) ...[
             _buildCardTypeEmptyState(),
           ] else ...[
@@ -2304,13 +2420,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 28),
-            ShwakelButton(
-              label: 'إصدار الدفعة الآن',
-              icon: Icons.verified_user_rounded,
-              onPressed: _create,
-              isLoading: _isLoading,
-            ),
           ],
         ],
       ),
@@ -2320,6 +2429,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   void _selectCardType(String type) {
     setState(() {
       _applyCardTypeDefaults(type);
+      if (_currentStep == 0) {
+        _currentStep = 1;
+      }
     });
   }
 
@@ -2346,7 +2458,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _detailsDescriptionC.clear();
     }
     if (_cardType == 'single_use' && _detailsTitleC.text.trim().isEmpty) {
-      _detailsTitleC.text = 'بطاقة خاصة';
+      _detailsTitleC.text = 'بطاقة استخدام خاص';
     }
     if (_cardType == 'attendance') {
       _qtyC.text = '1';
@@ -2369,6 +2481,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _detailsDescriptionC.clear();
       _selectedUsers = [];
       _selectedPhoneNumbers = [];
+      _currentStep = 0;
     });
   }
 
@@ -2535,8 +2648,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Widget _buildIssueCostSummary() {
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
-    final isDeferred = !_isTrialMode && _isBalanceCard && !_isPrivateIssuance;
-    final note = _issueCostPolicyNote(isDeferred: isDeferred);
+    final note = _issueCostPolicyNote();
+    final showIssueFee = _isPrivateIssuance;
 
     return ShwakelCard(
       padding: const EdgeInsets.all(18),
@@ -2558,23 +2671,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 : 'قيمة البطاقة الواحدة',
             CurrencyFormatter.ils(_currentCardFaceValue),
           ),
-          const SizedBox(height: 8),
-          _buildPreviewSummaryRow(
-            'رسوم الإصدار لكل بطاقة',
-            CurrencyFormatter.ils(_currentIssueFeePerCard),
-          ),
+          if (showIssueFee) ...[
+            const SizedBox(height: 8),
+            _buildPreviewSummaryRow(
+              'رسوم الإصدار لكل بطاقة',
+              CurrencyFormatter.ils(_currentIssueFeePerCard),
+            ),
+          ],
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
             'المخصوم الآن لكل بطاقة',
             CurrencyFormatter.ils(_currentChargeNowPerCard),
           ),
-          if (_currentDeferredIssueFeePerCard > 0) ...[
-            const SizedBox(height: 8),
-            _buildPreviewSummaryRow(
-              'الرسوم المؤجلة لكل بطاقة',
-              CurrencyFormatter.ils(_currentDeferredIssueFeePerCard),
-            ),
-          ],
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
             'إجمالي الخصم الآن',
@@ -2593,7 +2701,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
-  String _issueCostPolicyNote({required bool isDeferred}) {
+  String _issueCostPolicyNote() {
     if (_isTrialMode) {
       return 'في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.';
     }
@@ -2603,55 +2711,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     if (_isBalanceCard && !_isPrivateIssuance) {
-      final feePart = isDeferred
-          ? 'ورسوم الإصدار لا تُخصم الآن وتُحتسب لاحقًا عند استخدام البطاقة.'
-          : 'ولا توجد رسوم إصدار إضافية مؤجلة.';
-      return 'هذه بطاقة رصيد عامة: يتم خصم قيمة البطاقة من رصيدك الآن، $feePart';
+      return 'هذه بطاقة رصيد عامة: يتم خصم قيمة البطاقة فقط عند الإنشاء، ورسوم الاستخدام لا تظهر ضمن تكلفة الإنشاء.';
     }
 
-    return 'رسوم الإصدار لهذه العملية تُضاف ضمن المبلغ المخصوم الآن.';
-  }
-
-  Widget _buildPreviewAndPrintWorkspace() {
-    if (!_hasSelectedCardType) {
-      return _buildCardTypeEmptyState();
+    if (!_isPrivateIssuance) {
+      return 'لا تظهر رسوم الاستخدام ضمن تكلفة الإنشاء، ويتم احتسابها عند استخدام البطاقة.';
     }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 820;
-        final preview = _buildPrintPreviewPanel(isCompact: isCompact);
-        final settings = _buildPreviewSettingsPanel();
-        if (isCompact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              preview,
-              const SizedBox(height: 16),
-              settings,
-              const SizedBox(height: 16),
-              _buildPreviewActionPanel(),
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 6, child: preview),
-            const SizedBox(width: 18),
-            Expanded(
-              flex: 5,
-              child: Column(
-                children: [
-                  settings,
-                  const SizedBox(height: 16),
-                  _buildPreviewActionPanel(),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
+
+    return 'رسوم الإصدار لهذه العملية تُخصم الآن حسب نوع البطاقة.';
   }
 
   Widget _buildPrintPreviewPanel({required bool isCompact}) {
@@ -2739,7 +2806,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ],
             decoration: const InputDecoration(
               labelText: 'نص بجانب القيمة',
-              hintText: 'شيكل، دولار، عينة...',
+              hintText: 'شيكل، دولار، رصيد',
               prefixIcon: Icon(Icons.sell_rounded),
               counterText: '',
               helperText: 'حتى 10 أحرف فقط',
@@ -2786,7 +2853,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
-  Widget _buildPreviewActionPanel() {
+  Widget _buildPreviewActionPanel({bool showIssueButton = true}) {
     final l = context.loc;
     final amount = double.tryParse(_amountC.text) ?? 0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
@@ -2829,13 +2896,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             'الشعار والختم',
             '${_showLogo ? 'مفعل' : 'مخفي'} / ${_showStamp ? 'مفعل' : 'مخفي'}',
           ),
-          const SizedBox(height: 18),
-          ShwakelButton(
-            label: 'إصدار الدفعة الآن',
-            icon: Icons.verified_user_rounded,
-            onPressed: _create,
-            isLoading: _isLoading,
-          ),
+          if (showIssueButton) ...[
+            const SizedBox(height: 18),
+            ShwakelButton(
+              label: 'إصدار الدفعة الآن',
+              icon: Icons.verified_user_rounded,
+              onPressed: _create,
+              isLoading: _isLoading,
+            ),
+          ],
           if (canPreviewPrint) ...[
             const SizedBox(height: 10),
             ShwakelButton(
@@ -2953,19 +3022,23 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final printedBy = _resolvedIssuerName(l);
     final settings = _currentPdfDesignSettings();
     _pdfService.setDesignSettings(settings);
+    final signature = _previewSignatureFor(
+      previewCard: previewCard,
+      serialNumber: serialNumber,
+      printedBy: printedBy,
+      settings: settings,
+    );
+    if (_cardPreviewSignature != signature || _cardPreviewFuture == null) {
+      _cardPreviewSignature = signature;
+      _cardPreviewFuture = _renderCardPreviewPng(
+        previewCard: previewCard,
+        serialNumber: serialNumber,
+        printedBy: printedBy,
+      );
+    }
 
     return FutureBuilder<Uint8List>(
-      future: () async {
-        final pdf = await _pdfService.createSmallCardSheetPreviewPDF(
-          previewCard,
-          printedBy: printedBy,
-          serialNumber: serialNumber,
-        );
-        final bytes = await pdf.save();
-        final stream = Printing.raster(bytes, pages: const [0], dpi: 220);
-        final page = await stream.first;
-        return page.toPng();
-      }(),
+      future: _cardPreviewFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const SizedBox(
@@ -2991,6 +3064,48 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         );
       },
     );
+  }
+
+  String _previewSignatureFor({
+    required VirtualCard previewCard,
+    required int serialNumber,
+    required String printedBy,
+    required CardDesignSettings settings,
+  }) {
+    return [
+      previewCard.id,
+      previewCard.barcode,
+      previewCard.value.toStringAsFixed(2),
+      previewCard.cardType,
+      previewCard.visibilityScope,
+      previewCard.title ?? '',
+      previewCard.details.toString(),
+      previewCard.validUntil?.toIso8601String() ?? '',
+      serialNumber,
+      printedBy,
+      settings.showLogo,
+      settings.showStamp,
+      settings.logoText,
+      settings.stampText,
+      settings.valueUnitText,
+      settings.logoUrl ?? '',
+    ].join('|');
+  }
+
+  Future<Uint8List> _renderCardPreviewPng({
+    required VirtualCard previewCard,
+    required int serialNumber,
+    required String printedBy,
+  }) async {
+    final pdf = await _pdfService.createSmallCardSheetPreviewPDF(
+      previewCard,
+      printedBy: printedBy,
+      serialNumber: serialNumber,
+    );
+    final bytes = await pdf.save();
+    final stream = Printing.raster(bytes, pages: const [0], dpi: 220);
+    final page = await stream.first;
+    return page.toPng();
   }
 
   Widget _buildRecent() {

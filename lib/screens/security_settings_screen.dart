@@ -639,7 +639,14 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               ),
             )
           else
-            ..._devices.map(_buildDeviceTile),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _devices.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) =>
+                  _buildDeviceTile(_devices[index]),
+            ),
         ],
       ),
     );
@@ -650,89 +657,88 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     final isActive = device['isActiveDevice'] == true;
     final isBusy = _busyDeviceId == device['id']?.toString();
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.background,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isActive
-                ? AppTheme.primary.withValues(alpha: 0.25)
-                : Colors.transparent,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isActive
+              ? AppTheme.primary.withValues(alpha: 0.25)
+              : Colors.transparent,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: (isActive ? AppTheme.primary : AppTheme.secondary)
+                .withValues(alpha: 0.12),
+            child: Icon(
+              Icons.smartphone_rounded,
+              color: isActive ? AppTheme.primary : AppTheme.secondary,
+            ),
           ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor:
-                  (isActive ? AppTheme.primary : AppTheme.secondary).withValues(
-                    alpha: 0.12,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  device['deviceName']?.toString() ??
+                      l.tr('screens_security_settings_screen.041'),
+                  style: AppTheme.bodyBold,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l.tr(
+                    'screens_security_settings_screen.042',
+                    params: {'id': '${device['deviceId'] ?? '-'}'},
                   ),
-              child: Icon(
-                Icons.smartphone_rounded,
-                color: isActive ? AppTheme.primary : AppTheme.secondary,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    device['deviceName']?.toString() ??
-                        l.tr('screens_security_settings_screen.041'),
-                    style: AppTheme.bodyBold,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l.tr(
-                      'screens_security_settings_screen.042',
-                      params: {'id': '${device['deviceId'] ?? '-'}'},
+                  style: AppTheme.caption,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (isActive) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
                     ),
-                    style: AppTheme.caption,
-                  ),
-                  if (isActive) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        l.tr('screens_security_settings_screen.043'),
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      l.tr('screens_security_settings_screen.043'),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
-            IconButton(
-              tooltip: l.tr('screens_security_settings_screen.044'),
-              onPressed: isBusy ? null : () => _releaseDevice(device),
-              icon: isBusy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(
-                      Icons.delete_outline_rounded,
-                      color: AppTheme.error,
-                    ),
-            ),
-          ],
-        ),
+          ),
+          IconButton(
+            tooltip: l.tr('screens_security_settings_screen.044'),
+            onPressed: isBusy ? null : () => _releaseDevice(device),
+            icon: isBusy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppTheme.error,
+                  ),
+          ),
+        ],
       ),
     );
   }

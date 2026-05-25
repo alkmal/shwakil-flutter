@@ -129,7 +129,15 @@ class _IssuedCardUsageReportScreenState
                         if (_items.isEmpty)
                           _emptyState()
                         else
-                          ..._items.map(_row),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _items.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) =>
+                                _row(_items[index]),
+                          ),
                         const SizedBox(height: 10),
                         _pagination(),
                       ],

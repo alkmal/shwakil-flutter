@@ -297,6 +297,8 @@ class AdminTransactionAuditCard extends StatelessWidget {
                 Text(
                   _typeLabel(context, type, metadata),
                   style: AppTheme.bodyBold,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (isRejected)
                   Container(
@@ -327,12 +329,16 @@ class AdminTransactionAuditCard extends StatelessWidget {
                 params: {'time': createdAt.isEmpty ? '-' : createdAt},
               ),
               style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             if (actorLine != null) ...[
               const SizedBox(height: 4),
               Text(
                 actorLine,
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
             if (performedBy != null) ...[
@@ -343,6 +349,8 @@ class AdminTransactionAuditCard extends StatelessWidget {
                   params: {'actor': performedBy},
                 ),
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
             if (sourceLine != null) ...[
@@ -353,6 +361,8 @@ class AdminTransactionAuditCard extends StatelessWidget {
                   params: {'source': sourceLine},
                 ),
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
             if (feeSourceLine != null) ...[
@@ -360,6 +370,8 @@ class AdminTransactionAuditCard extends StatelessWidget {
               Text(
                 feeSourceLine,
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
             if (cardLine != null) ...[
@@ -367,11 +379,18 @@ class AdminTransactionAuditCard extends StatelessWidget {
               Text(
                 cardLine,
                 style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
             if (description.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(description, style: AppTheme.bodyText),
+              Text(
+                description,
+                style: AppTheme.bodyText,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
             const SizedBox(height: 10),
             Wrap(

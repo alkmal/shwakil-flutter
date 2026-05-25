@@ -1891,7 +1891,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 ),
               )
             else
-              ..._devices.map(_buildDeviceTile),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _devices.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) =>
+                    _buildDeviceTile(_devices[index]),
+              ),
           ],
         ),
       ),
@@ -2367,11 +2375,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
 
   Widget _permItem(String l, String k, Map<String, dynamic> p) =>
       SwitchListTile(
-        title: Text(l, style: AppTheme.bodyText),
+        title: Text(
+          l,
+          style: AppTheme.bodyText,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         subtitle: () {
           final desc = PermissionCatalog.description(context, k).trim();
           if (desc.isEmpty) return null;
-          return Text(desc, style: AppTheme.bodyText.copyWith(fontSize: 12));
+          return Text(
+            desc,
+            style: AppTheme.bodyText.copyWith(fontSize: 12),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          );
         }(),
         value: p[k] == true,
         onChanged: (v) async {

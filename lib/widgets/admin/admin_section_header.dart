@@ -41,7 +41,12 @@ class AdminSectionHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: AppTheme.h2),
+                    Text(
+                      title,
+                      style: AppTheme.h2,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -50,6 +55,8 @@ class AdminSectionHeader extends StatelessWidget {
                           color: AppTheme.textSecondary,
                           height: 1.5,
                         ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ],

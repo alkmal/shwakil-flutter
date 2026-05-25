@@ -375,13 +375,15 @@ class _AdminPrepaidMultipayApprovalsScreenState
                       ),
                     )
                   else
-                    for (final entry in _cards.asMap().entries)
-                      Padding(
-                        padding: EdgeInsets.only(
-                          bottom: entry.key == _cards.length - 1 ? 0 : 12,
-                        ),
-                        child: _buildApprovalCard(entry.value),
-                      ),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _cards.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) =>
+                          _buildApprovalCard(_cards[index]),
+                    ),
                 ],
               ],
             ),

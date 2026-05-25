@@ -72,8 +72,18 @@ class AdminLocationCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: AppTheme.bodyBold),
-                    Text('$type • $address', style: AppTheme.caption),
+                    Text(
+                      title,
+                      style: AppTheme.bodyBold,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '$type • $address',
+                      style: AppTheme.caption,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -104,7 +114,9 @@ class AdminLocationCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color:
-                          (isActive ? AppTheme.secondary : AppTheme.textTertiary)
+                          (isActive
+                                  ? AppTheme.secondary
+                                  : AppTheme.textTertiary)
                               .withValues(alpha: 0.1),
                       borderRadius: AppTheme.radiusSm,
                     ),
@@ -132,9 +144,12 @@ class AdminLocationCard extends StatelessWidget {
                 params: {'account': linkedDisplay},
               ),
               style: AppTheme.caption.copyWith(color: AppTheme.primary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
-          if (createdByDisplay.isNotEmpty && createdByDisplay != linkedDisplay) ...[
+          if (createdByDisplay.isNotEmpty &&
+              createdByDisplay != linkedDisplay) ...[
             const SizedBox(height: 4),
             Text(
               l.tr(
@@ -142,6 +157,8 @@ class AdminLocationCard extends StatelessWidget {
                 params: {'account': createdByDisplay},
               ),
               style: AppTheme.caption,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
           const SizedBox(height: 16),

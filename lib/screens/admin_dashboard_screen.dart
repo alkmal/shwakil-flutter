@@ -873,18 +873,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       : constraints.maxWidth > 740
                       ? 2
                       : 1;
-                  final childAspectRatio = constraints.maxWidth > 1120
-                      ? 1.38
+                  final tileExtent = constraints.maxWidth > 1120
+                      ? 300.0
                       : constraints.maxWidth > 740
-                      ? 1.15
-                      : 1.26;
+                      ? 320.0
+                      : 340.0;
                   return GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: crossAxisCount,
                     mainAxisSpacing: 14,
                     crossAxisSpacing: 14,
-                    childAspectRatio: childAspectRatio,
+                    mainAxisExtent: tileExtent,
                     children: adminWidgets,
                   );
                 },
@@ -1004,11 +1004,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ),
                     )
                   else
-                    ...topDebtors.map(
-                      (customer) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _debtCustomerRow(customer),
-                      ),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: topDebtors.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) =>
+                          _debtCustomerRow(topDebtors[index]),
                     ),
                 ],
               ),
@@ -1197,6 +1199,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Text(
                   UserDisplayName.fromMap(customer, fallback: '-'),
                   style: AppTheme.bodyBold,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -1204,6 +1208,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ? phone
                       : context.loc.tr('screens_admin_dashboard_screen.086'),
                   style: AppTheme.caption,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -1212,6 +1218,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Text(
             CurrencyFormatter.ils(balance),
             style: AppTheme.bodyBold.copyWith(color: AppTheme.warning),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

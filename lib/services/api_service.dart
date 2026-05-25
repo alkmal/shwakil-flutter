@@ -790,11 +790,15 @@ class ApiService {
   Future<Map<String, dynamic>> approvePendingWithdrawalRequest(
     String requestId, {
     required String approvalImageBase64,
+    String notes = '',
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/withdrawals/$requestId/approve'),
       headers: await _headers(),
-      body: jsonEncode({'approvalImageBase64': approvalImageBase64}),
+      body: jsonEncode({
+        'approvalImageBase64': approvalImageBase64,
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+      }),
     );
     return _decodeObject(response);
   }
@@ -814,11 +818,16 @@ class ApiService {
   Future<Map<String, dynamic>> rejectPendingWithdrawalRequest(
     String requestId, {
     String notes = '',
+    String approvalImageBase64 = '',
   }) async {
     final response = await http.post(
       AppConfig.apiUri('admin/withdrawals/$requestId/reject'),
       headers: await _headers(),
-      body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
+      body: jsonEncode({
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+        if (approvalImageBase64.trim().isNotEmpty)
+          'approvalImageBase64': approvalImageBase64.trim(),
+      }),
     );
     return _decodeObject(response);
   }
@@ -1861,8 +1870,13 @@ class ApiService {
         ? approvePendingWithdrawalRequest(
             requestId,
             approvalImageBase64: approvalImageBase64,
+            notes: notes,
           )
-        : rejectPendingWithdrawalRequest(requestId, notes: notes);
+        : rejectPendingWithdrawalRequest(
+            requestId,
+            notes: notes,
+            approvalImageBase64: approvalImageBase64,
+          );
   }
 
   Future<Map<String, dynamic>> reviewTopupRequest(
