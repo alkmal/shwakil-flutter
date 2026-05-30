@@ -47,11 +47,13 @@ class AuthRequestException implements Exception {
     this.message, {
     this.deviceApprovalRequired = false,
     this.deviceApprovalPending = false,
+    this.deviceSessionOtpRequired = false,
   });
 
   final String message;
   final bool deviceApprovalRequired;
   final bool deviceApprovalPending;
+  final bool deviceSessionOtpRequired;
 
   @override
   String toString() => message;
@@ -109,6 +111,10 @@ class AuthService {
     final headers = await AppVersionService.publicHeaders(
       includeJsonContentType: true,
     );
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    if (deviceId.trim().isNotEmpty) {
+      headers['X-Device-Id'] = deviceId.trim();
+    }
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -117,6 +123,10 @@ class AuthService {
 
   Future<Map<String, String>> _requestHeaders({String? token}) async {
     final headers = await AppVersionService.publicHeaders();
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    if (deviceId.trim().isNotEmpty) {
+      headers['X-Device-Id'] = deviceId.trim();
+    }
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -343,6 +353,46 @@ class AuthService {
     await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<OtpRequestResult> requestDeviceSessionOtp() async {
+    final authToken = await token();
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final response = await _postWithFallback(
+      'auth/device-session/request-otp',
+      token: authToken,
+      body: {'deviceId': deviceId},
+    );
+    if (response.statusCode >= 400) {
+      throw _exceptionFromResponse(response.body);
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if ((body['token']?.toString() ?? '').isNotEmpty) {
+      await _saveAuthPayload(body);
+    }
+    return OtpRequestResult(
+      message: body['message']?.toString(),
+      whatsapp: body['whatsapp']?.toString(),
+      debugOtpCode: body['debugOtpCode']?.toString(),
+      otpRequired: body['otpRequired'] is bool
+          ? body['otpRequired'] as bool
+          : null,
+    );
+  }
+
+  Future<void> confirmDeviceSessionOtp({required String otpCode}) async {
+    final authToken = await token();
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final response = await _postWithFallback(
+      'auth/device-session/confirm',
+      token: authToken,
+      body: {'deviceId': deviceId, 'otpCode': otpCode.trim()},
+    );
+    if (response.statusCode >= 400) {
+      throw _exceptionFromResponse(response.body);
+    }
+    await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   Future<void> logout() async {
     final prefs = await _prefs();
     await prefs.remove(_tokenKey);
@@ -447,7 +497,17 @@ class AuthService {
       throw Exception(_extractMessage(response.body));
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    await cacheCurrentUser(Map<String, dynamic>.from(body['user'] as Map));
+    if (body['authenticated'] == false) {
+      throw const AuthRequestException(
+        'يتطلب تأكيد الجهاز من جديد.',
+        deviceSessionOtpRequired: true,
+      );
+    }
+    if ((body['token']?.toString() ?? '').isNotEmpty) {
+      await _saveAuthPayload(body);
+    } else {
+      await cacheCurrentUser(Map<String, dynamic>.from(body['user'] as Map));
+    }
     assert(() {
       // ignore: avoid_print
       print('[auth] GET auth/me ${stopwatch.elapsed.inMilliseconds}ms');
@@ -616,6 +676,7 @@ class AuthService {
           message,
           deviceApprovalRequired: decoded['deviceApprovalRequired'] == true,
           deviceApprovalPending: decoded['deviceApprovalPending'] == true,
+          deviceSessionOtpRequired: decoded['deviceSessionOtpRequired'] == true,
         );
       }
     } catch (_) {}
@@ -630,12 +691,17 @@ class AuthService {
   Future<http.Response> _postWithFallback(
     String path, {
     required Map<String, dynamic> body,
+    String? token,
   }) async {
     Object? lastError;
     for (final uri in AppConfig.apiCandidateUris(path)) {
       try {
         return await _client
-            .post(uri, headers: await _jsonHeaders(), body: jsonEncode(body))
+            .post(
+              uri,
+              headers: await _jsonHeaders(token: token),
+              body: jsonEncode(body),
+            )
             .timeout(_requestTimeout);
       } on TimeoutException catch (error) {
         lastError = error;

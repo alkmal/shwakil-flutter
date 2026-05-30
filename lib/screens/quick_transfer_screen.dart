@@ -1,21 +1,32 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
-import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class QuickTransferScreen extends StatefulWidget {
-  const QuickTransferScreen({super.key});
+  const QuickTransferScreen({
+    super.key,
+    this.initialTab = 0,
+    this.merchantReceiveOnly = false,
+  });
+
+  final int initialTab;
+  final bool merchantReceiveOnly;
 
   @override
   State<QuickTransferScreen> createState() => _QuickTransferScreenState();
@@ -25,27 +36,33 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   final AuthService _auth = AuthService();
   final ApiService _api = ApiService();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
 
   Map<String, dynamic>? _user;
-  Map<String, dynamic>? _recipient;
+  Map<String, dynamic>? _lastTransferReport;
+  pw.Font? _pdfRegularFont;
+  pw.Font? _pdfBoldFont;
   bool _isLoading = true;
   bool _canTransfer = false;
   bool _isLookingUpRecipient = false;
   bool _isTransfering = false;
   int _activeTab = 0;
-  bool _showLookupTools = false;
 
   String _t(String key) => context.loc.tr(key);
 
   @override
   void initState() {
     super.initState();
+    _activeTab = widget.merchantReceiveOnly
+        ? 1
+        : widget.initialTab.clamp(0, 1);
     _load();
   }
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _amountController.dispose();
     super.dispose();
   }
 
@@ -73,56 +90,22 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     'phone': PhoneNumberService.localDisplay(_user?['whatsapp']?.toString()),
   });
 
-  Future<void> _scan() async {
-    final scannedValue = await showDialog<String>(
-      context: context,
-      builder: (_) => BarcodeScannerDialog(
-        title: _t('screens_quick_transfer_screen.005'),
-        description: context.loc.tr('screens_quick_transfer_screen.044'),
-        height: 320,
-        onCancelLabel: _t('screens_quick_transfer_screen.006'),
-      ),
-    );
-    if (scannedValue != null && scannedValue.isNotEmpty) {
-      await _startTransferFromQr(scannedValue);
-    }
-  }
-
-  Future<void> _startTransferFromQr(String raw) async {
-    try {
-      final payload = Map<String, dynamic>.from(jsonDecode(raw));
-      if (payload['type'] != 'shwakel_transfer') {
-        throw _t('screens_quick_transfer_screen.007');
-      }
-      if (payload['userId'] == _user?['id']?.toString()) {
-        throw _t('screens_quick_transfer_screen.008');
-      }
-
-      final recipient = <String, dynamic>{
-        'id': payload['userId']?.toString() ?? '',
-        'username':
-            payload['username']?.toString() ??
-            _t('screens_quick_transfer_screen.009'),
-        'whatsapp': payload['phone']?.toString() ?? '',
-        'role': '',
-      };
-      await _startTransferToRecipient(recipient);
-    } catch (error) {
-      if (!mounted) return;
-      await AppAlertService.showError(
-        context,
-        message: ErrorMessageService.sanitize(error),
-      );
-    }
-  }
-
   Future<void> _lookupRecipient() async {
     final rawPhone = _phoneController.text.trim();
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
     if (rawPhone.isEmpty) {
       await AppAlertService.showError(
         context,
         title: _t('screens_quick_transfer_screen.010'),
         message: _t('screens_quick_transfer_screen.023'),
+      );
+      return;
+    }
+    if (amount <= 0) {
+      await AppAlertService.showError(
+        context,
+        title: _t('screens_quick_transfer_screen.049'),
+        message: _t('screens_quick_transfer_screen.050'),
       );
       return;
     }
@@ -137,10 +120,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         response['user'] as Map? ?? const <String, dynamic>{},
       );
       if (!mounted) return;
-      setState(() => _recipient = recipient);
+      await _startTransferToRecipient(recipient);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _recipient = null);
       await AppAlertService.showError(
         context,
         title: _t('screens_quick_transfer_screen.024'),
@@ -170,18 +152,37 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       return;
     }
 
-    final amount = await _askAmount(recipient);
-    if (amount == null || amount <= 0) {
-      if (amount != null && mounted) {
-        await AppAlertService.showError(
-          context,
-          title: _t('screens_quick_transfer_screen.049'),
-          message: _t('screens_quick_transfer_screen.050'),
-        );
-      }
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
+    if (amount <= 0) {
+      await AppAlertService.showError(
+        context,
+        title: _t('screens_quick_transfer_screen.049'),
+        message: _t('screens_quick_transfer_screen.050'),
+      );
       return;
     }
     if (!mounted) return;
+
+    final fee = _transferFee(amount);
+    final creditedAmount = double.parse((amount - fee).toStringAsFixed(2));
+    if (creditedAmount <= 0) {
+      await AppAlertService.showError(
+        context,
+        title: 'قيمة غير صالحة',
+        message: 'المبلغ بعد الخصم غير صالح للتحويل.',
+      );
+      return;
+    }
+
+    final confirmed = await _showTransferConfirmation(
+      recipient: recipient,
+      amount: amount,
+      fee: fee,
+      creditedAmount: creditedAmount,
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
 
     final securityResult = await TransferSecurityService.confirmTransfer(
       context,
@@ -198,7 +199,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       setState(() => _isTransfering = true);
       _showTransferProgressDialog();
       progressShown = true;
-      await _api.transferBalance(
+      final response = await _api.transferBalance(
         recipientId: recipientId,
         amount: amount,
         otpCode: securityResult.otpCode,
@@ -210,11 +211,16 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       if (progressShown) {
         Navigator.of(context, rootNavigator: true).maybePop();
       }
-      await AppAlertService.showSuccess(
-        context,
-        title: _t('screens_quick_transfer_screen.012'),
-        message: _t('screens_quick_transfer_screen.026'),
+      final report = _buildTransferReport(
+        recipient: recipient,
+        requestedAmount: amount,
+        response: response,
       );
+      setState(() {
+        _lastTransferReport = report;
+        _amountController.clear();
+      });
+      await _showTransferReport(report);
     } catch (error) {
       if (!mounted) return;
       if (progressShown) {
@@ -263,13 +269,25 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     );
   }
 
-  Future<double?> _askAmount(Map<String, dynamic> recipient) {
-    return showDialog<double>(
+  double _transferFee(double amount) {
+    final percent =
+        (_user?['effectiveTransferFeePercent'] as num?)?.toDouble() ??
+        (_user?['customTransferFeePercent'] as num?)?.toDouble() ??
+        1.0;
+    return double.parse((amount * (percent / 100)).toStringAsFixed(2));
+  }
+
+  Future<bool?> _showTransferConfirmation({
+    required Map<String, dynamic> recipient,
+    required double amount,
+    required double fee,
+    required double creditedAmount,
+  }) {
+    return showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        final amountController = TextEditingController();
         return AlertDialog(
-          title: Text(_t('screens_quick_transfer_screen.013')),
+          title: const Text('تأكيد التحويل'),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -277,17 +295,17 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _RecipientPreviewCard(recipient: recipient),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: _t('screens_quick_transfer_screen.027'),
-                    prefixIcon: const Icon(Icons.payments_rounded),
-                    helperText: _t('screens_quick_transfer_screen.052'),
-                  ),
+                const SizedBox(height: 16),
+                _transferDetailRow(
+                  'قيمة التحويل',
+                  CurrencyFormatter.ils(amount),
+                ),
+                const SizedBox(height: 8),
+                _transferDetailRow('قيمة الخصم', CurrencyFormatter.ils(fee)),
+                const SizedBox(height: 8),
+                _transferDetailRow(
+                  'الصافي للمستلم',
+                  CurrencyFormatter.ils(creditedAmount),
                 ),
               ],
             ),
@@ -298,18 +316,202 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               child: Text(_t('screens_quick_transfer_screen.014')),
             ),
             ShwakelButton(
-              label: _t('screens_quick_transfer_screen.015'),
+              label: 'تأكيد',
               width: 140,
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  double.tryParse(amountController.text.trim()),
-                );
+                Navigator.pop(dialogContext, true);
               },
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _transferDetailRow(String label, String value) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(value, style: AppTheme.bodyBold),
+      ],
+    );
+  }
+
+  Map<String, dynamic> _buildTransferReport({
+    required Map<String, dynamic> recipient,
+    required double requestedAmount,
+    required Map<String, dynamic> response,
+  }) {
+    final fee =
+        (response['fee'] as num?)?.toDouble() ?? _transferFee(requestedAmount);
+    final credited =
+        (response['creditedAmount'] as num?)?.toDouble() ??
+        double.parse((requestedAmount - fee).toStringAsFixed(2));
+    return {
+      'status': response['pendingApproval'] == true ? 'pending' : 'completed',
+      'message':
+          response['message']?.toString() ??
+          _t('screens_quick_transfer_screen.026'),
+      'recipient': recipient,
+      'amount':
+          (response['grossAmount'] as num?)?.toDouble() ?? requestedAmount,
+      'fee': fee,
+      'creditedAmount': credited,
+      'balance': (response['balance'] as num?)?.toDouble(),
+      'requestId': response['requestId']?.toString() ?? '',
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Future<void> _showTransferReport(Map<String, dynamic> report) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تقرير التحويل'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: SingleChildScrollView(child: _transferReportCard(report)),
+        ),
+        actions: [
+          ShwakelButton(
+            label: 'تحميل التقرير',
+            icon: Icons.picture_as_pdf_rounded,
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await _shareTransferReportPdf(report);
+            },
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _transferReportCard(Map<String, dynamic> report) {
+    final recipient = Map<String, dynamic>.from(
+      report['recipient'] as Map? ?? const {},
+    );
+    return ShwakelCard(
+      padding: const EdgeInsets.all(16),
+      color: AppTheme.surfaceVariant,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                report['status'] == 'pending'
+                    ? Icons.pending_actions_rounded
+                    : Icons.check_circle_rounded,
+                color: report['status'] == 'pending'
+                    ? AppTheme.warning
+                    : AppTheme.success,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  report['message']?.toString() ?? '',
+                  style: AppTheme.bodyBold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _RecipientPreviewCard(recipient: recipient),
+          const SizedBox(height: 14),
+          _transferDetailRow(
+            'قيمة التحويل',
+            CurrencyFormatter.ils(_reportNum(report, 'amount')),
+          ),
+          const SizedBox(height: 8),
+          _transferDetailRow(
+            'قيمة الخصم',
+            CurrencyFormatter.ils(_reportNum(report, 'fee')),
+          ),
+          const SizedBox(height: 8),
+          _transferDetailRow(
+            'الصافي للمستلم',
+            CurrencyFormatter.ils(_reportNum(report, 'creditedAmount')),
+          ),
+          if (report['balance'] is num) ...[
+            const SizedBox(height: 8),
+            _transferDetailRow(
+              'رصيدك بعد العملية',
+              CurrencyFormatter.ils(_reportNum(report, 'balance')),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  double _reportNum(Map<String, dynamic> report, String key) =>
+      (report[key] as num?)?.toDouble() ?? 0;
+
+  Future<void> _shareTransferReportPdf(Map<String, dynamic> report) async {
+    _pdfRegularFont ??= pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSansArabic-Regular.ttf'),
+    );
+    _pdfBoldFont ??= pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSansArabic-Bold.ttf'),
+    );
+    final recipient = Map<String, dynamic>.from(
+      report['recipient'] as Map? ?? const {},
+    );
+    final recipientName = UserDisplayName.fromMap(recipient, fallback: '-');
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(
+          base: _pdfRegularFont!,
+          bold: _pdfBoldFont!,
+        ),
+        build: (_) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'تقرير تحويل شواكل',
+                style: pw.TextStyle(fontSize: 22, font: _pdfBoldFont),
+              ),
+              pw.SizedBox(height: 18),
+              pw.Text(
+                'الحالة: ${report['status'] == 'pending' ? 'بانتظار الموافقة' : 'مكتمل'}',
+              ),
+              pw.Text('المستلم: $recipientName'),
+              pw.Text(
+                'قيمة التحويل: ${CurrencyFormatter.ils(_reportNum(report, 'amount'))}',
+              ),
+              pw.Text(
+                'قيمة الخصم: ${CurrencyFormatter.ils(_reportNum(report, 'fee'))}',
+              ),
+              pw.Text(
+                'الصافي للمستلم: ${CurrencyFormatter.ils(_reportNum(report, 'creditedAmount'))}',
+              ),
+              if (report['balance'] is num)
+                pw.Text(
+                  'رصيدك بعد العملية: ${CurrencyFormatter.ils(_reportNum(report, 'balance'))}',
+                ),
+              pw.Text('وقت التنفيذ: ${report['createdAt'] ?? ''}'),
+            ],
+          ),
+        ),
+      ),
+    );
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'shwakel-transfer-report.pdf',
     );
   }
 
@@ -322,7 +524,11 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: Text(_t('screens_quick_transfer_screen.016')),
+          title: Text(
+            widget.merchantReceiveOnly
+                ? 'استلام التاجر'
+                : _t('screens_quick_transfer_screen.016'),
+          ),
           actions: [
             IconButton(
               tooltip: context.loc.tr('screens_admin_customers_screen.041'),
@@ -349,20 +555,12 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(_t('screens_quick_transfer_screen.016')),
+        title: Text(
+          widget.merchantReceiveOnly
+              ? 'استلام التاجر'
+              : _t('screens_quick_transfer_screen.016'),
+        ),
         actions: [
-          IconButton(
-            tooltip: _showLookupTools
-                ? context.loc.tr('screens_quick_transfer_screen.040')
-                : context.loc.tr('screens_quick_transfer_screen.041'),
-            onPressed: () =>
-                setState(() => _showLookupTools = !_showLookupTools),
-            icon: Icon(
-              _showLookupTools
-                  ? Icons.search_off_rounded
-                  : Icons.manage_search_rounded,
-            ),
-          ),
           IconButton(
             tooltip: context.loc.tr('screens_admin_customers_screen.041'),
             onPressed: _showHelpDialog,
@@ -379,8 +577,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTransferTabs(),
-              const SizedBox(height: 18),
+              if (!widget.merchantReceiveOnly) ...[
+                _buildTransferTabs(),
+                const SizedBox(height: 18),
+              ],
               _buildActiveTransferView(),
             ],
           ),
@@ -499,6 +699,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         children: [
           _buildTransferStatusCard(),
           const SizedBox(height: 18),
+          _buildMerchantReceiveCard(),
+          const SizedBox(height: 18),
           _buildMyCode(),
         ],
       );
@@ -508,11 +710,11 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       children: [
         _buildTransferStatusCard(),
         const SizedBox(height: 18),
-        if (_showLookupTools) ...[
-          _buildLookupCard(compact: true),
+        _buildLookupCard(compact: true),
+        if (_lastTransferReport != null) ...[
           const SizedBox(height: 18),
+          _transferReportCard(_lastTransferReport!),
         ],
-        _buildScanCard(),
       ],
     );
   }
@@ -568,8 +770,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeading(
-            title: context.loc.tr('screens_quick_transfer_screen.038'),
-            subtitle: context.loc.tr('screens_quick_transfer_screen.039'),
+            title: 'تحويل سريع',
+            subtitle:
+                'أدخل رقم الهاتف والقيمة فقط، ثم راجع تفاصيل التحويل قبل التأكيد.',
             icon: Icons.phone_iphone_rounded,
           ),
           const SizedBox(height: 18),
@@ -584,13 +787,29 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                 ),
                 onSubmitted: (_) => _lookupRecipient(),
               );
-              return phoneField;
+              return Column(
+                children: [
+                  phoneField,
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: _t('screens_quick_transfer_screen.027'),
+                      prefixIcon: const Icon(Icons.payments_rounded),
+                    ),
+                    onSubmitted: (_) => _lookupRecipient(),
+                  ),
+                ],
+              );
             },
           ),
           const SizedBox(height: 16),
           ShwakelButton(
-            label: _t('screens_quick_transfer_screen.018'),
-            icon: Icons.search_rounded,
+            label: 'متابعة التحويل',
+            icon: Icons.arrow_forward_rounded,
             gradient: AppTheme.primaryGradient,
             isLoading: _isLookingUpRecipient || _isTransfering,
             onPressed: (_canTransfer && !_isTransfering)
@@ -623,101 +842,22 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               ),
             ),
           ],
-          if (_recipient != null) ...[
-            const SizedBox(height: 18),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: AppTheme.cardHighlightGradient,
-                borderRadius: AppTheme.radiusMd,
-                border: Border.all(color: AppTheme.borderLight),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _t('screens_quick_transfer_screen.019'),
-                    style: AppTheme.bodyBold,
-                  ),
-                  const SizedBox(height: 14),
-                  _RecipientPreviewCard(recipient: _recipient!),
-                  const SizedBox(height: 14),
-                  Text(
-                    _t('screens_quick_transfer_screen.032'),
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ShwakelButton(
-                    label: _t('screens_quick_transfer_screen.033'),
-                    icon: Icons.send_rounded,
-                    isLoading: _isTransfering,
-                    onPressed: (_canTransfer && !_isTransfering)
-                        ? () => _startTransferToRecipient(_recipient!)
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildScanCard() {
+  Widget _buildMerchantReceiveCard() {
     return ShwakelCard(
       padding: const EdgeInsets.all(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeading(
-            title: _t('screens_quick_transfer_screen.020'),
-            subtitle: _t('screens_quick_transfer_screen.034'),
-            icon: Icons.qr_code_scanner_rounded,
-            accent: AppTheme.accent,
-          ),
-          const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppTheme.accentSoft,
-              borderRadius: AppTheme.radiusMd,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 82,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Icon(
-                    Icons.qr_code_2_rounded,
-                    color: AppTheme.accent,
-                    size: 42,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  context.loc.tr('screens_quick_transfer_screen.045'),
-                  style: AppTheme.h3.copyWith(fontSize: 17),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          ShwakelButton(
-            label: _t('screens_quick_transfer_screen.021'),
-            icon: Icons.qr_code_scanner_rounded,
-            isSecondary: true,
-            onPressed: _canTransfer ? _scan : null,
-          ),
-        ],
+      borderRadius: BorderRadius.circular(24),
+      shadowLevel: ShwakelShadowLevel.medium,
+      child: _buildSectionHeading(
+        title: 'شاشة الاستلام للتاجر',
+        subtitle:
+            'اعرض رمزك للعميل ليستطيع تحديد حسابك، أو استخدم شاشة فحص البطاقات لقبول الدفعات والبطاقات.',
+        icon: Icons.storefront_rounded,
+        accent: AppTheme.secondary,
       ),
     );
   }

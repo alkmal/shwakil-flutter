@@ -15,7 +15,9 @@ import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class CreateCardScreen extends StatefulWidget {
-  const CreateCardScreen({super.key});
+  const CreateCardScreen({super.key, this.quickMode = false});
+
+  final bool quickMode;
 
   @override
   State<CreateCardScreen> createState() => _CreateCardScreenState();
@@ -55,6 +57,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool _isLoading = false;
   bool _isLoadingUser = true;
   bool _isAuthorized = false;
+  bool _quickMode = false;
   bool _showLogo = true;
   bool _showStamp = true;
   bool _useAccountLogo = true;
@@ -83,6 +86,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
     _didLoadDependencies = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (widget.quickMode || (args is Map && args['quick'] == true)) {
+      _quickMode = true;
+      _qtyC.text = '1';
+    }
     _load();
   }
 
@@ -147,6 +155,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         }
         if (_cardType.isEmpty && issuableCardTypes.length == 1) {
           _applyCardTypeDefaults(issuableCardTypes.first);
+          _currentStep = 1;
+        }
+        if (_quickMode) {
+          final quickType = issuableCardTypes.contains('standard')
+              ? 'standard'
+              : (issuableCardTypes.isNotEmpty ? issuableCardTypes.first : '');
+          if (quickType.isNotEmpty) {
+            _applyCardTypeDefaults(quickType);
+          }
+          _qtyC.text = '1';
           _currentStep = 1;
         }
         if (isTrialMode) {
@@ -507,7 +525,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (quantity < _minimumCardQuantity) {
+    if (!_quickMode && quantity < _minimumCardQuantity) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
@@ -948,6 +966,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Map<String, dynamic>? _currentCardDetails() {
     final details = <String, dynamic>{};
+    if (_quickMode) {
+      details['quickIssue'] = true;
+    }
     if (_detailsTitleC.text.trim().isNotEmpty) {
       details['title'] = _detailsTitleC.text.trim();
     }
@@ -1374,6 +1395,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                if (_quickMode && cards.length == 1) ...[
+                  _buildQuickIssuedCard(cards.first),
+                  const SizedBox(height: 14),
+                ],
                 if (cards.isNotEmpty) _buildIssuedCardsDetails(cards),
               ],
             ),
@@ -1391,6 +1416,20 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   await _saveCardsPdf(cards);
                 },
               ),
+              if (_quickMode &&
+                  cards.length == 1 &&
+                  cards.first.status == CardStatus.unused) ...[
+                const SizedBox(height: 8),
+                ShwakelButton(
+                  label: 'إلغاء البطاقة واسترجاع الرصيد',
+                  icon: Icons.undo_rounded,
+                  isSecondary: true,
+                  onPressed: () async {
+                    Navigator.pop(dialogContext);
+                    await _cancelIssuedCard(cards.first);
+                  },
+                ),
+              ],
               if (_canRequestCardPrinting) ...[
                 const SizedBox(height: 8),
                 ShwakelButton(
@@ -1423,6 +1462,80 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildQuickIssuedCard(VirtualCard card) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(14),
+      color: AppTheme.surface,
+      borderColor: AppTheme.primary.withValues(alpha: 0.16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.offline_bolt_rounded, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'البطاقة جاهزة للاستخدام المباشر',
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildCardPreviewWidget(card, serialNumber: 1),
+          const SizedBox(height: 10),
+          _buildPreviewSummaryRow('رقم البطاقة', card.barcode),
+          const SizedBox(height: 8),
+          _buildPreviewSummaryRow('القيمة', CurrencyFormatter.ils(card.value)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cancelIssuedCard(VirtualCard card) async {
+    if (card.status != CardStatus.unused) {
+      await AppAlertService.showError(
+        context,
+        title: 'لا يمكن إلغاء البطاقة',
+        message: 'يمكن إلغاء البطاقة فقط قبل استخدامها.',
+      );
+      return;
+    }
+    try {
+      setState(() => _isLoading = true);
+      await _apiService.deleteCard(card.id);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _recent = _recent.where((item) => item.id != card.id).toList();
+      });
+      await _load();
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم إلغاء البطاقة',
+        message: 'تم إلغاء البطاقة غير المستخدمة واسترجاع الرصيد حسب النظام.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إلغاء البطاقة',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Widget _buildIssuedCardsDetails(List<VirtualCard> cards) {
@@ -1686,7 +1799,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(l.tr('screens_create_card_screen.029')),
+        title: Text(
+          _quickMode
+              ? 'إنشاء بطاقة سريعة'
+              : l.tr('screens_create_card_screen.029'),
+        ),
         actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
@@ -1698,8 +1815,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildCreationStepper(),
-                  if (_recent.isNotEmpty) ...[
+                  if (_quickMode)
+                    _buildQuickCreationFlow()
+                  else
+                    _buildCreationStepper(),
+                  if (!_quickMode && _recent.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     _buildRecent(),
                   ],
@@ -1708,6 +1828,126 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
           ),
           if (_isLoading) _buildLoadingOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickCreationFlow() {
+    final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
+    final issuedCard = _recent.isNotEmpty ? _recent.first : null;
+    final canIssue = (double.tryParse(_amountC.text.trim()) ?? 0) > 0;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 720),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ShwakelCard(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primarySoft,
+                        borderRadius: AppTheme.radiusMd,
+                      ),
+                      child: const Icon(
+                        Icons.offline_bolt_rounded,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('بطاقة جاهزة للاستخدام', style: AppTheme.h3),
+                          const SizedBox(height: 4),
+                          Text(
+                            'أدخل القيمة فقط، ثم استخدم البطاقة مباشرة من الشاشة.',
+                            style: AppTheme.bodyText.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                TextField(
+                  controller: _amountC,
+                  enabled: issuedCard == null,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'قيمة البطاقة',
+                    prefixIcon: Icon(Icons.payments_rounded),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildPreviewSummaryRow(
+                  'الرصيد الحالي',
+                  CurrencyFormatter.ils(balance),
+                ),
+                const SizedBox(height: 8),
+                _buildPreviewSummaryRow(
+                  'الخصم عند الإنشاء',
+                  CurrencyFormatter.ils(_currentTotalChargeNow),
+                ),
+                const SizedBox(height: 18),
+                if (issuedCard == null)
+                  ShwakelButton(
+                    label: 'إنشاء البطاقة الآن',
+                    icon: Icons.add_card_rounded,
+                    onPressed: canIssue ? _create : null,
+                    isLoading: _isLoading,
+                  )
+                else ...[
+                  ShwakelButton(
+                    label: 'إنشاء بطاقة أخرى',
+                    icon: Icons.add_rounded,
+                    isSecondary: true,
+                    onPressed: () {
+                      setState(() {
+                        _recent = [];
+                        _amountC.clear();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => _openRoute('/create-card'),
+                    icon: const Icon(Icons.tune_rounded),
+                    label: const Text('فتح خيارات إنشاء البطاقات الكاملة'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (issuedCard != null) ...[
+            const SizedBox(height: 20),
+            _buildQuickIssuedCard(issuedCard),
+            if (issuedCard.status == CardStatus.unused) ...[
+              const SizedBox(height: 12),
+              ShwakelButton(
+                label: 'إلغاء البطاقة واسترجاع الرصيد',
+                icon: Icons.undo_rounded,
+                isDanger: true,
+                onPressed: () => _cancelIssuedCard(issuedCard),
+                isLoading: _isLoading,
+              ),
+            ],
+          ],
         ],
       ),
     );

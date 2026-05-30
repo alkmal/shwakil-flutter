@@ -96,6 +96,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/unlock': (context) => const DeviceUnlockScreen(),
   '/balance': (context) => const BalanceScreen(),
   '/create-card': (context) => const CreateCardScreen(),
+  '/create-card-quick': (context) => const CreateCardScreen(quickMode: true),
   '/prepaid-multipay-cards': (context) {
     final args = ModalRoute.of(context)?.settings.arguments;
     final options = args is Map ? args : const <String, dynamic>{};
@@ -158,6 +159,8 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/security-settings': (context) => const SecuritySettingsScreen(),
   '/account-settings': (context) => const AccountSettingsScreen(),
   '/affiliate-center': (context) => const AffiliateCenterScreen(),
+  '/merchant-receive': (context) =>
+      const QuickTransferScreen(initialTab: 1, merchantReceiveOnly: true),
   '/admin-dashboard': (context) => const AdminDashboardScreen(),
   '/admin-debt-book': (context) => const AdminDebtBookScreen(),
   '/admin-card-print-requests': (context) =>
@@ -228,6 +231,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/balance' => permissions.canViewBalance,
     '/notifications' => true,
     '/create-card' => permissions.canIssueCards,
+    '/create-card-quick' => permissions.canIssueCards,
     '/card-print-requests' => permissions.canRequestCardPrinting,
     '/card-usage-report' =>
       permissions.canIssueCards ||
@@ -253,6 +257,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/sub-users' => permissions.canViewSubUsers,
     '/debt-book' => permissions.canManageDebtBook,
     '/affiliate-center' => permissions.canViewAffiliateCenter,
+    '/merchant-receive' => permissions.canTransfer,
     '/usage-policy' => permissions.canViewUsagePolicy,
     '/contact-us' => permissions.canViewContact,
     '/support-tickets' => true,

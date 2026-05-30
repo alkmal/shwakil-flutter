@@ -48,7 +48,7 @@ class _AppSidebarState extends State<AppSidebar> {
     );
   }
 
-  Future<void> _openRoute(String routeName) async {
+  Future<void> _openRoute(String routeName, {Object? arguments}) async {
     final normalizedRoute =
         OfflineSessionService.isOfflineMode && routeName == '/scan-card'
         ? '/scan-card-offline'
@@ -70,7 +70,7 @@ class _AppSidebarState extends State<AppSidebar> {
         (currentRoute == '/app-shell' && normalizedRoute == '/home')) {
       return;
     }
-    navigator.pushNamed(normalizedRoute);
+    navigator.pushNamed(normalizedRoute, arguments: arguments);
   }
 
   @override
@@ -204,6 +204,13 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.011'),
                           routeName: '/quick-transfer',
                         ),
+                      if (canTransfer)
+                        _buildItem(
+                          context,
+                          icon: Icons.storefront_rounded,
+                          title: 'استلام التاجر',
+                          routeName: '/merchant-receive',
+                        ),
                       if (canWithdraw)
                         _buildItem(
                           context,
@@ -234,6 +241,13 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.add_card_rounded,
+                          title: 'إنشاء بطاقة سريعة',
+                          routeName: '/create-card-quick',
+                        ),
+                      if (canIssueCards)
+                        _buildItem(
+                          context,
+                          icon: Icons.library_add_rounded,
                           title: l.tr('widgets_app_sidebar.047'),
                           routeName: '/create-card',
                         ),
@@ -331,9 +345,24 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.dashboard_customize_rounded,
-                          title: l.tr('widgets_app_sidebar.015'),
+                          title: l.text(
+                            'مركز الإدارة والتقارير',
+                            'Admin center & reports',
+                          ),
                           routeName: '/admin-dashboard',
                         ),
+                        if (permissions.canManageUsers ||
+                            permissions.canReviewDevices ||
+                            permissions.canManageCardPrintRequests)
+                          _buildItem(
+                            context,
+                            icon: Icons.query_stats_rounded,
+                            title: l.text(
+                              'تقارير العمليات',
+                              'Operations reports',
+                            ),
+                            routeName: '/admin-card-scan-reports',
+                          ),
                         if (permissions.canViewCustomers)
                           _buildItem(
                             context,
@@ -624,6 +653,7 @@ class _AppSidebarState extends State<AppSidebar> {
     required IconData icon,
     required String title,
     required String routeName,
+    Object? arguments,
   }) {
     final currentRoute =
         widget.currentRouteName ?? ModalRoute.of(context)?.settings.name;
@@ -690,7 +720,7 @@ class _AppSidebarState extends State<AppSidebar> {
           }
           return;
         }
-        _openRoute(routeName);
+        _openRoute(routeName, arguments: arguments);
       },
     );
   }

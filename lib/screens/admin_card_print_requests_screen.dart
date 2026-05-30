@@ -34,6 +34,7 @@ class _AdminCardPrintRequestsScreenState
   List<Map<String, dynamic>> _requests = const [];
   Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
+  bool _isBootstrapping = true;
   bool _isAuthorized = false;
   String _status = 'all';
   int _page = 1;
@@ -86,10 +87,36 @@ class _AdminCardPrintRequestsScreenState
     });
     final requestedPage = _page;
     try {
-      try {
-        await _authService.tryRefreshCurrentUser();
-      } catch (_) {}
-      final currentUser = await _authService.currentUser();
+      final cachedUser =
+          AuthService.peekCurrentUser() ?? await _authService.currentUser();
+      final cachedPermissions = AppPermissions.fromUser(cachedUser);
+      if (!cachedPermissions.canManageCardPrintRequests) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isAuthorized = false;
+          _isLoading = false;
+          _isBootstrapping = false;
+        });
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _isAuthorized = true;
+          _isBootstrapping = false;
+        });
+      }
+      final results = await Future.wait([
+        _apiService.getCardPrintRequests(
+          status: _status,
+          query: _searchController.text.trim(),
+          page: requestedPage,
+        ),
+        _refreshAndReadCurrentUser(),
+      ]);
+      final payload = Map<String, dynamic>.from(results[0] as Map);
+      final currentUser = results[1];
       final permissions = AppPermissions.fromUser(currentUser);
       if (!permissions.canManageCardPrintRequests) {
         if (!mounted) {
@@ -98,14 +125,11 @@ class _AdminCardPrintRequestsScreenState
         setState(() {
           _isAuthorized = false;
           _isLoading = false;
+          _isBootstrapping = false;
+          _isRefreshing = false;
         });
         return;
       }
-      final payload = await _apiService.getCardPrintRequests(
-        status: _status,
-        query: _searchController.text.trim(),
-        page: requestedPage,
-      );
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
       );
@@ -135,6 +159,7 @@ class _AdminCardPrintRequestsScreenState
         _page = normalizedPage;
         _lastPage = lastPage;
         _isLoading = false;
+        _isBootstrapping = false;
         _isRefreshing = false;
       });
     } catch (error) {
@@ -143,6 +168,7 @@ class _AdminCardPrintRequestsScreenState
       }
       setState(() {
         _isLoading = false;
+        _isBootstrapping = false;
         _isRefreshing = false;
       });
       await AppAlertService.showError(
@@ -153,6 +179,13 @@ class _AdminCardPrintRequestsScreenState
         message: ErrorMessageService.sanitize(error),
       );
     }
+  }
+
+  Future<Map<String, dynamic>?> _refreshAndReadCurrentUser() async {
+    try {
+      await _authService.tryRefreshCurrentUser();
+    } catch (_) {}
+    return _authService.currentUser();
   }
 
   Future<void> _handleAction(
@@ -429,7 +462,7 @@ class _AdminCardPrintRequestsScreenState
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
-    if (_isLoading) {
+    if (_isBootstrapping) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 

@@ -591,7 +591,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'id': item['id']?.toString() ?? '',
       'type': item['type']?.toString() ?? 'general',
       'category': item['category']?.toString() ?? 'general',
-      'title': item['title']?.toString() ?? '',
+      'title': _cleanNotificationText(item['title']),
       'body': _hideStackTraceFromNotificationBody(item['body']),
       'data': _extractDataMap(item['data']),
       'sourceType': item['sourceType']?.toString(),
@@ -616,7 +616,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _hideStackTraceFromNotificationBody(Object? value) {
-    final body = value?.toString() ?? '';
+    final body = _cleanNotificationText(value);
     final markerIndex = body.indexOf('الأثر البرمجي:');
 
     if (markerIndex < 0) {
@@ -627,6 +627,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final stackLine = 'الأثر البرمجي: متوفر في سجلات الخادم';
 
     return beforeMarker.isEmpty ? stackLine : '$beforeMarker\n$stackLine';
+  }
+
+  String _cleanNotificationText(Object? value) {
+    final lines = (value?.toString() ?? '').split(RegExp(r'\r?\n'));
+    return lines
+        .map((line) => line.trim())
+        .where((line) {
+          if (line.isEmpty) {
+            return false;
+          }
+          final lower = line.toLowerCase();
+          return !lower.startsWith('التطبيق:') &&
+              !lower.startsWith('app:') &&
+              !lower.startsWith('app name:');
+        })
+        .join('\n');
   }
 }
 
@@ -648,7 +664,6 @@ class _NotificationCard extends StatelessWidget {
     final amount = (data['amount'] as num?)?.toDouble();
     final categoryColor = _notificationCategoryColor(categoryKind);
     final notificationIcon = _notificationVisualIcon(item);
-    final actor = _notificationActorLabel(data);
     final createdAt = item['createdAt']?.toString() ?? '';
     final isFinancial = categoryKind == _NotificationKind.financial;
     final typeLabel = _notificationTypeLabel(context, item);
@@ -822,8 +837,7 @@ class _NotificationCard extends StatelessWidget {
             children: [
               if (createdAt.trim().isNotEmpty)
                 _InfoChip(icon: Icons.schedule_rounded, label: createdAt),
-              if (actor != null)
-                _InfoChip(icon: Icons.person_rounded, label: actor),
+              ..._notificationPrimaryContextChips(context, data),
             ],
           ),
         ],
@@ -850,9 +864,12 @@ class _NotificationDetailsSheet extends StatelessWidget {
     final description = data['description']?.toString() ?? '';
     final details = data['details']?.toString().trim() ?? '';
     final sentBy =
-        data['sentByDisplayName']?.toString().trim().isNotEmpty == true
-        ? data['sentByDisplayName'].toString().trim()
-        : data['sentByUsername']?.toString().trim() ?? '';
+        _displayUser(
+          data,
+          displayKeys: const ['sentByDisplayName'],
+          usernameKeys: const ['sentByUsername'],
+        ) ??
+        '';
     final actor = _notificationActorLabel(data);
     final priority = data['priority']?.toString().trim() ?? '';
     final actionRoute = data['actionRoute']?.toString().trim() ?? '';
@@ -941,6 +958,7 @@ class _NotificationDetailsSheet extends StatelessWidget {
                         params: {'name': sentBy},
                       ),
                     ),
+                  ..._notificationPrimaryContextChips(context, data),
                   if (actor != null && actor != sentBy)
                     _InfoChip(
                       icon: Icons.person_pin_circle_rounded,
@@ -1406,12 +1424,16 @@ String? _notificationActorLabel(Map<String, dynamic> data) {
       'sentByDisplayName',
       'fromDisplayName',
       'senderDisplayName',
+      'userDisplayName',
+      'accountLabel',
+      'fullName',
     ],
     usernameKeys: const [
       'actorUsername',
       'sentByUsername',
       'fromUsername',
       'senderUsername',
+      'username',
     ],
     metadataDisplayKeys: const ['actorDisplayName', 'byDisplayName'],
     metadataUsernameKeys: const ['actorUsername', 'byUsername'],
@@ -1424,6 +1446,64 @@ String _notificationPriorityLabel(BuildContext context, String priority) {
     'important' => context.loc.tr('screens_notifications_screen.060'),
     _ => context.loc.tr('screens_notifications_screen.062'),
   };
+}
+
+List<Widget> _notificationPrimaryContextChips(
+  BuildContext context,
+  Map<String, dynamic> data,
+) {
+  final chips = <Widget>[];
+  final actor = _notificationActorLabel(data);
+  final from = _displayUser(
+    data,
+    displayKeys: const ['fromDisplayName', 'senderDisplayName'],
+    usernameKeys: const ['fromUsername', 'senderUsername'],
+    metadataDisplayKeys: const ['senderDisplayName', 'sourceDisplayName'],
+    metadataUsernameKeys: const ['senderUsername', 'sourceUsername'],
+  );
+  final to = _displayUser(
+    data,
+    displayKeys: const [
+      'targetDisplayName',
+      'toDisplayName',
+      'recipientDisplayName',
+    ],
+    usernameKeys: const ['targetUsername', 'toUsername', 'recipientUsername'],
+    metadataDisplayKeys: const ['recipientDisplayName', 'targetDisplayName'],
+    metadataUsernameKeys: const ['recipientUsername', 'targetUsername'],
+  );
+
+  if (actor != null) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.person_rounded,
+        label: context.loc.tr(
+          'screens_notifications_screen.068',
+          params: {'name': actor},
+        ),
+      ),
+    );
+  }
+  if (from != null && from != actor) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.south_west_rounded,
+        label: 'من: $from',
+        color: AppTheme.success,
+      ),
+    );
+  }
+  if (to != null && to != actor && to != from) {
+    chips.add(
+      _InfoChip(
+        icon: Icons.north_east_rounded,
+        label: 'إلى: $to',
+        color: AppTheme.primary,
+      ),
+    );
+  }
+
+  return chips;
 }
 
 List<Widget> _notificationCardContextChips(
