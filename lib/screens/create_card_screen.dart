@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -41,6 +46,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final OfflineCardService _offlineCardService = OfflineCardService();
+  final OfflineTransferCodeService _offlineTransferCodeService =
+      OfflineTransferCodeService();
   final PDFService _pdfService = PDFService();
   final TextEditingController _amountC = TextEditingController();
   final TextEditingController _qtyC = TextEditingController(
@@ -78,6 +85,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   int _currentStep = 0;
   String _cardPreviewSignature = '';
   Future<Uint8List>? _cardPreviewFuture;
+  int _availableOfflineTransferSlots = 0;
+
+  bool get _isDeviceOffline => !ConnectivityService.instance.isOnline.value;
 
   @override
   void didChangeDependencies() {
@@ -180,9 +190,60 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         }
         _isLoadingUser = false;
       });
+      if (_quickMode) {
+        await _ensureOfflineTemporaryTransferSlots();
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoadingUser = false);
+      }
+    }
+  }
+
+  Future<void> _ensureOfflineTemporaryTransferSlots() async {
+    final userId = _user?['id']?.toString();
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
+
+    final existingCount = await _offlineTransferCodeService.countAvailableSlots(
+      userId,
+    );
+    if (mounted && _availableOfflineTransferSlots != existingCount) {
+      setState(() => _availableOfflineTransferSlots = existingCount);
+    }
+
+    if (_isDeviceOffline || !AppPermissions.fromUser(_user).canTransfer) {
+      return;
+    }
+
+    if (existingCount >= 5) {
+      return;
+    }
+
+    try {
+      final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+      final response = await _apiService.prefetchTemporaryTransferCodes(
+        deviceId: deviceId,
+        count: 5 - existingCount,
+      );
+      final rawSlots = List<Map<String, dynamic>>.from(
+        (response['slots'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      final merged = await _offlineTransferCodeService.mergeSlots(
+        userId,
+        rawSlots,
+      );
+      if (mounted) {
+        setState(() => _availableOfflineTransferSlots = merged.length);
+      }
+    } catch (_) {
+      final fallbackCount = await _offlineTransferCodeService
+          .countAvailableSlots(userId);
+      if (mounted) {
+        setState(() => _availableOfflineTransferSlots = fallbackCount);
       }
     }
   }
@@ -654,6 +715,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
+    if (_quickMode && _isDeviceOffline) {
+      await _createQuickOfflineTransferCard(amount);
+      return;
+    }
+
     final cards = await (_isTrialMode
         ? _issueTrialCardsAfterSecurity(amount, quantity)
         : _issueCardsAfterSecurity(amount, quantity));
@@ -1010,6 +1076,135 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       ),
     );
     return confirmed == true;
+  }
+
+  Future<void> _createQuickOfflineTransferCard(double amount) async {
+    final userId = _user?['id']?.toString();
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
+
+    if (!AppPermissions.fromUser(_user).canTransfer) {
+      await AppAlertService.showError(
+        context,
+        title: 'الإنشاء الأوفلاين غير متاح',
+        message:
+            'إنشاء بطاقة أوفلاين يحتاج صلاحية التحويل لأن المستلم سيستلم القيمة مباشرة عند مسح الرمز وهو متصل.',
+      );
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      requireOtpAfterLocalAuth: false,
+      allowOtpFallback: false,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    final payload = await _buildQuickOfflineTransferPayload(amount);
+    if (!mounted || payload == null) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _QuickOfflineTransferCardDialog(payload: payload),
+    );
+  }
+
+  Future<_QuickOfflineTransferPayload?> _buildQuickOfflineTransferPayload(
+    double amount,
+  ) async {
+    final userId = _user?['id']?.toString();
+    if (userId == null || userId.isEmpty) {
+      return null;
+    }
+
+    final slot = await _offlineTransferCodeService.takeNextSlot(userId);
+    if (slot == null) {
+      await _ensureOfflineTemporaryTransferSlots();
+      if (!mounted) {
+        return null;
+      }
+      await AppAlertService.showInfo(
+        context,
+        title: 'لا توجد بطاقات أوفلاين جاهزة',
+        message:
+            'افتح هذه الشاشة مرة واحدة أثناء الاتصال ليتم تجهيز بطاقات أوفلاين آمنة مرتبطة بهذا الجهاز.',
+      );
+      return null;
+    }
+
+    final expiresAt = DateTime.tryParse(
+      slot['expiresAt']?.toString() ?? '',
+    )?.toUtc();
+    final slotId = slot['id']?.toString() ?? '';
+    final token = slot['publicToken']?.toString() ?? '';
+    final signingSecret = slot['signingSecret']?.toString() ?? '';
+    if (expiresAt == null ||
+        !expiresAt.isAfter(DateTime.now().toUtc()) ||
+        slotId.isEmpty ||
+        token.isEmpty ||
+        signingSecret.isEmpty) {
+      await _ensureOfflineTemporaryTransferSlots();
+      return null;
+    }
+
+    final signedAt = DateTime.now().toUtc().toIso8601String();
+    final expiresAtIso = expiresAt.toIso8601String();
+    final signature = await _quickOfflineTransferSignature(
+      slotId: slotId,
+      token: token,
+      amount: amount,
+      signedAt: signedAt,
+      expiresAt: expiresAtIso,
+      signingSecret: signingSecret,
+    );
+
+    await _ensureOfflineTemporaryTransferSlots();
+
+    final envelope = {
+      'type': 'shwakel_temp_transfer_offline',
+      'version': 2,
+      'slotId': slotId,
+      'token': token,
+      'amount': amount,
+      'signedAt': signedAt,
+      'expiresAt': expiresAtIso,
+      'signature': signature,
+      'senderId': _user?['id']?.toString(),
+      'senderUsername': _user?['username']?.toString() ?? '',
+      'source': 'quick_card_offline',
+    };
+
+    return _QuickOfflineTransferPayload(
+      qrPayload: jsonEncode(envelope),
+      amount: amount,
+      expiresAt: expiresAt.toLocal(),
+      senderUsername: _user?['username']?.toString() ?? '',
+    );
+  }
+
+  Future<String> _quickOfflineTransferSignature({
+    required String slotId,
+    required String token,
+    required double amount,
+    required String signedAt,
+    required String expiresAt,
+    required String signingSecret,
+  }) async {
+    final message =
+        '$slotId|$token|${amount.toStringAsFixed(2)}|$signedAt|$expiresAt';
+    final mac = await Hmac.sha256().calculateMac(
+      utf8.encode(message),
+      secretKey: SecretKey(utf8.encode(signingSecret)),
+    );
+    return mac.bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
   }
 
   Map<String, dynamic> _currentPrintDesign() {
@@ -1969,11 +2164,22 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   'الخصم عند الإنشاء',
                   CurrencyFormatter.ils(_currentTotalChargeNow),
                 ),
+                if (_quickMode) ...[
+                  const SizedBox(height: 8),
+                  _buildPreviewSummaryRow(
+                    'بطاقات أوفلاين جاهزة',
+                    '$_availableOfflineTransferSlots',
+                  ),
+                ],
                 const SizedBox(height: 18),
                 if (issuedCard == null)
                   ShwakelButton(
-                    label: 'إنشاء البطاقة الآن',
-                    icon: Icons.add_card_rounded,
+                    label: _isDeviceOffline
+                        ? 'إنشاء بطاقة أوفلاين'
+                        : 'إنشاء البطاقة الآن',
+                    icon: _isDeviceOffline
+                        ? Icons.qr_code_2_rounded
+                        : Icons.add_card_rounded,
                     onPressed: canIssue ? _create : null,
                     isLoading: _isLoading,
                   )
@@ -3572,6 +3778,156 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             if (isSelected)
               const Icon(Icons.check_circle_rounded, color: AppTheme.primary),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickOfflineTransferPayload {
+  const _QuickOfflineTransferPayload({
+    required this.qrPayload,
+    required this.amount,
+    required this.expiresAt,
+    required this.senderUsername,
+  });
+
+  final String qrPayload;
+  final double amount;
+  final DateTime expiresAt;
+  final String senderUsername;
+}
+
+class _QuickOfflineTransferCardDialog extends StatefulWidget {
+  const _QuickOfflineTransferCardDialog({required this.payload});
+
+  final _QuickOfflineTransferPayload payload;
+
+  @override
+  State<_QuickOfflineTransferCardDialog> createState() =>
+      _QuickOfflineTransferCardDialogState();
+}
+
+class _QuickOfflineTransferCardDialogState
+    extends State<_QuickOfflineTransferCardDialog> {
+  Timer? _timer;
+  late int _remainingSeconds;
+
+  @override
+  void initState() {
+    super.initState();
+    _remainingSeconds = _computeRemainingSeconds();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        return;
+      }
+      final next = _computeRemainingSeconds();
+      if (next <= 0) {
+        Navigator.of(context).pop();
+        return;
+      }
+      setState(() => _remainingSeconds = next);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  int _computeRemainingSeconds() {
+    final diff = widget.payload.expiresAt.difference(DateTime.now());
+    return diff.inSeconds < 0 ? 0 : diff.inSeconds;
+  }
+
+  String _formatCountdown() {
+    final minutes = (_remainingSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  String _formatExpiry(DateTime value) {
+    final y = value.year.toString().padLeft(4, '0');
+    final m = value.month.toString().padLeft(2, '0');
+    final d = value.day.toString().padLeft(2, '0');
+    final hh = value.hour.toString().padLeft(2, '0');
+    final mm = value.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: ShwakelCard(
+          padding: const EdgeInsets.all(24),
+          borderRadius: BorderRadius.circular(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('بطاقة أوفلاين جاهزة', style: AppTheme.h3),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'يعتمدها أي مستلم متصل بالإنترنت عبر فحص الرمز. يتم الخصم من المصدر والإضافة للمستلم على السيرفر مرة واحدة فقط.',
+                textAlign: TextAlign.center,
+                style: AppTheme.bodyAction,
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: QrImageView(
+                  data: widget.payload.qrPayload,
+                  size: 220,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      CurrencyFormatter.ils(widget.payload.amount),
+                      style: AppTheme.h2.copyWith(color: AppTheme.success),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'متبقي للاستخدام: ${_formatCountdown()}',
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'تنتهي: ${_formatExpiry(widget.payload.expiresAt)}',
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
