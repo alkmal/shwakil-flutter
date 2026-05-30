@@ -211,7 +211,6 @@ class AppAlertService {
       final payload = <String, dynamic>{
         'title': title.trim(),
         'message': message.trim(),
-        'appName': 'Shwakil',
         'platform': defaultTargetPlatform.name,
         'route': route ?? '',
         'appVersion': appHeaders['X-App-Version'] ?? '',
@@ -498,11 +497,6 @@ class AppAlertService {
       final payload = <String, dynamic>{
         'title': title,
         'message': message,
-        'appName':
-            navigatorKey.currentContext?.loc.tr(
-              'services_app_alert_service.004',
-            ) ??
-            'Shwakil',
         'platform': defaultTargetPlatform.name,
         'route': route ?? '',
         'errorKind': 'client_visible_error',

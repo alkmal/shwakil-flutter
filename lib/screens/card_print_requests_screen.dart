@@ -35,6 +35,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   Map<String, dynamic>? _user;
   Map<String, dynamic> _feeSettings = const {};
   bool _isLoading = true;
+  bool _isLoadingRequests = true;
   bool _isAuthorized = false;
   bool _isSubmitting = false;
 
@@ -231,52 +232,89 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isLoadingRequests = true;
+    });
+    final cachedUser = await _authService.currentUser();
+    if (!mounted) {
+      return;
+    }
+    if (cachedUser != null) {
+      final cachedPermissions = AppPermissions.fromUser(cachedUser);
+      setState(() {
+        _user = cachedUser;
+        _isAuthorized = cachedPermissions.canRequestCardPrinting;
+        _isLoading = false;
+      });
+    }
     try {
       final results = await Future.wait([
-        _apiService.getMyCardPrintRequests(),
+        _apiService.getMyCardPrintRequests(perPage: 12),
         _refreshAndReadCurrentUser(),
-        _apiService.getFeeSettings(),
+        _apiService
+            .getFeeSettings()
+            .catchError((_) => const <String, dynamic>{}),
       ]);
       if (!mounted) {
         return;
       }
-      final user = results[1] as Map<String, dynamic>?;
+      final user = results[1];
       final permissions = AppPermissions.fromUser(user);
-      var usageReport = const <String, dynamic>{};
-      if (permissions.canRequestCardPrinting ||
-          permissions.canIssueCards ||
-          permissions.canViewInventory) {
-        try {
-          usageReport = await _apiService.getMyIssuedCardUsageReport(
-            perPage: 8,
-          );
-        } catch (_) {
-          usageReport = const <String, dynamic>{};
-        }
-      }
-      if (!mounted) {
-        return;
-      }
       setState(() {
-        _requests = List<Map<String, dynamic>>.from(results[0] as List);
+        final requestsPayload = Map<String, dynamic>.from(results[0] as Map);
+        _requests = List<Map<String, dynamic>>.from(
+          requestsPayload['requests'] as List? ?? const [],
+        );
         _user = user;
         _feeSettings = Map<String, dynamic>.from(results[2] as Map);
-        _usageReport = usageReport;
+        _usageReport = const <String, dynamic>{};
         _isAuthorized = permissions.canRequestCardPrinting;
         _isLoading = false;
+        _isLoadingRequests = false;
       });
+      _loadUsageReport(permissions);
     } catch (error) {
       if (!mounted) {
         return;
       }
-      setState(() => _isLoading = false);
-      await AppAlertService.showError(
-        context,
-        title: context.loc.tr('screens_card_print_requests_screen.001'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      setState(() {
+        _isLoading = false;
+        _isLoadingRequests = false;
+      });
+      if (cachedUser == null) {
+        await AppAlertService.showError(
+          context,
+          title: context.loc.tr('screens_card_print_requests_screen.001'),
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
     }
+  }
+
+  void _loadUsageReport(AppPermissions permissions) {
+    if (!permissions.canRequestCardPrinting &&
+        !permissions.canIssueCards &&
+        !permissions.canViewInventory) {
+      return;
+    }
+
+    () async {
+      try {
+        final usageReport = await _apiService.getMyIssuedCardUsageReport(
+          perPage: 8,
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() => _usageReport = usageReport);
+      } catch (_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _usageReport = const <String, dynamic>{});
+      }
+    }();
   }
 
   Future<Map<String, dynamic>?> _refreshAndReadCurrentUser() async {
@@ -1220,7 +1258,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
-    if (_isLoading) {
+    if (_isLoading && _user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -1303,7 +1341,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 const SizedBox(height: 16),
                 _buildIssuedCardsUsageReport(),
                 const SizedBox(height: 16),
-                if (_isLoading)
+                if (_isLoadingRequests)
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(40),

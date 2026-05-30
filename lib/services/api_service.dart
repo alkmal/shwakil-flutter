@@ -1092,17 +1092,20 @@ class ApiService {
     return _decodeObject(response);
   }
 
-  Future<List<Map<String, dynamic>>> getMyCardPrintRequests() async {
+  Future<Map<String, dynamic>> getMyCardPrintRequests({
+    int page = 1,
+    int perPage = 12,
+    bool compact = true,
+  }) async {
     final response = await http.get(
-      AppConfig.apiUri('cards/print-requests'),
+      AppConfig.apiUri('cards/print-requests', {
+        'page': page.toString(),
+        'perPage': perPage.toString(),
+        'compact': compact ? 'true' : 'false',
+      }),
       headers: await _headers(),
     );
-    final body = _decodeObject(response);
-    return List<Map<String, dynamic>>.from(
-      (body['requests'] as List? ?? const []).map(
-        (item) => Map<String, dynamic>.from(item as Map),
-      ),
-    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> requestCardPrint({
@@ -1156,6 +1159,7 @@ class ApiService {
       'status': status,
       'page': page.toString(),
       'perPage': perPage.toString(),
+      'compact': 'true',
     };
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();
@@ -1783,6 +1787,16 @@ class ApiService {
   Future<Map<String, dynamic>> getAdminMessageGatewayDashboard() async {
     final response = await http.get(
       AppConfig.apiUri('admin/message-gateway/dashboard'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminDashboard({
+    String period = 'daily',
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/dashboard', {'period': period}),
       headers: await _headers(),
     );
     return _decodeObject(response);

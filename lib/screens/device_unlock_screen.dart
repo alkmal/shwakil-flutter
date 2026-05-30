@@ -166,6 +166,11 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       final refreshed = await _auth.tryRefreshCurrentUser();
       final user = await _auth.currentUser();
       if (!AuthService.hasPermissionSnapshot(user)) {
+        final confirmed = await _confirmDeviceSessionWithOtp();
+        if (confirmed) {
+          await _completeUnlock();
+          return;
+        }
         if (!mounted) {
           return;
         }
@@ -180,6 +185,18 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
         return;
       }
     } catch (error) {
+      if (error is AuthRequestException && error.deviceSessionOtpRequired) {
+        final confirmed = await _confirmDeviceSessionWithOtp();
+        if (confirmed) {
+          await _completeUnlock();
+          return;
+        }
+        if (!mounted) {
+          return;
+        }
+        setState(() => _isUnlocking = false);
+        return;
+      }
       if (ErrorMessageService.requiresFreshLogin(error)) {
         await _auth.logout();
         if (!mounted) {
@@ -205,6 +222,85 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       return;
     }
     Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+  }
+
+  Future<bool> _confirmDeviceSessionWithOtp() async {
+    final l = context.loc;
+    try {
+      final otpRequest = await _auth.requestDeviceSessionOtp();
+      if (otpRequest.otpRequired == false) {
+        return true;
+      }
+      if (!mounted) {
+        return false;
+      }
+
+      final otpCode = await _showDeviceOtpDialog(
+        otpRequest.message ?? 'تم إرسال رمز التحقق لتأكيد الجهاز.',
+        otpRequest.debugOtpCode,
+      );
+      if (otpCode == null || otpCode.trim().isEmpty) {
+        return false;
+      }
+
+      await _auth.confirmDeviceSessionOtp(otpCode: otpCode);
+      return true;
+    } catch (error) {
+      if (!mounted) {
+        return false;
+      }
+      await AppAlertService.showError(
+        context,
+        title: l.tr('screens_device_unlock_screen.015'),
+        message: ErrorMessageService.sanitize(error),
+      );
+      return false;
+    }
+  }
+
+  Future<String?> _showDeviceOtpDialog(String message, String? debugOtp) async {
+    final controller = TextEditingController(text: debugOtp ?? '');
+    try {
+      return showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('تأكيد الجهاز'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(message),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  decoration: const InputDecoration(
+                    labelText: 'رمز التحقق',
+                    counterText: '',
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, controller.text),
+                child: const Text('تأكيد'),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   String _subtitle(AppLocalizer l) {

@@ -985,6 +985,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (_canTransfer)
         _HomeServiceItem(
+          title: 'استلام التاجر',
+          subtitle: 'شاشة مستقلة لعرض رمز الاستلام وقبول التحويل بوضوح.',
+          icon: Icons.storefront_rounded,
+          color: AppTheme.secondary,
+          kind: _HomeServiceKind.merchantReceive,
+          onTap: () => unawaited(_openOnlineOnlyRoute('/merchant-receive')),
+        ),
+      if (_canTransfer)
+        _HomeServiceItem(
           title: l.tr('screens_home_screen.123'),
           subtitle: l.tr('screens_home_screen.124'),
           icon: Icons.qr_code_2_rounded,
@@ -1543,6 +1552,45 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ],
             ),
           );
+          final quickCreateCta = AppPermissions.fromUser(_user).canIssueCards
+              ? InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () =>
+                      unawaited(_openOnlineOnlyRoute('/create-card-quick')),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: AppTheme.primary.withValues(alpha: 0.14),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.add_card_rounded,
+                          size: 18,
+                          color: AppTheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'إنشاء بطاقة سريعة',
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : null;
           final iconBox = Container(
             width: 62,
             height: 62,
@@ -1585,6 +1633,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       ),
                       const SizedBox(height: 16),
                       SizedBox(width: double.infinity, child: cta),
+                      if (quickCreateCta != null) ...[
+                        const SizedBox(height: 10),
+                        SizedBox(width: double.infinity, child: quickCreateCta),
+                      ],
                     ],
                   )
                 : Row(
@@ -1602,7 +1654,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       const SizedBox(width: 16),
                       Align(
                         alignment: Alignment.center,
-                        child: SizedBox(width: 170, child: cta),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(width: 190, child: cta),
+                            if (quickCreateCta != null) ...[
+                              const SizedBox(height: 10),
+                              SizedBox(width: 190, child: quickCreateCta),
+                            ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -2161,6 +2222,7 @@ enum _HomeServiceKind {
   createCard,
   prepaidMultipay,
   quickTransfer,
+  merchantReceive,
   temporaryTransfer,
   inventory,
   printRequests,

@@ -26,9 +26,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final ApiService _apiService = ApiService();
   final DebtBookService _debtBookService = DebtBookService();
   Map<String, dynamic>? _user;
+  Map<String, dynamic> _adminCenterPayload = const {};
   Map<String, dynamic> _debtBookSnapshot = const {};
+  String _selectedReportPeriod = 'daily';
   bool _isLoading = true;
   bool _isAuthorized = false;
+  bool _isReportLoading = false;
   pw.Font? _pdfRegularFont;
   pw.Font? _pdfBoldFont;
 
@@ -46,26 +49,91 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (!mounted) {
       return;
     }
-    Map<String, dynamic> debtBookSnapshot = const {};
-    if (user != null && user['id'] != null && permissions.canManageDebtBook) {
-      final userId = user['id'].toString();
-      debtBookSnapshot = await _debtBookService.getSnapshot(userId);
-      if (ConnectivityService.instance.isOnline.value) {
-        try {
-          debtBookSnapshot = await _debtBookService.syncPending(
-            userId: userId,
-            api: _apiService,
-          );
-        } catch (_) {}
-      }
-    }
-
     setState(() {
       _user = user;
-      _debtBookSnapshot = debtBookSnapshot;
       _isAuthorized = isAuthorized;
       _isLoading = false;
     });
+    if (!isAuthorized) {
+      return;
+    }
+    _loadInitialAdminReport();
+    if (user != null && user['id'] != null && permissions.canManageDebtBook) {
+      _loadInitialDebtBook(user['id'].toString());
+    }
+  }
+
+  Future<void> _loadInitialAdminReport() async {
+    if (!ConnectivityService.instance.isOnline.value) {
+      return;
+    }
+    setState(() => _isReportLoading = true);
+    try {
+      final payload = await _apiService.getAdminDashboard(
+        period: _selectedReportPeriod,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _adminCenterPayload = payload);
+    } catch (_) {
+      // The center stays usable while the report is retried by pull-to-refresh.
+    } finally {
+      if (mounted) {
+        setState(() => _isReportLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadInitialDebtBook(String userId) async {
+    final cachedSnapshot = await _debtBookService.getSnapshot(userId);
+    if (!mounted) {
+      return;
+    }
+    setState(() => _debtBookSnapshot = cachedSnapshot);
+    if (!ConnectivityService.instance.isOnline.value) {
+      return;
+    }
+    try {
+      final syncedSnapshot = await _debtBookService.syncPending(
+        userId: userId,
+        api: _apiService,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _debtBookSnapshot = syncedSnapshot);
+    } catch (_) {}
+  }
+
+  Future<void> _loadAdminReport(String period) async {
+    if (_isReportLoading) {
+      return;
+    }
+    setState(() {
+      _selectedReportPeriod = period;
+      _isReportLoading = true;
+    });
+    try {
+      final payload = await _apiService.getAdminDashboard(period: period);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _adminCenterPayload = payload);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحميل تقرير الإدارة',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isReportLoading = false);
+      }
+    }
   }
 
   Future<void> _ensurePdfFonts() async {
@@ -530,7 +598,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final showDebtTab = permissions.canManageDebtBook;
 
     return DefaultTabController(
-      length: showDebtTab ? 2 : 1,
+      length: showDebtTab ? 3 : 2,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -578,6 +646,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
             body: TabBarView(
               children: [
+                _buildAdminCenterTab(),
                 _buildAdminUnitsTab(
                   adminCards: adminCards,
                   adminWidgets: adminWidgets,
@@ -613,6 +682,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           indicatorSize: TabBarIndicatorSize.tab,
           indicatorPadding: const EdgeInsets.all(4),
           tabs: [
+            const Tab(
+              icon: Icon(Icons.query_stats_rounded),
+              text: 'مركز الإدارة',
+            ),
             Tab(
               icon: const Icon(Icons.dashboard_customize_rounded),
               text: l.tr('screens_admin_dashboard_screen.050'),
@@ -782,6 +855,416 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
   }
+
+  Widget _buildAdminCenterTab() {
+    final overview = Map<String, dynamic>.from(
+      _adminCenterPayload['overview'] as Map? ?? const {},
+    );
+    final stats = Map<String, dynamic>.from(
+      overview['stats'] as Map? ?? const {},
+    );
+    final counts = Map<String, dynamic>.from(
+      _adminCenterPayload['navigationCounts'] as Map? ?? const {},
+    );
+    final report = Map<String, dynamic>.from(
+      _adminCenterPayload['report'] as Map? ?? const {},
+    );
+    final summary = Map<String, dynamic>.from(
+      report['summary'] as Map? ?? const {},
+    );
+    final recentOperations = List<Map<String, dynamic>>.from(
+      (report['recentOperations'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+    final typeBreakdown = List<Map<String, dynamic>>.from(
+      (report['transactionTypeBreakdown'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+
+    return RefreshIndicator(
+      onRefresh: () => _loadAdminReport(_selectedReportPeriod),
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
+        children: [
+          _buildSectionHeader(
+            title: 'مركز الإدارة',
+            subtitle:
+                'إحصائيات وتقارير يومية وأسبوعية وشهرية مع قراءة مباشرة للعمليات المهمة.',
+            actionLabel: '${counts['pendingAll'] ?? 0} إجراء بانتظار المتابعة',
+          ),
+          const SizedBox(height: 16),
+          _buildPeriodSelector(),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth > 980
+                  ? 4
+                  : constraints.maxWidth > 680
+                  ? 2
+                  : 1;
+              return GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: crossAxisCount,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                mainAxisExtent: 136,
+                children: [
+                  _metricCard(
+                    icon: Icons.people_alt_rounded,
+                    label: 'المستخدمون',
+                    value: _formatInt(stats['totalUsers']),
+                    detail: '${_formatInt(stats['activeUsers'])} نشط',
+                    color: AppTheme.primary,
+                  ),
+                  _metricCard(
+                    icon: Icons.pending_actions_rounded,
+                    label: 'قيد المتابعة',
+                    value: _formatInt(counts['pendingAll']),
+                    detail: 'طلبات مالية وأجهزة وتوثيق',
+                    color: AppTheme.warning,
+                  ),
+                  _metricCard(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'أرصدة الحسابات',
+                    value: CurrencyFormatter.ils(_num(stats['totalBalance'])),
+                    detail: 'الرصيد الإجمالي الحالي',
+                    color: AppTheme.secondary,
+                  ),
+                  _metricCard(
+                    icon: Icons.receipt_long_rounded,
+                    label: 'عمليات اليوم',
+                    value: _formatInt(stats['dailyCount']),
+                    detail: CurrencyFormatter.ils(_num(stats['dailyVolume'])),
+                    color: AppTheme.accent,
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          ShwakelCard(
+            padding: const EdgeInsets.all(20),
+            borderRadius: BorderRadius.circular(24),
+            shadowLevel: ShwakelShadowLevel.soft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.analytics_rounded,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        report['periodLabel']?.toString().trim().isNotEmpty ==
+                                true
+                            ? report['periodLabel'].toString()
+                            : 'تقرير الفترة الحالية',
+                        style: AppTheme.h3,
+                      ),
+                    ),
+                    if (_isReportLoading)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _summaryPill(
+                      'الدخل',
+                      CurrencyFormatter.ils(_num(summary['incomeAmount'])),
+                      AppTheme.success,
+                    ),
+                    _summaryPill(
+                      'الخارج',
+                      CurrencyFormatter.ils(_num(summary['outgoingAmount'])),
+                      AppTheme.error,
+                    ),
+                    _summaryPill(
+                      'الصافي',
+                      CurrencyFormatter.ils(_num(summary['netAmount'])),
+                      _num(summary['netAmount']) >= 0
+                          ? AppTheme.success
+                          : AppTheme.error,
+                    ),
+                    _summaryPill(
+                      'استخدام البطاقات',
+                      '${_formatInt(summary['usageCount'])} عملية',
+                      AppTheme.primary,
+                    ),
+                    _summaryPill(
+                      'رسوم الفترة',
+                      CurrencyFormatter.ils(_num(summary['usageFees'])),
+                      AppTheme.secondary,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth > 900;
+              final operations = _operationsList(recentOperations);
+              final breakdown = _breakdownList(typeBreakdown);
+              if (!wide) {
+                return Column(
+                  children: [operations, const SizedBox(height: 16), breakdown],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: operations),
+                  const SizedBox(width: 16),
+                  Expanded(flex: 2, child: breakdown),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodSelector() {
+    final periods = const [
+      ('daily', 'اليومي', Icons.today_rounded),
+      ('weekly', 'الأسبوعي', Icons.view_week_rounded),
+      ('monthly', 'الشهري', Icons.calendar_month_rounded),
+    ];
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: periods.map((period) {
+        final selected = _selectedReportPeriod == period.$1;
+        return ChoiceChip(
+          selected: selected,
+          avatar: Icon(
+            period.$3,
+            size: 18,
+            color: selected ? Colors.white : AppTheme.primary,
+          ),
+          label: Text(period.$2),
+          onSelected: (_) => _loadAdminReport(period.$1),
+          selectedColor: AppTheme.primary,
+          labelStyle: AppTheme.bodyBold.copyWith(
+            color: selected ? Colors.white : AppTheme.textPrimary,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _metricCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String detail,
+    required Color color,
+  }) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(22),
+      shadowLevel: ShwakelShadowLevel.soft,
+      borderColor: color.withValues(alpha: 0.12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 28),
+          const Spacer(),
+          Text(label, style: AppTheme.caption),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.h3.copyWith(color: color),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            detail,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryPill(String label, String value, Color color) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AppTheme.caption.copyWith(color: color)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.bodyBold.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _operationsList(List<Map<String, dynamic>> operations) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('تفاصيل آخر العمليات', style: AppTheme.h3),
+          const SizedBox(height: 12),
+          if (operations.isEmpty)
+            Text(
+              'لا توجد عمليات ضمن هذه الفترة.',
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            )
+          else
+            ...operations.map(_operationRow),
+        ],
+      ),
+    );
+  }
+
+  Widget _operationRow(Map<String, dynamic> item) {
+    final amount = _num(item['amount']);
+    final fee = _num(item['fee']);
+    final user = item['userDisplayName']?.toString().trim();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['typeLabel']?.toString() ?? '-',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  [
+                    if (user != null && user.isNotEmpty) user,
+                    item['createdAt']?.toString() ?? '',
+                  ].where((part) => part.trim().isNotEmpty).join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(CurrencyFormatter.ils(amount), style: AppTheme.bodyBold),
+              if (fee > 0)
+                Text(
+                  'رسوم ${CurrencyFormatter.ils(fee)}',
+                  style: AppTheme.caption.copyWith(color: AppTheme.secondary),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _breakdownList(List<Map<String, dynamic>> breakdown) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      shadowLevel: ShwakelShadowLevel.soft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('توزيع أنواع العمليات', style: AppTheme.h3),
+          const SizedBox(height: 12),
+          if (breakdown.isEmpty)
+            Text(
+              'لا توجد بيانات كافية لعرض التوزيع.',
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            )
+          else
+            ...breakdown.take(8).map((item) {
+              final label = item['label']?.toString().trim().isNotEmpty == true
+                  ? item['label'].toString()
+                  : item['type']?.toString() ?? '-';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodyBold,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      CurrencyFormatter.ils(_num(item['amount'])),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  double _num(Object? value) => (value as num?)?.toDouble() ?? 0;
+
+  String _formatInt(Object? value) =>
+      '${(value as num?)?.toInt() ?? int.tryParse(value?.toString() ?? '') ?? 0}';
 
   Widget _buildAdminUnitsTab({
     required List<_AdminEntry> adminCards,
