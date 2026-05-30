@@ -643,11 +643,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    final confirmed = await _showIssuePreviewConfirmation(
-      amount: amount,
-      quantity: quantity,
-      isPrivate: isPrivate,
-    );
+    final confirmed = await (_quickMode
+        ? _showQuickIssueConfirmation(amount: amount)
+        : _showIssuePreviewConfirmation(
+            amount: amount,
+            quantity: quantity,
+            isPrivate: isPrivate,
+          ));
     if (confirmed != true) {
       return;
     }
@@ -936,6 +938,69 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               Expanded(
                 child: ShwakelButton(
                   label: l.tr('screens_create_card_screen.017'),
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
+  Future<bool> _showQuickIssueConfirmation({required double amount}) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تأكيد إنشاء البطاقة'),
+        contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'سيتم إنشاء بطاقة فعلية واحدة وعرضها مباشرة بعد التأكيد.',
+                textDirection: TextDirection.rtl,
+                style: AppTheme.bodyAction.copyWith(height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              ShwakelCard(
+                padding: const EdgeInsets.all(16),
+                color: AppTheme.surfaceVariant,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPreviewSummaryRow(
+                      'قيمة البطاقة',
+                      CurrencyFormatter.ils(amount),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPreviewSummaryRow(
+                      'الخصم من الرصيد',
+                      CurrencyFormatter.ils(_currentTotalChargeNow),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('إلغاء'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ShwakelButton(
+                  label: 'تأكيد الإنشاء',
                   onPressed: () => Navigator.pop(dialogContext, true),
                 ),
               ),
