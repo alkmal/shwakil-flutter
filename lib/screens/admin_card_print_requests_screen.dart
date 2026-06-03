@@ -506,20 +506,6 @@ class _AdminCardPrintRequestsScreenState
             tooltip: context.loc.tr(
               'screens_admin_card_print_requests_screen.040',
             ),
-            onPressed: _showSummarySheet,
-            icon: const Icon(Icons.dashboard_customize_rounded),
-          ),
-          IconButton(
-            tooltip: context.loc.tr(
-              'screens_admin_card_print_requests_screen.039',
-            ),
-            onPressed: _showFiltersSheet,
-            icon: const Icon(Icons.filter_alt_rounded),
-          ),
-          IconButton(
-            tooltip: context.loc.tr(
-              'screens_admin_card_print_requests_screen.040',
-            ),
             onPressed: _showHelpDialog,
             icon: const Icon(Icons.info_outline_rounded),
           ),
@@ -535,11 +521,17 @@ class _AdminCardPrintRequestsScreenState
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: _isLoading || _requests.isEmpty
-                ? 2
-                : _requests.length + 2,
+                ? 4
+                : _requests.length + 4,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               if (index == 0) {
+                return _buildOverviewCard();
+              }
+              if (index == 1) {
+                return _buildFiltersCard();
+              }
+              if (index == 2) {
                 return _isRefreshing
                     ? const LinearProgressIndicator(minHeight: 3)
                     : const SizedBox.shrink();
@@ -553,6 +545,9 @@ class _AdminCardPrintRequestsScreenState
                 );
               }
               if (_requests.isEmpty) {
+                if (index != 3) {
+                  return const SizedBox.shrink();
+                }
                 return ShwakelCard(
                   padding: const EdgeInsets.all(28),
                   child: Center(
@@ -565,7 +560,7 @@ class _AdminCardPrintRequestsScreenState
                   ),
                 );
               }
-              final requestIndex = index - 1;
+              final requestIndex = index - 3;
               if (requestIndex < _requests.length) {
                 return _buildRequestCard(_requests[requestIndex]);
               }
@@ -646,44 +641,14 @@ class _AdminCardPrintRequestsScreenState
     );
   }
 
-  Future<void> _showSummarySheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_admin_card_print_requests_screen.040'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            _buildOverviewCard(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showFiltersSheet() async {
-    if (!mounted) {
-      return;
-    }
+  Widget _buildFiltersCard() {
     final l = context.loc;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Text(
               context.loc.tr('screens_admin_card_print_requests_screen.039'),
               style: AppTheme.h2,
@@ -812,8 +777,7 @@ class _AdminCardPrintRequestsScreenState
                 );
               },
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

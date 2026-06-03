@@ -1118,9 +1118,8 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         _debugLaunchDecision('unlock', stopwatch.elapsed);
         return const _LaunchDecision(state: _LaunchState.unlock);
       }
-      await authService.logout();
-      _debugLaunchDecision('login(relock)', stopwatch.elapsed);
-      return const _LaunchDecision(state: _LaunchState.login);
+      _debugLaunchDecision('securitySetup(relockUntrusted)', stopwatch.elapsed);
+      return const _LaunchDecision(state: _LaunchState.securitySetup);
     }
     try {
       final refreshed = await authService.tryRefreshCurrentUser();
@@ -1140,8 +1139,23 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       if (ErrorMessageService.requiresFreshLogin(
         ErrorMessageService.sanitize(error),
       )) {
-        await authService.logout();
-        _debugLaunchDecision('login(expiredToken)', stopwatch.elapsed);
+        final fallbackUser = await authService.currentUser();
+        if (fallbackUser != null) {
+          if (hasLocalSecurity && canUseTrustedUnlock) {
+            _debugLaunchDecision(
+              'unlock(refreshAuthRequired)',
+              stopwatch.elapsed,
+            );
+            return const _LaunchDecision(state: _LaunchState.unlock);
+          }
+          unawaited(RealtimeNotificationService.start());
+          _debugLaunchDecision('home(refreshAuthRequired)', stopwatch.elapsed);
+          return const _LaunchDecision(state: _LaunchState.home);
+        }
+        _debugLaunchDecision(
+          'login(noCachedUserExpiredToken)',
+          stopwatch.elapsed,
+        );
         return const _LaunchDecision(state: _LaunchState.login);
       }
       final fallbackUser = await authService.currentUser();
@@ -1190,6 +1204,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         LocalSecurityService.relockRequired &&
         canUseTrustedUnlock) {
       return const _LaunchDecision(state: _LaunchState.unlock);
+    }
+    if (hasLocalSecurity && LocalSecurityService.relockRequired) {
+      return const _LaunchDecision(state: _LaunchState.securitySetup);
     }
 
     return const _LaunchDecision(state: _LaunchState.home);

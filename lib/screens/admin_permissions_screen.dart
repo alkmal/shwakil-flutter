@@ -204,8 +204,14 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
               final title = PermissionCatalog.groupTitle(context, group);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: ShwakelCard(
+                child: Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.borderLight),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

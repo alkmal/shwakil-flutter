@@ -222,9 +222,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         if (ErrorMessageService.requiresFreshLogin(
           ErrorMessageService.sanitize(error),
         )) {
-          await _authService.logout();
-          await _redirectToLogin();
-          return;
+          user ??= await _authService.currentUser();
+          if (user == null) {
+            await _redirectToLogin();
+            return;
+          }
         }
         user ??= await _authService.currentUser();
       }
@@ -234,7 +236,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         return;
       }
       if (!AuthService.hasPermissionSnapshot(user)) {
-        await _authService.logout();
         await _redirectToLogin();
         return;
       }
@@ -1766,15 +1767,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           )
         : _t('screens_home_screen.053');
 
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(
+            title: Text(_t('screens_home_screen.089')),
+            actions: const [AppNotificationAction(), QuickLogoutAction()],
+          ),
+          body: ResponsiveScaffoldContainer(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ListView(
+              children: [
+                ShwakelCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
               Text(_t('screens_home_screen.089'), style: AppTheme.h3),
               const SizedBox(height: 14),
               _syncInfoRow(_t('screens_home_screen.090'), statusText),
@@ -1817,7 +1827,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   onPressed: _isSyncingOfflineWorkspace || !_isDeviceOnline
                       ? null
                       : () {
-                          Navigator.of(context).pop();
                           unawaited(_syncOfflineWorkspace());
                         },
                   icon: const Icon(Icons.cloud_sync_rounded),
@@ -1825,6 +1834,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ),
               ),
             ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

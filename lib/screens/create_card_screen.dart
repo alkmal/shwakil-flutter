@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -32,7 +32,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   static const int _cardsPerA4Page = 30;
   static const double _trialCardsLimit = 10;
   static const int _printTitleMaxLength = 24;
-  static const int _valueUnitMaxLength = 10;
+  static const String _lastPrintTitleKey = 'create_card.last_print_title';
+  static const String _lastPrintStampKey = 'create_card.last_print_stamp';
+  static const String _lastDetailsTitleKey = 'create_card.last_details_title';
+  static const String _lastDetailsDescriptionKey =
+      'create_card.last_details_description';
+  static const String _lastLocationKey = 'create_card.last_location';
   static const Map<String, int> _cardTypeDisplayOrder = {
     'standard': 0,
     'delivery': 1,
@@ -55,7 +60,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   );
   final TextEditingController _titleC = TextEditingController();
   final TextEditingController _stampC = TextEditingController();
-  final TextEditingController _valueUnitC = TextEditingController();
   final TextEditingController _detailsTitleC = TextEditingController();
   final TextEditingController _detailsDescriptionC = TextEditingController();
   final TextEditingController _appointmentLocationC = TextEditingController();
@@ -110,7 +114,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _qtyC.dispose();
     _titleC.dispose();
     _stampC.dispose();
-    _valueUnitC.dispose();
     _detailsTitleC.dispose();
     _detailsDescriptionC.dispose();
     _appointmentLocationC.dispose();
@@ -130,6 +133,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final l = context.loc;
     try {
       final user = await _authService.currentUser();
+      await _loadSavedPrintPreferences();
       Map<String, dynamic> feeSettings = const {};
       try {
         feeSettings = Map<String, dynamic>.from(
@@ -198,6 +202,31 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         setState(() => _isLoadingUser = false);
       }
     }
+  }
+
+  Future<void> _loadSavedPrintPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    _titleC.text = prefs.getString(_lastPrintTitleKey) ?? _titleC.text;
+    _stampC.text = prefs.getString(_lastPrintStampKey) ?? _stampC.text;
+    _detailsTitleC.text =
+        prefs.getString(_lastDetailsTitleKey) ?? _detailsTitleC.text;
+    _detailsDescriptionC.text =
+        prefs.getString(_lastDetailsDescriptionKey) ??
+        _detailsDescriptionC.text;
+    _appointmentLocationC.text =
+        prefs.getString(_lastLocationKey) ?? _appointmentLocationC.text;
+  }
+
+  Future<void> _savePrintPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastPrintTitleKey, _titleC.text.trim());
+    await prefs.setString(_lastPrintStampKey, _stampC.text.trim());
+    await prefs.setString(_lastDetailsTitleKey, _detailsTitleC.text.trim());
+    await prefs.setString(
+      _lastDetailsDescriptionKey,
+      _detailsDescriptionC.text.trim(),
+    );
+    await prefs.setString(_lastLocationKey, _appointmentLocationC.text.trim());
   }
 
   Future<void> _ensureOfflineTemporaryTransferSlots() async {
@@ -575,8 +604,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final enteredAmount = double.tryParse(_amountC.text) ?? 0;
     final amount = (_isBalanceCard || _isAppointmentCard) ? enteredAmount : 0.0;
     final quantity = int.tryParse(_qtyC.text) ?? 0;
-    final isPrivate = _effectiveVisibilityScope == 'restricted';
-
     if (quantity <= 0) {
       await AppAlertService.showError(
         context,
@@ -704,13 +731,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    final confirmed = await (_quickMode
-        ? _showQuickIssueConfirmation(amount: amount)
-        : _showIssuePreviewConfirmation(
-            amount: amount,
-            quantity: quantity,
-            isPrivate: isPrivate,
-          ));
+    await _savePrintPreferences();
+    final confirmed = _quickMode
+        ? await _showQuickIssueConfirmation(amount: amount)
+        : true;
     if (confirmed != true) {
       return;
     }
@@ -894,125 +918,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     } catch (_) {
       // Offline cache should never make a successful card issue look failed.
     }
-  }
-
-  Future<bool> _showIssuePreviewConfirmation({
-    required double amount,
-    required int quantity,
-    required bool isPrivate,
-  }) async {
-    final l = context.loc;
-    final typeLabel = _cardTypeLabel(l, _cardType);
-    final visibilityLabel = isPrivate
-        ? l.tr('screens_create_card_screen.010')
-        : l.tr('screens_create_card_screen.011');
-    final valueLabel = _cardValueLabel(l, amount);
-    final targetCount = _selectedUsers.length + _selectedPhoneNumbers.length;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('معاينة الدفعة قبل التأكيد'),
-        contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l.tr(
-                    'screens_create_card_screen.014',
-                    params: {
-                      'quantity': '$quantity',
-                      'type': typeLabel,
-                      'visibility': visibilityLabel,
-                      'value': valueLabel,
-                      'privateLine': isPrivate
-                          ? (targetCount == 0
-                                ? 'ستكون هذه البطاقات خاصة بحسابك فقط.'
-                                : l.tr(
-                                    'screens_create_card_screen.015',
-                                    params: {'count': '$targetCount'},
-                                  ))
-                          : '',
-                    },
-                  ),
-                  textDirection: TextDirection.rtl,
-                  style: AppTheme.bodyAction.copyWith(height: 1.5),
-                ),
-                const SizedBox(height: 16),
-                _buildPreviewCard(),
-                const SizedBox(height: 16),
-                ShwakelCard(
-                  padding: const EdgeInsets.all(16),
-                  color: AppTheme.surfaceVariant,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('تفاصيل البطاقات', style: AppTheme.bodyBold),
-                      const SizedBox(height: 10),
-                      _buildPreviewSummaryRow('النوع', typeLabel),
-                      const SizedBox(height: 8),
-                      _buildPreviewSummaryRow('القيمة', valueLabel),
-                      const SizedBox(height: 8),
-                      _buildPreviewSummaryRow('العدد', '$quantity'),
-                      const SizedBox(height: 8),
-                      _buildPreviewSummaryRow('النطاق', visibilityLabel),
-                      if (_detailsTitleC.text.trim().isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _buildPreviewSummaryRow(
-                          'العنوان',
-                          _detailsTitleC.text.trim(),
-                        ),
-                      ],
-                      if (_formatValidityWindow().isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _buildPreviewSummaryRow(
-                          'الصلاحية',
-                          _formatValidityWindow(),
-                        ),
-                      ],
-                      if (_isAppointmentCard &&
-                          _appointmentStartsAt != null) ...[
-                        const SizedBox(height: 8),
-                        _buildPreviewSummaryRow(
-                          'الموعد',
-                          '${_formatDateTime(_appointmentStartsAt)}${_appointmentEndsAt != null ? ' - ${_formatDateTime(_appointmentEndsAt)}' : ''}',
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildIssueCostSummary(),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: Text(l.tr('screens_create_card_screen.016')),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ShwakelButton(
-                  label: l.tr('screens_create_card_screen.017'),
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    return confirmed == true;
   }
 
   Future<bool> _showQuickIssueConfirmation({required double amount}) async {
@@ -1216,7 +1121,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       'stampText': _stampC.text.trim().isEmpty
           ? l.tr('screens_create_card_screen.019')
           : _stampC.text.trim(),
-      'valueUnitText': _valueUnitC.text.trim(),
       'logoUrl': (_showLogo && _useAccountLogo)
           ? (_user?['printLogoUrl'])?.toString()
           : null,
@@ -1442,7 +1346,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       stampText: _stampC.text.trim().isEmpty
           ? l.tr('screens_create_card_screen.019')
           : _stampC.text.trim(),
-      valueUnitText: _valueUnitC.text.trim(),
     );
     settings.logoUrl = (_showLogo && _useAccountLogo)
         ? (_user?['printLogoUrl'])?.toString()
@@ -1477,13 +1380,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     List<VirtualCard> cards, {
     bool requireSecurity = true,
   }) async {
-    if (!await _showCardOutputPreviewConfirmation(
-      cards,
-      confirmLabel: 'تأكيد الطباعة',
-      icon: Icons.print_rounded,
-    )) {
-      return;
-    }
     if (requireSecurity && !await _confirmCardOutputSecurity()) {
       return;
     }
@@ -1495,6 +1391,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final printedBy = UserDisplayName.fromMap(_user);
 
     _applyCurrentPdfDesignSettings();
+    await _savePrintPreferences();
     try {
       final exportCards = _cardsWithPrintFallbacks(cards);
       // Validate that we can generate the PDF sheet before opening the printer dialog.
@@ -1528,73 +1425,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
   }
 
-  Future<bool> _showCardOutputPreviewConfirmation(
-    List<VirtualCard> cards, {
-    required String confirmLabel,
-    required IconData icon,
-  }) async {
-    if (cards.isEmpty) {
-      return false;
-    }
-    final previewCards = _cardsWithPrintFallbacks(cards);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('معاينة البطاقات قبل الإخراج'),
-        contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildCardPreviewWidget(previewCards.first, serialNumber: 1),
-                const SizedBox(height: 16),
-                _buildIssuedCardsDetails(previewCards),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('رجوع'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ShwakelButton(
-                  label: confirmLabel,
-                  icon: icon,
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    return confirmed == true;
-  }
-
   Future<void> _saveCardsPdf(List<VirtualCard> cards) async {
-    if (!await _showCardOutputPreviewConfirmation(
-      cards,
-      confirmLabel: 'تأكيد التنزيل',
-      icon: Icons.picture_as_pdf_rounded,
-    )) {
-      return;
-    }
     if (!mounted) {
       return;
     }
     final l = context.loc;
     final printedBy = UserDisplayName.fromMap(_user);
     _applyCurrentPdfDesignSettings();
+    await _savePrintPreferences();
     try {
       final exportCards = _cardsWithPrintFallbacks(cards);
       final pdf = await _pdfService.createMultiCardPDF(
@@ -1693,7 +1531,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               if (_canRequestCardPrinting) ...[
                 const SizedBox(height: 8),
                 ShwakelButton(
-                  label: 'معاينة ثم طباعة',
+                  label: 'طباعة مباشرة',
                   icon: Icons.print_rounded,
                   isSecondary: true,
                   onPressed: () async {
@@ -2514,10 +2352,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         children: [
           Text('البيانات المالية والمستفيدون', style: AppTheme.h3),
           const SizedBox(height: 18),
-          ShwakelCard(
-            padding: const EdgeInsets.all(18),
-            color: AppTheme.primary.withValues(alpha: 0.05),
-            borderColor: AppTheme.primary.withValues(alpha: 0.12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.12),
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [Text('البيانات الأساسية', style: AppTheme.bodyBold)],
@@ -2560,10 +2404,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             const SizedBox(height: 16),
             if (_cardType == 'single_use') ...[
               const SizedBox(height: 16),
-              ShwakelCard(
-                padding: const EdgeInsets.all(16),
-                color: AppTheme.secondary.withValues(alpha: 0.06),
-                borderColor: AppTheme.secondary.withValues(alpha: 0.15),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.secondary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.secondary.withValues(alpha: 0.15),
+                  ),
+                ),
                 child: Text(
                   l.tr('screens_create_card_screen.036'),
                   style: AppTheme.bodyText.copyWith(fontSize: 14),
@@ -2572,10 +2422,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ],
             if (_cardType == 'delivery') ...[
               const SizedBox(height: 16),
-              ShwakelCard(
-                padding: const EdgeInsets.all(16),
-                color: AppTheme.warning.withValues(alpha: 0.06),
-                borderColor: AppTheme.warning.withValues(alpha: 0.15),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.warning.withValues(alpha: 0.15),
+                  ),
+                ),
                 child: Text(
                   l.tr('shared.delivery_card_create_note'),
                   style: AppTheme.bodyText.copyWith(fontSize: 14),
@@ -2584,18 +2440,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ],
             if (_needsTypeDetails) ...[
               const SizedBox(height: 16),
-              ShwakelCard(
-                padding: const EdgeInsets.all(16),
-                color:
-                    ((_isAppointmentCard || _isSubscriptionCard)
-                            ? AppTheme.primary
-                            : AppTheme.secondary)
-                        .withValues(alpha: 0.05),
-                borderColor:
-                    ((_isAppointmentCard || _isSubscriptionCard)
-                            ? AppTheme.primary
-                            : AppTheme.secondary)
-                        .withValues(alpha: 0.15),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color:
+                      ((_isAppointmentCard || _isSubscriptionCard)
+                              ? AppTheme.primary
+                              : AppTheme.secondary)
+                          .withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color:
+                        ((_isAppointmentCard || _isSubscriptionCard)
+                                ? AppTheme.primary
+                                : AppTheme.secondary)
+                            .withValues(alpha: 0.15),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2812,10 +2674,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   ],
                   if (!_isTrialMode && _requiresTargetedPrivateCard) ...[
                     const SizedBox(height: 16),
-                    ShwakelCard(
+                    Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(16),
-                      color: AppTheme.warning.withValues(alpha: 0.05),
-                      borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppTheme.warning.withValues(alpha: 0.15),
+                        ),
+                      ),
                       child: Text(
                         'هذا النوع خاص. اختر المستفيدين قبل الإصدار.',
                         style: AppTheme.bodyText.copyWith(fontSize: 13),
@@ -2826,10 +2694,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       _canPickTargetedUsers &&
                       _effectiveVisibilityScope == 'restricted') ...[
                     const SizedBox(height: 20),
-                    ShwakelCard(
+                    Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(20),
-                      color: AppTheme.warning.withValues(alpha: 0.05),
-                      borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppTheme.warning.withValues(alpha: 0.15),
+                        ),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -3307,22 +3181,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               prefixIcon: const Icon(Icons.approval_rounded),
             ),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _valueUnitC,
-            onChanged: (_) => setState(() {}),
-            maxLength: _valueUnitMaxLength,
-            inputFormatters: [
-              LengthLimitingTextInputFormatter(_valueUnitMaxLength),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'نص بجانب القيمة',
-              hintText: 'شيكل، دولار، رصيد',
-              prefixIcon: Icon(Icons.sell_rounded),
-              counterText: '',
-              helperText: 'حتى 10 أحرف فقط',
-            ),
-          ),
           const SizedBox(height: 12),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
@@ -3598,7 +3456,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       settings.showStamp,
       settings.logoText,
       settings.stampText,
-      settings.valueUnitText,
       settings.logoUrl ?? '',
     ].join('|');
   }

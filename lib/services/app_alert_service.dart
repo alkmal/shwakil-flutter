@@ -259,6 +259,30 @@ class AppAlertService {
     } catch (_) {}
   }
 
+  static Future<void> reportApiFailure({
+    required String method,
+    required Uri url,
+    required int statusCode,
+    required String message,
+    String? responsePreview,
+  }) {
+    final context = navigatorKey.currentContext;
+    final route = context != null ? _currentRouteName(context) : null;
+    return _reportVisibleError(
+      title: 'API failure $statusCode',
+      message: message,
+      route: route,
+      extraContext: {
+        'errorKind': 'client_api_failure',
+        'method': method,
+        'url': url.toString(),
+        'statusCode': statusCode,
+        if (responsePreview != null && responsePreview.trim().isNotEmpty)
+          'responsePreview': responsePreview.trim(),
+      },
+    );
+  }
+
   static Future<void> _show(
     BuildContext context, {
     required AppAlertType type,

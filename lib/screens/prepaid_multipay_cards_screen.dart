@@ -262,29 +262,70 @@ class _PrepaidMultipayCardsScreenState
   Future<void> _showReloadCardDialog(Map<String, dynamic> card) async {
     final l = context.loc;
     final amountC = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.tr('screens_prepaid_multipay_cards_screen.002')),
-        content: TextField(
-          controller: amountC,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: l.tr('screens_prepaid_multipay_cards_screen.003'),
-            prefixIcon: const Icon(Icons.payments_rounded),
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (dialogContext) => Scaffold(
+          appBar: AppBar(
+            title: Text(l.tr('screens_prepaid_multipay_cards_screen.002')),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    TextField(
+                      controller: amountC,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: l.tr(
+                          'screens_prepaid_multipay_cards_screen.003',
+                        ),
+                        prefixIcon: const Icon(Icons.payments_rounded),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(top: BorderSide(color: AppTheme.border)),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text(l.tr('shared.cancel')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: Text(
+                            l.tr('screens_prepaid_multipay_cards_screen.004'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.tr('shared.cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l.tr('screens_prepaid_multipay_cards_screen.004')),
-          ),
-        ],
       ),
     );
 
@@ -364,90 +405,123 @@ class _PrepaidMultipayCardsScreenState
     final pinC = TextEditingController();
     var selectedValidityYears = 1;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: Text(l.tr('screens_prepaid_multipay_cards_screen.012')),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: labelC,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_prepaid_multipay_cards_screen.013',
-                    ),
-                    prefixIcon: const Icon(Icons.badge_rounded),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: amountC,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_prepaid_multipay_cards_screen.014',
-                    ),
-                    prefixIcon: const Icon(Icons.payments_rounded),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: pinC,
-                  keyboardType: TextInputType.number,
-                  maxLength: 3,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_prepaid_multipay_cards_screen.015',
-                    ),
-                    prefixIcon: const Icon(Icons.pin_rounded),
-                    counterText: '',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  initialValue: selectedValidityYears,
-                  decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_prepaid_multipay_cards_screen.016',
-                    ),
-                    prefixIcon: const Icon(Icons.event_available_rounded),
-                  ),
-                  items: _validityYearOptions
-                      .map(
-                        (years) => DropdownMenuItem<int>(
-                          value: years,
-                          child: Text(_validityYearsLabel(years)),
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) => Scaffold(
+            appBar: AppBar(
+              title: Text(l.tr('screens_prepaid_multipay_cards_screen.012')),
+            ),
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      TextField(
+                        controller: labelC,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_prepaid_multipay_cards_screen.013',
+                          ),
+                          prefixIcon: const Icon(Icons.badge_rounded),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    setDialogState(() => selectedValidityYears = value);
-                  },
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: amountC,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_prepaid_multipay_cards_screen.014',
+                          ),
+                          prefixIcon: const Icon(Icons.payments_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: pinC,
+                        keyboardType: TextInputType.number,
+                        maxLength: 3,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_prepaid_multipay_cards_screen.015',
+                          ),
+                          prefixIcon: const Icon(Icons.pin_rounded),
+                          counterText: '',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        initialValue: selectedValidityYears,
+                        decoration: InputDecoration(
+                          labelText: l.tr(
+                            'screens_prepaid_multipay_cards_screen.016',
+                          ),
+                          prefixIcon: const Icon(Icons.event_available_rounded),
+                        ),
+                        items: _validityYearOptions
+                            .map(
+                              (years) => DropdownMenuItem<int>(
+                                value: years,
+                                child: Text(_validityYearsLabel(years)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setDialogState(() => selectedValidityYears = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
+            ),
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  border: Border(top: BorderSide(color: AppTheme.border)),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            child: Text(l.tr('shared.cancel')),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            icon: const Icon(Icons.add_card_rounded),
+                            label: Text(
+                              l.tr('screens_prepaid_multipay_cards_screen.017'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(l.tr('shared.cancel')),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              icon: const Icon(Icons.add_card_rounded),
-              label: Text(l.tr('screens_prepaid_multipay_cards_screen.017')),
-            ),
-          ],
         ),
       ),
     );
@@ -881,72 +955,106 @@ class _PrepaidMultipayCardsScreenState
   Future<double?> _showDirectPaymentAmountDialog(double balance) async {
     final amountC = TextEditingController();
     try {
-      return showDialog<double>(
-        context: context,
-        builder: (dialogContext) {
-          String? errorText;
-          return StatefulBuilder(
-            builder: (dialogContext, setDialogState) => AlertDialog(
-              title: const Text('تحديد مبلغ الدفع'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'أدخل المبلغ المطلوب دفعه. سيظهر للتاجر جاهزًا، ولن يحتاج إلا إلى كود البطاقة الثلاثي.',
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textSecondary,
-                      height: 1.4,
+      return Navigator.of(context).push<double>(
+        MaterialPageRoute(
+          builder: (dialogContext) {
+            String? errorText;
+            return StatefulBuilder(
+              builder: (dialogContext, setDialogState) => Scaffold(
+                appBar: AppBar(title: const Text('تحديد مبلغ الدفع')),
+                body: SafeArea(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: ListView(
+                        padding: const EdgeInsets.all(20),
+                        children: [
+                          Text(
+                            'أدخل المبلغ المطلوب دفعه. سيظهر للتاجر جاهزًا، ولن يحتاج إلا إلى كود البطاقة الثلاثي.',
+                            style: AppTheme.caption.copyWith(
+                              color: AppTheme.textSecondary,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: amountC,
+                            autofocus: true,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'المبلغ المطلوب',
+                              helperText:
+                                  'سيتم التحقق من الرصيد قبل إنشاء الطلب.',
+                              errorText: errorText,
+                              prefixIcon: const Icon(Icons.payments_rounded),
+                            ),
+                            onChanged: (_) {
+                              if (errorText != null) {
+                                setDialogState(() => errorText = null);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountC,
-                    autofocus: true,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                ),
+                bottomNavigationBar: SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      border: Border(top: BorderSide(color: AppTheme.border)),
                     ),
-                    decoration: InputDecoration(
-                      labelText: 'المبلغ المطلوب',
-                      helperText: 'سيتم التحقق من الرصيد قبل إنشاء الطلب.',
-                      errorText: errorText,
-                      prefixIcon: const Icon(Icons.payments_rounded),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 560),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(dialogContext),
+                                child: const Text('إلغاء'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () {
+                                  final amount =
+                                      double.tryParse(amountC.text.trim()) ?? 0;
+                                  if (amount <= 0) {
+                                    setDialogState(
+                                      () => errorText = 'أدخل مبلغًا صحيحًا.',
+                                    );
+                                    return;
+                                  }
+                                  if (amount > balance) {
+                                    setDialogState(
+                                      () => errorText =
+                                          'المبلغ أكبر من الرصيد المتاح.',
+                                    );
+                                    return;
+                                  }
+                                  Navigator.pop(dialogContext, amount);
+                                },
+                                icon: const Icon(Icons.check_rounded),
+                                label: const Text('متابعة'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    onChanged: (_) {
-                      if (errorText != null) {
-                        setDialogState(() => errorText = null);
-                      }
-                    },
                   ),
-                ],
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('إلغاء'),
-                ),
-                FilledButton.icon(
-                  onPressed: () {
-                    final amount = double.tryParse(amountC.text.trim()) ?? 0;
-                    if (amount <= 0) {
-                      setDialogState(() => errorText = 'أدخل مبلغًا صحيحًا.');
-                      return;
-                    }
-                    if (amount > balance) {
-                      setDialogState(
-                        () => errorText = 'المبلغ أكبر من الرصيد المتاح.',
-                      );
-                      return;
-                    }
-                    Navigator.pop(dialogContext, amount);
-                  },
-                  icon: const Icon(Icons.check_rounded),
-                  label: const Text('متابعة'),
-                ),
-              ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       );
     } finally {
       amountC.dispose();
@@ -978,6 +1086,11 @@ class _PrepaidMultipayCardsScreenState
       final ownerName = _cardOwnerName();
       final issuerPhone = _cardIssuerLocalPhone();
       final checkUrl = AppConfig.prepaidMultipayCheckUri(rawNumber).toString();
+      final scanPayload = _prepaidCardBarcodePayload(card, paymentAmount: 0);
+      final balance = CurrencyFormatter.ils(
+        (card['balance'] as num?)?.toDouble() ?? 0,
+      );
+      final status = _statusLabel(card['status']?.toString() ?? 'active');
       final logoImage = _pdfLogoImage;
       final pdf = pw.Document();
       final cardWidth = 85.6 * PdfPageFormat.mm;
@@ -1006,6 +1119,9 @@ class _PrepaidMultipayCardsScreenState
                 ownerName: ownerName,
                 issuerPhone: issuerPhone,
                 checkUrl: checkUrl,
+                scanPayload: scanPayload,
+                balance: balance,
+                status: status,
               ),
             ),
           ),
@@ -1039,6 +1155,9 @@ class _PrepaidMultipayCardsScreenState
     required String ownerName,
     required String issuerPhone,
     required String checkUrl,
+    required String scanPayload,
+    required String balance,
+    required String status,
   }) {
     final labelDirection = _pdfTextDirection(label);
     final ownerDirection = _pdfTextDirection(ownerName);
@@ -1227,7 +1346,30 @@ class _PrepaidMultipayCardsScreenState
                 ),
               ),
               pw.SizedBox(height: 9),
-              _buildPrepaidPdfInfoPill(title: 'تاريخ الانتهاء', value: expiry),
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                    child: _buildPrepaidPdfInfoPill(
+                      title: 'الرصيد المتاح',
+                      value: balance,
+                    ),
+                  ),
+                  pw.SizedBox(width: 5),
+                  pw.Expanded(
+                    child: _buildPrepaidPdfInfoPill(
+                      title: 'تاريخ الانتهاء',
+                      value: expiry,
+                    ),
+                  ),
+                  pw.SizedBox(width: 5),
+                  pw.Expanded(
+                    child: _buildPrepaidPdfInfoPill(
+                      title: 'الحالة',
+                      value: status,
+                    ),
+                  ),
+                ],
+              ),
               pw.SizedBox(height: 8),
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1242,7 +1384,7 @@ class _PrepaidMultipayCardsScreenState
                     ),
                     child: pw.BarcodeWidget(
                       barcode: pw.Barcode.qrCode(),
-                      data: checkUrl,
+                      data: scanPayload,
                       drawText: false,
                     ),
                   ),
@@ -1316,6 +1458,16 @@ class _PrepaidMultipayCardsScreenState
                             font: pw.Font.helveticaBold(),
                             fontSize: 5.5,
                             color: const PdfColor.fromInt(0xFF16302B),
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          checkUrl,
+                          maxLines: 1,
+                          textDirection: pw.TextDirection.ltr,
+                          style: const pw.TextStyle(
+                            fontSize: 4.7,
+                            color: PdfColor.fromInt(0xFF64748B),
                           ),
                         ),
                         if (issuerPhone.isNotEmpty) ...[
@@ -2346,8 +2498,9 @@ class _PrepaidMultipayCardsScreenState
     final showActivationGuide = status == 'active' && showNfcActions;
     final showAdvancedNfcTools = _canManagePrepaidCards && showNfcActions;
 
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2356,6 +2509,8 @@ class _PrepaidMultipayCardsScreenState
             _buildVisualCard(card),
             const SizedBox(height: 16),
           ],
+          _buildCardFinancialOverview(card),
+          const SizedBox(height: 16),
           if (showActivationGuide) ...[
             Container(
               width: double.infinity,
@@ -2393,148 +2548,158 @@ class _PrepaidMultipayCardsScreenState
             ),
             const SizedBox(height: 16),
           ],
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () => _toggleCardNumber(card),
-                icon: Icon(
-                  _revealedCardIds.contains(card['id']?.toString() ?? '')
-                      ? Icons.visibility_off_rounded
-                      : Icons.visibility_rounded,
-                ),
-                label: Text(
-                  _revealedCardIds.contains(card['id']?.toString() ?? '')
-                      ? l.tr('screens_prepaid_multipay_cards_screen.066')
-                      : l.tr('screens_prepaid_multipay_cards_screen.067'),
-                ),
-              ),
-              if (canShowForDirectPayment)
-                OutlinedButton.icon(
-                  onPressed: () => _showCardForDirectPayment(card),
-                  icon: const Icon(Icons.smartphone_rounded),
-                  label: Text(
-                    l.tr('screens_prepaid_multipay_cards_screen.068'),
-                  ),
-                ),
-              if (canPrintCard)
-                OutlinedButton.icon(
-                  onPressed: () => _printPrepaidCard(card),
-                  icon: const Icon(Icons.print_rounded),
-                  label: Text(
-                    l.tr('screens_prepaid_multipay_cards_screen.069'),
-                  ),
-                ),
-              if (status == 'active' && showNfcActions)
-                FilledButton.icon(
-                  onPressed: _isWritingNfcPayment
-                      ? null
-                      : () => _publishHcePaymentAuthorization(card),
-                  icon: const Icon(Icons.contactless_rounded),
-                  label: Text(
-                    _isWritingNfcPayment
-                        ? l.tr('screens_prepaid_multipay_cards_screen.070')
-                        : l.tr('screens_prepaid_multipay_cards_screen.071'),
-                  ),
-                ),
-              if (status == 'active' && showAdvancedNfcTools)
-                OutlinedButton.icon(
-                  onPressed: _isWritingNfc ? null : () => _writeCardToNfc(card),
-                  icon: const Icon(Icons.sensors_rounded),
-                  label: Text(
-                    _isWritingNfc
-                        ? l.tr('screens_prepaid_multipay_cards_screen.072')
-                        : l.tr('screens_prepaid_multipay_cards_screen.073'),
-                  ),
-                ),
-              if (showAdvancedNfcTools)
-                OutlinedButton.icon(
-                  onPressed: _isRegisteringNfc
-                      ? null
-                      : () => _revokeThisNfcDevice(card),
-                  icon: const Icon(Icons.link_off_rounded),
-                  label: Text(
-                    l.tr('screens_prepaid_multipay_cards_screen.074'),
-                  ),
-                ),
-              if (canUseForPayment)
-                FilledButton.icon(
-                  onPressed: () => _openUnifiedScanner(openCamera: false),
-                  icon: const Icon(Icons.contactless_rounded),
-                  label: Text(
-                    l.tr('screens_prepaid_multipay_cards_screen.075'),
-                  ),
-                ),
-              if (canUseForPayment)
-                OutlinedButton.icon(
-                  onPressed: () => _openUnifiedScanner(),
-                  icon: const Icon(Icons.point_of_sale_rounded),
-                  label: Text(
-                    l.tr('screens_prepaid_multipay_cards_screen.076'),
-                  ),
-                ),
-              if (canReload)
-                OutlinedButton.icon(
-                  onPressed: _isReloading
-                      ? null
-                      : () => _showReloadCardDialog(card),
-                  icon: const Icon(Icons.add_card_rounded),
-                  label: Text(
-                    _isReloading
-                        ? l.tr('screens_prepaid_multipay_cards_screen.077')
-                        : l.tr('screens_prepaid_multipay_cards_screen.002'),
-                  ),
-                ),
-              if (canRenew)
-                FilledButton.icon(
-                  onPressed: () => _renewCard(card),
-                  icon: const Icon(Icons.autorenew_rounded),
-                  label: Text(
-                    l.tr('screens_prepaid_multipay_cards_screen.027'),
-                  ),
-                ),
-              if (canEditCard)
-                OutlinedButton.icon(
-                  onPressed: () => _editCardDetails(card),
-                  icon: const Icon(Icons.edit_rounded),
-                  label: Text(
-                    l.tr('screens_prepaid_multipay_cards_screen.039'),
-                  ),
-                ),
-            ],
-          ),
-          if (canManageLifecycle) ...[
-            const SizedBox(height: 14),
-            Wrap(
+          _buildDetailsSection(
+            title: 'إجراءات البطاقة',
+            icon: Icons.tune_rounded,
+            child: Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (status == 'active')
+                OutlinedButton.icon(
+                  onPressed: () => _toggleCardNumber(card),
+                  icon: Icon(
+                    _revealedCardIds.contains(card['id']?.toString() ?? '')
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                  ),
+                  label: Text(
+                    _revealedCardIds.contains(card['id']?.toString() ?? '')
+                        ? l.tr('screens_prepaid_multipay_cards_screen.066')
+                        : l.tr('screens_prepaid_multipay_cards_screen.067'),
+                  ),
+                ),
+                if (canShowForDirectPayment)
                   OutlinedButton.icon(
-                    onPressed: () => _updateStatus(card, 'freeze'),
-                    icon: const Icon(Icons.pause_circle_rounded),
+                    onPressed: () => _showCardForDirectPayment(card),
+                    icon: const Icon(Icons.smartphone_rounded),
                     label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.031'),
+                      l.tr('screens_prepaid_multipay_cards_screen.068'),
                     ),
                   ),
-                if (status == 'frozen')
+                if (canPrintCard)
                   OutlinedButton.icon(
-                    onPressed: () => _updateStatus(card, 'activate'),
-                    icon: const Icon(Icons.play_circle_rounded),
+                    onPressed: () => _printPrepaidCard(card),
+                    icon: const Icon(Icons.print_rounded),
                     label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.032'),
+                      l.tr('screens_prepaid_multipay_cards_screen.069'),
                     ),
                   ),
-                if (status == 'active' || status == 'frozen')
-                  OutlinedButton.icon(
-                    onPressed: () => _changeSecurityCode(card),
-                    icon: const Icon(Icons.password_rounded),
+                if (status == 'active' && showNfcActions)
+                  FilledButton.icon(
+                    onPressed: _isWritingNfcPayment
+                        ? null
+                        : () => _publishHcePaymentAuthorization(card),
+                    icon: const Icon(Icons.contactless_rounded),
                     label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.078'),
+                      _isWritingNfcPayment
+                          ? l.tr('screens_prepaid_multipay_cards_screen.070')
+                          : l.tr('screens_prepaid_multipay_cards_screen.071'),
+                    ),
+                  ),
+                if (status == 'active' && showAdvancedNfcTools)
+                  OutlinedButton.icon(
+                    onPressed: _isWritingNfc
+                        ? null
+                        : () => _writeCardToNfc(card),
+                    icon: const Icon(Icons.sensors_rounded),
+                    label: Text(
+                      _isWritingNfc
+                          ? l.tr('screens_prepaid_multipay_cards_screen.072')
+                          : l.tr('screens_prepaid_multipay_cards_screen.073'),
+                    ),
+                  ),
+                if (showAdvancedNfcTools)
+                  OutlinedButton.icon(
+                    onPressed: _isRegisteringNfc
+                        ? null
+                        : () => _revokeThisNfcDevice(card),
+                    icon: const Icon(Icons.link_off_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.074'),
+                    ),
+                  ),
+                if (canUseForPayment)
+                  FilledButton.icon(
+                    onPressed: () => _openUnifiedScanner(openCamera: false),
+                    icon: const Icon(Icons.contactless_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.075'),
+                    ),
+                  ),
+                if (canUseForPayment)
+                  OutlinedButton.icon(
+                    onPressed: () => _openUnifiedScanner(),
+                    icon: const Icon(Icons.point_of_sale_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.076'),
+                    ),
+                  ),
+                if (canReload)
+                  OutlinedButton.icon(
+                    onPressed: _isReloading
+                        ? null
+                        : () => _showReloadCardDialog(card),
+                    icon: const Icon(Icons.add_card_rounded),
+                    label: Text(
+                      _isReloading
+                          ? l.tr('screens_prepaid_multipay_cards_screen.077')
+                          : l.tr('screens_prepaid_multipay_cards_screen.002'),
+                    ),
+                  ),
+                if (canRenew)
+                  FilledButton.icon(
+                    onPressed: () => _renewCard(card),
+                    icon: const Icon(Icons.autorenew_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.027'),
+                    ),
+                  ),
+                if (canEditCard)
+                  OutlinedButton.icon(
+                    onPressed: () => _editCardDetails(card),
+                    icon: const Icon(Icons.edit_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.039'),
                     ),
                   ),
               ],
+            ),
+          ),
+          if (canManageLifecycle) ...[
+            const SizedBox(height: 14),
+            _buildDetailsSection(
+              title: 'إدارة الحالة والأمان',
+              icon: Icons.admin_panel_settings_rounded,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (status == 'active')
+                    OutlinedButton.icon(
+                      onPressed: () => _updateStatus(card, 'freeze'),
+                      icon: const Icon(Icons.pause_circle_rounded),
+                      label: Text(
+                        l.tr('screens_prepaid_multipay_cards_screen.031'),
+                      ),
+                    ),
+                  if (status == 'frozen')
+                    OutlinedButton.icon(
+                      onPressed: () => _updateStatus(card, 'activate'),
+                      icon: const Icon(Icons.play_circle_rounded),
+                      label: Text(
+                        l.tr('screens_prepaid_multipay_cards_screen.032'),
+                      ),
+                    ),
+                  if (status == 'active' || status == 'frozen')
+                    OutlinedButton.icon(
+                      onPressed: () => _changeSecurityCode(card),
+                      icon: const Icon(Icons.password_rounded),
+                      label: Text(
+                        l.tr('screens_prepaid_multipay_cards_screen.078'),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 18),
@@ -2555,7 +2720,11 @@ class _PrepaidMultipayCardsScreenState
           ),
           if (_showCardTechnicalDetails) ...[
             const SizedBox(height: 12),
-            _detailsGrid(card),
+            _buildDetailsSection(
+              title: 'تفاصيل البطاقة',
+              icon: Icons.credit_card_rounded,
+              child: _detailsGrid(card),
+            ),
             _buildCardWarnings(card),
             const SizedBox(height: 18),
             Text(
@@ -2627,6 +2796,155 @@ class _PrepaidMultipayCardsScreenState
     );
   }
 
+  Widget _buildCardFinancialOverview(Map<String, dynamic> card) {
+    final dailyUsage = card['dailyUsage'] as Map?;
+    final balance = (card['balance'] as num?)?.toDouble() ?? 0;
+    final loaded = (card['loadedAmount'] as num?)?.toDouble() ?? 0;
+    final spent = (card['spentAmount'] as num?)?.toDouble() ?? 0;
+    final dailyAmount = (dailyUsage?['amount'] as num?)?.toDouble() ?? 0;
+    final dailyLimit = (dailyUsage?['amountLimit'] as num?)?.toDouble() ?? 0;
+    final status = card['status']?.toString() ?? 'active';
+
+    return _buildDetailsSection(
+      title: 'ملخص الدفع المسبق',
+      icon: Icons.account_balance_wallet_rounded,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 760
+              ? 4
+              : constraints.maxWidth >= 520
+              ? 2
+              : 1;
+          final spacing = 10.0;
+          final itemWidth =
+              (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              _buildSummaryTile(
+                width: itemWidth,
+                icon: Icons.account_balance_wallet_rounded,
+                title: 'الرصيد المتاح',
+                value: CurrencyFormatter.ils(balance),
+                color: AppTheme.success,
+              ),
+              _buildSummaryTile(
+                width: itemWidth,
+                icon: Icons.add_card_rounded,
+                title: 'إجمالي الشحن',
+                value: CurrencyFormatter.ils(loaded),
+                color: AppTheme.primary,
+              ),
+              _buildSummaryTile(
+                width: itemWidth,
+                icon: Icons.payments_rounded,
+                title: 'إجمالي المصروف',
+                value: CurrencyFormatter.ils(spent),
+                color: AppTheme.warning,
+              ),
+              _buildSummaryTile(
+                width: itemWidth,
+                icon: Icons.verified_rounded,
+                title: 'الحالة',
+                value: _statusLabel(status),
+                color: _statusColor(status),
+              ),
+              _buildSummaryTile(
+                width: itemWidth,
+                icon: Icons.today_rounded,
+                title: 'استخدام اليوم',
+                value:
+                    '${CurrencyFormatter.ils(dailyAmount)} / ${CurrencyFormatter.ils(dailyLimit)}',
+                color: AppTheme.info,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDetailsSection({
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              Expanded(child: Text(title, style: AppTheme.h3)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryTile({
+    required double width,
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: width,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTheme.caption),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.bodyBold.copyWith(color: color),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _detailsGrid(Map<String, dynamic> card) {
     final details = <MapEntry<String, String>>[
       MapEntry(
@@ -2658,31 +2976,46 @@ class _PrepaidMultipayCardsScreenState
       ),
     ];
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: details
-          .map(
-            (detail) => SizedBox(
-              width: 220,
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(16),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 900
+            ? 3
+            : constraints.maxWidth >= 560
+            ? 2
+            : 1;
+        const spacing = 10.0;
+        final itemWidth =
+            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: details
+              .map(
+                (detail) => SizedBox(
+                  width: itemWidth,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 76),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(detail.key, style: AppTheme.caption),
+                        const SizedBox(height: 6),
+                        SelectableText(detail.value, style: AppTheme.bodyBold),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(detail.key, style: AppTheme.caption),
-                    const SizedBox(height: 6),
-                    Text(detail.value, style: AppTheme.bodyBold),
-                  ],
-                ),
-              ),
-            ),
-          )
-          .toList(),
+              )
+              .toList(),
+        );
+      },
     );
   }
 

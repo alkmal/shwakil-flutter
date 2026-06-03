@@ -252,9 +252,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       final results = await Future.wait([
         _apiService.getMyCardPrintRequests(perPage: 12),
         _refreshAndReadCurrentUser(),
-        _apiService
-            .getFeeSettings()
-            .catchError((_) => const <String, dynamic>{}),
+        _apiService.getFeeSettings().catchError(
+          (_) => const <String, dynamic>{},
+        ),
       ]);
       if (!mounted) {
         return;
@@ -355,684 +355,758 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         ? 'standard'
         : (availableTypes.isNotEmpty ? availableTypes.first : 'standard');
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          final isBalanceCard = _isBalanceCardType(cardType);
-          final requiresTargetedUsers = !isBalanceCard;
-          final selectedUserIds = selectedUsers
-              .map((item) => item['id']?.toString() ?? '')
-              .where((item) => item.isNotEmpty)
-              .toList();
-          final selectedPhones = selectedPhoneNumbers
-              .map((item) => item.trim())
-              .where((item) => item.isNotEmpty)
-              .toList();
-          final availableBalance =
-              (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
-          final feePercent =
-              (_user?['customCardPrintRequestFeePercent'] as num?)
-                  ?.toDouble() ??
-              0;
-          final value = double.tryParse(valueController.text.trim()) ?? 0;
-          final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
-          final forcePrivateRequest = _mustCreatePrivateBalanceCards(cardType);
-          final isPrivateRequest =
-              forcePrivateRequest ||
-              requiresTargetedUsers ||
-              selectedUserIds.isNotEmpty ||
-              selectedPhones.isNotEmpty;
-          final faceAmount = isBalanceCard && !isPrivateRequest
-              ? value * quantity
-              : 0.0;
-          final issueCostPerCard = _creationIssueFeePerCard(
-            cardType,
-            isPrivate: isPrivateRequest,
-            cardValue: value,
-          );
-          final chargedIssueCostAmount = !isBalanceCard || isPrivateRequest
-              ? issueCostPerCard * quantity
-              : 0.0;
-          final deferredIssueCostAmount = isBalanceCard && !isPrivateRequest
-              ? issueCostPerCard * quantity
-              : 0.0;
-          final baseAmount = faceAmount + chargedIssueCostAmount;
-          final feeAmount = _cardRequestFeeAmount(baseAmount, feePercent);
-          final totalAmount = baseAmount + feeAmount;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final isBalanceCard = _isBalanceCardType(cardType);
+            final requiresTargetedUsers = !isBalanceCard;
+            final selectedUserIds = selectedUsers
+                .map((item) => item['id']?.toString() ?? '')
+                .where((item) => item.isNotEmpty)
+                .toList();
+            final selectedPhones = selectedPhoneNumbers
+                .map((item) => item.trim())
+                .where((item) => item.isNotEmpty)
+                .toList();
+            final availableBalance =
+                (_user?['availablePrintingBalance'] as num?)?.toDouble() ?? 0;
+            final feePercent =
+                (_user?['customCardPrintRequestFeePercent'] as num?)
+                    ?.toDouble() ??
+                0;
+            final value = double.tryParse(valueController.text.trim()) ?? 0;
+            final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
+            final forcePrivateRequest = _mustCreatePrivateBalanceCards(
+              cardType,
+            );
+            final isPrivateRequest =
+                forcePrivateRequest ||
+                requiresTargetedUsers ||
+                selectedUserIds.isNotEmpty ||
+                selectedPhones.isNotEmpty;
+            final faceAmount = isBalanceCard && !isPrivateRequest
+                ? value * quantity
+                : 0.0;
+            final issueCostPerCard = _creationIssueFeePerCard(
+              cardType,
+              isPrivate: isPrivateRequest,
+              cardValue: value,
+            );
+            final chargedIssueCostAmount = !isBalanceCard || isPrivateRequest
+                ? issueCostPerCard * quantity
+                : 0.0;
+            final deferredIssueCostAmount = isBalanceCard && !isPrivateRequest
+                ? issueCostPerCard * quantity
+                : 0.0;
+            final baseAmount = faceAmount + chargedIssueCostAmount;
+            final feeAmount = _cardRequestFeeAmount(baseAmount, feePercent);
+            final totalAmount = baseAmount + feeAmount;
 
-          void addAllowedPhone() {
-            if (!_isVerifiedAccount) {
-              AppAlertService.showInfo(
-                dialogContext,
-                title: l.tr('screens_card_print_requests_screen.070'),
-                message: l.tr('screens_card_print_requests_screen.071'),
-              );
-              return;
-            }
-
-            final raw = allowedPhoneController.text.trim();
-            final digits = raw.replaceAll(RegExp(r'\D'), '');
-            if (digits.length < 6) {
-              return;
-            }
-            final normalized = raw.startsWith('+') ? '+$digits' : digits;
-            if (!selectedPhoneNumbers.contains(normalized)) {
-              setDialogState(() => selectedPhoneNumbers.add(normalized));
-            }
-            allowedPhoneController.clear();
-          }
-
-          Future<void> submit() async {
-            if (quantity <= 0 || (isBalanceCard && value <= 0)) {
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_card_print_requests_screen.002'),
-                message: l.tr('screens_card_print_requests_screen.003'),
-              );
-              return;
-            }
-
-            if (quantity < _minimumCardQuantity) {
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_card_print_requests_screen.057'),
-                message: l.tr(
-                  'screens_card_print_requests_screen.058',
-                  params: {'count': '$_minimumCardQuantity'},
-                ),
-              );
-              return;
-            }
-
-            if (cardType == 'appointment' &&
-                (detailsTitleController.text.trim().isEmpty ||
-                    startsAtController.text.trim().isEmpty)) {
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_card_print_requests_screen.061'),
-                message: l.tr('screens_card_print_requests_screen.062'),
-              );
-              return;
-            }
-
-            if (cardType == 'queue' &&
-                detailsTitleController.text.trim().isEmpty) {
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_card_print_requests_screen.063'),
-                message: l.tr('screens_card_print_requests_screen.064'),
-              );
-              return;
-            }
-
-            if (totalAmount > availableBalance) {
-              final contact = await ContactInfoService.getContactInfo();
-              if (!dialogContext.mounted) {
+            void addAllowedPhone() {
+              if (!_isVerifiedAccount) {
+                AppAlertService.showInfo(
+                  dialogContext,
+                  title: l.tr('screens_card_print_requests_screen.070'),
+                  message: l.tr('screens_card_print_requests_screen.071'),
+                );
                 return;
               }
-              await _showOverLimitDialog(
-                dialogContext,
-                availableBalance: availableBalance,
-                totalAmount: totalAmount,
-                feePercent: feePercent,
-                supportWhatsapp: ContactInfoService.supportWhatsapp(contact),
-              );
-              return;
+
+              final raw = allowedPhoneController.text.trim();
+              final digits = raw.replaceAll(RegExp(r'\D'), '');
+              if (digits.length < 6) {
+                return;
+              }
+              final normalized = raw.startsWith('+') ? '+$digits' : digits;
+              if (!selectedPhoneNumbers.contains(normalized)) {
+                setDialogState(() => selectedPhoneNumbers.add(normalized));
+              }
+              allowedPhoneController.clear();
             }
 
-            setDialogState(() => _isSubmitting = true);
-            try {
-              final details = <String, dynamic>{
-                if (detailsTitleController.text.trim().isNotEmpty)
-                  'title': detailsTitleController.text.trim(),
-                if (detailsDescriptionController.text.trim().isNotEmpty)
-                  'description': detailsDescriptionController.text.trim(),
-                if (detailsLocationController.text.trim().isNotEmpty)
-                  'location': detailsLocationController.text.trim(),
-                if (startsAtController.text.trim().isNotEmpty)
-                  'startsAt': startsAtController.text.trim(),
-                if (endsAtController.text.trim().isNotEmpty)
-                  'endsAt': endsAtController.text.trim(),
-              };
-              final response = await _apiService.requestCardPrint(
-                value: isBalanceCard ? value : 0,
-                quantity: quantity,
-                cardType: cardType,
-                notes: notesController.text,
-                allowedUserIds: selectedUserIds,
-                allowedUserPhones: selectedPhones,
-                validFrom: validFromController.text,
-                validUntil: validUntilController.text,
-                cardDetails: details,
-              );
-              if (!dialogContext.mounted) {
+            Future<void> submit() async {
+              if (quantity <= 0 || (isBalanceCard && value <= 0)) {
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_card_print_requests_screen.002'),
+                  message: l.tr('screens_card_print_requests_screen.003'),
+                );
                 return;
               }
-              Navigator.pop(dialogContext);
-              if (!mounted) {
-                return;
-              }
-              await AppAlertService.showSuccess(
-                context,
-                title: l.tr('screens_card_print_requests_screen.004'),
-                message:
-                    response['message']?.toString() ??
-                    l.tr('screens_card_print_requests_screen.005'),
-              );
-              await _load();
-            } catch (error) {
-              if (!dialogContext.mounted) {
-                return;
-              }
-              setDialogState(() => _isSubmitting = false);
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_card_print_requests_screen.006'),
-                message: ErrorMessageService.sanitize(error),
-              );
-            }
-          }
 
-          return AlertDialog(
-            title: Text(l.tr('screens_card_print_requests_screen.007')),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isSubUser) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primarySoft.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.12),
-                          ),
-                        ),
-                        child: Text(
-                          _subUserPrintLimitMessage(dialogContext),
-                          style: AppTheme.caption.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    if (availableTypes.length > 1) ...[
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: Text(
-                          l.tr('screens_card_print_requests_screen.008'),
-                          style: AppTheme.bodyBold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: availableTypes.map((type) {
-                          final selected = cardType == type;
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () {
-                              setDialogState(() {
-                                cardType = type;
-                                if (_isBalanceCardType(type)) {
-                                  selectedUsers.clear();
-                                  detailsTitleController.clear();
-                                  detailsDescriptionController.clear();
-                                  detailsLocationController.clear();
-                                  startsAtController.clear();
-                                  endsAtController.clear();
-                                  validFromController.clear();
-                                  validUntilController.clear();
-                                }
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              width: 198,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? AppTheme.primary.withValues(alpha: 0.08)
-                                    : AppTheme.surfaceVariant,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: selected
-                                      ? AppTheme.primary
-                                      : AppTheme.border,
-                                ),
+              if (quantity < _minimumCardQuantity) {
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_card_print_requests_screen.057'),
+                  message: l.tr(
+                    'screens_card_print_requests_screen.058',
+                    params: {'count': '$_minimumCardQuantity'},
+                  ),
+                );
+                return;
+              }
+
+              if (cardType == 'appointment' &&
+                  (detailsTitleController.text.trim().isEmpty ||
+                      startsAtController.text.trim().isEmpty)) {
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_card_print_requests_screen.061'),
+                  message: l.tr('screens_card_print_requests_screen.062'),
+                );
+                return;
+              }
+
+              if (cardType == 'queue' &&
+                  detailsTitleController.text.trim().isEmpty) {
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_card_print_requests_screen.063'),
+                  message: l.tr('screens_card_print_requests_screen.064'),
+                );
+                return;
+              }
+
+              if (totalAmount > availableBalance) {
+                final contact = await ContactInfoService.getContactInfo();
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                await _showOverLimitDialog(
+                  dialogContext,
+                  availableBalance: availableBalance,
+                  totalAmount: totalAmount,
+                  feePercent: feePercent,
+                  supportWhatsapp: ContactInfoService.supportWhatsapp(contact),
+                );
+                return;
+              }
+
+              setDialogState(() => _isSubmitting = true);
+              try {
+                final details = <String, dynamic>{
+                  if (detailsTitleController.text.trim().isNotEmpty)
+                    'title': detailsTitleController.text.trim(),
+                  if (detailsDescriptionController.text.trim().isNotEmpty)
+                    'description': detailsDescriptionController.text.trim(),
+                  if (detailsLocationController.text.trim().isNotEmpty)
+                    'location': detailsLocationController.text.trim(),
+                  if (startsAtController.text.trim().isNotEmpty)
+                    'startsAt': startsAtController.text.trim(),
+                  if (endsAtController.text.trim().isNotEmpty)
+                    'endsAt': endsAtController.text.trim(),
+                };
+                final response = await _apiService.requestCardPrint(
+                  value: isBalanceCard ? value : 0,
+                  quantity: quantity,
+                  cardType: cardType,
+                  notes: notesController.text,
+                  allowedUserIds: selectedUserIds,
+                  allowedUserPhones: selectedPhones,
+                  validFrom: validFromController.text,
+                  validUntil: validUntilController.text,
+                  cardDetails: details,
+                );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                Navigator.pop(dialogContext);
+                if (!mounted) {
+                  return;
+                }
+                await AppAlertService.showSuccess(
+                  context,
+                  title: l.tr('screens_card_print_requests_screen.004'),
+                  message:
+                      response['message']?.toString() ??
+                      l.tr('screens_card_print_requests_screen.005'),
+                );
+                await _load();
+              } catch (error) {
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                setDialogState(() => _isSubmitting = false);
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_card_print_requests_screen.006'),
+                  message: ErrorMessageService.sanitize(error),
+                );
+              }
+            }
+
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(l.tr('screens_card_print_requests_screen.007')),
+              ),
+              body: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: ListView(
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        if (_isSubUser) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primarySoft.withValues(
+                                alpha: 0.7,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: AppTheme.primary.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Text(
+                              _subUserPrintLimitMessage(dialogContext),
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (availableTypes.length > 1) ...[
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text(
+                              l.tr('screens_card_print_requests_screen.008'),
+                              style: AppTheme.bodyBold,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: availableTypes.map((type) {
+                              final selected = cardType == type;
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () {
+                                  setDialogState(() {
+                                    cardType = type;
+                                    if (_isBalanceCardType(type)) {
+                                      selectedUsers.clear();
+                                      detailsTitleController.clear();
+                                      detailsDescriptionController.clear();
+                                      detailsLocationController.clear();
+                                      startsAtController.clear();
+                                      endsAtController.clear();
+                                      validFromController.clear();
+                                      validUntilController.clear();
+                                    }
+                                  });
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  width: 198,
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? AppTheme.primary.withValues(
+                                            alpha: 0.08,
+                                          )
+                                        : AppTheme.surfaceVariant,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: selected
+                                          ? AppTheme.primary
+                                          : AppTheme.border,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        _cardTypeIcon(type),
-                                        color: selected
-                                            ? AppTheme.primary
-                                            : AppTheme.textSecondary,
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            _cardTypeIcon(type),
+                                            color: selected
+                                                ? AppTheme.primary
+                                                : AppTheme.textSecondary,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              _cardTypeLabel(
+                                                dialogContext,
+                                                type,
+                                              ),
+                                              style: AppTheme.bodyBold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _cardTypeLabel(dialogContext, type),
-                                          style: AppTheme.bodyBold,
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _cardTypeDescription(type),
+                                        style: AppTheme.caption.copyWith(
+                                          fontSize: 12,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    _cardTypeDescription(type),
-                                    style: AppTheme.caption.copyWith(
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    if (availableTypes.length == 1) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primarySoft.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.12),
+                                ),
+                              );
+                            }).toList(),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _cardTypeIcon(cardType),
-                              color: AppTheme.primary,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _cardTypeLabel(dialogContext, cardType),
-                                style: AppTheme.bodyBold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    if (forcePrivateRequest && isBalanceCard) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.warning.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: AppTheme.warning.withValues(alpha: 0.18),
-                          ),
-                        ),
-                        child: Text(
-                          'سيتم إنشاء البطاقة كخاصة فقط لهذا الحساب. البطاقات العامة تحتاج صلاحية إدارية أو صلاحية إدارة طلبات الطباعة.',
-                          style: AppTheme.caption.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    if (cardType == 'delivery')
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primarySoft.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.12),
-                          ),
-                        ),
-                        child: Text(
-                          l.tr('shared.delivery_card_print_note'),
-                          style: AppTheme.caption.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    if (cardType == 'delivery') const SizedBox(height: 12),
-                    TextField(
-                      controller: valueController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      enabled: isBalanceCard,
-                      decoration: InputDecoration(
-                        labelText: !isBalanceCard
-                            ? l.tr('screens_card_print_requests_screen.011')
-                            : l.tr('screens_card_print_requests_screen.012'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ShwakelCard(
-                      padding: const EdgeInsets.all(14),
-                      color: AppTheme.secondary.withValues(alpha: 0.05),
-                      borderColor: AppTheme.secondary.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l.tr('screens_card_print_requests_screen.103'),
-                            style: AppTheme.bodyBold,
-                          ),
-                          const SizedBox(height: 10),
-                          _metaItem(
-                            l.tr('screens_card_print_requests_screen.072'),
-                            CurrencyFormatter.ils(faceAmount),
-                          ),
-                          const SizedBox(height: 8),
-                          _metaItem(
-                            l.tr('screens_card_print_requests_screen.073'),
-                            CurrencyFormatter.ils(chargedIssueCostAmount),
-                          ),
-                          if (deferredIssueCostAmount > 0) ...[
-                            const SizedBox(height: 8),
-                            _metaItem(
-                              l.tr('screens_card_print_requests_screen.074'),
-                              CurrencyFormatter.ils(deferredIssueCostAmount),
-                            ),
-                          ],
-                          if (feeAmount > 0) ...[
-                            const SizedBox(height: 8),
-                            _metaItem(
-                              l.tr('screens_card_print_requests_screen.021'),
-                              CurrencyFormatter.ils(feeAmount),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          _metaItem(
-                            l.tr('screens_card_print_requests_screen.075'),
-                            CurrencyFormatter.ils(totalAmount),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            deferredIssueCostAmount > 0
-                                ? l.tr('screens_card_print_requests_screen.076')
-                                : l.tr(
-                                    'screens_card_print_requests_screen.077',
-                                  ),
-                            style: AppTheme.caption.copyWith(fontSize: 12),
-                          ),
+                          const SizedBox(height: 12),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (requiresTargetedUsers) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF1F2),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFFFCDD5)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l.tr('screens_card_print_requests_screen.078'),
-                              style: AppTheme.bodyBold.copyWith(
-                                color: const Color(0xFFBE123C),
+                        if (availableTypes.length == 1) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primarySoft.withValues(
+                                alpha: 0.7,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: AppTheme.primary.withValues(alpha: 0.12),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              l.tr('screens_card_print_requests_screen.079'),
-                              style: AppTheme.caption.copyWith(
-                                color: const Color(0xFF9F1239),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
+                            child: Row(
                               children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: allowedPhoneController,
-                                    keyboardType: TextInputType.phone,
-                                    decoration: InputDecoration(
-                                      labelText: l.tr(
-                                        'screens_card_print_requests_screen.080',
-                                      ),
-                                      prefixIcon: const Icon(
-                                        Icons.phone_rounded,
-                                      ),
-                                    ),
-                                    onSubmitted: (_) => addAllowedPhone(),
-                                  ),
+                                Icon(
+                                  _cardTypeIcon(cardType),
+                                  color: AppTheme.primary,
                                 ),
                                 const SizedBox(width: 10),
-                                IconButton.filledTonal(
-                                  onPressed: addAllowedPhone,
-                                  icon: const Icon(Icons.add_rounded),
-                                  tooltip: l.tr(
-                                    'screens_card_print_requests_screen.081',
+                                Expanded(
+                                  child: Text(
+                                    _cardTypeLabel(dialogContext, cardType),
+                                    style: AppTheme.bodyBold,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
-                            if (selectedPhoneNumbers.isNotEmpty)
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: selectedPhoneNumbers.map((phone) {
-                                  return InputChip(
-                                    avatar: const Icon(Icons.phone_rounded),
-                                    label: Text(phone),
-                                    onDeleted: () => setDialogState(
-                                      () => selectedPhoneNumbers.remove(phone),
-                                    ),
-                                  );
-                                }).toList(),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (forcePrivateRequest && isBalanceCard) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.warning.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: AppTheme.warning.withValues(alpha: 0.18),
                               ),
-                            if (selectedPhoneNumbers.isNotEmpty)
+                            ),
+                            child: Text(
+                              'سيتم إنشاء البطاقة كخاصة فقط لهذا الحساب. البطاقات العامة تحتاج صلاحية إدارية أو صلاحية إدارة طلبات الطباعة.',
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (cardType == 'delivery')
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primarySoft.withValues(
+                                alpha: 0.7,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: AppTheme.primary.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Text(
+                              l.tr('shared.delivery_card_print_note'),
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        if (cardType == 'delivery') const SizedBox(height: 12),
+                        TextField(
+                          controller: valueController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          enabled: isBalanceCard,
+                          decoration: InputDecoration(
+                            labelText: !isBalanceCard
+                                ? l.tr('screens_card_print_requests_screen.011')
+                                : l.tr(
+                                    'screens_card_print_requests_screen.012',
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ShwakelCard(
+                          padding: const EdgeInsets.all(14),
+                          color: AppTheme.secondary.withValues(alpha: 0.05),
+                          borderColor: AppTheme.secondary.withValues(
+                            alpha: 0.14,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l.tr('screens_card_print_requests_screen.103'),
+                                style: AppTheme.bodyBold,
+                              ),
                               const SizedBox(height: 10),
-                            if (selectedUsers.isNotEmpty)
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: selectedUsers.map((user) {
-                                  final id = user['id']?.toString() ?? '';
-                                  final label = UserDisplayName.fromMap(
-                                    user,
-                                    fallback: id,
-                                  );
-                                  return InputChip(
-                                    label: Text(label),
-                                    onDeleted: () {
-                                      setDialogState(
-                                        () => selectedUsers.removeWhere(
-                                          (item) =>
-                                              item['id']?.toString() == id,
+                              _metaItem(
+                                l.tr('screens_card_print_requests_screen.072'),
+                                CurrencyFormatter.ils(faceAmount),
+                              ),
+                              const SizedBox(height: 8),
+                              _metaItem(
+                                l.tr('screens_card_print_requests_screen.073'),
+                                CurrencyFormatter.ils(chargedIssueCostAmount),
+                              ),
+                              if (deferredIssueCostAmount > 0) ...[
+                                const SizedBox(height: 8),
+                                _metaItem(
+                                  l.tr(
+                                    'screens_card_print_requests_screen.074',
+                                  ),
+                                  CurrencyFormatter.ils(
+                                    deferredIssueCostAmount,
+                                  ),
+                                ),
+                              ],
+                              if (feeAmount > 0) ...[
+                                const SizedBox(height: 8),
+                                _metaItem(
+                                  l.tr(
+                                    'screens_card_print_requests_screen.021',
+                                  ),
+                                  CurrencyFormatter.ils(feeAmount),
+                                ),
+                              ],
+                              const SizedBox(height: 8),
+                              _metaItem(
+                                l.tr('screens_card_print_requests_screen.075'),
+                                CurrencyFormatter.ils(totalAmount),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                deferredIssueCostAmount > 0
+                                    ? l.tr(
+                                        'screens_card_print_requests_screen.076',
+                                      )
+                                    : l.tr(
+                                        'screens_card_print_requests_screen.077',
+                                      ),
+                                style: AppTheme.caption.copyWith(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (requiresTargetedUsers) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF1F2),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: const Color(0xFFFFCDD5),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l.tr(
+                                    'screens_card_print_requests_screen.078',
+                                  ),
+                                  style: AppTheme.bodyBold.copyWith(
+                                    color: const Color(0xFFBE123C),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  l.tr(
+                                    'screens_card_print_requests_screen.079',
+                                  ),
+                                  style: AppTheme.caption.copyWith(
+                                    color: const Color(0xFF9F1239),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: allowedPhoneController,
+                                        keyboardType: TextInputType.phone,
+                                        decoration: InputDecoration(
+                                          labelText: l.tr(
+                                            'screens_card_print_requests_screen.080',
+                                          ),
+                                          prefixIcon: const Icon(
+                                            Icons.phone_rounded,
+                                          ),
+                                        ),
+                                        onSubmitted: (_) => addAllowedPhone(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    IconButton.filledTonal(
+                                      onPressed: addAllowedPhone,
+                                      icon: const Icon(Icons.add_rounded),
+                                      tooltip: l.tr(
+                                        'screens_card_print_requests_screen.081',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                if (selectedPhoneNumbers.isNotEmpty)
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: selectedPhoneNumbers.map((phone) {
+                                      return InputChip(
+                                        avatar: const Icon(Icons.phone_rounded),
+                                        label: Text(phone),
+                                        onDeleted: () => setDialogState(
+                                          () => selectedPhoneNumbers.remove(
+                                            phone,
+                                          ),
                                         ),
                                       );
+                                    }).toList(),
+                                  ),
+                                if (selectedPhoneNumbers.isNotEmpty)
+                                  const SizedBox(height: 10),
+                                if (selectedUsers.isNotEmpty)
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: selectedUsers.map((user) {
+                                      final id = user['id']?.toString() ?? '';
+                                      final label = UserDisplayName.fromMap(
+                                        user,
+                                        fallback: id,
+                                      );
+                                      return InputChip(
+                                        label: Text(label),
+                                        onDeleted: () {
+                                          setDialogState(
+                                            () => selectedUsers.removeWhere(
+                                              (item) =>
+                                                  item['id']?.toString() == id,
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: TextButton.icon(
+                                    onPressed: () async {
+                                      final results =
+                                          await _pickPrintTargetUsers(
+                                            dialogContext,
+                                            selectedUsers,
+                                          );
+                                      if (results != null) {
+                                        setDialogState(() {
+                                          selectedUsers
+                                            ..clear()
+                                            ..addAll(results);
+                                        });
+                                      }
                                     },
-                                  );
-                                }).toList(),
+                                    icon: const Icon(Icons.group_add_rounded),
+                                    label: Text(
+                                      selectedUsers.isEmpty
+                                          ? l.tr(
+                                              'screens_card_print_requests_screen.082',
+                                            )
+                                          : l.tr(
+                                              'screens_card_print_requests_screen.083',
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: detailsTitleController,
+                            decoration: InputDecoration(
+                              labelText: cardType == 'appointment'
+                                  ? l.tr(
+                                      'screens_card_print_requests_screen.084',
+                                    )
+                                  : cardType == 'queue'
+                                  ? l.tr(
+                                      'screens_card_print_requests_screen.085',
+                                    )
+                                  : l.tr(
+                                      'screens_card_print_requests_screen.086',
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (cardType == 'appointment') ...[
+                            TextField(
+                              controller: startsAtController,
+                              decoration: InputDecoration(
+                                labelText: l.tr(
+                                  'screens_card_print_requests_screen.087',
+                                ),
+                                hintText: '2026-05-01 09:00',
                               ),
-                            Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: TextButton.icon(
-                                onPressed: () async {
-                                  final results = await _pickPrintTargetUsers(
-                                    dialogContext,
-                                    selectedUsers,
-                                  );
-                                  if (results != null) {
-                                    setDialogState(() {
-                                      selectedUsers
-                                        ..clear()
-                                        ..addAll(results);
-                                    });
-                                  }
-                                },
-                                icon: const Icon(Icons.group_add_rounded),
-                                label: Text(
-                                  selectedUsers.isEmpty
-                                      ? l.tr(
-                                          'screens_card_print_requests_screen.082',
-                                        )
-                                      : l.tr(
-                                          'screens_card_print_requests_screen.083',
-                                        ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: endsAtController,
+                              decoration: InputDecoration(
+                                labelText: l.tr(
+                                  'screens_card_print_requests_screen.088',
+                                ),
+                                hintText: '2026-05-01 09:30',
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          if (cardType == 'appointment' ||
+                              cardType == 'queue') ...[
+                            TextField(
+                              controller: detailsLocationController,
+                              decoration: InputDecoration(
+                                labelText: l.tr(
+                                  'screens_card_print_requests_screen.089',
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 12),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: detailsTitleController,
-                        decoration: InputDecoration(
-                          labelText: cardType == 'appointment'
-                              ? l.tr('screens_card_print_requests_screen.084')
-                              : cardType == 'queue'
-                              ? l.tr('screens_card_print_requests_screen.085')
-                              : l.tr('screens_card_print_requests_screen.086'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (cardType == 'appointment') ...[
+                          TextField(
+                            controller: validFromController,
+                            decoration: InputDecoration(
+                              labelText: l.tr(
+                                'screens_card_print_requests_screen.090',
+                              ),
+                              hintText: l.tr(
+                                'screens_card_print_requests_screen.091',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: validUntilController,
+                            decoration: InputDecoration(
+                              labelText: l.tr(
+                                'screens_card_print_requests_screen.092',
+                              ),
+                              hintText: l.tr(
+                                'screens_card_print_requests_screen.093',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: detailsDescriptionController,
+                            minLines: 2,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              labelText: l.tr(
+                                'screens_card_print_requests_screen.094',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         TextField(
-                          controller: startsAtController,
+                          controller: quantityController,
+                          keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             labelText: l.tr(
-                              'screens_card_print_requests_screen.087',
+                              'screens_card_print_requests_screen.013',
                             ),
-                            hintText: '2026-05-01 09:00',
+                            helperText: l.tr(
+                              'screens_card_print_requests_screen.095',
+                              params: {'count': '$_minimumCardQuantity'},
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
                         TextField(
-                          controller: endsAtController,
+                          controller: notesController,
+                          minLines: 2,
+                          maxLines: 4,
                           decoration: InputDecoration(
                             labelText: l.tr(
-                              'screens_card_print_requests_screen.088',
+                              'screens_card_print_requests_screen.014',
                             ),
-                            hintText: '2026-05-01 09:30',
                           ),
                         ),
-                        const SizedBox(height: 12),
                       ],
-                      if (cardType == 'appointment' || cardType == 'queue') ...[
-                        TextField(
-                          controller: detailsLocationController,
-                          decoration: InputDecoration(
-                            labelText: l.tr(
-                              'screens_card_print_requests_screen.089',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      TextField(
-                        controller: validFromController,
-                        decoration: InputDecoration(
-                          labelText: l.tr(
-                            'screens_card_print_requests_screen.090',
-                          ),
-                          hintText: l.tr(
-                            'screens_card_print_requests_screen.091',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: validUntilController,
-                        decoration: InputDecoration(
-                          labelText: l.tr(
-                            'screens_card_print_requests_screen.092',
-                          ),
-                          hintText: l.tr(
-                            'screens_card_print_requests_screen.093',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: detailsDescriptionController,
-                        minLines: 2,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: l.tr(
-                            'screens_card_print_requests_screen.094',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: l.tr(
-                          'screens_card_print_requests_screen.013',
-                        ),
-                        helperText: l.tr(
-                          'screens_card_print_requests_screen.095',
-                          params: {'count': '$_minimumCardQuantity'},
-                        ),
-                      ),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: notesController,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        labelText: l.tr(
-                          'screens_card_print_requests_screen.014',
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: _isSubmitting
-                    ? null
-                    : () => Navigator.pop(dialogContext),
-                child: Text(l.tr('screens_card_print_requests_screen.015')),
-              ),
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : submit,
-                child: Text(
-                  _isSubmitting
-                      ? l.tr('screens_card_print_requests_screen.016')
-                      : l.tr('screens_card_print_requests_screen.017'),
+              bottomNavigationBar: SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(top: BorderSide(color: AppTheme.border)),
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 760),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              child: Text(
+                                l.tr('screens_card_print_requests_screen.015'),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: _isSubmitting ? null : submit,
+                              child: Text(
+                                _isSubmitting
+                                    ? l.tr(
+                                        'screens_card_print_requests_screen.016',
+                                      )
+                                    : l.tr(
+                                        'screens_card_print_requests_screen.017',
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
 
@@ -1064,162 +1138,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       return current;
     }
 
-    final searchController = TextEditingController();
-    final selected = List<Map<String, dynamic>>.from(current);
-    var results = <Map<String, dynamic>>[];
-    var isSearching = false;
-
-    try {
-      return await showModalBottomSheet<List<Map<String, dynamic>>>(
-        context: dialogContext,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setModalState) {
-            Future<void> searchUsers(String query) async {
-              setModalState(() => isSearching = true);
-              try {
-                results = query.trim().isEmpty
-                    ? <Map<String, dynamic>>[]
-                    : await _apiService.searchUsers(query.trim());
-              } catch (_) {
-                results = <Map<String, dynamic>>[];
-              }
-              if (context.mounted) {
-                setModalState(() => isSearching = false);
-              }
-            }
-
-            bool isSelected(Map<String, dynamic> user) {
-              final id = user['id']?.toString();
-              return selected.any((item) => item['id']?.toString() == id);
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  top: 8,
-                  bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.loc.tr('screens_card_print_requests_screen.082'),
-                      style: AppTheme.h3,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: searchController,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        labelText: context.loc.tr(
-                          'screens_card_print_requests_screen.098',
-                        ),
-                        prefixIcon: const Icon(Icons.search_rounded),
-                      ),
-                      onChanged: searchUsers,
-                    ),
-                    const SizedBox(height: 12),
-                    if (selected.isNotEmpty)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: selected.map((user) {
-                          final id = user['id']?.toString() ?? '';
-                          return InputChip(
-                            label: Text(
-                              UserDisplayName.fromMap(user, fallback: id),
-                            ),
-                            onDeleted: () => setModalState(
-                              () => selected.removeWhere(
-                                (item) => item['id']?.toString() == id,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 320),
-                      child: isSearching
-                          ? const Center(child: CircularProgressIndicator())
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: results.length,
-                              itemBuilder: (context, index) {
-                                final user = results[index];
-                                final checked = isSelected(user);
-                                final id = user['id']?.toString() ?? '';
-                                final title = UserDisplayName.fromMap(
-                                  user,
-                                  fallback: id,
-                                );
-                                final subtitle =
-                                    PhoneNumberService.localDisplay(
-                                      user['whatsapp']?.toString(),
-                                    ).isNotEmpty
-                                    ? PhoneNumberService.localDisplay(
-                                        user['whatsapp']?.toString(),
-                                      )
-                                    : user['username']?.toString() ?? '';
-                                return CheckboxListTile(
-                                  value: checked,
-                                  title: Text(title),
-                                  subtitle: subtitle.isNotEmpty
-                                      ? Text(subtitle)
-                                      : null,
-                                  onChanged: (value) {
-                                    setModalState(() {
-                                      if (value == true && !checked) {
-                                        selected.add(user);
-                                      } else if (value != true) {
-                                        selected.removeWhere(
-                                          (item) =>
-                                              item['id']?.toString() == id,
-                                        );
-                                      }
-                                    });
-                                  },
-                                );
-                              },
-                            ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            context.loc.tr(
-                              'screens_card_print_requests_screen.015',
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context, selected),
-                          child: Text(
-                            context.loc.tr(
-                              'screens_card_print_requests_screen.099',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    } finally {
-      searchController.dispose();
-    }
+    return Navigator.of(context).push<List<Map<String, dynamic>>>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _PrintTargetUsersScreen(initialSelected: current),
+      ),
+    );
   }
 
   Future<void> _showOverLimitDialog(
@@ -1298,80 +1222,187 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final printFee = (_user?['customCardPrintRequestFeePercent'] as num?)
         ?.toDouble();
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: Text(l.tr('screens_card_print_requests_screen.018')),
-        actions: [const AppNotificationAction(), const QuickLogoutAction()],
-      ),
-      drawer: const AppSidebar(),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: SingleChildScrollView(
-          child: ResponsiveScaffoldContainer(
-            useSafeArea: false,
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.spacingLg,
-              8,
-              AppTheme.spacingLg,
-              AppTheme.spacingLg,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildPrintInfoCard(
+    return DefaultTabController(
+      length: 3,
+      child: Builder(
+        builder: (context) {
+          final tabController = DefaultTabController.of(context);
+          return AnimatedBuilder(
+            animation: tabController,
+            builder: (context, _) {
+              final currentTab = switch (tabController.index) {
+                1 => _buildRequestsTab(),
+                2 => _buildUsageTab(),
+                _ => _buildCreatePrintRequestTab(
                   availableBalance: availableBalance,
                   printFee: printFee,
                 ),
-                if (_isSubUser) ...[
-                  const SizedBox(height: 12),
-                  ShwakelCard(
-                    padding: const EdgeInsets.all(16),
-                    color: AppTheme.surfaceVariant,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Text(
-                      _subUserPrintLimitMessage(context),
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.w700,
+              };
+
+              return Scaffold(
+                backgroundColor: AppTheme.background,
+                appBar: AppBar(
+                  title: Text(l.tr('screens_card_print_requests_screen.018')),
+                  actions: const [AppNotificationAction(), QuickLogoutAction()],
+                ),
+                drawer: const AppSidebar(),
+                body: RefreshIndicator(
+                  onRefresh: _load,
+                  child: SingleChildScrollView(
+                    child: ResponsiveScaffoldContainer(
+                      useSafeArea: false,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppTheme.spacingLg,
+                        8,
+                        AppTheme.spacingLg,
+                        AppTheme.spacingLg,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildPrintRequestTabs(),
+                          const SizedBox(height: 16),
+                          currentTab,
+                        ],
                       ),
                     ),
                   ),
-                ],
-                const SizedBox(height: 16),
-                _buildIssuedCardsUsageReport(),
-                const SizedBox(height: 16),
-                if (_isLoadingRequests)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (_requests.isEmpty)
-                  ShwakelCard(
-                    padding: const EdgeInsets.all(28),
-                    child: Center(
-                      child: Text(
-                        l.tr('screens_card_print_requests_screen.024'),
-                        style: AppTheme.bodyAction,
-                      ),
-                    ),
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _requests.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) =>
-                        _buildRequestCard(_requests[index]),
-                  ),
-              ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPrintRequestTabs() {
+    final l = context.loc;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
+      child: TabBar(
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: const EdgeInsets.all(6),
+        tabs: [
+          Tab(
+            icon: const Icon(Icons.add_card_rounded),
+            text: l.tr('screens_card_print_requests_screen.023'),
+          ),
+          Tab(
+            icon: const Icon(Icons.list_alt_rounded),
+            text: l.tr('screens_card_print_requests_screen.018'),
+          ),
+          Tab(
+            icon: const Icon(Icons.analytics_rounded),
+            text: l.tr('screens_card_print_requests_screen.050'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreatePrintRequestTab({
+    required double availableBalance,
+    required double? printFee,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPrintInfoCard(
+          availableBalance: availableBalance,
+          printFee: printFee,
+        ),
+        if (_isSubUser) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.borderLight),
+            ),
+            child: Text(
+              _subUserPrintLimitMessage(context),
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRequestsTab() {
+    final l = context.loc;
+    if (_isLoadingRequests) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: CircularProgressIndicator(),
         ),
+      );
+    }
+    if (_requests.isEmpty) {
+      return ShwakelCard(
+        padding: const EdgeInsets.all(28),
+        child: Center(
+          child: Text(
+            l.tr('screens_card_print_requests_screen.024'),
+            style: AppTheme.bodyAction,
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        _buildRequestsSummaryBar(),
+        const SizedBox(height: 12),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _requests.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) => _buildRequestCard(_requests[index]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUsageTab() {
+    return _buildIssuedCardsUsageReport();
+  }
+
+  Widget _buildRequestsSummaryBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('طلبات الطباعة الحالية', style: AppTheme.bodyBold),
+          ),
+          Text(
+            '${_requests.length}',
+            style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+          ),
+        ],
       ),
     );
   }
@@ -1386,16 +1417,50 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
       ),
     );
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildUsageReportHeader(summary),
+        const SizedBox(height: 12),
+        if (items.isEmpty)
+          _buildUsageEmptyState()
+        else ...[
+          _buildUsageResultsHeader(items.length),
+          const SizedBox(height: 10),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (context, index) => _buildUsageReportRow(items[index]),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildUsageReportHeader(Map<String, dynamic> summary) {
     return ShwakelCard(
       padding: const EdgeInsets.all(18),
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.analytics_rounded, color: AppTheme.primary),
-              const SizedBox(width: 10),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.analytics_rounded,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'تقرير استخدام البطاقات الصادرة',
@@ -1404,56 +1469,97 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _usageSummaryTile(
-                'إجمالي البطاقات',
-                '${(summary['totalCards'] as num?)?.toInt() ?? 0}',
-                Icons.credit_card_rounded,
-              ),
-              _usageSummaryTile(
-                'المستخدمة',
-                '${(summary['usedCards'] as num?)?.toInt() ?? 0}',
-                Icons.task_alt_rounded,
-              ),
-              _usageSummaryTile(
-                'المستخدمة اليوم',
-                '${(summary['usedToday'] as num?)?.toInt() ?? 0}',
-                Icons.today_rounded,
-              ),
-              _usageSummaryTile(
-                'الخاصة',
-                '${(summary['privateCards'] as num?)?.toInt() ?? 0}',
-                Icons.lock_rounded,
-              ),
-            ],
-          ),
           const SizedBox(height: 14),
-          if (items.isEmpty)
-            Text(
-              'لا توجد استخدامات مسجلة للبطاقات الصادرة من حسابك ضمن النطاق الحالي.',
-              style: AppTheme.bodyAction,
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) =>
-                  _buildUsageReportRow(items[index]),
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 560;
+              final tiles = [
+                _usageSummaryTile(
+                  'إجمالي البطاقات',
+                  '${(summary['totalCards'] as num?)?.toInt() ?? 0}',
+                  Icons.credit_card_rounded,
+                ),
+                _usageSummaryTile(
+                  'المستخدمة',
+                  '${(summary['usedCards'] as num?)?.toInt() ?? 0}',
+                  Icons.task_alt_rounded,
+                ),
+                _usageSummaryTile(
+                  'المستخدمة اليوم',
+                  '${(summary['usedToday'] as num?)?.toInt() ?? 0}',
+                  Icons.today_rounded,
+                ),
+                _usageSummaryTile(
+                  'الخاصة',
+                  '${(summary['privateCards'] as num?)?.toInt() ?? 0}',
+                  Icons.lock_rounded,
+                ),
+              ];
+              if (compact) {
+                return Column(
+                  children: tiles
+                      .map(
+                        (tile) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: tile,
+                        ),
+                      )
+                      .toList(),
+                );
+              }
+              return Wrap(spacing: 10, runSpacing: 10, children: tiles);
+            },
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUsageResultsHeader(int count) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.history_rounded, color: AppTheme.primary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('آخر استخدامات البطاقات', style: AppTheme.bodyBold),
+          ),
+          Text(
+            '$count',
+            style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsageEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
+      child: Text(
+        'لا توجد استخدامات مسجلة للبطاقات الصادرة من حسابك ضمن النطاق الحالي.',
+        style: AppTheme.bodyAction,
+        textAlign: TextAlign.center,
       ),
     );
   }
 
   Widget _usageSummaryTile(String label, String value, IconData icon) {
     return Container(
-      width: 178,
+      width: AppTheme.isPhone(context) ? double.infinity : 178,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppTheme.surfaceVariant,
@@ -1492,59 +1598,130 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         ? 'خاصة'
         : 'عامة';
     final type = card['cardType']?.toString() ?? 'standard';
+    final barcode = card['barcode']?.toString() ?? '';
+    final statusColor = isUsed ? AppTheme.success : AppTheme.textTertiary;
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isUsed
             ? AppTheme.success.withValues(alpha: 0.06)
-            : AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(16),
+            : AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isUsed
               ? AppTheme.success.withValues(alpha: 0.16)
               : AppTheme.border,
         ),
       ),
-      child: Row(
-        children: [
-          Icon(
-            isUsed ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-            color: isUsed ? AppTheme.success : AppTheme.textTertiary,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 560;
+          final leading = Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isUsed
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked,
+              color: statusColor,
+            ),
+          );
+          final body = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_cardTypeLabel(context, type)} - $scope',
+                style: AppTheme.bodyBold,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _usageInfoChip(
+                    Icons.qr_code_2_rounded,
+                    barcode.isEmpty ? '-' : barcode,
+                  ),
+                  _usageInfoChip(
+                    Icons.person_rounded,
+                    isUsed ? usedBy : 'غير مستخدمة',
+                  ),
+                  _usageInfoChip(
+                    Icons.schedule_rounded,
+                    isUsed ? usedAt : 'بانتظار الاستخدام',
+                  ),
+                ],
+              ),
+            ],
+          );
+
+          if (compact) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${_cardTypeLabel(context, type)} - $scope',
-                  style: AppTheme.bodyBold,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    leading,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isUsed ? 'مستخدمة' : 'غير مستخدمة',
+                        style: AppTheme.bodyBold.copyWith(color: statusColor),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  isUsed
-                      ? 'استخدمت عند: $usedBy - وقت الاستخدام: $usedAt'
-                      : 'لم تستخدم بعد',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
+                const SizedBox(height: 10),
+                body,
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 120),
+            );
+          }
+
+          return Row(
+            children: [
+              leading,
+              const SizedBox(width: 12),
+              Expanded(child: body),
+              const SizedBox(width: 10),
+              Text(
+                isUsed ? 'مستخدمة' : 'غير مستخدمة',
+                style: AppTheme.caption.copyWith(
+                  color: statusColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _usageInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceMuted,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Flexible(
             child: Text(
-              card['barcode']?.toString() ?? '',
-              style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
+              label,
+              style: AppTheme.caption,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.end,
             ),
           ),
         ],
@@ -1843,174 +2020,191 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
         (request['chargedIssueCostAmount'] as num?)?.toDouble() ?? 0;
     final deferredIssueCostAmount =
         (request['deferredIssueCostAmount'] as num?)?.toDouble() ?? 0;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.72,
-        minChildSize: 0.5,
-        maxChildSize: 0.92,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(
+            title: Text(l.tr('screens_card_print_requests_screen.100')),
+            actions: const [AppNotificationAction(), QuickLogoutAction()],
           ),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          body: ResponsiveScaffoldContainer(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ListView(
               children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppTheme.border,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
+                ShwakelCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l.tr('screens_card_print_requests_screen.100'),
+                              style: AppTheme.h3,
+                            ),
+                          ),
+                          _statusChip(
+                            request['status']?.toString() ?? 'pending_review',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _metaItem(
+                            l.tr('screens_card_print_requests_screen.026'),
+                            _cardTypeLabel(
+                              context,
+                              request['cardType']?.toString() ?? 'standard',
+                            ),
+                          ),
+                          if ((request['cardType']?.toString() ?? '') ==
+                              'delivery')
+                            _metaItem(
+                              l.tr('shared.usage_label'),
+                              _cardTypeUsageNote(
+                                request['cardType']?.toString() ?? 'standard',
+                              ),
+                            ),
+                          _metaItem(
+                            l.tr('screens_card_print_requests_screen.029'),
+                            l.tr(
+                              'screens_card_print_requests_screen.030',
+                              params: {'count': '${request['quantity'] ?? 0}'},
+                            ),
+                          ),
+                          _metaItem(
+                            l.tr('screens_card_print_requests_screen.031'),
+                            CurrencyFormatter.ils(
+                              (request['cardValue'] as num?)?.toDouble() ?? 0,
+                            ),
+                          ),
+                          if (chargedIssueCostAmount > 0)
+                            _metaItem(
+                              l.tr('screens_card_print_requests_screen.073'),
+                              CurrencyFormatter.ils(chargedIssueCostAmount),
+                            ),
+                          if (deferredIssueCostAmount > 0)
+                            _metaItem(
+                              l.tr('screens_card_print_requests_screen.074'),
+                              CurrencyFormatter.ils(deferredIssueCostAmount),
+                            ),
+                          if (((request['feeAmount'] as num?)?.toDouble() ??
+                                  0) >
+                              0)
+                            _metaItem(
+                              l.tr('screens_card_print_requests_screen.021'),
+                              CurrencyFormatter.ils(
+                                (request['feeAmount'] as num?)?.toDouble() ?? 0,
+                              ),
+                            ),
+                          _metaItem(
+                            l.tr('screens_card_print_requests_screen.032'),
+                            CurrencyFormatter.ils(
+                              (request['totalAmount'] as num?)?.toDouble() ?? 0,
+                            ),
+                          ),
+                          _metaItem(
+                            l.tr('screens_card_print_requests_screen.044'),
+                            request['sourceType'] == 'local'
+                                ? l.tr('screens_card_print_requests_screen.045')
+                                : l.tr(
+                                    'screens_card_print_requests_screen.046',
+                                  ),
+                          ),
+                          _metaItem(
+                            l.tr('screens_card_print_requests_screen.047'),
+                            _formatDateTime(
+                              request['lastPrintedAt']?.toString(),
+                              l.tr('screens_card_print_requests_screen.048'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if ((request['customerNotes']
+                              ?.toString()
+                              .trim()
+                              .isNotEmpty ??
+                          false))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
+                            child: Text(
+                              l.tr(
+                                'screens_card_print_requests_screen.033',
+                                params: {
+                                  'notes': '${request['customerNotes']}',
+                                },
+                              ),
+                              style: AppTheme.bodyAction,
+                            ),
+                          ),
+                        ),
+                      if (chargedIssueCostAmount > 0 ||
+                          deferredIssueCostAmount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
+                            child: Text(
+                              deferredIssueCostAmount > 0
+                                  ? l.tr(
+                                      'screens_card_print_requests_screen.101',
+                                    )
+                                  : l.tr(
+                                      'screens_card_print_requests_screen.102',
+                                    ),
+                              style: AppTheme.bodyAction,
+                            ),
+                          ),
+                        ),
+                      if ((request['adminNotes']
+                              ?.toString()
+                              .trim()
+                              .isNotEmpty ??
+                          false))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceMuted,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
+                            child: Text(
+                              l.tr(
+                                'screens_card_print_requests_screen.034',
+                                params: {'notes': '${request['adminNotes']}'},
+                              ),
+                              style: AppTheme.bodyAction.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l.tr('screens_card_print_requests_screen.100'),
-                        style: AppTheme.h3,
-                      ),
-                    ),
-                    _statusChip(
-                      request['status']?.toString() ?? 'pending_review',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _metaItem(
-                      l.tr('screens_card_print_requests_screen.026'),
-                      _cardTypeLabel(
-                        context,
-                        request['cardType']?.toString() ?? 'standard',
-                      ),
-                    ),
-                    if ((request['cardType']?.toString() ?? '') == 'delivery')
-                      _metaItem(
-                        l.tr('shared.usage_label'),
-                        _cardTypeUsageNote(
-                          request['cardType']?.toString() ?? 'standard',
-                        ),
-                      ),
-                    _metaItem(
-                      l.tr('screens_card_print_requests_screen.029'),
-                      l.tr(
-                        'screens_card_print_requests_screen.030',
-                        params: {'count': '${request['quantity'] ?? 0}'},
-                      ),
-                    ),
-                    _metaItem(
-                      l.tr('screens_card_print_requests_screen.031'),
-                      CurrencyFormatter.ils(
-                        (request['cardValue'] as num?)?.toDouble() ?? 0,
-                      ),
-                    ),
-                    if (chargedIssueCostAmount > 0)
-                      _metaItem(
-                        l.tr('screens_card_print_requests_screen.073'),
-                        CurrencyFormatter.ils(chargedIssueCostAmount),
-                      ),
-                    if (deferredIssueCostAmount > 0)
-                      _metaItem(
-                        l.tr('screens_card_print_requests_screen.074'),
-                        CurrencyFormatter.ils(deferredIssueCostAmount),
-                      ),
-                    if (((request['feeAmount'] as num?)?.toDouble() ?? 0) > 0)
-                      _metaItem(
-                        l.tr('screens_card_print_requests_screen.021'),
-                        CurrencyFormatter.ils(
-                          (request['feeAmount'] as num?)?.toDouble() ?? 0,
-                        ),
-                      ),
-                    _metaItem(
-                      l.tr('screens_card_print_requests_screen.032'),
-                      CurrencyFormatter.ils(
-                        (request['totalAmount'] as num?)?.toDouble() ?? 0,
-                      ),
-                    ),
-                    _metaItem(
-                      l.tr('screens_card_print_requests_screen.044'),
-                      request['sourceType'] == 'local'
-                          ? l.tr('screens_card_print_requests_screen.045')
-                          : l.tr('screens_card_print_requests_screen.046'),
-                    ),
-                    _metaItem(
-                      l.tr('screens_card_print_requests_screen.047'),
-                      _formatDateTime(
-                        request['lastPrintedAt']?.toString(),
-                        l.tr('screens_card_print_requests_screen.048'),
-                      ),
-                    ),
-                  ],
-                ),
-                if ((request['customerNotes']?.toString().trim().isNotEmpty ??
-                    false))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: ShwakelCard(
-                      padding: const EdgeInsets.all(14),
-                      color: AppTheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(18),
-                      shadowLevel: ShwakelShadowLevel.none,
-                      child: Text(
-                        l.tr(
-                          'screens_card_print_requests_screen.033',
-                          params: {'notes': '${request['customerNotes']}'},
-                        ),
-                        style: AppTheme.bodyAction,
-                      ),
-                    ),
-                  ),
-                if (chargedIssueCostAmount > 0 || deferredIssueCostAmount > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: ShwakelCard(
-                      padding: const EdgeInsets.all(14),
-                      color: AppTheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(18),
-                      shadowLevel: ShwakelShadowLevel.none,
-                      child: Text(
-                        deferredIssueCostAmount > 0
-                            ? l.tr('screens_card_print_requests_screen.101')
-                            : l.tr('screens_card_print_requests_screen.102'),
-                        style: AppTheme.bodyAction,
-                      ),
-                    ),
-                  ),
-                if ((request['adminNotes']?.toString().trim().isNotEmpty ??
-                    false))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: ShwakelCard(
-                      padding: const EdgeInsets.all(14),
-                      color: AppTheme.surfaceMuted,
-                      borderRadius: BorderRadius.circular(18),
-                      shadowLevel: ShwakelShadowLevel.none,
-                      child: Text(
-                        l.tr(
-                          'screens_card_print_requests_screen.034',
-                          params: {'notes': '${request['adminNotes']}'},
-                        ),
-                        style: AppTheme.bodyAction.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -2114,5 +2308,165 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     final hour = parsed.hour.toString().padLeft(2, '0');
     final minute = parsed.minute.toString().padLeft(2, '0');
     return '$year-$month-$day $hour:$minute';
+  }
+}
+
+class _PrintTargetUsersScreen extends StatefulWidget {
+  const _PrintTargetUsersScreen({required this.initialSelected});
+
+  final List<Map<String, dynamic>> initialSelected;
+
+  @override
+  State<_PrintTargetUsersScreen> createState() =>
+      _PrintTargetUsersScreenState();
+}
+
+class _PrintTargetUsersScreenState extends State<_PrintTargetUsersScreen> {
+  final ApiService _apiService = ApiService();
+  final TextEditingController _searchController = TextEditingController();
+  late final List<Map<String, dynamic>> _selected;
+  List<Map<String, dynamic>> _results = const [];
+  bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = List<Map<String, dynamic>>.from(widget.initialSelected);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchUsers(String query) async {
+    setState(() => _isSearching = true);
+    try {
+      final results = query.trim().isEmpty
+          ? <Map<String, dynamic>>[]
+          : await _apiService.searchUsers(query.trim());
+      if (!mounted) {
+        return;
+      }
+      setState(() => _results = results);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _results = const []);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
+    }
+  }
+
+  bool _isSelected(Map<String, dynamic> user) {
+    final id = user['id']?.toString();
+    return _selected.any((item) => item['id']?.toString() == id);
+  }
+
+  void _toggleUser(Map<String, dynamic> user, bool? value) {
+    final id = user['id']?.toString() ?? '';
+    setState(() {
+      if (value == true && !_isSelected(user)) {
+        _selected.add(user);
+      } else if (value != true) {
+        _selected.removeWhere((item) => item['id']?.toString() == id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: Text(l.tr('screens_card_print_requests_screen.082')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, _selected),
+            child: Text(l.tr('screens_card_print_requests_screen.099')),
+          ),
+        ],
+      ),
+      body: ResponsiveScaffoldContainer(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: ListView(
+          children: [
+            ShwakelCard(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: l.tr('screens_card_print_requests_screen.098'),
+                      prefixIcon: const Icon(Icons.search_rounded),
+                    ),
+                    onChanged: _searchUsers,
+                  ),
+                  const SizedBox(height: 12),
+                  if (_selected.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _selected.map((user) {
+                        final id = user['id']?.toString() ?? '';
+                        return InputChip(
+                          label: Text(
+                            UserDisplayName.fromMap(user, fallback: id),
+                          ),
+                          onDeleted: () => setState(
+                            () => _selected.removeWhere(
+                              (item) => item['id']?.toString() == id,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_isSearching)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
+              ..._results.map((user) {
+                final checked = _isSelected(user);
+                final id = user['id']?.toString() ?? '';
+                final title = UserDisplayName.fromMap(user, fallback: id);
+                final phone = PhoneNumberService.localDisplay(
+                  user['whatsapp']?.toString(),
+                );
+                final subtitle = phone.isNotEmpty
+                    ? phone
+                    : user['username']?.toString() ?? '';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: ShwakelCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    child: CheckboxListTile(
+                      value: checked,
+                      title: Text(title),
+                      subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
+                      onChanged: (value) => _toggleUser(user, value),
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
   }
 }

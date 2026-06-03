@@ -850,57 +850,77 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   Future<void> _showMerchantActions(Map<String, dynamic> location) async {
-    final l = context.loc;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) {
+          final l = context.loc;
+          return Scaffold(
+            backgroundColor: AppTheme.background,
+            appBar: AppBar(
+              title: Text(
                 location['title']?.toString() ??
                     l.tr('screens_supported_locations_screen.008'),
-                style: AppTheme.h3,
               ),
-              const SizedBox(height: 8),
-              Text(
-                location['address']?.toString() ?? '-',
-                style: AppTheme.bodyAction.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+              actions: const [AppNotificationAction(), QuickLogoutAction()],
+            ),
+            body: ResponsiveScaffoldContainer(
+              padding: const EdgeInsets.all(AppTheme.spacingLg),
+              child: ListView(
+                children: [
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          location['title']?.toString() ??
+                              l.tr('screens_supported_locations_screen.008'),
+                          style: AppTheme.h3,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          location['address']?.toString() ?? '-',
+                          style: AppTheme.bodyAction.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ShwakelButton(
+                            label: l.tr(
+                              'screens_supported_locations_screen.046',
+                            ),
+                            icon: Icons.map_rounded,
+                            onPressed: () async {
+                              await _openDirectionsInWebView(location);
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ShwakelButton(
+                            label: l.tr(
+                              'screens_supported_locations_screen.010',
+                            ),
+                            icon: Icons.open_in_new_rounded,
+                            isSecondary: true,
+                            onPressed: () async {
+                              await _openMap(location);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ShwakelButton(
-                  label: l.tr('screens_supported_locations_screen.046'),
-                  icon: Icons.map_rounded,
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _openDirectionsInWebView(location);
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: ShwakelButton(
-                  label: l.tr('screens_supported_locations_screen.010'),
-                  icon: Icons.open_in_new_rounded,
-                  isSecondary: true,
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _openMap(location);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -1185,94 +1205,11 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
     required double initialLatitude,
     required double initialLongitude,
   }) async {
-    LatLng selected = LatLng(initialLatitude, initialLongitude);
-    return showModalBottomSheet<LatLng>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: StatefulBuilder(
-          builder: (context, setModalState) => SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.76,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.loc.tr('screens_supported_locations_screen.039'),
-                    style: AppTheme.h3,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.loc.tr('screens_supported_locations_screen.047'),
-                    style: AppTheme.bodyAction.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: FlutterMap(
-                        options: MapOptions(
-                          initialCenter: selected,
-                          initialZoom: 13,
-                          onTap: (_, point) {
-                            setModalState(() => selected = point);
-                          },
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.shwakil.app',
-                          ),
-                          MarkerLayer(
-                            markers: [
-                              Marker(
-                                point: selected,
-                                width: 52,
-                                height: 52,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primary,
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 3,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.place_rounded,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ShwakelButton(
-                          label: context.loc.tr(
-                            'screens_supported_locations_screen.048',
-                          ),
-                          icon: Icons.check_rounded,
-                          onPressed: () => Navigator.pop(context, selected),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _LocationPickerScreen(
+          initialLocation: LatLng(initialLatitude, initialLongitude),
         ),
       ),
     );
@@ -1280,3 +1217,87 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
 }
 
 enum _SupportedLocationsView { list, map }
+
+class _LocationPickerScreen extends StatefulWidget {
+  const _LocationPickerScreen({required this.initialLocation});
+
+  final LatLng initialLocation;
+
+  @override
+  State<_LocationPickerScreen> createState() => _LocationPickerScreenState();
+}
+
+class _LocationPickerScreenState extends State<_LocationPickerScreen> {
+  late LatLng _selected = widget.initialLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: Text(context.loc.tr('screens_supported_locations_screen.039')),
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, _selected),
+            icon: const Icon(Icons.check_rounded),
+            label: Text(context.loc.tr('screens_supported_locations_screen.048')),
+          ),
+        ],
+      ),
+      body: ResponsiveScaffoldContainer(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.loc.tr('screens_supported_locations_screen.047'),
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: _selected,
+                    initialZoom: 13,
+                    onTap: (_, point) => setState(() => _selected = point),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.shwakil.app',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _selected,
+                          width: 52,
+                          height: 52,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.white, width: 3),
+                            ),
+                            child: const Icon(
+                              Icons.place_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

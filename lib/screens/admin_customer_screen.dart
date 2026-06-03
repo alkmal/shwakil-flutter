@@ -446,90 +446,122 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     );
     final formKey = GlobalKey<FormState>();
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(
-            isCredit
-                ? _t('screens_admin_customer_screen.083')
-                : _t('screens_admin_customer_screen.084'),
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _customer['username']?.toString() ?? '',
-                  style: AppTheme.bodyBold,
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: _t('screens_admin_customer_screen.085'),
-                  ),
-                  validator: (value) {
-                    final amount = double.tryParse(
-                      (value ?? '').trim().replaceAll(',', '.'),
-                    );
-                    if (amount == null || amount <= 0) {
-                      return _t('screens_admin_customer_screen.086');
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: notesController,
-                  maxLength: 250,
-                  minLines: 2,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: _t('screens_admin_customer_screen.087'),
-                  ),
-                ),
-                if (!isCredit) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    _t('screens_admin_customer_screen.088'),
-                    style: AppTheme.caption.copyWith(color: AppTheme.warning),
-                  ),
-                ],
-              ],
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (dialogContext) => Scaffold(
+          appBar: AppBar(
+            title: Text(
+              isCredit
+                  ? _t('screens_admin_customer_screen.083')
+                  : _t('screens_admin_customer_screen.084'),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(_t('screens_admin_customer_screen.089')),
-            ),
-            FilledButton.icon(
-              onPressed: () {
-                if (formKey.currentState?.validate() != true) {
-                  return;
-                }
-                Navigator.of(dialogContext).pop(true);
-              },
-              icon: Icon(
-                isCredit
-                    ? Icons.add_card_rounded
-                    : Icons.remove_circle_outline_rounded,
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Form(
+                  key: formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      Text(
+                        _customer['username']?.toString() ?? '',
+                        style: AppTheme.bodyBold,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: _t('screens_admin_customer_screen.085'),
+                        ),
+                        validator: (value) {
+                          final amount = double.tryParse(
+                            (value ?? '').trim().replaceAll(',', '.'),
+                          );
+                          if (amount == null || amount <= 0) {
+                            return _t('screens_admin_customer_screen.086');
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: notesController,
+                        maxLength: 250,
+                        minLines: 2,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: _t('screens_admin_customer_screen.087'),
+                        ),
+                      ),
+                      if (!isCredit) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _t('screens_admin_customer_screen.088'),
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.warning,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-              label: Text(
-                isCredit
-                    ? _t('screens_admin_customer_screen.090')
-                    : _t('screens_admin_customer_screen.091'),
+            ),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(top: BorderSide(color: AppTheme.border)),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(false),
+                          child: Text(_t('screens_admin_customer_screen.089')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            if (formKey.currentState?.validate() != true) {
+                              return;
+                            }
+                            Navigator.of(dialogContext).pop(true);
+                          },
+                          icon: Icon(
+                            isCredit
+                                ? Icons.add_card_rounded
+                                : Icons.remove_circle_outline_rounded,
+                          ),
+                          label: Text(
+                            isCredit
+                                ? _t('screens_admin_customer_screen.090')
+                                : _t('screens_admin_customer_screen.091'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ),
     );
 
     if (confirmed != true || !mounted) {
@@ -589,87 +621,116 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     final pinController = TextEditingController();
     var selectedValidityYears = 1;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('إنشاء بطاقة دفع مسبق للمستخدم'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_customerDisplayName, style: AppTheme.bodyBold),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: labelController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'اسم البطاقة',
-                    prefixIcon: Icon(Icons.badge_rounded),
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) => Scaffold(
+            appBar: AppBar(title: const Text('إنشاء بطاقة دفع مسبق للمستخدم')),
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      Text(_customerDisplayName, style: AppTheme.bodyBold),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: labelController,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'اسم البطاقة',
+                          prefixIcon: Icon(Icons.badge_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'مبلغ البطاقة',
+                          prefixIcon: Icon(Icons.payments_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: pinController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 3,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'رمز البطاقة',
+                          prefixIcon: Icon(Icons.pin_rounded),
+                          counterText: '',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        initialValue: selectedValidityYears,
+                        decoration: const InputDecoration(
+                          labelText: 'مدة البطاقة',
+                          prefixIcon: Icon(Icons.event_available_rounded),
+                        ),
+                        items: const [1, 2, 3, 4, 5]
+                            .map(
+                              (years) => DropdownMenuItem<int>(
+                                value: years,
+                                child: Text(
+                                  years == 1 ? 'سنة واحدة' : '$years سنوات',
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setDialogState(() => selectedValidityYears = value);
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'مبلغ البطاقة',
-                    prefixIcon: Icon(Icons.payments_rounded),
-                  ),
+              ),
+            ),
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  border: Border(top: BorderSide(color: AppTheme.border)),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: pinController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 3,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'رمز البطاقة',
-                    prefixIcon: Icon(Icons.pin_rounded),
-                    counterText: '',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  initialValue: selectedValidityYears,
-                  decoration: const InputDecoration(
-                    labelText: 'مدة البطاقة',
-                    prefixIcon: Icon(Icons.event_available_rounded),
-                  ),
-                  items: const [1, 2, 3, 4, 5]
-                      .map(
-                        (years) => DropdownMenuItem<int>(
-                          value: years,
-                          child: Text(
-                            years == 1 ? 'سنة واحدة' : '$years سنوات',
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            child: const Text('إلغاء'),
                           ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    setDialogState(() => selectedValidityYears = value);
-                  },
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
+                            icon: const Icon(Icons.add_card_rounded),
+                            label: const Text('إنشاء البطاقة'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              icon: const Icon(Icons.add_card_rounded),
-              label: const Text('إنشاء البطاقة'),
-            ),
-          ],
         ),
       ),
     );

@@ -3892,6 +3892,50 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> updateSecurityPin({
+    required String pin,
+    String? currentPin,
+    String? localAuthMethod,
+  }) async {
+    return _decodeObject(
+      await _authenticatedPostWithFallback(
+        'auth/security-pin',
+        body: jsonEncode({
+          'pin': pin.trim(),
+          if ((currentPin ?? '').trim().isNotEmpty)
+            'currentPin': currentPin!.trim(),
+          if ((localAuthMethod ?? '').trim().isNotEmpty)
+            'localAuthMethod': localAuthMethod!.trim(),
+        }),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> removeSecurityPin({
+    String? currentPin,
+    String? localAuthMethod,
+  }) async {
+    final body = jsonEncode({
+      if ((currentPin ?? '').trim().isNotEmpty)
+        'currentPin': currentPin!.trim(),
+      if ((localAuthMethod ?? '').trim().isNotEmpty)
+        'localAuthMethod': localAuthMethod!.trim(),
+    });
+    return _decodeObject(
+      await _authenticatedDeleteWithFallback('auth/security-pin', body: body),
+    );
+  }
+
+  Future<Map<String, dynamic>> getAdminSupportTicket({
+    required String ticketId,
+  }) async {
+    return _decodeObject(
+      await _authenticatedGetWithFallback(
+        'admin/support/tickets/${ticketId.trim()}',
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> claimSupportTicket(String ticketId) async {
     return _decodeObject(
       await _authenticatedPostWithFallback(
@@ -3947,6 +3991,30 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> updateAdminSupportTicketTitle({
+    required String ticketId,
+    required String title,
+  }) async {
+    return _decodeObject(
+      await _authenticatedPostWithFallback(
+        'admin/support/tickets/${ticketId.trim()}/title',
+        body: jsonEncode({'title': title.trim()}),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> addAdminSupportTicketFollower({
+    required String ticketId,
+    required String userId,
+  }) async {
+    return _decodeObject(
+      await _authenticatedPostWithFallback(
+        'admin/support/tickets/${ticketId.trim()}/follower',
+        body: jsonEncode({'userId': userId.trim()}),
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
     final response = await _authenticatedPostWithFallback(
       'notifications/$id/read',
@@ -3978,6 +4046,7 @@ class ApiService {
           lastAuthFailure = response;
           continue;
         }
+        unawaited(_cacheRefreshedSession(response));
         return response;
       } on TimeoutException catch (error) {
         lastError = error;
@@ -4008,6 +4077,7 @@ class ApiService {
           lastAuthFailure = response;
           continue;
         }
+        unawaited(_cacheRefreshedSession(response));
         return response;
       } on TimeoutException catch (error) {
         lastError = error;
@@ -4019,6 +4089,44 @@ class ApiService {
       return lastAuthFailure;
     }
     throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  Future<http.Response> _authenticatedDeleteWithFallback(
+    String path, {
+    Object? body,
+  }) async {
+    Object? lastError;
+    http.Response? lastAuthFailure;
+    final headers = await _headers();
+    for (final uri in AppConfig.apiCandidateUris(path)) {
+      try {
+        final response = await _client
+            .delete(uri, headers: headers, body: body)
+            .timeout(_authenticatedRequestTimeout);
+        if ((response.statusCode == 401 || response.statusCode == 403) &&
+            AppConfig.apiBaseUrls.length > 1) {
+          lastAuthFailure = response;
+          continue;
+        }
+        unawaited(_cacheRefreshedSession(response));
+        return response;
+      } on TimeoutException catch (error) {
+        lastError = error;
+      } on http.ClientException catch (error) {
+        lastError = error;
+      }
+    }
+    if (lastAuthFailure != null) {
+      return lastAuthFailure;
+    }
+    throw lastError ?? Exception(_tr('services_api_service.001'));
+  }
+
+  Future<void> _cacheRefreshedSession(http.Response response) async {
+    final refreshedToken = response.headers['x-auth-token']?.trim() ?? '';
+    if (refreshedToken.isNotEmpty) {
+      await _authService.cacheToken(refreshedToken);
+    }
   }
 
   Future<http.Response> _supportGet(
@@ -4232,6 +4340,11 @@ class ApiService {
     }
 
     if (!contentType.contains('application/json') && looksLikeHtml) {
+      _reportApiFailure(
+        response,
+        response.statusCode == 413 ? payloadTooLargeMessage : fallbackMessage,
+        responsePreview: rawBody,
+      );
       throw Exception(
         response.statusCode == 413 ? payloadTooLargeMessage : fallbackMessage,
       );
@@ -4241,6 +4354,7 @@ class ApiService {
     try {
       body = jsonDecode(rawBody) as Map<String, dynamic>;
     } on FormatException {
+      _reportApiFailure(response, fallbackMessage, responsePreview: rawBody);
       throw Exception(fallbackMessage);
     }
 
@@ -4257,10 +4371,38 @@ class ApiService {
     }
 
     if (response.statusCode >= 400) {
-      throw Exception(ErrorMessageService.sanitize(body['message']));
+      final message = ErrorMessageService.sanitize(body['message']);
+      _reportApiFailure(response, message, responsePreview: rawBody);
+      throw Exception(message);
     }
 
     return body;
+  }
+
+  void _reportApiFailure(
+    http.Response response,
+    String message, {
+    String? responsePreview,
+  }) {
+    if (response.statusCode < 500) {
+      return;
+    }
+    final request = response.request;
+    unawaited(
+      AppAlertService.reportApiFailure(
+        method: request?.method ?? 'HTTP',
+        url: request?.url ?? Uri.parse('about:blank'),
+        statusCode: response.statusCode,
+        message: message,
+        responsePreview: responsePreview == null
+            ? null
+            : ErrorMessageService.sanitize(
+                responsePreview.length > 700
+                    ? '${responsePreview.substring(0, 700)}...'
+                    : responsePreview,
+              ),
+      ),
+    );
   }
 
   String _tr(String key) {
@@ -4281,13 +4423,15 @@ class ApiService {
       final routeName = context != null
           ? ModalRoute.of(context)?.settings.name
           : null;
-      await _authService.logout();
       if (navigator == null ||
           routeName == '/login' ||
           routeName == '/login-offline') {
         return;
       }
-      navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+      final hasLocalSecurity =
+          await LocalSecurityService.hasConfiguredLocalSecurity();
+      final targetRoute = hasLocalSecurity ? '/security-settings' : '/login';
+      navigator.pushNamedAndRemoveUntil(targetRoute, (route) => false);
     } finally {
       Future<void>.delayed(const Duration(seconds: 2), () {
         _isRedirectingToLogin = false;

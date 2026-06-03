@@ -3,6 +3,13 @@ import '../utils/app_theme.dart';
 
 enum ShwakelShadowLevel { none, soft, medium, premium }
 
+class _ShwakelCardScope extends InheritedWidget {
+  const _ShwakelCardScope({required super.child});
+
+  @override
+  bool updateShouldNotify(_ShwakelCardScope oldWidget) => false;
+}
+
 class ShwakelCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -39,8 +46,8 @@ class ShwakelCard extends StatelessWidget {
     this.shape = BoxShape.rectangle,
   });
 
-  List<BoxShadow>? _getShadows() {
-    switch (shadowLevel) {
+  List<BoxShadow>? _getShadows(ShwakelShadowLevel level) {
+    switch (level) {
       case ShwakelShadowLevel.none:
         return null;
       case ShwakelShadowLevel.soft:
@@ -54,21 +61,23 @@ class ShwakelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNested = context.dependOnInheritedWidgetOfExactType<_ShwakelCardScope>() != null;
     final safeGradient = AppTheme.webSafeGradient(gradient);
     final effectiveRadius = shape == BoxShape.circle
         ? null
-        : (borderRadius ?? AppTheme.radiusLg);
+        : (borderRadius ?? (isNested ? AppTheme.radiusMd : AppTheme.radiusLg));
     final backgroundColor = safeGradient == null
         ? (color ??
               (gradient == null
-                  ? AppTheme.surface
+                  ? (isNested ? AppTheme.surfaceVariant : AppTheme.surface)
                   : AppTheme.webSafeGradientFallback(gradient)))
         : null;
     final effectiveBorderColor =
         borderColor ??
         (safeGradient == null
-            ? AppTheme.border.withValues(alpha: 0.9)
+            ? AppTheme.border.withValues(alpha: isNested ? 0.45 : 0.9)
             : AppTheme.glassStroke.withValues(alpha: 0.55));
+    final effectiveShadowLevel = isNested ? ShwakelShadowLevel.none : shadowLevel;
 
     return Padding(
       padding: margin ?? EdgeInsets.zero,
@@ -94,9 +103,9 @@ class ShwakelCard extends StatelessWidget {
                       width: borderWidth ?? 0.8,
                     )
                   : null,
-              boxShadow: _getShadows(),
+              boxShadow: _getShadows(effectiveShadowLevel),
             ),
-            child: child,
+            child: _ShwakelCardScope(child: child),
           ),
         ),
       ),

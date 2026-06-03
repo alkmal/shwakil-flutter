@@ -285,9 +285,13 @@ class _IssuedCardUsageReportScreenState
   }) {
     return SizedBox(
       width: 190,
-      child: ShwakelCard(
+      child: Container(
         padding: const EdgeInsets.all(14),
-        color: AppTheme.surfaceVariant,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.borderLight),
+        ),
         child: Row(
           children: [
             Icon(icon, color: AppTheme.primary),

@@ -89,24 +89,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     });
   }
 
-  String _trustedStatusLabel(AppLocalizer l) {
-    return _isTrustedDevice
-        ? l.tr('screens_security_settings_screen.004')
-        : l.tr('screens_security_settings_screen.005');
-  }
-
-  String _pinStatusLabel(AppLocalizer l) {
-    return _hasPin
-        ? l.tr('screens_security_settings_screen.006')
-        : l.tr('screens_security_settings_screen.007');
-  }
-
-  String _biometricStatusLabel(AppLocalizer l) {
-    return _biometricEnabled
-        ? l.tr('screens_security_settings_screen.008')
-        : l.tr('screens_security_settings_screen.009');
-  }
-
   String _lastAuthMethodLabel(AppLocalizer l) {
     if (_lastAuthMethod == 'biometric') {
       return l.tr('screens_security_settings_screen.010');
@@ -220,8 +202,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           _buildSetupHintCard(),
                           const SizedBox(height: 18),
                         ],
-                        _buildPageHeader(),
-                        const SizedBox(height: 18),
                         DecoratedBox(
                           decoration: BoxDecoration(
                             color: AppTheme.surface,
@@ -266,38 +246,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             },
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildPageHeader() {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l.tr('screens_security_settings_screen.003'),
-            style: AppTheme.h2,
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _heroChip(
-                icon: Icons.verified_user_rounded,
-                label: _trustedStatusLabel(l),
-              ),
-              _heroChip(icon: Icons.pin_rounded, label: _pinStatusLabel(l)),
-              _heroChip(
-                icon: Icons.fingerprint_rounded,
-                label: _biometricStatusLabel(l),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -756,31 +704,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     );
   }
 
-  Widget _heroChip({required IconData icon, required String label}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.primarySoft,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppTheme.primary, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: AppTheme.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _timeoutLabel(int seconds) {
     final l = context.loc;
     if (seconds == 0) {
@@ -806,6 +729,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         return;
       }
     }
+    final localAuthMethod = wasPinEnabled
+        ? await LocalSecurityService.lastLocalAuthMethod()
+        : null;
     if (!mounted) {
       return;
     }
@@ -814,6 +740,26 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       builder: (_) => _StyledPinDialog(isEdit: _hasPin),
     );
     if (pin != null && pin.length == 4) {
+      try {
+        final payload = await _apiService.updateSecurityPin(
+          pin: pin,
+          localAuthMethod: localAuthMethod,
+        );
+        final user = payload['user'];
+        if (user is Map) {
+          await _authService.cacheCurrentUser(Map<String, dynamic>.from(user));
+        }
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+        await AppAlertService.showError(
+          context,
+          title: context.loc.tr('screens_security_settings_screen.060'),
+          message: ErrorMessageService.sanitize(error),
+        );
+        return;
+      }
       await LocalSecurityService.savePin(pin);
       if (!wasPinEnabled) {
         await _returnHomeAfterSecuritySetup();
@@ -874,6 +820,25 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       return;
     }
 
+    try {
+      final payload = await _apiService.removeSecurityPin(
+        localAuthMethod: await LocalSecurityService.lastLocalAuthMethod(),
+      );
+      final user = payload['user'];
+      if (user is Map) {
+        await _authService.cacheCurrentUser(Map<String, dynamic>.from(user));
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: context.loc.tr('screens_security_settings_screen.060'),
+        message: ErrorMessageService.sanitize(error),
+      );
+      return;
+    }
     await LocalSecurityService.removePin();
     await _load();
   }

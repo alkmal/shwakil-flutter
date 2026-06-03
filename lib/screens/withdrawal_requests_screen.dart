@@ -194,16 +194,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       appBar: AppBar(
         title: Text(l.tr('screens_withdrawal_requests_screen.001')),
         actions: [
-          IconButton(
-            tooltip: l.tr('screens_transactions_screen.039'),
-            onPressed: _showSummarySheet,
-            icon: const Icon(Icons.dashboard_customize_rounded),
-          ),
-          IconButton(
-            tooltip: l.tr('screens_withdrawal_requests_screen.030'),
-            onPressed: _showFiltersSheet,
-            icon: const Icon(Icons.filter_alt_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -219,9 +209,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               if (index == 0) {
-                return _isRefreshing
-                    ? const LinearProgressIndicator(minHeight: 3)
-                    : const SizedBox.shrink();
+                return _buildRequestsHeader();
               }
               if (_requests.isEmpty) {
                 return _buildEmptyState();
@@ -321,59 +309,27 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     );
   }
 
-  Future<void> _showSummarySheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
+  Widget _buildRequestsHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isRefreshing) ...[
+          const LinearProgressIndicator(minHeight: 3),
+          const SizedBox(height: 12),
+        ],
+        _buildOverviewCard(),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_transactions_screen.039'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            _buildOverviewCard(),
-          ],
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: _buildFilterBar(),
         ),
-      ),
-    );
-  }
-
-  Future<void> _showFiltersSheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_withdrawal_requests_screen.030'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.tr('screens_withdrawal_requests_screen.031'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFilterBar(),
-          ],
-        ),
-      ),
+      ],
     );
   }
 
@@ -637,22 +593,6 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     );
   }
 
-  Future<String?> _pickApprovalImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-    final bytes = result?.files.single.bytes;
-    if (bytes == null) {
-      return null;
-    }
-    final extension = (result?.files.single.extension ?? 'png').toLowerCase();
-    final mimeType = extension == 'jpg' || extension == 'jpeg'
-        ? 'image/jpeg'
-        : 'image/png';
-    return 'data:$mimeType;base64,${base64Encode(bytes)}';
-  }
-
   Future<void> _approve(String requestId) async {
     final l = context.loc;
     final review = await _showWithdrawalReviewDialog(approve: true);
@@ -735,117 +675,11 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   Future<_WithdrawalReviewResult?> _showWithdrawalReviewDialog({
     required bool approve,
   }) async {
-    final l = context.loc;
-    final notesController = TextEditingController();
-    String imageBase64 = '';
-    String errorText = '';
-
-    final result = await showDialog<_WithdrawalReviewResult>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: Text(
-            approve
-                ? l.text('اعتماد طلب السحب', 'Approve withdrawal request')
-                : l.text('رفض طلب السحب', 'Reject withdrawal request'),
-          ),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: notesController,
-                  autofocus: !approve,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    labelText: approve
-                        ? l.text('ملاحظة للمستخدم', 'Note for the user')
-                        : l.tr('screens_withdrawal_requests_screen.022'),
-                    hintText: l.tr('screens_withdrawal_requests_screen.028'),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final picked = await _pickApprovalImage();
-                    if (picked == null || picked.isEmpty) {
-                      return;
-                    }
-                    setDialogState(() {
-                      imageBase64 = picked;
-                      errorText = '';
-                    });
-                  },
-                  icon: Icon(
-                    imageBase64.isEmpty
-                        ? Icons.attach_file_rounded
-                        : Icons.check_circle_rounded,
-                  ),
-                  label: Text(
-                    imageBase64.isEmpty
-                        ? l.text('إرفاق صورة', 'Attach image')
-                        : l.text('تم إرفاق الصورة', 'Image attached'),
-                  ),
-                ),
-                if (errorText.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    errorText,
-                    style: AppTheme.caption.copyWith(color: AppTheme.error),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                MaterialLocalizations.of(dialogContext).cancelButtonLabel,
-              ),
-            ),
-            FilledButton(
-              onPressed: () {
-                final notes = notesController.text.trim();
-                if (approve && imageBase64.isEmpty) {
-                  setDialogState(() {
-                    errorText = l.tr('screens_withdrawal_requests_screen.027');
-                  });
-                  return;
-                }
-                if (!approve && notes.isEmpty) {
-                  setDialogState(() {
-                    errorText = l.text(
-                      'اكتب سبب الرفض قبل المتابعة.',
-                      'Write the rejection reason before continuing.',
-                    );
-                  });
-                  return;
-                }
-                Navigator.pop(
-                  dialogContext,
-                  _WithdrawalReviewResult(
-                    notes: notes,
-                    imageBase64: imageBase64,
-                  ),
-                );
-              },
-              child: Text(
-                approve
-                    ? l.tr('screens_withdrawal_requests_screen.014')
-                    : l.tr('screens_withdrawal_requests_screen.024'),
-              ),
-            ),
-          ],
-        ),
+    return Navigator.of(context).push<_WithdrawalReviewResult>(
+      MaterialPageRoute(
+        builder: (_) => _WithdrawalReviewScreen(approve: approve),
       ),
     );
-
-    notesController.dispose();
-    return result;
   }
 
   String _formatDate(String? raw) {
@@ -875,4 +709,177 @@ class _WithdrawalReviewResult {
 
   final String notes;
   final String imageBase64;
+}
+
+class _WithdrawalReviewScreen extends StatefulWidget {
+  const _WithdrawalReviewScreen({required this.approve});
+
+  final bool approve;
+
+  @override
+  State<_WithdrawalReviewScreen> createState() =>
+      _WithdrawalReviewScreenState();
+}
+
+class _WithdrawalReviewScreenState extends State<_WithdrawalReviewScreen> {
+  final TextEditingController _notesController = TextEditingController();
+  String _imageBase64 = '';
+  String _errorText = '';
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    final bytes = result?.files.single.bytes;
+    if (bytes == null) {
+      return;
+    }
+    final extension = (result?.files.single.extension ?? 'png').toLowerCase();
+    final mimeType = extension == 'jpg' || extension == 'jpeg'
+        ? 'image/jpeg'
+        : 'image/png';
+    setState(() {
+      _imageBase64 = 'data:$mimeType;base64,${base64Encode(bytes)}';
+      _errorText = '';
+    });
+  }
+
+  void _submit() {
+    final l = context.loc;
+    final notes = _notesController.text.trim();
+    if (widget.approve && _imageBase64.isEmpty) {
+      setState(
+        () => _errorText = l.tr('screens_withdrawal_requests_screen.027'),
+      );
+      return;
+    }
+    if (!widget.approve && notes.isEmpty) {
+      setState(
+        () => _errorText = l.text(
+          'اكتب سبب الرفض قبل المتابعة.',
+          'Write the rejection reason before continuing.',
+        ),
+      );
+      return;
+    }
+    Navigator.pop(
+      context,
+      _WithdrawalReviewResult(notes: notes, imageBase64: _imageBase64),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    final title = widget.approve
+        ? l.text('اعتماد طلب السحب', 'Approve withdrawal request')
+        : l.text('رفض طلب السحب', 'Reject withdrawal request');
+
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: Text(title),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
+      ),
+      body: ResponsiveScaffoldContainer(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: ListView(
+          children: [
+            ShwakelCard(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        widget.approve
+                            ? Icons.check_circle_rounded
+                            : Icons.cancel_rounded,
+                        color: widget.approve
+                            ? AppTheme.success
+                            : AppTheme.error,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(title, style: AppTheme.h3)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _notesController,
+                    autofocus: !widget.approve,
+                    minLines: 4,
+                    maxLines: 6,
+                    decoration: InputDecoration(
+                      labelText: widget.approve
+                          ? l.text('ملاحظة للمستخدم', 'Note for the user')
+                          : l.tr('screens_withdrawal_requests_screen.022'),
+                      hintText: l.tr('screens_withdrawal_requests_screen.028'),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: _pickImage,
+                    icon: Icon(
+                      _imageBase64.isEmpty
+                          ? Icons.attach_file_rounded
+                          : Icons.check_circle_rounded,
+                    ),
+                    label: Text(
+                      _imageBase64.isEmpty
+                          ? l.text('إرفاق صورة', 'Attach image')
+                          : l.text('تم إرفاق الصورة', 'Image attached'),
+                    ),
+                  ),
+                  if (_errorText.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorText,
+                      style: AppTheme.caption.copyWith(color: AppTheme.error),
+                    ),
+                  ],
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(l.tr('shared.cancel')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _submit,
+                          icon: Icon(
+                            widget.approve
+                                ? Icons.check_rounded
+                                : Icons.close_rounded,
+                          ),
+                          label: Text(
+                            widget.approve
+                                ? l.tr('screens_withdrawal_requests_screen.014')
+                                : l.tr(
+                                    'screens_withdrawal_requests_screen.024',
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

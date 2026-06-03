@@ -48,8 +48,8 @@ class _DenominationPalette {
 
 class PDFService {
   static final PDFService _instance = PDFService._internal();
-  static const int _cardsPerPage = 35;
-  static const int _rowsPerPage = 7;
+  static const int _cardsPerPage = 30;
+  static const int _rowsPerPage = 6;
   static const int _columnsPerPage = 5;
   static const double _a4PagePrintMargin = 3.5 * PdfPageFormat.mm;
   static const double _cardCutGap = 0.6 * PdfPageFormat.mm;
@@ -61,6 +61,8 @@ class PDFService {
   static const String _trustedDigitalCardText = 'شواكل بطاقتك الرقمية الموثقة';
   static const int _maxBrandNameLength = 24;
   static const int _maxValueUnitLength = 10;
+  static final pw.Font _latinRegularFont = pw.Font.helvetica();
+  static final pw.Font _latinBoldFont = pw.Font.helveticaBold();
   static const List<_DenominationPalette> _palettes = [
     _DenominationPalette(
       primary: PdfColor.fromInt(AppTheme.primaryValue),
@@ -152,9 +154,20 @@ class PDFService {
       fontSize: fontSize,
       color: color ?? _titleColor,
       font: font ?? (bold ? _boldFont : _regularFont),
-      fontFallback: [?_regularFont, ?_boldFont],
+      fontFallback: [
+        ?_regularFont,
+        ?_boldFont,
+        _latinRegularFont,
+        _latinBoldFont,
+      ],
       fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
     );
+  }
+
+  pw.TextDirection _textDirectionFor(String value) {
+    return RegExp(r'[\u0600-\u06FF]').hasMatch(value)
+        ? pw.TextDirection.rtl
+        : pw.TextDirection.ltr;
   }
 
   _DenominationPalette _paletteForCard(VirtualCard card) {
@@ -185,21 +198,8 @@ class PDFService {
     return normalized.substring(0, maxLength).trim();
   }
 
-  String _valueUnitText() {
-    final text = designSettings.valueUnitText?.trim() ?? '';
-    return _limitText(text, _maxValueUnitLength);
-  }
-
   String _formattedCardValue(VirtualCard card) {
-    final valueText = CurrencyFormatter.formatAmount(card.value);
-    final unitText = _valueUnitText();
-    if (unitText.isEmpty) {
-      return valueText;
-    }
-    final numericValue = card.value == card.value.roundToDouble()
-        ? card.value.round().toString()
-        : card.value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
-    return '$numericValue $unitText';
+    return CurrencyFormatter.formatAmount(card.value);
   }
 
   String _internalUseLabel(VirtualCard card) {
@@ -209,9 +209,9 @@ class PDFService {
   }
 
   pw.TextDirection _cardTitleDirection(VirtualCard card) {
-    return !_isTicketCard(card) && _valueUnitText().isNotEmpty
-        ? pw.TextDirection.ltr
-        : pw.TextDirection.rtl;
+    return _isTicketCard(card)
+        ? _textDirectionFor(_cardTitle(card))
+        : pw.TextDirection.ltr;
   }
 
   bool _isLocationSpecific(VirtualCard card) {
@@ -360,7 +360,7 @@ class PDFService {
                 _brandName(printedBy),
                 maxLines: 2,
                 textAlign: pw.TextAlign.left,
-                textDirection: pw.TextDirection.rtl,
+                textDirection: _textDirectionFor(_brandName(printedBy)),
                 style: _textStyle(
                   fontSize: compact ? 5.4 : 10.2,
                   bold: true,
@@ -397,49 +397,40 @@ class PDFService {
     required bool compact,
   }) {
     final isTicket = _isTicketCard(card);
-    final logoSize = compact ? 23.0 : 50.0;
+    final logoSize = compact ? 18.0 : 42.0;
     final titleFontSize = isTicket
         ? (compact ? 7.1 : 12.5)
         : (compact ? 15.0 : 26.0);
     final logoImage = _accountLogoImage ?? _defaultLogoImage;
 
-    return pw.SizedBox(
+    return pw.Container(
       height: compact ? 28 : 60,
-      child: pw.Stack(
+      alignment: pw.Alignment.center,
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.center,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          if (designSettings.showLogo && logoImage != null)
-            pw.Positioned(
-              right: 0,
-              top: compact ? 2.5 : 5,
-              child: _buildHeaderLogoBox(
-                logoImage,
-                size: logoSize,
-                compact: compact,
-              ),
-            ),
-          pw.Center(
-            child: pw.Padding(
-              padding: pw.EdgeInsets.only(
-                right: designSettings.showLogo
-                    ? logoSize + (compact ? 3 : 8)
-                    : 0,
-                left: designSettings.showLogo
-                    ? logoSize + (compact ? 3 : 8)
-                    : 0,
-              ),
+          pw.Flexible(
+            child: pw.FittedBox(
+              fit: pw.BoxFit.scaleDown,
               child: pw.Text(
                 _cardTitle(card),
-                maxLines: 2,
+                maxLines: 1,
                 textAlign: pw.TextAlign.center,
                 textDirection: _cardTitleDirection(card),
                 style: _textStyle(
                   fontSize: titleFontSize,
                   bold: true,
                   color: isTicket ? palette.primary : palette.value,
+                  font: isTicket ? null : _latinBoldFont,
                 ),
               ),
             ),
           ),
+          if (designSettings.showLogo && logoImage != null) ...[
+            pw.SizedBox(width: compact ? 3 : 8),
+            _buildHeaderLogoBox(logoImage, size: logoSize, compact: compact),
+          ],
         ],
       ),
     );
@@ -563,7 +554,7 @@ class PDFService {
         pw.Text(
           printedByLabel,
           textAlign: pw.TextAlign.right,
-          textDirection: pw.TextDirection.rtl,
+          textDirection: _textDirectionFor(printedByLabel),
           style: _textStyle(
             fontSize: boldFontSize,
             bold: true,
@@ -584,7 +575,7 @@ class PDFService {
           'منشأ البطاقة: $originLabel',
           maxLines: 1,
           textAlign: pw.TextAlign.right,
-          textDirection: pw.TextDirection.rtl,
+          textDirection: _textDirectionFor(originLabel),
           style: _textStyle(
             fontSize: fontSize,
             color: const PdfColor.fromInt(0xFF64748B),
@@ -873,21 +864,19 @@ class PDFService {
                     textAlign: pw.TextAlign.center,
                     textDirection: pw.TextDirection.rtl,
                     style: _textStyle(
-                      fontSize: 4.4,
+                      fontSize: 3.8,
                       color: const PdfColor.fromInt(0xFF64748B),
                     ),
                   ),
-                  pw.SizedBox(height: 0.9),
+                  pw.SizedBox(height: 0.45),
                   _cardBarcodeBlock(
                     card,
                     palette,
                     compact: true,
                     serialNumber: serialNumber,
                   ),
-                  if (designSettings.showStamp) ...[
-                    pw.SizedBox(height: 0.35),
+                  if (designSettings.showStamp)
                     _postBarcodeFooter(compact: true),
-                  ],
                   pw.Spacer(),
                   _cardMetadataFooter(
                     card,

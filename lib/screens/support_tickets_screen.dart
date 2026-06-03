@@ -45,6 +45,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   bool _tracking = false;
   bool _loading = true;
   bool _busy = false;
+  bool _hasFreshMessage = false;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
 
   @override
@@ -89,6 +90,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
 
     final currentId = _ticket?['id']?.toString() ?? '';
     if (currentId.isNotEmpty && ticketId == currentId) {
+      setState(() => _hasFreshMessage = true);
       unawaited(_refreshTicket(silent: true));
       return;
     }
@@ -352,9 +354,12 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       if (!mounted) {
         return;
       }
-      setState(
-        () => _ticket = Map<String, dynamic>.from(response['ticket'] as Map),
-      );
+      setState(() {
+        _ticket = Map<String, dynamic>.from(response['ticket'] as Map);
+        if (!silent) {
+          _hasFreshMessage = false;
+        }
+      });
     } catch (error) {
       if (!silent) {
         await _error(ErrorMessageService.sanitize(error));
@@ -508,12 +513,14 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       drawer: _user == null ? null : const AppSidebar(),
       body: _ticket != null
           ? LayoutBuilder(
-              builder: (context, constraints) => ResponsiveScaffoldContainer(
-                maxWidth: 920,
-                padding: const EdgeInsets.all(AppTheme.spacingMd),
+              builder: (context, constraints) => SafeArea(
                 child: SizedBox(
-                  height: constraints.maxHeight - AppTheme.spacingLg,
-                  child: _chat(),
+                  height: constraints.maxHeight,
+                  width: double.infinity,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                    child: _chat(),
+                  ),
                 ),
               ),
             )
@@ -795,12 +802,49 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _chatHeader(l),
+        if (_hasFreshMessage) ...[
+          const SizedBox(height: 8),
+          Material(
+            color: AppTheme.primarySoft,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => _refreshTicket(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.mark_chat_unread_rounded,
+                      size: 18,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l.text('وصلت رسالة جديدة', 'New message received'),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 10),
         Expanded(
-          child: ShwakelCard(
-            padding: EdgeInsets.zero,
-            color: AppTheme.surfaceVariant.withValues(alpha: 0.55),
-            shadowLevel: ShwakelShadowLevel.none,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.border),
+            ),
             child: hasTimeline
                 ? ListView.separated(
                     padding: const EdgeInsets.all(12),
@@ -838,8 +882,13 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Widget _chatHeader(AppLocalizer l) {
-    return ShwakelCard(
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
       child: Row(
         children: [
           IconButton(
@@ -1006,10 +1055,52 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 color: mine ? Colors.white : AppTheme.textPrimary,
               ),
             ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _messageStatusIcon(message),
+                  size: 14,
+                  color: mine ? Colors.white70 : AppTheme.textSecondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _messageStatusLabel(message, mine),
+                  style: AppTheme.caption.copyWith(
+                    color: mine ? Colors.white70 : AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  IconData _messageStatusIcon(Map<String, dynamic> message) {
+    if ((message['readAt']?.toString().trim() ?? '').isNotEmpty) {
+      return Icons.done_all_rounded;
+    }
+    if ((message['deliveredAt']?.toString().trim() ?? '').isNotEmpty) {
+      return Icons.done_all_rounded;
+    }
+    return Icons.done_rounded;
+  }
+
+  String _messageStatusLabel(Map<String, dynamic> message, bool mine) {
+    final l = context.loc;
+    if (!mine) {
+      return message['createdAt']?.toString() ?? '';
+    }
+    if ((message['readAt']?.toString().trim() ?? '').isNotEmpty) {
+      return l.text('تمت القراءة', 'Read');
+    }
+    if ((message['deliveredAt']?.toString().trim() ?? '').isNotEmpty) {
+      return l.text('وصلت', 'Delivered');
+    }
+    return l.text('تم الإرسال', 'Sent');
   }
 
   Widget _statusEventTile(Map<String, dynamic> event) {

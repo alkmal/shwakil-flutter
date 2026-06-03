@@ -882,6 +882,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         (item) => Map<String, dynamic>.from(item as Map),
       ),
     );
+    final warnings = List<String>.from(
+      (report['reportWarnings'] as List? ?? const []).map(
+        (item) => item.toString(),
+      ),
+    );
+    final reportError = report['reportError']?.toString().trim() ?? '';
+    final period = Map<String, dynamic>.from(
+      report['period'] as Map? ?? const {},
+    );
+    final hasReportPayload = report.isNotEmpty;
 
     return RefreshIndicator(
       onRefresh: () => _loadAdminReport(_selectedReportPeriod),
@@ -897,6 +907,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           const SizedBox(height: 16),
           _buildPeriodSelector(),
           const SizedBox(height: 16),
+          if (!hasReportPayload && _isReportLoading) ...[
+            _adminReportLoadingCard(),
+            const SizedBox(height: 16),
+          ] else if (!hasReportPayload) ...[
+            _adminReportEmptyState(),
+            const SizedBox(height: 16),
+          ],
           LayoutBuilder(
             builder: (context, constraints) {
               final crossAxisCount = constraints.maxWidth > 980
@@ -945,6 +962,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             },
           ),
           const SizedBox(height: 16),
+          if (reportError.isNotEmpty || warnings.isNotEmpty) ...[
+            _reportNoticeCard(error: reportError, warnings: warnings),
+            const SizedBox(height: 16),
+          ],
           ShwakelCard(
             padding: const EdgeInsets.all(20),
             borderRadius: BorderRadius.circular(24),
@@ -977,6 +998,35 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (period.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      _summaryPill(
+                        'من',
+                        period['from']?.toString() ?? '-',
+                        AppTheme.info,
+                      ),
+                      _summaryPill(
+                        'إلى',
+                        period['to']?.toString() ?? '-',
+                        AppTheme.info,
+                      ),
+                      _summaryPill(
+                        'عدد الدخل',
+                        '${_formatInt(summary['incomeCount'])} حركة',
+                        AppTheme.success,
+                      ),
+                      _summaryPill(
+                        'عدد الخارج',
+                        '${_formatInt(summary['outgoingCount'])} حركة',
+                        AppTheme.error,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -1017,7 +1067,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth > 900;
-              final operations = _operationsList(recentOperations);
+              final operations = _operationsList(
+                recentOperations,
+                periodLabel: report['periodLabel']?.toString() ?? '',
+              );
               final breakdown = _breakdownList(typeBreakdown);
               if (!wide) {
                 return Column(
@@ -1065,6 +1118,117 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _adminReportLoadingCard() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(22),
+      borderRadius: BorderRadius.circular(22),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.4),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'جاري تحميل بيانات مركز الإدارة وتقارير العمليات...',
+              style: AppTheme.bodyAction,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _adminReportEmptyState() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(22),
+      borderRadius: BorderRadius.circular(22),
+      borderColor: AppTheme.warning.withValues(alpha: 0.20),
+      color: AppTheme.warning.withValues(alpha: 0.05),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.refresh_rounded, color: AppTheme.warning),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'لم تصل بيانات التقرير بعد. اسحب للتحديث أو اختر فترة أخرى لعرض العمليات.',
+              style: AppTheme.bodyAction.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: () => _loadAdminReport(_selectedReportPeriod),
+            icon: const Icon(Icons.sync_rounded),
+            label: const Text('تحديث'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportNoticeCard({
+    required String error,
+    required List<String> warnings,
+  }) {
+    final isError = error.isNotEmpty;
+    final color = isError ? AppTheme.error : AppTheme.warning;
+    final messages = [
+      if (error.isNotEmpty) error,
+      ...warnings,
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isError ? Icons.error_outline_rounded : Icons.info_outline_rounded,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: messages
+                  .map(
+                    (message) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        message,
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1131,7 +1295,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _operationsList(List<Map<String, dynamic>> operations) {
+  Widget _operationsList(
+    List<Map<String, dynamic>> operations, {
+    required String periodLabel,
+  }) {
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(24),
@@ -1139,13 +1306,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('تفاصيل آخر العمليات', style: AppTheme.h3),
+          Row(
+            children: [
+              const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
+              const SizedBox(width: 10),
+              Expanded(child: Text('تفاصيل آخر العمليات', style: AppTheme.h3)),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${operations.length} عملية',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (periodLabel.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              periodLabel,
+              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+            ),
+          ],
           const SizedBox(height: 12),
           if (operations.isEmpty)
-            Text(
-              'لا توجد عمليات ضمن هذه الفترة.',
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                'لا توجد عمليات ضمن هذه الفترة. جرّب الأسبوعي أو الشهري إذا كنت تبحث عن حركات أقدم.',
+                style: AppTheme.bodyAction.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
               ),
             )
           else
@@ -1159,16 +1364,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final amount = _num(item['amount']);
     final fee = _num(item['fee']);
     final user = item['userDisplayName']?.toString().trim();
+    final description = item['description']?.toString().trim() ?? '';
+    final type = item['type']?.toString().trim() ?? '';
+    final color = _operationColor(type);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
+        color: color.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.78),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(_operationIcon(type), color: color, size: 21),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -1176,15 +1394,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               children: [
                 Text(
                   item['typeLabel']?.toString() ?? '-',
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyBold,
+                  style: AppTheme.bodyBold.copyWith(color: color, height: 1.3),
                 ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 3),
                 Text(
                   [
                     if (user != null && user.isNotEmpty) user,
-                    item['createdAt']?.toString() ?? '',
+                    _formatAdminDateTime(item['createdAt']),
                   ].where((part) => part.trim().isNotEmpty).join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1197,7 +1427,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(CurrencyFormatter.ils(amount), style: AppTheme.bodyBold),
+              Text(
+                CurrencyFormatter.ils(amount),
+                style: AppTheme.bodyBold.copyWith(color: color),
+              ),
               if (fee > 0)
                 Text(
                   'رسوم ${CurrencyFormatter.ils(fee)}',
@@ -1208,6 +1441,56 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ],
       ),
     );
+  }
+
+  IconData _operationIcon(String type) {
+    if (type.contains('withdraw')) {
+      return Icons.outbox_rounded;
+    }
+    if (type.contains('topup') || type.contains('credit')) {
+      return Icons.add_card_rounded;
+    }
+    if (type.contains('transfer')) {
+      return Icons.swap_horiz_rounded;
+    }
+    if (type.contains('prepaid')) {
+      return Icons.credit_card_rounded;
+    }
+    if (type.contains('card')) {
+      return Icons.confirmation_number_rounded;
+    }
+    return Icons.receipt_long_rounded;
+  }
+
+  Color _operationColor(String type) {
+    if (type.contains('withdraw') ||
+        type.contains('out') ||
+        type.contains('deduction') ||
+        type.contains('debit')) {
+      return AppTheme.error;
+    }
+    if (type.contains('topup') ||
+        type.contains('credit') ||
+        type.contains('in') ||
+        type.contains('refund')) {
+      return AppTheme.success;
+    }
+    if (type.contains('prepaid')) {
+      return AppTheme.primary;
+    }
+    if (type.contains('card')) {
+      return AppTheme.secondary;
+    }
+    return AppTheme.info;
+  }
+
+  String _formatAdminDateTime(Object? value) {
+    final parsed = DateTime.tryParse(value?.toString() ?? '');
+    if (parsed == null) {
+      return value?.toString() ?? '';
+    }
+    final local = parsed.toLocal();
+    return '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _breakdownList(List<Map<String, dynamic>> breakdown) {
@@ -1232,30 +1515,92 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               final label = item['label']?.toString().trim().isNotEmpty == true
                   ? item['label'].toString()
                   : item['type']?.toString() ?? '-';
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
+              final amount = _num(item['amount']);
+              final fees = _num(item['fees']);
+              final count = _formatInt(item['count']);
+              final color = _operationColor(item['type']?.toString() ?? '');
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: color.withValues(alpha: 0.12)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.bodyBold,
-                      ),
+                    Row(
+                      children: [
+                        Icon(
+                          _operationIcon(item['type']?.toString() ?? ''),
+                          size: 18,
+                          color: color,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.bodyBold,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          CurrencyFormatter.ils(amount),
+                          style: AppTheme.caption.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      CurrencyFormatter.ils(_num(item['amount'])),
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _miniReportChip('عدد الحركات', count, color),
+                        if (fees > 0)
+                          _miniReportChip(
+                            'الرسوم',
+                            CurrencyFormatter.ils(fees),
+                            AppTheme.secondary,
+                          ),
+                      ],
                     ),
                   ],
                 ),
               );
             }),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniReportChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: AppTheme.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

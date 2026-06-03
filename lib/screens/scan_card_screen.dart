@@ -1313,36 +1313,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return null;
     }
 
-    if (!payload.hasExpiry) {
-      const message =
-          'بيانات انتهاء البطاقة غير موجودة في طلب الدفع. اطلب من صاحب البطاقة توليد طلب دفع جديد من شاشة البطاقة.';
-      if (showErrorAlert) {
-        await AppAlertService.showError(
-          context,
-          title: _t('screens_scan_card_screen.214'),
-          message: message,
-        );
-      }
-      return BarcodeScannerDialogResult.error(
-        headline: _t('screens_scan_card_screen.214'),
-        message: message,
-      );
-    }
-
     if (payload.paymentAmount <= 0) {
-      const message =
-          'المبلغ غير موجود في طلب الدفع. اطلب من صاحب البطاقة تحديد المبلغ ثم عرض رمز الدفع من جديد.';
-      if (showErrorAlert) {
-        await AppAlertService.showError(
-          context,
-          title: _t('screens_scan_card_screen.212'),
-          message: message,
-        );
+      final amount = await _promptPrepaidPrintedCardAmount(payload);
+      if (!mounted || amount == null) {
+        return null;
       }
-      return BarcodeScannerDialogResult.error(
-        headline: _t('screens_scan_card_screen.212'),
-        message: message,
-      );
+      payload = payload.copyWith(paymentAmount: amount);
     }
 
     final codeController = TextEditingController();
@@ -1460,8 +1436,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
       final month = submission.expiryMonth.trim();
       final year = submission.expiryYear.trim();
-      if (!RegExp(r'^\d{1,2}$').hasMatch(month) ||
-          !RegExp(r'^\d{2,4}$').hasMatch(year)) {
+      if ((month.isNotEmpty || year.isNotEmpty) &&
+          (!RegExp(r'^\d{1,2}$').hasMatch(month) ||
+              !RegExp(r'^\d{2,4}$').hasMatch(year))) {
         await AppAlertService.showError(
           context,
           title: _t('screens_scan_card_screen.214'),
@@ -1531,6 +1508,64 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       codeController.dispose();
       monthController.dispose();
       yearController.dispose();
+    }
+  }
+
+  Future<double?> _promptPrepaidPrintedCardAmount(
+    _PrepaidMultipayScanPayload payload,
+  ) async {
+    final amountController = TextEditingController();
+    try {
+      String? errorText;
+      return await showDialog<double>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: const Text('تحديد مبلغ الدفع'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPrepaidPaymentDialogCard(payload),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: amountController,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'المبلغ المطلوب من البطاقة',
+                    prefixIcon: const Icon(Icons.payments_rounded),
+                    errorText: errorText,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(_t('shared.cancel')),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  final amount =
+                      double.tryParse(amountController.text.trim()) ?? 0;
+                  if (amount <= 0) {
+                    setDialogState(() => errorText = 'أدخل مبلغًا صحيحًا.');
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(amount);
+                },
+                icon: const Icon(Icons.check_rounded),
+                label: const Text('متابعة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      amountController.dispose();
     }
   }
 
@@ -3015,15 +3050,24 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final lastSync = _offlineLastSyncAt == null
         ? _t('screens_scan_card_screen.122')
         : _formatDate(_offlineLastSyncAt);
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(
+            title: Text(_t('screens_scan_card_screen.154')),
+            actions: const [AppNotificationAction(), QuickLogoutAction()],
+          ),
+          body: ResponsiveScaffoldContainer(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ListView(
+              children: [
+                ShwakelCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
               Text(_t('screens_scan_card_screen.154'), style: AppTheme.h3),
               const SizedBox(height: 14),
               _statusSheetRow(
@@ -3050,7 +3094,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   onPressed: _isSyncingOfflineCards || _isDeviceOffline
                       ? null
                       : () {
-                          Navigator.of(context).pop();
                           unawaited(_syncOfflineCardsForCurrentUser());
                         },
                   icon: const Icon(Icons.cloud_sync_rounded),
@@ -3058,6 +3101,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
               ),
             ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -4375,37 +4422,24 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     final l = context.loc;
     final isUsed = card.status == CardStatus.used;
     final accent = isUsed ? AppTheme.error : AppTheme.success;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.78,
-        minChildSize: 0.5,
-        maxChildSize: 0.92,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(
+            title: Text(context.loc.tr('screens_scan_card_screen.007')),
+            actions: const [AppNotificationAction(), QuickLogoutAction()],
           ),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
+          body: ResponsiveScaffoldContainer(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ListView(
+              children: [
+                ShwakelCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppTheme.border,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Row(
                   children: [
                     const ShwakelLogo(size: 40, framed: true),
@@ -4681,6 +4715,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
               ],
             ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -4830,6 +4867,18 @@ class _PrepaidMultipayScanPayload {
   final int? expiryYear;
   final double paymentAmount;
   final String? label;
+
+  _PrepaidMultipayScanPayload copyWith({
+    double? paymentAmount,
+  }) {
+    return _PrepaidMultipayScanPayload(
+      cardNumber: cardNumber,
+      expiryMonth: expiryMonth,
+      expiryYear: expiryYear,
+      paymentAmount: paymentAmount ?? this.paymentAmount,
+      label: label,
+    );
+  }
 
   bool get hasExpiry => expiryMonth != null && expiryYear != null;
 

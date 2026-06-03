@@ -166,214 +166,254 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     var deliveryMethod = 'whatsapp';
     var isSaving = false;
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          Future<void> submit() async {
-            final username = usernameController.text.trim().toLowerCase();
-            final whatsapp = PhoneNumberService.normalize(
-              input: whatsappController.text.trim(),
-              defaultDialCode: countryCode,
-            );
-
-            if (username.isEmpty || whatsapp.isEmpty) {
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_admin_customers_screen.002'),
-                message: l.tr('screens_admin_customers_screen.024'),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> submit() async {
+              final username = usernameController.text.trim().toLowerCase();
+              final whatsapp = PhoneNumberService.normalize(
+                input: whatsappController.text.trim(),
+                defaultDialCode: countryCode,
               );
-              return;
-            }
 
-            if (!RegExp(r'^[a-z0-9._@+-]{3,32}$').hasMatch(username)) {
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_admin_customers_screen.002'),
-                message: l.tr('screens_admin_customers_screen.047'),
-              );
-              return;
-            }
-
-            setDialogState(() => isSaving = true);
-            try {
-              final response = await _apiService.createAdminUser(
-                username: username,
-                fullName: fullNameController.text,
-                whatsapp: whatsapp,
-                password: '',
-                countryCode: countryCode,
-                deliveryMethod: deliveryMethod,
-              );
-              if (!dialogContext.mounted) {
+              if (username.isEmpty || whatsapp.isEmpty) {
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_admin_customers_screen.002'),
+                  message: l.tr('screens_admin_customers_screen.024'),
+                );
                 return;
               }
-              Navigator.pop(dialogContext);
-              if (!mounted) {
-                return;
-              }
-              await AppAlertService.showSuccess(
-                context,
-                title: l.tr('screens_admin_customers_screen.003'),
-                message:
-                    response['message']?.toString() ??
-                    l.tr('screens_admin_customers_screen.025'),
-              );
-              await _loadCustomers(reset: true);
-            } catch (error) {
-              if (!dialogContext.mounted) {
-                return;
-              }
-              setDialogState(() => isSaving = false);
-              await AppAlertService.showError(
-                dialogContext,
-                title: l.tr('screens_admin_customers_screen.004'),
-                message: ErrorMessageService.sanitize(error),
-              );
-            }
-          }
 
-          return AlertDialog(
-            title: Text(l.tr('screens_admin_customers_screen.005')),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: usernameController,
-                      decoration: InputDecoration(
-                        labelText: l.tr('screens_admin_customers_screen.006'),
-                        prefixIcon: const Icon(Icons.person_outline_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: fullNameController,
-                      decoration: InputDecoration(
-                        labelText: l.tr('screens_admin_customers_screen.007'),
-                        prefixIcon: const Icon(Icons.badge_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final stacked = constraints.maxWidth < 380;
-                        final countryField = SizedBox(
-                          width: stacked ? double.infinity : 130,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: countryCode,
-                            decoration: InputDecoration(
-                              labelText: l.tr(
-                                'screens_admin_customers_screen.008',
-                              ),
-                            ),
-                            items: PhoneNumberService.countries
-                                .map(
-                                  (country) => DropdownMenuItem(
-                                    value: country.dialCode,
-                                    child: Text('+${country.dialCode}'),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value == null) {
-                                return;
-                              }
-                              setDialogState(() => countryCode = value);
-                            },
-                          ),
-                        );
-                        final phoneField = TextField(
-                          controller: whatsappController,
-                          keyboardType: TextInputType.phone,
+              if (!RegExp(r'^[a-z0-9._@+-]{3,32}$').hasMatch(username)) {
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_admin_customers_screen.002'),
+                  message: l.tr('screens_admin_customers_screen.047'),
+                );
+                return;
+              }
+
+              setDialogState(() => isSaving = true);
+              try {
+                final response = await _apiService.createAdminUser(
+                  username: username,
+                  fullName: fullNameController.text,
+                  whatsapp: whatsapp,
+                  password: '',
+                  countryCode: countryCode,
+                  deliveryMethod: deliveryMethod,
+                );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                Navigator.pop(dialogContext);
+                if (!mounted) {
+                  return;
+                }
+                await AppAlertService.showSuccess(
+                  context,
+                  title: l.tr('screens_admin_customers_screen.003'),
+                  message:
+                      response['message']?.toString() ??
+                      l.tr('screens_admin_customers_screen.025'),
+                );
+                await _loadCustomers(reset: true);
+              } catch (error) {
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                setDialogState(() => isSaving = false);
+                await AppAlertService.showError(
+                  dialogContext,
+                  title: l.tr('screens_admin_customers_screen.004'),
+                  message: ErrorMessageService.sanitize(error),
+                );
+              }
+            }
+
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(l.tr('screens_admin_customers_screen.005')),
+              ),
+              body: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: ListView(
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        TextField(
+                          controller: usernameController,
                           decoration: InputDecoration(
                             labelText: l.tr(
-                              'screens_admin_customers_screen.009',
+                              'screens_admin_customers_screen.006',
                             ),
-                            prefixIcon: const Icon(Icons.phone_rounded),
+                            prefixIcon: const Icon(
+                              Icons.person_outline_rounded,
+                            ),
                           ),
-                        );
-
-                        if (stacked) {
-                          return Column(
-                            children: [
-                              countryField,
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: phoneField,
-                              ),
-                            ],
-                          );
-                        }
-
-                        return Row(
-                          children: [
-                            countryField,
-                            const SizedBox(width: 12),
-                            Expanded(child: phoneField),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l.tr('screens_admin_customers_screen.026'),
-                      textAlign: TextAlign.center,
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text(
-                        l.tr('shared.password_delivery_method'),
-                        style: AppTheme.bodyAction,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<String>(
-                      segments: [
-                        ButtonSegment<String>(
-                          value: 'whatsapp',
-                          icon: Icon(Icons.chat_rounded),
-                          label: Text(l.tr('shared.delivery_whatsapp')),
                         ),
-                        ButtonSegment<String>(
-                          value: 'sms',
-                          icon: Icon(Icons.sms_rounded),
-                          label: Text(l.tr('shared.delivery_sms')),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: fullNameController,
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_admin_customers_screen.007',
+                            ),
+                            prefixIcon: const Icon(Icons.badge_rounded),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final stacked = constraints.maxWidth < 380;
+                            final countryField = SizedBox(
+                              width: stacked ? double.infinity : 130,
+                              child: DropdownButtonFormField<String>(
+                                initialValue: countryCode,
+                                decoration: InputDecoration(
+                                  labelText: l.tr(
+                                    'screens_admin_customers_screen.008',
+                                  ),
+                                ),
+                                items: PhoneNumberService.countries
+                                    .map(
+                                      (country) => DropdownMenuItem(
+                                        value: country.dialCode,
+                                        child: Text('+${country.dialCode}'),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  setDialogState(() => countryCode = value);
+                                },
+                              ),
+                            );
+                            final phoneField = TextField(
+                              controller: whatsappController,
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                labelText: l.tr(
+                                  'screens_admin_customers_screen.009',
+                                ),
+                                prefixIcon: const Icon(Icons.phone_rounded),
+                              ),
+                            );
+
+                            if (stacked) {
+                              return Column(
+                                children: [
+                                  countryField,
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: phoneField,
+                                  ),
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                countryField,
+                                const SizedBox(width: 12),
+                                Expanded(child: phoneField),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l.tr('screens_admin_customers_screen.026'),
+                          textAlign: TextAlign.center,
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Text(
+                            l.tr('shared.password_delivery_method'),
+                            style: AppTheme.bodyAction,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SegmentedButton<String>(
+                          segments: [
+                            ButtonSegment<String>(
+                              value: 'whatsapp',
+                              icon: Icon(Icons.chat_rounded),
+                              label: Text(l.tr('shared.delivery_whatsapp')),
+                            ),
+                            ButtonSegment<String>(
+                              value: 'sms',
+                              icon: Icon(Icons.sms_rounded),
+                              label: Text(l.tr('shared.delivery_sms')),
+                            ),
+                          ],
+                          selected: {deliveryMethod},
+                          onSelectionChanged: (selection) {
+                            setDialogState(
+                              () => deliveryMethod = selection.first,
+                            );
+                          },
                         ),
                       ],
-                      selected: {deliveryMethod},
-                      onSelectionChanged: (selection) {
-                        setDialogState(() => deliveryMethod = selection.first);
-                      },
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                child: Text(l.tr('screens_admin_customers_screen.010')),
-              ),
-              ElevatedButton(
-                onPressed: isSaving ? null : submit,
-                child: Text(
-                  isSaving
-                      ? l.tr('screens_admin_customers_screen.011')
-                      : l.tr('screens_admin_customers_screen.012'),
+              bottomNavigationBar: SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(top: BorderSide(color: AppTheme.border)),
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 620),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              child: Text(
+                                l.tr('screens_admin_customers_screen.010'),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: isSaving ? null : submit,
+                              child: Text(
+                                isSaving
+                                    ? l.tr('screens_admin_customers_screen.011')
+                                    : l.tr(
+                                        'screens_admin_customers_screen.012',
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
 

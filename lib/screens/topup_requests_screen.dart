@@ -13,7 +13,6 @@ import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
-import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -201,16 +200,6 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       appBar: AppBar(
         title: Text(l.tr('screens_topup_requests_screen.002')),
         actions: [
-          IconButton(
-            tooltip: l.tr('screens_transactions_screen.039'),
-            onPressed: _showSummarySheet,
-            icon: const Icon(Icons.dashboard_customize_rounded),
-          ),
-          IconButton(
-            tooltip: l.tr('screens_topup_requests_screen.033'),
-            onPressed: _showFiltersSheet,
-            icon: const Icon(Icons.filter_alt_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -226,9 +215,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               if (index == 0) {
-                return _isRefreshing
-                    ? const LinearProgressIndicator(minHeight: 3)
-                    : const SizedBox.shrink();
+                return _buildRequestsHeader();
               }
               if (_requests.isEmpty) {
                 return _buildEmptyState();
@@ -328,59 +315,27 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     );
   }
 
-  Future<void> _showSummarySheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
+  Widget _buildRequestsHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isRefreshing) ...[
+          const LinearProgressIndicator(minHeight: 3),
+          const SizedBox(height: 12),
+        ],
+        _buildOverviewCard(),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_transactions_screen.039'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            _buildOverviewCard(),
-          ],
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: _buildFilterBar(),
         ),
-      ),
-    );
-  }
-
-  Future<void> _showFiltersSheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_topup_requests_screen.033'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.tr('screens_topup_requests_screen.034'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFilterBar(),
-          ],
-        ),
-      ),
+      ],
     );
   }
 
@@ -639,40 +594,21 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     );
   }
 
-  Future<String?> _pickApprovalImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-    final bytes = result?.files.single.bytes;
-    if (bytes == null) {
-      return null;
-    }
-    final extension = (result?.files.single.extension ?? 'png').toLowerCase();
-    final mimeType = extension == 'jpg' || extension == 'jpeg'
-        ? 'image/jpeg'
-        : 'image/png';
-    return 'data:$mimeType;base64,${base64Encode(bytes)}';
-  }
-
   Future<void> _approve(String requestId) async {
     final l = context.loc;
-    final approvalImage = await _pickApprovalImage();
-    if (approvalImage == null || approvalImage.isEmpty) {
-      if (mounted) {
-        AppAlertService.showError(
-          context,
-          title: l.tr('screens_topup_requests_screen.041'),
-          message: l.tr('screens_topup_requests_screen.029'),
-        );
-      }
+    final review = await Navigator.of(context).push<_TopupReviewResult>(
+      MaterialPageRoute(
+        builder: (_) => const _TopupReviewScreen(approve: true),
+      ),
+    );
+    if (review == null) {
       return;
     }
     setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingTopupRequest(
         requestId,
-        approvalImageBase64: approvalImage,
+        approvalImageBase64: review.imageBase64,
       );
       if (!mounted) {
         return;
@@ -702,15 +638,13 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
 
   Future<void> _reject(String requestId) async {
     final l = context.loc;
-    final reason = await showRejectionReasonDialog(
-      context,
-      title: l.tr('screens_topup_requests_screen.020'),
-      confirmText: l.tr('screens_topup_requests_screen.023'),
-      labelText: l.tr('screens_topup_requests_screen.021'),
-      hintText: l.tr('screens_topup_requests_screen.031'),
+    final review = await Navigator.of(context).push<_TopupReviewResult>(
+      MaterialPageRoute(
+        builder: (_) => const _TopupReviewScreen(approve: false),
+      ),
     );
 
-    if (reason == null) {
+    if (review == null) {
       return;
     }
 
@@ -718,7 +652,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     try {
       final response = await _apiService.rejectPendingTopupRequest(
         requestId,
-        notes: reason,
+        notes: review.notes,
       );
       if (!mounted) {
         return;
@@ -765,5 +699,174 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     _lastSubmittedQuery = query;
     setState(() => _page = 1);
     _load(preserveContent: true);
+  }
+}
+
+class _TopupReviewResult {
+  const _TopupReviewResult({required this.notes, required this.imageBase64});
+
+  final String notes;
+  final String imageBase64;
+}
+
+class _TopupReviewScreen extends StatefulWidget {
+  const _TopupReviewScreen({required this.approve});
+
+  final bool approve;
+
+  @override
+  State<_TopupReviewScreen> createState() => _TopupReviewScreenState();
+}
+
+class _TopupReviewScreenState extends State<_TopupReviewScreen> {
+  final TextEditingController _notesController = TextEditingController();
+  String _imageBase64 = '';
+  String _errorText = '';
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    final bytes = result?.files.single.bytes;
+    if (bytes == null) {
+      return;
+    }
+    final extension = (result?.files.single.extension ?? 'png').toLowerCase();
+    final mimeType = extension == 'jpg' || extension == 'jpeg'
+        ? 'image/jpeg'
+        : 'image/png';
+    setState(() {
+      _imageBase64 = 'data:$mimeType;base64,${base64Encode(bytes)}';
+      _errorText = '';
+    });
+  }
+
+  void _submit() {
+    final l = context.loc;
+    final notes = _notesController.text.trim();
+    if (widget.approve && _imageBase64.isEmpty) {
+      setState(() => _errorText = l.tr('screens_topup_requests_screen.029'));
+      return;
+    }
+    if (!widget.approve && notes.isEmpty) {
+      setState(() => _errorText = l.tr('screens_topup_requests_screen.031'));
+      return;
+    }
+    Navigator.pop(
+      context,
+      _TopupReviewResult(notes: notes, imageBase64: _imageBase64),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    final title = widget.approve
+        ? l.tr('screens_topup_requests_screen.014')
+        : l.tr('screens_topup_requests_screen.020');
+
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: Text(title),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
+      ),
+      body: ResponsiveScaffoldContainer(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: ListView(
+          children: [
+            ShwakelCard(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        widget.approve
+                            ? Icons.check_circle_rounded
+                            : Icons.cancel_rounded,
+                        color: widget.approve
+                            ? AppTheme.success
+                            : AppTheme.error,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(title, style: AppTheme.h3)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (widget.approve)
+                    OutlinedButton.icon(
+                      onPressed: _pickImage,
+                      icon: Icon(
+                        _imageBase64.isEmpty
+                            ? Icons.attach_file_rounded
+                            : Icons.check_circle_rounded,
+                      ),
+                      label: Text(
+                        _imageBase64.isEmpty
+                            ? l.text('إرفاق صورة الاعتماد', 'Attach approval image')
+                            : l.text('تم إرفاق الصورة', 'Image attached'),
+                      ),
+                    )
+                  else
+                    TextField(
+                      controller: _notesController,
+                      autofocus: true,
+                      minLines: 4,
+                      maxLines: 6,
+                      decoration: InputDecoration(
+                        labelText: l.tr('screens_topup_requests_screen.021'),
+                        hintText: l.tr('screens_topup_requests_screen.031'),
+                      ),
+                    ),
+                  if (_errorText.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorText,
+                      style: AppTheme.caption.copyWith(color: AppTheme.error),
+                    ),
+                  ],
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(l.tr('shared.cancel')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _submit,
+                          icon: Icon(
+                            widget.approve
+                                ? Icons.check_rounded
+                                : Icons.close_rounded,
+                          ),
+                          label: Text(
+                            widget.approve
+                                ? l.tr('screens_topup_requests_screen.014')
+                                : l.tr('screens_topup_requests_screen.023'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

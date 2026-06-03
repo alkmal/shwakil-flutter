@@ -1,15 +1,13 @@
 import 'dart:async';
-import 'dart:typed_data';
-
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
-import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -32,6 +30,8 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   final TextEditingController _newDetails = TextEditingController();
   final TextEditingController _statusCustom = TextEditingController();
   final TextEditingController _statusNote = TextEditingController();
+  final TextEditingController _editTitle = TextEditingController();
+  final TextEditingController _followerUserId = TextEditingController();
   List<Map<String, dynamic>> _tickets = const [];
   List<Map<String, dynamic>> _statuses = const [];
   Map<String, dynamic>? _selected;
@@ -59,6 +59,8 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     _newDetails.dispose();
     _statusCustom.dispose();
     _statusNote.dispose();
+    _editTitle.dispose();
+    _followerUserId.dispose();
     _notificationSubscription?.cancel();
     super.dispose();
   }
@@ -106,6 +108,29 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         }
       });
     } catch (_) {}
+  }
+
+  Future<void> _openTicket(Map<String, dynamic> ticket) async {
+    final id = ticket['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      final body = await _api.getAdminSupportTicket(ticketId: id);
+      if (!mounted) return;
+      setState(() {
+        _selected = Map<String, dynamic>.from(body['ticket'] as Map);
+      });
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      AppAlertService.showError(
+        context,
+        title: context.loc.text('تعذر فتح التذكرة', 'Could not open ticket'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _load() async {
@@ -159,6 +184,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       setState(
         () => _selected = Map<String, dynamic>.from(body['ticket'] as Map),
       );
+      await _openTicket(_selected!);
       await _load();
     } catch (error) {
       if (!mounted) {
@@ -191,7 +217,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
           .where((ticket) => ticket['id'] == _selected!['id'])
           .firstOrNull;
       if (mounted && refreshed != null) {
-        setState(() => _selected = refreshed);
+        await _openTicket(refreshed);
       }
     } catch (error) {
       if (!mounted) {
@@ -216,97 +242,132 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     _newWhatsapp.clear();
     _newTitle.clear();
     _newDetails.clear();
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.text('فتح تذكرة من الإدارة', 'Open ticket from admin')),
-        content: SizedBox(
-          width: 460,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _newUserId,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: l.text(
-                      'رقم المستخدم المسجل (اختياري)',
-                      'Registered user ID (optional)',
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (dialogContext) => Scaffold(
+          appBar: AppBar(
+            title: Text(
+              l.text('فتح تذكرة من الإدارة', 'Open ticket from admin'),
+            ),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    TextField(
+                      controller: _newUserId,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l.text(
+                          'رقم المستخدم المسجل (اختياري)',
+                          'Registered user ID (optional)',
+                        ),
+                        prefixIcon: const Icon(Icons.person_search_rounded),
+                      ),
                     ),
-                    prefixIcon: const Icon(Icons.person_search_rounded),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _newName,
-                  decoration: InputDecoration(
-                    labelText: l.text('اسم غير المسجل', 'Unregistered name'),
-                    prefixIcon: const Icon(Icons.badge_outlined),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _newWhatsapp,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: l.text(
-                      'واتساب غير المسجل',
-                      'Unregistered WhatsApp',
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _newName,
+                      decoration: InputDecoration(
+                        labelText: l.text(
+                          'اسم غير المسجل',
+                          'Unregistered name',
+                        ),
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                      ),
                     ),
-                    prefixIcon: const Icon(Icons.phone_outlined),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _newWhatsapp,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: l.text(
+                          'واتساب غير المسجل',
+                          'Unregistered WhatsApp',
+                        ),
+                        prefixIcon: const Icon(Icons.phone_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _newTitle,
+                      decoration: InputDecoration(
+                        labelText: l.text('عنوان التذكرة', 'Ticket title'),
+                        prefixIcon: const Icon(Icons.subject_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _newDetails,
+                      minLines: 3,
+                      maxLines: 5,
+                      decoration: InputDecoration(
+                        labelText: l.text('تفاصيل التذكرة', 'Ticket details'),
+                        prefixIcon: const Icon(Icons.notes_rounded),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(top: BorderSide(color: AppTheme.border)),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: Text(l.text('إلغاء', 'Cancel')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            if (_newTitle.text.trim().length < 3 ||
+                                _newDetails.text.trim().length < 4 ||
+                                (_newUserId.text.trim().isEmpty &&
+                                    _newWhatsapp.text.trim().length < 8)) {
+                              AppAlertService.showError(
+                                context,
+                                title: l.text(
+                                  'تعذر فتح التذكرة',
+                                  'Could not open ticket',
+                                ),
+                                message: l.text(
+                                  'أدخل مستخدماً أو رقم واتساب مع عنوان وتفاصيل واضحة.',
+                                  'Enter a user or WhatsApp number with a clear title and details.',
+                                ),
+                              );
+                              return;
+                            }
+                            Navigator.of(dialogContext).pop();
+                            await _createAdminTicket();
+                          },
+                          icon: const Icon(Icons.add_comment_rounded),
+                          label: Text(l.text('فتح التذكرة', 'Open ticket')),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _newTitle,
-                  decoration: InputDecoration(
-                    labelText: l.text('عنوان التذكرة', 'Ticket title'),
-                    prefixIcon: const Icon(Icons.subject_rounded),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _newDetails,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    labelText: l.text('تفاصيل التذكرة', 'Ticket details'),
-                    prefixIcon: const Icon(Icons.notes_rounded),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l.text('إلغاء', 'Cancel')),
-          ),
-          FilledButton.icon(
-            onPressed: () async {
-              if (_newTitle.text.trim().length < 3 ||
-                  _newDetails.text.trim().length < 4 ||
-                  (_newUserId.text.trim().isEmpty &&
-                      _newWhatsapp.text.trim().length < 8)) {
-                AppAlertService.showError(
-                  context,
-                  title: l.text('تعذر فتح التذكرة', 'Could not open ticket'),
-                  message: l.text(
-                    'أدخل مستخدماً أو رقم واتساب مع عنوان وتفاصيل واضحة.',
-                    'Enter a user or WhatsApp number with a clear title and details.',
-                  ),
-                );
-                return;
-              }
-              Navigator.of(dialogContext).pop();
-              await _createAdminTicket();
-            },
-            icon: const Icon(Icons.add_comment_rounded),
-            label: Text(l.text('فتح التذكرة', 'Open ticket')),
-          ),
-        ],
       ),
     );
   }
@@ -353,94 +414,126 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     var actorKind = _replyAs;
     _statusCustom.clear();
     _statusNote.clear();
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(l.text('تغيير حالة التذكرة', 'Change ticket status')),
-          content: SizedBox(
-            width: 460,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: _statuses.any((item) => item['value'] == status)
-                      ? status
-                      : 'open',
-                  decoration: InputDecoration(
-                    labelText: l.text('الحالة', 'Status'),
-                    prefixIcon: const Icon(Icons.flag_rounded),
-                  ),
-                  items: _statuses
-                      .map(
-                        (item) => DropdownMenuItem<String>(
-                          value: item['value']?.toString() ?? '',
-                          child: Text(item['label']?.toString() ?? ''),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => Scaffold(
+            appBar: AppBar(
+              title: Text(l.text('تغيير حالة التذكرة', 'Change ticket status')),
+            ),
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue:
+                            _statuses.any((item) => item['value'] == status)
+                            ? status
+                            : 'open',
+                        decoration: InputDecoration(
+                          labelText: l.text('الحالة', 'Status'),
+                          prefixIcon: const Icon(Icons.flag_rounded),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => status = value);
-                    }
-                  },
-                ),
-                if (status == 'custom') ...[
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _statusCustom,
-                    decoration: InputDecoration(
-                      labelText: l.text(
-                        'اسم الحالة الخاصة',
-                        'Custom status name',
+                        items: _statuses
+                            .map(
+                              (item) => DropdownMenuItem<String>(
+                                value: item['value']?.toString() ?? '',
+                                child: Text(item['label']?.toString() ?? ''),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => status = value);
+                          }
+                        },
                       ),
-                      prefixIcon: const Icon(Icons.edit_note_rounded),
+                      if (status == 'custom') ...[
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _statusCustom,
+                          decoration: InputDecoration(
+                            labelText: l.text(
+                              'اسم الحالة الخاصة',
+                              'Custom status name',
+                            ),
+                            prefixIcon: const Icon(Icons.edit_note_rounded),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      SegmentedButton<String>(
+                        segments: [
+                          ButtonSegment(
+                            value: 'support',
+                            label: Text(l.text('الدعم', 'Support')),
+                          ),
+                          ButtonSegment(
+                            value: 'admin',
+                            label: Text(l.text('الإدارة', 'Admin')),
+                          ),
+                        ],
+                        selected: {actorKind},
+                        onSelectionChanged: (value) =>
+                            setDialogState(() => actorKind = value.first),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _statusNote,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          labelText: l.text('تعليق التغيير', 'Change note'),
+                          prefixIcon: const Icon(Icons.comment_outlined),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  border: Border(top: BorderSide(color: AppTheme.border)),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: Text(l.text('إلغاء', 'Cancel')),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              Navigator.of(dialogContext).pop();
+                              await _changeStatus(status, actorKind);
+                            },
+                            icon: const Icon(Icons.check_rounded),
+                            label: Text(
+                              l.text('تغيير الحالة', 'Change status'),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-                const SizedBox(height: 10),
-                SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment(
-                      value: 'support',
-                      label: Text(l.text('الدعم', 'Support')),
-                    ),
-                    ButtonSegment(
-                      value: 'admin',
-                      label: Text(l.text('الإدارة', 'Admin')),
-                    ),
-                  ],
-                  selected: {actorKind},
-                  onSelectionChanged: (value) =>
-                      setDialogState(() => actorKind = value.first),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _statusNote,
-                  minLines: 2,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    labelText: l.text('تعليق التغيير', 'Change note'),
-                    prefixIcon: const Icon(Icons.comment_outlined),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(l.text('إلغاء', 'Cancel')),
-            ),
-            FilledButton.icon(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await _changeStatus(status, actorKind);
-              },
-              icon: const Icon(Icons.check_rounded),
-              label: Text(l.text('تغيير الحالة', 'Change status')),
-            ),
-          ],
         ),
       ),
     );
@@ -485,6 +578,196 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     }
   }
 
+  Future<void> _openEditTitleDialog() async {
+    final selected = _selected;
+    if (selected == null) return;
+    final l = context.loc;
+    _editTitle.text = selected['title']?.toString() ?? '';
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (dialogContext) => Scaffold(
+          appBar: AppBar(
+            title: Text(
+              l.text('تعديل عنوان المحادثة', 'Edit conversation title'),
+            ),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    TextField(
+                      controller: _editTitle,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: l.text('العنوان', 'Title'),
+                        prefixIcon: const Icon(Icons.edit_note_rounded),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(top: BorderSide(color: AppTheme.border)),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text(l.text('إلغاء', 'Cancel')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          icon: const Icon(Icons.save_rounded),
+                          label: Text(l.text('حفظ', 'Save')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (confirmed != true || _editTitle.text.trim().length < 3) return;
+    setState(() => _busy = true);
+    try {
+      final body = await _api.updateAdminSupportTicketTitle(
+        ticketId: selected['id'].toString(),
+        title: _editTitle.text,
+      );
+      if (!mounted) return;
+      setState(
+        () => _selected = Map<String, dynamic>.from(body['ticket'] as Map),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      AppAlertService.showError(
+        context,
+        title: l.text('تعذر تعديل العنوان', 'Could not edit title'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openFollowerDialog() async {
+    final selected = _selected;
+    if (selected == null) return;
+    final l = context.loc;
+    _followerUserId.clear();
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (dialogContext) => Scaffold(
+          appBar: AppBar(
+            title: Text(
+              l.text('إضافة متابع للمحادثة', 'Add conversation follower'),
+            ),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    TextField(
+                      controller: _followerUserId,
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l.text(
+                          'رقم مستخدم الدعم/الإدارة',
+                          'Support/admin user ID',
+                        ),
+                        prefixIcon: const Icon(Icons.person_add_alt_1_rounded),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(top: BorderSide(color: AppTheme.border)),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text(l.text('إلغاء', 'Cancel')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          icon: const Icon(Icons.person_add_alt_1_rounded),
+                          label: Text(l.text('إضافة', 'Add')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (confirmed != true || _followerUserId.text.trim().isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      final body = await _api.addAdminSupportTicketFollower(
+        ticketId: selected['id'].toString(),
+        userId: _followerUserId.text,
+      );
+      if (!mounted) return;
+      setState(
+        () => _selected = Map<String, dynamic>.from(body['ticket'] as Map),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      AppAlertService.showError(
+        context,
+        title: l.text('تعذر إضافة المتابع', 'Could not add follower'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -515,34 +798,35 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
               ),
             )
           : LayoutBuilder(
-              builder: (context, constraints) => ResponsiveScaffoldContainer(
-                maxWidth: 1180,
-                padding: const EdgeInsets.all(AppTheme.spacingMd),
-                child: SizedBox(
-                  height: constraints.maxHeight - AppTheme.spacingLg,
-                  child: LayoutBuilder(
-                    builder: (context, box) {
-                      final compact = box.maxWidth < 800;
-                      final list = _ticketList(compact: compact);
-                      final chat = _selected == null ? _empty() : _chat();
-                      if (compact) {
-                        return Column(
+              builder: (context, constraints) => SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                  child: SizedBox(
+                    height: constraints.maxHeight,
+                    child: LayoutBuilder(
+                      builder: (context, box) {
+                        final compact = box.maxWidth < 800;
+                        final list = _ticketList(compact: compact);
+                        final chat = _selected == null ? _empty() : _chat();
+                        if (compact) {
+                          return Column(
+                            children: [
+                              SizedBox(height: 240, child: list),
+                              const SizedBox(height: 12),
+                              Expanded(child: chat),
+                            ],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            SizedBox(height: 240, child: list),
-                            const SizedBox(height: 12),
+                            SizedBox(width: 360, child: list),
+                            const SizedBox(width: 14),
                             Expanded(child: chat),
                           ],
                         );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(width: 360, child: list),
-                          const SizedBox(width: 14),
-                          Expanded(child: chat),
-                        ],
-                      );
-                    },
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -551,7 +835,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   }
 
   Widget _ticketList({required bool compact}) => ShwakelCard(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(8),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -581,6 +865,8 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
               itemBuilder: (context, index) {
                 final ticket = _tickets[index];
                 final claimed = ticket['claimed'] == true;
+                final contact = ticket['contactWhatsapp']?.toString() ?? '';
+                final createdBy = ticket['createdByUserId']?.toString() ?? '';
                 return ListTile(
                   dense: compact,
                   selected: ticket['id'] == _selected?['id'],
@@ -599,20 +885,35 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    claimed
-                        ? context.loc.text('قيد المتابعة', 'In progress')
-                        : context.loc.text(
-                            'بانتظار الفتح',
-                            'Waiting to be opened',
-                          ),
+                    [
+                      contact,
+                      if (createdBy.isNotEmpty) 'منشئ المتابعة #$createdBy',
+                      claimed
+                          ? context.loc.text('قيد المتابعة', 'In progress')
+                          : context.loc.text('بانتظار الفتح', 'Waiting'),
+                    ].where((item) => item.trim().isNotEmpty).join(' - '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  onTap: () => claimed
-                      ? setState(() {
-                          _selected = ticket;
-                        })
-                      : _claim(ticket),
+                  trailing: contact.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: context.loc.text('نسخ الرقم', 'Copy number'),
+                          icon: const Icon(Icons.copy_rounded),
+                          onPressed: () async {
+                            final loc = context.loc;
+                            await Clipboard.setData(
+                              ClipboardData(text: contact),
+                            );
+                            if (!context.mounted) return;
+                            AppAlertService.showSuccess(
+                              context,
+                              title: loc.text('تم النسخ', 'Copied'),
+                              message: contact,
+                            );
+                          },
+                        ),
+                  onTap: () => claimed ? _openTicket(ticket) : _claim(ticket),
                 );
               },
             ),
@@ -657,10 +958,12 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         _adminChatHeader(l),
         const SizedBox(height: 10),
         Expanded(
-          child: ShwakelCard(
-            padding: EdgeInsets.zero,
-            color: AppTheme.surfaceVariant.withValues(alpha: 0.55),
-            shadowLevel: ShwakelShadowLevel.none,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.border),
+            ),
             child: hasTimeline
                 ? ListView.separated(
                     padding: const EdgeInsets.all(12),
@@ -698,8 +1001,13 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   }
 
   Widget _adminChatHeader(AppLocalizer l) {
-    return ShwakelCard(
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
       child: Row(
         children: [
           CircleAvatar(
@@ -730,6 +1038,16 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                 ),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: l.text('تعديل العنوان', 'Edit title'),
+            onPressed: _busy ? null : _openEditTitleDialog,
+            icon: const Icon(Icons.edit_note_rounded),
+          ),
+          IconButton(
+            tooltip: l.text('إضافة متابع', 'Add follower'),
+            onPressed: _busy ? null : _openFollowerDialog,
+            icon: const Icon(Icons.person_add_alt_1_rounded),
           ),
           IconButton(
             tooltip: l.text('تغيير الحالة', 'Change status'),
@@ -857,10 +1175,52 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                 color: mine ? Colors.white : AppTheme.textPrimary,
               ),
             ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _messageStatusIcon(message),
+                  size: 14,
+                  color: mine ? Colors.white70 : AppTheme.textSecondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _messageStatusLabel(message, mine),
+                  style: AppTheme.caption.copyWith(
+                    color: mine ? Colors.white70 : AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  IconData _messageStatusIcon(Map<String, dynamic> message) {
+    if ((message['readAt']?.toString().trim() ?? '').isNotEmpty) {
+      return Icons.done_all_rounded;
+    }
+    if ((message['deliveredAt']?.toString().trim() ?? '').isNotEmpty) {
+      return Icons.done_all_rounded;
+    }
+    return Icons.done_rounded;
+  }
+
+  String _messageStatusLabel(Map<String, dynamic> message, bool mine) {
+    final l = context.loc;
+    if (!mine) {
+      return message['createdAt']?.toString() ?? '';
+    }
+    if ((message['readAt']?.toString().trim() ?? '').isNotEmpty) {
+      return l.text('تمت القراءة', 'Read');
+    }
+    if ((message['deliveredAt']?.toString().trim() ?? '').isNotEmpty) {
+      return l.text('وصلت', 'Delivered');
+    }
+    return l.text('تم الإرسال', 'Sent');
   }
 
   Widget _adminAttachmentsPanel(List<Map<String, dynamic>> attachments) {

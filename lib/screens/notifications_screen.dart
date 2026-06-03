@@ -189,11 +189,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => _NotificationDetailsSheet(item: item),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _NotificationDetailsScreen(item: item),
+      ),
     );
   }
 
@@ -215,16 +215,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               ),
             ),
-          IconButton(
-            tooltip: context.loc.tr('screens_notifications_screen.036'),
-            onPressed: _showSummarySheet,
-            icon: const Icon(Icons.dashboard_customize_rounded),
-          ),
-          IconButton(
-            tooltip: context.loc.tr('screens_inventory_screen.017'),
-            onPressed: _showFiltersSheet,
-            icon: const Icon(Icons.filter_alt_rounded),
-          ),
           IconButton(
             tooltip: _t('screens_notifications_screen.042'),
             onPressed: _unreadCount > 0 ? _markAllAsRead : null,
@@ -273,10 +263,37 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: _notifications.length + 1,
+      itemCount: _notifications.length + 3,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        if (index == _notifications.length) {
+        if (index == 0) {
+          return _buildFilters(false);
+        }
+        if (index == 1) {
+          final stats = _buildQuickStats();
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = constraints.maxWidth >= 900
+                  ? (constraints.maxWidth - 24) / 3
+                  : constraints.maxWidth >= 560
+                  ? (constraints.maxWidth - 12) / 2
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: stats
+                    .map(
+                      (stat) => SizedBox(
+                        width: itemWidth,
+                        child: _buildStatCard(stat),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          );
+        }
+        if (index == _notifications.length + 2) {
           return AdminPaginationFooter(
             currentPage: _page,
             lastPage: _lastPage,
@@ -288,62 +305,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             },
           );
         }
-        final item = _notifications[index];
+        final item = _notifications[index - 2];
         return _NotificationCard(
           item: item,
           onTap: () => _openNotification(item),
         );
       },
-    );
-  }
-
-  Future<void> _showSummarySheet() async {
-    final stats = _buildQuickStats();
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(_t('screens_notifications_screen.034'), style: AppTheme.h2),
-            const SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: stats.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _buildStatCard(stats[index]),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showFiltersSheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(_t('screens_notifications_screen.036'), style: AppTheme.h2),
-            const SizedBox(height: 12),
-            _buildFilters(true),
-          ],
-        ),
-      ),
     );
   }
 
@@ -1073,6 +1040,39 @@ class _NotificationDetailsSheet extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationDetailsScreen extends StatelessWidget {
+  const _NotificationDetailsScreen({required this.item});
+
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = item['title']?.toString().trim();
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: Text(
+          title == null || title.isEmpty
+              ? context.loc.tr('widgets_app_top_actions.004')
+              : title,
+        ),
+        actions: const [QuickLogoutAction()],
+      ),
+      body: ResponsiveScaffoldContainer(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: ListView(
+          children: [
+            ShwakelCard(
+              padding: EdgeInsets.zero,
+              child: _NotificationDetailsSheet(item: item),
+            ),
+          ],
         ),
       ),
     );

@@ -239,16 +239,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         title: Text(_t('screens_transactions_screen.005')),
         actions: [
           IconButton(
-            tooltip: context.loc.tr('screens_transactions_screen.039'),
-            onPressed: _showSummarySheet,
-            icon: const Icon(Icons.dashboard_customize_rounded),
-          ),
-          IconButton(
-            tooltip: context.loc.tr('screens_transactions_screen.037'),
-            onPressed: _showFiltersSheet,
-            icon: const Icon(Icons.filter_alt_rounded),
-          ),
-          IconButton(
             tooltip: _t('screens_transactions_screen.012'),
             onPressed: _exportTransactions,
             icon: const Icon(Icons.download_rounded),
@@ -268,15 +258,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               return ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: _isLoading || _transactions.isEmpty
-                    ? 3
-                    : _transactions.length + 3,
+                    ? 5
+                    : _transactions.length + 5,
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   if (index == 0) {
-                    return _buildResultsHeading(isCompact: isCompact);
+                    return _buildHeaderCard(isCompact: isCompact);
                   }
                   if (index == 1) {
+                    return _buildSearchAndFilters(isCompact: isCompact);
+                  }
+                  if (index == 2) {
+                    return _buildResultsHeading(isCompact: isCompact);
+                  }
+                  if (index == 3) {
                     if (_isRefreshing) {
                       return const LinearProgressIndicator(minHeight: 3);
                     }
@@ -284,7 +280,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   }
 
                   if (_isLoading) {
-                    if (index == 2) {
+                    if (index == 4) {
                       return const Center(
                         child: Padding(
                           padding: EdgeInsets.all(40),
@@ -296,13 +292,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   }
 
                   if (_transactions.isEmpty) {
-                    if (index == 2) {
+                    if (index == 4) {
                       return _buildEmptyState();
                     }
                     return const SizedBox.shrink();
                   }
 
-                  final txIndex = index - 2;
+                  final txIndex = index - 4;
                   if (txIndex < _transactions.length) {
                     final tx = _transactions[txIndex];
                     return _buildLedgerTransactionCard(tx);
@@ -322,49 +318,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               );
             },
           ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showSummarySheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(_t('screens_transactions_screen.039'), style: AppTheme.h2),
-            const SizedBox(height: 12),
-            _buildHeaderCard(isCompact: true),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showFiltersSheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(_t('screens_transactions_screen.037'), style: AppTheme.h2),
-            const SizedBox(height: 12),
-            _buildSearchAndFilters(isCompact: true),
-          ],
         ),
       ),
     );
@@ -781,11 +734,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ],
           ),
         ),
-        TextButton.icon(
-          onPressed: _showFiltersSheet,
-          icon: const Icon(Icons.tune_rounded, size: 18),
-          label: Text(_t('screens_transactions_screen.057')),
-        ),
       ],
     );
   }
@@ -940,35 +888,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final source = _transactionSourceLine(metadata);
     final cardDetails = _transactionCardLine(metadata);
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.68,
-        minChildSize: 0.45,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(
+            title: Text(_transactionTypeLabel(type, metadata)),
+            actions: const [AppNotificationAction(), QuickLogoutAction()],
           ),
-          child: ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          body: ResponsiveScaffoldContainer(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ListView(
             children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.border,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Container(
@@ -1108,6 +1040,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

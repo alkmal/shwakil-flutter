@@ -220,130 +220,120 @@ class _AdminVerificationRequestsScreenState
         ? user['fullName'].toString().trim()
         : '@${user['username']?.toString() ?? '-'}';
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(
+            title: Text(title),
+            actions: const [AppNotificationAction()],
           ),
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              Text(title, style: AppTheme.h2),
-              const SizedBox(height: 8),
-              Text(
-                _t('screens_admin_verification_requests_screen.017'),
-                style: AppTheme.bodyAction.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _detailCard(
-                children: [
-                  _detailRow(
-                    _t('screens_admin_verification_requests_screen.018'),
-                    user['username']?.toString() ?? '-',
-                  ),
-                  _detailRow(
-                    _t('screens_admin_verification_requests_screen.019'),
-                    user['whatsapp']?.toString() ?? '-',
-                  ),
-                  _detailRow(
-                    _t('screens_admin_verification_requests_screen.020'),
-                    request['nationalId']?.toString() ?? '-',
-                  ),
-                  _detailRow(
-                    _t('screens_admin_verification_requests_screen.021'),
-                    request['birthDate']?.toString() ?? '-',
-                  ),
-                  _detailRow(
-                    _t('screens_admin_verification_requests_screen.022'),
-                    request['requestedRoleLabel']?.toString() ?? '-',
-                  ),
-                  _detailRow(
-                    _t('screens_admin_verification_requests_screen.023'),
-                    request['createdAt']?.toString() ?? '-',
-                  ),
-                  if ((request['notes']?.toString().trim().isNotEmpty ?? false))
-                    _detailRow(
-                      _t('screens_admin_verification_requests_screen.024'),
-                      request['notes'].toString(),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _t('screens_admin_verification_requests_screen.025'),
-                style: AppTheme.h3,
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: ShwakelButton(
-                      label: _t(
-                        'screens_admin_verification_requests_screen.026',
-                      ),
-                      icon: Icons.badge_rounded,
-                      isSecondary: true,
-                      onPressed: () => _downloadFile(
-                        request,
-                        'identity',
-                        'identity-${request['id']}',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ShwakelButton(
-                      label: _t(
-                        'screens_admin_verification_requests_screen.027',
-                      ),
-                      icon: Icons.face_retouching_natural_rounded,
-                      isSecondary: true,
-                      onPressed: () => _downloadFile(
-                        request,
-                        'selfie',
-                        'selfie-${request['id']}',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: ShwakelButton(
-                      label: _t(
-                        'screens_admin_verification_requests_screen.013',
-                      ),
-                      icon: Icons.close_rounded,
-                      isSecondary: true,
-                      onPressed: () => _rejectRequest(request),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ShwakelButton(
-                      label: _t(
-                        'screens_admin_verification_requests_screen.028',
-                      ),
-                      icon: Icons.check_circle_rounded,
-                      onPressed: () => _approveRequest(request),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
+          body: ResponsiveScaffoldContainer(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: ListView(children: [_verificationDetailsContent(request, user, title)]),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _verificationDetailsContent(
+    Map<String, dynamic> request,
+    Map<String, dynamic> user,
+    String title,
+  ) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTheme.h2),
+          const SizedBox(height: 8),
+          Text(
+            _t('screens_admin_verification_requests_screen.017'),
+            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 18),
+          _detailCard(
+            children: [
+              _detailRow(
+                _t('screens_admin_verification_requests_screen.018'),
+                user['username']?.toString() ?? '-',
+              ),
+              _detailRow(
+                _t('screens_admin_verification_requests_screen.019'),
+                user['whatsapp']?.toString() ?? '-',
+              ),
+              _detailRow(
+                _t('screens_admin_verification_requests_screen.020'),
+                request['nationalId']?.toString() ?? '-',
+              ),
+              _detailRow(
+                _t('screens_admin_verification_requests_screen.021'),
+                request['birthDate']?.toString() ?? '-',
+              ),
+              _detailRow(
+                _t('screens_admin_verification_requests_screen.022'),
+                request['requestedRoleLabel']?.toString() ?? '-',
+              ),
+              _detailRow(
+                _t('screens_admin_verification_requests_screen.023'),
+                request['createdAt']?.toString() ?? '-',
+              ),
+              if ((request['notes']?.toString().trim().isNotEmpty ?? false))
+                _detailRow(
+                  _t('screens_admin_verification_requests_screen.024'),
+                  request['notes'].toString(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(_t('screens_admin_verification_requests_screen.025'), style: AppTheme.h3),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ShwakelButton(
+                  label: _t('screens_admin_verification_requests_screen.026'),
+                  icon: Icons.badge_rounded,
+                  isSecondary: true,
+                  onPressed: () => _downloadFile(request, 'identity', 'identity-${request['id']}'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ShwakelButton(
+                  label: _t('screens_admin_verification_requests_screen.027'),
+                  icon: Icons.face_retouching_natural_rounded,
+                  isSecondary: true,
+                  onPressed: () => _downloadFile(request, 'selfie', 'selfie-${request['id']}'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: ShwakelButton(
+                  label: _t('screens_admin_verification_requests_screen.013'),
+                  icon: Icons.close_rounded,
+                  isSecondary: true,
+                  onPressed: () => _rejectRequest(request),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ShwakelButton(
+                  label: _t('screens_admin_verification_requests_screen.028'),
+                  icon: Icons.check_circle_rounded,
+                  onPressed: () => _approveRequest(request),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

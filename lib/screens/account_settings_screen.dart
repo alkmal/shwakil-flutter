@@ -18,6 +18,7 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final AuthService _authService = AuthService();
+  final ApiService _apiService = ApiService();
 
   final TextEditingController _businessNameController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
@@ -382,7 +383,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -405,20 +406,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     indicatorPadding: const EdgeInsets.all(6),
                     labelPadding: EdgeInsets.zero,
                     tabs: [
-                      Tab(
-                        height: 56,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.security_rounded, size: 20),
-                              const SizedBox(width: 8),
-                              Text(l.tr('screens_account_settings_screen.069')),
-                            ],
-                          ),
-                        ),
-                      ),
                       Tab(
                         height: 56,
                         child: FittedBox(
@@ -474,7 +461,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         drawer: const AppSidebar(),
         body: TabBarView(
           children: [
-            _buildSecurityTab(),
             _buildProfileTab(),
             _buildPasswordTab(),
             _buildAccountActionsTab(),
@@ -482,136 +468,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildSecurityTab() {
-    final l = context.loc;
-    final warningColor = _hasLocalSecuritySetup
-        ? AppTheme.success
-        : AppTheme.warning;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingLg),
-      child: ResponsiveScaffoldContainer(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ShwakelCard(
-              padding: const EdgeInsets.all(24),
-              color: _hasLocalSecuritySetup
-                  ? AppTheme.success.withValues(alpha: 0.05)
-                  : AppTheme.warning.withValues(alpha: 0.07),
-              borderColor: warningColor.withValues(alpha: 0.18),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: warningColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _hasLocalSecuritySetup
-                          ? Icons.lock_rounded
-                          : Icons.lock_person_rounded,
-                      color: warningColor,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _hasLocalSecuritySetup
-                              ? l.tr('screens_account_settings_screen.070')
-                              : l.tr('screens_account_settings_screen.071'),
-                          style: AppTheme.h3.copyWith(color: warningColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            ShwakelCard(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l.tr('screens_account_settings_screen.074'),
-                    style: AppTheme.h3,
-                  ),
-                  const SizedBox(height: 18),
-                  _securityStatusRow(
-                    l.tr('screens_account_settings_screen.075'),
-                    _hasPin
-                        ? l.tr('screens_security_settings_screen.020')
-                        : l.tr('screens_security_settings_screen.021'),
-                    _hasPin ? AppTheme.success : AppTheme.warning,
-                    Icons.pin_rounded,
-                  ),
-                  _securityStatusRow(
-                    l.tr('screens_account_settings_screen.076'),
-                    _biometricEnabled
-                        ? l.tr('screens_security_settings_screen.020')
-                        : (_canUseBiometrics
-                              ? l.tr('screens_security_settings_screen.021')
-                              : l.tr('screens_account_settings_screen.077')),
-                    _biometricEnabled
-                        ? AppTheme.success
-                        : (_canUseBiometrics
-                              ? AppTheme.warning
-                              : AppTheme.textTertiary),
-                    Icons.fingerprint_rounded,
-                  ),
-                  const SizedBox(height: 22),
-                  ShwakelButton(
-                    label: l.tr('screens_account_settings_screen.078'),
-                    icon: Icons.security_rounded,
-                    onPressed: _openSecuritySettings,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _securityStatusRow(
-    String label,
-    String value,
-    Color color,
-    IconData icon,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label, style: AppTheme.bodyAction)),
-          const SizedBox(width: 12),
-          Text(value, style: AppTheme.bodyBold.copyWith(color: color)),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _openSecuritySettings() async {
-    await Navigator.of(context).pushNamed(
-      '/security-settings',
-      arguments: {'showSetupHint': !_hasLocalSecuritySetup},
-    );
-    if (mounted) {
-      await _load();
-    }
   }
 
   Widget _buildProfileTab() {
@@ -716,6 +572,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildLoginProtectionPanel(),
+            const SizedBox(height: 16),
             ShwakelCard(
               padding: const EdgeInsets.all(24),
               borderColor: AppTheme.textPrimary.withValues(alpha: 0.08),
@@ -765,6 +623,514 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildLoginProtectionPanel() {
+    final l = context.loc;
+    final overallColor = _hasLocalSecuritySetup
+        ? AppTheme.success
+        : AppTheme.warning;
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(22),
+      borderColor: overallColor.withValues(alpha: 0.18),
+      color: overallColor.withValues(alpha: 0.045),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: overallColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.lock_person_rounded, color: overallColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.tr('screens_account_settings_screen.074'),
+                      style: AppTheme.h3,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _hasLocalSecuritySetup
+                          ? l.tr('screens_account_settings_screen.070')
+                          : l.tr('screens_account_settings_screen.071'),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 680;
+              final pinTile = _buildSecurityAccessTile(
+                icon: Icons.pin_rounded,
+                title: l.tr('screens_account_settings_screen.075'),
+                description: l.tr('screens_security_settings_screen.031'),
+                enabled: _hasPin,
+                color: _hasPin ? AppTheme.success : AppTheme.warning,
+                actionLabel: _hasPin
+                    ? l.tr('screens_security_settings_screen.029')
+                    : l.tr('screens_security_settings_screen.030'),
+                secondaryLabel: _hasPin
+                    ? l.tr('screens_security_settings_screen.064')
+                    : null,
+                onPrimary: _createOrChangePinFromAccount,
+                onSecondary: _hasPin ? _removePinFromAccount : null,
+              );
+              final biometricTile = _buildSecurityAccessTile(
+                icon: Icons.fingerprint_rounded,
+                title: l.tr('screens_account_settings_screen.076'),
+                description: _canUseBiometrics
+                    ? l.tr('screens_security_settings_screen.022')
+                    : l.tr('screens_account_settings_screen.077'),
+                enabled: _biometricEnabled,
+                color: _biometricEnabled
+                    ? AppTheme.success
+                    : (_canUseBiometrics
+                          ? AppTheme.warning
+                          : AppTheme.textTertiary),
+                actionLabel: _biometricEnabled
+                    ? l.tr('screens_security_settings_screen.064')
+                    : l.tr('screens_security_settings_screen.030'),
+                onPrimary: _canUseBiometrics
+                    ? () => _setBiometricFromAccount(!_biometricEnabled)
+                    : null,
+              );
+
+              if (!isWide) {
+                return Column(
+                  children: [
+                    pinTile,
+                    const SizedBox(height: 12),
+                    biometricTile,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: pinTile),
+                  const SizedBox(width: 12),
+                  Expanded(child: biometricTile),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecurityAccessTile({
+    required IconData icon,
+    required String title,
+    required String description,
+    required bool enabled,
+    required Color color,
+    required String actionLabel,
+    required VoidCallback? onPrimary,
+    String? secondaryLabel,
+    VoidCallback? onSecondary,
+  }) {
+    final statusLabel = enabled
+        ? context.loc.tr('screens_security_settings_screen.020')
+        : context.loc.tr('screens_security_settings_screen.021');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppTheme.bodyBold),
+                    const SizedBox(height: 4),
+                    Text(
+                      statusLabel,
+                      style: AppTheme.caption.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ShwakelButton(
+                label: actionLabel,
+                icon: icon,
+                onPressed: onPrimary,
+                height: 42,
+                isSecondary: !enabled,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                fontSize: 13,
+              ),
+              if (secondaryLabel != null)
+                ShwakelButton(
+                  label: secondaryLabel,
+                  icon: Icons.delete_outline_rounded,
+                  onPressed: onSecondary,
+                  height: 42,
+                  isSecondary: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  fontSize: 13,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createOrChangePinFromAccount() async {
+    final wasPinEnabled = _hasPin;
+    if (wasPinEnabled && !await _confirmCurrentPinFromAccount()) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    final pin = await _showAccountPinDialog(isEdit: wasPinEnabled);
+    if (pin == null) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final payload = await _apiService.updateSecurityPin(
+        pin: pin,
+        localAuthMethod: wasPinEnabled
+            ? await LocalSecurityService.lastLocalAuthMethod()
+            : null,
+      );
+      final user = payload['user'];
+      if (user is Map) {
+        await _authService.cacheCurrentUser(Map<String, dynamic>.from(user));
+      }
+      await LocalSecurityService.savePin(pin);
+      await _load();
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: wasPinEnabled ? 'تم تعديل PIN' : 'تم تفعيل PIN',
+        message: 'تم تحديث حماية الدخول بنجاح.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحديث PIN',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _removePinFromAccount() async {
+    if (!_hasPin || !await _confirmCurrentPinFromAccount()) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إلغاء PIN'),
+        content: const Text('سيتم إلغاء استخدام PIN في حماية الدخول والعمليات.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(context.loc.tr('shared.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('إلغاء PIN'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final payload = await _apiService.removeSecurityPin(
+        localAuthMethod: await LocalSecurityService.lastLocalAuthMethod(),
+      );
+      final user = payload['user'];
+      if (user is Map) {
+        await _authService.cacheCurrentUser(Map<String, dynamic>.from(user));
+      }
+      await LocalSecurityService.removePin();
+      await _load();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إلغاء PIN',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _setBiometricFromAccount(bool value) async {
+    if (!_canUseBiometrics) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      if (value && !await LocalSecurityService.authenticateWithBiometrics()) {
+        return;
+      }
+      await LocalSecurityService.setBiometricEnabled(value);
+      await _load();
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showSuccess(
+        context,
+        title: value ? 'تم تفعيل البصمة' : 'تم إلغاء البصمة',
+        message: 'تم تحديث طريقة حماية الدخول.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<bool> _confirmCurrentPinFromAccount() async {
+    if (_biometricEnabled &&
+        await LocalSecurityService.authenticateWithBiometrics()) {
+      return true;
+    }
+    if (!mounted) {
+      return false;
+    }
+
+    final currentPin = await _showCurrentPinDialog();
+    if (currentPin == null) {
+      return false;
+    }
+    final verified = await LocalSecurityService.verifyPin(currentPin);
+    if (verified) {
+      await LocalSecurityService.setLastLocalAuthMethod('pin');
+      return true;
+    }
+    if (!mounted) {
+      return false;
+    }
+    await AppAlertService.showError(
+      context,
+      title: 'PIN غير صحيح',
+      message: 'تحقق من الرقم وحاول مرة أخرى.',
+    );
+    return false;
+  }
+
+  Future<String?> _showAccountPinDialog({required bool isEdit}) async {
+    final pinController = TextEditingController();
+    final confirmController = TextEditingController();
+    var obscurePin = true;
+    var obscureConfirm = true;
+    String? errorText;
+
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: Text(isEdit ? 'تعديل PIN' : 'تفعيل PIN'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: pinController,
+                  maxLength: 4,
+                  obscureText: obscurePin,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'PIN جديد',
+                    prefixIcon: const Icon(Icons.pin_rounded),
+                    errorText: errorText,
+                    suffixIcon: IconButton(
+                      onPressed: () => setDialogState(
+                        () => obscurePin = !obscurePin,
+                      ),
+                      icon: Icon(
+                        obscurePin
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmController,
+                  maxLength: 4,
+                  obscureText: obscureConfirm,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'تأكيد PIN',
+                    prefixIcon: const Icon(Icons.verified_user_rounded),
+                    suffixIcon: IconButton(
+                      onPressed: () => setDialogState(
+                        () => obscureConfirm = !obscureConfirm,
+                      ),
+                      icon: Icon(
+                        obscureConfirm
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(context.loc.tr('shared.cancel')),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  final pin = pinController.text.trim();
+                  final confirm = confirmController.text.trim();
+                  if (!RegExp(r'^\d{4}$').hasMatch(pin) || pin != confirm) {
+                    setDialogState(
+                      () => errorText = 'أدخل 4 أرقام متطابقة.',
+                    );
+                    return;
+                  }
+                  Navigator.pop(dialogContext, pin);
+                },
+                icon: const Icon(Icons.check_rounded),
+                label: const Text('حفظ'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      pinController.dispose();
+      confirmController.dispose();
+    }
+  }
+
+  Future<String?> _showCurrentPinDialog() async {
+    final pinController = TextEditingController();
+    var obscurePin = true;
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: const Text('تأكيد PIN الحالي'),
+            content: TextField(
+              controller: pinController,
+              maxLength: 4,
+              obscureText: obscurePin,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'PIN الحالي',
+                prefixIcon: const Icon(Icons.password_rounded),
+                suffixIcon: IconButton(
+                  onPressed: () =>
+                      setDialogState(() => obscurePin = !obscurePin),
+                  icon: Icon(
+                    obscurePin
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(context.loc.tr('shared.cancel')),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final pin = pinController.text.trim();
+                  if (pin.length == 4) {
+                    Navigator.pop(dialogContext, pin);
+                  }
+                },
+                child: const Text('تأكيد'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      pinController.dispose();
+    }
   }
 
   bool _canEditField(String fieldKey) {

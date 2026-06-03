@@ -220,12 +220,11 @@ class _AdminCardScanReportsScreenState
     if (userId == null || userId.isEmpty) return;
 
     if (!mounted) return;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: AppTheme.background,
-      builder: (ctx) => _UserLocationsSheet(userId: userId),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _UserLocationsScreen(userId: userId),
+      ),
     );
   }
 
@@ -784,6 +783,34 @@ class _UserLocationsSheet extends StatefulWidget {
 
   @override
   State<_UserLocationsSheet> createState() => _UserLocationsSheetState();
+}
+
+class _UserLocationsScreen extends StatelessWidget {
+  const _UserLocationsScreen({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: const Text('تفاصيل المواقع'),
+        actions: const [AppNotificationAction()],
+      ),
+      body: ResponsiveScaffoldContainer(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: ListView(
+          children: [
+            ShwakelCard(
+              padding: EdgeInsets.zero,
+              child: _UserLocationsSheet(userId: userId),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _UserLocationsSheetState extends State<_UserLocationsSheet> {

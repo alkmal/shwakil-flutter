@@ -271,22 +271,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
       appBar: AppBar(
         title: Text(l.tr('screens_inventory_screen.001')),
         actions: [
-          IconButton(
-            tooltip: l.tr('screens_inventory_screen.020'),
-            onPressed: _showSummarySheet,
-            icon: const Icon(Icons.dashboard_customize_rounded),
-          ),
           if (_canRequestCardPrinting)
             IconButton(
               tooltip: l.tr('screens_inventory_screen.003'),
               onPressed: () => _openRoute('/card-print-requests'),
               icon: const Icon(Icons.print_rounded),
             ),
-          IconButton(
-            tooltip: l.tr('screens_inventory_screen.017'),
-            onPressed: _showFiltersSheet,
-            icon: const Icon(Icons.filter_alt_rounded),
-          ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
         ],
@@ -306,11 +296,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 itemBuilder: (context, index) {
                   final item = _inventoryListItemAt(index);
                   switch (item.kind) {
+                    case _InventoryListItemKind.overview:
+                      return _buildOverviewCard();
+                    case _InventoryListItemKind.filters:
+                      return _buildFiltersPanel();
+                    case _InventoryListItemKind.resultsHeader:
+                      return _buildResultsHeader();
                     case _InventoryListItemKind.offlineBanner:
-                      return ShwakelCard(
-                        padding: const EdgeInsets.all(16),
-                        color: AppTheme.warning.withValues(alpha: 0.08),
-                        borderColor: AppTheme.warning.withValues(alpha: 0.15),
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warning.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppTheme.warning.withValues(alpha: 0.15),
+                          ),
+                        ),
                         child: Text(
                           'بطاقات محفوظة محليًا.',
                           style: AppTheme.bodyAction.copyWith(fontSize: 14),
@@ -356,18 +357,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     case _InventoryListItemKind.card:
                       return _buildCardTile(_cards[item.cardIndex]);
                     case _InventoryListItemKind.pagination:
-                      return AdminPaginationFooter(
-                        currentPage: _page,
-                        lastPage: _lastPage,
-                        totalItems: _filteredTotalCards,
-                        itemsPerPage: _canUseAdminInventory
-                            ? _adminPerPage
-                            : _perPage,
-                        onPageChanged: (page) {
-                          setState(() => _page = page);
-                          _load();
-                        },
-                      );
+                      return _buildInventoryPagination();
                   }
                 },
               ),
@@ -386,6 +376,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   List<_InventoryListItem> get _inventoryListItems {
     final items = <_InventoryListItem>[];
+    items.add(const _InventoryListItem(_InventoryListItemKind.overview));
+    items.add(const _InventoryListItem(_InventoryListItemKind.filters));
     if (_isOfflineData) {
       items.add(const _InventoryListItem(_InventoryListItemKind.offlineBanner));
     }
@@ -407,8 +399,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
       );
     }
     if (_cards.isEmpty) {
+      items.add(const _InventoryListItem(_InventoryListItemKind.resultsHeader));
       items.add(const _InventoryListItem(_InventoryListItemKind.empty));
     } else {
+      items.add(const _InventoryListItem(_InventoryListItemKind.resultsHeader));
       for (var index = 0; index < _cards.length; index++) {
         items.add(
           _InventoryListItem(_InventoryListItemKind.card, cardIndex: index),
@@ -551,6 +545,122 @@ class _InventoryScreenState extends State<InventoryScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildFiltersPanel() {
+    return _buildFilters();
+  }
+
+  Widget _buildResultsHeader() {
+    final label = _statusFilterLabel(_filter);
+    final firstItem = _cards.isEmpty
+        ? 0
+        : ((_page - 1) * (_canUseAdminInventory ? _adminPerPage : _perPage)) +
+              1;
+    final lastItem = _cards.isEmpty
+        ? 0
+        : firstItem + _cards.length - 1;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 520;
+          final title = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_statusFilterIcon(_filter), size: 18, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              Text(label, style: AppTheme.bodyBold),
+            ],
+          );
+          final meta = Text(
+            _cards.isEmpty
+                ? 'لا توجد بطاقات ضمن هذا القسم'
+                : 'عرض $firstItem - $lastItem من $_filteredTotalCards',
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          );
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [title, const SizedBox(height: 6), meta],
+            );
+          }
+          return Row(
+            children: [
+              title,
+              const Spacer(),
+              meta,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInventoryPagination() {
+    final perPage = _canUseAdminInventory ? _adminPerPage : _perPage;
+    final totalText = '$_filteredTotalCards بطاقة • صفحة $_page من $_lastPage';
+    if (_lastPage <= 1) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          totalText,
+          textAlign: TextAlign.center,
+          style: AppTheme.caption.copyWith(
+            color: AppTheme.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Text(
+          totalText,
+          style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          textAlign: TextAlign.center,
+        ),
+        AdminPaginationFooter(
+          currentPage: _page,
+          lastPage: _lastPage,
+          totalItems: _filteredTotalCards,
+          itemsPerPage: perPage,
+          onPageChanged: (page) {
+            setState(() => _page = page);
+            _load();
+          },
+        ),
+      ],
+    );
+  }
+
+  String _statusFilterLabel(CardStatus status) {
+    final l = context.loc;
+    return switch (status) {
+      CardStatus.unused => l.tr('screens_inventory_screen.005'),
+      CardStatus.used => l.tr('screens_inventory_screen.006'),
+      CardStatus.archived => l.tr('screens_inventory_screen.007'),
+    };
+  }
+
+  IconData _statusFilterIcon(CardStatus status) {
+    return switch (status) {
+      CardStatus.unused => Icons.inventory_2_rounded,
+      CardStatus.used => Icons.task_alt_rounded,
+      CardStatus.archived => Icons.archive_rounded,
+    };
   }
 
   Widget _buildOfflineFollowupCard() {
@@ -962,7 +1072,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget _buildCardTile(VirtualCard card) {
     final isUnused = card.status == CardStatus.unused;
     final isRevealed = _revealedBarcodes.contains(card.barcode);
-    final color = isUnused ? AppTheme.success : AppTheme.error;
+    final isArchived = card.status == CardStatus.archived;
+    final color = isUnused
+        ? AppTheme.success
+        : isArchived
+        ? AppTheme.textTertiary
+        : AppTheme.error;
     final l = context.loc;
     final scope = card.visibilityScope.trim().toLowerCase();
     final isLocationSpecific =
@@ -1014,6 +1129,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       child: Icon(
                         isUnused
                             ? Icons.credit_card_rounded
+                            : isArchived
+                            ? Icons.archive_rounded
                             : Icons.check_circle_rounded,
                         color: color,
                         size: 28,
@@ -1282,69 +1399,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   String _formatIsoString(String value) {
     final parsed = DateTime.tryParse(value);
     return _formatDateTime(parsed);
-  }
-
-  Future<void> _showSummarySheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_inventory_screen.020'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.tr('screens_inventory_screen.014'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildOverviewCard(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showFiltersSheet() async {
-    if (!mounted) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          children: [
-            Text(
-              context.loc.tr('screens_inventory_screen.017'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.tr('screens_inventory_screen.018'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFilters(),
-          ],
-        ),
-      ),
-    );
   }
 
   void _setBusyState(bool value, {String message = ''}) {
@@ -2147,6 +2201,9 @@ class _InventoryListItem {
 }
 
 enum _InventoryListItemKind {
+  overview,
+  filters,
+  resultsHeader,
   offlineBanner,
   offlineFollowup,
   adminActions,

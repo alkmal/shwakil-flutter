@@ -440,6 +440,16 @@ class AuthService {
     await prefs.setString(_userKey, jsonEncode(user));
   }
 
+  Future<void> cacheToken(String token) async {
+    final normalized = token.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    final prefs = await _prefs();
+    _cachedToken = normalized;
+    await prefs.setString(_tokenKey, normalized);
+  }
+
   Future<void> patchCurrentUser(Map<String, dynamic> patch) async {
     if (patch.isEmpty) {
       return;

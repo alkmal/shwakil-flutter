@@ -46,16 +46,12 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   bool _canTransfer = false;
   bool _isLookingUpRecipient = false;
   bool _isTransfering = false;
-  int _activeTab = 0;
 
   String _t(String key) => context.loc.tr(key);
 
   @override
   void initState() {
     super.initState();
-    _activeTab = widget.merchantReceiveOnly
-        ? 1
-        : widget.initialTab.clamp(0, 1);
     _load();
   }
 
@@ -576,13 +572,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           padding: AppTheme.pagePadding(context, top: 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!widget.merchantReceiveOnly) ...[
-                _buildTransferTabs(),
-                const SizedBox(height: 18),
-              ],
-              _buildActiveTransferView(),
-            ],
+            children: [_buildActiveTransferView()],
           ),
         ),
       ),
@@ -597,104 +587,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     );
   }
 
-  Widget _buildTransferTabs() {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stacked = constraints.maxWidth < 440;
-
-          if (stacked) {
-            return Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: _buildTabButton(
-                    label: context.loc.tr('screens_quick_transfer_screen.036'),
-                    icon: Icons.send_rounded,
-                    index: 0,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: _buildTabButton(
-                    label: context.loc.tr('screens_quick_transfer_screen.037'),
-                    icon: Icons.qr_code_2_rounded,
-                    index: 1,
-                  ),
-                ),
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              Expanded(
-                child: _buildTabButton(
-                  label: context.loc.tr('screens_quick_transfer_screen.036'),
-                  icon: Icons.send_rounded,
-                  index: 0,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTabButton(
-                  label: context.loc.tr('screens_quick_transfer_screen.037'),
-                  icon: Icons.qr_code_2_rounded,
-                  index: 1,
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTabButton({
-    required String label,
-    required IconData icon,
-    required int index,
-  }) {
-    final isActive = _activeTab == index;
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: () => setState(() => _activeTab = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: isActive ? AppTheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isActive ? Colors.white : AppTheme.textSecondary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: AppTheme.bodyBold.copyWith(
-                color: isActive ? Colors.white : AppTheme.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildActiveTransferView() {
-    if (_activeTab == 1) {
+    if (widget.merchantReceiveOnly) {
       return Column(
         children: [
           _buildTransferStatusCard(),
@@ -818,11 +712,15 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           ),
           if (!_canTransfer) ...[
             const SizedBox(height: 12),
-            ShwakelCard(
-              padding: const EdgeInsets.all(16),
-              color: AppTheme.warning.withValues(alpha: 0.08),
-              borderColor: AppTheme.warning.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppTheme.warning.withValues(alpha: 0.18),
+                ),
+              ),
               child: Row(
                 children: [
                   const Icon(

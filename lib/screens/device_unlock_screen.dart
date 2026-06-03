@@ -198,11 +198,15 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
         return;
       }
       if (ErrorMessageService.requiresFreshLogin(error)) {
-        await _auth.logout();
         if (!mounted) {
           return;
         }
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        setState(() => _isUnlocking = false);
+        await AppAlertService.showError(
+          context,
+          title: l.tr('screens_device_unlock_screen.015'),
+          message: l.tr('screens_device_unlock_screen.017'),
+        );
         return;
       }
       if (!mounted) {
