@@ -1149,6 +1149,21 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> requestExistingCardsPrint({
+    required List<String> cardIds,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('cards/print-requests/existing'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'cardIds': cardIds.where((id) => id.trim().isNotEmpty).toList(),
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getCardPrintRequests({
     String status = 'all',
     String query = '',

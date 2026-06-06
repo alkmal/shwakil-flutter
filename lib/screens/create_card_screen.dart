@@ -1450,6 +1450,58 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
   }
 
+  Future<void> _requestCardsPrint(List<VirtualCard> cards) async {
+    if (!mounted) {
+      return;
+    }
+
+    final cardIds = cards
+        .map((card) => card.id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList();
+    if (cardIds.isEmpty) {
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إرسال طلب الطباعة',
+        message: 'لا توجد بطاقات صالحة لإرسالها للإدارة.',
+      );
+      return;
+    }
+
+    _setLoadingState(
+      true,
+      headline: 'جارٍ إرسال طلب الطباعة...',
+      details: 'سيتم إشعار الإدارة بالبطاقات المطلوبة للطباعة.',
+    );
+    try {
+      final response = await _apiService.requestExistingCardsPrint(
+        cardIds: cardIds,
+        notes: 'طلب طباعة من شاشة إنشاء البطاقة',
+      );
+      if (!mounted) {
+        return;
+      }
+      _setLoadingState(false);
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تم إرسال طلب الطباعة',
+        message:
+            response['message']?.toString() ??
+            'تم إرسال الطلب إلى الإدارة وبانتظار المراجعة.',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _setLoadingState(false);
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر إرسال طلب الطباعة',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
   Future<void> _saveCardsPdf(List<VirtualCard> cards) async {
     if (!mounted) {
       return;
@@ -1556,12 +1608,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               if (_canRequestCardPrinting) ...[
                 const SizedBox(height: 8),
                 ShwakelButton(
-                  label: 'طباعة مباشرة',
+                  label: 'طلب طباعة',
                   icon: Icons.print_rounded,
                   isSecondary: true,
                   onPressed: () async {
                     Navigator.pop(dialogContext);
-                    await _printCards(cards, requireSecurity: false);
+                    await _requestCardsPrint(cards);
                   },
                 ),
               ],
