@@ -2,7 +2,11 @@ import 'dart:async';
 
 import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,6 +15,7 @@ import '../models/index.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/card_number_extractor.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/barcode_scanner_dialog.dart';
@@ -56,6 +61,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   VirtualCard? _card;
   Map<String, dynamic>? _user;
   bool _isSearching = false;
+  bool _isReadingWrittenNumber = false;
   bool _isSubmitting = false;
   bool _isReadingNfc = false;
   bool _routeSubscribed = false;
@@ -784,10 +790,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
 
-    final barcode = _bcC.text.trim();
-    if (barcode.isEmpty) return;
+    final enteredValue = _bcC.text.trim();
+    if (enteredValue.isEmpty) return;
 
-    final prepaidPayload = _tryParsePrepaidMultipayPayload(barcode);
+    final prepaidPayload = _tryParsePrepaidMultipayPayload(enteredValue);
     if (prepaidPayload != null) {
       setState(() {
         _card = null;
@@ -795,6 +801,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       });
       await _handlePrepaidMultipayScan(prepaidPayload);
       return;
+    }
+
+    final barcode =
+        CardNumberExtractor.extractFirst(enteredValue) ?? enteredValue;
+    if (barcode != enteredValue) {
+      _bcC.text = barcode;
     }
 
     setState(() => _isSearching = true);
@@ -1566,6 +1578,117 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       );
     } finally {
       amountController.dispose();
+    }
+  }
+
+  Future<String?> _chooseCardNumber(List<String> candidates) async {
+    if (candidates.isEmpty) {
+      return null;
+    }
+    if (candidates.length == 1) {
+      return candidates.first;
+    }
+    if (!mounted) {
+      return null;
+    }
+
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          children: [
+            Text('اختر رقم البطاقة', style: AppTheme.h3),
+            const SizedBox(height: 8),
+            ...candidates.map(
+              (candidate) => ListTile(
+                leading: const Icon(Icons.credit_card_rounded),
+                title: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(candidate),
+                ),
+                onTap: () => Navigator.pop(context, candidate),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _useCardNumberFromText(String text) async {
+    final selected = await _chooseCardNumber(
+      CardNumberExtractor.extractCandidates(text),
+    );
+    if (!mounted) {
+      return;
+    }
+    if (selected == null) {
+      await AppAlertService.showError(
+        context,
+        title: 'لم يتم العثور على رقم بطاقة',
+        message: 'تأكد أن الرسالة أو الصورة تحتوي على رقم بطاقة من 16 رقمًا.',
+      );
+      return;
+    }
+
+    setState(() => _bcC.text = selected);
+    await _search();
+  }
+
+  Future<void> _readCardNumberFromClipboard() async {
+    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) {
+      return;
+    }
+    await _useCardNumberFromText(clipboard?.text ?? '');
+  }
+
+  Future<void> _readWrittenCardNumber() async {
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
+      await AppAlertService.showError(
+        context,
+        title: 'الكاميرا غير متاحة',
+        message: 'قراءة الرقم المكتوب بالكاميرا متاحة على Android وiOS.',
+      );
+      return;
+    }
+
+    setState(() => _isReadingWrittenNumber = true);
+    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    try {
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 95,
+      );
+      if (image == null) {
+        return;
+      }
+      final recognized = await recognizer.processImage(
+        InputImage.fromFilePath(image.path),
+      );
+      if (!mounted) {
+        return;
+      }
+      await _useCardNumberFromText(recognized.text);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر قراءة الرقم',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      await recognizer.close();
+      if (mounted) {
+        setState(() => _isReadingWrittenNumber = false);
+      }
     }
   }
 
@@ -3068,39 +3191,45 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-              Text(_t('screens_scan_card_screen.154'), style: AppTheme.h3),
-              const SizedBox(height: 14),
-              _statusSheetRow(
-                _t('screens_scan_card_screen.155'),
-                '$_availableOfflineCardCount',
-              ),
-              _statusSheetRow(_t('screens_scan_card_screen.156'), lastSync),
-              _statusSheetRow(
-                _t('screens_scan_card_screen.157'),
-                _t('screens_scan_card_screen.158', {
-                  'minutes': '$_offlineSyncIntervalMinutes',
-                }),
-              ),
-              _statusSheetRow(
-                _t('screens_scan_card_screen.159'),
-                _offlineAccessExpired
-                    ? _t('screens_scan_card_screen.160')
-                    : _t('screens_scan_card_screen.161'),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _isSyncingOfflineCards || _isDeviceOffline
-                      ? null
-                      : () {
-                          unawaited(_syncOfflineCardsForCurrentUser());
-                        },
-                  icon: const Icon(Icons.cloud_sync_rounded),
-                  label: Text(_t('screens_scan_card_screen.162')),
-                ),
-              ),
-            ],
+                      Text(
+                        _t('screens_scan_card_screen.154'),
+                        style: AppTheme.h3,
+                      ),
+                      const SizedBox(height: 14),
+                      _statusSheetRow(
+                        _t('screens_scan_card_screen.155'),
+                        '$_availableOfflineCardCount',
+                      ),
+                      _statusSheetRow(
+                        _t('screens_scan_card_screen.156'),
+                        lastSync,
+                      ),
+                      _statusSheetRow(
+                        _t('screens_scan_card_screen.157'),
+                        _t('screens_scan_card_screen.158', {
+                          'minutes': '$_offlineSyncIntervalMinutes',
+                        }),
+                      ),
+                      _statusSheetRow(
+                        _t('screens_scan_card_screen.159'),
+                        _offlineAccessExpired
+                            ? _t('screens_scan_card_screen.160')
+                            : _t('screens_scan_card_screen.161'),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _isSyncingOfflineCards || _isDeviceOffline
+                              ? null
+                              : () {
+                                  unawaited(_syncOfflineCardsForCurrentUser());
+                                },
+                          icon: const Icon(Icons.cloud_sync_rounded),
+                          label: Text(_t('screens_scan_card_screen.162')),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -3199,6 +3328,32 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _isPreparingScreen
+                    ? null
+                    : _readCardNumberFromClipboard,
+                icon: const Icon(Icons.content_paste_rounded),
+                label: const Text('قراءة من رسالة'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _isPreparingScreen || _isReadingWrittenNumber
+                    ? null
+                    : _readWrittenCardNumber,
+                icon: _isReadingWrittenNumber
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.document_scanner_rounded),
+                label: const Text('قراءة رقم مكتوب بالكاميرا'),
+              ),
+            ],
           ),
           if (_isPreparingScreen) ...[
             const SizedBox(height: 10),
@@ -4438,283 +4593,300 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ShwakelCard(
                   padding: const EdgeInsets.all(20),
                   child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const ShwakelLogo(size: 40, framed: true),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        context.loc.tr('screens_scan_card_screen.007'),
-                        style: AppTheme.h2,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const ShwakelLogo(size: 40, framed: true),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              context.loc.tr('screens_scan_card_screen.007'),
+                              style: AppTheme.h2,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isUsed
-                          ? const [Color(0xFFFFE4E6), Color(0xFFFFF1F2)]
-                          : const [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    borderRadius: BorderRadius.circular(26),
-                    border: Border.all(color: accent.withValues(alpha: 0.18)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accent.withValues(alpha: 0.14),
-                        blurRadius: 22,
-                        offset: const Offset(0, 10),
+                      const SizedBox(height: 18),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isUsed
+                                ? const [Color(0xFFFFE4E6), Color(0xFFFFF1F2)]
+                                : const [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                            begin: Alignment.topRight,
+                            end: Alignment.bottomLeft,
+                          ),
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.18),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accent.withValues(alpha: 0.14),
+                              blurRadius: 22,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 560;
+                            final titleBlock = Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(
+                                    Icons.payments_rounded,
+                                    color: accent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l.tr('screens_scan_card_screen.109'),
+                                        style: AppTheme.bodyBold.copyWith(
+                                          color: accent,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        isUsed
+                                            ? l.tr(
+                                                'screens_scan_card_screen.015',
+                                              )
+                                            : l.tr(
+                                                'screens_scan_card_screen.016',
+                                              ),
+                                        style: AppTheme.caption.copyWith(
+                                          color: accent.withValues(alpha: 0.92),
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+
+                            final priceBlock = Column(
+                              crossAxisAlignment: compact
+                                  ? CrossAxisAlignment.start
+                                  : CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _cardAmountLabel(card),
+                                  style: AppTheme.h1.copyWith(
+                                    color: accent,
+                                    fontSize: compact ? 38 : 44,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isUsed
+                                            ? Icons.cancel_schedule_send_rounded
+                                            : Icons.verified_rounded,
+                                        size: 16,
+                                        color: accent,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _statusLabel(card),
+                                        style: AppTheme.caption.copyWith(
+                                          color: accent,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+
+                            if (compact) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  titleBlock,
+                                  const SizedBox(height: 18),
+                                  priceBlock,
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: titleBlock),
+                                const SizedBox(width: 14),
+                                priceBlock,
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isCompact = constraints.maxWidth < 620;
+                          final items = <Widget>[
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.023'),
+                              card.barcode,
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.019'),
+                              _statusLabel(card),
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.024'),
+                              _cardTypeLabel(card),
+                            ),
+                            if (_cardUsageNote(card).trim().isNotEmpty)
+                              _detailTile(
+                                context.loc.tr('shared.usage_label'),
+                                _cardUsageNote(card),
+                              ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.025'),
+                              _visibilityLabel(card),
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.026'),
+                              _cardAmountLabel(card),
+                            ),
+                            _detailTile(
+                              _isBalanceCard(card)
+                                  ? 'رسوم عند الاستخدام'
+                                  : l.tr('screens_scan_card_screen.027'),
+                              CurrencyFormatter.ils(card.issueCost),
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.028'),
+                              card.ownerUsername ?? '-',
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.029'),
+                              card.issuedByUsername ?? '-',
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.030'),
+                              card.usedBy ?? '-',
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.031'),
+                              card.customerName ?? '-',
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.032'),
+                              _formatDate(card.createdAt),
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.033'),
+                              _formatDate(card.usedAt),
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.034'),
+                              _formatDate(card.lastResoldAt),
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.035'),
+                              '${card.useCount}',
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.036'),
+                              '${card.resaleCount}',
+                            ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.037'),
+                              CurrencyFormatter.ils(card.totalRedeemedValue),
+                            ),
+                            if (card.validFrom != null ||
+                                card.validUntil != null)
+                              _detailTile(
+                                'الصلاحية',
+                                '${card.validFrom != null ? _formatDate(card.validFrom) : 'غير محدد'}'
+                                    '${card.validUntil != null ? ' -> ${_formatDate(card.validUntil)}' : ''}',
+                                spanTwo: true,
+                              ),
+                            if (card.isAppointment &&
+                                card.appointmentStartsAt != null)
+                              _detailTile(
+                                'الموعد',
+                                '${_formatDate(card.appointmentStartsAt)}'
+                                    '${card.appointmentEndsAt != null ? ' -> ${_formatDate(card.appointmentEndsAt)}' : ''}',
+                                spanTwo: true,
+                              ),
+                            if (card.location?.trim().isNotEmpty == true)
+                              _detailTile(
+                                'الموقع',
+                                card.location!.trim(),
+                                spanTwo: true,
+                              ),
+                            if (card.description?.trim().isNotEmpty == true)
+                              _detailTile(
+                                'ملاحظات',
+                                card.description!.trim(),
+                                spanTwo: true,
+                              ),
+                            _detailTile(
+                              l.tr('screens_scan_card_screen.038'),
+                              card.allowedUsernames.isEmpty
+                                  ? '-'
+                                  : card.allowedUsernames.join('، '),
+                              spanTwo: true,
+                            ),
+                          ];
+
+                          if (isCompact) {
+                            return Column(
+                              children: items
+                                  .map(
+                                    (item) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12,
+                                      ),
+                                      child: item,
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                            );
+                          }
+
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: items,
+                          );
+                        },
                       ),
                     ],
                   ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final compact = constraints.maxWidth < 560;
-                      final titleBlock = Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.72),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Icon(Icons.payments_rounded, color: accent),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l.tr('screens_scan_card_screen.109'),
-                                  style: AppTheme.bodyBold.copyWith(
-                                    color: accent,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  isUsed
-                                      ? l.tr('screens_scan_card_screen.015')
-                                      : l.tr('screens_scan_card_screen.016'),
-                                  style: AppTheme.caption.copyWith(
-                                    color: accent.withValues(alpha: 0.92),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-
-                      final priceBlock = Column(
-                        crossAxisAlignment: compact
-                            ? CrossAxisAlignment.start
-                            : CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            _cardAmountLabel(card),
-                            style: AppTheme.h1.copyWith(
-                              color: accent,
-                              fontSize: compact ? 38 : 44,
-                              fontWeight: FontWeight.w900,
-                              height: 1.0,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.72),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isUsed
-                                      ? Icons.cancel_schedule_send_rounded
-                                      : Icons.verified_rounded,
-                                  size: 16,
-                                  color: accent,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _statusLabel(card),
-                                  style: AppTheme.caption.copyWith(
-                                    color: accent,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-
-                      if (compact) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            titleBlock,
-                            const SizedBox(height: 18),
-                            priceBlock,
-                          ],
-                        );
-                      }
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: titleBlock),
-                          const SizedBox(width: 14),
-                          priceBlock,
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isCompact = constraints.maxWidth < 620;
-                    final items = <Widget>[
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.023'),
-                        card.barcode,
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.019'),
-                        _statusLabel(card),
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.024'),
-                        _cardTypeLabel(card),
-                      ),
-                      if (_cardUsageNote(card).trim().isNotEmpty)
-                        _detailTile(
-                          context.loc.tr('shared.usage_label'),
-                          _cardUsageNote(card),
-                        ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.025'),
-                        _visibilityLabel(card),
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.026'),
-                        _cardAmountLabel(card),
-                      ),
-                      _detailTile(
-                        _isBalanceCard(card)
-                            ? 'رسوم عند الاستخدام'
-                            : l.tr('screens_scan_card_screen.027'),
-                        CurrencyFormatter.ils(card.issueCost),
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.028'),
-                        card.ownerUsername ?? '-',
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.029'),
-                        card.issuedByUsername ?? '-',
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.030'),
-                        card.usedBy ?? '-',
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.031'),
-                        card.customerName ?? '-',
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.032'),
-                        _formatDate(card.createdAt),
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.033'),
-                        _formatDate(card.usedAt),
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.034'),
-                        _formatDate(card.lastResoldAt),
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.035'),
-                        '${card.useCount}',
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.036'),
-                        '${card.resaleCount}',
-                      ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.037'),
-                        CurrencyFormatter.ils(card.totalRedeemedValue),
-                      ),
-                      if (card.validFrom != null || card.validUntil != null)
-                        _detailTile(
-                          'الصلاحية',
-                          '${card.validFrom != null ? _formatDate(card.validFrom) : 'غير محدد'}'
-                              '${card.validUntil != null ? ' -> ${_formatDate(card.validUntil)}' : ''}',
-                          spanTwo: true,
-                        ),
-                      if (card.isAppointment &&
-                          card.appointmentStartsAt != null)
-                        _detailTile(
-                          'الموعد',
-                          '${_formatDate(card.appointmentStartsAt)}'
-                              '${card.appointmentEndsAt != null ? ' -> ${_formatDate(card.appointmentEndsAt)}' : ''}',
-                          spanTwo: true,
-                        ),
-                      if (card.location?.trim().isNotEmpty == true)
-                        _detailTile(
-                          'الموقع',
-                          card.location!.trim(),
-                          spanTwo: true,
-                        ),
-                      if (card.description?.trim().isNotEmpty == true)
-                        _detailTile(
-                          'ملاحظات',
-                          card.description!.trim(),
-                          spanTwo: true,
-                        ),
-                      _detailTile(
-                        l.tr('screens_scan_card_screen.038'),
-                        card.allowedUsernames.isEmpty
-                            ? '-'
-                            : card.allowedUsernames.join('، '),
-                        spanTwo: true,
-                      ),
-                    ];
-
-                    if (isCompact) {
-                      return Column(
-                        children: items
-                            .map(
-                              (item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: item,
-                              ),
-                            )
-                            .toList(growable: false),
-                      );
-                    }
-
-                    return Wrap(spacing: 12, runSpacing: 12, children: items);
-                  },
-                ),
-              ],
-            ),
                 ),
               ],
             ),
@@ -4868,9 +5040,7 @@ class _PrepaidMultipayScanPayload {
   final double paymentAmount;
   final String? label;
 
-  _PrepaidMultipayScanPayload copyWith({
-    double? paymentAmount,
-  }) {
+  _PrepaidMultipayScanPayload copyWith({double? paymentAmount}) {
     return _PrepaidMultipayScanPayload(
       cardNumber: cardNumber,
       expiryMonth: expiryMonth,

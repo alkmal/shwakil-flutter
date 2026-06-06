@@ -46,6 +46,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   bool _loading = true;
   bool _busy = false;
   bool _hasFreshMessage = false;
+  bool _chatRouteOpen = false;
+  StateSetter? _chatRouteSetState;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
 
   @override
@@ -193,6 +195,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _refreshChatRoute();
       }
     }
   }
@@ -232,6 +235,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _refreshChatRoute();
       }
     }
   }
@@ -279,11 +283,13 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             l.text('تم فتح الشات.', 'The chat was opened.'),
       );
       await _load();
+      unawaited(_openChatRoute());
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _refreshChatRoute();
       }
     }
   }
@@ -299,11 +305,13 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         _ticket = Map<String, dynamic>.from(response['ticket'] as Map);
         _accessToken = '';
       });
+      unawaited(_openChatRoute());
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _refreshChatRoute();
       }
     }
   }
@@ -332,11 +340,13 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         _ticket = Map<String, dynamic>.from(response['ticket'] as Map);
         _accessToken = token;
       });
+      unawaited(_openChatRoute());
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _refreshChatRoute();
       }
     }
   }
@@ -360,6 +370,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           _hasFreshMessage = false;
         }
       });
+      _refreshChatRoute();
     } catch (error) {
       if (!silent) {
         await _error(ErrorMessageService.sanitize(error));
@@ -386,8 +397,44 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _refreshChatRoute();
       }
     }
+  }
+
+  Future<void> _openChatRoute() async {
+    if (!mounted || _ticket == null || _chatRouteOpen) {
+      _refreshChatRoute();
+      return;
+    }
+    _chatRouteOpen = true;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (routeContext) => StatefulBuilder(
+          builder: (routeContext, setRouteState) {
+            _chatRouteSetState = setRouteState;
+            return Scaffold(
+              backgroundColor: AppTheme.background,
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                  child: _chat(),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    _chatRouteOpen = false;
+    _chatRouteSetState = null;
+    if (mounted) {
+      setState(() => _ticket = null);
+    }
+  }
+
+  void _refreshChatRoute() {
+    _chatRouteSetState?.call(() {});
   }
 
   Future<void> _upload() async {
@@ -415,6 +462,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _refreshChatRoute();
       }
     }
   }
@@ -511,26 +559,13 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             : const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: _user == null ? null : const AppSidebar(),
-      body: _ticket != null
-          ? LayoutBuilder(
-              builder: (context, constraints) => SafeArea(
-                child: SizedBox(
-                  height: constraints.maxHeight,
-                  width: double.infinity,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-                    child: _chat(),
-                  ),
-                ),
-              ),
-            )
-          : SingleChildScrollView(
-              child: ResponsiveScaffoldContainer(
-                maxWidth: 860,
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: content,
-              ),
-            ),
+      body: SingleChildScrollView(
+        child: ResponsiveScaffoldContainer(
+          maxWidth: 860,
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: content,
+        ),
+      ),
     );
   }
 
@@ -794,10 +829,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         (item) => Map<String, dynamic>.from(item as Map),
       ),
     );
-    final hasTimeline =
-        statusEvents.isNotEmpty ||
-        messages.isNotEmpty ||
-        attachments.isNotEmpty;
+    final timeline = _chatTimeline(messages, statusEvents, attachments);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -845,23 +877,19 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppTheme.border),
             ),
-            child: hasTimeline
+            child: timeline.isNotEmpty
                 ? ListView.separated(
+                    reverse: true,
                     padding: const EdgeInsets.all(12),
-                    itemCount:
-                        statusEvents.length +
-                        messages.length +
-                        (attachments.isNotEmpty ? 1 : 0),
+                    itemCount: timeline.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      if (index < statusEvents.length) {
-                        return _statusEventTile(statusEvents[index]);
-                      }
-                      final messageIndex = index - statusEvents.length;
-                      if (messageIndex < messages.length) {
-                        return _messageBubble(messages[messageIndex]);
-                      }
-                      return _attachmentsPanel(attachments);
+                      final item = timeline[index];
+                      return switch (item['_timelineKind']) {
+                        'status' => _statusEventTile(item),
+                        'attachment' => _attachmentBubble(item),
+                        _ => _messageBubble(item),
+                      };
                     },
                   )
                 : Center(
@@ -894,7 +922,11 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           IconButton(
             tooltip: l.text('رجوع', 'Back'),
             onPressed: () {
-              setState(() => _ticket = null);
+              if (_chatRouteOpen) {
+                Navigator.of(context).maybePop();
+              } else {
+                setState(() => _ticket = null);
+              }
             },
             icon: const Icon(Icons.arrow_back_rounded),
           ),
@@ -957,7 +989,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           Expanded(
             child: TextField(
               controller: _message,
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) {
+                setState(() {});
+                _refreshChatRoute();
+              },
               minLines: 1,
               maxLines: 4,
               textInputAction: TextInputAction.newline,
@@ -995,29 +1030,14 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     );
   }
 
-  Widget _attachmentsPanel(List<Map<String, dynamic>> attachments) {
-    final l = context.loc;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(14),
-      shadowLevel: ShwakelShadowLevel.none,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(l.text('المرفقات', 'Attachments'), style: AppTheme.bodyBold),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: attachments.map(_attachmentTile).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _messageBubble(Map<String, dynamic> message) {
     final mine = message['senderKind']?.toString() == 'customer';
     final l = context.loc;
+    final attachments = List<Map<String, dynamic>>.from(
+      (message['attachments'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -1055,6 +1075,13 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 color: mine ? Colors.white : AppTheme.textPrimary,
               ),
             ),
+            if (attachments.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              for (final attachment in attachments) ...[
+                _attachmentTile(attachment, compact: true),
+                const SizedBox(height: 6),
+              ],
+            ],
             const SizedBox(height: 6),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -1075,6 +1102,43 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _chatTimeline(
+    List<Map<String, dynamic>> messages,
+    List<Map<String, dynamic>> statusEvents,
+    List<Map<String, dynamic>> attachments,
+  ) {
+    final timeline = <Map<String, dynamic>>[
+      ...messages.map((item) => {...item, '_timelineKind': 'message'}),
+      ...statusEvents.map((item) => {...item, '_timelineKind': 'status'}),
+      ...attachments.map((item) => {...item, '_timelineKind': 'attachment'}),
+    ];
+    timeline.sort(
+      (left, right) => (right['createdAt']?.toString() ?? '').compareTo(
+        left['createdAt']?.toString() ?? '',
+      ),
+    );
+    return timeline;
+  }
+
+  Widget _attachmentBubble(Map<String, dynamic> file) {
+    final mine = file['uploaderKind']?.toString() == 'customer';
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width >= 700 ? 620 : 330,
+        ),
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: mine ? AppTheme.primarySoft : AppTheme.surface,
+          border: Border.all(color: AppTheme.border),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: _attachmentTile(file, compact: true),
       ),
     );
   }
@@ -1124,12 +1188,15 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     );
   }
 
-  Widget _attachmentTile(Map<String, dynamic> file) {
+  Widget _attachmentTile(Map<String, dynamic> file, {bool compact = false}) {
     final l = context.loc;
     final image = _isImageAttachment(file);
     final size = _formatBytes(file['sizeBytes']);
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
+      constraints: BoxConstraints(
+        minWidth: compact ? 0 : 220,
+        maxWidth: compact ? double.infinity : 320,
+      ),
       child: Material(
         color: AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(12),

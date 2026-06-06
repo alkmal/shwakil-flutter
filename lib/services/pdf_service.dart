@@ -397,14 +397,14 @@ class PDFService {
     required bool compact,
   }) {
     final isTicket = _isTicketCard(card);
-    final logoSize = compact ? 18.0 : 42.0;
+    final logoSize = compact ? 34.0 : 72.0;
     final titleFontSize = isTicket
-        ? (compact ? 7.1 : 12.5)
-        : (compact ? 15.0 : 26.0);
+        ? (compact ? 6.6 : 12.0)
+        : (compact ? 12.2 : 23.0);
     final logoImage = _accountLogoImage ?? _defaultLogoImage;
 
     return pw.Container(
-      height: compact ? 28 : 60,
+      height: compact ? 35 : 78,
       alignment: pw.Alignment.center,
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.center,
@@ -428,7 +428,7 @@ class PDFService {
             ),
           ),
           if (designSettings.showLogo && logoImage != null) ...[
-            pw.SizedBox(width: compact ? 3 : 8),
+            pw.SizedBox(width: compact ? 3.5 : 8),
             _buildHeaderLogoBox(logoImage, size: logoSize, compact: compact),
           ],
         ],
@@ -855,9 +855,9 @@ class PDFService {
                     card: card,
                     printedBy: printedBy,
                   ),
-                  pw.SizedBox(height: 1.1),
+                  pw.SizedBox(height: 0.7),
                   _cardTitleWithLogo(card, palette, compact: true),
-                  pw.SizedBox(height: 0.5),
+                  pw.SizedBox(height: 0.25),
                   pw.Text(
                     _internalUseLabel(card),
                     maxLines: 1,

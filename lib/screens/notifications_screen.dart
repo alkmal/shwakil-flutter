@@ -216,6 +216,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
           IconButton(
+            tooltip: _t('screens_notifications_screen.036'),
+            onPressed: _openNotificationTools,
+            icon: const Icon(Icons.tune_rounded),
+          ),
+          IconButton(
             tooltip: _t('screens_notifications_screen.042'),
             onPressed: _unreadCount > 0 ? _markAllAsRead : null,
             icon: const Icon(Icons.done_all_rounded),
@@ -263,37 +268,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: _notifications.length + 3,
+      itemCount: _notifications.length + 1,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildFilters(false);
-        }
-        if (index == 1) {
-          final stats = _buildQuickStats();
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final itemWidth = constraints.maxWidth >= 900
-                  ? (constraints.maxWidth - 24) / 3
-                  : constraints.maxWidth >= 560
-                  ? (constraints.maxWidth - 12) / 2
-                  : constraints.maxWidth;
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: stats
-                    .map(
-                      (stat) => SizedBox(
-                        width: itemWidth,
-                        child: _buildStatCard(stat),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          );
-        }
-        if (index == _notifications.length + 2) {
+        if (index == _notifications.length) {
           return AdminPaginationFooter(
             currentPage: _page,
             lastPage: _lastPage,
@@ -305,10 +283,75 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             },
           );
         }
-        final item = _notifications[index - 2];
+        final item = _notifications[index];
         return _NotificationCard(
           item: item,
           onTap: () => _openNotification(item),
+        );
+      },
+    );
+  }
+
+  Future<void> _openNotificationTools() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.72,
+          minChildSize: 0.42,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (context, scrollController) {
+            return DecoratedBox(
+              decoration: const BoxDecoration(
+                color: AppTheme.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppTheme.border,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildFilters(true),
+                  const SizedBox(height: 12),
+                  _buildStatsGrid(),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatsGrid() {
+    final stats = _buildQuickStats();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = constraints.maxWidth >= 560
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: stats
+              .map(
+                (stat) =>
+                    SizedBox(width: itemWidth, child: _buildStatCard(stat)),
+              )
+              .toList(),
         );
       },
     );
@@ -637,6 +680,8 @@ class _NotificationCard extends StatelessWidget {
     final status = _notificationStatusValue(item);
     final statusLabel = _notificationStatusLabel(context, status);
     final statusColor = _notificationStatusColor(status);
+    final messageTitle = _notificationListTitle(item, data);
+    final messageDetails = _notificationListDetails(item, data, messageTitle);
 
     return ShwakelCard(
       onTap: onTap,
@@ -726,7 +771,7 @@ class _NotificationCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      item['title']?.toString() ?? '',
+                      messageTitle,
                       style: AppTheme.bodyBold.copyWith(
                         color: isRead
                             ? AppTheme.textPrimary
@@ -773,12 +818,10 @@ class _NotificationCard extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        if ((item['body']?.toString() ?? '')
-                            .trim()
-                            .isNotEmpty) ...[
+                        if (messageDetails.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
-                            item['body']?.toString() ?? '',
+                            messageDetails,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.bodyAction.copyWith(height: 1.4),
@@ -790,10 +833,10 @@ class _NotificationCard extends StatelessWidget {
                 ],
               ),
             )
-          else
+          else if (messageDetails.isNotEmpty)
             Text(
-              item['body']?.toString() ?? '',
-              maxLines: 2,
+              messageDetails,
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.bodyAction.copyWith(height: 1.5),
             ),
@@ -811,6 +854,74 @@ class _NotificationCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _notificationListTitle(
+  Map<String, dynamic> item,
+  Map<String, dynamic> data,
+) {
+  final title = _firstNonEmptyString(data, const [
+    'errorTitle',
+    'clientTitle',
+    'messageTitle',
+    'notificationTitle',
+    'subject',
+    'title',
+    'message',
+  ]);
+  if (title != null) {
+    return _stripNotificationFieldLabel(title);
+  }
+
+  final itemTitle = _firstNonEmptyString(item, const ['title']);
+  if (itemTitle != null) {
+    return _stripNotificationFieldLabel(itemTitle);
+  }
+
+  return '';
+}
+
+String _notificationListDetails(
+  Map<String, dynamic> item,
+  Map<String, dynamic> data,
+  String title,
+) {
+  final details = _firstNonEmptyString(data, const [
+    'messageDetails',
+    'details',
+    'description',
+    'errorMessage',
+    'responsePreview',
+    'message',
+    'body',
+  ]);
+  final fallbackBody = _firstNonEmptyString(item, const ['body']);
+  final value = details ?? fallbackBody ?? '';
+  final cleaned = _stripNotificationFieldLabel(value);
+
+  if (cleaned.trim() == title.trim()) {
+    return '';
+  }
+
+  return cleaned;
+}
+
+String _stripNotificationFieldLabel(String value) {
+  return value
+      .split(RegExp(r'\r?\n'))
+      .map((line) {
+        final trimmed = line.trim();
+        return trimmed.replaceFirst(
+          RegExp(
+            r'^(?:عنوان(?:\s+الرسالة|\s+الإشعار)?|العنوان|title|subject|تفاصيل(?:\s+الرسالة|\s+الإشعار)?|التفاصيل|details|description|message|body)\s*[:：]\s*',
+            caseSensitive: false,
+          ),
+          '',
+        );
+      })
+      .where((line) => line.trim().isNotEmpty)
+      .join('\n')
+      .trim();
 }
 
 class _NotificationDetailsSheet extends StatelessWidget {

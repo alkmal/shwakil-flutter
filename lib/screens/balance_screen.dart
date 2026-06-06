@@ -97,7 +97,7 @@ class _BalanceScreenState extends State<BalanceScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this)
+    _tabController = TabController(length: 3, vsync: this, initialIndex: 1)
       ..addListener(() {
         if (mounted) {
           setState(() {});
@@ -564,7 +564,8 @@ class _BalanceScreenState extends State<BalanceScreen>
               return Scaffold(
                 appBar: AppBar(title: Text(l.tr('screens_balance_screen.029'))),
                 body: SafeArea(
-                  child: Center(
+                  child: Align(
+                    alignment: Alignment.topCenter,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 720),
                       child: ListView(
@@ -858,48 +859,38 @@ class _BalanceScreenState extends State<BalanceScreen>
                               ),
                             ),
                           ],
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: isSubmitting
+                                      ? null
+                                      : () => Navigator.pop(pageContext),
+                                  child: Text(
+                                    l.tr('screens_balance_screen.069'),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ShwakelButton(
+                                  label: isSubmitting
+                                      ? l.tr('screens_balance_screen.070')
+                                      : l.tr('screens_balance_screen.071'),
+                                  isLoading: isSubmitting,
+                                  onPressed: isSubmitting ? null : submit,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
                   ),
                 ),
-                bottomNavigationBar: SafeArea(
-                  top: false,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      border: Border(top: BorderSide(color: AppTheme.border)),
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 720),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: isSubmitting
-                                    ? null
-                                    : () => Navigator.pop(pageContext),
-                                child: Text(l.tr('screens_balance_screen.069')),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ShwakelButton(
-                                label: isSubmitting
-                                    ? l.tr('screens_balance_screen.070')
-                                    : l.tr('screens_balance_screen.071'),
-                                isLoading: isSubmitting,
-                                onPressed: isSubmitting ? null : submit,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                resizeToAvoidBottomInset: true,
               );
             },
           ),
@@ -1019,7 +1010,7 @@ class _BalanceScreenState extends State<BalanceScreen>
       appBar: AppBar(
         title: Text(l.tr('screens_balance_screen.020')),
         actions: [
-          if (_tabController.index == 1)
+          if (_tabController.index == 2)
             IconButton(
               tooltip: _showHistoryFilters
                   ? l.tr('screens_balance_screen.073')
@@ -1046,19 +1037,18 @@ class _BalanceScreenState extends State<BalanceScreen>
               builder: (context, constraints) {
                 final isCompact = constraints.maxWidth < 920;
                 final isPhone = constraints.maxWidth < 640;
-                final showingActionsTab = _tabController.index == 0;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildBalanceOverviewCard(isPhone: isPhone),
-                    if (_showAdminProfitSummary) ...[
-                      const SizedBox(height: 14),
-                      _buildAdminProfitSummaryCard(isPhone: isPhone),
-                    ],
-                    const SizedBox(height: 14),
                     _buildTopTabs(isPhone: isPhone),
                     const SizedBox(height: 16),
-                    if (showingActionsTab)
+                    if (_tabController.index == 0) ...[
+                      _buildBalanceOverviewCard(isPhone: isPhone),
+                      if (_showAdminProfitSummary) ...[
+                        const SizedBox(height: 14),
+                        _buildAdminProfitSummaryCard(isPhone: isPhone),
+                      ],
+                    ] else if (_tabController.index == 1)
                       _buildActionsCard()
                     else ...[
                       if (_showHistoryFilters) ...[
@@ -1111,6 +1101,14 @@ class _BalanceScreenState extends State<BalanceScreen>
           Expanded(
             child: _buildTabButton(
               index: 0,
+              icon: Icons.account_balance_wallet_rounded,
+              label: l.tr('screens_balance_screen.150'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildTabButton(
+              index: 1,
               icon: Icons.flash_on_rounded,
               label: l.tr('screens_balance_screen.111'),
             ),
@@ -1118,7 +1116,7 @@ class _BalanceScreenState extends State<BalanceScreen>
           const SizedBox(width: 8),
           Expanded(
             child: _buildTabButton(
-              index: 1,
+              index: 2,
               icon: Icons.receipt_long_rounded,
               label: l.tr('screens_balance_screen.112'),
             ),
@@ -1134,6 +1132,10 @@ class _BalanceScreenState extends State<BalanceScreen>
       indicatorPadding: const EdgeInsets.symmetric(vertical: 4),
       labelPadding: const EdgeInsets.symmetric(horizontal: 12),
       tabs: [
+        Tab(
+          icon: const Icon(Icons.account_balance_wallet_rounded),
+          text: context.loc.tr('screens_balance_screen.150'),
+        ),
         Tab(
           icon: const Icon(Icons.flash_on_rounded),
           text: context.loc.tr('screens_balance_screen.111'),
@@ -1157,7 +1159,8 @@ class _BalanceScreenState extends State<BalanceScreen>
       onTap: () => _tabController.animateTo(index),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        constraints: const BoxConstraints(minHeight: 88),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(
           color: selected
               ? AppTheme.primary.withValues(alpha: 0.08)
@@ -1169,21 +1172,22 @@ class _BalanceScreenState extends State<BalanceScreen>
                 : AppTheme.border,
           ),
         ),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
               color: selected ? AppTheme.primary : AppTheme.textSecondary,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.bodyBold.copyWith(
-                  color: selected ? AppTheme.primary : AppTheme.textPrimary,
-                ),
+            const SizedBox(height: 7),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: AppTheme.caption.copyWith(
+                color: selected ? AppTheme.primary : AppTheme.textPrimary,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -2659,7 +2663,8 @@ class _BalanceScreenState extends State<BalanceScreen>
           builder: (context, setDialogState) => Scaffold(
             appBar: AppBar(title: Text(title)),
             body: SafeArea(
-              child: Center(
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: ListView(
@@ -3168,74 +3173,62 @@ class _BalanceScreenState extends State<BalanceScreen>
                           ),
                         ),
                       ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(l.tr('screens_balance_screen.069')),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () {
+                                if (selectedUser == null) {
+                                  setDialogState(
+                                    () => searchError =
+                                        enablePhoneLookup &&
+                                            recipientLookupTab != 2
+                                        ? l.tr('screens_balance_screen.094')
+                                        : l.tr('screens_balance_screen.095'),
+                                  );
+                                  return;
+                                }
+                                final parsedAmount =
+                                    double.tryParse(
+                                      amountController.text.trim(),
+                                    ) ??
+                                    0;
+                                if (parsedAmount <= 0) {
+                                  setDialogState(
+                                    () => searchError =
+                                        'أدخل مبلغًا صحيحًا قبل المتابعة.',
+                                  );
+                                  return;
+                                }
+                                Navigator.pop(
+                                  context,
+                                  _UserAmountResult(
+                                    userId: selectedUser!['id'].toString(),
+                                    amount: parsedAmount,
+                                    notes: notesController.text.trim(),
+                                  ),
+                                );
+                              },
+                              child: Text(confirmLabel),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
             ),
-            bottomNavigationBar: SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  border: Border(top: BorderSide(color: AppTheme.border)),
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(l.tr('screens_balance_screen.069')),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () {
-                              if (selectedUser == null) {
-                                setDialogState(
-                                  () => searchError =
-                                      enablePhoneLookup &&
-                                          recipientLookupTab != 2
-                                      ? l.tr('screens_balance_screen.094')
-                                      : l.tr('screens_balance_screen.095'),
-                                );
-                                return;
-                              }
-                              final parsedAmount =
-                                  double.tryParse(
-                                    amountController.text.trim(),
-                                  ) ??
-                                  0;
-                              if (parsedAmount <= 0) {
-                                setDialogState(
-                                  () => searchError =
-                                      'أدخل مبلغًا صحيحًا قبل المتابعة.',
-                                );
-                                return;
-                              }
-                              Navigator.pop(
-                                context,
-                                _UserAmountResult(
-                                  userId: selectedUser!['id'].toString(),
-                                  amount: parsedAmount,
-                                  notes: notesController.text.trim(),
-                                ),
-                              );
-                            },
-                            child: Text(confirmLabel),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            resizeToAvoidBottomInset: true,
           ),
         ),
       ),
@@ -3504,7 +3497,8 @@ class _BalanceScreenState extends State<BalanceScreen>
             return Scaffold(
               appBar: AppBar(title: Text(l.tr('screens_balance_screen.030'))),
               body: SafeArea(
-                child: Center(
+                child: Align(
+                  alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 720),
                     child: ListView(
@@ -3768,125 +3762,114 @@ class _BalanceScreenState extends State<BalanceScreen>
                             ),
                           ),
                         ],
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text(l.tr('screens_balance_screen.069')),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ShwakelButton(
+                                label: l.tr('screens_balance_screen.071'),
+                                onPressed: () {
+                                  final amount =
+                                      double.tryParse(amountController.text) ??
+                                      0;
+                                  if (amount <= 0) {
+                                    setDialogState(() {
+                                      formError = l.tr(
+                                        'screens_balance_screen.105',
+                                      );
+                                    });
+                                    return;
+                                  }
+                                  if (minAmount > 0 && amount < minAmount) {
+                                    setDialogState(() {
+                                      formError = l.tr(
+                                        'screens_balance_screen.147',
+                                        params: {
+                                          'amount':
+                                              CurrencyFormatter.formatAmount(
+                                                minAmount,
+                                              ),
+                                        },
+                                      );
+                                    });
+                                    return;
+                                  }
+                                  if (maxAmount > 0 && amount > maxAmount) {
+                                    setDialogState(() {
+                                      formError = l.tr(
+                                        'screens_balance_screen.148',
+                                        params: {
+                                          'amount':
+                                              CurrencyFormatter.formatAmount(
+                                                maxAmount,
+                                              ),
+                                        },
+                                      );
+                                    });
+                                    return;
+                                  }
+                                  if (accountController.text.trim().isEmpty ||
+                                      accountHolderController.text
+                                          .trim()
+                                          .isEmpty) {
+                                    setDialogState(() {
+                                      formError = l.tr(
+                                        'screens_balance_screen.106',
+                                      );
+                                    });
+                                    return;
+                                  }
+                                  if (isBankTransfer &&
+                                      bankController.text.trim().isEmpty) {
+                                    setDialogState(() {
+                                      formError = l.tr(
+                                        'screens_balance_screen.107',
+                                      );
+                                    });
+                                    return;
+                                  }
+                                  if (methods.isEmpty) {
+                                    setDialogState(() {
+                                      formError = l.tr(
+                                        'screens_balance_screen.149',
+                                      );
+                                    });
+                                    return;
+                                  }
+
+                                  Navigator.pop(
+                                    context,
+                                    _WithdrawalRequestResult(
+                                      amount: amount,
+                                      destinationType: destinationType,
+                                      destinationAccount: accountController.text
+                                          .trim(),
+                                      accountHolderName: accountHolderController
+                                          .text
+                                          .trim(),
+                                      bankName: bankController.text.trim(),
+                                      notes: notesController.text.trim(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
               ),
-              bottomNavigationBar: SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    border: Border(top: BorderSide(color: AppTheme.border)),
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 720),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(l.tr('screens_balance_screen.069')),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ShwakelButton(
-                              label: l.tr('screens_balance_screen.071'),
-                              onPressed: () {
-                                final amount =
-                                    double.tryParse(amountController.text) ?? 0;
-                                if (amount <= 0) {
-                                  setDialogState(() {
-                                    formError = l.tr(
-                                      'screens_balance_screen.105',
-                                    );
-                                  });
-                                  return;
-                                }
-                                if (minAmount > 0 && amount < minAmount) {
-                                  setDialogState(() {
-                                    formError = l.tr(
-                                      'screens_balance_screen.147',
-                                      params: {
-                                        'amount':
-                                            CurrencyFormatter.formatAmount(
-                                              minAmount,
-                                            ),
-                                      },
-                                    );
-                                  });
-                                  return;
-                                }
-                                if (maxAmount > 0 && amount > maxAmount) {
-                                  setDialogState(() {
-                                    formError = l.tr(
-                                      'screens_balance_screen.148',
-                                      params: {
-                                        'amount':
-                                            CurrencyFormatter.formatAmount(
-                                              maxAmount,
-                                            ),
-                                      },
-                                    );
-                                  });
-                                  return;
-                                }
-                                if (accountController.text.trim().isEmpty ||
-                                    accountHolderController.text
-                                        .trim()
-                                        .isEmpty) {
-                                  setDialogState(() {
-                                    formError = l.tr(
-                                      'screens_balance_screen.106',
-                                    );
-                                  });
-                                  return;
-                                }
-                                if (isBankTransfer &&
-                                    bankController.text.trim().isEmpty) {
-                                  setDialogState(() {
-                                    formError = l.tr(
-                                      'screens_balance_screen.107',
-                                    );
-                                  });
-                                  return;
-                                }
-                                if (methods.isEmpty) {
-                                  setDialogState(() {
-                                    formError = l.tr(
-                                      'screens_balance_screen.149',
-                                    );
-                                  });
-                                  return;
-                                }
-
-                                Navigator.pop(
-                                  context,
-                                  _WithdrawalRequestResult(
-                                    amount: amount,
-                                    destinationType: destinationType,
-                                    destinationAccount: accountController.text
-                                        .trim(),
-                                    accountHolderName: accountHolderController
-                                        .text
-                                        .trim(),
-                                    bankName: bankController.text.trim(),
-                                    notes: notesController.text.trim(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              resizeToAvoidBottomInset: true,
             );
           },
         ),

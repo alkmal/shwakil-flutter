@@ -589,70 +589,17 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
 
   Widget _buildActiveTransferView() {
     if (widget.merchantReceiveOnly) {
-      return Column(
-        children: [
-          _buildTransferStatusCard(),
-          const SizedBox(height: 18),
-          _buildMerchantReceiveCard(),
-          const SizedBox(height: 18),
-          _buildMyCode(),
-        ],
-      );
+      return Column(children: [_buildMyCode()]);
     }
 
     return Column(
       children: [
-        _buildTransferStatusCard(),
-        const SizedBox(height: 18),
         _buildLookupCard(compact: true),
         if (_lastTransferReport != null) ...[
           const SizedBox(height: 18),
           _transferReportCard(_lastTransferReport!),
         ],
       ],
-    );
-  }
-
-  Widget _buildTransferStatusCard() {
-    final statusColor = _canTransfer ? AppTheme.success : AppTheme.warning;
-    final statusLabel = _canTransfer
-        ? _t('screens_quick_transfer_screen.054')
-        : _t('screens_quick_transfer_screen.055');
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(24),
-      color: statusColor.withValues(alpha: 0.05),
-      borderColor: statusColor.withValues(alpha: 0.16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  _canTransfer
-                      ? Icons.send_rounded
-                      : Icons.lock_outline_rounded,
-                  color: statusColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [Text(statusLabel, style: AppTheme.bodyBold)],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -741,21 +688,6 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildMerchantReceiveCard() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(22),
-      borderRadius: BorderRadius.circular(24),
-      shadowLevel: ShwakelShadowLevel.medium,
-      child: _buildSectionHeading(
-        title: 'شاشة الاستلام للتاجر',
-        subtitle:
-            'اعرض رمزك للعميل ليستطيع تحديد حسابك، أو استخدم شاشة فحص البطاقات لقبول الدفعات والبطاقات.',
-        icon: Icons.storefront_rounded,
-        accent: AppTheme.secondary,
       ),
     );
   }

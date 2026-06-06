@@ -32,6 +32,7 @@ class _IssuedCardUsageReportScreenState
   int _lastPage = 1;
   Map<String, dynamic> _summary = const {};
   List<Map<String, dynamic>> _items = const [];
+  StateSetter? _toolsSetState;
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _IssuedCardUsageReportScreenState
 
   @override
   void dispose() {
+    _toolsSetState = null;
     _queryC.dispose();
     _fromC.dispose();
     _toC.dispose();
@@ -99,54 +101,111 @@ class _IssuedCardUsageReportScreenState
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('تقارير استخدام البطاقات'),
-        actions: const [AppNotificationAction(), QuickLogoutAction()],
+        actions: [
+          IconButton(
+            tooltip: 'أدوات التقرير',
+            onPressed: _authorized ? _openReportTools : null,
+            icon: const Icon(Icons.tune_rounded),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
         onRefresh: () => _load(page: 1),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: ResponsiveScaffoldContainer(
-            useSafeArea: false,
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: !_authorized && !_loading
-                ? _unauthorized()
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ResponsiveScaffoldContainer(
+          useSafeArea: false,
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: !_authorized && !_loading
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [_unauthorized()],
+                )
+              : _loading
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                )
+              : _items.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [_emptyState()],
+                )
+              : ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _items.length + 1,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    if (index < _items.length) {
+                      return _row(_items[index]);
+                    }
+                    return _pagination();
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openReportTools() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            _toolsSetState = setSheetState;
+            return DraggableScrollableSheet(
+              initialChildSize: 0.78,
+              minChildSize: 0.44,
+              maxChildSize: 0.94,
+              expand: false,
+              builder: (context, scrollController) {
+                return DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
                     children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.border,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
                       _headerCard(),
                       const SizedBox(height: 14),
                       _filtersCard(),
                       const SizedBox(height: 14),
-                      if (_loading)
-                        const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else ...[
-                        _summaryGrid(),
-                        const SizedBox(height: 14),
-                        if (_items.isEmpty)
-                          _emptyState()
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _items.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) =>
-                                _row(_items[index]),
-                          ),
-                        const SizedBox(height: 10),
-                        _pagination(),
-                      ],
+                      _summaryGrid(),
                     ],
                   ),
-          ),
-        ),
-      ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
+    _toolsSetState = null;
   }
 
   Widget _unauthorized() {
@@ -208,7 +267,7 @@ class _IssuedCardUsageReportScreenState
               onChanged: (value) {
                 if (value == null) return;
                 setState(() => _scope = value);
-                _load(page: 1);
+                _toolsSetState?.call(() {});
               },
             ),
           ),
@@ -240,7 +299,10 @@ class _IssuedCardUsageReportScreenState
             ),
           ),
           FilledButton.icon(
-            onPressed: () => _load(page: 1),
+            onPressed: () {
+              Navigator.of(context).maybePop();
+              _load(page: 1);
+            },
             icon: const Icon(Icons.filter_alt_rounded),
             label: const Text('تطبيق'),
           ),

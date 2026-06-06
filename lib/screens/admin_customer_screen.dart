@@ -457,7 +457,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             ),
           ),
           body: SafeArea(
-            child: Center(
+            child: Align(
+              alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 620),
                 child: Form(
@@ -507,59 +508,49 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(false),
+                              child: Text(
+                                _t('screens_admin_customer_screen.089'),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () {
+                                if (formKey.currentState?.validate() != true) {
+                                  return;
+                                }
+                                Navigator.of(dialogContext).pop(true);
+                              },
+                              icon: Icon(
+                                isCredit
+                                    ? Icons.add_card_rounded
+                                    : Icons.remove_circle_outline_rounded,
+                              ),
+                              label: Text(
+                                isCredit
+                                    ? _t('screens_admin_customer_screen.090')
+                                    : _t('screens_admin_customer_screen.091'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
             ),
           ),
-          bottomNavigationBar: SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                border: Border(top: BorderSide(color: AppTheme.border)),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 620),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(false),
-                          child: Text(_t('screens_admin_customer_screen.089')),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            if (formKey.currentState?.validate() != true) {
-                              return;
-                            }
-                            Navigator.of(dialogContext).pop(true);
-                          },
-                          icon: Icon(
-                            isCredit
-                                ? Icons.add_card_rounded
-                                : Icons.remove_circle_outline_rounded,
-                          ),
-                          label: Text(
-                            isCredit
-                                ? _t('screens_admin_customer_screen.090')
-                                : _t('screens_admin_customer_screen.091'),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          resizeToAvoidBottomInset: true,
         ),
       ),
     );
@@ -627,7 +618,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
           builder: (dialogContext, setDialogState) => Scaffold(
             appBar: AppBar(title: const Text('إنشاء بطاقة دفع مسبق للمستخدم')),
             body: SafeArea(
-              child: Center(
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 620),
                   child: ListView(
@@ -637,7 +629,6 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       const SizedBox(height: 14),
                       TextField(
                         controller: labelController,
-                        autofocus: true,
                         decoration: const InputDecoration(
                           labelText: 'اسم البطاقة',
                           prefixIcon: Icon(Icons.badge_rounded),
@@ -690,46 +681,34 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           setDialogState(() => selectedValidityYears = value);
                         },
                       ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(false),
+                              child: const Text('إلغاء'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(true),
+                              icon: const Icon(Icons.add_card_rounded),
+                              label: const Text('إنشاء البطاقة'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
             ),
-            bottomNavigationBar: SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  border: Border(top: BorderSide(color: AppTheme.border)),
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 620),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(false),
-                            child: const Text('إلغاء'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(true),
-                            icon: const Icon(Icons.add_card_rounded),
-                            label: const Text('إنشاء البطاقة'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            resizeToAvoidBottomInset: true,
           ),
         ),
       ),

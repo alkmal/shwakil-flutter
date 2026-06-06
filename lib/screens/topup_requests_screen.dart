@@ -199,10 +199,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_topup_requests_screen.002')),
-        actions: [
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
+        actions: [const AppNotificationAction(), const QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -812,14 +809,16 @@ class _TopupReviewScreenState extends State<_TopupReviewScreen> {
                       ),
                       label: Text(
                         _imageBase64.isEmpty
-                            ? l.text('إرفاق صورة الاعتماد', 'Attach approval image')
+                            ? l.text(
+                                'إرفاق صورة الاعتماد',
+                                'Attach approval image',
+                              )
                             : l.text('تم إرفاق الصورة', 'Image attached'),
                       ),
                     )
                   else
                     TextField(
                       controller: _notesController,
-                      autofocus: true,
                       minLines: 4,
                       maxLines: 6,
                       decoration: InputDecoration(

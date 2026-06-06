@@ -11,6 +11,7 @@ import '../models/index.dart';
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
+import '../utils/card_number_extractor.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
@@ -64,6 +65,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   final TextEditingController _detailsDescriptionC = TextEditingController();
   final TextEditingController _appointmentLocationC = TextEditingController();
   final TextEditingController _allowedPhoneC = TextEditingController();
+  final TextEditingController _customBarcodeC = TextEditingController();
 
   bool _isLoading = false;
   bool _isLoadingUser = true;
@@ -71,6 +73,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   bool _quickMode = false;
   bool _showLogo = true;
   bool _showStamp = true;
+  bool _useCustomBarcode = false;
   bool _useAccountLogo = true;
   String _loadingHeadline = '';
   String _loadingDetails = '';
@@ -118,6 +121,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _detailsDescriptionC.dispose();
     _appointmentLocationC.dispose();
     _allowedPhoneC.dispose();
+    _customBarcodeC.dispose();
     super.dispose();
   }
 
@@ -330,6 +334,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final raw = (_user?['cardOperationMinQuantity'] as num?)?.toInt() ?? 1;
     return raw < 1 ? 1 : raw;
   }
+
+  String get _normalizedCustomBarcode => CardNumberExtractor.normalizeDigits(
+    _customBarcodeC.text,
+  ).replaceAll(RegExp(r'\D'), '');
 
   void _setLoadingState(
     bool value, {
@@ -613,7 +621,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
-    if (!_quickMode && quantity < _minimumCardQuantity) {
+    if (!_quickMode && !_useCustomBarcode && quantity < _minimumCardQuantity) {
       await AppAlertService.showError(
         context,
         title: l.tr('screens_create_card_screen.004'),
@@ -621,6 +629,20 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           'screens_create_card_screen.074',
           params: {'count': '$_minimumCardQuantity'},
         ),
+      );
+      return;
+    }
+
+    if (_useCustomBarcode &&
+        (quantity != 1 ||
+            _normalizedCustomBarcode.length !=
+                CardNumberExtractor.cardNumberLength)) {
+      await AppAlertService.showError(
+        context,
+        title: 'تحقق من رقم البطاقة',
+        message: quantity != 1
+            ? 'يمكن تخصيص الرقم عند إصدار بطاقة واحدة فقط.'
+            : 'رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.',
       );
       return;
     }
@@ -796,6 +818,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           localAuthMethod: securityResult.method,
           allowedUserIds: _selectedAllowedUserIds(),
           allowedUserPhones: _selectedAllowedUserPhones(),
+          customBarcode: _useCustomBarcode ? _normalizedCustomBarcode : null,
         );
         final userId = _user?['id']?.toString();
         if (userId != null && userId.isNotEmpty) {
@@ -856,6 +879,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         'cardDetails': trialDetails,
         if (baseTitle.isNotEmpty)
           'title': quantity == 1 ? baseTitle : '$baseTitle ${index + 1}',
+        if (_useCustomBarcode && quantity == 1)
+          'customBarcode': _normalizedCustomBarcode,
       };
     });
 
@@ -2064,8 +2089,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Widget _buildCreationStepper() {
     final canContinue = _canContinueCurrentStep();
-    return ShwakelCard(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return SizedBox(
+      width: double.infinity,
       child: Stepper(
         currentStep: _currentStep,
         type: StepperType.vertical,
@@ -2199,8 +2224,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return 'أدخل كمية صحيحة للبطاقات.';
     }
 
-    if (quantity < _minimumCardQuantity) {
+    if (!_useCustomBarcode && quantity < _minimumCardQuantity) {
       return 'الكمية أقل من الحد الأدنى $_minimumCardQuantity.';
+    }
+
+    if (_useCustomBarcode) {
+      if (quantity != 1) {
+        return 'يمكن تخصيص رقم البطاقة عند إصدار بطاقة واحدة فقط.';
+      }
+      if (_normalizedCustomBarcode.length !=
+          CardNumberExtractor.cardNumberLength) {
+        return 'رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.';
+      }
     }
 
     final amountValidation = _validateAmountForCardType(amount);
@@ -2402,6 +2437,37 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: _useCustomBarcode,
+              onChanged: (int.tryParse(_qtyC.text.trim()) ?? 0) == 1
+                  ? (value) => setState(() => _useCustomBarcode = value)
+                  : null,
+              secondary: const Icon(Icons.pin_outlined),
+              title: const Text('تخصيص رقم البطاقة'),
+              subtitle: Text(
+                (int.tryParse(_qtyC.text.trim()) ?? 0) == 1
+                    ? 'أدخل رقمًا مخصصًا من 16 خانة بدل الرقم التلقائي.'
+                    : 'متاح عند إصدار بطاقة واحدة فقط.',
+              ),
+            ),
+            if (_useCustomBarcode) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _customBarcodeC,
+                keyboardType: TextInputType.number,
+                textDirection: TextDirection.ltr,
+                maxLength: CardNumberExtractor.cardNumberLength,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'رقم البطاقة المخصص',
+                  hintText: '1234567890123456',
+                  prefixIcon: Icon(Icons.credit_card_rounded),
+                  counterText: '',
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_cardType == 'single_use') ...[
               const SizedBox(height: 16),
               Container(

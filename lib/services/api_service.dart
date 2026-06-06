@@ -2368,6 +2368,7 @@ class ApiService {
     Map<String, dynamic>? cardDetails,
     String? otpCode,
     String? localAuthMethod,
+    String? customBarcode,
   }) async {
     final payload = <String, dynamic>{
       'value': value,
@@ -2382,6 +2383,8 @@ class ApiService {
       if (validUntil != null && validUntil.trim().isNotEmpty)
         'validUntil': validUntil,
       ...?cardDetails == null ? null : {'cardDetails': cardDetails},
+      if (customBarcode != null && customBarcode.trim().isNotEmpty)
+        'customBarcode': customBarcode.trim(),
       if (otpCode != null && otpCode.trim().isNotEmpty)
         'otpCode': otpCode.trim(),
       if (otpCode == null || otpCode.trim().isEmpty)
