@@ -82,6 +82,7 @@ class AppPermissions {
     'canExportCustomerTransactions',
     'canOpenQuickTransfer',
     'canOpenCardTools',
+    'externalCardStoreEnabled',
     'isAdmin',
     'isSupport',
     'isFinance',
@@ -144,6 +145,7 @@ class AppPermissions {
       _isEnabled('canAcceptPrepaidMultipayPayments');
   bool get canUsePrepaidMultipayNfc => _isEnabled('canUsePrepaidMultipayNfc');
   bool get canUseExternalCardStore => _isEnabled('canUseExternalCardStore');
+  bool get externalCardStoreEnabled => _raw['externalCardStoreEnabled'] == true;
   bool get canOpenPrepaidMultipayCards =>
       canUsePrepaidMultipayCards || canAcceptPrepaidMultipayPayments;
   bool get canAcceptPrepaidMultipayContactless =>
@@ -156,7 +158,7 @@ class AppPermissions {
       canFinanceTopup ||
       canOpenPrepaidMultipayCards;
   bool get canOpenExternalCardStore =>
-      canUseExternalCardStore || canManageUsers || canManageSystemSettings;
+      externalCardStoreEnabled && canUseExternalCardStore;
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canLookupMembers => _isEnabled('canLookupMembers');

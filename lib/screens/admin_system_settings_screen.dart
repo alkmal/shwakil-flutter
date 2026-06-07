@@ -100,9 +100,15 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _externalStoreBearerTokenController = TextEditingController();
   final _externalStoreUsernameController = TextEditingController();
   final _externalStorePasswordController = TextEditingController();
-  final _externalStorePlatformController = TextEditingController(text: 'android');
-  final _externalStoreAppVersionController = TextEditingController(text: '99.0.0');
-  final _externalStoreBuildNumberController = TextEditingController(text: '999');
+  final _externalStorePlatformController = TextEditingController(
+    text: 'android',
+  );
+  final _externalStoreAppVersionController = TextEditingController(
+    text: '99.0.0',
+  );
+  final _externalStoreBuildNumberController = TextEditingController(
+    text: '999',
+  );
   final _externalStoreLanguageController = TextEditingController(text: 'ar');
   final _externalStoreDiscountController = TextEditingController(text: '0');
   final _externalStoreUsdRateController = TextEditingController(text: '3.50');
@@ -594,11 +600,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _externalStoreLanguageController.text =
           externalStoreSettings['language']?.toString() ?? 'ar';
       _externalStoreDiscountController.text =
-          (externalStoreSettings['discountPercent'] as num?)?.toString() ??
-          '0';
+          (externalStoreSettings['discountPercent'] as num?)?.toString() ?? '0';
       _externalStoreUsdRateController.text =
-          (externalStoreSettings['usdToIlsRate'] as num?)?.toString() ??
-          '3.5';
+          (externalStoreSettings['usdToIlsRate'] as num?)?.toString() ?? '3.5';
       _externalStoreProfitController.text =
           (externalStoreSettings['profitPercent'] as num?)?.toString() ?? '3';
 
@@ -2985,7 +2989,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         children: [
           const AdminSectionHeader(
             title: 'إعدادات متجر البطاقات الخارجية',
-            subtitle: 'ربط Ajnadeen API، تحويل الدولار إلى شيكل، ونسبة الربح.',
+            subtitle:
+                'تفعيل المتجر، سعر الدولار بالشيكل، نسبة الربح، وربط Ajnadeen API.',
             icon: Icons.storefront_rounded,
           ),
           const SizedBox(height: 16),
@@ -3009,7 +3014,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   runSpacing: 12,
                   children: [
                     _buildTextField(
-                      'Base URL',
+                      'رابط API',
                       _externalStoreBaseUrlController,
                       hintText: 'https://ajnec.com',
                     ),
@@ -3023,33 +3028,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       _externalStoreBearerTokenController,
                       obscureText: true,
                     ),
-                    _buildTextField(
-                      'Username',
-                      _externalStoreUsernameController,
-                    ),
+                    _buildTextField('User', _externalStoreUsernameController),
                     _buildTextField(
                       'Password',
                       _externalStorePasswordController,
                       obscureText: true,
                     ),
-                    _buildTextField(
-                      'Platform',
-                      _externalStorePlatformController,
-                    ),
-                    _buildTextField(
-                      'App Version',
-                      _externalStoreAppVersionController,
-                    ),
-                    _buildTextField(
-                      'Build Number',
-                      _externalStoreBuildNumberController,
-                    ),
-                    _buildTextField(
-                      'Language',
-                      _externalStoreLanguageController,
-                    ),
                     _buildNumberField(
-                      'تحويل الدولار إلى شيكل',
+                      'سعر الدولار بالشيكل',
                       _externalStoreUsdRateController,
                       suffixText: '₪',
                       decimal: true,
@@ -3057,12 +3043,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     _buildNumberField(
                       'نسبة الربح',
                       _externalStoreProfitController,
-                      suffixText: '%',
-                      decimal: true,
-                    ),
-                    _buildNumberField(
-                      'نسبة الخصم المستقبلية',
-                      _externalStoreDiscountController,
                       suffixText: '%',
                       decimal: true,
                     ),

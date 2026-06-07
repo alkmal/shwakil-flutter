@@ -18,84 +18,74 @@ class ExternalCardStoreScreen extends StatefulWidget {
 }
 
 class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
+  static const int _rootCategoryId = 2;
+
   final ApiService _api = ApiService();
-  final TextEditingController _categorySearchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   bool _isLoading = true;
-  bool _isLoadingCards = false;
+  bool _isLoadingCatalog = false;
   bool _isPurchasing = false;
-  int _categoryId = 2;
+  bool _isUpdatingSearchProgrammatically = false;
+  int _categoryId = _rootCategoryId;
   final int _type = 2;
-  double _usdToIlsRate = 3.5;
-  double _profitPercent = 3;
+  List<Map<String, dynamic>> _rootCategories = const [];
   List<Map<String, dynamic>> _categories = const [];
   List<Map<String, dynamic>> _cards = const [];
   List<Map<String, dynamic>> _orders = const [];
+  List<Map<String, dynamic>> _categoryTrail = const [];
   Map<String, dynamic>? _selectedCategory;
-  String _categorySearch = '';
+  String _search = '';
+
+  bool get _isCategoryScreen => _selectedCategory == null;
 
   @override
   void initState() {
     super.initState();
-    _categorySearchController.addListener(() {
-      setState(() => _categorySearch = _categorySearchController.text.trim());
+    _searchController.addListener(() {
+      if (_isUpdatingSearchProgrammatically) {
+        return;
+      }
+      setState(() => _search = _searchController.text.trim());
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
   void dispose() {
-    _categorySearchController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final results = await Future.wait<dynamic>([
-        _api.getExternalCardStoreCatalog(categoryId: 2, type: _type),
+        _api.getExternalCardStoreCatalog(
+          categoryId: _isCategoryScreen ? _rootCategoryId : _categoryId,
+          type: _type,
+        ),
         _api.getExternalCardStoreOrders(),
       ]);
       final payload = Map<String, dynamic>.from(results[0] as Map);
       final orders = List<Map<String, dynamic>>.from(results[1] as List);
+      final categories = _mapList(payload['categories']);
+      final cards = _mapList(payload['cards']);
+
       if (!mounted) return;
       setState(() {
-        _categories = List<Map<String, dynamic>>.from(
-          (payload['categories'] as List? ?? const []).map(
-            (item) => Map<String, dynamic>.from(item as Map),
-          ),
-        );
-        if (_selectedCategory == null) {
+        if (_isCategoryScreen) {
+          _rootCategories = categories;
+          _categories = categories;
           _cards = const [];
+        } else {
+          _categories = categories;
+          _cards = cards;
         }
         _orders = orders;
-        _usdToIlsRate = (payload['cards'] as List? ?? const []).isNotEmpty
-            ? ((payload['cards'] as List).first as Map)['usdToIlsRate'] is num
-                  ? (((payload['cards'] as List).first as Map)['usdToIlsRate']
-                            as num)
-                        .toDouble()
-                  : 3.5
-            : 3.5;
-        _profitPercent = (payload['cards'] as List? ?? const []).isNotEmpty
-            ? ((payload['cards'] as List).first as Map)['profitPercent'] is num
-                  ? (((payload['cards'] as List).first as Map)['profitPercent']
-                            as num)
-                        .toDouble()
-                  : 3
-            : 3;
         _isLoading = false;
       });
-      if (_selectedCategory != null) {
-        await _loadCardsForCategory(
-          int.tryParse(_selectedCategory!['id']?.toString() ?? '') ??
-              _categoryId,
-          category: _selectedCategory,
-        );
-      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -103,44 +93,65 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     }
   }
 
-  Future<void> _loadCardsForCategory(
+  Future<void> _openCategory(Map<String, dynamic> category) async {
+    final id = int.tryParse(category['id']?.toString() ?? '') ?? _rootCategoryId;
+    final nextTrail = [..._categoryTrail, category];
+    await _loadCategoryCatalog(id, category: category, trail: nextTrail);
+  }
+
+  Future<void> _loadCategoryCatalog(
     int categoryId, {
-    Map<String, dynamic>? category,
+    required Map<String, dynamic> category,
+    required List<Map<String, dynamic>> trail,
   }) async {
     setState(() {
-      _isLoadingCards = true;
+      _isLoadingCatalog = true;
       _categoryId = categoryId;
-      if (category != null) {
-        _selectedCategory = category;
-      }
+      _selectedCategory = category;
+      _categoryTrail = trail;
+      _clearSearchForNavigation();
     });
 
     try {
-      final cards = await _api.getExternalCardStoreCards(
+      final payload = await _api.getExternalCardStoreCatalog(
         categoryId: categoryId,
         type: _type,
       );
       if (!mounted) return;
       setState(() {
-        _cards = cards;
-        if (cards.isNotEmpty) {
-          _usdToIlsRate =
-              (cards.first['usdToIlsRate'] as num?)?.toDouble() ??
-              _usdToIlsRate;
-          _profitPercent =
-              (cards.first['profitPercent'] as num?)?.toDouble() ??
-              _profitPercent;
-        }
-        _isLoadingCards = false;
+        _categories = _mapList(payload['categories']);
+        _cards = _mapList(payload['cards']);
+        _isLoadingCatalog = false;
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
+        _categories = const [];
         _cards = const [];
-        _isLoadingCards = false;
+        _isLoadingCatalog = false;
       });
       await _showMessage(error.toString(), isError: true);
     }
+  }
+
+  Future<void> _goBackOneLevel() async {
+    if (_categoryTrail.length <= 1) {
+      setState(() {
+        _selectedCategory = null;
+        _categoryTrail = const [];
+        _categoryId = _rootCategoryId;
+        _categories = _rootCategories;
+        _cards = const [];
+        _clearSearchForNavigation();
+      });
+      return;
+    }
+
+    final nextTrail = _categoryTrail.sublist(0, _categoryTrail.length - 1);
+    final parent = nextTrail.last;
+    final parentId =
+        int.tryParse(parent['id']?.toString() ?? '') ?? _rootCategoryId;
+    await _loadCategoryCatalog(parentId, category: parent, trail: nextTrail);
   }
 
   Future<void> _purchase(Map<String, dynamic> card) async {
@@ -158,8 +169,6 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     final title = card['title']?.toString() ?? 'بطاقة';
     final providerPriceUsd =
         (card['providerPriceUsd'] as num?)?.toDouble() ?? 0;
-    final convertedPrice = (card['convertedPrice'] as num?)?.toDouble() ?? 0;
-    final profitAmount = (card['profitAmount'] as num?)?.toDouble() ?? 0;
     final finalPrice =
         (card['finalPrice'] as num?)?.toDouble() ??
         (card['discountedPrice'] as num?)?.toDouble() ??
@@ -176,22 +185,14 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
             Text(title, style: AppTheme.bodyBold),
             const SizedBox(height: 12),
             _confirmPriceRow(
-              'سعر المزود',
-              '\$ ${providerPriceUsd.toStringAsFixed(2)}',
-            ),
-            _confirmPriceRow(
-              'بعد التحويل',
-              CurrencyFormatter.ils(convertedPrice),
-            ),
-            _confirmPriceRow(
-              'ربح ${_profitPercent.toStringAsFixed(2)}%',
-              CurrencyFormatter.ils(profitAmount),
-            ),
-            const Divider(height: 22),
-            _confirmPriceRow(
               'المبلغ المخصوم',
               CurrencyFormatter.ils(finalPrice),
               emphasized: true,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'سيطلب التطبيق تأكيد العملية بالبصمة أو PIN أو رمز التحقق حسب إعدادات حسابك.',
+              style: AppTheme.caption.copyWith(height: 1.4),
             ),
           ],
         ),
@@ -261,11 +262,11 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('متجر البطاقات'),
+        title: Text(_isCategoryScreen ? 'أقسام المتجر' : 'بطاقات المتجر'),
         actions: [
           IconButton(
             tooltip: 'تحديث',
-            onPressed: _isLoading ? null : () => _load(),
+            onPressed: _isLoading || _isLoadingCatalog ? null : () => _load(),
             icon: const Icon(Icons.refresh_rounded),
           ),
           const AppNotificationAction(),
@@ -285,12 +286,13 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildHeader(),
-                      const SizedBox(height: 18),
-                      _buildCategorySearch(),
-                      const SizedBox(height: 14),
-                      _buildCategories(),
-                      const SizedBox(height: 18),
-                      _buildCards(),
+                      const SizedBox(height: 16),
+                      _buildSearch(),
+                      const SizedBox(height: 16),
+                      if (_isCategoryScreen)
+                        _buildCategoryScreen()
+                      else
+                        _buildProductScreen(),
                       const SizedBox(height: 18),
                       _buildOrders(),
                     ],
@@ -301,130 +303,14 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     );
   }
 
-  Widget _buildOrders() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(18),
-      borderRadius: BorderRadius.circular(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text('بطاقاتي المشتراة', style: AppTheme.h3)),
-              IconButton(
-                tooltip: 'تحديث المشتريات',
-                onPressed: _isLoading ? null : () => _load(),
-                icon: const Icon(Icons.refresh_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (_orders.isEmpty)
-            Text('لا توجد بطاقات مشتراة حتى الآن.', style: AppTheme.bodyAction)
-          else
-            Column(
-              children: _orders
-                  .map(
-                    (order) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _orderTile(order),
-                    ),
-                  )
-                  .toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _orderTile(Map<String, dynamic> order) {
-    final details = Map<String, dynamic>.from(
-      order['cardDetails'] as Map? ?? const {},
-    );
-    final pending = order['cardPending'] == true;
-    final status =
-        order['statusLabel']?.toString() ??
-        (pending ? 'البطاقة معلقة حالياً' : 'مكتملة');
-    final amount = (order['chargedAmount'] as num?)?.toDouble() ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                pending
-                    ? Icons.hourglass_top_rounded
-                    : Icons.confirmation_number_rounded,
-                color: pending ? AppTheme.warning : AppTheme.success,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      order['title']?.toString() ?? 'بطاقة',
-                      style: AppTheme.bodyBold,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$status · ${CurrencyFormatter.ils(amount)}',
-                      style: AppTheme.caption,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (pending)
-            Text(
-              'بيانات البطاقة غير متوفرة من المزود حتى الآن، وسيتم عرضها هنا عند توفرها.',
-              style: AppTheme.bodyAction.copyWith(color: AppTheme.warning),
-            )
-          else ...[
-            if ((details['code']?.toString() ?? '').isNotEmpty)
-              _detailRow('الكود', details['code'].toString()),
-            if ((details['pin']?.toString() ?? '').isNotEmpty)
-              _detailRow('PIN', details['pin'].toString()),
-            if ((details['link']?.toString() ?? '').isNotEmpty)
-              _detailRow('الرابط', details['link'].toString()),
-            if ((details['expiresAt']?.toString() ?? '').isNotEmpty)
-              _detailRow('الصلاحية', details['expiresAt'].toString()),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            'المرجع: ${order['referenceId']?.toString() ?? '-'}',
-            style: AppTheme.caption,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 80, child: Text(label, style: AppTheme.caption)),
-          Expanded(child: SelectableText(value, style: AppTheme.bodyBold)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildHeader() {
+    final title = _isCategoryScreen
+        ? 'اختر القسم المناسب'
+        : _selectedCategory?['title']?.toString() ?? 'بطاقات القسم';
+    final subtitle = _isCategoryScreen
+        ? 'تصفح الأقسام أولاً، ثم ادخل للقسم المطلوب لعرض الأقسام الفرعية والبطاقات المتاحة.'
+        : 'الأقسام الفرعية تظهر أولاً إن وجدت، وتظهر البطاقات المتاحة للشراء في نفس الشاشة.';
+
     return ShwakelCard(
       padding: const EdgeInsets.all(22),
       borderRadius: BorderRadius.circular(24),
@@ -437,8 +323,10 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
               color: AppTheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(
-              Icons.storefront_rounded,
+            child: Icon(
+              _isCategoryScreen
+                  ? Icons.category_rounded
+                  : Icons.confirmation_number_rounded,
               color: AppTheme.primary,
             ),
           ),
@@ -447,97 +335,77 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('بطاقات خارجية فورية', style: AppTheme.h3),
+                Text(title, style: AppTheme.h3),
                 const SizedBox(height: 4),
-                Text(
-                  'اختر القسم ثم البطاقة، وسيتم الخصم من رصيدك وتسجيل الحركة المالية والإشعار مباشرة.',
-                  style: AppTheme.bodyAction.copyWith(height: 1.5),
-                ),
+                Text(subtitle, style: AppTheme.bodyAction.copyWith(height: 1.5)),
+                if (!_isCategoryScreen) ...[
+                  const SizedBox(height: 10),
+                  _buildTrail(),
+                ],
               ],
             ),
           ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(
-                label: Text('الدولار ${_usdToIlsRate.toStringAsFixed(2)}₪'),
-                avatar: const Icon(Icons.currency_exchange_rounded, size: 18),
-              ),
-              Chip(
-                label: Text('ربح ${_profitPercent.toStringAsFixed(2)}%'),
-                avatar: const Icon(Icons.percent_rounded, size: 18),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildCategories() {
-    final normalizedSearch = _categorySearch.toLowerCase();
-    final visibleCategories = normalizedSearch.isEmpty
-        ? _categories
-        : _categories.where((category) {
-            final title = (category['title']?.toString() ?? '').toLowerCase();
-            return title.contains(normalizedSearch);
-          }).toList();
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(18),
-      borderRadius: BorderRadius.circular(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text('الأقسام', style: AppTheme.h3)),
-              Text('${visibleCategories.length} قسم', style: AppTheme.caption),
-            ],
+  Widget _buildTrail() {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ActionChip(
+          avatar: const Icon(Icons.home_rounded, size: 16),
+          label: const Text('الأقسام'),
+          onPressed: _goBackToRoot,
+        ),
+        for (var index = 0; index < _categoryTrail.length; index++) ...[
+          const Icon(Icons.chevron_left_rounded, size: 18),
+          ActionChip(
+            label: Text(_categoryTrail[index]['title']?.toString() ?? 'قسم'),
+            onPressed: index == _categoryTrail.length - 1
+                ? null
+                : () => _openTrailIndex(index),
           ),
-          const SizedBox(height: 12),
-          if (_categories.isEmpty)
-            Text('لا توجد أقسام متاحة حالياً.', style: AppTheme.bodyAction)
-          else if (visibleCategories.isEmpty)
-            Text('لا يوجد قسم بهذا الاسم.', style: AppTheme.bodyAction)
-          else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final columns = width >= 980 ? 4 : (width >= 680 ? 3 : 2);
-                return GridView.builder(
-                  itemCount: visibleCategories.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: columns == 2 ? 0.92 : 0.98,
-                  ),
-                  itemBuilder: (context, index) =>
-                      _categoryTile(visibleCategories[index]),
-                );
-              },
-            ),
         ],
-      ),
+      ],
     );
   }
 
-  Widget _buildCategorySearch() {
+  void _goBackToRoot() {
+    setState(() {
+      _selectedCategory = null;
+      _categoryTrail = const [];
+      _categoryId = _rootCategoryId;
+      _categories = _rootCategories;
+      _cards = const [];
+      _clearSearchForNavigation();
+    });
+  }
+
+  Future<void> _openTrailIndex(int index) async {
+    final trail = _categoryTrail.sublist(0, index + 1);
+    final category = trail.last;
+    final id = int.tryParse(category['id']?.toString() ?? '') ?? _rootCategoryId;
+    await _loadCategoryCatalog(id, category: category, trail: trail);
+  }
+
+  Widget _buildSearch() {
     return TextField(
-      controller: _categorySearchController,
+      controller: _searchController,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
-        hintText: 'ابحث باسم القسم',
+        hintText: _isCategoryScreen
+            ? 'ابحث باسم القسم'
+            : 'ابحث باسم القسم الفرعي أو البطاقة',
         prefixIcon: const Icon(Icons.search_rounded),
-        suffixIcon: _categorySearch.isEmpty
+        suffixIcon: _search.isEmpty
             ? null
             : IconButton(
                 tooltip: 'مسح البحث',
-                onPressed: _categorySearchController.clear,
+                onPressed: _searchController.clear,
                 icon: const Icon(Icons.close_rounded),
               ),
         filled: true,
@@ -554,28 +422,206 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     );
   }
 
+  Widget _buildCategoryScreen() {
+    final visibleCategories = _filterItems(_categories);
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('الأقسام', style: AppTheme.h3)),
+              Text('${visibleCategories.length} قسم', style: AppTheme.caption),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_categories.isEmpty)
+            _emptyState('لا توجد أقسام متاحة حالياً.')
+          else if (visibleCategories.isEmpty)
+            _emptyState('لا يوجد قسم مطابق للبحث.')
+          else
+            _categoryGrid(visibleCategories),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductScreen() {
+    if (_isLoadingCatalog) {
+      return const ShwakelCard(
+        padding: EdgeInsets.all(28),
+        borderRadius: BorderRadius.all(Radius.circular(22)),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final visibleCategories = _filterItems(_categories);
+    final visibleCards = _filterItems(_cards);
+    final hasAnyVisible = visibleCategories.isNotEmpty || visibleCards.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeaderCard(
+          title: _selectedCategory?['title']?.toString() ?? 'القسم',
+          subtitle: '${visibleCategories.length} قسم فرعي · ${visibleCards.length} بطاقة',
+          onBack: _goBackOneLevel,
+        ),
+        const SizedBox(height: 14),
+        if (!hasAnyVisible)
+          ShwakelCard(
+            padding: const EdgeInsets.all(28),
+            borderRadius: BorderRadius.circular(22),
+            child: Center(
+              child: Text(
+                _search.isEmpty
+                    ? 'لا توجد أقسام فرعية أو بطاقات متاحة في هذا القسم حالياً.'
+                    : 'لا توجد نتيجة مطابقة للبحث داخل هذا القسم.',
+                style: AppTheme.h3,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
+        else ...[
+          if (visibleCategories.isNotEmpty) ...[
+            _subcategoriesSection(visibleCategories),
+            const SizedBox(height: 14),
+          ],
+          if (visibleCards.isNotEmpty) _cardsSection(visibleCards),
+        ],
+      ],
+    );
+  }
+
+  Widget _sectionHeaderCard({
+    required String title,
+    required String subtitle,
+    required VoidCallback onBack,
+  }) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'رجوع',
+            onPressed: onBack,
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTheme.bodyBold),
+                const SizedBox(height: 3),
+                Text(subtitle, style: AppTheme.caption),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _subcategoriesSection(List<Map<String, dynamic>> categories) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('الأقسام الفرعية', style: AppTheme.h3)),
+              Text('${categories.length} قسم', style: AppTheme.caption),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _categoryGrid(categories),
+        ],
+      ),
+    );
+  }
+
+  Widget _cardsSection(List<Map<String, dynamic>> cards) {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'البطاقات المتاحة',
+                  style: AppTheme.h3,
+                ),
+              ),
+              Text('${cards.length} بطاقة', style: AppTheme.caption),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final columns = width >= 1040 ? 3 : (width >= 680 ? 2 : 1);
+              return GridView.builder(
+                itemCount: cards.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: columns == 1 ? 1.28 : 0.84,
+                ),
+                itemBuilder: (context, index) => _cardTile(cards[index]),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _categoryGrid(List<Map<String, dynamic>> categories) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 980 ? 4 : (width >= 680 ? 3 : 2);
+        return GridView.builder(
+          itemCount: categories.length,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: columns == 2 ? 0.92 : 0.98,
+          ),
+          itemBuilder: (context, index) => _categoryTile(categories[index]),
+        );
+      },
+    );
+  }
+
   Widget _categoryTile(Map<String, dynamic> category) {
-    final id = int.tryParse(category['id']?.toString() ?? '') ?? 2;
     final title = category['title']?.toString() ?? 'قسم';
     final description = (category['description']?.toString() ?? '').trim();
-    final selected = _selectedCategory?['id']?.toString() == id.toString();
 
     return InkWell(
-      onTap: _isLoadingCards
-          ? null
-          : () => _loadCardsForCategory(id, category: category),
+      onTap: _isLoadingCatalog ? null : () => _openCategory(category),
       borderRadius: BorderRadius.circular(18),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+      child: Container(
         decoration: BoxDecoration(
-          color: selected
-              ? AppTheme.primary.withValues(alpha: 0.08)
-              : AppTheme.background,
+          color: AppTheme.background,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected ? AppTheme.primary : AppTheme.border,
-            width: selected ? 1.4 : 1,
-          ),
+          border: Border.all(color: AppTheme.border),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -601,7 +647,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                   const SizedBox(height: 4),
                   Text(
                     description.isEmpty
-                        ? 'اضغط لعرض البطاقات المتاحة في هذا القسم.'
+                        ? 'اضغط لعرض المحتوى المناسب داخل هذا القسم.'
                         : description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -616,106 +662,8 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     );
   }
 
-  Widget _buildCards() {
-    if (_selectedCategory == null) {
-      return ShwakelCard(
-        padding: const EdgeInsets.all(24),
-        borderRadius: BorderRadius.circular(22),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.touch_app_rounded,
-                color: AppTheme.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'اختر قسماً من الأعلى لعرض البطاقات المتاحة داخله.',
-                style: AppTheme.bodyAction.copyWith(height: 1.5),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_isLoadingCards) {
-      return const ShwakelCard(
-        padding: EdgeInsets.all(28),
-        borderRadius: BorderRadius.all(Radius.circular(22)),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_cards.isEmpty) {
-      return ShwakelCard(
-        padding: const EdgeInsets.all(28),
-        borderRadius: BorderRadius.circular(22),
-        child: Center(
-          child: Text(
-            'لا توجد بطاقات متاحة في قسم ${_selectedCategory?['title'] ?? 'هذا القسم'}.',
-            style: AppTheme.h3,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(18),
-      borderRadius: BorderRadius.circular(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'بطاقات ${_selectedCategory?['title'] ?? 'القسم'}',
-                  style: AppTheme.h3,
-                ),
-              ),
-              Text('${_cards.length} بطاقة', style: AppTheme.caption),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final columns = width >= 1040 ? 3 : (width >= 680 ? 2 : 1);
-              return GridView.builder(
-                itemCount: _cards.length,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: columns == 1 ? 1.22 : 0.82,
-                ),
-                itemBuilder: (context, index) => _cardTile(_cards[index]),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _cardTile(Map<String, dynamic> card) {
     final title = card['title']?.toString() ?? 'بطاقة';
-    final providerPriceUsd =
-        (card['providerPriceUsd'] as num?)?.toDouble() ?? 0;
-    final convertedPrice = (card['convertedPrice'] as num?)?.toDouble() ?? 0;
-    final profitAmount = (card['profitAmount'] as num?)?.toDouble() ?? 0;
     final finalPrice =
         (card['finalPrice'] as num?)?.toDouble() ??
         (card['price'] as num?)?.toDouble() ??
@@ -771,17 +719,13 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                     ),
                   ],
                   const Spacer(),
-                  _priceBreakdown(
-                    providerPriceUsd: providerPriceUsd,
-                    convertedPrice: convertedPrice,
-                    profitAmount: profitAmount,
-                    finalPrice: finalPrice,
-                  ),
+                  _priceBreakdown(finalPrice: finalPrice),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: _isPurchasing ? null : () => _purchase(card),
+                      onPressed:
+                          _isPurchasing || !available ? null : () => _purchase(card),
                       icon: _isPurchasing
                           ? const SizedBox(
                               width: 16,
@@ -800,6 +744,170 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrders() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('مشترياتي', style: AppTheme.h3)),
+              Text('${_orders.length} عملية', style: AppTheme.caption),
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: 'تحديث المشتريات',
+                onPressed: _isLoading ? null : () => _load(),
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_orders.isEmpty)
+            _emptyState('لا توجد بطاقات مشتراة حتى الآن.')
+          else
+            Column(
+              children: _orders
+                  .map(
+                    (order) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _orderTile(order),
+                    ),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _orderTile(Map<String, dynamic> order) {
+    final details = Map<String, dynamic>.from(
+      order['cardDetails'] as Map? ?? const {},
+    );
+    final pending = order['cardPending'] == true;
+    final status =
+        order['statusLabel']?.toString() ??
+        (pending ? 'البطاقة معلقة حالياً' : 'مكتملة');
+    final amount = (order['chargedAmount'] as num?)?.toDouble() ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: (pending ? AppTheme.warning : AppTheme.success)
+                      .withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  pending
+                      ? Icons.hourglass_top_rounded
+                      : Icons.confirmation_number_rounded,
+                  color: pending ? AppTheme.warning : AppTheme.success,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order['title']?.toString() ?? 'بطاقة',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _miniChip(status, pending ? AppTheme.warning : AppTheme.success),
+                        _miniChip(CurrencyFormatter.ils(amount), AppTheme.primary),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (pending)
+            Text(
+              'بيانات البطاقة غير متوفرة من المزود حتى الآن، وسيتم عرضها هنا عند توفرها.',
+              style: AppTheme.bodyAction.copyWith(color: AppTheme.warning),
+            )
+          else
+            _orderDetailsBox(details),
+          const SizedBox(height: 10),
+          Text(
+            'المرجع: ${order['referenceId']?.toString() ?? '-'}',
+            style: AppTheme.caption,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _orderDetailsBox(Map<String, dynamic> details) {
+    final hasDetails = ['code', 'pin', 'link', 'expiresAt'].any(
+      (key) => (details[key]?.toString() ?? '').isNotEmpty,
+    );
+    if (!hasDetails) {
+      return Text('لا توجد بيانات إضافية للبطاقة.', style: AppTheme.caption);
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if ((details['code']?.toString() ?? '').isNotEmpty)
+            _detailRow('الكود', details['code'].toString()),
+          if ((details['pin']?.toString() ?? '').isNotEmpty)
+            _detailRow('PIN', details['pin'].toString()),
+          if ((details['link']?.toString() ?? '').isNotEmpty)
+            _detailRow('الرابط', details['link'].toString()),
+          if ((details['expiresAt']?.toString() ?? '').isNotEmpty)
+            _detailRow('الصلاحية', details['expiresAt'].toString()),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 80, child: Text(label, style: AppTheme.caption)),
+          Expanded(child: SelectableText(value, style: AppTheme.bodyBold)),
         ],
       ),
     );
@@ -835,12 +943,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     );
   }
 
-  Widget _priceBreakdown({
-    required double providerPriceUsd,
-    required double convertedPrice,
-    required double profitAmount,
-    required double finalPrice,
-  }) {
+  Widget _priceBreakdown({required double finalPrice}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -848,29 +951,10 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.border),
       ),
-      child: Column(
-        children: [
-          _compactPriceRow(
-            'سعر المزود',
-            '\$ ${providerPriceUsd.toStringAsFixed(2)}',
-          ),
-          _compactPriceRow(
-            'بالشيكل',
-            CurrencyFormatter.ils(convertedPrice),
-            note: '× ${_usdToIlsRate.toStringAsFixed(2)}',
-          ),
-          _compactPriceRow(
-            'الربح',
-            CurrencyFormatter.ils(profitAmount),
-            note: '${_profitPercent.toStringAsFixed(2)}%',
-          ),
-          const Divider(height: 16),
-          _compactPriceRow(
-            'السعر النهائي',
-            CurrencyFormatter.ils(finalPrice),
-            emphasized: true,
-          ),
-        ],
+      child: _compactPriceRow(
+        'السعر للشراء',
+        CurrencyFormatter.ils(finalPrice),
+        emphasized: true,
       ),
     );
   }
@@ -878,21 +962,43 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
   Widget _compactPriceRow(
     String label,
     String value, {
-    String? note,
     bool emphasized = false,
   }) {
     final style = emphasized ? AppTheme.bodyBold : AppTheme.caption;
+    return Row(
+      children: [
+        Expanded(child: Text(label, style: style)),
+        Text(value, style: style),
+      ],
+    );
+  }
+
+  Widget _miniChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: AppTheme.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: style)),
-          if (note != null) ...[
-            Text(note, style: AppTheme.caption),
-            const SizedBox(width: 8),
-          ],
-          Text(value, style: style),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Center(
+        child: Text(
+          text,
+          style: AppTheme.bodyAction,
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
@@ -946,5 +1052,52 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         ],
       ),
     );
+  }
+
+  List<Map<String, dynamic>> _filterItems(List<Map<String, dynamic>> items) {
+    final query = _normalizeForSearch(_search);
+    if (query.isEmpty) {
+      return items;
+    }
+    return items.where((item) => _matchesSearch(item, query)).toList();
+  }
+
+  bool _matchesSearch(Map<String, dynamic> item, String query) {
+    final fields = [
+      item['title'],
+      item['description'],
+      item['id'],
+      item['ean'],
+      item['categoryId'],
+    ];
+    return fields.any(
+      (value) => _normalizeForSearch(value?.toString() ?? '').contains(query),
+    );
+  }
+
+  String _normalizeForSearch(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll('أ', 'ا')
+        .replaceAll('إ', 'ا')
+        .replaceAll('آ', 'ا')
+        .replaceAll('ى', 'ي')
+        .replaceAll('ة', 'ه');
+  }
+
+  List<Map<String, dynamic>> _mapList(dynamic value) {
+    return List<Map<String, dynamic>>.from(
+      (value as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  void _clearSearchForNavigation() {
+    _isUpdatingSearchProgrammatically = true;
+    _searchController.clear();
+    _isUpdatingSearchProgrammatically = false;
+    _search = '';
   }
 }
