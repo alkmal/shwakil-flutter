@@ -95,6 +95,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardQtySupportController = TextEditingController();
   final _cardQtyFinanceController = TextEditingController();
   final _cardQtyAdminController = TextEditingController();
+  final _externalStoreBaseUrlController = TextEditingController();
+  final _externalStoreApiTokenController = TextEditingController();
+  final _externalStoreBearerTokenController = TextEditingController();
+  final _externalStoreUsernameController = TextEditingController();
+  final _externalStorePasswordController = TextEditingController();
+  final _externalStorePlatformController = TextEditingController(text: 'android');
+  final _externalStoreAppVersionController = TextEditingController(text: '99.0.0');
+  final _externalStoreBuildNumberController = TextEditingController(text: '999');
+  final _externalStoreLanguageController = TextEditingController(text: 'ar');
+  final _externalStoreDiscountController = TextEditingController(text: '0');
+  final _externalStoreUsdRateController = TextEditingController(text: '3.50');
+  final _externalStoreProfitController = TextEditingController(text: '3');
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -110,6 +122,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _withdrawalRequestEnabled = true;
   bool _affiliateEnabled = true;
   bool _scanAutoRedeemGlobalForced = false;
+  bool _externalStoreEnabled = false;
   bool _isLoadingPrepaidReport = false;
   bool _isLoadingGatewayDashboard = false;
   bool _isTestingSmsGateway = false;
@@ -199,6 +212,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardQtySupportController.dispose();
     _cardQtyFinanceController.dispose();
     _cardQtyAdminController.dispose();
+    _externalStoreBaseUrlController.dispose();
+    _externalStoreApiTokenController.dispose();
+    _externalStoreBearerTokenController.dispose();
+    _externalStoreUsernameController.dispose();
+    _externalStorePasswordController.dispose();
+    _externalStorePlatformController.dispose();
+    _externalStoreAppVersionController.dispose();
+    _externalStoreBuildNumberController.dispose();
+    _externalStoreLanguageController.dispose();
+    _externalStoreDiscountController.dispose();
+    _externalStoreUsdRateController.dispose();
+    _externalStoreProfitController.dispose();
     super.dispose();
   }
 
@@ -318,6 +343,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           fallback: const {},
           section: 'message_gateway',
         ),
+        safeLoad<Map<String, dynamic>>(
+          _apiService.getAdminExternalCardStoreSettings(),
+          fallback: const {},
+          section: 'external_card_store',
+        ),
       ]);
 
       if (!mounted) {
@@ -357,6 +387,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       );
       final messageGatewayDashboard = Map<String, dynamic>.from(
         results[15] as Map,
+      );
+      final externalStorePayload = Map<String, dynamic>.from(
+        results[16] as Map,
+      );
+      final externalStoreSettings = Map<String, dynamic>.from(
+        externalStorePayload['externalCardStore'] as Map? ?? const {},
       );
 
       _contactTitleController.text = contactSettings['title'] ?? '';
@@ -538,6 +574,33 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (affiliateSettings['marketerDebtLimit'] as num?)?.toString() ?? '50';
       _policyTitleController.text = usagePolicy['title'] ?? '';
       _policyContentController.text = usagePolicy['content'] ?? '';
+      _externalStoreEnabled = externalStoreSettings['enabled'] == true;
+      _externalStoreBaseUrlController.text =
+          externalStoreSettings['baseUrl']?.toString() ?? 'https://ajnec.com';
+      _externalStoreApiTokenController.text =
+          externalStoreSettings['apiToken']?.toString() ?? '';
+      _externalStoreBearerTokenController.text =
+          externalStoreSettings['bearerToken']?.toString() ?? '';
+      _externalStoreUsernameController.text =
+          externalStoreSettings['username']?.toString() ?? '';
+      _externalStorePasswordController.text =
+          externalStoreSettings['password']?.toString() ?? '';
+      _externalStorePlatformController.text =
+          externalStoreSettings['platform']?.toString() ?? 'android';
+      _externalStoreAppVersionController.text =
+          externalStoreSettings['appVersion']?.toString() ?? '99.0.0';
+      _externalStoreBuildNumberController.text =
+          externalStoreSettings['appBuildNumber']?.toString() ?? '999';
+      _externalStoreLanguageController.text =
+          externalStoreSettings['language']?.toString() ?? 'ar';
+      _externalStoreDiscountController.text =
+          (externalStoreSettings['discountPercent'] as num?)?.toString() ??
+          '0';
+      _externalStoreUsdRateController.text =
+          (externalStoreSettings['usdToIlsRate'] as num?)?.toString() ??
+          '3.5';
+      _externalStoreProfitController.text =
+          (externalStoreSettings['profitPercent'] as num?)?.toString() ?? '3';
 
       setState(() {
         _isAuthorized = true;
@@ -927,6 +990,24 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           title: _policyTitleController.text,
           content: _policyContentController.text,
         ),
+        _apiService.updateAdminExternalCardStoreSettings({
+          'enabled': _externalStoreEnabled,
+          'baseUrl': _externalStoreBaseUrlController.text,
+          'apiToken': _externalStoreApiTokenController.text,
+          'bearerToken': _externalStoreBearerTokenController.text,
+          'username': _externalStoreUsernameController.text,
+          'password': _externalStorePasswordController.text,
+          'platform': _externalStorePlatformController.text,
+          'appVersion': _externalStoreAppVersionController.text,
+          'appBuildNumber': _externalStoreBuildNumberController.text,
+          'language': _externalStoreLanguageController.text,
+          'discountPercent':
+              double.tryParse(_externalStoreDiscountController.text) ?? 0,
+          'usdToIlsRate':
+              double.tryParse(_externalStoreUsdRateController.text) ?? 3.5,
+          'profitPercent':
+              double.tryParse(_externalStoreProfitController.text) ?? 3,
+        }),
       ]);
       if (!mounted) {
         return;
@@ -1397,7 +1478,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 8,
+      length: 10,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -1466,6 +1547,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       icon: Icon(Icons.credit_card_rounded),
                       text: 'بطاقات الدفع',
                     ),
+                    const Tab(
+                      icon: Icon(Icons.storefront_rounded),
+                      text: 'متجر البطاقات',
+                    ),
                     Tab(
                       icon: Icon(Icons.campaign_rounded),
                       text: l.tr('screens_admin_system_settings_screen.066'),
@@ -1491,6 +1576,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     _buildTopupTab(),
                     _buildOfflineCardsTab(),
                     _buildPrepaidMultipayTab(),
+                    _buildExternalCardStoreTab(),
                     _buildAffiliateTab(),
                     _buildPolicyTab(),
                     _buildFeesTab(),
@@ -2892,6 +2978,104 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     );
   }
 
+  Widget _buildExternalCardStoreTab() {
+    return _tabScroll(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AdminSectionHeader(
+            title: 'إعدادات متجر البطاقات الخارجية',
+            subtitle: 'ربط Ajnadeen API، تحويل الدولار إلى شيكل، ونسبة الربح.',
+            icon: Icons.storefront_rounded,
+          ),
+          const SizedBox(height: 16),
+          _card(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _externalStoreEnabled,
+                  onChanged: (value) =>
+                      setState(() => _externalStoreEnabled = value),
+                  title: const Text('تفعيل متجر البطاقات'),
+                  subtitle: const Text(
+                    'عند التفعيل تظهر شاشة المتجر للحسابات التي تملك الصلاحية.',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _buildTextField(
+                      'Base URL',
+                      _externalStoreBaseUrlController,
+                      hintText: 'https://ajnec.com',
+                    ),
+                    _buildTextField(
+                      'API Token',
+                      _externalStoreApiTokenController,
+                      obscureText: true,
+                    ),
+                    _buildTextField(
+                      'Bearer Token اختياري',
+                      _externalStoreBearerTokenController,
+                      obscureText: true,
+                    ),
+                    _buildTextField(
+                      'Username',
+                      _externalStoreUsernameController,
+                    ),
+                    _buildTextField(
+                      'Password',
+                      _externalStorePasswordController,
+                      obscureText: true,
+                    ),
+                    _buildTextField(
+                      'Platform',
+                      _externalStorePlatformController,
+                    ),
+                    _buildTextField(
+                      'App Version',
+                      _externalStoreAppVersionController,
+                    ),
+                    _buildTextField(
+                      'Build Number',
+                      _externalStoreBuildNumberController,
+                    ),
+                    _buildTextField(
+                      'Language',
+                      _externalStoreLanguageController,
+                    ),
+                    _buildNumberField(
+                      'تحويل الدولار إلى شيكل',
+                      _externalStoreUsdRateController,
+                      suffixText: '₪',
+                      decimal: true,
+                    ),
+                    _buildNumberField(
+                      'نسبة الربح',
+                      _externalStoreProfitController,
+                      suffixText: '%',
+                      decimal: true,
+                    ),
+                    _buildNumberField(
+                      'نسبة الخصم المستقبلية',
+                      _externalStoreDiscountController,
+                      suffixText: '%',
+                      decimal: true,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFeesTab() {
     final l = context.loc;
     return _tabScroll(
@@ -3133,11 +3317,13 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     String label,
     TextEditingController controller, {
     String? hintText,
+    bool obscureText = false,
   }) {
     return SizedBox(
       width: 220,
       child: TextField(
         controller: controller,
+        obscureText: obscureText,
         decoration: InputDecoration(labelText: label, hintText: hintText),
       ),
     );

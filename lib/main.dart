@@ -106,6 +106,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
       offlineOnly: options['offlineOnly'] == true,
     );
   },
+  '/external-card-store': (context) => const ExternalCardStoreScreen(),
   '/prepaid-multipay-contactless-accept': (context) => ScanCardScreen(
     offlineMode: OfflineSessionService.isOfflineMode,
     autoReadNfc: true,
@@ -243,6 +244,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/scan-card-offline' ||
     '/scan-card-offline-camera' => permissions.canOfflineCardScan,
     '/prepaid-multipay-cards' => permissions.canOpenPrepaidMultipayCards,
+    '/external-card-store' => permissions.canOpenExternalCardStore,
     '/prepaid-multipay-contactless-accept' =>
       permissions.canAcceptPrepaidMultipayContactless,
     '/quick-transfer' => permissions.canTransfer,
