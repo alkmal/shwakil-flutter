@@ -3093,6 +3093,27 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<List<Map<String, dynamic>>> getExternalCardStoreCards({
+    required int categoryId,
+    int type = 2,
+    int perPage = 100,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('external-card-store/cards', {
+        'category_id': categoryId.toString(),
+        'type': type.toString(),
+        'per_page': perPage.toString(),
+      }),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['cards'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> purchaseExternalCard({
     required String ean,
     required String title,
