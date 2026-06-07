@@ -38,7 +38,7 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>يستخدم التطبيق الكاميرا لمسح الباركود ورموز QR الخاصة بالبطاقات وعمليات التحويل بشكل آمن.</string>
+	<string>يستخدم التطبيق الكاميرا لمسح الباركود وقراءة أرقام البطاقات المكتوبة ورموز QR الخاصة بالبطاقات وعمليات التحويل بشكل آمن.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>يستخدم التطبيق البلوتوث للاتصال بالطابعات الحرارية وطباعة البطاقات بسرعة مباشرة من الجوال.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

@@ -2928,6 +2928,7 @@ const Map<String, String> appStringsAr = {
   'screens_balance_screen.137': 'بدون رسوم إضافية',
   'screens_balance_screen.138': 'الحد الأدنى {amount}',
   'screens_balance_screen.139': 'الحد الأعلى {amount}',
+  'screens_balance_screen.150': 'ملخص الرصيد',
   'screens_balance_screen.140': 'لا توجد طرق سحب متاحة حاليًا.',
   'screens_balance_screen.141': 'ملخص العملية',
   'screens_balance_screen.142': 'المبلغ المطلوب: {amount}',

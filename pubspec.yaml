@@ -58,6 +58,8 @@ dependencies:
   esc_pos_utils_plus: ^2.0.4
   screenshot: ^3.0.0
   image: ^4.5.4
+  image_picker: ^1.2.2
+  google_mlkit_text_recognition: ^0.15.1
 
   # Utilities
   intl: ^0.20.2

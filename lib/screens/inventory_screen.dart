@@ -55,6 +55,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Map<String, dynamic>? _offlineOverview;
   Map<String, dynamic> _summary = const {};
   String _actionStatusMessage = '';
+  StateSetter? _inventoryToolsSetState;
 
   @override
   void initState() {
@@ -64,6 +65,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   void dispose() {
+    _inventoryToolsSetState = null;
     _creatorController.dispose();
     _valueMinController.dispose();
     _valueMaxController.dispose();
@@ -271,6 +273,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       appBar: AppBar(
         title: Text(l.tr('screens_inventory_screen.001')),
         actions: [
+          IconButton(
+            tooltip: l.tr('screens_inventory_screen.018'),
+            onPressed: _openInventoryTools,
+            icon: const Icon(Icons.tune_rounded),
+          ),
           if (_canRequestCardPrinting)
             IconButton(
               tooltip: l.tr('screens_inventory_screen.003'),
@@ -376,8 +383,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   List<_InventoryListItem> get _inventoryListItems {
     final items = <_InventoryListItem>[];
-    items.add(const _InventoryListItem(_InventoryListItemKind.overview));
-    items.add(const _InventoryListItem(_InventoryListItemKind.filters));
     if (_isOfflineData) {
       items.add(const _InventoryListItem(_InventoryListItemKind.offlineBanner));
     }
@@ -399,10 +404,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       );
     }
     if (_cards.isEmpty) {
-      items.add(const _InventoryListItem(_InventoryListItemKind.resultsHeader));
       items.add(const _InventoryListItem(_InventoryListItemKind.empty));
     } else {
-      items.add(const _InventoryListItem(_InventoryListItemKind.resultsHeader));
       for (var index = 0; index < _cards.length; index++) {
         items.add(
           _InventoryListItem(_InventoryListItemKind.card, cardIndex: index),
@@ -411,6 +414,60 @@ class _InventoryScreenState extends State<InventoryScreen> {
       items.add(const _InventoryListItem(_InventoryListItemKind.pagination));
     }
     return items;
+  }
+
+  Future<void> _openInventoryTools() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            _inventoryToolsSetState = setSheetState;
+            return DraggableScrollableSheet(
+              initialChildSize: 0.82,
+              minChildSize: 0.46,
+              maxChildSize: 0.94,
+              expand: false,
+              builder: (context, scrollController) {
+                return DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.border,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      _buildOverviewCard(),
+                      const SizedBox(height: 12),
+                      _buildFiltersPanel(),
+                      const SizedBox(height: 12),
+                      _buildResultsHeader(),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+    _inventoryToolsSetState = null;
   }
 
   Widget _buildBusyOverlay() {
@@ -557,9 +614,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ? 0
         : ((_page - 1) * (_canUseAdminInventory ? _adminPerPage : _perPage)) +
               1;
-    final lastItem = _cards.isEmpty
-        ? 0
-        : firstItem + _cards.length - 1;
+    final lastItem = _cards.isEmpty ? 0 : firstItem + _cards.length - 1;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -574,7 +629,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
           final title = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_statusFilterIcon(_filter), size: 18, color: AppTheme.primary),
+              Icon(
+                _statusFilterIcon(_filter),
+                size: 18,
+                color: AppTheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(label, style: AppTheme.bodyBold),
             ],
@@ -591,13 +650,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               children: [title, const SizedBox(height: 6), meta],
             );
           }
-          return Row(
-            children: [
-              title,
-              const Spacer(),
-              meta,
-            ],
-          );
+          return Row(children: [title, const Spacer(), meta]);
         },
       ),
     );
@@ -891,6 +944,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   _filter = status;
                   _page = 1;
                 });
+                Navigator.of(context).maybePop();
                 _load();
               },
               selectedColor: AppTheme.primary,
@@ -2155,10 +2209,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _issuedTo = picked;
       }
     });
+    _inventoryToolsSetState?.call(() {});
   }
 
   void _applyAdminFilters() {
     setState(() => _page = 1);
+    Navigator.of(context).maybePop();
     _load();
   }
 
@@ -2171,6 +2227,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _issuedTo = null;
       _page = 1;
     });
+    Navigator.of(context).maybePop();
     _load();
   }
 

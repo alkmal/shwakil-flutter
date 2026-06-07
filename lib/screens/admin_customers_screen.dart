@@ -238,7 +238,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 title: Text(l.tr('screens_admin_customers_screen.005')),
               ),
               body: SafeArea(
-                child: Center(
+                child: Align(
+                  alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 620),
                     child: ListView(
@@ -364,53 +365,43 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                             );
                           },
                         ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: isSaving
+                                    ? null
+                                    : () => Navigator.pop(dialogContext),
+                                child: Text(
+                                  l.tr('screens_admin_customers_screen.010'),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: isSaving ? null : submit,
+                                child: Text(
+                                  isSaving
+                                      ? l.tr(
+                                          'screens_admin_customers_screen.011',
+                                        )
+                                      : l.tr(
+                                          'screens_admin_customers_screen.012',
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
               ),
-              bottomNavigationBar: SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    border: Border(top: BorderSide(color: AppTheme.border)),
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 620),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: isSaving
-                                  ? null
-                                  : () => Navigator.pop(dialogContext),
-                              child: Text(
-                                l.tr('screens_admin_customers_screen.010'),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: isSaving ? null : submit,
-                              child: Text(
-                                isSaving
-                                    ? l.tr('screens_admin_customers_screen.011')
-                                    : l.tr(
-                                        'screens_admin_customers_screen.012',
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              resizeToAvoidBottomInset: true,
             );
           },
         ),

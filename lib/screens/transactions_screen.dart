@@ -41,6 +41,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   int _loadRequestId = 0;
   String _lastSubmittedQuery = '';
   bool _isAuthorized = true;
+  StateSetter? _transactionToolsSetState;
 
   String _t(String key, {Map<String, String>? params}) =>
       context.loc.tr(key, params: params);
@@ -54,6 +55,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _transactionToolsSetState = null;
     _searchController.dispose();
     super.dispose();
   }
@@ -238,10 +240,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       appBar: AppBar(
         title: Text(_t('screens_transactions_screen.005')),
         actions: [
+          if (_isRefreshing)
+            const Padding(
+              padding: EdgeInsetsDirectional.only(end: 6),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
           IconButton(
-            tooltip: _t('screens_transactions_screen.012'),
-            onPressed: _exportTransactions,
-            icon: const Icon(Icons.download_rounded),
+            tooltip: _t('screens_transactions_screen.054'),
+            onPressed: _openTransactionTools,
+            icon: const Icon(Icons.tune_rounded),
           ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
@@ -252,68 +265,39 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         onRefresh: _loadTransactions,
         child: ResponsiveScaffoldContainer(
           padding: AppTheme.pagePadding(context, top: 18),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 860;
-              return ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: _isLoading || _transactions.isEmpty
-                    ? 5
-                    : _transactions.length + 5,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return _buildHeaderCard(isCompact: isCompact);
-                  }
-                  if (index == 1) {
-                    return _buildSearchAndFilters(isCompact: isCompact);
-                  }
-                  if (index == 2) {
-                    return _buildResultsHeading(isCompact: isCompact);
-                  }
-                  if (index == 3) {
-                    if (_isRefreshing) {
-                      return const LinearProgressIndicator(minHeight: 3);
-                    }
-                    return const SizedBox.shrink();
-                  }
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: _isLoading || _transactions.isEmpty
+                ? 1
+                : _transactions.length + 1,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              if (_isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
 
-                  if (_isLoading) {
-                    if (index == 4) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }
+              if (_transactions.isEmpty) {
+                return _buildEmptyState();
+              }
 
-                  if (_transactions.isEmpty) {
-                    if (index == 4) {
-                      return _buildEmptyState();
-                    }
-                    return const SizedBox.shrink();
-                  }
+              if (index < _transactions.length) {
+                final tx = _transactions[index];
+                return _buildLedgerTransactionCard(tx);
+              }
 
-                  final txIndex = index - 4;
-                  if (txIndex < _transactions.length) {
-                    final tx = _transactions[txIndex];
-                    return _buildLedgerTransactionCard(tx);
-                  }
-
-                  return AdminPaginationFooter(
-                    currentPage: _page,
-                    lastPage: _lastPage,
-                    totalItems: _totalTransactions,
-                    itemsPerPage: _perPage,
-                    onPageChanged: (page) {
-                      setState(() => _page = page);
-                      _loadTransactions();
-                    },
-                  );
+              return AdminPaginationFooter(
+                currentPage: _page,
+                lastPage: _lastPage,
+                totalItems: _totalTransactions,
+                itemsPerPage: _perPage,
+                onPageChanged: (page) {
+                  setState(() => _page = page);
+                  _loadTransactions();
                 },
               );
             },
@@ -321,6 +305,67 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openTransactionTools() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            _transactionToolsSetState = setSheetState;
+            return DraggableScrollableSheet(
+              initialChildSize: 0.82,
+              minChildSize: 0.48,
+              maxChildSize: 0.94,
+              expand: false,
+              builder: (context, scrollController) {
+                return DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.border,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      LayoutBuilder(
+                        builder: (context, constraints) => _buildHeaderCard(
+                          isCompact: constraints.maxWidth < 860,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (context, constraints) =>
+                            _buildSearchAndFilters(
+                              isCompact: constraints.maxWidth < 860,
+                            ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+    _transactionToolsSetState = null;
   }
 
   Widget _buildHeaderCard({required bool isCompact}) {
@@ -634,6 +679,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _dateFilter = selected;
         _page = 1;
       });
+      _transactionToolsSetState?.call(() {});
       _loadTransactions(preserveContent: true);
     });
   }
@@ -648,6 +694,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           _auditFilter = selected;
           _page = 1;
         });
+        _transactionToolsSetState?.call(() {});
         _loadTransactions(preserveContent: true);
       },
     );
@@ -707,34 +754,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildResultsHeading({required bool isCompact}) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _t('screens_transactions_screen.005'),
-                style: AppTheme.h2.copyWith(fontSize: isCompact ? 18 : 20),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _isLoading
-                    ? context.loc.tr('screens_transactions_screen.046')
-                    : context.loc.tr(
-                        'screens_transactions_screen.047',
-                        params: {'count': '$_totalTransactions'},
-                      ),
-                style: AppTheme.caption.copyWith(fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -900,146 +919,147 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           body: ResponsiveScaffoldContainer(
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             child: ListView(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Icon(
-                      _transactionIcon(type, delta),
-                      color: accent,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _transactionTypeLabel(type, metadata),
-                          style: AppTheme.h3,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          tx['createdAt']?.toString() ?? '-',
-                          style: AppTheme.caption.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              ShwakelCard(
-                padding: const EdgeInsets.all(16),
-                color: AppTheme.surfaceVariant,
-                borderRadius: BorderRadius.circular(20),
-                shadowLevel: ShwakelShadowLevel.none,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    _buildDetailRow(
-                      _t('screens_transactions_screen.068'),
-                      _transactionConfirmationText(type, delta, metadata),
-                      accent,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow(
-                      _t('screens_transactions_screen.063'),
-                      CurrencyFormatter.ils(previousBalance),
-                      AppTheme.textPrimary,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow(
-                      _t('screens_transactions_screen.064'),
-                      CurrencyFormatter.ils(amount),
-                      AppTheme.textPrimary,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow(
-                      _t('screens_transactions_screen.065'),
-                      CurrencyFormatter.ils(fee),
-                      AppTheme.textPrimary,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow(
-                      _t('screens_transactions_screen.069'),
-                      '${delta >= 0 ? '+' : '-'}${CurrencyFormatter.ils(delta.abs())}',
-                      accent,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow(
-                      _t('screens_transactions_screen.066'),
-                      CurrencyFormatter.ils(currentBalance),
-                      AppTheme.primary,
-                    ),
-                    if (performedBy != null) ...[
-                      const SizedBox(height: 10),
-                      _buildDetailRow(
-                        _t('screens_transactions_screen.102'),
-                        performedBy,
-                        AppTheme.textPrimary,
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                    ],
-                    if (source != null) ...[
-                      const SizedBox(height: 10),
-                      _buildDetailRow(
-                        _t('screens_transactions_screen.103'),
-                        source,
-                        AppTheme.textPrimary,
+                      child: Icon(
+                        _transactionIcon(type, delta),
+                        color: accent,
+                        size: 24,
                       ),
-                    ],
-                    if (actor != null) ...[
-                      const SizedBox(height: 10),
-                      _buildDetailRow(
-                        _t('screens_transactions_screen.070'),
-                        actor,
-                        AppTheme.textPrimary,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _transactionTypeLabel(type, metadata),
+                            style: AppTheme.h3,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tx['createdAt']?.toString() ?? '-',
+                            style: AppTheme.caption.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                    if (cardDetails != null) ...[
-                      const SizedBox(height: 10),
-                      _buildDetailRow(
-                        _t('screens_transactions_screen.115'),
-                        cardDetails,
-                        AppTheme.textPrimary,
-                      ),
-                    ],
-                    if ((tx['description']?.toString().trim().isNotEmpty ??
-                        false)) ...[
-                      const SizedBox(height: 10),
-                      _buildDetailRow(
-                        _t('screens_transactions_screen.071'),
-                        _transactionDescriptionText(
-                          type: type,
-                          rawDescription: tx['description']?.toString() ?? '',
-                          metadata: metadata,
-                          amount: amount,
-                          fee: fee,
-                        ),
-                        AppTheme.textPrimary,
-                      ),
-                    ],
-                    if ((tx['id']?.toString().trim().isNotEmpty ?? false)) ...[
-                      const SizedBox(height: 10),
-                      _buildDetailRow(
-                        _t('screens_transactions_screen.072'),
-                        tx['id'].toString(),
-                        AppTheme.textPrimary,
-                      ),
-                    ],
+                    ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 18),
+                ShwakelCard(
+                  padding: const EdgeInsets.all(16),
+                  color: AppTheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                  shadowLevel: ShwakelShadowLevel.none,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.068'),
+                        _transactionConfirmationText(type, delta, metadata),
+                        accent,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.063'),
+                        CurrencyFormatter.ils(previousBalance),
+                        AppTheme.textPrimary,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.064'),
+                        CurrencyFormatter.ils(amount),
+                        AppTheme.textPrimary,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.065'),
+                        CurrencyFormatter.ils(fee),
+                        AppTheme.textPrimary,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.069'),
+                        '${delta >= 0 ? '+' : '-'}${CurrencyFormatter.ils(delta.abs())}',
+                        accent,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        _t('screens_transactions_screen.066'),
+                        CurrencyFormatter.ils(currentBalance),
+                        AppTheme.primary,
+                      ),
+                      if (performedBy != null) ...[
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
+                          _t('screens_transactions_screen.102'),
+                          performedBy,
+                          AppTheme.textPrimary,
+                        ),
+                      ],
+                      if (source != null) ...[
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
+                          _t('screens_transactions_screen.103'),
+                          source,
+                          AppTheme.textPrimary,
+                        ),
+                      ],
+                      if (actor != null) ...[
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
+                          _t('screens_transactions_screen.070'),
+                          actor,
+                          AppTheme.textPrimary,
+                        ),
+                      ],
+                      if (cardDetails != null) ...[
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
+                          _t('screens_transactions_screen.115'),
+                          cardDetails,
+                          AppTheme.textPrimary,
+                        ),
+                      ],
+                      if ((tx['description']?.toString().trim().isNotEmpty ??
+                          false)) ...[
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
+                          _t('screens_transactions_screen.071'),
+                          _transactionDescriptionText(
+                            type: type,
+                            rawDescription: tx['description']?.toString() ?? '',
+                            metadata: metadata,
+                            amount: amount,
+                            fee: fee,
+                          ),
+                          AppTheme.textPrimary,
+                        ),
+                      ],
+                      if ((tx['id']?.toString().trim().isNotEmpty ??
+                          false)) ...[
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
+                          _t('screens_transactions_screen.072'),
+                          tx['id'].toString(),
+                          AppTheme.textPrimary,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),

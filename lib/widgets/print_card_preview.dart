@@ -388,7 +388,7 @@ class PrintCardPreview extends StatelessWidget {
                                 if (designSettings.showLogo) ...[
                                   _LogoBox(
                                     logoUrl: designSettings.logoUrl,
-                                    size: 26,
+                                    size: 36,
                                   ),
                                   const SizedBox(width: 4),
                                 ],
@@ -404,8 +404,8 @@ class PrintCardPreview extends StatelessWidget {
                                                 : AppTheme.h1)
                                             .copyWith(
                                               fontSize: _isTicketCard
-                                                  ? 7.1
-                                                  : 14.2,
+                                                  ? 6.6
+                                                  : 12.2,
                                               height: 1.05,
                                               color: _isTicketCard
                                                   ? palette.primary

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:barcode/barcode.dart' as barcode;
 import 'package:barcode_widget/barcode_widget.dart' as bw;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -59,6 +58,7 @@ class _PrepaidMultipayCardsScreenState
   int _selfServiceMaxCards = 1;
   static const List<int> _validityYearOptions = [1, 2, 3, 4, 5];
   List<Map<String, dynamic>> _cards = const [];
+  List<Map<String, dynamic>> _payments = const [];
   final Set<String> _revealedCardIds = <String>{};
   String? _selectedCardId;
   String _activityFilter = 'all';
@@ -169,6 +169,7 @@ class _PrepaidMultipayCardsScreenState
             canManagePrepaidCards ||
             ((payload['selfService'] as Map?)?['canCreate']) == true;
         _cards = cards;
+        _payments = payments;
         _revealedCardIds.removeWhere(
           (id) => !_cards.any((card) => card['id']?.toString() == id),
         );
@@ -234,6 +235,9 @@ class _PrepaidMultipayCardsScreenState
     }
 
     final cards = List<Map<String, dynamic>>.from(cached['cards'] as List);
+    final payments = List<Map<String, dynamic>>.from(
+      cached['payments'] as List? ?? const [],
+    );
     if (cards.isEmpty || !mounted) {
       return false;
     }
@@ -250,6 +254,7 @@ class _PrepaidMultipayCardsScreenState
       _selfServiceLimitReached = cards.isNotEmpty;
       _selfServiceCanCreateCard = cards.isEmpty;
       _cards = cards;
+      _payments = payments;
       if (_selectedCardId == null ||
           !_cards.any((card) => card['id']?.toString() == _selectedCardId)) {
         _selectedCardId = _cards.first['id']?.toString();
@@ -269,16 +274,30 @@ class _PrepaidMultipayCardsScreenState
             title: Text(l.tr('screens_prepaid_multipay_cards_screen.002')),
           ),
           body: SafeArea(
-            child: Center(
+            child: Align(
+              alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),
                 child: ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
+                    _buildCardFinancialOverview(card),
+                    const SizedBox(height: 14),
+                    Text(
+                      'الرصيد الحالي: ${CurrencyFormatter.ils((card['balance'] as num?)?.toDouble() ?? 0)}',
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'سيتم خصم مبلغ الشحن من رصيد حسابك وإضافته مباشرة إلى البطاقة.',
+                      style: AppTheme.caption,
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: amountC,
-                      keyboardType: TextInputType.number,
-                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
                         labelText: l.tr(
                           'screens_prepaid_multipay_cards_screen.003',
@@ -286,45 +305,34 @@ class _PrepaidMultipayCardsScreenState
                         prefixIcon: const Icon(Icons.payments_rounded),
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            child: Text(l.tr('shared.cancel')),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            child: Text(
+                              l.tr('screens_prepaid_multipay_cards_screen.004'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
           ),
-          bottomNavigationBar: SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                border: Border(top: BorderSide(color: AppTheme.border)),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(dialogContext, false),
-                          child: Text(l.tr('shared.cancel')),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () => Navigator.pop(dialogContext, true),
-                          child: Text(
-                            l.tr('screens_prepaid_multipay_cards_screen.004'),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          resizeToAvoidBottomInset: true,
         ),
       ),
     );
@@ -413,7 +421,8 @@ class _PrepaidMultipayCardsScreenState
               title: Text(l.tr('screens_prepaid_multipay_cards_screen.012')),
             ),
             body: SafeArea(
-              child: Center(
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 620),
                   child: ListView(
@@ -421,7 +430,6 @@ class _PrepaidMultipayCardsScreenState
                     children: [
                       TextField(
                         controller: labelC,
-                        autofocus: true,
                         decoration: InputDecoration(
                           labelText: l.tr(
                             'screens_prepaid_multipay_cards_screen.013',
@@ -480,47 +488,38 @@ class _PrepaidMultipayCardsScreenState
                           setDialogState(() => selectedValidityYears = value);
                         },
                       ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                              child: Text(l.tr('shared.cancel')),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, true),
+                              icon: const Icon(Icons.add_card_rounded),
+                              label: Text(
+                                l.tr(
+                                  'screens_prepaid_multipay_cards_screen.017',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
             ),
-            bottomNavigationBar: SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  border: Border(top: BorderSide(color: AppTheme.border)),
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 620),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () =>
-                                Navigator.pop(dialogContext, false),
-                            child: Text(l.tr('shared.cancel')),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => Navigator.pop(dialogContext, true),
-                            icon: const Icon(Icons.add_card_rounded),
-                            label: Text(
-                              l.tr('screens_prepaid_multipay_cards_screen.017'),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            resizeToAvoidBottomInset: true,
           ),
         ),
       ),
@@ -963,7 +962,8 @@ class _PrepaidMultipayCardsScreenState
               builder: (dialogContext, setDialogState) => Scaffold(
                 appBar: AppBar(title: const Text('تحديد مبلغ الدفع')),
                 body: SafeArea(
-                  child: Center(
+                  child: Align(
+                    alignment: Alignment.topCenter,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 560),
                       child: ListView(
@@ -979,7 +979,6 @@ class _PrepaidMultipayCardsScreenState
                           const SizedBox(height: 12),
                           TextField(
                             controller: amountC,
-                            autofocus: true,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
@@ -996,61 +995,50 @@ class _PrepaidMultipayCardsScreenState
                               }
                             },
                           ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('إلغاء'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: () {
+                                    final amount =
+                                        double.tryParse(amountC.text.trim()) ??
+                                        0;
+                                    if (amount <= 0) {
+                                      setDialogState(
+                                        () => errorText = 'أدخل مبلغًا صحيحًا.',
+                                      );
+                                      return;
+                                    }
+                                    if (amount > balance) {
+                                      setDialogState(
+                                        () => errorText =
+                                            'المبلغ أكبر من الرصيد المتاح.',
+                                      );
+                                      return;
+                                    }
+                                    Navigator.pop(dialogContext, amount);
+                                  },
+                                  icon: const Icon(Icons.check_rounded),
+                                  label: const Text('متابعة'),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
                   ),
                 ),
-                bottomNavigationBar: SafeArea(
-                  top: false,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      border: Border(top: BorderSide(color: AppTheme.border)),
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 560),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pop(dialogContext),
-                                child: const Text('إلغاء'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: () {
-                                  final amount =
-                                      double.tryParse(amountC.text.trim()) ?? 0;
-                                  if (amount <= 0) {
-                                    setDialogState(
-                                      () => errorText = 'أدخل مبلغًا صحيحًا.',
-                                    );
-                                    return;
-                                  }
-                                  if (amount > balance) {
-                                    setDialogState(
-                                      () => errorText =
-                                          'المبلغ أكبر من الرصيد المتاح.',
-                                    );
-                                    return;
-                                  }
-                                  Navigator.pop(dialogContext, amount);
-                                },
-                                icon: const Icon(Icons.check_rounded),
-                                label: const Text('متابعة'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                resizeToAvoidBottomInset: true,
               ),
             );
           },
@@ -1107,7 +1095,8 @@ class _PrepaidMultipayCardsScreenState
           textDirection: pw.TextDirection.rtl,
           build: (_) => pw.Directionality(
             textDirection: pw.TextDirection.rtl,
-            child: pw.Center(
+            child: pw.Align(
+              alignment: pw.Alignment.topLeft,
               child: _buildPrepaidPdfCard(
                 width: cardWidth,
                 height: cardHeight,
@@ -1161,17 +1150,18 @@ class _PrepaidMultipayCardsScreenState
   }) {
     final labelDirection = _pdfTextDirection(label);
     final ownerDirection = _pdfTextDirection(ownerName);
-    final ownerAlignment = ownerDirection == pw.TextDirection.ltr
-        ? pw.CrossAxisAlignment.end
-        : pw.CrossAxisAlignment.start;
     final normalizedLabel = label.trim().isEmpty
         ? 'Shwakil Prepaid'
         : label.trim();
+    final normalizedRawNumber = rawNumber.replaceAll(RegExp(r'\D+'), '');
+    final barcodeData = normalizedRawNumber.isNotEmpty
+        ? normalizedRawNumber
+        : rawNumber.trim();
 
     return pw.Container(
       width: width,
       height: height,
-      padding: pw.EdgeInsets.all(5.2 * PdfPageFormat.mm),
+      padding: pw.EdgeInsets.all(3 * PdfPageFormat.mm),
       decoration: pw.BoxDecoration(
         color: const PdfColor.fromInt(0xFFFFF8EC),
         border: pw.Border.all(
@@ -1223,7 +1213,27 @@ class _PrepaidMultipayCardsScreenState
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
+                  if (logoImage != null) ...[
+                    pw.Container(
+                      width: 14 * PdfPageFormat.mm,
+                      height: 14 * PdfPageFormat.mm,
+                      padding: const pw.EdgeInsets.all(2.2),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.white,
+                        border: pw.Border.all(
+                          color: const PdfColor.fromInt(
+                            AppTheme.primaryBorderValue,
+                          ),
+                          width: 0.6,
+                        ),
+                        borderRadius: pw.BorderRadius.circular(7),
+                      ),
+                      child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+                    ),
+                    pw.SizedBox(width: 7),
+                  ],
                   pw.Expanded(
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1233,58 +1243,39 @@ class _PrepaidMultipayCardsScreenState
                           textDirection: pw.TextDirection.rtl,
                           style: pw.TextStyle(
                             font: _pdfBoldFont,
-                            fontSize: 12.6,
+                            fontSize: 12,
                             color: const PdfColor.fromInt(
                               AppTheme.primaryValue,
                             ),
                           ),
                         ),
                         pw.Text(
+                          normalizedLabel,
+                          maxLines: 1,
+                          textDirection: labelDirection,
+                          style: pw.TextStyle(
+                            font: _pdfBoldFont,
+                            fontSize: 6.2,
+                            color: const PdfColor.fromInt(0xFF16302B),
+                          ),
+                        ),
+                        pw.SizedBox(height: 1.2),
+                        pw.Text(
                           'بطاقة دفع مسبق',
                           textDirection: pw.TextDirection.rtl,
                           style: pw.TextStyle(
                             font: _pdfBoldFont,
-                            fontSize: 7.2,
+                            fontSize: 5.4,
                             color: const PdfColor.fromInt(0xFF64748B),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (logoImage != null)
-                    pw.Container(
-                      width: 24,
-                      height: 24,
-                      padding: const pw.EdgeInsets.all(2),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        borderRadius: pw.BorderRadius.circular(7),
-                      ),
-                      child: pw.Image(logoImage, fit: pw.BoxFit.cover),
-                    ),
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Row(
-                children: [
-                  pw.Container(
-                    width: 25,
-                    height: 18,
-                    decoration: pw.BoxDecoration(
-                      borderRadius: pw.BorderRadius.circular(4),
-                      gradient: const pw.LinearGradient(
-                        colors: [
-                          PdfColor(0.96, 0.84, 0.49),
-                          PdfColor(0.78, 0.58, 0.19),
-                        ],
-                      ),
-                    ),
-                  ),
-                  pw.Spacer(),
                   pw.Container(
                     padding: const pw.EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
+                      horizontal: 6,
+                      vertical: 2.5,
                     ),
                     decoration: pw.BoxDecoration(
                       color: const PdfColor.fromInt(0xFFFFE4E6),
@@ -1295,18 +1286,18 @@ class _PrepaidMultipayCardsScreenState
                       ),
                     ),
                     child: pw.Text(
-                      'بطاقة دفع مسبق',
+                      status,
                       textDirection: pw.TextDirection.rtl,
                       style: pw.TextStyle(
                         font: _pdfBoldFont,
-                        fontSize: 6,
+                        fontSize: 5,
                         color: const PdfColor.fromInt(0xFFBE123C),
                       ),
                     ),
                   ),
                 ],
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 4),
               pw.Directionality(
                 textDirection: pw.TextDirection.ltr,
                 child: pw.Text(
@@ -1314,137 +1305,142 @@ class _PrepaidMultipayCardsScreenState
                   maxLines: 1,
                   style: pw.TextStyle(
                     font: _pdfBoldFont,
-                    fontSize: 11.8,
+                    fontSize: 10.4,
                     color: const PdfColor.fromInt(AppTheme.primaryValue),
                     letterSpacing: 0,
                   ),
                 ),
               ),
-              pw.SizedBox(height: 6),
-              pw.Directionality(
-                textDirection: labelDirection,
-                child: pw.Text(
-                  normalizedLabel,
-                  maxLines: 1,
-                  style: pw.TextStyle(
-                    font: _pdfBoldFont,
-                    fontSize: 7.1,
-                    color: const PdfColor.fromInt(0xFF16302B),
-                  ),
-                ),
-              ),
-              pw.SizedBox(height: 4),
-              pw.Directionality(
-                textDirection: ownerDirection,
-                child: pw.Text(
-                  ownerName.isEmpty ? 'صاحب البطاقة' : ownerName,
-                  maxLines: 1,
-                  style: const pw.TextStyle(
-                    fontSize: 6.2,
-                    color: PdfColor.fromInt(0xFF64748B),
-                  ),
-                ),
-              ),
-              pw.SizedBox(height: 9),
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                    child: _buildPrepaidPdfInfoPill(
-                      title: 'الرصيد المتاح',
-                      value: balance,
-                    ),
-                  ),
-                  pw.SizedBox(width: 5),
-                  pw.Expanded(
-                    child: _buildPrepaidPdfInfoPill(
-                      title: 'تاريخ الانتهاء',
-                      value: expiry,
-                    ),
-                  ),
-                  pw.SizedBox(width: 5),
-                  pw.Expanded(
-                    child: _buildPrepaidPdfInfoPill(
-                      title: 'الحالة',
-                      value: status,
-                    ),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 8),
+              pw.SizedBox(height: 3.5),
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Container(
-                    width: 13 * PdfPageFormat.mm,
-                    height: 13 * PdfPageFormat.mm,
-                    padding: const pw.EdgeInsets.all(2),
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.white,
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                    child: pw.BarcodeWidget(
-                      barcode: pw.Barcode.qrCode(),
-                      data: scanPayload,
-                      drawText: false,
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'صاحب البطاقة',
+                          textDirection: pw.TextDirection.rtl,
+                          style: const pw.TextStyle(
+                            fontSize: 4.5,
+                            color: PdfColor.fromInt(0xFF64748B),
+                          ),
+                        ),
+                        pw.SizedBox(height: 1.8),
+                        pw.Directionality(
+                          textDirection: ownerDirection,
+                          child: pw.Text(
+                            ownerName.isEmpty ? 'صاحب البطاقة' : ownerName,
+                            maxLines: 1,
+                            style: pw.TextStyle(
+                              font: _pdfBoldFont,
+                              fontSize: 5.7,
+                              color: const PdfColor.fromInt(0xFF16302B),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  pw.SizedBox(width: 4),
-                  pw.Expanded(
-                    child: pw.Container(
-                      height: 19 * PdfPageFormat.mm,
-                      padding: const pw.EdgeInsets.all(3),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        border: pw.Border.all(
-                          color: const PdfColor.fromInt(
-                            AppTheme.primaryBorderValue,
-                          ),
-                          width: 0.7,
+                  pw.SizedBox(width: 6),
+                  pw.Container(
+                    width: 28 * PdfPageFormat.mm,
+                    padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 3.2,
+                    ),
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor.fromInt(AppTheme.primaryMistValue),
+                      borderRadius: pw.BorderRadius.circular(5),
+                      border: pw.Border.all(
+                        color: const PdfColor.fromInt(
+                          AppTheme.primaryBorderValue,
                         ),
-                        borderRadius: pw.BorderRadius.circular(5),
+                        width: 0.5,
                       ),
-                      child: pw.Column(
-                        mainAxisAlignment: pw.MainAxisAlignment.center,
-                        children: [
-                          pw.Expanded(
-                            child: pw.SvgImage(
-                              svg: _prepaidPdfBarcodeSvg(rawNumber),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          balance,
+                          maxLines: 1,
+                          textDirection: _pdfTextDirection(balance),
+                          style: pw.TextStyle(
+                            font: _pdfBoldFont,
+                            fontSize: 6,
+                            color: const PdfColor.fromInt(
+                              AppTheme.primaryValue,
                             ),
                           ),
-                          if (rawNumber.trim().isNotEmpty) ...[
-                            pw.SizedBox(height: 1.2),
-                            pw.Text(
-                              rawNumber.trim(),
-                              textDirection: pw.TextDirection.ltr,
-                              textAlign: pw.TextAlign.center,
-                              style: pw.TextStyle(
-                                fontSize: 5.0,
-                                color: const PdfColor.fromInt(0xFF16302B),
-                                font: pw.Font.courierBold(),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                        pw.SizedBox(height: 1.5),
+                        pw.Text(
+                          'ينتهي $expiry',
+                          maxLines: 1,
+                          textDirection: pw.TextDirection.rtl,
+                          style: const pw.TextStyle(
+                            fontSize: 4.4,
+                            color: PdfColor.fromInt(0xFF64748B),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
               pw.Spacer(),
+              pw.Container(
+                width: double.infinity,
+                height: 18 * PdfPageFormat.mm,
+                padding: const pw.EdgeInsets.fromLTRB(5, 4, 5, 3),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  border: pw.Border.all(
+                    color: const PdfColor.fromInt(AppTheme.primaryBorderValue),
+                    width: 0.8,
+                  ),
+                  borderRadius: pw.BorderRadius.circular(5),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Expanded(
+                      child: pw.BarcodeWidget(
+                        barcode: pw.Barcode.code128(),
+                        data: barcodeData,
+                        drawText: false,
+                      ),
+                    ),
+                    pw.SizedBox(height: 1.2),
+                    pw.Text(
+                      barcodeData,
+                      textDirection: pw.TextDirection.ltr,
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        fontSize: 5.4,
+                        color: const PdfColor.fromInt(0xFF16302B),
+                        font: pw.Font.courierBold(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 2.4),
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
                   pw.Expanded(
                     child: pw.Column(
-                      crossAxisAlignment: ownerAlignment,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Text(
-                          'شواكل بطاقتك الرقمية الموثقة',
+                          'شواكل - بطاقة رقمية موثقة',
                           textAlign: pw.TextAlign.right,
                           textDirection: pw.TextDirection.rtl,
                           style: pw.TextStyle(
                             font: _pdfBoldFont,
-                            fontSize: 6.1,
+                            fontSize: 4.8,
                             color: const PdfColor.fromInt(
                               AppTheme.primaryValue,
                             ),
@@ -1456,89 +1452,51 @@ class _PrepaidMultipayCardsScreenState
                           textDirection: pw.TextDirection.ltr,
                           style: pw.TextStyle(
                             font: pw.Font.helveticaBold(),
-                            fontSize: 5.5,
+                            fontSize: 4.7,
                             color: const PdfColor.fromInt(0xFF16302B),
                           ),
                         ),
-                        pw.SizedBox(height: 2),
+                        pw.SizedBox(height: 1),
                         pw.Text(
                           checkUrl,
                           maxLines: 1,
                           textDirection: pw.TextDirection.ltr,
                           style: const pw.TextStyle(
-                            fontSize: 4.7,
+                            fontSize: 3.8,
                             color: PdfColor.fromInt(0xFF64748B),
                           ),
                         ),
-                        if (issuerPhone.isNotEmpty) ...[
-                          pw.SizedBox(height: 2),
-                          pw.Text(
-                            'هاتف المصدر: $issuerPhone',
-                            textDirection: pw.TextDirection.ltr,
-                            style: const pw.TextStyle(
-                              fontSize: 5.3,
-                              color: PdfColor.fromInt(0xFF64748B),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
-                  pw.SizedBox(width: 8),
-                  pw.Text(
-                    'SH',
-                    textDirection: pw.TextDirection.ltr,
-                    style: pw.TextStyle(
-                      font: _pdfBoldFont,
-                      fontSize: 10,
-                      color: const PdfColor.fromInt(AppTheme.primaryValue),
-                      letterSpacing: 0,
+                  pw.SizedBox(width: 5),
+                  pw.Container(
+                    width: 9 * PdfPageFormat.mm,
+                    height: 9 * PdfPageFormat.mm,
+                    padding: const pw.EdgeInsets.all(1.5),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: pw.BorderRadius.circular(3),
+                    ),
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: scanPayload,
+                      drawText: false,
                     ),
                   ),
+                  pw.SizedBox(width: 5),
+                  if (issuerPhone.isNotEmpty)
+                    pw.Text(
+                      issuerPhone,
+                      textDirection: pw.TextDirection.ltr,
+                      style: const pw.TextStyle(
+                        fontSize: 4.8,
+                        color: PdfColor.fromInt(0xFF64748B),
+                      ),
+                    ),
                 ],
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _buildPrepaidPdfInfoPill({
-    required String title,
-    required String value,
-  }) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: pw.BoxDecoration(
-        color: const PdfColor.fromInt(AppTheme.primaryMistValue),
-        borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(
-          color: const PdfColor.fromInt(AppTheme.primaryBorderValue),
-          width: 0.6,
-        ),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            title,
-            textDirection: pw.TextDirection.rtl,
-            style: const pw.TextStyle(
-              fontSize: 5.2,
-              color: PdfColor.fromInt(0xFF64748B),
-            ),
-          ),
-          pw.SizedBox(height: 3),
-          pw.Text(
-            value,
-            maxLines: 1,
-            textDirection: _pdfTextDirection(value),
-            style: pw.TextStyle(
-              font: _pdfBoldFont,
-              fontSize: 6.7,
-              color: const PdfColor.fromInt(AppTheme.primaryValue),
-            ),
           ),
         ],
       ),
@@ -2283,7 +2241,10 @@ class _PrepaidMultipayCardsScreenState
             )
           : ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: _cards.isEmpty ? 2 : _cards.length + 1,
+              itemCount:
+                  1 +
+                  (_cards.isEmpty ? 1 : _cards.length) +
+                  (_payments.isEmpty ? 0 : 1),
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final l = context.loc;
@@ -2311,6 +2272,14 @@ class _PrepaidMultipayCardsScreenState
                                 ),
                               ),
                             ),
+                          if (_canAcceptPrepaidPayments) ...[
+                            const SizedBox(width: 8),
+                            IconButton.filledTonal(
+                              onPressed: () => _openUnifiedScanner(),
+                              tooltip: 'قبول دفع',
+                              icon: const Icon(Icons.point_of_sale_rounded),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -2339,13 +2308,16 @@ class _PrepaidMultipayCardsScreenState
                   );
                 }
 
-                if (_cards.isEmpty) {
+                if (index == 1 && _cards.isEmpty) {
                   return _buildEmpty();
                 }
 
                 final cardIndex = index - 1;
-                final card = _cards[cardIndex];
-                return _buildCardListItem(card);
+                if (cardIndex < _cards.length) {
+                  return _buildCardListItem(_cards[cardIndex]);
+                }
+
+                return _buildRecentPaymentsSection(_payments);
               },
             ),
     );
@@ -2481,13 +2453,10 @@ class _PrepaidMultipayCardsScreenState
         _canUsePrepaidCards && (status == 'active' || status == 'frozen');
     final canUseForPayment = _canAcceptPrepaidPayments && status == 'active';
     final canReload =
-        _canUsePrepaidCards && (status == 'active' || status == 'frozen');
+        _canUsePrepaidCards &&
+        (status == 'active' || status == 'frozen' || status == 'spent');
     final canRenew = _canUsePrepaidCards && status == 'expired';
-    final payments = List<Map<String, dynamic>>.from(
-      (card['payments'] as List? ?? const []).map(
-        (item) => Map<String, dynamic>.from(item as Map),
-      ),
-    );
+    final payments = _paymentsForCard(card);
     final activity = List<Map<String, dynamic>>.from(
       (card['activity'] as List? ?? const []).map(
         (item) => Map<String, dynamic>.from(item as Map),
@@ -2511,6 +2480,10 @@ class _PrepaidMultipayCardsScreenState
           ],
           _buildCardFinancialOverview(card),
           const SizedBox(height: 16),
+          if (payments.isNotEmpty) ...[
+            _buildRecentPaymentsSection(payments, limit: 5),
+            const SizedBox(height: 16),
+          ],
           if (showActivationGuide) ...[
             Container(
               width: double.infinity,
@@ -3346,12 +3319,6 @@ class _PrepaidMultipayCardsScreenState
         : pw.TextDirection.ltr;
   }
 
-  String _prepaidPdfBarcodeSvg(String rawNumber) {
-    final normalized = rawNumber.replaceAll(RegExp(r'\D+'), '');
-    final generator = barcode.Barcode.code128();
-    return generator.toSvg(normalized, width: 180, height: 54, drawText: false);
-  }
-
   Widget _buildCardWarnings(Map<String, dynamic> card) {
     final warnings = List<String>.from(
       (card['warnings'] as List? ?? const []).map((item) => item.toString()),
@@ -3391,6 +3358,22 @@ class _PrepaidMultipayCardsScreenState
   Widget _buildCardPaymentRow(Map<String, dynamic> payment) {
     final amount = (payment['amount'] as num?)?.toDouble() ?? 0;
     final note = payment['note']?.toString() ?? '';
+    final direction = payment['direction']?.toString() ?? 'out';
+    final merchant =
+        payment['merchantDisplayName']?.toString().trim().isNotEmpty == true
+        ? payment['merchantDisplayName'].toString().trim()
+        : payment['merchantUsername']?.toString().trim() ?? '';
+    final cardLabel = payment['cardLabel']?.toString().trim() ?? '';
+    final remaining = (payment['remainingCardBalance'] as num?)?.toDouble();
+    final isIncoming = direction == 'in';
+    final color = isIncoming ? AppTheme.success : AppTheme.primary;
+    final title = note.isNotEmpty
+        ? note
+        : isIncoming
+        ? 'دفعة مستلمة'
+        : merchant.isNotEmpty
+        ? 'دفع إلى $merchant'
+        : 'دفع بالبطاقة المسبقة';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -3400,16 +3383,28 @@ class _PrepaidMultipayCardsScreenState
       ),
       child: Row(
         children: [
-          const Icon(Icons.receipt_long_rounded, size: 18),
+          Icon(
+            isIncoming ? Icons.call_received_rounded : Icons.call_made_rounded,
+            size: 18,
+            color: color,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  note.isEmpty ? 'دفع بطاقة مسبقة' : note,
-                  style: AppTheme.bodyBold,
-                ),
+                Text(title, style: AppTheme.bodyBold),
+                if (cardLabel.isNotEmpty || merchant.isNotEmpty)
+                  Text(
+                    [
+                      if (cardLabel.isNotEmpty) cardLabel,
+                      if (merchant.isNotEmpty && !title.contains(merchant))
+                        merchant,
+                    ].join(' | '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption,
+                  ),
                 Text(
                   _formatDateTime(
                     DateTime.tryParse(payment['createdAt']?.toString() ?? ''),
@@ -3419,7 +3414,65 @@ class _PrepaidMultipayCardsScreenState
               ],
             ),
           ),
-          Text(CurrencyFormatter.ils(amount), style: AppTheme.bodyBold),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${isIncoming ? '+' : '-'}${CurrencyFormatter.ils(amount)}',
+                style: AppTheme.bodyBold.copyWith(color: color),
+              ),
+              if (remaining != null && !isIncoming)
+                Text(
+                  'الرصيد الحالي ${CurrencyFormatter.ils(remaining)}',
+                  style: AppTheme.caption,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _paymentsForCard(Map<String, dynamic> card) {
+    final cardId = card['id']?.toString() ?? '';
+    final combined = <Map<String, dynamic>>[
+      ..._payments.where(
+        (payment) => payment['prepaidCardId']?.toString() == cardId,
+      ),
+      ...List<Map<String, dynamic>>.from(
+        (card['payments'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      ),
+    ];
+    final seen = <String>{};
+    combined.removeWhere((payment) {
+      final id = payment['id']?.toString() ?? '';
+      return id.isNotEmpty && !seen.add(id);
+    });
+    combined.sort(
+      (left, right) => (right['createdAt']?.toString() ?? '').compareTo(
+        left['createdAt']?.toString() ?? '',
+      ),
+    );
+    return combined;
+  }
+
+  Widget _buildRecentPaymentsSection(
+    List<Map<String, dynamic>> payments, {
+    int? limit,
+  }) {
+    final visible = limit == null ? payments : payments.take(limit).toList();
+
+    return _buildDetailsSection(
+      title: limit == null ? 'آخر عمليات الدفع' : 'آخر مدفوعات البطاقة',
+      icon: Icons.receipt_long_rounded,
+      child: Column(
+        children: [
+          for (var index = 0; index < visible.length; index++) ...[
+            if (index > 0) const SizedBox(height: 10),
+            _buildCardPaymentRow(visible[index]),
+          ],
         ],
       ),
     );
@@ -3513,6 +3566,8 @@ class _PrepaidMultipayCardsScreenState
       'reloads' =>
         type == 'prepaid_multipay_reload' ||
             type == 'prepaid_multipay_create' ||
+            type == 'prepaid_multipay_admin_credit' ||
+            type == 'prepaid_multipay_admin_debit' ||
             type == 'prepaid_multipay_reject_refund' ||
             type == 'prepaid_multipay_refund',
       'status' =>

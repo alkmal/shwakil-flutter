@@ -1149,6 +1149,21 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> requestExistingCardsPrint({
+    required List<String> cardIds,
+    String notes = '',
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('cards/print-requests/existing'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'cardIds': cardIds.where((id) => id.trim().isNotEmpty).toList(),
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getCardPrintRequests({
     String status = 'all',
     String query = '',
@@ -2368,6 +2383,7 @@ class ApiService {
     Map<String, dynamic>? cardDetails,
     String? otpCode,
     String? localAuthMethod,
+    String? customBarcode,
   }) async {
     final payload = <String, dynamic>{
       'value': value,
@@ -2382,6 +2398,8 @@ class ApiService {
       if (validUntil != null && validUntil.trim().isNotEmpty)
         'validUntil': validUntil,
       ...?cardDetails == null ? null : {'cardDetails': cardDetails},
+      if (customBarcode != null && customBarcode.trim().isNotEmpty)
+        'customBarcode': customBarcode.trim(),
       if (otpCode != null && otpCode.trim().isNotEmpty)
         'otpCode': otpCode.trim(),
       if (otpCode == null || otpCode.trim().isEmpty)
@@ -3055,6 +3073,94 @@ class ApiService {
       AppConfig.apiUri('admin/settings/prepaid-multipay'),
       headers: await _headers(),
       body: jsonEncode(payload),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getExternalCardStoreCatalog({
+    int categoryId = 2,
+    int type = 2,
+    int perPage = 100,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('external-card-store/catalog', {
+        'category_id': categoryId.toString(),
+        'type': type.toString(),
+        'per_page': perPage.toString(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> purchaseExternalCard({
+    required String ean,
+    required String title,
+    required double price,
+    double? providerPriceUsd,
+    required int categoryId,
+    String? otpCode,
+    String? localAuthMethod,
+    int quantity = 1,
+  }) async {
+    final payload = <String, dynamic>{
+      'ean': ean.trim(),
+      'title': title.trim(),
+      'price': price,
+      'categoryId': categoryId,
+      'quantity': quantity,
+    };
+    if (providerPriceUsd != null) {
+      payload['providerPriceUsd'] = providerPriceUsd;
+    }
+    if (otpCode != null && otpCode.trim().isNotEmpty) {
+      payload['otpCode'] = otpCode.trim();
+    } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
+      payload['localAuthMethod'] = localAuthMethod.trim();
+    }
+
+    final response = await http.post(
+      AppConfig.apiUri('external-card-store/purchase'),
+      headers: await _headers(),
+      body: jsonEncode(payload),
+    );
+    final body = _decodeObject(response);
+    await _patchCachedBalanceFromPayload(body);
+    return body;
+  }
+
+  Future<List<Map<String, dynamic>>> getExternalCardStoreOrders({
+    int limit = 30,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('external-card-store/orders', {
+        'limit': limit.toString(),
+      }),
+      headers: await _headers(),
+    );
+    final body = _decodeObject(response);
+    return List<Map<String, dynamic>>.from(
+      (body['orders'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> getAdminExternalCardStoreSettings() async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/settings/external-card-store'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateAdminExternalCardStoreSettings(
+    Map<String, dynamic> settings,
+  ) async {
+    final response = await http.put(
+      AppConfig.apiUri('admin/settings/external-card-store'),
+      headers: await _headers(),
+      body: jsonEncode(settings),
     );
     return _decodeObject(response);
   }

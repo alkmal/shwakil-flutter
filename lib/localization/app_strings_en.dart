@@ -3028,6 +3028,7 @@ const Map<String, String> appStringsEn = {
   'screens_balance_screen.137': 'No extra fees',
   'screens_balance_screen.138': 'Minimum {amount}',
   'screens_balance_screen.139': 'Maximum {amount}',
+  'screens_balance_screen.150': 'Balance summary',
   'screens_balance_screen.140': 'There are currently no withdrawal methods.',
   'screens_balance_screen.141': 'Operation summary',
   'screens_balance_screen.142': 'Requested amount: {amount}',

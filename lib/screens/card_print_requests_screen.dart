@@ -541,7 +541,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 title: Text(l.tr('screens_card_print_requests_screen.007')),
               ),
               body: SafeArea(
-                child: Center(
+                child: Align(
+                  alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 760),
                     child: ListView(
@@ -1055,55 +1056,45 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () => Navigator.pop(dialogContext),
+                                child: Text(
+                                  l.tr(
+                                    'screens_card_print_requests_screen.015',
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: _isSubmitting ? null : submit,
+                                child: Text(
+                                  _isSubmitting
+                                      ? l.tr(
+                                          'screens_card_print_requests_screen.016',
+                                        )
+                                      : l.tr(
+                                          'screens_card_print_requests_screen.017',
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
               ),
-              bottomNavigationBar: SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    border: Border(top: BorderSide(color: AppTheme.border)),
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 760),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : () => Navigator.pop(dialogContext),
-                              child: Text(
-                                l.tr('screens_card_print_requests_screen.015'),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: _isSubmitting ? null : submit,
-                              child: Text(
-                                _isSubmitting
-                                    ? l.tr(
-                                        'screens_card_print_requests_screen.016',
-                                      )
-                                    : l.tr(
-                                        'screens_card_print_requests_screen.017',
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              resizeToAvoidBottomInset: true,
             );
           },
         ),
@@ -2402,7 +2393,6 @@ class _PrintTargetUsersScreenState extends State<_PrintTargetUsersScreen> {
                 children: [
                   TextField(
                     controller: _searchController,
-                    autofocus: true,
                     decoration: InputDecoration(
                       labelText: l.tr('screens_card_print_requests_screen.098'),
                       prefixIcon: const Icon(Icons.search_rounded),
