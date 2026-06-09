@@ -336,8 +336,6 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                       _buildTabs(),
                       const SizedBox(height: 18),
                       if (_activeTab == 0) ...[
-                        _buildHeader(),
-                        const SizedBox(height: 16),
                         _buildSearch(),
                         const SizedBox(height: 16),
                         if (_isCategoryScreen)
@@ -417,56 +415,6 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    final title = _isCategoryScreen
-        ? 'اختر القسم المناسب'
-        : _selectedCategory?['title']?.toString() ?? 'بطاقات القسم';
-    final subtitle = _isCategoryScreen
-        ? 'تصفح الأقسام أولاً، ثم ادخل للقسم المطلوب لعرض الأقسام الفرعية والبطاقات المتاحة.'
-        : 'الأقسام الفرعية تظهر أولاً إن وجدت، وتظهر البطاقات المتاحة للشراء في نفس الشاشة.';
-
-    return ShwakelCard(
-      padding: const EdgeInsets.all(22),
-      borderRadius: BorderRadius.circular(24),
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(
-              _isCategoryScreen
-                  ? Icons.category_rounded
-                  : Icons.confirmation_number_rounded,
-              color: AppTheme.primary,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTheme.h3),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTheme.bodyAction.copyWith(height: 1.5),
-                ),
-                if (!_isCategoryScreen) ...[
-                  const SizedBox(height: 10),
-                  _buildTrail(),
-                ],
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -688,7 +636,20 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
-              final columns = width >= 1040 ? 3 : (width >= 680 ? 2 : 1);
+              if (width < 680) {
+                return Column(
+                  children: cards
+                      .map(
+                        (card) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _cardTile(card),
+                        ),
+                      )
+                      .toList(),
+                );
+              }
+
+              final columns = width >= 1040 ? 3 : 2;
               return GridView.builder(
                 itemCount: cards.length,
                 shrinkWrap: true,
@@ -697,7 +658,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                   crossAxisCount: columns,
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  childAspectRatio: columns == 1 ? 1.28 : 0.84,
+                  mainAxisExtent: 430,
                 ),
                 itemBuilder: (context, index) => _cardTile(cards[index]),
               );
@@ -807,61 +768,60 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
               icon: Icons.confirmation_number_rounded,
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.bodyBold.copyWith(fontSize: 16),
-                        ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodyBold.copyWith(fontSize: 16),
                       ),
-                      const SizedBox(width: 8),
-                      _availabilityBadge(available, availabilityLabel),
-                    ],
-                  ),
-                  if (description.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.caption.copyWith(height: 1.35),
                     ),
+                    const SizedBox(width: 8),
+                    _availabilityBadge(available, availabilityLabel),
                   ],
-                  const Spacer(),
-                  _priceBreakdown(finalPrice: finalPrice),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _isPurchasing || !available
-                          ? null
-                          : () => _purchase(card),
-                      icon: _isPurchasing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              available
-                                  ? Icons.shopping_cart_checkout_rounded
-                                  : Icons.info_outline_rounded,
-                            ),
-                      label: Text(available ? 'شراء مباشر' : 'غير متوفرة'),
-                    ),
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(height: 1.35),
                   ),
                 ],
-              ),
+                const SizedBox(height: 14),
+                _priceBreakdown(finalPrice: finalPrice),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _isPurchasing || !available
+                        ? null
+                        : () => _purchase(card),
+                    icon: _isPurchasing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            available
+                                ? Icons.shopping_cart_checkout_rounded
+                                : Icons.info_outline_rounded,
+                          ),
+                    label: Text(available ? 'شراء مباشر' : 'غير متوفرة'),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
