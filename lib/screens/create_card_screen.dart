@@ -1468,6 +1468,33 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
 
+    final estimatedPages = (cardIds.length / 30).ceil().clamp(1, 9999);
+    final estimatedFee = (estimatedPages / 3).ceil();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد طلب الطباعة'),
+        content: Text(
+          'سيتم إرسال ${cardIds.length} بطاقة للإدارة وخصم رسوم الطباعة حسب إعدادات النظام.\n'
+          'التقدير الحالي: $estimatedPages صفحة A4، ورسوم تقريبية $estimatedFee شيكل.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.print_rounded),
+            label: const Text('إرسال الطلب'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+
     _setLoadingState(
       true,
       headline: 'جارٍ إرسال طلب الطباعة...',

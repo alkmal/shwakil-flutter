@@ -25,9 +25,14 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
 
   bool _isLoading = true;
   bool _isLoadingCatalog = false;
+  bool _isLoadingOrders = false;
   bool _isPurchasing = false;
   bool _isUpdatingSearchProgrammatically = false;
+  int _activeTab = 0;
   int _categoryId = _rootCategoryId;
+  int _ordersPage = 1;
+  int _ordersLastPage = 1;
+  int _ordersTotal = 0;
   final int _type = 2;
   List<Map<String, dynamic>> _rootCategories = const [];
   List<Map<String, dynamic>> _categories = const [];
@@ -66,10 +71,16 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
           categoryId: _isCategoryScreen ? _rootCategoryId : _categoryId,
           type: _type,
         ),
-        _api.getExternalCardStoreOrders(),
+        _api.getExternalCardStoreOrdersPayload(page: _ordersPage),
       ]);
       final payload = Map<String, dynamic>.from(results[0] as Map);
-      final orders = List<Map<String, dynamic>>.from(results[1] as List);
+      final ordersPayload = Map<String, dynamic>.from(results[1] as Map);
+      final orders = List<Map<String, dynamic>>.from(
+        ordersPayload['orders'] as List? ?? const [],
+      );
+      final ordersPagination = Map<String, dynamic>.from(
+        ordersPayload['pagination'] as Map? ?? const {},
+      );
       final categories = _mapList(payload['categories']);
       final cards = _mapList(payload['cards']);
 
@@ -84,11 +95,42 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
           _cards = cards;
         }
         _orders = orders;
+        _ordersPage = (ordersPagination['currentPage'] as num?)?.toInt() ?? 1;
+        _ordersLastPage = (ordersPagination['lastPage'] as num?)?.toInt() ?? 1;
+        _ordersTotal = (ordersPagination['total'] as num?)?.toInt() ?? orders.length;
         _isLoading = false;
       });
     } catch (error) {
       if (!mounted) return;
       setState(() => _isLoading = false);
+      await _showMessage(error.toString(), isError: true);
+    }
+  }
+
+  Future<void> _loadOrders({int? page}) async {
+    if (_isLoadingOrders) return;
+    setState(() => _isLoadingOrders = true);
+    try {
+      final payload = await _api.getExternalCardStoreOrdersPayload(
+        page: page ?? _ordersPage,
+      );
+      if (!mounted) return;
+      final pagination = Map<String, dynamic>.from(
+        payload['pagination'] as Map? ?? const {},
+      );
+      setState(() {
+        _orders = List<Map<String, dynamic>>.from(
+          payload['orders'] as List? ?? const [],
+        );
+        _ordersPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
+        _ordersLastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
+        _ordersTotal =
+            (pagination['total'] as num?)?.toInt() ?? _orders.length;
+        _isLoadingOrders = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoadingOrders = false);
       await _showMessage(error.toString(), isError: true);
     }
   }
@@ -234,7 +276,8 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
       await _showMessage(
         payload['message']?.toString() ?? 'تم شراء البطاقة بنجاح.',
       );
-      await _load();
+      setState(() => _activeTab = 1);
+      await _loadOrders(page: 1);
     } catch (error) {
       if (!mounted) return;
       await _showMessage(error.toString(), isError: true);
@@ -262,7 +305,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(_isCategoryScreen ? 'أقسام المتجر' : 'بطاقات المتجر'),
+        title: Text(_activeTab == 0 ? (_isCategoryScreen ? 'أقسام المتجر' : 'بطاقات المتجر') : 'مشترياتي'),
         actions: [
           IconButton(
             tooltip: 'تحديث',
@@ -285,21 +328,88 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeader(),
-                      const SizedBox(height: 16),
-                      _buildSearch(),
-                      const SizedBox(height: 16),
-                      if (_isCategoryScreen)
-                        _buildCategoryScreen()
-                      else
-                        _buildProductScreen(),
+                      _buildTabs(),
                       const SizedBox(height: 18),
-                      _buildOrders(),
+                      if (_activeTab == 0) ...[
+                        _buildHeader(),
+                        const SizedBox(height: 16),
+                        _buildSearch(),
+                        const SizedBox(height: 16),
+                        if (_isCategoryScreen)
+                          _buildCategoryScreen()
+                        else
+                          _buildProductScreen(),
+                      ] else
+                        _buildOrders(),
                     ],
                   ),
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildTabs() {
+    return ShwakelCard(
+      padding: const EdgeInsets.all(6),
+      borderRadius: BorderRadius.circular(18),
+      child: Row(
+        children: [
+          _tabButton(
+            label: 'المتجر',
+            icon: Icons.storefront_rounded,
+            selected: _activeTab == 0,
+            onTap: () => setState(() => _activeTab = 0),
+          ),
+          const SizedBox(width: 6),
+          _tabButton(
+            label: 'مشترياتي',
+            icon: Icons.receipt_long_rounded,
+            selected: _activeTab == 1,
+            onTap: () {
+              setState(() => _activeTab = 1);
+              if (_orders.isEmpty) {
+                _loadOrders();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabButton({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: selected ? Colors.white : AppTheme.textSecondary),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: AppTheme.bodyBold.copyWith(
+                  color: selected ? Colors.white : AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -759,19 +869,24 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
           Row(
             children: [
               Expanded(child: Text('مشترياتي', style: AppTheme.h3)),
-              Text('${_orders.length} عملية', style: AppTheme.caption),
+              Text('$_ordersTotal عملية', style: AppTheme.caption),
               const SizedBox(width: 6),
               IconButton(
                 tooltip: 'تحديث المشتريات',
-                onPressed: _isLoading ? null : () => _load(),
+                onPressed: _isLoadingOrders ? null : () => _loadOrders(),
                 icon: const Icon(Icons.refresh_rounded),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          if (_orders.isEmpty)
+          if (_isLoadingOrders)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_orders.isEmpty)
             _emptyState('لا توجد بطاقات مشتراة حتى الآن.')
-          else
+          else ...[
             Column(
               children: _orders
                   .map(
@@ -782,6 +897,39 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                   )
                   .toList(),
             ),
+            _ordersPaginationControls(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _ordersPaginationControls() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          OutlinedButton.icon(
+            onPressed: _ordersPage <= 1 || _isLoadingOrders
+                ? null
+                : () => _loadOrders(page: _ordersPage - 1),
+            icon: const Icon(Icons.chevron_right_rounded),
+            label: const Text('السابق'),
+          ),
+          Expanded(
+            child: Text(
+              'صفحة $_ordersPage من $_ordersLastPage',
+              textAlign: TextAlign.center,
+              style: AppTheme.caption,
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: _ordersPage >= _ordersLastPage || _isLoadingOrders
+                ? null
+                : () => _loadOrders(page: _ordersPage + 1),
+            icon: const Icon(Icons.chevron_left_rounded),
+            label: const Text('التالي'),
+          ),
         ],
       ),
     );

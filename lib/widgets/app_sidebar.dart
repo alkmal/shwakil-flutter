@@ -32,9 +32,10 @@ class _AppSidebarState extends State<AppSidebar> {
     if (!mounted) {
       return;
     }
-    final previousRaw = _user?.toString();
-    final nextRaw = user?.toString();
-    if (previousRaw == nextRaw) {
+    if (_user?['id']?.toString() == user?['id']?.toString() &&
+        _user?['balance']?.toString() == user?['balance']?.toString() &&
+        _user?['transferVerificationStatus']?.toString() ==
+            user?['transferVerificationStatus']?.toString()) {
       return;
     }
     setState(() => _user = user);
@@ -165,6 +166,8 @@ class _AppSidebarState extends State<AppSidebar> {
           ),
           Expanded(
             child: ListView(
+              key: const PageStorageKey<String>('app-sidebar-menu'),
+              cacheExtent: 1200,
               padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
               children: [
                 _buildMenuSection(

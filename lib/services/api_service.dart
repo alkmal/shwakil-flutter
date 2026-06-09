@@ -1048,6 +1048,9 @@ class ApiService {
     required double cardRedeemPercent,
     required double cardResellPercent,
     required double cardPrintRequestPercent,
+    required int cardPrintCardsPerA4Page,
+    required int cardPrintPageGroupSize,
+    required double cardPrintPageGroupFee,
     required double withdrawPercent,
     required double standardCardIssueCost,
     required double deliveryCardIssueCost,
@@ -1067,6 +1070,9 @@ class ApiService {
         'cardRedeemPercent': cardRedeemPercent,
         'cardResellPercent': cardResellPercent,
         'cardPrintRequestPercent': cardPrintRequestPercent,
+        'cardPrintCardsPerA4Page': cardPrintCardsPerA4Page,
+        'cardPrintPageGroupSize': cardPrintPageGroupSize,
+        'cardPrintPageGroupFee': cardPrintPageGroupFee,
         'withdrawPercent': withdrawPercent,
         'standardCardIssueCost': standardCardIssueCost,
         'deliveryCardIssueCost': deliveryCardIssueCost,
@@ -1161,7 +1167,17 @@ class ApiService {
         if (notes.trim().isNotEmpty) 'notes': notes.trim(),
       }),
     );
-    return _decodeObject(response);
+    final body = _decodeObject(response);
+    if (body['user'] is Map<String, dynamic>) {
+      await _authService.cacheCurrentUser(
+        Map<String, dynamic>.from(body['user'] as Map<String, dynamic>),
+      );
+    } else if (body['user'] is Map) {
+      await _authService.cacheCurrentUser(
+        Map<String, dynamic>.from(body['user'] as Map),
+      );
+    }
+    return body;
   }
 
   Future<Map<String, dynamic>> getCardPrintRequests({
@@ -3153,18 +3169,33 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getExternalCardStoreOrders({
     int limit = 30,
   }) async {
+    final body = await getExternalCardStoreOrdersPayload(perPage: limit);
+    return List<Map<String, dynamic>>.from(body['orders'] as List? ?? const []);
+  }
+
+  Future<Map<String, dynamic>> getExternalCardStoreOrdersPayload({
+    int page = 1,
+    int perPage = 12,
+  }) async {
     final response = await http.get(
       AppConfig.apiUri('external-card-store/orders', {
-        'limit': limit.toString(),
+        'page': page.toString(),
+        'perPage': perPage.toString(),
       }),
       headers: await _headers(),
     );
     final body = _decodeObject(response);
-    return List<Map<String, dynamic>>.from(
-      (body['orders'] as List? ?? const []).map(
-        (item) => Map<String, dynamic>.from(item as Map),
+    return {
+      ...body,
+      'orders': List<Map<String, dynamic>>.from(
+        (body['orders'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
       ),
-    );
+      'pagination': Map<String, dynamic>.from(
+        body['pagination'] as Map? ?? const {},
+      ),
+    };
   }
 
   Future<Map<String, dynamic>> getAdminExternalCardStoreSettings() async {

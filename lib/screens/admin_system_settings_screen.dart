@@ -43,6 +43,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _cardRedeemFeeController = TextEditingController();
   final _cardResellFeeController = TextEditingController();
   final _cardPrintRequestFeeController = TextEditingController();
+  final _cardPrintCardsPerA4PageController = TextEditingController();
+  final _cardPrintPageGroupSizeController = TextEditingController();
+  final _cardPrintPageGroupFeeController = TextEditingController();
   final _withdrawFeeController = TextEditingController();
   final _standardCardIssueCostController = TextEditingController();
   final _deliveryCardIssueCostController = TextEditingController();
@@ -166,6 +169,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _cardRedeemFeeController.dispose();
     _cardResellFeeController.dispose();
     _cardPrintRequestFeeController.dispose();
+    _cardPrintCardsPerA4PageController.dispose();
+    _cardPrintPageGroupSizeController.dispose();
+    _cardPrintPageGroupFeeController.dispose();
     _withdrawFeeController.dispose();
     _standardCardIssueCostController.dispose();
     _deliveryCardIssueCostController.dispose();
@@ -449,6 +455,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (feeSettings['cardResellPercent'] as num?)?.toString() ?? '1';
       _cardPrintRequestFeeController.text =
           (feeSettings['cardPrintRequestPercent'] as num?)?.toString() ?? '1';
+      _cardPrintCardsPerA4PageController.text =
+          (feeSettings['cardPrintCardsPerA4Page'] as num?)?.toString() ?? '30';
+      _cardPrintPageGroupSizeController.text =
+          (feeSettings['cardPrintPageGroupSize'] as num?)?.toString() ?? '3';
+      _cardPrintPageGroupFeeController.text =
+          (feeSettings['cardPrintPageGroupFee'] as num?)?.toString() ?? '1';
       _withdrawFeeController.text =
           (feeSettings['withdrawPercent'] as num?)?.toString() ?? '1';
       _standardCardIssueCostController.text =
@@ -893,6 +905,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               double.tryParse(_cardResellFeeController.text) ?? 1,
           cardPrintRequestPercent:
               double.tryParse(_cardPrintRequestFeeController.text) ?? 1,
+          cardPrintCardsPerA4Page:
+              int.tryParse(_cardPrintCardsPerA4PageController.text) ?? 30,
+          cardPrintPageGroupSize:
+              int.tryParse(_cardPrintPageGroupSizeController.text) ?? 3,
+          cardPrintPageGroupFee:
+              double.tryParse(_cardPrintPageGroupFeeController.text) ?? 1,
           withdrawPercent: double.tryParse(_withdrawFeeController.text) ?? 1,
           standardCardIssueCost:
               double.tryParse(_standardCardIssueCostController.text) ?? 0,
@@ -3092,6 +3110,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 _buildFeeField(
                   l.tr('screens_admin_system_settings_screen.033'),
                   _cardPrintRequestFeeController,
+                ),
+                _buildFeeField(
+                  'عدد البطاقات في صفحة A4',
+                  _cardPrintCardsPerA4PageController,
+                ),
+                _buildFeeField(
+                  'عدد صفحات A4 لكل رسم',
+                  _cardPrintPageGroupSizeController,
+                ),
+                _buildFeeField(
+                  'رسم كل مجموعة صفحات',
+                  _cardPrintPageGroupFeeController,
                 ),
                 _buildFeeField('رسوم السحب', _withdrawFeeController),
                 _buildFeeField(
