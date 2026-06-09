@@ -97,7 +97,8 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         _orders = orders;
         _ordersPage = (ordersPagination['currentPage'] as num?)?.toInt() ?? 1;
         _ordersLastPage = (ordersPagination['lastPage'] as num?)?.toInt() ?? 1;
-        _ordersTotal = (ordersPagination['total'] as num?)?.toInt() ?? orders.length;
+        _ordersTotal =
+            (ordersPagination['total'] as num?)?.toInt() ?? orders.length;
         _isLoading = false;
       });
     } catch (error) {
@@ -124,8 +125,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         );
         _ordersPage = (pagination['currentPage'] as num?)?.toInt() ?? 1;
         _ordersLastPage = (pagination['lastPage'] as num?)?.toInt() ?? 1;
-        _ordersTotal =
-            (pagination['total'] as num?)?.toInt() ?? _orders.length;
+        _ordersTotal = (pagination['total'] as num?)?.toInt() ?? _orders.length;
         _isLoadingOrders = false;
       });
     } catch (error) {
@@ -136,7 +136,8 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
   }
 
   Future<void> _openCategory(Map<String, dynamic> category) async {
-    final id = int.tryParse(category['id']?.toString() ?? '') ?? _rootCategoryId;
+    final id =
+        int.tryParse(category['id']?.toString() ?? '') ?? _rootCategoryId;
     final nextTrail = [..._categoryTrail, category];
     await _loadCategoryCatalog(id, category: category, trail: nextTrail);
   }
@@ -305,7 +306,11 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(_activeTab == 0 ? (_isCategoryScreen ? 'أقسام المتجر' : 'بطاقات المتجر') : 'مشترياتي'),
+        title: Text(
+          _activeTab == 0
+              ? (_isCategoryScreen ? 'أقسام المتجر' : 'بطاقات المتجر')
+              : 'مشترياتي',
+        ),
         actions: [
           IconButton(
             tooltip: 'تحديث',
@@ -398,7 +403,10 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: selected ? Colors.white : AppTheme.textSecondary),
+              Icon(
+                icon,
+                color: selected ? Colors.white : AppTheme.textSecondary,
+              ),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -447,7 +455,10 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
               children: [
                 Text(title, style: AppTheme.h3),
                 const SizedBox(height: 4),
-                Text(subtitle, style: AppTheme.bodyAction.copyWith(height: 1.5)),
+                Text(
+                  subtitle,
+                  style: AppTheme.bodyAction.copyWith(height: 1.5),
+                ),
                 if (!_isCategoryScreen) ...[
                   const SizedBox(height: 10),
                   _buildTrail(),
@@ -498,7 +509,8 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
   Future<void> _openTrailIndex(int index) async {
     final trail = _categoryTrail.sublist(0, index + 1);
     final category = trail.last;
-    final id = int.tryParse(category['id']?.toString() ?? '') ?? _rootCategoryId;
+    final id =
+        int.tryParse(category['id']?.toString() ?? '') ?? _rootCategoryId;
     await _loadCategoryCatalog(id, category: category, trail: trail);
   }
 
@@ -570,14 +582,16 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
 
     final visibleCategories = _filterItems(_categories);
     final visibleCards = _filterItems(_cards);
-    final hasAnyVisible = visibleCategories.isNotEmpty || visibleCards.isNotEmpty;
+    final hasAnyVisible =
+        visibleCategories.isNotEmpty || visibleCards.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeaderCard(
           title: _selectedCategory?['title']?.toString() ?? 'القسم',
-          subtitle: '${visibleCategories.length} قسم فرعي · ${visibleCards.length} بطاقة',
+          subtitle:
+              '${visibleCategories.length} قسم فرعي · ${visibleCards.length} بطاقة',
           onBack: _goBackOneLevel,
         ),
         const SizedBox(height: 14),
@@ -666,12 +680,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  'البطاقات المتاحة',
-                  style: AppTheme.h3,
-                ),
-              ),
+              Expanded(child: Text('البطاقات المتاحة', style: AppTheme.h3)),
               Text('${cards.length} بطاقة', style: AppTheme.caption),
             ],
           ),
@@ -834,8 +843,9 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed:
-                          _isPurchasing || !available ? null : () => _purchase(card),
+                      onPressed: _isPurchasing || !available
+                          ? null
+                          : () => _purchase(card),
                       icon: _isPurchasing
                           ? const SizedBox(
                               width: 16,
@@ -989,8 +999,14 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
                       spacing: 8,
                       runSpacing: 6,
                       children: [
-                        _miniChip(status, pending ? AppTheme.warning : AppTheme.success),
-                        _miniChip(CurrencyFormatter.ils(amount), AppTheme.primary),
+                        _miniChip(
+                          status,
+                          pending ? AppTheme.warning : AppTheme.success,
+                        ),
+                        _miniChip(
+                          CurrencyFormatter.ils(amount),
+                          AppTheme.primary,
+                        ),
                       ],
                     ),
                   ],
@@ -1017,9 +1033,12 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
   }
 
   Widget _orderDetailsBox(Map<String, dynamic> details) {
-    final hasDetails = ['code', 'pin', 'link', 'expiresAt'].any(
-      (key) => (details[key]?.toString() ?? '').isNotEmpty,
-    );
+    final hasDetails = [
+      'code',
+      'pin',
+      'link',
+      'expiresAt',
+    ].any((key) => (details[key]?.toString() ?? '').isNotEmpty);
     if (!hasDetails) {
       return Text('لا توجد بيانات إضافية للبطاقة.', style: AppTheme.caption);
     }
