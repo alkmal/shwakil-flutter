@@ -3276,7 +3276,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               ),
               const SizedBox(height: 8),
               _buildPreviewSummaryRow(
-                'من قيمة البطاقات المجانية هذا الشهر',
+                'من مجموع قيمة البطاقات المجانية هذا الشهر',
                 '${CurrencyFormatter.ils(_currentFreePrivateCardValueApplied)} / ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)}',
               ),
             ],
@@ -3310,7 +3310,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     if (_isBalanceCard && _isPrivateIssuance) {
-      return 'هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار. أول ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} من قيمة البطاقات الخاصة شهريًا تشمل رسوم إصدار مجانية، وبعدها تُخصم رسوم الإصدار فقط.';
+      return 'هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار. أول ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} من مجموع قيم البطاقات الخاصة شهريًا لأي حساب مسجل تشمل رسوم إصدار مجانية، وبعدها تُخصم رسوم الإصدار فقط.';
     }
 
     if (_isBalanceCard && !_isPrivateIssuance) {
