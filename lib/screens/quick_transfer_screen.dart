@@ -297,7 +297,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                   CurrencyFormatter.ils(amount),
                 ),
                 const SizedBox(height: 8),
-                _transferDetailRow('قيمة الخصم', CurrencyFormatter.ils(fee)),
+                _transferDetailRow(
+                  'قيمة الخصم',
+                  fee <= 0 ? 'مجانا عرض خاص' : CurrencyFormatter.ils(fee),
+                ),
                 const SizedBox(height: 8),
                 _transferDetailRow(
                   'الصافي للمستلم',

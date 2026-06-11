@@ -73,7 +73,7 @@ class _BalanceScreenState extends State<BalanceScreen>
         ),
       );
     } else {
-      parts.add(context.loc.tr('screens_balance_screen.137'));
+      parts.add('مجانا عرض خاص');
     }
     if (minAmount != null && minAmount > 0) {
       parts.add(

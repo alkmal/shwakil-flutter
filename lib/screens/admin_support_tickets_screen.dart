@@ -40,6 +40,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   bool _loading = true;
   bool _authorized = false;
   bool _busy = false;
+  bool _ticketLoading = false;
   bool _chatRouteOpen = false;
   StateSetter? _chatRouteSetState;
   String _replyAs = 'support';
@@ -117,15 +118,20 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   Future<void> _openTicket(Map<String, dynamic> ticket) async {
     final id = ticket['id']?.toString() ?? '';
     if (id.isEmpty) return;
-    setState(() => _busy = true);
+    setState(() {
+      _selected = Map<String, dynamic>.from(ticket);
+      _ticketLoading = true;
+    });
+    unawaited(_openChatRoute());
     try {
       final body = await _api.getAdminSupportTicket(ticketId: id);
       if (!mounted) return;
       setState(() {
         _selected = Map<String, dynamic>.from(body['ticket'] as Map);
+        _ticketLoading = false;
       });
-      await _load();
-      unawaited(_openChatRoute());
+      _refreshChatRoute();
+      unawaited(_load());
     } catch (error) {
       if (!mounted) return;
       AppAlertService.showError(
@@ -135,7 +141,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       );
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() => _ticketLoading = false);
         _refreshChatRoute();
       }
     }
@@ -221,13 +227,16 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         replyAs: _replyAs,
       );
       _message.clear();
-      await _load();
-      final refreshed = _tickets
-          .where((ticket) => ticket['id'] == _selected!['id'])
-          .firstOrNull;
-      if (mounted && refreshed != null) {
-        await _openTicket(refreshed);
+      final body = await _api.getAdminSupportTicket(
+        ticketId: _selected!['id'].toString(),
+      );
+      if (mounted) {
+        setState(
+          () => _selected = Map<String, dynamic>.from(body['ticket'] as Map),
+        );
+        _refreshChatRoute();
       }
+      unawaited(_load());
     } catch (error) {
       if (!mounted) {
         return;
@@ -1074,7 +1083,25 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppTheme.border),
             ),
-            child: timeline.isNotEmpty
+            child: _ticketLoading && timeline.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l.text('يتم تحميل المحادثة...', 'Loading chat...'),
+                          style: AppTheme.caption,
+                        ),
+                      ],
+                    ),
+                  )
+                : timeline.isNotEmpty
                 ? ListView.separated(
                     reverse: true,
                     padding: const EdgeInsets.all(12),

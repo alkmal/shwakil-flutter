@@ -45,6 +45,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   bool _tracking = false;
   bool _loading = true;
   bool _busy = false;
+  bool _ticketLoading = false;
   bool _hasFreshMessage = false;
   bool _chatRouteOpen = false;
   StateSetter? _chatRouteSetState;
@@ -295,7 +296,16 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Future<void> _openOwnedTicket(String id) async {
-    setState(() => _busy = true);
+    final summary = _myTickets.firstWhere(
+      (ticket) => ticket['id']?.toString() == id,
+      orElse: () => {'id': id, 'title': '', 'status': ''},
+    );
+    setState(() {
+      _ticket = Map<String, dynamic>.from(summary);
+      _accessToken = '';
+      _ticketLoading = true;
+    });
+    unawaited(_openChatRoute());
     try {
       final response = await _api.getSupportTicket(ticketId: id);
       if (!mounted) {
@@ -304,13 +314,14 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       setState(() {
         _ticket = Map<String, dynamic>.from(response['ticket'] as Map);
         _accessToken = '';
+        _ticketLoading = false;
       });
-      unawaited(_openChatRoute());
+      _refreshChatRoute();
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() => _ticketLoading = false);
         _refreshChatRoute();
       }
     }
@@ -327,7 +338,12 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         ),
       );
     }
-    setState(() => _busy = true);
+    setState(() {
+      _ticket = Map<String, dynamic>.from(summary);
+      _accessToken = token;
+      _ticketLoading = true;
+    });
+    unawaited(_openChatRoute());
     try {
       final response = await _api.getSupportTicket(
         ticketId: id,
@@ -339,13 +355,14 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       setState(() {
         _ticket = Map<String, dynamic>.from(response['ticket'] as Map);
         _accessToken = token;
+        _ticketLoading = false;
       });
-      unawaited(_openChatRoute());
+      _refreshChatRoute();
     } catch (error) {
       await _error(ErrorMessageService.sanitize(error));
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() => _ticketLoading = false);
         _refreshChatRoute();
       }
     }
@@ -355,6 +372,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     final id = _ticket?['id']?.toString() ?? '';
     if (id.isEmpty) {
       return;
+    }
+    if (!silent) {
+      setState(() => _ticketLoading = true);
+      _refreshChatRoute();
     }
     try {
       final response = await _api.getSupportTicket(
@@ -369,11 +390,17 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         if (!silent) {
           _hasFreshMessage = false;
         }
+        _ticketLoading = false;
       });
       _refreshChatRoute();
     } catch (error) {
       if (!silent) {
         await _error(ErrorMessageService.sanitize(error));
+      }
+    } finally {
+      if (mounted && !silent) {
+        setState(() => _ticketLoading = false);
+        _refreshChatRoute();
       }
     }
   }
@@ -877,7 +904,25 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppTheme.border),
             ),
-            child: timeline.isNotEmpty
+            child: _ticketLoading && timeline.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l.text('يتم تحميل المحادثة...', 'Loading chat...'),
+                          style: AppTheme.caption,
+                        ),
+                      ],
+                    ),
+                  )
+                : timeline.isNotEmpty
                 ? ListView.separated(
                     reverse: true,
                     padding: const EdgeInsets.all(12),

@@ -26,6 +26,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   static const String _balanceVisibleKeyPrefix = 'home_balance_visible';
+  static const String _dismissedAnnouncementKey =
+      'home.dismissed_announcement_version';
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
@@ -45,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   int _offlineSyncIntervalMinutes = 60;
   String? _lastOfflineSyncAt;
   bool _offlineAccessExpired = false;
+  String? _shownAnnouncementVersionInSession;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
 
@@ -293,6 +296,101 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
     _maybeSyncOfflineWorkspaceInBackground();
     unawaited(_maybePromptLocalSecuritySetup());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_maybeShowAppAnnouncement());
+      }
+    });
+  }
+
+  Future<void> _maybeShowAppAnnouncement() async {
+    final announcement = Map<String, dynamic>.from(
+      _user?['appAnnouncement'] as Map? ?? const {},
+    );
+    if (announcement['enabled'] != true) {
+      return;
+    }
+    final version = announcement['version']?.toString().trim() ?? '';
+    if (version.isEmpty) {
+      return;
+    }
+    if (_shownAnnouncementVersionInSession == version) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_dismissedAnnouncementKey) == version) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    _shownAnnouncementVersionInSession = version;
+
+    final neverAgain = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final title = announcement['title']?.toString().trim() ?? '';
+        final description =
+            announcement['description']?.toString().trim() ?? '';
+        final imageUrl = announcement['imageUrl']?.toString().trim() ?? '';
+        final route = announcement['route']?.toString().trim() ?? '';
+        final actionLabel =
+            announcement['actionLabel']?.toString().trim() ?? 'فتح';
+
+        return AlertDialog(
+          title: Row(
+            children: [
+              Expanded(child: Text(title.isEmpty ? 'إعلان' : title)),
+              IconButton(
+                tooltip: 'إغلاق',
+                onPressed: () => Navigator.pop(dialogContext, false),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (imageUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (description.isNotEmpty)
+                  Text(description, style: AppTheme.bodyAction),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('عدم الظهور مرة ثانية'),
+            ),
+            if (route.isNotEmpty)
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, false);
+                  Navigator.pushNamed(context, route);
+                },
+                child: Text(actionLabel),
+              ),
+          ],
+        );
+      },
+    );
+
+    if (neverAgain == true) {
+      await prefs.setString(_dismissedAnnouncementKey, version);
+    }
   }
 
   Future<void> _maybePromptLocalSecuritySetup() async {
@@ -1785,55 +1883,56 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-              Text(_t('screens_home_screen.089'), style: AppTheme.h3),
-              const SizedBox(height: 14),
-              _syncInfoRow(_t('screens_home_screen.090'), statusText),
-              _syncInfoRow(_t('screens_home_screen.091'), lastSync),
-              _syncInfoRow(
-                _t('screens_home_screen.100'),
-                _t(
-                  'screens_home_screen.101',
-                  params: {
-                    'available': '$_availableOfflineCount',
-                    'cached': '$_cachedOfflineCount',
-                  },
-                ),
-              ),
-              _syncInfoRow(
-                _t('screens_home_screen.102'),
-                '$_pendingOfflineCount',
-              ),
-              if (_rejectedOfflineCount > 0)
-                _syncInfoRow(
-                  _t('screens_home_screen.103'),
-                  '$_rejectedOfflineCount',
-                ),
-              _syncInfoRow(
-                _t('screens_home_screen.104'),
-                _t(
-                  'screens_home_screen.105',
-                  params: {'minutes': '$_offlineSyncIntervalMinutes'},
-                ),
-              ),
-              if (_offlineAccessExpired)
-                _syncInfoRow(
-                  _t('screens_home_screen.090'),
-                  _t('screens_home_screen.106'),
-                ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _isSyncingOfflineWorkspace || !_isDeviceOnline
-                      ? null
-                      : () {
-                          unawaited(_syncOfflineWorkspace());
-                        },
-                  icon: const Icon(Icons.cloud_sync_rounded),
-                  label: Text(_t('screens_home_screen.107')),
-                ),
-              ),
-            ],
+                      Text(_t('screens_home_screen.089'), style: AppTheme.h3),
+                      const SizedBox(height: 14),
+                      _syncInfoRow(_t('screens_home_screen.090'), statusText),
+                      _syncInfoRow(_t('screens_home_screen.091'), lastSync),
+                      _syncInfoRow(
+                        _t('screens_home_screen.100'),
+                        _t(
+                          'screens_home_screen.101',
+                          params: {
+                            'available': '$_availableOfflineCount',
+                            'cached': '$_cachedOfflineCount',
+                          },
+                        ),
+                      ),
+                      _syncInfoRow(
+                        _t('screens_home_screen.102'),
+                        '$_pendingOfflineCount',
+                      ),
+                      if (_rejectedOfflineCount > 0)
+                        _syncInfoRow(
+                          _t('screens_home_screen.103'),
+                          '$_rejectedOfflineCount',
+                        ),
+                      _syncInfoRow(
+                        _t('screens_home_screen.104'),
+                        _t(
+                          'screens_home_screen.105',
+                          params: {'minutes': '$_offlineSyncIntervalMinutes'},
+                        ),
+                      ),
+                      if (_offlineAccessExpired)
+                        _syncInfoRow(
+                          _t('screens_home_screen.090'),
+                          _t('screens_home_screen.106'),
+                        ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed:
+                              _isSyncingOfflineWorkspace || !_isDeviceOnline
+                              ? null
+                              : () {
+                                  unawaited(_syncOfflineWorkspace());
+                                },
+                          icon: const Icon(Icons.cloud_sync_rounded),
+                          label: Text(_t('screens_home_screen.107')),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

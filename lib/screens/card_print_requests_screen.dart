@@ -782,13 +782,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                   ),
                                 ),
                               ],
-                              if (feeAmount > 0) ...[
+                              if (feeAmount > 0 || feePercent <= 0) ...[
                                 const SizedBox(height: 8),
                                 _metaItem(
                                   l.tr(
                                     'screens_card_print_requests_screen.021',
                                   ),
-                                  CurrencyFormatter.ils(feeAmount),
+                                  feeAmount <= 0
+                                      ? 'مجانا عرض خاص'
+                                      : CurrencyFormatter.ils(feeAmount),
                                 ),
                               ],
                               const SizedBox(height: 8),
@@ -2093,6 +2095,11 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                               CurrencyFormatter.ils(
                                 (request['feeAmount'] as num?)?.toDouble() ?? 0,
                               ),
+                            )
+                          else
+                            _metaItem(
+                              l.tr('screens_card_print_requests_screen.021'),
+                              'مجانا عرض خاص',
                             ),
                           _metaItem(
                             l.tr('screens_card_print_requests_screen.032'),

@@ -560,7 +560,65 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (!_isPrivateIssuance) {
       return 0;
     }
-    return _currentIssueFeePerCard;
+    final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+    if (quantity <= 0) {
+      return _currentIssueFeePerCard;
+    }
+    return double.parse(
+      (_currentChargedIssueFeeTotal / quantity).toStringAsFixed(2),
+    );
+  }
+
+  double get _monthlyPrivateCardFreeValueLimit =>
+      (_user?['monthlyPrivateCardFreeValueLimit'] as num?)?.toDouble() ??
+      (_feeSettings['monthlyPrivateCardFreeValueLimit'] as num?)?.toDouble() ??
+      100.0;
+
+  double get _monthlyPrivateCardFreeValueRemaining =>
+      (_user?['monthlyPrivateCardFreeValueRemaining'] as num?)?.toDouble() ??
+      _monthlyPrivateCardFreeValueLimit;
+
+  double get _currentPrivateCardRequestedValue {
+    if (!_isPrivateIssuance || !_isBalanceCard) {
+      return 0;
+    }
+    final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+    return double.parse((_currentCardFaceValue * quantity).toStringAsFixed(2));
+  }
+
+  double get _currentFreePrivateCardValueApplied {
+    final requested = _currentPrivateCardRequestedValue;
+    if (requested <= 0) {
+      return 0;
+    }
+    return [
+      requested,
+      _monthlyPrivateCardFreeValueRemaining,
+    ].reduce((a, b) => a < b ? a : b);
+  }
+
+  double get _currentFreeIssueFeeAmount {
+    final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+    final requested = _currentPrivateCardRequestedValue;
+    if (quantity <= 0 || requested <= 0) {
+      return 0;
+    }
+    final totalIssueFee = _currentIssueFeePerCard * quantity;
+    final ratio = (_currentFreePrivateCardValueApplied / requested).clamp(
+      0.0,
+      1.0,
+    );
+    return double.parse((totalIssueFee * ratio).toStringAsFixed(2));
+  }
+
+  double get _currentChargedIssueFeeTotal {
+    final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+    if (quantity <= 0) {
+      return 0;
+    }
+    final total =
+        (_currentIssueFeePerCard * quantity) - _currentFreeIssueFeeAmount;
+    return double.parse((total < 0 ? 0 : total).toStringAsFixed(2));
   }
 
   double get _currentCardFaceValue {
@@ -574,6 +632,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   double get _currentTotalChargeNow {
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
+    if (_isPrivateIssuance) {
+      return _currentChargedIssueFeeTotal;
+    }
     return _currentChargeNowPerCard * quantity;
   }
 
@@ -3207,6 +3268,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               'رسوم الإصدار لكل بطاقة',
               CurrencyFormatter.ils(_currentIssueFeePerCard),
             ),
+            if (_currentFreeIssueFeeAmount > 0) ...[
+              const SizedBox(height: 8),
+              _buildPreviewSummaryRow(
+                'مجانا عرض خاص',
+                '- ${CurrencyFormatter.ils(_currentFreeIssueFeeAmount)}',
+              ),
+              const SizedBox(height: 8),
+              _buildPreviewSummaryRow(
+                'من قيمة البطاقات المجانية هذا الشهر',
+                '${CurrencyFormatter.ils(_currentFreePrivateCardValueApplied)} / ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)}',
+              ),
+            ],
           ],
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
@@ -3237,7 +3310,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     if (_isBalanceCard && _isPrivateIssuance) {
-      return 'هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار، ويُخصم الآن رسم الإصدار فقط.';
+      return 'هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار. أول ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} من قيمة البطاقات الخاصة شهريًا تشمل رسوم إصدار مجانية، وبعدها تُخصم رسوم الإصدار فقط.';
     }
 
     if (_isBalanceCard && !_isPrivateIssuance) {
