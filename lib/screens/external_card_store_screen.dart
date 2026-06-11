@@ -558,6 +558,10 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
             ),
           )
         else ...[
+          if (_categoryTrail.isNotEmpty) ...[
+            _buildTrail(),
+            const SizedBox(height: 12),
+          ],
           if (visibleCategories.isNotEmpty) ...[
             _subcategoriesSection(visibleCategories),
             const SizedBox(height: 14),
