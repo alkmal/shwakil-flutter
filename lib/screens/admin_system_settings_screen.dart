@@ -114,7 +114,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   );
   final _externalStoreLanguageController = TextEditingController(text: 'ar');
   final _externalStoreDiscountController = TextEditingController(text: '0');
-  final _externalStoreUsdRateController = TextEditingController(text: '3.50');
+  final _externalStoreUsdRateController = TextEditingController(text: '3.05');
   final _externalStoreProfitController = TextEditingController(text: '3');
 
   bool _isLoading = true;
@@ -614,7 +614,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       _externalStoreDiscountController.text =
           (externalStoreSettings['discountPercent'] as num?)?.toString() ?? '0';
       _externalStoreUsdRateController.text =
-          (externalStoreSettings['usdToIlsRate'] as num?)?.toString() ?? '3.5';
+          (externalStoreSettings['usdToIlsRate'] as num?)?.toString() ?? '3.05';
       _externalStoreProfitController.text =
           (externalStoreSettings['profitPercent'] as num?)?.toString() ?? '3';
 
@@ -1026,7 +1026,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           'discountPercent':
               double.tryParse(_externalStoreDiscountController.text) ?? 0,
           'usdToIlsRate':
-              double.tryParse(_externalStoreUsdRateController.text) ?? 3.5,
+              double.tryParse(_externalStoreUsdRateController.text) ?? 3.05,
           'profitPercent':
               double.tryParse(_externalStoreProfitController.text) ?? 3,
         }),
