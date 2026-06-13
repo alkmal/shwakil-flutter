@@ -116,6 +116,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   final _externalStoreDiscountController = TextEditingController(text: '0');
   final _externalStoreUsdRateController = TextEditingController(text: '3.05');
   final _externalStoreProfitController = TextEditingController(text: '3');
+  final _externalStoreCatalogSearchController = TextEditingController();
+  final Map<String, TextEditingController> _externalStoreRoleProfitControllers =
+      {};
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -135,6 +138,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   bool _isLoadingPrepaidReport = false;
   bool _isLoadingGatewayDashboard = false;
   bool _isTestingSmsGateway = false;
+  bool _isSyncingExternalCatalog = false;
+  bool _isLoadingExternalCatalog = false;
   String? _gatewayBusyChannelKey;
   String _prepaidReportCardStatus = 'all';
   List<Map<String, dynamic>> _topupPaymentMethods = const [];
@@ -142,6 +147,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   List<Map<String, dynamic>> _prepaidReportPayments = const [];
   Map<String, dynamic> _prepaidReportSummary = const {};
   Map<String, dynamic> _messageGatewayDashboard = const {};
+  Map<String, dynamic> _externalProviderBalance = const {};
+  List<Map<String, dynamic>> _externalCatalogCategories = const [];
+  List<Map<String, dynamic>> _externalCatalogCards = const [];
+  List<Map<String, dynamic>> _externalStoreRoleProfitRows = const [];
 
   @override
   void initState() {
@@ -236,6 +245,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     _externalStoreDiscountController.dispose();
     _externalStoreUsdRateController.dispose();
     _externalStoreProfitController.dispose();
+    _externalStoreCatalogSearchController.dispose();
+    for (final controller in _externalStoreRoleProfitControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -405,6 +418,22 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       );
       final externalStoreSettings = Map<String, dynamic>.from(
         externalStorePayload['externalCardStore'] as Map? ?? const {},
+      );
+      final externalCatalogControls = Map<String, dynamic>.from(
+        externalStorePayload['catalogControls'] as Map? ?? const {},
+      );
+      final externalCatalogCategories = List<Map<String, dynamic>>.from(
+        (externalCatalogControls['categories'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      final externalCatalogCards = List<Map<String, dynamic>>.from(
+        (externalCatalogControls['cards'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      final externalProviderBalance = Map<String, dynamic>.from(
+        externalStorePayload['providerBalance'] as Map? ?? const {},
       );
 
       _contactTitleController.text = contactSettings['title'] ?? '';
@@ -617,12 +646,31 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           (externalStoreSettings['usdToIlsRate'] as num?)?.toString() ?? '3.05';
       _externalStoreProfitController.text =
           (externalStoreSettings['profitPercent'] as num?)?.toString() ?? '3';
+      final roleProfitMap = Map<String, dynamic>.from(
+        externalStoreSettings['profitPercentsByRole'] as Map? ?? const {},
+      );
+      final roleProfitRows = roleProfitMap.values
+          .map((value) => Map<String, dynamic>.from(value as Map))
+          .toList();
+      for (final row in roleProfitRows) {
+        final role = row['role']?.toString() ?? '';
+        if (role.isEmpty) {
+          continue;
+        }
+        _externalRoleProfitController(role).text =
+            (row['profitPercent'] as num?)?.toString() ??
+            _externalStoreProfitController.text;
+      }
 
       setState(() {
         _isAuthorized = true;
         _topupPaymentMethods = topupPaymentMethods;
         _withdrawalMethods = withdrawalMethods;
         _messageGatewayDashboard = messageGatewayDashboard;
+        _externalProviderBalance = externalProviderBalance;
+        _externalCatalogCategories = externalCatalogCategories;
+        _externalCatalogCards = externalCatalogCards;
+        _externalStoreRoleProfitRows = roleProfitRows;
         _isLoading = false;
       });
       if (loadWarnings.isNotEmpty) {
@@ -1029,6 +1077,18 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
               double.tryParse(_externalStoreUsdRateController.text) ?? 3.05,
           'profitPercent':
               double.tryParse(_externalStoreProfitController.text) ?? 3,
+          'profitPercentsByRole': {
+            for (final row in _externalStoreRoleProfitRows)
+              if ((row['role']?.toString() ?? '').isNotEmpty)
+                row['role'].toString():
+                    double.tryParse(
+                      _externalRoleProfitController(
+                        row['role'].toString(),
+                      ).text,
+                    ) ??
+                    double.tryParse(_externalStoreProfitController.text) ??
+                    3,
+          },
         }),
       ]);
       if (!mounted) {
@@ -1053,6 +1113,222 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  TextEditingController _externalRoleProfitController(String role) {
+    return _externalStoreRoleProfitControllers.putIfAbsent(
+      role,
+      () => TextEditingController(text: _externalStoreProfitController.text),
+    );
+  }
+
+  Future<void> _syncExternalCatalog() async {
+    if (_isSyncingExternalCatalog) return;
+    setState(() => _isSyncingExternalCatalog = true);
+    try {
+      final payload = await _apiService.syncAdminExternalCardStoreCatalog();
+      _applyExternalCatalogControls(payload['catalogControls']);
+      if (!mounted) return;
+      final synced = Map<String, dynamic>.from(
+        payload['synced'] as Map? ?? const {},
+      );
+      await AppAlertService.showSuccess(
+        context,
+        title: 'تمت المزامنة',
+        message:
+            'الأقسام: ${synced['categories'] ?? 0}، البطاقات: ${synced['cards'] ?? 0}.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر مزامنة الكتالوج',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncingExternalCatalog = false);
+      }
+    }
+  }
+
+  Future<void> _loadExternalCatalogControls() async {
+    if (_isLoadingExternalCatalog) return;
+    setState(() => _isLoadingExternalCatalog = true);
+    try {
+      final payload = await _apiService.getAdminExternalCardStoreCatalog(
+        query: _externalStoreCatalogSearchController.text,
+      );
+      _applyExternalCatalogControls(payload['catalogControls']);
+    } catch (error) {
+      if (!mounted) return;
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحميل الكتالوج',
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingExternalCatalog = false);
+      }
+    }
+  }
+
+  Future<void> _refreshExternalProviderBalance() async {
+    try {
+      final payload = await _apiService.getAdminExternalCardStoreSettings();
+      if (!mounted) return;
+      setState(() {
+        _externalProviderBalance = Map<String, dynamic>.from(
+          payload['providerBalance'] as Map? ?? const {},
+        );
+      });
+    } catch (error) {
+      if (!mounted) return;
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحديث رصيد المصدر',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _updateExternalCatalogItem({
+    required String kind,
+    required String id,
+    String? title,
+    String? description,
+    String? imageUrl,
+    int? sortOrder,
+    bool? hidden,
+    bool? forceUnavailable,
+  }) async {
+    try {
+      final payload = await _apiService.updateAdminExternalCardStoreCatalogItem(
+        kind: kind,
+        id: id,
+        title: title,
+        description: description,
+        imageUrl: imageUrl,
+        sortOrder: sortOrder,
+        hidden: hidden,
+        forceUnavailable: forceUnavailable,
+      );
+      _applyExternalCatalogControls(payload['catalogControls']);
+    } catch (error) {
+      if (!mounted) return;
+      await AppAlertService.showError(
+        context,
+        title: 'تعذر تحديث الكتالوج',
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _editExternalCatalogItem({
+    required String kind,
+    required Map<String, dynamic> item,
+  }) async {
+    final id = (kind == 'card' ? item['ean'] : item['id'])?.toString() ?? '';
+    if (id.isEmpty) return;
+
+    final titleController = TextEditingController(
+      text: item['title']?.toString() ?? '',
+    );
+    final descriptionController = TextEditingController(
+      text: item['description']?.toString() ?? '',
+    );
+    final imageController = TextEditingController(
+      text: item['imageUrl']?.toString() ?? '',
+    );
+    final sortController = TextEditingController(
+      text: (item['sortOrder'] as num?)?.toInt().toString() ?? '0',
+    );
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(kind == 'card' ? 'تعديل البطاقة' : 'تعديل القسم'),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'الاسم المعروض'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'الوصف'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: imageController,
+                decoration: const InputDecoration(labelText: 'رابط الصورة'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: sortController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'الترتيب'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved != true) {
+      titleController.dispose();
+      descriptionController.dispose();
+      imageController.dispose();
+      sortController.dispose();
+      return;
+    }
+
+    await _updateExternalCatalogItem(
+      kind: kind,
+      id: id,
+      title: titleController.text,
+      description: descriptionController.text,
+      imageUrl: imageController.text,
+      sortOrder: int.tryParse(sortController.text) ?? 0,
+    );
+
+    titleController.dispose();
+    descriptionController.dispose();
+    imageController.dispose();
+    sortController.dispose();
+  }
+
+  void _applyExternalCatalogControls(dynamic value) {
+    if (!mounted) return;
+    final controls = Map<String, dynamic>.from(value as Map? ?? const {});
+    setState(() {
+      _externalCatalogCategories = List<Map<String, dynamic>>.from(
+        (controls['categories'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      _externalCatalogCards = List<Map<String, dynamic>>.from(
+        (controls['cards'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+    });
   }
 
   Future<void> _showTopupMethodDialog({Map<String, dynamic>? method}) async {
@@ -3066,11 +3342,276 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 18),
+                Text('نسبة الربح حسب نوع الحساب', style: AppTheme.bodyBold),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    for (final row in _externalStoreRoleProfitRows)
+                      _buildNumberField(
+                        row['label']?.toString() ?? row['role'].toString(),
+                        _externalRoleProfitController(
+                          row['role']?.toString() ?? '',
+                        ),
+                        suffixText: '%',
+                        decimal: true,
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          _card(_buildExternalProviderBalancePanel()),
+          const SizedBox(height: 16),
+          _card(_buildExternalCatalogControls()),
         ],
       ),
+    );
+  }
+
+  Widget _buildExternalProviderBalancePanel() {
+    final available = _externalProviderBalance['available'] == true;
+    final amount = (_externalProviderBalance['amount'] as num?)?.toDouble();
+    final checkedAt = _externalProviderBalance['checkedAt']?.toString() ?? '';
+    final error = _externalProviderBalance['error']?.toString() ?? '';
+
+    return Row(
+      children: [
+        Icon(
+          available ? Icons.account_balance_wallet_rounded : Icons.warning_rounded,
+          color: available ? AppTheme.success : AppTheme.warning,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('رصيد أجنادين من المصدر', style: AppTheme.bodyBold),
+              const SizedBox(height: 4),
+              Text(
+                available && amount != null
+                    ? '\$${amount.toStringAsFixed(4)}'
+                    : 'غير متاح حالياً${error.isNotEmpty ? ' - $error' : ''}',
+                style: AppTheme.bodyText,
+              ),
+              if (checkedAt.isNotEmpty)
+                Text('آخر فحص: $checkedAt', style: AppTheme.caption),
+            ],
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: _refreshExternalProviderBalance,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('تحديث'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExternalCatalogControls() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text('تحكم كتالوج العرض السريع', style: AppTheme.h3),
+            ),
+            OutlinedButton.icon(
+              onPressed: _isLoadingExternalCatalog
+                  ? null
+                  : _loadExternalCatalogControls,
+              icon: _isLoadingExternalCatalog
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              label: const Text('تحديث'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: _isSyncingExternalCatalog
+                  ? null
+                  : _syncExternalCatalog,
+              icon: _isSyncingExternalCatalog
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync_rounded),
+              label: const Text('مزامنة'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _externalStoreCatalogSearchController,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (_) => _loadExternalCatalogControls(),
+          decoration: InputDecoration(
+            hintText: 'بحث عن قسم، بطاقة، أو EAN',
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: IconButton(
+              tooltip: 'بحث',
+              onPressed: _loadExternalCatalogControls,
+              icon: const Icon(Icons.manage_search_rounded),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppTheme.border),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _catalogSummaryStrip(),
+        const SizedBox(height: 16),
+        Text('الأقسام', style: AppTheme.bodyBold),
+        const SizedBox(height: 8),
+        if (_externalCatalogCategories.isEmpty)
+          Text('لا توجد أقسام مزامنة بعد.', style: AppTheme.caption)
+        else
+          ..._externalCatalogCategories
+              .take(80)
+              .map((item) => _externalCategoryControlTile(item)),
+        const SizedBox(height: 16),
+        Text('البطاقات', style: AppTheme.bodyBold),
+        const SizedBox(height: 8),
+        if (_externalCatalogCards.isEmpty)
+          Text('لا توجد بطاقات مزامنة بعد.', style: AppTheme.caption)
+        else
+          ..._externalCatalogCards
+              .take(120)
+              .map((item) => _externalCardControlTile(item)),
+      ],
+    );
+  }
+
+  Widget _catalogSummaryStrip() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _summaryChip(
+          Icons.folder_rounded,
+          '${_externalCatalogCategories.length} قسم',
+        ),
+        _summaryChip(Icons.style_rounded, '${_externalCatalogCards.length} بطاقة'),
+        _summaryChip(
+          Icons.visibility_off_rounded,
+          '${_externalCatalogCategories.where((e) => e['hidden'] == true).length + _externalCatalogCards.where((e) => e['hidden'] == true).length} مخفي',
+        ),
+        _summaryChip(
+          Icons.block_rounded,
+          '${_externalCatalogCards.where((e) => e['forceUnavailable'] == true).length} غير متوفر',
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryChip(IconData icon, String label) {
+    return Chip(
+      avatar: Icon(icon, size: 18),
+      label: Text(label),
+      side: const BorderSide(color: AppTheme.border),
+      backgroundColor: AppTheme.surface,
+    );
+  }
+
+  Widget _externalCategoryControlTile(Map<String, dynamic> item) {
+    final id = item['id']?.toString() ?? '';
+    final sortOrder = (item['sortOrder'] as num?)?.toInt() ?? 0;
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.folder_rounded),
+      title: Text(item['title']?.toString() ?? 'قسم'),
+      subtitle: Text('ID: $id | ترتيب: $sortOrder'),
+      trailing: Wrap(
+        spacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          IconButton(
+            tooltip: 'تعديل',
+            onPressed: id.isEmpty
+                ? null
+                : () => _editExternalCatalogItem(kind: 'category', item: item),
+            icon: const Icon(Icons.edit_rounded),
+          ),
+          Switch.adaptive(
+            value: item['hidden'] == true,
+            onChanged: id.isEmpty
+                ? null
+                : (value) => _updateExternalCatalogItem(
+                      kind: 'category',
+                      id: id,
+                      hidden: value,
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _externalCardControlTile(Map<String, dynamic> item) {
+    final ean = item['ean']?.toString() ?? '';
+    final price = (item['providerPriceUsd'] as num?)?.toDouble() ?? 0;
+    final sortOrder = (item['sortOrder'] as num?)?.toInt() ?? 0;
+    return Column(
+      children: [
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.style_rounded),
+          title: Text(item['title']?.toString() ?? 'بطاقة'),
+          subtitle: Text(
+            'EAN: $ean | \$${price.toStringAsFixed(4)} | ترتيب: $sortOrder',
+          ),
+          trailing: Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              IconButton(
+                tooltip: 'تعديل',
+                onPressed: ean.isEmpty
+                    ? null
+                    : () => _editExternalCatalogItem(kind: 'card', item: item),
+                icon: const Icon(Icons.edit_rounded),
+              ),
+              Switch.adaptive(
+                value: item['hidden'] == true,
+                onChanged: ean.isEmpty
+                    ? null
+                    : (value) => _updateExternalCatalogItem(
+                          kind: 'card',
+                          id: ean,
+                          hidden: value,
+                        ),
+              ),
+            ],
+          ),
+        ),
+        CheckboxListTile(
+          dense: true,
+          contentPadding: const EdgeInsetsDirectional.only(start: 48),
+          value: item['forceUnavailable'] == true,
+          onChanged: ean.isEmpty
+              ? null
+              : (value) => _updateExternalCatalogItem(
+                    kind: 'card',
+                    id: ean,
+                    forceUnavailable: value ?? false,
+                  ),
+          title: const Text('عرضها كغير متوفرة'),
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
+        const Divider(height: 1),
+      ],
     );
   }
 

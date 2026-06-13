@@ -3097,12 +3097,14 @@ class ApiService {
     int categoryId = 2,
     int type = 2,
     int perPage = 100,
+    String? query,
   }) async {
     final response = await http.get(
       AppConfig.apiUri('external-card-store/catalog', {
         'category_id': categoryId.toString(),
         'type': type.toString(),
         'per_page': perPage.toString(),
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
       }),
       headers: await _headers(),
     );
@@ -3113,12 +3115,14 @@ class ApiService {
     required int categoryId,
     int type = 2,
     int perPage = 100,
+    String? query,
   }) async {
     final response = await http.get(
       AppConfig.apiUri('external-card-store/cards', {
         'category_id': categoryId.toString(),
         'type': type.toString(),
         'per_page': perPage.toString(),
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
       }),
       headers: await _headers(),
     );
@@ -3213,6 +3217,75 @@ class ApiService {
       AppConfig.apiUri('admin/settings/external-card-store'),
       headers: await _headers(),
       body: jsonEncode(settings),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getAdminExternalCardStoreCatalog({
+    String? query,
+    int limit = 200,
+  }) async {
+    final response = await http.get(
+      AppConfig.apiUri('admin/external-card-store/catalog', {
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        'limit': limit.toString(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> syncAdminExternalCardStoreCatalog({
+    int categoryId = 2,
+    int type = 2,
+    int maxDepth = 3,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('admin/external-card-store/catalog/sync'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'categoryId': categoryId,
+        'type': type,
+        'maxDepth': maxDepth,
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateAdminExternalCardStoreCatalogItem({
+    required String kind,
+    required String id,
+    String? title,
+    String? description,
+    String? imageUrl,
+    bool? hidden,
+    bool? forceUnavailable,
+    int? sortOrder,
+  }) async {
+    final payload = <String, dynamic>{};
+    if (title != null) {
+      payload['title'] = title;
+    }
+    if (description != null) {
+      payload['description'] = description;
+    }
+    if (imageUrl != null) {
+      payload['imageUrl'] = imageUrl;
+    }
+    if (hidden != null) {
+      payload['hidden'] = hidden;
+    }
+    if (forceUnavailable != null) {
+      payload['forceUnavailable'] = forceUnavailable;
+    }
+    if (sortOrder != null) {
+      payload['sortOrder'] = sortOrder;
+    }
+
+    final response = await http.put(
+      AppConfig.apiUri('admin/external-card-store/catalog/$kind/$id'),
+      headers: await _headers(),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
