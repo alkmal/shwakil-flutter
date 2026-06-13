@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
@@ -22,6 +24,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
 
   final ApiService _api = ApiService();
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   bool _isLoading = true;
   bool _isLoadingCatalog = false;
@@ -35,6 +38,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
   int _ordersTotal = 0;
   final int _type = 2;
   List<Map<String, dynamic>> _rootCategories = const [];
+  List<Map<String, dynamic>> _rootCards = const [];
   List<Map<String, dynamic>> _categories = const [];
   List<Map<String, dynamic>> _cards = const [];
   List<Map<String, dynamic>> _orders = const [];
@@ -52,14 +56,38 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         return;
       }
       setState(() => _search = _searchController.text.trim());
+      _scheduleSearch();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _scheduleSearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted || _activeTab != 0 || _isLoading || _isLoadingCatalog) {
+        return;
+      }
+      _loadCurrentCatalog();
+    });
+  }
+
+  Future<void> _loadCurrentCatalog() async {
+    final currentCategory = _isCategoryScreen
+        ? <String, dynamic>{'id': _rootCategoryId, 'title': 'الأقسام'}
+        : _selectedCategory ?? <String, dynamic>{'id': _categoryId};
+    await _loadCategoryCatalog(
+      _isCategoryScreen ? _rootCategoryId : _categoryId,
+      category: currentCategory,
+      trail: _isCategoryScreen ? const [] : _categoryTrail,
+      preserveScreen: true,
+    );
   }
 
   Future<void> _load() async {
@@ -88,8 +116,9 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
       setState(() {
         if (_isCategoryScreen) {
           _rootCategories = categories;
+          _rootCards = cards;
           _categories = categories;
-          _cards = const [];
+          _cards = cards;
         } else {
           _categories = categories;
           _cards = cards;
@@ -146,19 +175,23 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
     int categoryId, {
     required Map<String, dynamic> category,
     required List<Map<String, dynamic>> trail,
+    bool preserveScreen = false,
   }) async {
     setState(() {
       _isLoadingCatalog = true;
       _categoryId = categoryId;
-      _selectedCategory = category;
+      _selectedCategory = preserveScreen && trail.isEmpty ? null : category;
       _categoryTrail = trail;
-      _clearSearchForNavigation();
+      if (!preserveScreen) {
+        _clearSearchForNavigation();
+      }
     });
 
     try {
       final payload = await _api.getExternalCardStoreCatalog(
         categoryId: categoryId,
         type: _type,
+        query: _search,
       );
       if (!mounted) return;
       setState(() {
@@ -184,7 +217,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         _categoryTrail = const [];
         _categoryId = _rootCategoryId;
         _categories = _rootCategories;
-        _cards = const [];
+        _cards = _rootCards;
         _clearSearchForNavigation();
       });
       return;
@@ -449,7 +482,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
       _categoryTrail = const [];
       _categoryId = _rootCategoryId;
       _categories = _rootCategories;
-      _cards = const [];
+      _cards = _rootCards;
       _clearSearchForNavigation();
     });
   }
@@ -494,28 +527,35 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
 
   Widget _buildCategoryScreen() {
     final visibleCategories = _filterItems(_categories);
+    final visibleCards = _filterItems(_cards);
+    final hasAnyVisible =
+        visibleCategories.isNotEmpty || visibleCards.isNotEmpty;
 
-    return ShwakelCard(
-      padding: const EdgeInsets.all(18),
-      borderRadius: BorderRadius.circular(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text('الأقسام', style: AppTheme.h3)),
-              Text('${visibleCategories.length} قسم', style: AppTheme.caption),
-            ],
+    if (!hasAnyVisible) {
+      return ShwakelCard(
+        padding: const EdgeInsets.all(28),
+        borderRadius: BorderRadius.circular(22),
+        child: Center(
+          child: Text(
+            _search.isEmpty
+                ? 'لا توجد أقسام أو بطاقات متاحة حالياً.'
+                : 'لا توجد نتيجة مطابقة للبحث.',
+            style: AppTheme.h3,
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
-          if (_categories.isEmpty)
-            _emptyState('لا توجد أقسام متاحة حالياً.')
-          else if (visibleCategories.isEmpty)
-            _emptyState('لا يوجد قسم مطابق للبحث.')
-          else
-            _categoryGrid(visibleCategories),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (visibleCategories.isNotEmpty) ...[
+          _subcategoriesSection(visibleCategories),
+          const SizedBox(height: 14),
         ],
-      ),
+        if (visibleCards.isNotEmpty) _cardsSection(visibleCards),
+      ],
     );
   }
 
@@ -1002,6 +1042,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
       'pin',
       'link',
       'expiresAt',
+      'instructions',
     ].any((key) => (details[key]?.toString() ?? '').isNotEmpty);
     if (!hasDetails) {
       return Text('لا توجد بيانات إضافية للبطاقة.', style: AppTheme.caption);
@@ -1026,6 +1067,8 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
             _detailRow('الرابط', details['link'].toString()),
           if ((details['expiresAt']?.toString() ?? '').isNotEmpty)
             _detailRow('الصلاحية', details['expiresAt'].toString()),
+          if ((details['instructions']?.toString() ?? '').isNotEmpty)
+            _detailRow('طريقة الاستخدام', details['instructions'].toString()),
         ],
       ),
     );
