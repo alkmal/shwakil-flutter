@@ -950,9 +950,12 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
   }
 
   Widget _orderTile(Map<String, dynamic> order) {
-    final details = Map<String, dynamic>.from(
-      order['cardDetails'] as Map? ?? const {},
-    );
+    final rawDetails = order['cardDetails'];
+    final details = rawDetails is Map
+        ? Map<String, dynamic>.from(rawDetails)
+        : rawDetails is List && rawDetails.isNotEmpty && rawDetails.first is Map
+        ? Map<String, dynamic>.from(rawDetails.first as Map)
+        : <String, dynamic>{};
     final pending = order['cardPending'] == true;
     final status =
         order['statusLabel']?.toString() ??
@@ -1025,11 +1028,60 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
               style: AppTheme.bodyAction.copyWith(color: AppTheme.warning),
             )
           else
-            _orderDetailsBox(details),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _orderDetailsBox(details),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showOrderDetails(order, details),
+                    icon: const Icon(Icons.visibility_rounded),
+                    label: const Text('عرض بيانات البطاقة وطريقة الاستخدام'),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 10),
           Text(
             'المرجع: ${order['referenceId']?.toString() ?? '-'}',
             style: AppTheme.caption,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showOrderDetails(
+    Map<String, dynamic> order,
+    Map<String, dynamic> details,
+  ) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(order['title']?.toString() ?? 'بيانات البطاقة'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _orderDetailsBox(details),
+                const SizedBox(height: 12),
+                Text(
+                  'المرجع: ${order['referenceId']?.toString() ?? '-'}',
+                  style: AppTheme.caption,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('إغلاق'),
           ),
         ],
       ),
