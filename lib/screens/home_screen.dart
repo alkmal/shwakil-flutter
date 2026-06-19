@@ -2019,14 +2019,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final crossAxisCount = width >= 1180
+        final isPhoneLayout = width < 520;
+        final crossAxisCount = isPhoneLayout
+            ? 3
+            : width >= 1180
             ? 4
             : width >= 820
             ? 3
-            : width >= 520
-            ? 2
-            : 1;
-        final tileExtent = crossAxisCount == 1 ? 104.0 : 142.0;
+            : 2;
+        final tileExtent = isPhoneLayout ? 112.0 : 142.0;
         final sectionHeader = Row(
           children: [
             Container(
@@ -2200,10 +2201,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             builder: (context, constraints) {
               final isCompact = constraints.maxWidth < 520;
               return Flex(
-                direction: isCompact ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: isCompact
-                    ? CrossAxisAlignment.start
-                    : CrossAxisAlignment.center,
+                direction: Axis.horizontal,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Stack(
                     clipBehavior: Clip.none,
@@ -2241,63 +2240,42 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         ),
                     ],
                   ),
-                  SizedBox(
-                    width: isCompact ? 0 : 14,
-                    height: isCompact ? 12 : 0,
-                  ),
-                  if (isCompact)
-                    Column(
+                  SizedBox(width: isCompact ? 12 : 14),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           item.title,
-                          style: AppTheme.bodyBold,
-                          maxLines: 3,
+                          style: isCompact
+                              ? AppTheme.bodyBold.copyWith(
+                                  fontSize: 15.5,
+                                  height: 1.2,
+                                )
+                              : AppTheme.bodyBold,
+                          maxLines: isCompact ? 2 : 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           item.subtitle,
-                          style: AppTheme.bodyAction.copyWith(height: 1.35),
-                          maxLines: 3,
+                          style: AppTheme.bodyAction.copyWith(
+                            height: isCompact ? 1.25 : 1.35,
+                            fontSize: isCompact ? 12.5 : null,
+                          ),
+                          maxLines: isCompact ? 2 : 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 10),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 18,
-                          color: AppTheme.textSecondary.withValues(alpha: 0.7),
-                        ),
                       ],
-                    )
-                  else ...[
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            style: AppTheme.bodyBold,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item.subtitle,
-                            style: AppTheme.bodyAction.copyWith(height: 1.35),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 18,
-                      color: AppTheme.textSecondary.withValues(alpha: 0.7),
-                    ),
-                  ],
+                  ),
+                  SizedBox(width: isCompact ? 8 : 12),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: isCompact ? 16 : 18,
+                    color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                  ),
                 ],
               );
             },

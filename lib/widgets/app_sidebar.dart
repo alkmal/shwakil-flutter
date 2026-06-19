@@ -99,6 +99,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canOpenExternalCardStore = permissions.canOpenExternalCardStore;
     final canWithdraw = permissions.canWithdraw;
     final canManageDebtBook = permissions.canManageDebtBook;
+    final canAccessStoreManagement = permissions.canAccessStoreManagement;
     final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canViewUsagePolicy = permissions.canViewUsagePolicy;
     final canViewSubUsers = permissions.canViewSubUsers;
@@ -340,6 +341,13 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.040'),
                           routeName: '/debt-book',
                         ),
+                      if (canAccessStoreManagement)
+                        _buildItem(
+                          context,
+                          icon: Icons.storefront_rounded,
+                          title: 'إدارة المحل والمخزون',
+                          routeName: '/store-management',
+                        ),
                       if (canViewAffiliateCenter)
                         _buildItem(
                           context,
@@ -438,6 +446,13 @@ class _AppSidebarState extends State<AppSidebar> {
                             icon: Icons.menu_book_rounded,
                             title: l.tr('widgets_app_sidebar.040'),
                             routeName: '/admin-debt-book',
+                          ),
+                        if (permissions.canAccessStoreManagement)
+                          _buildItem(
+                            context,
+                            icon: Icons.store_rounded,
+                            title: 'إدارة المتاجر والمخزون',
+                            routeName: '/store-management',
                           ),
                         if (permissions.canManageLocations)
                           _buildItem(
