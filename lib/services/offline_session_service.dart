@@ -23,6 +23,7 @@ class OfflineSessionService {
     '/scan-card-offline',
     '/scan-card-offline-camera',
     '/debt-book',
+    '/store-management',
     '/inventory',
     '/affiliate-center',
     '/login-offline',

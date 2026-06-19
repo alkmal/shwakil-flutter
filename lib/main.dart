@@ -190,6 +190,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/account-verification': (context) => const AccountVerificationScreen(),
   '/sub-users': (context) => const SubUsersScreen(),
   '/debt-book': (context) => const DebtBookScreen(),
+  '/store-management': (context) => const StoreManagementScreen(),
 };
 
 Route<dynamic> _buildNamedRoute(RouteSettings settings) {
@@ -258,6 +259,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/account-verification' => permissions.canRequestVerification,
     '/sub-users' => permissions.canViewSubUsers,
     '/debt-book' => permissions.canManageDebtBook,
+    '/store-management' => permissions.canAccessStoreManagement,
     '/affiliate-center' => permissions.canViewAffiliateCenter,
     '/merchant-receive' => permissions.canTransfer,
     '/usage-policy' => permissions.canViewUsagePolicy,

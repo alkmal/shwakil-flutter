@@ -67,6 +67,14 @@ class AppPermissions {
     'canFinanceTopup',
     'canManageMarketingAccounts',
     'canManageDebtBook',
+    'canAccessStoreManagement',
+    'canManageStoreInventory',
+    'canCreateStoreSales',
+    'canCreateStorePurchases',
+    'canManageStoreDebts',
+    'canEditStorePrices',
+    'canViewStoreProfits',
+    'canViewStoreReports',
     'canManageLocations',
     'canManageSystemSettings',
     'canManageSubUsers',
@@ -167,6 +175,14 @@ class AppPermissions {
   bool get canManageMarketingAccounts =>
       _isEnabled('canManageMarketingAccounts');
   bool get canManageDebtBook => _isEnabled('canManageDebtBook');
+  bool get canAccessStoreManagement => _isEnabled('canAccessStoreManagement');
+  bool get canManageStoreInventory => _isEnabled('canManageStoreInventory');
+  bool get canCreateStoreSales => _isEnabled('canCreateStoreSales');
+  bool get canCreateStorePurchases => _isEnabled('canCreateStorePurchases');
+  bool get canManageStoreDebts => _isEnabled('canManageStoreDebts');
+  bool get canEditStorePrices => _isEnabled('canEditStorePrices');
+  bool get canViewStoreProfits => _isEnabled('canViewStoreProfits');
+  bool get canViewStoreReports => _isEnabled('canViewStoreReports');
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
   bool get canManageSubUsers => _isEnabled('canManageSubUsers');

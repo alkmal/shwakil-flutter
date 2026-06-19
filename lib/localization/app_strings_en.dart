@@ -190,6 +190,14 @@ const Map<String, String> appStringsEn = {
   'permission_catalog.label.canManageLocations': 'Manage locations',
   'permission_catalog.label.canManageSystemSettings': 'Manage system settings',
   'permission_catalog.label.canManageDebtBook': 'Manage debt book',
+  'permission_catalog.label.canAccessStoreManagement': 'Access store management',
+  'permission_catalog.label.canManageStoreInventory': 'Manage store inventory',
+  'permission_catalog.label.canCreateStoreSales': 'Create sales invoices',
+  'permission_catalog.label.canCreateStorePurchases': 'Create purchase invoices',
+  'permission_catalog.label.canManageStoreDebts': 'Manage store debts',
+  'permission_catalog.label.canEditStorePrices': 'Edit store prices',
+  'permission_catalog.label.canViewStoreProfits': 'View store profits',
+  'permission_catalog.label.canViewStoreReports': 'View store reports',
   'permission_catalog.label.canExportCustomerTransactions':
       'Export user transactions',
   'permission_catalog.description.canViewBalance':
@@ -264,6 +272,22 @@ const Map<String, String> appStringsEn = {
   'permission_catalog.description.canManageSystemSettings':
       'Edit general system settings.',
   'permission_catalog.description.canManageDebtBook': 'Manage the debt book.',
+  'permission_catalog.description.canAccessStoreManagement':
+      'Open the store management workspace.',
+  'permission_catalog.description.canManageStoreInventory':
+      'Manage products, units, barcodes, and stock.',
+  'permission_catalog.description.canCreateStoreSales':
+      'Create sales invoices and reduce stock.',
+  'permission_catalog.description.canCreateStorePurchases':
+      'Create purchase invoices and increase stock.',
+  'permission_catalog.description.canManageStoreDebts':
+      'Manage customers, suppliers, payments, and debts.',
+  'permission_catalog.description.canEditStorePrices':
+      'Edit purchase and sale prices.',
+  'permission_catalog.description.canViewStoreProfits':
+      'View cost and calculated profit figures.',
+  'permission_catalog.description.canViewStoreReports':
+      'View sales, inventory, and debt reports.',
   'permission_catalog.description.canExportCustomerTransactions':
       'Export user transactions.',
   'services_local_security_service.device_web': 'Web browser',

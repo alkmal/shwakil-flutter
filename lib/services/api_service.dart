@@ -3221,6 +3221,25 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getStoreManagementSnapshot() async {
+    final response = await http.get(
+      AppConfig.apiUri('store-management/snapshot'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> syncStoreManagement(
+    List<Map<String, dynamic>> operations,
+  ) async {
+    final response = await http.post(
+      AppConfig.apiUri('store-management/sync'),
+      headers: await _headers(),
+      body: jsonEncode({'operations': operations}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getAdminExternalCardStoreCatalog({
     String? query,
     int limit = 200,

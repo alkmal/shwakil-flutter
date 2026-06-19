@@ -188,6 +188,14 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.label.canManageLocations': 'إدارة الفروع والمواقع',
   'permission_catalog.label.canManageSystemSettings': 'إدارة إعدادات النظام',
   'permission_catalog.label.canManageDebtBook': 'إدارة دفتر الديون',
+  'permission_catalog.label.canAccessStoreManagement': 'الدخول إلى إدارة المحل',
+  'permission_catalog.label.canManageStoreInventory': 'إدارة أصناف ومخزون المحل',
+  'permission_catalog.label.canCreateStoreSales': 'إنشاء فواتير البيع',
+  'permission_catalog.label.canCreateStorePurchases': 'إنشاء فواتير الشراء',
+  'permission_catalog.label.canManageStoreDebts': 'إدارة حسابات وديون المحل',
+  'permission_catalog.label.canEditStorePrices': 'تعديل أسعار الشراء والبيع',
+  'permission_catalog.label.canViewStoreProfits': 'مشاهدة أرباح المحل',
+  'permission_catalog.label.canViewStoreReports': 'مشاهدة تقارير المحل',
   'permission_catalog.label.canExportCustomerTransactions':
       'تصدير حركات المستخدمين',
   'permission_catalog.description.canViewBalance': 'إظهار الرصيد داخل التطبيق.',
@@ -261,6 +269,22 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.description.canManageSystemSettings':
       'تعديل إعدادات النظام العامة.',
   'permission_catalog.description.canManageDebtBook': 'إدارة دفتر الديون.',
+  'permission_catalog.description.canAccessStoreManagement':
+      'السماح بفتح شاشة إدارة المحل وبياناته.',
+  'permission_catalog.description.canManageStoreInventory':
+      'إضافة الأصناف والوحدات والباركود ومتابعة المخزون.',
+  'permission_catalog.description.canCreateStoreSales':
+      'إنشاء فواتير البيع وخصم الكميات من المخزون.',
+  'permission_catalog.description.canCreateStorePurchases':
+      'إنشاء فواتير الشراء وزيادة المخزون.',
+  'permission_catalog.description.canManageStoreDebts':
+      'إدارة الزبائن والتجار والدفعات والديون.',
+  'permission_catalog.description.canEditStorePrices':
+      'تعديل أسعار الشراء والبيع للوحدات.',
+  'permission_catalog.description.canViewStoreProfits':
+      'عرض تكلفة البضاعة والأرباح المحسوبة.',
+  'permission_catalog.description.canViewStoreReports':
+      'عرض تقارير المبيعات والمخزون والديون.',
   'permission_catalog.description.canExportCustomerTransactions':
       'تصدير حركات المستخدمين.',
   'services_local_security_service.device_web': 'متصفح ويب',

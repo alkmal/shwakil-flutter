@@ -44,6 +44,14 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canReviewCards': false,
     'canReadOwnPrivateCardsOnly': false,
     'canRequestCardPrinting': true,
+    'canAccessStoreManagement': false,
+    'canManageStoreInventory': false,
+    'canCreateStoreSales': false,
+    'canCreateStorePurchases': false,
+    'canManageStoreDebts': false,
+    'canEditStorePrices': false,
+    'canViewStoreProfits': false,
+    'canViewStoreReports': false,
   };
 
   static const List<String> _permissionKeysOrder = [
@@ -55,6 +63,14 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canRequestCardPrinting',
     'canReviewCards',
     'canReadOwnPrivateCardsOnly',
+    'canAccessStoreManagement',
+    'canManageStoreInventory',
+    'canCreateStoreSales',
+    'canCreateStorePurchases',
+    'canManageStoreDebts',
+    'canEditStorePrices',
+    'canViewStoreProfits',
+    'canViewStoreReports',
   ];
 
   @override

@@ -863,9 +863,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewTransactions = permissions.canViewTransactions;
     final canViewInventory = permissions.canViewInventory;
     final canManageDebtBook = permissions.canManageDebtBook;
+    final canAccessStoreManagement = permissions.canAccessStoreManagement;
     final canViewAffiliateCenter = permissions.canViewAffiliateCenter;
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
+    final canOpenExternalCardStore = permissions.canOpenExternalCardStore;
     final canOpenPrepaidMultipayCards = _canOpenPrepaidOfflineCards;
     final canAcceptNfcPayments =
         permissions.canAcceptPrepaidMultipayContactless;
@@ -925,6 +927,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             kind: _HomeServiceKind.debtBook,
             onTap: () =>
                 unawaited(_openRoute('/debt-book', allowOffline: true)),
+          ),
+        if (canAccessStoreManagement)
+          _HomeServiceItem(
+            title: 'إدارة المحل',
+            subtitle: 'المخزون والمبيعات والمشتريات والديون والتقارير.',
+            icon: Icons.storefront_rounded,
+            color: AppTheme.secondary,
+            kind: _HomeServiceKind.storeManagement,
+            onTap: () =>
+                unawaited(_openRoute('/store-management', allowOffline: true)),
           ),
         if (canViewInventory && canIssueCards && _hasOfflineWorkspace)
           _HomeServiceItem(
@@ -993,6 +1005,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             onTap: () =>
                 unawaited(_openRoute('/debt-book', allowOffline: true)),
           ),
+        if (canAccessStoreManagement)
+          _HomeServiceItem(
+            title: 'إدارة المحل',
+            subtitle: 'مخزون وفواتير وديون المحل.',
+            icon: Icons.storefront_rounded,
+            color: AppTheme.secondary,
+            kind: _HomeServiceKind.storeManagement,
+            onTap: () =>
+                unawaited(_openRoute('/store-management', allowOffline: true)),
+          ),
       ];
     }
 
@@ -1044,6 +1066,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           color: AppTheme.primaryDark,
           kind: _HomeServiceKind.createCard,
           onTap: () => unawaited(_openOnlineOnlyRoute('/create-card')),
+        ),
+      if (canOpenExternalCardStore)
+        _HomeServiceItem(
+          title: 'متجر الكروت',
+          subtitle: 'شراء البطاقات الرقمية وعرض الطلبات من المتجر الخارجي.',
+          icon: Icons.store_mall_directory_rounded,
+          color: AppTheme.primary,
+          kind: _HomeServiceKind.externalCardStore,
+          onTap: () => unawaited(_openOnlineOnlyRoute('/external-card-store')),
         ),
       if (canOpenPrepaidMultipayCards)
         _HomeServiceItem(
@@ -1149,6 +1180,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           color: AppTheme.primaryDark,
           kind: _HomeServiceKind.debtBook,
           onTap: () => unawaited(_openOnlineOnlyRoute('/debt-book')),
+        ),
+      if (canAccessStoreManagement)
+        _HomeServiceItem(
+          title: 'إدارة المحل',
+          subtitle: 'المخزون والمبيعات والمشتريات والديون والأرباح.',
+          icon: Icons.storefront_rounded,
+          color: AppTheme.secondary,
+          kind: _HomeServiceKind.storeManagement,
+          onTap: () => unawaited(_openOnlineOnlyRoute('/store-management')),
         ),
       if (canViewSecuritySettings)
         _HomeServiceItem(
@@ -1486,8 +1526,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         final isLandscapePhone =
             mediaQuery.orientation == Orientation.landscape &&
             constraints.maxWidth < 1100;
+        final useWideLayout = constraints.maxWidth >= 900;
 
-        if (!isLandscapePhone) {
+        if (!isLandscapePhone && !useWideLayout) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1611,8 +1652,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         crossAxisSpacing: 10,
         mainAxisExtent: tileExtent,
       ),
-      itemBuilder: (context, index) =>
-          _buildCompactServiceTile(services[index]),
+      itemBuilder: (context, index) => crossAxisCount == 1
+          ? _buildServiceListItem(services[index])
+          : _buildCompactServiceTile(services[index]),
     );
   }
 
@@ -1976,11 +2018,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final experience = _roleExperience;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final mediaQuery = MediaQuery.of(context);
-        final isLandscapePhone =
-            mediaQuery.orientation == Orientation.landscape &&
-            constraints.maxWidth < 1100;
-        final useCompactGrid = constraints.maxWidth < 640 || isLandscapePhone;
+        final width = constraints.maxWidth;
+        final crossAxisCount = width >= 1180
+            ? 4
+            : width >= 820
+            ? 3
+            : width >= 520
+            ? 2
+            : 1;
+        final tileExtent = crossAxisCount == 1 ? 104.0 : 142.0;
         final sectionHeader = Row(
           children: [
             Container(
@@ -2023,51 +2069,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         );
 
-        final compactBody = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            sectionHeader,
-            const SizedBox(height: 16),
-            if (services.isEmpty)
-              emptyState
-            else
-              _buildServicesGrid(
-                services,
-                crossAxisCount: isLandscapePhone ? 4 : 3,
-                tileExtent: isLandscapePhone ? 112 : 132,
-              ),
-          ],
-        );
-
-        if (useCompactGrid) {
-          return compactBody;
-        }
-
         return ShwakelCard(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(width < 520 ? 14 : 20),
           borderRadius: BorderRadius.circular(28),
           shadowLevel: ShwakelShadowLevel.medium,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               sectionHeader,
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               if (services.isEmpty)
                 emptyState
               else
-                Column(
-                  children: services
-                      .asMap()
-                      .entries
-                      .map((entry) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: entry.key == services.length - 1 ? 0 : 12,
-                          ),
-                          child: _buildServiceListItem(entry.value),
-                        );
-                      })
-                      .toList(growable: false),
+                _buildServicesGrid(
+                  services,
+                  crossAxisCount: crossAxisCount,
+                  tileExtent: tileExtent,
                 ),
             ],
           ),
@@ -2341,6 +2358,8 @@ enum _HomeServiceKind {
   transactions,
   affiliate,
   debtBook,
+  externalCardStore,
+  storeManagement,
   security,
 }
 

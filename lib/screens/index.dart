@@ -44,3 +44,4 @@ export 'account_verification_screen.dart';
 export 'sub_users_screen.dart';
 export 'debt_book_screen.dart';
 export 'debt_book_customer_screen.dart';
+export 'store_management_screen.dart';
