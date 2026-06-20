@@ -29,6 +29,28 @@ class StoreManagementService {
     return _decodeList(prefs.getString('$_queueKeyPrefix$userId'));
   }
 
+  Future<void> removePendingOperation({
+    required String userId,
+    required String opId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_queueKeyPrefix$userId';
+    final queue = await _decodeList(prefs.getString(key));
+    final next = queue
+        .where((item) => item['opId']?.toString() != opId)
+        .toList();
+    if (next.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, await _encode(next));
+  }
+
+  Future<void> clearPendingOperations(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('$_queueKeyPrefix$userId');
+  }
+
   Future<Map<String, dynamic>> refresh({
     required String userId,
     required ApiService api,
@@ -46,11 +68,50 @@ class StoreManagementService {
     if (operations.isEmpty) {
       return refresh(userId: userId, api: api);
     }
-    final snapshot = await api.syncStoreManagement(operations);
-    await _storeSnapshot(userId, snapshot);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('$_queueKeyPrefix$userId');
-    return snapshot;
+
+    final remaining = operations
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    Map<String, dynamic>? latestSnapshot;
+    Object? firstError;
+
+    for (final operation in operations) {
+      try {
+        final snapshot = await api.syncStoreManagement([operation]);
+        latestSnapshot = snapshot;
+        await _storeSnapshot(userId, snapshot);
+        final index = remaining.indexWhere(
+          (item) => _samePendingOperation(item, operation),
+        );
+        if (index >= 0) {
+          remaining.removeAt(index);
+        }
+        await _storePendingOperations(userId, remaining);
+      } catch (error) {
+        firstError ??= error;
+        final index = remaining.indexWhere(
+          (item) => _samePendingOperation(item, operation),
+        );
+        if (index >= 0) {
+          remaining[index] = {
+            ...remaining[index],
+            'syncStatus': 'failed',
+            'lastSyncError': error.toString(),
+            'lastSyncAttemptAt': DateTime.now().toIso8601String(),
+          };
+          await _storePendingOperations(userId, remaining);
+        }
+      }
+    }
+
+    if (remaining.isNotEmpty && firstError != null) {
+      throw StoreManagementSyncException(
+        'تعذر مزامنة ${remaining.length} عملية. راجع تفاصيل العمليات المعلقة واحذف العملية القديمة أو صحح بياناتها.',
+        firstError,
+      );
+    }
+
+    return latestSnapshot ?? refresh(userId: userId, api: api);
   }
 
   Future<void> queueProduct({
@@ -213,7 +274,48 @@ class StoreManagementService {
     final key = '$_queueKeyPrefix$userId';
     final queue = await _decodeList(prefs.getString(key));
     queue.add(operation);
-    await prefs.setString(key, await _encode(queue));
+    await _storePendingOperations(userId, queue);
+  }
+
+  Future<void> _storePendingOperations(
+    String userId,
+    List<Map<String, dynamic>> operations,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_queueKeyPrefix$userId';
+    if (operations.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, await _encode(operations));
+  }
+
+  bool _samePendingOperation(
+    Map<String, dynamic> queued,
+    Map<String, dynamic> candidate,
+  ) {
+    final queuedOpId = queued['opId']?.toString().trim() ?? '';
+    final candidateOpId = candidate['opId']?.toString().trim() ?? '';
+    if (queuedOpId.isNotEmpty && candidateOpId.isNotEmpty) {
+      return queuedOpId == candidateOpId;
+    }
+    final queuedClientRef = queued['clientRef']?.toString().trim() ?? '';
+    final candidateClientRef = candidate['clientRef']?.toString().trim() ?? '';
+    if (queued['entity']?.toString() == candidate['entity']?.toString() &&
+        queued['type']?.toString() == candidate['type']?.toString() &&
+        queuedClientRef.isNotEmpty &&
+        queuedClientRef == candidateClientRef) {
+      return true;
+    }
+    return jsonEncode(_operationPayload(queued)) ==
+        jsonEncode(_operationPayload(candidate));
+  }
+
+  Map<String, dynamic> _operationPayload(Map<String, dynamic> operation) {
+    return Map<String, dynamic>.from(operation)
+      ..remove('syncStatus')
+      ..remove('lastSyncError')
+      ..remove('lastSyncAttemptAt');
   }
 
   Future<void> _enqueueAndApply(
@@ -810,6 +912,7 @@ class StoreManagementService {
   String _unitName(String code) => switch (code) {
     'piece' => 'حبة',
     'carton' => 'كرتونة',
+    'bag' => 'كيس',
     'pallet' => 'مشطاح',
     'kg' => 'كيلو',
     'liter' => 'لتر',
@@ -894,4 +997,14 @@ class StoreManagementService {
       rethrow;
     }
   }
+}
+
+class StoreManagementSyncException implements Exception {
+  const StoreManagementSyncException(this.message, this.cause);
+
+  final String message;
+  final Object cause;
+
+  @override
+  String toString() => message;
 }

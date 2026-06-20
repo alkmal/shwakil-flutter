@@ -2031,13 +2031,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         final width = constraints.maxWidth;
         final isPhoneLayout = width < 520;
         final crossAxisCount = isPhoneLayout
-            ? 3
+            ? 2
             : width >= 1180
             ? 4
             : width >= 820
             ? 3
             : 2;
-        final tileExtent = isPhoneLayout ? 112.0 : 142.0;
+        final tileExtent = isPhoneLayout ? 132.0 : 142.0;
         final sectionHeader = Row(
           children: [
             Container(

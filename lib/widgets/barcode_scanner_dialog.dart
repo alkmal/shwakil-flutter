@@ -20,6 +20,7 @@ class BarcodeScannerDialog extends StatefulWidget {
     this.onCancelLabel,
     this.resultTitle,
     this.onScanResolved,
+    this.fullScreen = false,
   });
 
   final String title;
@@ -32,6 +33,7 @@ class BarcodeScannerDialog extends StatefulWidget {
   final String? resultTitle;
   final Future<BarcodeScannerDialogResult?> Function(String value)?
   onScanResolved;
+  final bool fullScreen;
 
   @override
   State<BarcodeScannerDialog> createState() => _BarcodeScannerDialogState();
@@ -243,89 +245,86 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
     final screenSize = MediaQuery.sizeOf(context);
     final maxDialogHeight = screenSize.height * 0.88;
 
+    final content = ShwakelCard(
+      padding: const EdgeInsets.all(24),
+      borderRadius: widget.borderRadius is BorderRadius
+          ? widget.borderRadius as BorderRadius
+          : AppTheme.radiusMd,
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: showingResult
+                    ? Align(
+                        alignment: Alignment.centerLeft,
+                        child: ShwakelButton(
+                          label: context.loc.tr(
+                            'widgets_barcode_scanner_dialog.004',
+                          ),
+                          isSecondary: true,
+                          icon: Icons.qr_code_scanner_rounded,
+                          onPressed: _resetScanner,
+                        ),
+                      )
+                    : hideDialogHeader
+                    ? const SizedBox.shrink()
+                    : Text(title, style: AppTheme.h3),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+          if (!hideDialogDescription) ...[
+            const SizedBox(height: 12),
+            Text(
+              showingResult
+                  ? (_resolvedResult?.description ?? widget.description)
+                  : widget.description,
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyAction,
+            ),
+            const SizedBox(height: 18),
+          ] else
+            const SizedBox(height: 8),
+          Flexible(child: SingleChildScrollView(child: scanner)),
+          if (showingResult && _resolvedResult?.primaryActionLabel != null) ...[
+            const SizedBox(height: 18),
+            ShwakelButton(
+              width: double.infinity,
+              label: _resolvedResult!.primaryActionLabel!,
+              icon:
+                  _resolvedResult!.primaryActionIcon ??
+                  Icons.check_circle_rounded,
+              onPressed: _resolvedResult!.onPrimaryAction == null
+                  ? null
+                  : _runPrimaryAction,
+              isLoading: _isRunningPrimaryAction,
+            ),
+          ] else if (widget.onCancelLabel != null) ...[
+            const SizedBox(height: 18),
+            ShwakelButton(
+              label: widget.onCancelLabel!,
+              isSecondary: true,
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ],
+      ),
+    );
+    if (widget.fullScreen) {
+      return content;
+    }
+
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       backgroundColor: widget.backgroundColor ?? Colors.white,
       child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 500,
-          maxHeight: maxDialogHeight,
-        ),
-        child: ShwakelCard(
-          padding: const EdgeInsets.all(24),
-          borderRadius: widget.borderRadius is BorderRadius
-              ? widget.borderRadius as BorderRadius
-              : AppTheme.radiusMd,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: showingResult
-                        ? Align(
-                            alignment: Alignment.centerLeft,
-                            child: ShwakelButton(
-                              label: context.loc.tr(
-                                'widgets_barcode_scanner_dialog.004',
-                              ),
-                              isSecondary: true,
-                              icon: Icons.qr_code_scanner_rounded,
-                              onPressed: _resetScanner,
-                            ),
-                          )
-                        : hideDialogHeader
-                        ? const SizedBox.shrink()
-                        : Text(title, style: AppTheme.h3),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              if (!hideDialogDescription) ...[
-                const SizedBox(height: 12),
-                Text(
-                  showingResult
-                      ? (_resolvedResult?.description ?? widget.description)
-                      : widget.description,
-                  textAlign: TextAlign.center,
-                  style: AppTheme.bodyAction,
-                ),
-                const SizedBox(height: 18),
-              ] else
-                const SizedBox(height: 8),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: scanner,
-                ),
-              ),
-              if (showingResult &&
-                  _resolvedResult?.primaryActionLabel != null) ...[
-                const SizedBox(height: 18),
-                ShwakelButton(
-                  width: double.infinity,
-                  label: _resolvedResult!.primaryActionLabel!,
-                  icon:
-                      _resolvedResult!.primaryActionIcon ??
-                      Icons.check_circle_rounded,
-                  onPressed: _resolvedResult!.onPrimaryAction == null
-                      ? null
-                      : _runPrimaryAction,
-                  isLoading: _isRunningPrimaryAction,
-                ),
-              ] else if (widget.onCancelLabel != null) ...[
-                const SizedBox(height: 18),
-                ShwakelButton(
-                  label: widget.onCancelLabel!,
-                  isSecondary: true,
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ],
-          ),
-        ),
+        constraints: BoxConstraints(maxWidth: 500, maxHeight: maxDialogHeight),
+        child: content,
       ),
     );
   }

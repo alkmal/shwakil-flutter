@@ -117,12 +117,153 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       });
     } catch (error) {
       if (!mounted) return;
+      final local = await _store.getSnapshot(_userId);
+      final pending = await _store.getPendingOperations(_userId);
+      if (!mounted) return;
       setState(() {
+        _snapshot = local;
+        _pending = pending;
         _loading = false;
         _syncing = false;
         _error = ErrorMessageService.sanitize(error);
       });
     }
+  }
+
+  Future<void> _reloadLocalPending() async {
+    if (_userId.isEmpty) return;
+    final pending = await _store.getPendingOperations(_userId);
+    if (!mounted) return;
+    setState(() => _pending = pending);
+  }
+
+  Future<void> _deletePendingOperation(Map<String, dynamic> operation) async {
+    final opId = operation['opId']?.toString() ?? '';
+    if (opId.isEmpty) return;
+    final confirmed = await _confirm(
+      title: 'حذف عملية معلقة',
+      message:
+          'سيتم حذف هذه العملية من قائمة المزامنة المحلية. استخدمها فقط للعمليات القديمة أو الخاطئة التي تمنع المزامنة.',
+      actionLabel: 'حذف العملية',
+    );
+    if (confirmed != true) return;
+    await _store.removePendingOperation(userId: _userId, opId: opId);
+    await _reloadLocalPending();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم حذف العملية المعلقة.')));
+  }
+
+  Future<void> _clearPendingOperations() async {
+    final confirmed = await _confirm(
+      title: 'حذف كل المزامنات المعلقة',
+      message:
+          'سيتم حذف كل العمليات المحلية بانتظار المزامنة. بعد ذلك سنحاول تحديث البيانات من السيرفر حتى تعود الشاشة لآخر بيانات مؤكدة.',
+      actionLabel: 'حذف الكل',
+    );
+    if (confirmed != true) return;
+    await _store.clearPendingOperations(_userId);
+    await _reloadLocalPending();
+    if (!mounted) return;
+    await _sync();
+  }
+
+  Future<bool?> _confirm({
+    required String title,
+    required String message,
+    required String actionLabel,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(actionLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _openFullScreenForm({
+    required String title,
+    required Widget Function(BuildContext context, StateSetter setFormState)
+    builder,
+    required String actionLabel,
+    bool Function()? canSubmit,
+  }) {
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (pageContext) => StatefulBuilder(
+          builder: (formContext, setFormState) => Scaffold(
+            backgroundColor: AppTheme.background,
+            appBar: AppBar(
+              title: Text(title),
+              leading: IconButton(
+                tooltip: 'إغلاق',
+                onPressed: () => Navigator.pop(pageContext, false),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ),
+            body: ResponsiveScaffoldContainer(
+              padding: const EdgeInsets.all(16),
+              child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                children: [
+                  ShwakelCard(
+                    padding: const EdgeInsets.all(16),
+                    child: builder(formContext, setFormState),
+                  ),
+                  const SizedBox(height: 96),
+                ],
+              ),
+            ),
+            bottomNavigationBar: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                decoration: BoxDecoration(
+                  color: AppTheme.background,
+                  border: Border(
+                    top: BorderSide(
+                      color: AppTheme.border.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(pageContext, false),
+                        child: const Text('إلغاء'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: canSubmit?.call() == false
+                            ? null
+                            : () => Navigator.pop(pageContext, true),
+                        child: Text(actionLabel),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _showLocalThenSync() async {
@@ -188,91 +329,63 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         ? 'auto'
         : 'manual';
 
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('إعداد ظهور المتجر للعامة'),
-          content: SizedBox(
-            width: 560,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: storeName,
-                    decoration: const InputDecoration(
-                      labelText: 'اسم المحل الداخلي',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: publicEnabled,
-                    title: const Text('إظهار المتجر في التطبيق'),
-                    subtitle: const Text(
-                      'لن تظهر المنتجات إلا إذا تم تفعيلها كمنتجات عامة.',
-                    ),
-                    onChanged: (value) =>
-                        setDialogState(() => publicEnabled = value),
-                  ),
-                  TextField(
-                    controller: publicName,
-                    decoration: const InputDecoration(
-                      labelText: 'اسم المتجر الظاهر للعامة',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: publicDescription,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'وصف مختصر للمتجر',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: publicOrderMode,
-                    decoration: const InputDecoration(labelText: 'آلية الطلب'),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'manual',
-                        child: Text('تأكيد يدوي من التاجر'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'auto',
-                        child: Text('مستقبلاً: تأكيد تلقائي حسب المتوفر'),
-                      ),
-                    ],
-                    onChanged: (value) => setDialogState(
-                      () => publicOrderMode = value ?? 'manual',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: minOrder,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'الحد الأدنى للطلب',
-                    ),
-                  ),
-                ],
-              ),
+    final accepted = await _openFullScreenForm(
+      title: 'إعداد ظهور المتجر للعامة',
+      actionLabel: 'حفظ الإعدادات',
+      canSubmit: () => storeName.text.trim().isNotEmpty,
+      builder: (context, setDialogState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: storeName,
+            decoration: const InputDecoration(labelText: 'اسم المحل الداخلي'),
+          ),
+          const SizedBox(height: 10),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: publicEnabled,
+            title: const Text('إظهار المتجر في التطبيق'),
+            subtitle: const Text(
+              'لن تظهر المنتجات إلا إذا تم تفعيلها كمنتجات عامة.',
+            ),
+            onChanged: (value) => setDialogState(() => publicEnabled = value),
+          ),
+          TextField(
+            controller: publicName,
+            decoration: const InputDecoration(
+              labelText: 'اسم المتجر الظاهر للعامة',
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ'),
-            ),
-          ],
-        ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: publicDescription,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: 'وصف مختصر للمتجر'),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            initialValue: publicOrderMode,
+            decoration: const InputDecoration(labelText: 'آلية الطلب'),
+            items: const [
+              DropdownMenuItem(
+                value: 'manual',
+                child: Text('تأكيد يدوي من التاجر'),
+              ),
+              DropdownMenuItem(
+                value: 'auto',
+                child: Text('مستقبلاً: تأكيد تلقائي حسب المتوفر'),
+              ),
+            ],
+            onChanged: (value) =>
+                setDialogState(() => publicOrderMode = value ?? 'manual'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: minOrder,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: 'الحد الأدنى للطلب'),
+          ),
+        ],
       ),
     );
 
@@ -301,137 +414,140 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final name = TextEditingController();
     final barcode = TextEditingController();
     final factor = TextEditingController(text: '24');
+    final purchasePrice = TextEditingController(text: '0');
     final salePrice = TextEditingController(text: '0');
     final publicMaxQuantity = TextEditingController();
     String baseUnit = 'piece';
+    String packageUnit = 'carton';
     bool publicVisible = false;
     bool publicAllowOnlineSale = false;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('إضافة صنف جديد'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'اسم الصنف'),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: baseUnit,
-                  decoration: const InputDecoration(
-                    labelText: 'الوحدة الأساسية',
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'piece', child: Text('حبة')),
-                    DropdownMenuItem(value: 'kg', child: Text('كيلو')),
-                    DropdownMenuItem(value: 'liter', child: Text('لتر')),
-                    DropdownMenuItem(value: 'box', child: Text('صندوق')),
-                  ],
-                  onChanged: (value) =>
-                      setDialogState(() => baseUnit = value ?? 'piece'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: factor,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'عدد الوحدات في الكرتونة',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: barcode,
-                  decoration: const InputDecoration(
-                    labelText: 'باركود الكرتونة',
-                    suffixIcon: Icon(Icons.qr_code_scanner_rounded),
-                  ),
-                ),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final value = await _scanBarcode(
-                        title: 'قراءة باركود الصنف',
-                        description:
-                            'وجه الكاميرا إلى باركود الكرتونة أو الوحدة.',
-                      );
-                      if (value != null) {
-                        barcode.text = value;
-                      }
-                    },
-                    icon: const Icon(Icons.camera_alt_rounded),
-                    label: const Text('قراءة من الكاميرا'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: salePrice,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'سعر بيع الوحدة الأساسية',
-                  ),
-                ),
-                if (_permissions.canManagePublicStorefront) ...[
-                  const SizedBox(height: 10),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: publicVisible,
-                    title: const Text('إظهار الصنف في المتجر العام'),
-                    subtitle: const Text(
-                      'لن يظهر إلا إذا كان المتجر نفسه منشورًا.',
-                    ),
-                    onChanged: (value) =>
-                        setDialogState(() => publicVisible = value),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: publicAllowOnlineSale,
-                    title: const Text('السماح بالشراء من التطبيق'),
-                    subtitle: const Text(
-                      'يتم إنشاء طلب للمتجر حسب الكمية المتاحة.',
-                    ),
-                    onChanged: publicVisible
-                        ? (value) => setDialogState(
-                            () => publicAllowOnlineSale = value,
-                          )
-                        : null,
-                  ),
-                  TextField(
-                    controller: publicMaxQuantity,
-                    enabled: publicVisible && publicAllowOnlineSale,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'أقصى كمية مسموحة للطلب',
-                      helperText: 'اتركه فارغًا لاستخدام المتوفر بالمخزون.',
-                    ),
-                  ),
-                ],
-              ],
+    final accepted = await _openFullScreenForm(
+      title: 'إضافة صنف جديد',
+      actionLabel: 'حفظ الصنف',
+      canSubmit: () => name.text.trim().isNotEmpty,
+      builder: (context, setDialogState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: name,
+            decoration: const InputDecoration(labelText: 'اسم الصنف'),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            initialValue: baseUnit,
+            decoration: const InputDecoration(labelText: 'الوحدة الأساسية'),
+            items: const [
+              DropdownMenuItem(value: 'piece', child: Text('حبة')),
+              DropdownMenuItem(value: 'kg', child: Text('كيلو')),
+              DropdownMenuItem(value: 'liter', child: Text('لتر')),
+              DropdownMenuItem(value: 'box', child: Text('صندوق')),
+            ],
+            onChanged: (value) =>
+                setDialogState(() => baseUnit = value ?? 'piece'),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            initialValue: packageUnit,
+            decoration: const InputDecoration(
+              labelText: 'وحدة التجميع أو الكمية الكبيرة',
+              helperText: 'مثال: كيس، كرتونة، مشطاح.',
+            ),
+            items: const [
+              DropdownMenuItem(value: 'carton', child: Text('كرتونة')),
+              DropdownMenuItem(value: 'bag', child: Text('كيس')),
+              DropdownMenuItem(value: 'box', child: Text('صندوق')),
+              DropdownMenuItem(value: 'pallet', child: Text('مشطاح')),
+            ],
+            onChanged: (value) =>
+                setDialogState(() => packageUnit = value ?? 'carton'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: factor,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'عدد الوحدات الأساسية داخل وحدة التجميع',
+              helperText: 'مثال: الكرتونة = 24 حبة، المشطاح = 50 كرتونة.',
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
+          const SizedBox(height: 10),
+          TextField(
+            controller: barcode,
+            decoration: const InputDecoration(
+              labelText: 'باركود الصنف أو وحدة التجميع',
             ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ'),
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () async {
+                final value = await _scanBarcode(
+                  title: 'قراءة باركود الصنف',
+                  description: 'وجه الكاميرا إلى باركود الكرتونة أو الوحدة.',
+                );
+                if (value != null) {
+                  barcode.text = value;
+                }
+              },
+              icon: const Icon(Icons.camera_alt_rounded),
+              label: const Text('قراءة من الكاميرا'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: purchasePrice,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'سعر شراء الوحدة الأساسية',
+              helperText: 'يستخدم تلقائيًا عند فواتير الشراء.',
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: salePrice,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'سعر بيع الوحدة الأساسية',
+              helperText: 'يظهر تلقائيًا عند البيع أو POS.',
+            ),
+          ),
+          if (_permissions.canManagePublicStorefront) ...[
+            const SizedBox(height: 10),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: publicVisible,
+              title: const Text('إظهار الصنف في المتجر العام'),
+              subtitle: const Text('لن يظهر إلا إذا كان المتجر نفسه منشورًا.'),
+              onChanged: (value) => setDialogState(() => publicVisible = value),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: publicAllowOnlineSale,
+              title: const Text('السماح بالشراء من التطبيق'),
+              subtitle: const Text('يتم إنشاء طلب للمتجر حسب الكمية المتاحة.'),
+              onChanged: publicVisible
+                  ? (value) =>
+                        setDialogState(() => publicAllowOnlineSale = value)
+                  : null,
+            ),
+            TextField(
+              controller: publicMaxQuantity,
+              enabled: publicVisible && publicAllowOnlineSale,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'أقصى كمية مسموحة للطلب',
+                helperText: 'اتركه فارغًا لاستخدام المتوفر بالمخزون.',
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
     if (accepted == true && name.text.trim().isNotEmpty) {
       final packageFactor = double.tryParse(factor.text) ?? 1;
+      final cost = double.tryParse(purchasePrice.text) ?? 0;
       final price = double.tryParse(salePrice.text) ?? 0;
       await _store.queueProduct(
         userId: _userId,
@@ -448,14 +564,16 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             'code': baseUnit,
             'factorToBase': 1,
             'isBase': true,
+            'purchasePrice': cost,
             'salePrice': price,
           },
           if (packageFactor > 1)
             {
-              'name': 'كرتونة',
-              'code': 'carton',
+              'name': _unitName(packageUnit),
+              'code': packageUnit,
               'factorToBase': packageFactor,
               'barcode': barcode.text.trim(),
+              'purchasePrice': cost * packageFactor,
               'salePrice': price * packageFactor,
             },
         ],
@@ -465,6 +583,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     name.dispose();
     barcode.dispose();
     factor.dispose();
+    purchasePrice.dispose();
     salePrice.dispose();
     publicMaxQuantity.dispose();
   }
@@ -475,125 +594,93 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     String type = 'customer';
     String? selectedDebtBookAccountId;
     String debtSearch = '';
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final query = debtSearch.trim().toLowerCase();
-          final debtAccounts = _debtBookAccounts
-              .where((account) {
-                if (query.isEmpty) return true;
-                final haystack =
-                    '${account['fullName'] ?? ''} ${account['phone'] ?? ''}'
-                        .toLowerCase();
-                return haystack.contains(query);
-              })
-              .take(30)
-              .toList();
+    final accepted = await _openFullScreenForm(
+      title: 'إضافة زبون أو تاجر',
+      actionLabel: 'حفظ الحساب',
+      canSubmit: () => name.text.trim().isNotEmpty,
+      builder: (context, setDialogState) {
+        final query = debtSearch.trim().toLowerCase();
+        final debtAccounts = _debtBookAccounts
+            .where((account) {
+              if (query.isEmpty) return true;
+              final haystack =
+                  '${account['fullName'] ?? ''} ${account['phone'] ?? ''}'
+                      .toLowerCase();
+              return haystack.contains(query);
+            })
+            .take(30)
+            .toList();
 
-          void applyDebtAccount(String? id) {
-            selectedDebtBookAccountId = id;
-            if (id == null) return;
-            final account = _debtBookAccounts.firstWhere(
-              (item) => item['id']?.toString() == id,
-              orElse: () => const {},
-            );
-            if (account.isEmpty) return;
-            name.text = (account['fullName'] ?? '').toString();
-            phone.text = (account['phone'] ?? '').toString();
-          }
-
-          return AlertDialog(
-            title: const Text('إضافة زبون أو تاجر'),
-            content: SizedBox(
-              width: 520,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: type,
-                      decoration: const InputDecoration(
-                        labelText: 'نوع الحساب',
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'customer',
-                          child: Text('زبون'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'supplier',
-                          child: Text('تاجر'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'both',
-                          child: Text('زبون وتاجر'),
-                        ),
-                      ],
-                      onChanged: (value) =>
-                          setDialogState(() => type = value ?? 'customer'),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'بحث في دفتر الديون',
-                        prefixIcon: Icon(Icons.search_rounded),
-                      ),
-                      onChanged: (value) =>
-                          setDialogState(() => debtSearch = value),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedDebtBookAccountId,
-                      decoration: const InputDecoration(
-                        labelText: 'اعتماد حساب من دفتر الديون',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('حساب جديد غير مربوط'),
-                        ),
-                        ...debtAccounts.map(
-                          (account) => DropdownMenuItem<String?>(
-                            value: account['id']?.toString(),
-                            child: Text(
-                              '${account['fullName'] ?? ''} • ${account['phone'] ?? ''}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) =>
-                          setDialogState(() => applyDebtAccount(value)),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: name,
-                      decoration: const InputDecoration(labelText: 'الاسم'),
-                    ),
-                    TextField(
-                      controller: phone,
-                      decoration: const InputDecoration(
-                        labelText: 'رقم الهاتف',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('حفظ'),
-              ),
-            ],
+        void applyDebtAccount(String? id) {
+          selectedDebtBookAccountId = id;
+          if (id == null) return;
+          final account = _debtBookAccounts.firstWhere(
+            (item) => item['id']?.toString() == id,
+            orElse: () => const {},
           );
-        },
-      ),
+          if (account.isEmpty) return;
+          name.text = (account['fullName'] ?? '').toString();
+          phone.text = (account['phone'] ?? '').toString();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: type,
+              decoration: const InputDecoration(labelText: 'نوع الحساب'),
+              items: const [
+                DropdownMenuItem(value: 'customer', child: Text('زبون')),
+                DropdownMenuItem(value: 'supplier', child: Text('تاجر')),
+                DropdownMenuItem(value: 'both', child: Text('زبون وتاجر')),
+              ],
+              onChanged: (value) =>
+                  setDialogState(() => type = value ?? 'customer'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'بحث في دفتر الديون',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+              onChanged: (value) => setDialogState(() => debtSearch = value),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String?>(
+              initialValue: selectedDebtBookAccountId,
+              decoration: const InputDecoration(
+                labelText: 'اعتماد حساب من دفتر الديون',
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('حساب جديد غير مربوط'),
+                ),
+                ...debtAccounts.map(
+                  (account) => DropdownMenuItem<String?>(
+                    value: account['id']?.toString(),
+                    child: Text(
+                      '${account['fullName'] ?? ''} • ${account['phone'] ?? ''}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+              onChanged: (value) =>
+                  setDialogState(() => applyDebtAccount(value)),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'الاسم'),
+            ),
+            TextField(
+              controller: phone,
+              decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+            ),
+          ],
+        );
+      },
     );
     if (accepted == true && name.text.trim().isNotEmpty) {
       await _store.queueParty(
@@ -613,12 +700,24 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     required String title,
     required String description,
   }) async {
-    final value = await showDialog<String>(
-      context: context,
-      builder: (_) => BarcodeScannerDialog(
-        title: title,
-        description: description,
-        showFrame: true,
+    final value = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (pageContext) => Scaffold(
+          backgroundColor: AppTheme.background,
+          body: SafeArea(
+            child: ResponsiveScaffoldContainer(
+              padding: const EdgeInsets.all(16),
+              child: BarcodeScannerDialog(
+                title: title,
+                description: description,
+                showFrame: true,
+                fullScreen: true,
+                height: MediaQuery.sizeOf(pageContext).height * 0.56,
+              ),
+            ),
+          ),
+        ),
       ),
     );
     final normalized = value?.trim();
@@ -712,356 +811,336 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       firstUnit(productById(manualProductId)),
     );
 
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final allowedParties = _parties.where((party) {
-            final type = party['type']?.toString();
-            return invoiceType == 'sale'
-                ? type == 'customer' || type == 'both'
-                : type == 'supplier' || type == 'both';
-          }).toList();
-          final subtotal = lines.fold<double>(
-            0,
-            (sum, line) =>
-                sum +
-                (((line['quantity'] as num?)?.toDouble() ?? 0) *
-                    ((line['unitPrice'] as num?)?.toDouble() ?? 0)),
+    final accepted = await _openFullScreenForm(
+      title: invoiceType == 'sale'
+          ? 'نقطة بيع POS - فاتورة بيع'
+          : 'نقطة شراء - فاتورة مشتريات',
+      actionLabel: 'حفظ الفاتورة',
+      canSubmit: () =>
+          lines.isNotEmpty && !(invoiceType == 'purchase' && partyId == null),
+      builder: (context, setDialogState) {
+        final allowedParties = _parties.where((party) {
+          final type = party['type']?.toString();
+          return invoiceType == 'sale'
+              ? type == 'customer' || type == 'both'
+              : type == 'supplier' || type == 'both';
+        }).toList();
+        final subtotal = lines.fold<double>(
+          0,
+          (sum, line) =>
+              sum +
+              (((line['quantity'] as num?)?.toDouble() ?? 0) *
+                  ((line['unitPrice'] as num?)?.toDouble() ?? 0)),
+        );
+        final discountValue = double.tryParse(discount.text) ?? 0;
+        final invoiceTotal = (subtotal - discountValue)
+            .clamp(0, subtotal)
+            .toDouble();
+
+        Future<void> scanIntoInvoice() async {
+          final barcode = await _scanBarcode(
+            title: 'قراءة باركود الصنف',
+            description: 'امسح باركود المنتج ليتم إضافته للفاتورة مباشرة.',
           );
-          final discountValue = double.tryParse(discount.text) ?? 0;
-          final invoiceTotal = (subtotal - discountValue)
-              .clamp(0, subtotal)
-              .toDouble();
-
-          Future<void> scanIntoInvoice() async {
-            final barcode = await _scanBarcode(
-              title: 'قراءة باركود الصنف',
-              description: 'امسح باركود المنتج ليتم إضافته للفاتورة مباشرة.',
-            );
-            if (barcode == null) return;
-            final match = findByBarcode(barcode);
-            if (match == null) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('لا يوجد صنف بهذا الباركود: $barcode'),
-                  ),
-                );
-              }
-              return;
-            }
-            setDialogState(
-              () => addLine(
-                Map<String, dynamic>.from(match['product'] as Map),
-                match['unit'] is Map
-                    ? Map<String, dynamic>.from(match['unit'] as Map)
-                    : null,
-              ),
-            );
-          }
-
-          void refreshPricesForType() {
-            for (final line in lines) {
-              final product = productById(line['productId']?.toString());
-              final unit = _list(product['units']).firstWhere(
-                (item) => item['id']?.toString() == line['unitId']?.toString(),
-                orElse: () => firstUnit(product) ?? const <String, dynamic>{},
+          if (barcode == null) return;
+          final match = findByBarcode(barcode);
+          if (match == null) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('لا يوجد صنف بهذا الباركود: $barcode')),
               );
-              line['unitPrice'] = defaultPrice(product, unit);
-              line['salePrice'] = defaultSalePrice(product, unit);
             }
+            return;
           }
-
-          return AlertDialog(
-            title: Text(
-              invoiceType == 'sale'
-                  ? 'نقطة بيع POS - فاتورة بيع'
-                  : 'نقطة شراء - فاتورة مشتريات',
+          setDialogState(
+            () => addLine(
+              Map<String, dynamic>.from(match['product'] as Map),
+              match['unit'] is Map
+                  ? Map<String, dynamic>.from(match['unit'] as Map)
+                  : null,
             ),
-            content: SizedBox(
-              width: 720,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          );
+        }
+
+        void refreshPricesForType() {
+          for (final line in lines) {
+            final product = productById(line['productId']?.toString());
+            final unit = _list(product['units']).firstWhere(
+              (item) => item['id']?.toString() == line['unitId']?.toString(),
+              orElse: () => firstUnit(product) ?? const <String, dynamic>{},
+            );
+            line['unitPrice'] = defaultPrice(product, unit);
+            line['salePrice'] = defaultSalePrice(product, unit);
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<String>(
+              segments: [
+                if (_permissions.canCreateStoreSales)
+                  const ButtonSegment(value: 'sale', label: Text('بيع')),
+                if (_permissions.canCreateStorePurchases)
+                  const ButtonSegment(value: 'purchase', label: Text('شراء')),
+              ],
+              selected: {invoiceType},
+              onSelectionChanged: (selection) {
+                setDialogState(() {
+                  invoiceType = selection.first;
+                  partyId = null;
+                  refreshPricesForType();
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              initialValue: partyId,
+              decoration: InputDecoration(
+                labelText: invoiceType == 'sale' ? 'الزبون' : 'التاجر المطلوب',
+              ),
+              items: [
+                if (invoiceType == 'sale')
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('زبون نقدي'),
+                  ),
+                ...allowedParties.map(
+                  (party) => DropdownMenuItem<String?>(
+                    value: party['id']?.toString(),
+                    child: Text(party['name']?.toString() ?? ''),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setDialogState(() => partyId = value),
+            ),
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 520;
+                final selector = DropdownButtonFormField<String>(
+                  initialValue: manualProductId,
+                  decoration: const InputDecoration(
+                    labelText: 'إضافة صنف يدويًا',
+                  ),
+                  items: _products
+                      .map(
+                        (item) => DropdownMenuItem(
+                          value: item['id']?.toString(),
+                          child: Text(
+                            item['name']?.toString() ?? '',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setDialogState(() => manualProductId = value),
+                );
+                final buttons = Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    SegmentedButton<String>(
-                      segments: [
-                        if (_permissions.canCreateStoreSales)
-                          const ButtonSegment(
-                            value: 'sale',
-                            label: Text('بيع'),
-                          ),
-                        if (_permissions.canCreateStorePurchases)
-                          const ButtonSegment(
-                            value: 'purchase',
-                            label: Text('شراء'),
-                          ),
-                      ],
-                      selected: {invoiceType},
-                      onSelectionChanged: (selection) {
-                        setDialogState(() {
-                          invoiceType = selection.first;
-                          partyId = null;
-                          refreshPricesForType();
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String?>(
-                      initialValue: partyId,
-                      decoration: InputDecoration(
-                        labelText: invoiceType == 'sale'
-                            ? 'الزبون'
-                            : 'التاجر المطلوب',
-                      ),
-                      items: [
-                        if (invoiceType == 'sale')
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('زبون نقدي'),
-                          ),
-                        ...allowedParties.map(
-                          (party) => DropdownMenuItem<String?>(
-                            value: party['id']?.toString(),
-                            child: Text(party['name']?.toString() ?? ''),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) =>
-                          setDialogState(() => partyId = value),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: manualProductId,
-                            decoration: const InputDecoration(
-                              labelText: 'إضافة صنف يدويًا',
-                            ),
-                            items: _products
-                                .map(
-                                  (item) => DropdownMenuItem(
-                                    value: item['id']?.toString(),
-                                    child: Text(item['name']?.toString() ?? ''),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) =>
-                                setDialogState(() => manualProductId = value),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton.icon(
-                          onPressed: () => setDialogState(() {
-                            final product = productById(manualProductId);
-                            addLine(product, firstUnit(product));
-                          }),
-                          icon: const Icon(Icons.add_rounded),
-                          label: const Text('إضافة'),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton.tonalIcon(
-                          onPressed: scanIntoInvoice,
-                          icon: const Icon(Icons.qr_code_scanner_rounded),
-                          label: const Text('باركود'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (lines.isEmpty)
-                      const Text('أضف صنفًا واحدًا على الأقل للفاتورة.')
-                    else
-                      ...lines.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final line = entry.value;
-                        final lineTotal =
-                            ((line['quantity'] as num?)?.toDouble() ?? 0) *
-                            ((line['unitPrice'] as num?)?.toDouble() ?? 0);
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${line['name']} • ${line['unitName']}',
-                                        style: AppTheme.bodyBold,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () => setDialogState(
-                                        () => lines.removeAt(index),
-                                      ),
-                                      icon: const Icon(Icons.delete_outline),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        key: ValueKey(
-                                          'qty-$index-${line['quantity']}',
-                                        ),
-                                        initialValue:
-                                            ((line['quantity'] as num?)
-                                                        ?.toDouble() ??
-                                                    1)
-                                                .toString(),
-                                        keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
-                                        decoration: const InputDecoration(
-                                          labelText: 'الكمية',
-                                        ),
-                                        onChanged: (value) => setDialogState(
-                                          () => line['quantity'] =
-                                              double.tryParse(value) ?? 0,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: TextFormField(
-                                        key: ValueKey(
-                                          'price-$index-${line['unitPrice']}',
-                                        ),
-                                        initialValue:
-                                            ((line['unitPrice'] as num?)
-                                                        ?.toDouble() ??
-                                                    0)
-                                                .toStringAsFixed(2),
-                                        keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
-                                        decoration: InputDecoration(
-                                          labelText: invoiceType == 'sale'
-                                              ? 'سعر البيع'
-                                              : 'سعر الشراء',
-                                        ),
-                                        onChanged: (value) => setDialogState(
-                                          () => line['unitPrice'] =
-                                              double.tryParse(value) ?? 0,
-                                        ),
-                                      ),
-                                    ),
-                                    if (invoiceType == 'purchase' &&
-                                        _permissions.canEditStorePrices) ...[
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: TextFormField(
-                                          key: ValueKey(
-                                            'sale-$index-${line['salePrice']}',
-                                          ),
-                                          initialValue:
-                                              ((line['salePrice'] as num?)
-                                                          ?.toDouble() ??
-                                                      0)
-                                                  .toStringAsFixed(2),
-                                          keyboardType:
-                                              const TextInputType.numberWithOptions(
-                                                decimal: true,
-                                              ),
-                                          decoration: const InputDecoration(
-                                            labelText: 'سعر البيع لاحقًا',
-                                          ),
-                                          onChanged: (value) => setDialogState(
-                                            () => line['salePrice'] =
-                                                double.tryParse(value) ?? 0,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text('المجموع: ${_money(lineTotal)}'),
-                              ],
-                            ),
-                          ),
-                        );
+                    FilledButton.icon(
+                      onPressed: () => setDialogState(() {
+                        final product = productById(manualProductId);
+                        addLine(product, firstUnit(product));
                       }),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: discount,
-                      onChanged: (_) => setDialogState(() {}),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(labelText: 'خصم'),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('إضافة'),
                     ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: paymentStatus,
-                      decoration: const InputDecoration(
-                        labelText: 'حالة الفاتورة',
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'paid',
-                          child: Text('مدفوعة بالكامل'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'partial',
-                          child: Text('مدفوعة جزئيًا'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'debt',
-                          child: Text('دين بالكامل'),
-                        ),
-                      ],
-                      onChanged: (value) =>
-                          setDialogState(() => paymentStatus = value ?? 'paid'),
-                    ),
-                    if (paymentStatus == 'partial') ...[
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: paid,
-                        onChanged: (_) => setDialogState(() {}),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'المبلغ المدفوع',
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 14),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text(
-                        'الإجمالي: ${_money(invoiceTotal)}',
-                        style: AppTheme.h3,
-                      ),
+                    FilledButton.tonalIcon(
+                      onPressed: scanIntoInvoice,
+                      icon: const Icon(Icons.qr_code_scanner_rounded),
+                      label: const Text('إضافة بالكاميرا'),
                     ),
                   ],
-                ),
-              ),
+                );
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [selector, const SizedBox(height: 8), buttons],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: selector),
+                    const SizedBox(width: 8),
+                    buttons,
+                  ],
+                );
+              },
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء'),
+            const SizedBox(height: 12),
+            if (lines.isEmpty)
+              const Text('أضف صنفًا واحدًا على الأقل للفاتورة.')
+            else
+              ...lines.asMap().entries.map((entry) {
+                final index = entry.key;
+                final line = entry.value;
+                final lineTotal =
+                    ((line['quantity'] as num?)?.toDouble() ?? 0) *
+                    ((line['unitPrice'] as num?)?.toDouble() ?? 0);
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${line['name']} • ${line['unitName']}',
+                                style: AppTheme.bodyBold,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  setDialogState(() => lines.removeAt(index)),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          ],
+                        ),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 560;
+                            final fields = [
+                              TextFormField(
+                                key: ValueKey('qty-$index-${line['quantity']}'),
+                                initialValue:
+                                    ((line['quantity'] as num?)?.toDouble() ??
+                                            1)
+                                        .toString(),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: const InputDecoration(
+                                  labelText: 'الكمية',
+                                ),
+                                onChanged: (value) => setDialogState(
+                                  () => line['quantity'] =
+                                      double.tryParse(value) ?? 0,
+                                ),
+                              ),
+                              TextFormField(
+                                key: ValueKey(
+                                  'price-$index-${line['unitPrice']}',
+                                ),
+                                initialValue:
+                                    ((line['unitPrice'] as num?)?.toDouble() ??
+                                            0)
+                                        .toStringAsFixed(2),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: InputDecoration(
+                                  labelText: invoiceType == 'sale'
+                                      ? 'سعر البيع'
+                                      : 'سعر الشراء',
+                                ),
+                                onChanged: (value) => setDialogState(
+                                  () => line['unitPrice'] =
+                                      double.tryParse(value) ?? 0,
+                                ),
+                              ),
+                              if (invoiceType == 'purchase' &&
+                                  _permissions.canEditStorePrices)
+                                TextFormField(
+                                  key: ValueKey(
+                                    'sale-$index-${line['salePrice']}',
+                                  ),
+                                  initialValue:
+                                      ((line['salePrice'] as num?)
+                                                  ?.toDouble() ??
+                                              0)
+                                          .toStringAsFixed(2),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  decoration: const InputDecoration(
+                                    labelText: 'سعر البيع لاحقًا',
+                                  ),
+                                  onChanged: (value) => setDialogState(
+                                    () => line['salePrice'] =
+                                        double.tryParse(value) ?? 0,
+                                  ),
+                                ),
+                            ];
+                            return Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: fields
+                                  .map(
+                                    (field) => SizedBox(
+                                      width: compact
+                                          ? constraints.maxWidth
+                                          : (constraints.maxWidth - 16) /
+                                                fields.length,
+                                      child: field,
+                                    ),
+                                  )
+                                  .toList(),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 6),
+                        Text('المجموع: ${_money(lineTotal)}'),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            const SizedBox(height: 10),
+            TextField(
+              controller: discount,
+              onChanged: (_) => setDialogState(() {}),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              FilledButton(
-                onPressed:
-                    lines.isEmpty ||
-                        (invoiceType == 'purchase' && partyId == null)
-                    ? null
-                    : () => Navigator.pop(dialogContext, true),
-                child: const Text('حفظ الفاتورة'),
+              decoration: const InputDecoration(labelText: 'خصم'),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: paymentStatus,
+              decoration: const InputDecoration(labelText: 'حالة الفاتورة'),
+              items: const [
+                DropdownMenuItem(value: 'paid', child: Text('مدفوعة بالكامل')),
+                DropdownMenuItem(
+                  value: 'partial',
+                  child: Text('مدفوعة جزئيًا'),
+                ),
+                DropdownMenuItem(value: 'debt', child: Text('دين بالكامل')),
+              ],
+              onChanged: (value) =>
+                  setDialogState(() => paymentStatus = value ?? 'paid'),
+            ),
+            if (paymentStatus == 'partial') ...[
+              const SizedBox(height: 10),
+              TextField(
+                controller: paid,
+                onChanged: (_) => setDialogState(() {}),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: 'المبلغ المدفوع'),
               ),
             ],
-          );
-        },
-      ),
+            const SizedBox(height: 14),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                'الإجمالي: ${_money(invoiceTotal)}',
+                style: AppTheme.h3,
+              ),
+            ),
+          ],
+        );
+      },
     );
 
     if (accepted == true) {
@@ -1118,26 +1197,21 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final due = (invoice['dueAmount'] as num?)?.toDouble() ?? 0;
     if (due <= 0 || !_permissions.canManageStoreDebts) return;
     final amount = TextEditingController(text: due.toStringAsFixed(2));
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('تسجيل دفعة ${invoice['invoiceNumber']}'),
-        content: TextField(
-          controller: amount,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: 'المبلغ المدفوع',
-            helperText: 'المتبقي ${_money(due)}',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('حفظ الدفعة'),
+    final accepted = await _openFullScreenForm(
+      title: 'تسجيل دفعة ${invoice['invoiceNumber']}',
+      actionLabel: 'حفظ الدفعة',
+      canSubmit: () => (double.tryParse(amount.text) ?? 0) > 0,
+      builder: (context, setFormState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: amount,
+            onChanged: (_) => setFormState(() {}),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: 'المبلغ المدفوع',
+              helperText: 'المتبقي ${_money(due)}',
+            ),
           ),
         ],
       ),
@@ -1232,27 +1306,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                       style: const TextStyle(color: AppTheme.error),
                     ),
                   if (_pending.isNotEmpty)
-                    ShwakelCard(
-                      color: AppTheme.warning.withValues(alpha: 0.08),
-                      borderColor: AppTheme.warning.withValues(alpha: 0.24),
-                      child: ListTile(
-                        leading: const Icon(
-                          Icons.cloud_upload_rounded,
-                          color: AppTheme.warning,
-                        ),
-                        title: Text(
-                          '${_pending.length} عمليات محفوظة محليًا بانتظار المزامنة',
-                        ),
-                        subtitle: const Text(
-                          'ستظهر البيانات محليًا وتُرسل للسيرفر فور توفر الاتصال بدون حذف قائمة الانتظار إلا بعد نجاح المزامنة.',
-                        ),
-                        trailing: TextButton.icon(
-                          onPressed: _syncing ? null : _sync,
-                          icon: const Icon(Icons.sync_rounded),
-                          label: const Text('مزامنة الآن'),
-                        ),
-                      ),
-                    )
+                    _pendingSyncPanel()
                   else if (_syncedAt.isNotEmpty)
                     Align(
                       alignment: AlignmentDirectional.centerStart,
@@ -1297,23 +1351,66 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     ];
     return ListView(
       children: [
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: cards
-              .map(
-                (card) => SizedBox(
-                  width: 220,
-                  child: ShwakelCard(
-                    child: ListTile(
-                      leading: Icon(card.$3, color: AppTheme.primary),
-                      title: Text(card.$1),
-                      subtitle: Text(card.$2, style: AppTheme.h3),
-                    ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final columns = width >= 980
+                ? 3
+                : width >= 360
+                ? 2
+                : 1;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: cards.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                mainAxisExtent: 116,
+              ),
+              itemBuilder: (context, index) {
+                final card = cards[index];
+                return ShwakelCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppTheme.primary.withValues(
+                          alpha: 0.10,
+                        ),
+                        child: Icon(card.$3, color: AppTheme.primary),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              card.$1,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              card.$2,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.h3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              )
-              .toList(),
+                );
+              },
+            );
+          },
         ),
         const SizedBox(height: 18),
         if (_permissions.canManagePublicStorefront) ...[
@@ -1363,6 +1460,194 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       ],
     );
   }
+
+  Widget _pendingSyncPanel() {
+    return ShwakelCard(
+      color: AppTheme.warning.withValues(alpha: 0.08),
+      borderColor: AppTheme.warning.withValues(alpha: 0.24),
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        leading: const Icon(
+          Icons.cloud_upload_rounded,
+          color: AppTheme.warning,
+        ),
+        title: Text('${_pending.length} عمليات محفوظة محليًا بانتظار المزامنة'),
+        subtitle: const Text(
+          'يمكنك مراجعة كل عملية وحذف القديم أو الخاطئ فقط إذا كان يمنع المزامنة.',
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: _syncing ? null : _sync,
+                icon: const Icon(Icons.sync_rounded),
+                label: const Text('مزامنة الآن'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _syncing ? null : _clearPendingOperations,
+                icon: const Icon(Icons.delete_sweep_rounded),
+                label: const Text('حذف كل القديم'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ..._pending.map(_pendingOperationTile),
+        ],
+      ),
+    );
+  }
+
+  Widget _pendingOperationTile(Map<String, dynamic> operation) {
+    final entity = operation['entity']?.toString() ?? 'operation';
+    final type = operation['type']?.toString() ?? '';
+    final opId = operation['opId']?.toString() ?? '';
+    final shortOpId = opId.length > 8 ? opId.substring(0, 8) : opId;
+    final title = _operationTitle(operation);
+    final description = _operationDescription(operation);
+    final syncError = _syncErrorMessage(operation);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppTheme.warning.withValues(alpha: 0.12),
+            child: Icon(_operationIcon(entity), color: AppTheme.warning),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTheme.bodyBold),
+                const SizedBox(height: 4),
+                Text(
+                  '$entity/$type${shortOpId.isNotEmpty ? ' • $shortOpId' : ''}',
+                  style: AppTheme.caption,
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: AppTheme.bodyAction.copyWith(height: 1.35),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                if (syncError.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppTheme.error.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Text(
+                      syncError,
+                      style: AppTheme.caption.copyWith(color: AppTheme.error),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'حذف هذه العملية',
+            onPressed: _syncing
+                ? null
+                : () => unawaited(_deletePendingOperation(operation)),
+            icon: const Icon(Icons.delete_outline_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _operationIcon(String entity) => switch (entity) {
+    'product' => Icons.inventory_2_rounded,
+    'invoice' => Icons.receipt_long_rounded,
+    'party' => Icons.people_alt_rounded,
+    'payment' => Icons.payments_rounded,
+    'workspace' => Icons.storefront_rounded,
+    _ => Icons.sync_problem_rounded,
+  };
+
+  String _operationTitle(Map<String, dynamic> operation) {
+    final entity = operation['entity']?.toString() ?? '';
+    if (entity == 'product') {
+      return 'صنف: ${operation['name'] ?? ''}'.trim();
+    }
+    if (entity == 'invoice') {
+      return operation['invoiceType'] == 'purchase'
+          ? 'فاتورة شراء معلقة'
+          : 'فاتورة بيع معلقة';
+    }
+    if (entity == 'party') {
+      return 'حساب: ${operation['name'] ?? ''}'.trim();
+    }
+    if (entity == 'payment') {
+      return 'دفعة معلقة';
+    }
+    if (entity == 'workspace') {
+      return 'تحديث إعدادات المتجر';
+    }
+    return 'عملية مزامنة معلقة';
+  }
+
+  String _operationDescription(Map<String, dynamic> operation) {
+    final entity = operation['entity']?.toString() ?? '';
+    if (entity == 'invoice') {
+      final items = _list(operation['items']);
+      return '${items.length} أصناف • مدفوع ${_money(operation['paidAmount'])} • ${operation['paymentMethod'] ?? 'cash'}';
+    }
+    if (entity == 'product') {
+      final units = _list(operation['units']);
+      return units
+          .map(
+            (unit) =>
+                '${unit['name'] ?? _unitName(unit['code']?.toString() ?? '')}: ${unit['factorToBase'] ?? 1}',
+          )
+          .join('، ');
+    }
+    if (entity == 'party') {
+      return '${_partyTypeLabel(operation['partyType']?.toString())} • ${operation['phone'] ?? ''}';
+    }
+    if (entity == 'payment') {
+      return 'المبلغ ${_money(operation['amount'])}';
+    }
+    if (entity == 'workspace') {
+      return operation['name']?.toString() ?? '';
+    }
+    return '';
+  }
+
+  String _syncErrorMessage(Map<String, dynamic> operation) {
+    final raw = operation['lastSyncError']?.toString().trim() ?? '';
+    if (raw.isEmpty) return '';
+    return ErrorMessageService.sanitize(raw);
+  }
+
+  String _partyTypeLabel(String? type) => switch (type) {
+    'supplier' => 'تاجر',
+    'both' => 'زبون وتاجر',
+    _ => 'زبون',
+  };
 
   Widget _publicOrdersPanel() {
     final pendingCount = _publicOrders
@@ -1439,68 +1724,105 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
 
   Widget _productsView() => _products.isEmpty
       ? _empty('لا توجد أصناف بعد')
-      : ListView.builder(
+      : ListView.separated(
+          padding: const EdgeInsets.only(bottom: 96),
           itemCount: _products.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final item = _products[index];
-            return ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.inventory_2)),
-              title: Text(item['name']?.toString() ?? ''),
-              subtitle: Text(
-                'المتوفر: ${item['stockQuantity'] ?? 0} ${_unitName(item['baseUnit']?.toString() ?? '')}'
-                '${item['publicVisible'] == true ? ' • ظاهر للعامة' : ''}'
-                '${item['publicAllowOnlineSale'] == true ? ' • بيع أونلاين' : ''}',
-              ),
-              trailing: Text(_money(item['defaultSalePrice'])),
-              shape: item['publicVisible'] == true
-                  ? RoundedRectangleBorder(
-                      side: BorderSide(
-                        color: AppTheme.success.withValues(alpha: 0.22),
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    )
+            final unit = _unitName(item['baseUnit']?.toString() ?? '');
+            return ShwakelCard(
+              padding: const EdgeInsets.all(14),
+              borderColor: item['publicVisible'] == true
+                  ? AppTheme.success.withValues(alpha: 0.22)
                   : null,
-              isThreeLine: _isLocalRecord(item),
-              dense: false,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(child: Icon(Icons.inventory_2)),
+                title: Text(
+                  item['name']?.toString() ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold,
+                ),
+                subtitle: Text(
+                  'المتوفر: ${item['stockQuantity'] ?? 0} $unit'
+                  '${item['publicVisible'] == true ? ' • ظاهر للعامة' : ''}'
+                  '${item['publicAllowOnlineSale'] == true ? ' • بيع أونلاين' : ''}'
+                  ' • ${_syncLabel(item)}',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Text(_money(item['defaultSalePrice'])),
+              ),
             );
           },
         );
 
   Widget _invoicesView() => _invoices.isEmpty
       ? _empty('لا توجد فواتير بعد')
-      : ListView.builder(
+      : ListView.separated(
+          padding: const EdgeInsets.only(bottom: 96),
           itemCount: _invoices.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final item = _invoices[index];
-            return ListTile(
-              leading: Icon(
-                item['type'] == 'sale'
-                    ? Icons.arrow_upward_rounded
-                    : Icons.arrow_downward_rounded,
+            return ShwakelCard(
+              padding: const EdgeInsets.all(14),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  item['type'] == 'sale'
+                      ? Icons.arrow_upward_rounded
+                      : Icons.arrow_downward_rounded,
+                ),
+                title: Text(
+                  '${item['invoiceNumber']} • ${item['partyName']}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold,
+                ),
+                subtitle: Text(
+                  'المتبقي: ${_money(item['dueAmount'])} • ${_syncLabel(item)}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Text(_money(item['total'])),
+                onTap: () => _recordInvoicePayment(item),
               ),
-              title: Text('${item['invoiceNumber']} • ${item['partyName']}'),
-              subtitle: Text(
-                'المتبقي: ${_money(item['dueAmount'])} • ${_syncLabel(item)}',
-              ),
-              trailing: Text(_money(item['total'])),
-              onTap: () => _recordInvoicePayment(item),
             );
           },
         );
 
   Widget _partiesView() => _parties.isEmpty
       ? _empty('لا توجد حسابات زبائن أو تجار')
-      : ListView.builder(
+      : ListView.separated(
+          padding: const EdgeInsets.only(bottom: 96),
           itemCount: _parties.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final item = _parties[index];
-            return ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-              title: Text(item['name']?.toString() ?? ''),
-              subtitle: Text(
-                'عليه: ${_money(item['receivableBalance'])} • له: ${_money(item['payableBalance'])} • ${_syncLabel(item)}',
+            return ShwakelCard(
+              padding: const EdgeInsets.all(14),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                title: Text(
+                  item['name']?.toString() ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyBold,
+                ),
+                subtitle: Text(
+                  'عليه: ${_money(item['receivableBalance'])} • له: ${_money(item['payableBalance'])} • ${_syncLabel(item)}',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Text(
+                  item['phone']?.toString() ?? '',
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              trailing: Text(item['phone']?.toString() ?? ''),
             );
           },
         );
@@ -1637,6 +1959,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   static String _unitName(String code) => switch (code) {
     'piece' => 'حبة',
     'carton' => 'كرتونة',
+    'bag' => 'كيس',
     'pallet' => 'مشطاح',
     'kg' => 'كيلو',
     'liter' => 'لتر',
