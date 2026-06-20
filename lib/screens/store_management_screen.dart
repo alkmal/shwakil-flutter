@@ -27,6 +27,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     ..addListener(() => setState(() {}));
   Map<String, dynamic>? _user;
   Map<String, dynamic> _snapshot = const {};
+  List<Map<String, dynamic>> _publicOrders = const [];
   List<Map<String, dynamic>> _pending = const [];
   bool _loading = true;
   bool _syncing = false;
@@ -72,10 +73,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       final userId = user?['id']?.toString() ?? '';
       final local = await _store.getSnapshot(userId);
       final pending = await _store.getPendingOperations(userId);
+      final publicOrders = permissions.canManagePublicStorefront
+          ? await _fetchPublicOrders()
+          : const <Map<String, dynamic>>[];
       if (mounted) {
         setState(() {
           _user = user;
           _snapshot = local;
+          _publicOrders = publicOrders;
           _pending = pending;
           _loading = local.isEmpty;
         });
@@ -98,10 +103,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     });
     try {
       final snapshot = await _store.syncPending(userId: _userId, api: _api);
+      final publicOrders = _permissions.canManagePublicStorefront
+          ? await _fetchPublicOrders()
+          : const <Map<String, dynamic>>[];
       final pending = await _store.getPendingOperations(_userId);
       if (!mounted) return;
       setState(() {
         _snapshot = snapshot;
+        _publicOrders = publicOrders;
         _pending = pending;
         _loading = false;
         _syncing = false;
@@ -129,12 +138,174 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     await _sync();
   }
 
+  Future<List<Map<String, dynamic>>> _fetchPublicOrders() async {
+    final response = await _api.getSellerPublicStoreOrders();
+    return List<Map<String, dynamic>>.from(
+      (response['orders'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+  }
+
+  Future<void> _updatePublicOrder(String orderId, String action) async {
+    try {
+      await _api.updatePublicStoreOrder(orderId: orderId, action: action);
+      final publicOrders = await _fetchPublicOrders();
+      if (!mounted) return;
+      setState(() => _publicOrders = publicOrders);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم تحديث حالة الطلب.')));
+      await _sync();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ErrorMessageService.sanitize(error))),
+      );
+    }
+  }
+
+  Future<void> _editStorefront() async {
+    if (!_permissions.canManagePublicStorefront) return;
+    final workspace = _snapshot['workspace'] is Map
+        ? Map<String, dynamic>.from(_snapshot['workspace'] as Map)
+        : const <String, dynamic>{};
+    final storeName = TextEditingController(
+      text: workspace['name']?.toString() ?? 'المحل',
+    );
+    final publicName = TextEditingController(
+      text: workspace['publicName']?.toString() ?? '',
+    );
+    final publicDescription = TextEditingController(
+      text: workspace['publicDescription']?.toString() ?? '',
+    );
+    final minOrder = TextEditingController(
+      text: ((workspace['publicMinOrderTotal'] as num?)?.toDouble() ?? 0)
+          .toStringAsFixed(2),
+    );
+    bool publicEnabled = workspace['publicEnabled'] == true;
+    String publicOrderMode = workspace['publicOrderMode']?.toString() == 'auto'
+        ? 'auto'
+        : 'manual';
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('إعداد ظهور المتجر للعامة'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: storeName,
+                    decoration: const InputDecoration(
+                      labelText: 'اسم المحل الداخلي',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: publicEnabled,
+                    title: const Text('إظهار المتجر في التطبيق'),
+                    subtitle: const Text(
+                      'لن تظهر المنتجات إلا إذا تم تفعيلها كمنتجات عامة.',
+                    ),
+                    onChanged: (value) =>
+                        setDialogState(() => publicEnabled = value),
+                  ),
+                  TextField(
+                    controller: publicName,
+                    decoration: const InputDecoration(
+                      labelText: 'اسم المتجر الظاهر للعامة',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: publicDescription,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'وصف مختصر للمتجر',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: publicOrderMode,
+                    decoration: const InputDecoration(labelText: 'آلية الطلب'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'manual',
+                        child: Text('تأكيد يدوي من التاجر'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'auto',
+                        child: Text('مستقبلاً: تأكيد تلقائي حسب المتوفر'),
+                      ),
+                    ],
+                    onChanged: (value) => setDialogState(
+                      () => publicOrderMode = value ?? 'manual',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: minOrder,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'الحد الأدنى للطلب',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (accepted == true) {
+      await _store.queueWorkspace(
+        userId: _userId,
+        name: storeName.text,
+        businessType: workspace['businessType']?.toString() ?? 'shop',
+        currency: workspace['currency']?.toString() ?? 'ILS',
+        publicEnabled: publicEnabled,
+        publicName: publicName.text,
+        publicDescription: publicDescription.text,
+        publicOrderMode: publicOrderMode,
+        publicMinOrderTotal: double.tryParse(minOrder.text) ?? 0,
+      );
+      await _showLocalThenSync();
+    }
+
+    storeName.dispose();
+    publicName.dispose();
+    publicDescription.dispose();
+    minOrder.dispose();
+  }
+
   Future<void> _addProduct() async {
     final name = TextEditingController();
     final barcode = TextEditingController();
     final factor = TextEditingController(text: '24');
     final salePrice = TextEditingController(text: '0');
+    final publicMaxQuantity = TextEditingController();
     String baseUnit = 'piece';
+    bool publicVisible = false;
+    bool publicAllowOnlineSale = false;
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -206,6 +377,43 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                     labelText: 'سعر بيع الوحدة الأساسية',
                   ),
                 ),
+                if (_permissions.canManagePublicStorefront) ...[
+                  const SizedBox(height: 10),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: publicVisible,
+                    title: const Text('إظهار الصنف في المتجر العام'),
+                    subtitle: const Text(
+                      'لن يظهر إلا إذا كان المتجر نفسه منشورًا.',
+                    ),
+                    onChanged: (value) =>
+                        setDialogState(() => publicVisible = value),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: publicAllowOnlineSale,
+                    title: const Text('السماح بالشراء من التطبيق'),
+                    subtitle: const Text(
+                      'يتم إنشاء طلب للمتجر حسب الكمية المتاحة.',
+                    ),
+                    onChanged: publicVisible
+                        ? (value) => setDialogState(
+                            () => publicAllowOnlineSale = value,
+                          )
+                        : null,
+                  ),
+                  TextField(
+                    controller: publicMaxQuantity,
+                    enabled: publicVisible && publicAllowOnlineSale,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'أقصى كمية مسموحة للطلب',
+                      helperText: 'اتركه فارغًا لاستخدام المتوفر بالمخزون.',
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -231,6 +439,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         baseUnit: baseUnit,
         minimumStock: 0,
         salePrice: price,
+        publicVisible: publicVisible,
+        publicAllowOnlineSale: publicAllowOnlineSale,
+        publicMaxQuantity: double.tryParse(publicMaxQuantity.text),
         units: [
           {
             'name': _unitName(baseUnit),
@@ -255,6 +466,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     barcode.dispose();
     factor.dispose();
     salePrice.dispose();
+    publicMaxQuantity.dispose();
   }
 
   Future<void> _addParty() async {
@@ -1072,6 +1284,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   }
 
   Widget _dashboard() {
+    final workspace = _snapshot['workspace'] is Map
+        ? Map<String, dynamic>.from(_snapshot['workspace'] as Map)
+        : const <String, dynamic>{};
     final cards = [
       ('مبيعات اليوم', _money(_summary['salesToday']), Icons.point_of_sale),
       if (_permissions.canViewStoreProfits)
@@ -1101,6 +1316,45 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               .toList(),
         ),
         const SizedBox(height: 18),
+        if (_permissions.canManagePublicStorefront) ...[
+          ShwakelCard(
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor:
+                    (workspace['publicEnabled'] == true
+                            ? AppTheme.success
+                            : AppTheme.textTertiary)
+                        .withValues(alpha: 0.14),
+                child: Icon(
+                  workspace['publicEnabled'] == true
+                      ? Icons.storefront_rounded
+                      : Icons.visibility_off_rounded,
+                  color: workspace['publicEnabled'] == true
+                      ? AppTheme.success
+                      : AppTheme.textTertiary,
+                ),
+              ),
+              title: Text(
+                workspace['publicEnabled'] == true
+                    ? 'متجرك ظاهر للعامة'
+                    : 'متجرك غير ظاهر للعامة',
+              ),
+              subtitle: Text(
+                workspace['publicEnabled'] == true
+                    ? 'سيظهر فقط المنتجات المفعلة للبيع العام وبكمياتها المتاحة.'
+                    : 'فعّل الظهور وحدد المنتجات المسموح بيعها أونلاين.',
+              ),
+              trailing: FilledButton.icon(
+                onPressed: _editStorefront,
+                icon: const Icon(Icons.tune_rounded),
+                label: const Text('إعداد المتجر'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          _publicOrdersPanel(),
+          const SizedBox(height: 18),
+        ],
         Text('الفاتورة هي مصدر المخزون والدين والربح', style: AppTheme.h3),
         const SizedBox(height: 6),
         const Text(
@@ -1108,6 +1362,79 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         ),
       ],
     );
+  }
+
+  Widget _publicOrdersPanel() {
+    final pendingCount = _publicOrders
+        .where((order) => order['status']?.toString() == 'pending')
+        .length;
+    return ShwakelCard(
+      child: ExpansionTile(
+        initiallyExpanded: pendingCount > 0,
+        leading: const Icon(
+          Icons.shopping_bag_rounded,
+          color: AppTheme.primary,
+        ),
+        title: Text('طلبات المتجر العام ($pendingCount بانتظار التأكيد)'),
+        subtitle: const Text(
+          'تأكيد الطلب يخصم الكمية من المخزون، ثم يمكن تعليم الطلب كمرسل.',
+        ),
+        children: _publicOrders.isEmpty
+            ? [
+                const Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Text('لا توجد طلبات عامة حاليًا.'),
+                ),
+              ]
+            : _publicOrders.map(_publicOrderTile).toList(),
+      ),
+    );
+  }
+
+  Widget _publicOrderTile(Map<String, dynamic> order) {
+    final status = order['status']?.toString() ?? 'pending';
+    final items = _list(order['items']);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: ListTile(
+          title: Text(
+            '${order['orderNumber'] ?? ''} • ${_publicOrderStatusLabel(status)}',
+          ),
+          subtitle: Text(
+            '${items.map((item) => '${item['productName']} × ${item['quantity']}').join('، ')}\nالإجمالي: ${_money(order['total'])}',
+          ),
+          isThreeLine: true,
+          trailing: PopupMenuButton<String>(
+            onSelected: (action) =>
+                unawaited(_updatePublicOrder(order['id'].toString(), action)),
+            itemBuilder: (context) => [
+              if (status == 'pending')
+                const PopupMenuItem(value: 'accept', child: Text('تأكيد')),
+              if (status == 'accepted')
+                const PopupMenuItem(value: 'ship', child: Text('تم الإرسال')),
+              if (status == 'pending' || status == 'accepted')
+                const PopupMenuItem(value: 'cancel', child: Text('إلغاء')),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _publicOrderStatusLabel(String status) {
+    return switch (status) {
+      'accepted' => 'مؤكد',
+      'shipped' => 'مرسل',
+      'received' => 'مستلم',
+      'cancelled' => 'ملغي',
+      _ => 'بانتظار التأكيد',
+    };
   }
 
   Widget _productsView() => _products.isEmpty
@@ -1120,9 +1447,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               leading: const CircleAvatar(child: Icon(Icons.inventory_2)),
               title: Text(item['name']?.toString() ?? ''),
               subtitle: Text(
-                'المتوفر: ${item['stockQuantity'] ?? 0} ${_unitName(item['baseUnit']?.toString() ?? '')}',
+                'المتوفر: ${item['stockQuantity'] ?? 0} ${_unitName(item['baseUnit']?.toString() ?? '')}'
+                '${item['publicVisible'] == true ? ' • ظاهر للعامة' : ''}'
+                '${item['publicAllowOnlineSale'] == true ? ' • بيع أونلاين' : ''}',
               ),
               trailing: Text(_money(item['defaultSalePrice'])),
+              shape: item['publicVisible'] == true
+                  ? RoundedRectangleBorder(
+                      side: BorderSide(
+                        color: AppTheme.success.withValues(alpha: 0.22),
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    )
+                  : null,
               isThreeLine: _isLocalRecord(item),
               dense: false,
             );

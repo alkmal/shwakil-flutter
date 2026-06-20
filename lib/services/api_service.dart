@@ -3240,6 +3240,70 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getPublicStores({String? query}) async {
+    final response = await http.get(
+      AppConfig.apiUri('public-stores', {
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getPublicStore(String workspaceId) async {
+    final response = await http.get(
+      AppConfig.apiUri('public-stores/$workspaceId'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createPublicStoreOrder({
+    required String workspaceId,
+    required List<Map<String, dynamic>> items,
+    String? buyerNote,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('public-stores/orders'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'workspaceId': workspaceId,
+        'items': items,
+        if (buyerNote != null && buyerNote.trim().isNotEmpty)
+          'buyerNote': buyerNote.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getSellerPublicStoreOrders() async {
+    final response = await http.get(
+      AppConfig.apiUri('public-stores/orders/seller'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getBuyerPublicStoreOrders() async {
+    final response = await http.get(
+      AppConfig.apiUri('public-stores/orders/buyer'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updatePublicStoreOrder({
+    required String orderId,
+    required String action,
+  }) async {
+    final response = await http.patch(
+      AppConfig.apiUri('public-stores/orders/$orderId'),
+      headers: await _headers(),
+      body: jsonEncode({'action': action}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getAdminExternalCardStoreCatalog({
     String? query,
     int limit = 200,
@@ -4680,8 +4744,14 @@ class ApiService {
       }
       final hasLocalSecurity =
           await LocalSecurityService.hasConfiguredLocalSecurity();
-      final targetRoute = hasLocalSecurity ? '/security-settings' : '/login';
-      navigator.pushNamedAndRemoveUntil(targetRoute, (route) => false);
+      final targetRoute = hasLocalSecurity ? '/unlock' : '/login';
+      navigator.pushNamedAndRemoveUntil(
+        targetRoute,
+        (route) => false,
+        arguments: hasLocalSecurity && routeName != null
+            ? {'returnRoute': routeName}
+            : null,
+      );
     } finally {
       Future<void>.delayed(const Duration(seconds: 2), () {
         _isRedirectingToLogin = false;

@@ -52,6 +52,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canEditStorePrices': false,
     'canViewStoreProfits': false,
     'canViewStoreReports': false,
+    'canManagePublicStorefront': false,
+    'canViewPublicStores': true,
+    'canBuyPublicStoreProducts': false,
   };
 
   static const List<String> _permissionKeysOrder = [
@@ -71,6 +74,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canEditStorePrices',
     'canViewStoreProfits',
     'canViewStoreReports',
+    'canManagePublicStorefront',
+    'canViewPublicStores',
+    'canBuyPublicStoreProducts',
   ];
 
   @override

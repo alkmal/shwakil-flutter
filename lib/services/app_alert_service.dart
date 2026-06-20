@@ -588,15 +588,24 @@ class AppAlertService {
   }
 
   static Future<void> _restartLoginFlow() async {
-    final authService = AuthService();
+    final currentContext = navigatorKey.currentContext;
+    final returnRoute = currentContext == null
+        ? null
+        : ModalRoute.of(currentContext)?.settings.name;
     await RealtimeNotificationService.stop();
-    await authService.logout();
-    await LocalSecurityService.clearTrustedState();
     OfflineSessionService.setOfflineMode(false);
 
+    final canUseTrustedUnlock =
+        await LocalSecurityService.canUseTrustedUnlock();
     final navigator = navigatorKey.currentState;
     if (navigator != null) {
-      navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+      navigator.pushNamedAndRemoveUntil(
+        canUseTrustedUnlock ? '/unlock' : '/login',
+        (route) => false,
+        arguments: canUseTrustedUnlock && returnRoute != null
+            ? {'returnRoute': returnRoute}
+            : null,
+      );
     }
   }
 

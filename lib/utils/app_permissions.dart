@@ -75,6 +75,11 @@ class AppPermissions {
     'canEditStorePrices',
     'canViewStoreProfits',
     'canViewStoreReports',
+    'canViewPublicStores',
+    'canBuyPublicStoreProducts',
+    'canPublishStorefront',
+    'canManagePublicStorefront',
+    'canManagePublicMarketplace',
     'canManageLocations',
     'canManageSystemSettings',
     'canManageSubUsers',
@@ -165,8 +170,7 @@ class AppPermissions {
       canWithdraw ||
       canFinanceTopup ||
       canOpenPrepaidMultipayCards;
-  bool get canOpenExternalCardStore =>
-      externalCardStoreEnabled && canUseExternalCardStore;
+  bool get canOpenExternalCardStore => externalCardStoreEnabled && isAdminRole;
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canLookupMembers => _isEnabled('canLookupMembers');
@@ -198,6 +202,14 @@ class AppPermissions {
       _isEnabled('canViewStoreProfits') || _hasStoreOwnerFallback;
   bool get canViewStoreReports =>
       _isEnabled('canViewStoreReports') || _hasStoreOwnerFallback;
+  bool get canViewPublicStores =>
+      _isEnabled('canViewPublicStores', defaultValue: true);
+  bool get canBuyPublicStoreProducts => _isEnabled('canBuyPublicStoreProducts');
+  bool get canPublishStorefront => _isEnabled('canPublishStorefront');
+  bool get canManagePublicStorefront =>
+      _isEnabled('canManagePublicStorefront') || canManageStoreInventory;
+  bool get canManagePublicMarketplace =>
+      _isEnabled('canManagePublicMarketplace') || isAdminRole;
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
   bool get canManageSubUsers => _isEnabled('canManageSubUsers');

@@ -28,11 +28,30 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   bool _isUnlocking = false;
   bool _didAutoPromptBiometric = false;
   int _pinRetryAfterSeconds = 0;
+  String _returnRoute = '/home';
+  bool _readRouteArguments = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_readRouteArguments) return;
+    _readRouteArguments = true;
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map) {
+      final requested = arguments['returnRoute']?.toString().trim() ?? '';
+      if (requested.isNotEmpty &&
+          requested != '/unlock' &&
+          requested != '/login' &&
+          requested != '/login-offline') {
+        _returnRoute = requested;
+      }
+    }
   }
 
   @override
@@ -198,6 +217,18 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
         return;
       }
       if (ErrorMessageService.requiresFreshLogin(error)) {
+        final restored = await _auth.refreshTrustedDeviceSession();
+        if (restored) {
+          await RealtimeNotificationService.start();
+          await LocalSecurityService.clearSecuritySetupRequirement();
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            _returnRoute,
+            (route) => false,
+          );
+          return;
+        }
         if (!mounted) {
           return;
         }
@@ -225,7 +256,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     if (!mounted) {
       return;
     }
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    Navigator.pushNamedAndRemoveUntil(context, _returnRoute, (route) => false);
   }
 
   Future<bool> _confirmDeviceSessionWithOtp() async {

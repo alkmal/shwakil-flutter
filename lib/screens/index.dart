@@ -8,6 +8,7 @@ export 'device_unlock_screen.dart';
 export 'create_card_screen.dart';
 export 'prepaid_multipay_cards_screen.dart';
 export 'external_card_store_screen.dart';
+export 'public_stores_screen.dart';
 export 'quick_transfer_screen.dart';
 export 'card_print_requests_screen.dart';
 export 'issued_card_usage_report_screen.dart';

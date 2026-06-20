@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_config.dart';
@@ -62,11 +63,14 @@ class AuthRequestException implements Exception {
 class AuthService {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user_json';
+  static const _refreshTokenKey = 'device_session_refresh_token';
   static const Duration _requestTimeout = Duration(seconds: 10);
   static final http.Client _client = NetworkClientService.client;
   static SharedPreferences? _cachedPrefs;
   static String? _cachedToken;
   static Map<String, dynamic>? _cachedUser;
+  static String? _cachedRefreshToken;
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static Future<void>? _pendingRefreshCurrentUser;
 
   static String _normalizeUsername(String? value) {
@@ -393,12 +397,31 @@ class AuthService {
     await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<bool> refreshTrustedDeviceSession() async {
+    final refreshToken = await _deviceRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return false;
+    }
+    final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final response = await _postWithFallback(
+      'auth/device-session/refresh',
+      body: {'deviceId': deviceId, 'refreshToken': refreshToken},
+    );
+    if (response.statusCode >= 400) {
+      return false;
+    }
+    await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
+    return true;
+  }
+
   Future<void> logout() async {
     final prefs = await _prefs();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
     _cachedToken = null;
     _cachedUser = null;
+    _cachedRefreshToken = null;
+    await _secureStorage.delete(key: _refreshTokenKey);
   }
 
   Future<bool> isLoggedIn() async {
@@ -661,6 +684,20 @@ class AuthService {
         : null;
     await prefs.setString(_tokenKey, _cachedToken ?? '');
     await prefs.setString(_userKey, jsonEncode(payload['user']));
+    final refreshToken = payload['refreshToken']?.toString().trim() ?? '';
+    if (refreshToken.isNotEmpty) {
+      _cachedRefreshToken = refreshToken;
+      await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
+    }
+  }
+
+  Future<String?> _deviceRefreshToken() async {
+    final cached = _cachedRefreshToken;
+    if (cached != null) {
+      return cached;
+    }
+    _cachedRefreshToken = await _secureStorage.read(key: _refreshTokenKey);
+    return _cachedRefreshToken;
   }
 
   String _extractMessage(String body) {

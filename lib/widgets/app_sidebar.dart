@@ -97,6 +97,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final canOpenPrepaidMultipayCards = permissions.canOpenPrepaidMultipayCards;
     final canOpenExternalCardStore = permissions.canOpenExternalCardStore;
+    final canViewPublicStores = permissions.canViewPublicStores;
     final canWithdraw = permissions.canWithdraw;
     final canManageDebtBook = permissions.canManageDebtBook;
     final canAccessStoreManagement = permissions.canAccessStoreManagement;
@@ -299,6 +300,13 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: Icons.storefront_rounded,
                           title: 'متجر البطاقات',
                           routeName: '/external-card-store',
+                        ),
+                      if (canViewPublicStores)
+                        _buildItem(
+                          context,
+                          icon: Icons.store_mall_directory_rounded,
+                          title: 'المتاجر',
+                          routeName: '/public-stores',
                         ),
                     ],
                   ),

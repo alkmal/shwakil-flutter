@@ -62,6 +62,9 @@ class StoreManagementService {
     required double minimumStock,
     required double salePrice,
     required List<Map<String, dynamic>> units,
+    bool publicVisible = false,
+    bool publicAllowOnlineSale = false,
+    double? publicMaxQuantity,
   }) {
     final client = clientRef ?? _uuid.v4();
     final preparedUnits = units.map((unit) {
@@ -82,7 +85,36 @@ class StoreManagementService {
       'baseUnit': baseUnit,
       'minimumStock': minimumStock,
       'defaultSalePrice': salePrice,
+      'publicVisible': publicVisible,
+      'publicAllowOnlineSale': publicAllowOnlineSale,
+      'publicMaxQuantity': ?publicMaxQuantity,
       'units': preparedUnits,
+    });
+  }
+
+  Future<void> queueWorkspace({
+    required String userId,
+    required String name,
+    String businessType = 'shop',
+    String currency = 'ILS',
+    bool publicEnabled = false,
+    String publicName = '',
+    String publicDescription = '',
+    String publicOrderMode = 'manual',
+    double publicMinOrderTotal = 0,
+  }) {
+    return _enqueueAndApply(userId, {
+      'opId': _uuid.v4(),
+      'entity': 'workspace',
+      'type': 'upsert',
+      'name': name.trim(),
+      'businessType': businessType,
+      'currency': currency,
+      'publicEnabled': publicEnabled,
+      'publicName': publicName.trim(),
+      'publicDescription': publicDescription.trim(),
+      'publicOrderMode': publicOrderMode,
+      'publicMinOrderTotal': publicMinOrderTotal,
     });
   }
 
@@ -215,6 +247,9 @@ class StoreManagementService {
       case 'product':
         _applyLocalProduct(next, operation);
         break;
+      case 'workspace':
+        _applyLocalWorkspace(next, operation);
+        break;
       case 'party':
         _applyLocalParty(next, operation);
         break;
@@ -259,6 +294,9 @@ class StoreManagementService {
           (existing['averagePurchaseCost'] as num?)?.toDouble() ?? 0,
       'defaultSalePrice':
           (operation['defaultSalePrice'] as num?)?.toDouble() ?? 0,
+      'publicVisible': operation['publicVisible'] == true,
+      'publicAllowOnlineSale': operation['publicAllowOnlineSale'] == true,
+      'publicMaxQuantity': operation['publicMaxQuantity'],
       'estimatedStockProfit':
           (existing['estimatedStockProfit'] as num?)?.toDouble() ?? 0,
       'isActive': operation['isActive'] ?? true,
@@ -270,6 +308,33 @@ class StoreManagementService {
       products.add(product);
     }
     snapshot['products'] = products;
+  }
+
+  void _applyLocalWorkspace(
+    Map<String, dynamic> snapshot,
+    Map<String, dynamic> operation,
+  ) {
+    final existing = snapshot['workspace'] is Map
+        ? Map<String, dynamic>.from(snapshot['workspace'] as Map)
+        : <String, dynamic>{};
+    snapshot['workspace'] = {
+      ...existing,
+      'id': existing['id'] ?? 'local:workspace',
+      'name': operation['name']?.toString() ?? existing['name'] ?? 'المحل',
+      'businessType':
+          operation['businessType']?.toString() ??
+          existing['businessType'] ??
+          'shop',
+      'currency':
+          operation['currency']?.toString() ?? existing['currency'] ?? 'ILS',
+      'publicEnabled': operation['publicEnabled'] == true,
+      'publicName': operation['publicName']?.toString() ?? '',
+      'publicDescription': operation['publicDescription']?.toString() ?? '',
+      'publicOrderMode': operation['publicOrderMode']?.toString() ?? 'manual',
+      'publicMinOrderTotal':
+          (operation['publicMinOrderTotal'] as num?)?.toDouble() ?? 0,
+      'syncStatus': 'pending',
+    };
   }
 
   void _applyLocalParty(

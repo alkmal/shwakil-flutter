@@ -135,6 +135,7 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.group_card_reading': 'قراءة ومتابعة البطاقات',
   'permission_catalog.group_wallet': 'المحفظة والدفع والطباعة',
   'permission_catalog.group_admin': 'الإدارة والمتابعة',
+  'permission_catalog.group_store_marketplace': 'المحل والسوق العام',
   'permission_catalog.label.canViewBalance': 'عرض الرصيد',
   'permission_catalog.label.canViewTransactions': 'عرض الحركات المالية',
   'permission_catalog.label.canViewInventory': 'عرض المخزون',
@@ -189,13 +190,21 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.label.canManageSystemSettings': 'إدارة إعدادات النظام',
   'permission_catalog.label.canManageDebtBook': 'إدارة دفتر الديون',
   'permission_catalog.label.canAccessStoreManagement': 'الدخول إلى إدارة المحل',
-  'permission_catalog.label.canManageStoreInventory': 'إدارة أصناف ومخزون المحل',
+  'permission_catalog.label.canManageStoreInventory':
+      'إدارة أصناف ومخزون المحل',
   'permission_catalog.label.canCreateStoreSales': 'إنشاء فواتير البيع',
   'permission_catalog.label.canCreateStorePurchases': 'إنشاء فواتير الشراء',
   'permission_catalog.label.canManageStoreDebts': 'إدارة حسابات وديون المحل',
   'permission_catalog.label.canEditStorePrices': 'تعديل أسعار الشراء والبيع',
   'permission_catalog.label.canViewStoreProfits': 'مشاهدة أرباح المحل',
   'permission_catalog.label.canViewStoreReports': 'مشاهدة تقارير المحل',
+  'permission_catalog.label.canViewPublicStores': 'عرض المتاجر العامة',
+  'permission_catalog.label.canBuyPublicStoreProducts':
+      'الشراء من المتاجر العامة',
+  'permission_catalog.label.canPublishStorefront': 'نشر متجره للعامة',
+  'permission_catalog.label.canManagePublicStorefront':
+      'إدارة واجهة متجره العامة',
+  'permission_catalog.label.canManagePublicMarketplace': 'إدارة السوق العام',
   'permission_catalog.label.canExportCustomerTransactions':
       'تصدير حركات المستخدمين',
   'permission_catalog.description.canViewBalance': 'إظهار الرصيد داخل التطبيق.',
@@ -285,6 +294,16 @@ const Map<String, String> appStringsAr = {
       'عرض تكلفة البضاعة والأرباح المحسوبة.',
   'permission_catalog.description.canViewStoreReports':
       'عرض تقارير المبيعات والمخزون والديون.',
+  'permission_catalog.description.canViewPublicStores':
+      'إظهار شاشة المتاجر العامة والمنتجات المتاحة.',
+  'permission_catalog.description.canBuyPublicStoreProducts':
+      'السماح بإنشاء طلبات شراء من المتاجر العامة.',
+  'permission_catalog.description.canPublishStorefront':
+      'السماح لصاحب المحل بإظهار متجره ومنتجاته داخل التطبيق.',
+  'permission_catalog.description.canManagePublicStorefront':
+      'إدارة إعدادات الظهور والمنتجات المتاحة للبيع العام.',
+  'permission_catalog.description.canManagePublicMarketplace':
+      'إدارة السوق العام ومراقبة المتاجر والطلبات من الإدارة.',
   'permission_catalog.description.canExportCustomerTransactions':
       'تصدير حركات المستخدمين.',
   'services_local_security_service.device_web': 'متصفح ويب',

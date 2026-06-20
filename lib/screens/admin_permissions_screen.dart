@@ -231,7 +231,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                 ),
               );
             }),
-            const SizedBox(height: 80),
+            const SizedBox(height: 24),
           ],
         ),
       ),

@@ -82,6 +82,13 @@ class PermissionCatalog {
         'canManageLocations',
         'canManageSystemSettings',
         'canManageDebtBook',
+        'canExportCustomerTransactions',
+      ],
+    },
+    {
+      'titleKey': 'permission_catalog.group_store_marketplace',
+      'icon': IconData(0xe8d1, fontFamily: 'MaterialIcons'),
+      'keys': [
         'canAccessStoreManagement',
         'canManageStoreInventory',
         'canCreateStoreSales',
@@ -90,7 +97,11 @@ class PermissionCatalog {
         'canEditStorePrices',
         'canViewStoreProfits',
         'canViewStoreReports',
-        'canExportCustomerTransactions',
+        'canViewPublicStores',
+        'canBuyPublicStoreProducts',
+        'canPublishStorefront',
+        'canManagePublicStorefront',
+        'canManagePublicMarketplace',
       ],
     },
   ];

@@ -868,6 +868,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final canViewSecuritySettings = permissions.canViewSecuritySettings;
     final canRequestCardPrinting = permissions.canRequestCardPrinting;
     final canOpenExternalCardStore = permissions.canOpenExternalCardStore;
+    final canViewPublicStores = permissions.canViewPublicStores;
     final canOpenPrepaidMultipayCards = _canOpenPrepaidOfflineCards;
     final canAcceptNfcPayments =
         permissions.canAcceptPrepaidMultipayContactless;
@@ -1075,6 +1076,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           color: AppTheme.primary,
           kind: _HomeServiceKind.externalCardStore,
           onTap: () => unawaited(_openOnlineOnlyRoute('/external-card-store')),
+        ),
+      if (canViewPublicStores)
+        _HomeServiceItem(
+          title: 'المتاجر',
+          subtitle: 'تصفح متاجر التجار والشراء حسب الكمية المتاحة.',
+          icon: Icons.store_mall_directory_rounded,
+          color: AppTheme.primary,
+          kind: _HomeServiceKind.publicStores,
+          onTap: () => unawaited(_openOnlineOnlyRoute('/public-stores')),
         ),
       if (canOpenPrepaidMultipayCards)
         _HomeServiceItem(
@@ -2337,6 +2347,7 @@ enum _HomeServiceKind {
   affiliate,
   debtBook,
   externalCardStore,
+  publicStores,
   storeManagement,
   security,
 }

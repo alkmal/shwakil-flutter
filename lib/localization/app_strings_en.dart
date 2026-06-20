@@ -137,6 +137,7 @@ const Map<String, String> appStringsEn = {
   'permission_catalog.group_card_reading': 'Card Reading and Review',
   'permission_catalog.group_wallet': 'Wallet, Payments, and Printing',
   'permission_catalog.group_admin': 'Administration and Review',
+  'permission_catalog.group_store_marketplace': 'Store and Public Marketplace',
   'permission_catalog.label.canViewBalance': 'View balance',
   'permission_catalog.label.canViewTransactions': 'View transactions',
   'permission_catalog.label.canViewInventory': 'View inventory',
@@ -190,14 +191,24 @@ const Map<String, String> appStringsEn = {
   'permission_catalog.label.canManageLocations': 'Manage locations',
   'permission_catalog.label.canManageSystemSettings': 'Manage system settings',
   'permission_catalog.label.canManageDebtBook': 'Manage debt book',
-  'permission_catalog.label.canAccessStoreManagement': 'Access store management',
+  'permission_catalog.label.canAccessStoreManagement':
+      'Access store management',
   'permission_catalog.label.canManageStoreInventory': 'Manage store inventory',
   'permission_catalog.label.canCreateStoreSales': 'Create sales invoices',
-  'permission_catalog.label.canCreateStorePurchases': 'Create purchase invoices',
+  'permission_catalog.label.canCreateStorePurchases':
+      'Create purchase invoices',
   'permission_catalog.label.canManageStoreDebts': 'Manage store debts',
   'permission_catalog.label.canEditStorePrices': 'Edit store prices',
   'permission_catalog.label.canViewStoreProfits': 'View store profits',
   'permission_catalog.label.canViewStoreReports': 'View store reports',
+  'permission_catalog.label.canViewPublicStores': 'View public stores',
+  'permission_catalog.label.canBuyPublicStoreProducts':
+      'Buy from public stores',
+  'permission_catalog.label.canPublishStorefront': 'Publish own storefront',
+  'permission_catalog.label.canManagePublicStorefront':
+      'Manage own public storefront',
+  'permission_catalog.label.canManagePublicMarketplace':
+      'Manage public marketplace',
   'permission_catalog.label.canExportCustomerTransactions':
       'Export user transactions',
   'permission_catalog.description.canViewBalance':
@@ -288,6 +299,16 @@ const Map<String, String> appStringsEn = {
       'View cost and calculated profit figures.',
   'permission_catalog.description.canViewStoreReports':
       'View sales, inventory, and debt reports.',
+  'permission_catalog.description.canViewPublicStores':
+      'Show the public stores screen and available products.',
+  'permission_catalog.description.canBuyPublicStoreProducts':
+      'Allow creating purchase orders from public stores.',
+  'permission_catalog.description.canPublishStorefront':
+      'Allow store owners to show their store and products in the app.',
+  'permission_catalog.description.canManagePublicStorefront':
+      'Manage public visibility and products available for public sale.',
+  'permission_catalog.description.canManagePublicMarketplace':
+      'Manage the public marketplace, stores, and marketplace orders.',
   'permission_catalog.description.canExportCustomerTransactions':
       'Export user transactions.',
   'services_local_security_service.device_web': 'Web browser',
