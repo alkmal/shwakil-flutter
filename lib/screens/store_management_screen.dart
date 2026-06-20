@@ -7,6 +7,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -36,9 +37,12 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   List<Map<String, dynamic>> get _products => _list(_snapshot['products']);
   List<Map<String, dynamic>> get _parties => _list(_snapshot['parties']);
   List<Map<String, dynamic>> get _invoices => _list(_snapshot['invoices']);
+  List<Map<String, dynamic>> get _debtBookAccounts =>
+      _list(_snapshot['debtBookAccounts']);
   Map<String, dynamic> get _summary => _snapshot['summary'] is Map
       ? Map<String, dynamic>.from(_snapshot['summary'] as Map)
       : const {};
+  String get _syncedAt => _snapshot['syncedAt']?.toString() ?? '';
 
   @override
   void initState() {
@@ -112,6 +116,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     }
   }
 
+  Future<void> _showLocalThenSync() async {
+    final local = await _store.getSnapshot(_userId);
+    final pending = await _store.getPendingOperations(_userId);
+    if (mounted) {
+      setState(() {
+        _snapshot = local;
+        _pending = pending;
+        _loading = false;
+      });
+    }
+    await _sync();
+  }
+
   Future<void> _addProduct() async {
     final name = TextEditingController();
     final barcode = TextEditingController();
@@ -159,6 +176,24 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                   controller: barcode,
                   decoration: const InputDecoration(
                     labelText: 'باركود الكرتونة',
+                    suffixIcon: Icon(Icons.qr_code_scanner_rounded),
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final value = await _scanBarcode(
+                        title: 'قراءة باركود الصنف',
+                        description:
+                            'وجه الكاميرا إلى باركود الكرتونة أو الوحدة.',
+                      );
+                      if (value != null) {
+                        barcode.text = value;
+                      }
+                    },
+                    icon: const Icon(Icons.camera_alt_rounded),
+                    label: const Text('قراءة من الكاميرا'),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -214,7 +249,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             },
         ],
       );
-      await _sync();
+      await _showLocalThenSync();
     }
     name.dispose();
     barcode.dispose();
@@ -226,45 +261,126 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final name = TextEditingController();
     final phone = TextEditingController();
     String type = 'customer';
+    String? selectedDebtBookAccountId;
+    String debtSearch = '';
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('إضافة زبون أو تاجر'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                initialValue: type,
-                items: const [
-                  DropdownMenuItem(value: 'customer', child: Text('زبون')),
-                  DropdownMenuItem(value: 'supplier', child: Text('تاجر')),
-                  DropdownMenuItem(value: 'both', child: Text('زبون وتاجر')),
-                ],
-                onChanged: (value) =>
-                    setDialogState(() => type = value ?? 'customer'),
+        builder: (context, setDialogState) {
+          final query = debtSearch.trim().toLowerCase();
+          final debtAccounts = _debtBookAccounts
+              .where((account) {
+                if (query.isEmpty) return true;
+                final haystack =
+                    '${account['fullName'] ?? ''} ${account['phone'] ?? ''}'
+                        .toLowerCase();
+                return haystack.contains(query);
+              })
+              .take(30)
+              .toList();
+
+          void applyDebtAccount(String? id) {
+            selectedDebtBookAccountId = id;
+            if (id == null) return;
+            final account = _debtBookAccounts.firstWhere(
+              (item) => item['id']?.toString() == id,
+              orElse: () => const {},
+            );
+            if (account.isEmpty) return;
+            name.text = (account['fullName'] ?? '').toString();
+            phone.text = (account['phone'] ?? '').toString();
+          }
+
+          return AlertDialog(
+            title: const Text('إضافة زبون أو تاجر'),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: type,
+                      decoration: const InputDecoration(
+                        labelText: 'نوع الحساب',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'customer',
+                          child: Text('زبون'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'supplier',
+                          child: Text('تاجر'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'both',
+                          child: Text('زبون وتاجر'),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setDialogState(() => type = value ?? 'customer'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'بحث في دفتر الديون',
+                        prefixIcon: Icon(Icons.search_rounded),
+                      ),
+                      onChanged: (value) =>
+                          setDialogState(() => debtSearch = value),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String?>(
+                      initialValue: selectedDebtBookAccountId,
+                      decoration: const InputDecoration(
+                        labelText: 'اعتماد حساب من دفتر الديون',
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('حساب جديد غير مربوط'),
+                        ),
+                        ...debtAccounts.map(
+                          (account) => DropdownMenuItem<String?>(
+                            value: account['id']?.toString(),
+                            child: Text(
+                              '${account['fullName'] ?? ''} • ${account['phone'] ?? ''}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setDialogState(() => applyDebtAccount(value)),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: name,
+                      decoration: const InputDecoration(labelText: 'الاسم'),
+                    ),
+                    TextField(
+                      controller: phone,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم الهاتف',
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              TextField(
-                controller: name,
-                decoration: const InputDecoration(labelText: 'الاسم'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
               ),
-              TextField(
-                controller: phone,
-                decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('حفظ'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
     if (accepted == true && name.text.trim().isNotEmpty) {
@@ -273,53 +389,117 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         type: type,
         name: name.text,
         phone: phone.text,
+        debtBookCustomerId: selectedDebtBookAccountId,
       );
-      await _sync();
+      await _showLocalThenSync();
     }
     name.dispose();
     phone.dispose();
   }
 
+  Future<String?> _scanBarcode({
+    required String title,
+    required String description,
+  }) async {
+    final value = await showDialog<String>(
+      context: context,
+      builder: (_) => BarcodeScannerDialog(
+        title: title,
+        description: description,
+        showFrame: true,
+      ),
+    );
+    final normalized = value?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
+  }
+
   Future<void> _createInvoice() async {
     if (_products.isEmpty) return;
     String invoiceType = _permissions.canCreateStoreSales ? 'sale' : 'purchase';
-    String? productId = _products.first['id']?.toString();
     String? partyId;
+    String? manualProductId = _products.first['id']?.toString();
     String paymentStatus = 'paid';
-    final quantity = TextEditingController(text: '1');
-    final price = TextEditingController();
-    final salePrice = TextEditingController();
     final paid = TextEditingController(text: '0');
+    final discount = TextEditingController(text: '0');
+    final lines = <Map<String, dynamic>>[];
 
-    Map<String, dynamic> product() => _products.firstWhere(
-      (item) => item['id']?.toString() == productId,
+    Map<String, dynamic> productById(String? id) => _products.firstWhere(
+      (item) => item['id']?.toString() == id,
       orElse: () => _products.first,
     );
 
-    Map<String, dynamic>? unit() {
-      final units = _list(product()['units']);
+    Map<String, dynamic>? firstUnit(Map<String, dynamic> product) {
+      final units = _list(product['units']);
       return units.isEmpty ? null : units.first;
     }
 
-    void applyDefaultPrice() {
-      final selectedProduct = product();
-      final selectedUnit = unit();
-      final value = invoiceType == 'sale'
-          ? (selectedUnit?['salePrice'] as num?)?.toDouble() ??
-                (selectedProduct['defaultSalePrice'] as num?)?.toDouble() ??
-                0
-          : (selectedUnit?['purchasePrice'] as num?)?.toDouble() ??
-                (selectedProduct['averagePurchaseCost'] as num?)?.toDouble() ??
-                0;
-      price.text = value.toStringAsFixed(2);
-      salePrice.text =
-          ((selectedUnit?['salePrice'] as num?)?.toDouble() ??
-                  (selectedProduct['defaultSalePrice'] as num?)?.toDouble() ??
-                  0)
-              .toStringAsFixed(2);
+    double defaultPrice(
+      Map<String, dynamic> product,
+      Map<String, dynamic>? unit,
+    ) {
+      final factor = (unit?['factorToBase'] as num?)?.toDouble() ?? 1;
+      if (invoiceType == 'sale') {
+        return (unit?['salePrice'] as num?)?.toDouble() ??
+            (product['defaultSalePrice'] as num?)?.toDouble() ??
+            0;
+      }
+      return (unit?['purchasePrice'] as num?)?.toDouble() ??
+          ((product['averagePurchaseCost'] as num?)?.toDouble() ?? 0) * factor;
     }
 
-    applyDefaultPrice();
+    double defaultSalePrice(
+      Map<String, dynamic> product,
+      Map<String, dynamic>? unit,
+    ) {
+      final factor = (unit?['factorToBase'] as num?)?.toDouble() ?? 1;
+      return (unit?['salePrice'] as num?)?.toDouble() ??
+          ((product['defaultSalePrice'] as num?)?.toDouble() ?? 0) * factor;
+    }
+
+    void addLine(Map<String, dynamic> product, Map<String, dynamic>? unit) {
+      final existingIndex = lines.indexWhere(
+        (line) =>
+            line['productId']?.toString() == product['id']?.toString() &&
+            line['unitId']?.toString() == unit?['id']?.toString(),
+      );
+      if (existingIndex >= 0) {
+        lines[existingIndex]['quantity'] =
+            ((lines[existingIndex]['quantity'] as num?)?.toDouble() ?? 0) + 1;
+        return;
+      }
+      lines.add({
+        'productId': product['id']?.toString(),
+        'productClientRef': product['clientRef']?.toString(),
+        'unitId': unit?['id']?.toString(),
+        'unitClientRef': unit?['clientRef']?.toString(),
+        'name': product['name']?.toString() ?? '',
+        'unitName':
+            unit?['name']?.toString() ??
+            _unitName(product['baseUnit']?.toString() ?? ''),
+        'quantity': 1.0,
+        'unitPrice': defaultPrice(product, unit),
+        'salePrice': defaultSalePrice(product, unit),
+      });
+    }
+
+    Map<String, dynamic>? findByBarcode(String barcode) {
+      final normalized = barcode.trim();
+      if (normalized.isEmpty) return null;
+      for (final product in _products) {
+        for (final unit in _list(product['units'])) {
+          if ((unit['barcode']?.toString().trim() ?? '') == normalized) {
+            return {'product': product, 'unit': unit};
+          }
+        }
+      }
+      return null;
+    }
+
+    addLine(
+      productById(manualProductId),
+      firstUnit(productById(manualProductId)),
+    );
+
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -330,15 +510,65 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 ? type == 'customer' || type == 'both'
                 : type == 'supplier' || type == 'both';
           }).toList();
-          final invoiceTotal =
-              (double.tryParse(quantity.text) ?? 0) *
-              (double.tryParse(price.text) ?? 0);
+          final subtotal = lines.fold<double>(
+            0,
+            (sum, line) =>
+                sum +
+                (((line['quantity'] as num?)?.toDouble() ?? 0) *
+                    ((line['unitPrice'] as num?)?.toDouble() ?? 0)),
+          );
+          final discountValue = double.tryParse(discount.text) ?? 0;
+          final invoiceTotal = (subtotal - discountValue)
+              .clamp(0, subtotal)
+              .toDouble();
+
+          Future<void> scanIntoInvoice() async {
+            final barcode = await _scanBarcode(
+              title: 'قراءة باركود الصنف',
+              description: 'امسح باركود المنتج ليتم إضافته للفاتورة مباشرة.',
+            );
+            if (barcode == null) return;
+            final match = findByBarcode(barcode);
+            if (match == null) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('لا يوجد صنف بهذا الباركود: $barcode'),
+                  ),
+                );
+              }
+              return;
+            }
+            setDialogState(
+              () => addLine(
+                Map<String, dynamic>.from(match['product'] as Map),
+                match['unit'] is Map
+                    ? Map<String, dynamic>.from(match['unit'] as Map)
+                    : null,
+              ),
+            );
+          }
+
+          void refreshPricesForType() {
+            for (final line in lines) {
+              final product = productById(line['productId']?.toString());
+              final unit = _list(product['units']).firstWhere(
+                (item) => item['id']?.toString() == line['unitId']?.toString(),
+                orElse: () => firstUnit(product) ?? const <String, dynamic>{},
+              );
+              line['unitPrice'] = defaultPrice(product, unit);
+              line['salePrice'] = defaultSalePrice(product, unit);
+            }
+          }
+
           return AlertDialog(
             title: Text(
-              invoiceType == 'sale' ? 'فاتورة بيع جديدة' : 'فاتورة شراء جديدة',
+              invoiceType == 'sale'
+                  ? 'نقطة بيع POS - فاتورة بيع'
+                  : 'نقطة شراء - فاتورة مشتريات',
             ),
             content: SizedBox(
-              width: 540,
+              width: 720,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -361,7 +591,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                         setDialogState(() {
                           invoiceType = selection.first;
                           partyId = null;
-                          applyDefaultPrice();
+                          refreshPricesForType();
                         });
                       },
                     ),
@@ -390,69 +620,171 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                           setDialogState(() => partyId = value),
                     ),
                     const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: productId,
-                      decoration: const InputDecoration(labelText: 'الصنف'),
-                      items: _products
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item['id']?.toString(),
-                              child: Text(item['name']?.toString() ?? ''),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setDialogState(() {
-                          productId = value;
-                          applyDefaultPrice();
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
-                            controller: quantity,
-                            onChanged: (_) => setDialogState(() {}),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
+                          child: DropdownButtonFormField<String>(
+                            initialValue: manualProductId,
                             decoration: const InputDecoration(
-                              labelText: 'الكمية',
+                              labelText: 'إضافة صنف يدويًا',
                             ),
+                            items: _products
+                                .map(
+                                  (item) => DropdownMenuItem(
+                                    value: item['id']?.toString(),
+                                    child: Text(item['name']?.toString() ?? ''),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) =>
+                                setDialogState(() => manualProductId = value),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: price,
-                            onChanged: (_) => setDialogState(() {}),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: invoiceType == 'sale'
-                                  ? 'سعر البيع'
-                                  : 'سعر الشراء',
-                            ),
-                          ),
+                        FilledButton.icon(
+                          onPressed: () => setDialogState(() {
+                            final product = productById(manualProductId);
+                            addLine(product, firstUnit(product));
+                          }),
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text('إضافة'),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton.tonalIcon(
+                          onPressed: scanIntoInvoice,
+                          icon: const Icon(Icons.qr_code_scanner_rounded),
+                          label: const Text('باركود'),
                         ),
                       ],
                     ),
-                    if (invoiceType == 'purchase' &&
-                        _permissions.canEditStorePrices) ...[
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: salePrice,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'سعر البيع الذي سيظهر تلقائيًا لاحقًا',
-                        ),
+                    const SizedBox(height: 12),
+                    if (lines.isEmpty)
+                      const Text('أضف صنفًا واحدًا على الأقل للفاتورة.')
+                    else
+                      ...lines.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final line = entry.value;
+                        final lineTotal =
+                            ((line['quantity'] as num?)?.toDouble() ?? 0) *
+                            ((line['unitPrice'] as num?)?.toDouble() ?? 0);
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${line['name']} • ${line['unitName']}',
+                                        style: AppTheme.bodyBold,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () => setDialogState(
+                                        () => lines.removeAt(index),
+                                      ),
+                                      icon: const Icon(Icons.delete_outline),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        key: ValueKey(
+                                          'qty-$index-${line['quantity']}',
+                                        ),
+                                        initialValue:
+                                            ((line['quantity'] as num?)
+                                                        ?.toDouble() ??
+                                                    1)
+                                                .toString(),
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                            ),
+                                        decoration: const InputDecoration(
+                                          labelText: 'الكمية',
+                                        ),
+                                        onChanged: (value) => setDialogState(
+                                          () => line['quantity'] =
+                                              double.tryParse(value) ?? 0,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: TextFormField(
+                                        key: ValueKey(
+                                          'price-$index-${line['unitPrice']}',
+                                        ),
+                                        initialValue:
+                                            ((line['unitPrice'] as num?)
+                                                        ?.toDouble() ??
+                                                    0)
+                                                .toStringAsFixed(2),
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                            ),
+                                        decoration: InputDecoration(
+                                          labelText: invoiceType == 'sale'
+                                              ? 'سعر البيع'
+                                              : 'سعر الشراء',
+                                        ),
+                                        onChanged: (value) => setDialogState(
+                                          () => line['unitPrice'] =
+                                              double.tryParse(value) ?? 0,
+                                        ),
+                                      ),
+                                    ),
+                                    if (invoiceType == 'purchase' &&
+                                        _permissions.canEditStorePrices) ...[
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextFormField(
+                                          key: ValueKey(
+                                            'sale-$index-${line['salePrice']}',
+                                          ),
+                                          initialValue:
+                                              ((line['salePrice'] as num?)
+                                                          ?.toDouble() ??
+                                                      0)
+                                                  .toStringAsFixed(2),
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                decimal: true,
+                                              ),
+                                          decoration: const InputDecoration(
+                                            labelText: 'سعر البيع لاحقًا',
+                                          ),
+                                          onChanged: (value) => setDialogState(
+                                            () => line['salePrice'] =
+                                                double.tryParse(value) ?? 0,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text('المجموع: ${_money(lineTotal)}'),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: discount,
+                      onChanged: (_) => setDialogState(() {}),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
                       ),
-                    ],
+                      decoration: const InputDecoration(labelText: 'خصم'),
+                    ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       initialValue: paymentStatus,
@@ -480,6 +812,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                       const SizedBox(height: 10),
                       TextField(
                         controller: paid,
+                        onChanged: (_) => setDialogState(() {}),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -506,7 +839,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 child: const Text('إلغاء'),
               ),
               FilledButton(
-                onPressed: invoiceType == 'purchase' && partyId == null
+                onPressed:
+                    lines.isEmpty ||
+                        (invoiceType == 'purchase' && partyId == null)
                     ? null
                     : () => Navigator.pop(dialogContext, true),
                 child: const Text('حفظ الفاتورة'),
@@ -518,39 +853,53 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     );
 
     if (accepted == true) {
-      final selectedProduct = product();
-      final selectedUnit = unit();
-      final invoiceTotal =
-          (double.tryParse(quantity.text) ?? 0) *
-          (double.tryParse(price.text) ?? 0);
+      final subtotal = lines.fold<double>(
+        0,
+        (sum, line) =>
+            sum +
+            (((line['quantity'] as num?)?.toDouble() ?? 0) *
+                ((line['unitPrice'] as num?)?.toDouble() ?? 0)),
+      );
+      final discountValue = double.tryParse(discount.text) ?? 0;
+      final invoiceTotal = (subtotal - discountValue)
+          .clamp(0, subtotal)
+          .toDouble();
       final paidAmount = paymentStatus == 'paid'
           ? invoiceTotal
           : paymentStatus == 'partial'
           ? double.tryParse(paid.text) ?? 0
           : 0.0;
+      final selectedParty = _parties.firstWhere(
+        (party) => party['id']?.toString() == partyId,
+        orElse: () => const <String, dynamic>{},
+      );
       await _store.queueInvoice(
         userId: _userId,
         invoiceType: invoiceType,
         partyId: partyId,
+        partyClientRef: selectedParty['clientRef']?.toString(),
         paidAmount: paidAmount,
         paymentMethod: 'cash',
-        items: [
-          {
-            'productId': selectedProduct['id'],
-            'productUnitId': selectedUnit?['id'],
-            'quantity': double.tryParse(quantity.text) ?? 0,
-            'unitPrice': double.tryParse(price.text) ?? 0,
-            if (invoiceType == 'purchase')
-              'salePrice': double.tryParse(salePrice.text) ?? 0,
-          },
-        ],
+        discount: discountValue,
+        items: lines
+            .map(
+              (line) => {
+                'productId': line['productId'],
+                'productClientRef': line['productClientRef'],
+                'productUnitId': line['unitId'],
+                'unitClientRef': line['unitClientRef'],
+                'quantity': (line['quantity'] as num?)?.toDouble() ?? 0,
+                'unitPrice': (line['unitPrice'] as num?)?.toDouble() ?? 0,
+                if (invoiceType == 'purchase')
+                  'salePrice': (line['salePrice'] as num?)?.toDouble() ?? 0,
+              },
+            )
+            .toList(),
       );
-      await _sync();
+      await _showLocalThenSync();
     }
-    quantity.dispose();
-    price.dispose();
-    salePrice.dispose();
     paid.dispose();
+    discount.dispose();
   }
 
   Future<void> _recordInvoicePayment(Map<String, dynamic> invoice) async {
@@ -587,11 +936,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       await _store.queuePayment(
         userId: _userId,
         invoiceId: invoice['id']?.toString(),
+        invoiceClientRef: invoice['clientRef']?.toString(),
         partyId: invoice['partyId']?.toString(),
+        partyClientRef: _parties
+            .firstWhere(
+              (party) =>
+                  party['id']?.toString() == invoice['partyId']?.toString(),
+              orElse: () => const <String, dynamic>{},
+            )['clientRef']
+            ?.toString(),
         direction: invoice['type'] == 'purchase' ? 'out' : 'in',
         amount: value,
       );
-      await _sync();
+      await _showLocalThenSync();
     }
   }
 
@@ -663,9 +1020,37 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                       style: const TextStyle(color: AppTheme.error),
                     ),
                   if (_pending.isNotEmpty)
-                    Text(
-                      '${_pending.length} عمليات محفوظة بانتظار المزامنة',
-                      style: const TextStyle(color: AppTheme.warning),
+                    ShwakelCard(
+                      color: AppTheme.warning.withValues(alpha: 0.08),
+                      borderColor: AppTheme.warning.withValues(alpha: 0.24),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.cloud_upload_rounded,
+                          color: AppTheme.warning,
+                        ),
+                        title: Text(
+                          '${_pending.length} عمليات محفوظة محليًا بانتظار المزامنة',
+                        ),
+                        subtitle: const Text(
+                          'ستظهر البيانات محليًا وتُرسل للسيرفر فور توفر الاتصال بدون حذف قائمة الانتظار إلا بعد نجاح المزامنة.',
+                        ),
+                        trailing: TextButton.icon(
+                          onPressed: _syncing ? null : _sync,
+                          icon: const Icon(Icons.sync_rounded),
+                          label: const Text('مزامنة الآن'),
+                        ),
+                      ),
+                    )
+                  else if (_syncedAt.isNotEmpty)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Chip(
+                        avatar: const Icon(Icons.verified_rounded, size: 18),
+                        label: Text('آخر مزامنة: $_syncedAt'),
+                        backgroundColor: AppTheme.success.withValues(
+                          alpha: 0.10,
+                        ),
+                      ),
                     ),
                   const SizedBox(height: 8),
                   Expanded(
@@ -738,6 +1123,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 'المتوفر: ${item['stockQuantity'] ?? 0} ${_unitName(item['baseUnit']?.toString() ?? '')}',
               ),
               trailing: Text(_money(item['defaultSalePrice'])),
+              isThreeLine: _isLocalRecord(item),
+              dense: false,
             );
           },
         );
@@ -755,7 +1142,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                     : Icons.arrow_downward_rounded,
               ),
               title: Text('${item['invoiceNumber']} • ${item['partyName']}'),
-              subtitle: Text('المتبقي: ${_money(item['dueAmount'])}'),
+              subtitle: Text(
+                'المتبقي: ${_money(item['dueAmount'])} • ${_syncLabel(item)}',
+              ),
               trailing: Text(_money(item['total'])),
               onTap: () => _recordInvoicePayment(item),
             );
@@ -772,22 +1161,118 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               leading: const CircleAvatar(child: Icon(Icons.person_outline)),
               title: Text(item['name']?.toString() ?? ''),
               subtitle: Text(
-                'عليه: ${_money(item['receivableBalance'])} • له: ${_money(item['payableBalance'])}',
+                'عليه: ${_money(item['receivableBalance'])} • له: ${_money(item['payableBalance'])} • ${_syncLabel(item)}',
               ),
               trailing: Text(item['phone']?.toString() ?? ''),
             );
           },
         );
 
-  Widget _reportsView() => ListView(
-    children: const [
-      ListTile(title: Text('المبيعات اليومية والأسبوعية والشهرية')),
-      ListTile(title: Text('الأرباح وتكلفة البضاعة المباعة')),
-      ListTile(title: Text('الأصناف الأكثر مبيعًا والراكدة')),
-      ListTile(title: Text('المخزون المنخفض وقيمة المخزون')),
-      ListTile(title: Text('ديون الزبائن والتجار')),
-      ListTile(title: Text('حركة المستخدمين والموظفين')),
-    ],
+  Widget _reportsView() {
+    final now = DateTime.now();
+    final sales = _invoices.where((item) => item['type'] == 'sale').toList();
+    double salesIn(Duration duration) => sales
+        .where((item) {
+          final date = DateTime.tryParse(item['occurredAt']?.toString() ?? '');
+          return date != null && now.difference(date) <= duration;
+        })
+        .fold(
+          0,
+          (sum, item) => sum + ((item['total'] as num?)?.toDouble() ?? 0),
+        );
+    final yearSales = sales
+        .where((item) {
+          final date = DateTime.tryParse(item['occurredAt']?.toString() ?? '');
+          return date != null && date.year == now.year;
+        })
+        .fold(
+          0.0,
+          (sum, item) => sum + ((item['total'] as num?)?.toDouble() ?? 0),
+        );
+    final profit = sales.fold(
+      0.0,
+      (sum, item) => sum + ((item['profitTotal'] as num?)?.toDouble() ?? 0),
+    );
+    final soldByProduct = <String, double>{};
+    final soldNames = <String, String>{};
+    for (final invoice in sales) {
+      for (final item in _list(invoice['items'])) {
+        final id = item['productId']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        soldByProduct[id] =
+            (soldByProduct[id] ?? 0) +
+            ((item['baseQuantity'] as num?)?.toDouble() ?? 0);
+        soldNames[id] = item['productName']?.toString() ?? id;
+      }
+    }
+    final bestSellers = soldByProduct.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final stagnant = _products
+        .where(
+          (product) => !soldByProduct.containsKey(product['id']?.toString()),
+        )
+        .take(8)
+        .toList();
+    final lowStock = _products.where((product) {
+      final min = (product['minimumStock'] as num?)?.toDouble() ?? 0;
+      final stock = (product['stockQuantity'] as num?)?.toDouble() ?? 0;
+      return min > 0 && stock <= min;
+    }).toList();
+
+    return ListView(
+      children: [
+        _reportTile('مبيعات اليوم', _money(salesIn(const Duration(days: 1)))),
+        _reportTile('مبيعات الأسبوع', _money(salesIn(const Duration(days: 7)))),
+        _reportTile('مبيعات الشهر', _money(salesIn(const Duration(days: 31)))),
+        _reportTile('مبيعات السنة', _money(yearSales)),
+        if (_permissions.canViewStoreProfits)
+          _reportTile('إجمالي الأرباح الظاهرة', _money(profit)),
+        _reportTile('قيمة المخزون', _money(_summary['inventoryValue'])),
+        _reportTile('ديون الزبائن', _money(_summary['customerDebts'])),
+        _reportTile('ديون التجار', _money(_summary['supplierDebts'])),
+        const Divider(),
+        ListTile(
+          title: const Text('أكثر الأصناف مبيعًا'),
+          subtitle: Text(
+            bestSellers.take(5).isEmpty
+                ? 'لا توجد مبيعات بعد'
+                : bestSellers
+                      .take(5)
+                      .map(
+                        (entry) => '${soldNames[entry.key]} (${entry.value})',
+                      )
+                      .join('، '),
+          ),
+        ),
+        ListTile(
+          title: const Text('الأصناف الراكدة'),
+          subtitle: Text(
+            stagnant.isEmpty
+                ? 'لا توجد أصناف راكدة'
+                : stagnant.map((item) => item['name']).join('، '),
+          ),
+        ),
+        ListTile(
+          title: const Text('المخزون المنخفض'),
+          subtitle: Text(
+            lowStock.isEmpty
+                ? 'كل الأصناف أعلى من حد التنبيه'
+                : lowStock.map((item) => item['name']).join('، '),
+          ),
+        ),
+        const ListTile(
+          title: Text('حركة المستخدمين'),
+          subtitle: Text(
+            'تُحفظ كل عمليات الإضافة والفواتير والدفعات في سجل النشاط على السيرفر.',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _reportTile(String title, String value) => ListTile(
+    title: Text(title),
+    trailing: Text(value, style: AppTheme.bodyBold),
   );
 
   Widget _empty(String title) => Center(
@@ -804,6 +1289,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
 
   static String _money(dynamic value) =>
       '${((value as num?)?.toDouble() ?? 0).toStringAsFixed(2)} ₪';
+
+  static bool _isLocalRecord(Map<String, dynamic> item) =>
+      (item['id']?.toString().startsWith('local:') ?? false) ||
+      (item['syncStatus']?.toString() == 'pending');
+
+  static String _syncLabel(Map<String, dynamic> item) =>
+      _isLocalRecord(item) ? 'محلي بانتظار المزامنة' : 'مزامن';
+
   static String _unitName(String code) => switch (code) {
     'piece' => 'حبة',
     'carton' => 'كرتونة',

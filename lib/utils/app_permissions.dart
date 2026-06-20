@@ -108,7 +108,7 @@ class AppPermissions {
     if (value == null) {
       return defaultValue;
     }
-    return value == true;
+    return value == true || value == 1 || value == '1';
   }
 
   bool get canViewBalance => _isEnabled('canViewBalance');
@@ -153,7 +153,7 @@ class AppPermissions {
       _isEnabled('canAcceptPrepaidMultipayPayments');
   bool get canUsePrepaidMultipayNfc => _isEnabled('canUsePrepaidMultipayNfc');
   bool get canUseExternalCardStore => _isEnabled('canUseExternalCardStore');
-  bool get externalCardStoreEnabled => _raw['externalCardStoreEnabled'] == true;
+  bool get externalCardStoreEnabled => _isEnabled('externalCardStoreEnabled');
   bool get canOpenPrepaidMultipayCards =>
       canUsePrepaidMultipayCards || canAcceptPrepaidMultipayPayments;
   bool get canAcceptPrepaidMultipayContactless =>
@@ -175,14 +175,29 @@ class AppPermissions {
   bool get canManageMarketingAccounts =>
       _isEnabled('canManageMarketingAccounts');
   bool get canManageDebtBook => _isEnabled('canManageDebtBook');
-  bool get canAccessStoreManagement => _isEnabled('canAccessStoreManagement');
-  bool get canManageStoreInventory => _isEnabled('canManageStoreInventory');
-  bool get canCreateStoreSales => _isEnabled('canCreateStoreSales');
-  bool get canCreateStorePurchases => _isEnabled('canCreateStorePurchases');
-  bool get canManageStoreDebts => _isEnabled('canManageStoreDebts');
-  bool get canEditStorePrices => _isEnabled('canEditStorePrices');
-  bool get canViewStoreProfits => _isEnabled('canViewStoreProfits');
-  bool get canViewStoreReports => _isEnabled('canViewStoreReports');
+  bool get _hasStoreOwnerFallback => isAdminRole || canManageDebtBook;
+  bool get canAccessStoreManagement =>
+      _isEnabled('canAccessStoreManagement') ||
+      _hasStoreOwnerFallback ||
+      canManageStoreInventory ||
+      canCreateStoreSales ||
+      canCreateStorePurchases ||
+      canManageStoreDebts ||
+      canViewStoreReports;
+  bool get canManageStoreInventory =>
+      _isEnabled('canManageStoreInventory') || _hasStoreOwnerFallback;
+  bool get canCreateStoreSales =>
+      _isEnabled('canCreateStoreSales') || _hasStoreOwnerFallback;
+  bool get canCreateStorePurchases =>
+      _isEnabled('canCreateStorePurchases') || _hasStoreOwnerFallback;
+  bool get canManageStoreDebts =>
+      _isEnabled('canManageStoreDebts') || _hasStoreOwnerFallback;
+  bool get canEditStorePrices =>
+      _isEnabled('canEditStorePrices') || _hasStoreOwnerFallback;
+  bool get canViewStoreProfits =>
+      _isEnabled('canViewStoreProfits') || _hasStoreOwnerFallback;
+  bool get canViewStoreReports =>
+      _isEnabled('canViewStoreReports') || _hasStoreOwnerFallback;
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
   bool get canManageSubUsers => _isEnabled('canManageSubUsers');
