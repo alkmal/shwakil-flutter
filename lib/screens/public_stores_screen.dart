@@ -297,6 +297,7 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final content = ResponsiveScaffoldContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -313,7 +314,7 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('المتاجر'),
+          title: Text(l.text('المتاجر', 'Stores')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const Drawer(
@@ -334,6 +335,7 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
   }
 
   Widget _header() {
+    final l = context.loc;
     final store = _selectedStore;
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
@@ -361,8 +363,8 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
               children: [
                 Text(
                   store == null
-                      ? 'متاجر التجار والمحلات'
-                      : (store['name']?.toString() ?? 'المتجر'),
+                      ? l.text('متاجر التجار والمحلات', 'Merchant stores')
+                      : (store['name']?.toString() ?? l.text('المتجر', 'Store')),
                   style: AppTheme.h2,
                 ),
                 const SizedBox(height: 6),
@@ -382,7 +384,7 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
             TextButton.icon(
               onPressed: _backToStores,
               icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('رجوع'),
+              label: Text(l.text('رجوع', 'Back')),
             ),
         ],
       ),
@@ -411,16 +413,17 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
   }
 
   Widget _storesView() {
+    final l = context.loc;
     if (!_permissions.canViewPublicStores) {
-      return _emptyState('هذه الشاشة غير متاحة حسب صلاحيات حسابك.');
+      return _emptyState(l.text('هذه الشاشة غير متاحة حسب صلاحيات حسابك.', 'This screen is not available based on your account permissions.'));
     }
     return Column(
       children: [
         TextField(
           controller: _searchController,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search_rounded),
-            hintText: 'ابحث باسم المتجر أو الوصف',
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded),
+            hintText: l.text('ابحث باسم المتجر أو الوصف', 'Search by store name or description'),
           ),
         ),
         const SizedBox(height: 16),
@@ -463,6 +466,7 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
   }
 
   Widget _buyerOrdersPanel() {
+    final l = context.loc;
     final activeCount = _buyerOrders
         .where(
           (order) =>
@@ -476,14 +480,15 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
           Icons.receipt_long_rounded,
           color: AppTheme.primary,
         ),
-        title: Text('طلباتي ($activeCount نشطة)'),
-        subtitle: const Text('تابع حالة الطلبات وأكد الاستلام عند وصولها.'),
+        title: Text('${l.text('طلباتي', 'My orders')} ($activeCount ${l.text('نشطة', 'active')})'),
+        subtitle: Text(l.text('تابع حالة الطلبات وأكد الاستلام عند وصولها.', 'Track order status and confirm receipt when delivered.')),
         children: _buyerOrders.map(_buyerOrderTile).toList(),
       ),
     );
   }
 
   Widget _buyerOrderTile(Map<String, dynamic> order) {
+    final l = context.loc;
     final status = order['status']?.toString() ?? 'pending';
     return ListTile(
       title: Text('${order['orderNumber'] ?? ''} • ${_statusLabel(status)}'),
@@ -493,7 +498,7 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
       trailing: status == 'shipped'
           ? TextButton(
               onPressed: () => unawaited(_receiveOrder(order['id'].toString())),
-              child: const Text('تأكيد الاستلام'),
+              child: Text(l.text('تأكيد الاستلام', 'Confirm receipt')),
             )
           : null,
     );
