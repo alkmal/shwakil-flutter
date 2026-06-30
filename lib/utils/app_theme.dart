@@ -30,6 +30,9 @@ class AppTheme {
   static const Color accentLight = primaryLight;
   static const Color accentSoft = primarySoft;
   static const Color highlight = Color(0xFFF59E0B);
+  static const Color orange = Color(0xFFF97316);
+  static const Color orangeLight = Color(0xFFFFEDD5);
+  static const Color primaryDeep = Color(0xFF16302B);
 
   // --- Neutral Palettes ---
   static const Color background = Color(0xFFF8FAFC);
@@ -44,6 +47,14 @@ class AppTheme {
   static const Color inputFocusFill = Color(0xFFF2FFFC);
   static const Color glassStroke = Color(0xFFF8FAFC);
 
+  // Frame colors for use on dark/gradient backgrounds
+  static const Color frameColorOnDark = Color(0x14FFFFFF);
+  static const Color frameBorderColorOnDark = Color(0x22FFFFFF);
+  // On-dark semantic text colors (brighter variants for dark backgrounds)
+  static const Color successTextOnDark = Color(0xFFA7F3D0);
+  static const Color warningTextOnDark = Color(0xFFFDE68A);
+  static const Color errorTextOnDark = Color(0xFFFCA5A5);
+
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textTertiary = Color(0xFF94A3B8);
@@ -56,10 +67,13 @@ class AppTheme {
   // --- Feedback Colors ---
   static const Color success = Color(0xFF16A34A);
   static const Color successLight = Color(0xFFDCFCE7);
+  static const Color successOnDark = Color(0xFF22C55E);
   static const Color warning = Color(0xFFB45309);
   static const Color warningLight = Color(0xFFFEF3C7);
+  static const Color warningOnDark = Color(0xFFF59E0B);
   static const Color error = Color(0xFFDC2626);
   static const Color errorLight = Color(0xFFFEE2E2);
+  static const Color errorOnDark = Color(0xFFEF4444);
   static const Color info = primary;
   static const Color infoLight = primarySoft;
 
@@ -139,6 +153,24 @@ class AppTheme {
 
   static const LinearGradient cardHighlightGradient = LinearGradient(
     colors: [Color(0xFFFFFFFF), Color(0xFFF3FFFC)],
+    begin: Alignment.topRight,
+    end: Alignment.bottomLeft,
+  );
+
+  static const LinearGradient pageHeaderGradient = LinearGradient(
+    colors: [Color(0xFFFFFFFF), Color(0xFFF4FFFC), Color(0xFFECFDF5)],
+    begin: Alignment.topRight,
+    end: Alignment.bottomLeft,
+  );
+
+  // Card status gradients (used/unused) for scan/prepaid card screens
+  static const LinearGradient usedCardGradient = LinearGradient(
+    colors: [Color(0xFFFFE4E6), Color(0xFFFFF1F2)],
+    begin: Alignment.topRight,
+    end: Alignment.bottomLeft,
+  );
+  static const LinearGradient unusedCardGradient = LinearGradient(
+    colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
     begin: Alignment.topRight,
     end: Alignment.bottomLeft,
   );

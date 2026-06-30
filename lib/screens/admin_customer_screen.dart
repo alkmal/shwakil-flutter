@@ -327,12 +327,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 segments: [
                   ButtonSegment<String>(
                     value: 'whatsapp',
-                    icon: Icon(Icons.chat_rounded),
+                    icon: const Icon(Icons.chat_rounded),
                     label: Text(context.loc.tr('shared.delivery_whatsapp')),
                   ),
                   ButtonSegment<String>(
                     value: 'sms',
-                    icon: Icon(Icons.sms_rounded),
+                    icon: const Icon(Icons.sms_rounded),
                     label: Text(context.loc.tr('shared.delivery_sms')),
                   ),
                 ],
@@ -385,10 +385,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _sendOtpToUser() async {
+    final l = context.loc;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('إرسال OTP'),
+        title: Text(l.text('إرسال OTP', 'Send OTP')),
         content: const Text(
           'سيتم إرسال رمز تحقق عبر قناة واحدة فقط. كل إعادة إرسال تستخدم القناة التالية حتى تصل إلى SMS. هل تريد المتابعة؟',
         ),
@@ -418,16 +419,17 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       setState(() => _busy = false);
       await AppAlertService.showSuccess(
         context,
-        title: 'إرسال OTP',
+        title: l.text('إرسال OTP', 'Send OTP'),
         message:
-            response['message']?.toString() ?? 'تم إرسال رمز التحقق للمستخدم.',
+            response['message']?.toString() ??
+            l.text('تم إرسال رمز التحقق للمستخدم.', 'OTP sent to user.'),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
       await AppAlertService.showError(
         context,
-        title: 'إرسال OTP',
+        title: l.text('إرسال OTP', 'Send OTP'),
         message: ErrorMessageService.sanitize(e),
       );
     }
@@ -607,6 +609,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _createPrepaidCardForUser() async {
+    final l = context.loc;
     final labelController = TextEditingController();
     final amountController = TextEditingController();
     final pinController = TextEditingController();
@@ -616,7 +619,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       MaterialPageRoute(
         builder: (dialogContext) => StatefulBuilder(
           builder: (dialogContext, setDialogState) => Scaffold(
-            appBar: AppBar(title: const Text('إنشاء بطاقة دفع مسبق للمستخدم')),
+            appBar: AppBar(
+              title: Text(
+                l.text(
+                  'إنشاء بطاقة دفع مسبق للمستخدم',
+                  'Create prepaid card for user',
+                ),
+              ),
+            ),
             body: SafeArea(
               child: Align(
                 alignment: Alignment.topCenter,
@@ -629,9 +639,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       const SizedBox(height: 14),
                       TextField(
                         controller: labelController,
-                        decoration: const InputDecoration(
-                          labelText: 'اسم البطاقة',
-                          prefixIcon: Icon(Icons.badge_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.text('اسم البطاقة', 'Card name'),
+                          prefixIcon: const Icon(Icons.badge_rounded),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -640,9 +650,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'مبلغ البطاقة',
-                          prefixIcon: Icon(Icons.payments_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.text('مبلغ البطاقة', 'Card amount'),
+                          prefixIcon: const Icon(Icons.payments_rounded),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -651,18 +661,18 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                         keyboardType: TextInputType.number,
                         maxLength: 3,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'رمز البطاقة',
-                          prefixIcon: Icon(Icons.pin_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.text('رمز البطاقة', 'Card PIN'),
+                          prefixIcon: const Icon(Icons.pin_rounded),
                           counterText: '',
                         ),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
                         initialValue: selectedValidityYears,
-                        decoration: const InputDecoration(
-                          labelText: 'مدة البطاقة',
-                          prefixIcon: Icon(Icons.event_available_rounded),
+                        decoration: InputDecoration(
+                          labelText: l.text('مدة البطاقة', 'Card validity'),
+                          prefixIcon: const Icon(Icons.event_available_rounded),
                         ),
                         items: const [1, 2, 3, 4, 5]
                             .map(
@@ -688,7 +698,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                             child: OutlinedButton(
                               onPressed: () =>
                                   Navigator.of(dialogContext).pop(false),
-                              child: const Text('إلغاء'),
+                              child: Text(l.text('إلغاء', 'Cancel')),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -697,7 +707,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                               onPressed: () =>
                                   Navigator.of(dialogContext).pop(true),
                               icon: const Icon(Icons.add_card_rounded),
-                              label: const Text('إنشاء البطاقة'),
+                              label: Text(
+                                l.text('إنشاء البطاقة', 'Create card'),
+                              ),
                             ),
                           ),
                         ],
@@ -729,8 +741,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     if (label.isEmpty || amount <= 0 || !RegExp(r'^\d{3}$').hasMatch(pin)) {
       await AppAlertService.showError(
         context,
-        title: 'بيانات غير صالحة',
-        message: 'أدخل اسم البطاقة والمبلغ ورمزًا مكوّنًا من 3 أرقام.',
+        title: l.text('بيانات غير صالحة', 'Invalid data'),
+        message: l.text(
+          'أدخل اسم البطاقة والمبلغ ورمزًا مكوّنًا من 3 أرقام.',
+          'Enter card name, amount and a 3-digit PIN.',
+        ),
       );
       return;
     }
@@ -753,10 +768,13 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم إنشاء البطاقة',
+        title: l.text('تم إنشاء البطاقة', 'Card created'),
         message:
             response['message']?.toString() ??
-            'تم إنشاء بطاقة الدفع المسبق للمستخدم بنجاح.',
+            l.text(
+              'تم إنشاء بطاقة الدفع المسبق للمستخدم بنجاح.',
+              'Prepaid card created for user successfully.',
+            ),
       );
     } catch (e) {
       if (!mounted) {
@@ -765,7 +783,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       setState(() => _busy = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر إنشاء البطاقة',
+        title: l.text('تعذر إنشاء البطاقة', 'Card creation failed'),
         message: ErrorMessageService.sanitize(e),
       );
     }
@@ -866,6 +884,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _buildOverviewTab() {
+    final l = context.loc;
     final isPhone = AppTheme.isPhone(context);
 
     return SingleChildScrollView(
@@ -896,7 +915,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                       runSpacing: 12,
                       children: [
                         ShwakelButton(
-                          label: 'إنشاء بطاقة دفع مسبق',
+                          label: l.text(
+                            'إنشاء بطاقة دفع مسبق',
+                            'Create prepaid card',
+                          ),
                           icon: Icons.add_card_rounded,
                           onPressed: _busy ? null : _createPrepaidCardForUser,
                         ),
@@ -907,7 +929,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                           isLoading: _busy,
                         ),
                         ShwakelButton(
-                          label: 'إرسال OTP',
+                          label: l.text('إرسال OTP', 'Send OTP'),
                           icon: Icons.password_rounded,
                           onPressed: _busy ? null : _sendOtpToUser,
                         ),
@@ -1000,6 +1022,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _buildBalanceManagementCard() {
+    final l = context.loc;
     final balance = ((_customer['balance'] as num?) ?? 0).toDouble();
 
     return ShwakelCard(
@@ -1050,7 +1073,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ShwakelButton(
                 width: 180,
                 height: 48,
-                label: 'إضافة رصيد',
+                label: l.text('إضافة رصيد', 'Add balance'),
                 icon: Icons.add_card_rounded,
                 onPressed: _busy
                     ? null
@@ -1059,7 +1082,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ShwakelButton(
                 width: 180,
                 height: 48,
-                label: 'سحب رصيد',
+                label: l.text('سحب رصيد', 'Deduct balance'),
                 icon: Icons.remove_circle_outline_rounded,
                 isDanger: true,
                 onPressed: _busy
@@ -1547,6 +1570,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _buildAdminPrintLogoCard() {
+    final l = context.loc;
     final remoteLogoUrl = _customer['printLogoUrl']?.toString().trim() ?? '';
     final hasRemoteLogo = remoteLogoUrl.isNotEmpty && !_removePrintLogo;
     return ShwakelCard(
@@ -1604,14 +1628,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
             runSpacing: 12,
             children: [
               ShwakelButton(
-                label: 'رفع شعار',
+                label: l.text('رفع شعار', 'Upload logo'),
                 icon: Icons.upload_rounded,
                 width: 160,
                 onPressed: _pickAdminPrintLogo,
               ),
               if (hasRemoteLogo || _printLogoPreview != null)
                 ShwakelButton(
-                  label: 'حذف الشعار',
+                  label: l.text('حذف الشعار', 'Remove logo'),
                   icon: Icons.delete_outline_rounded,
                   isSecondary: true,
                   width: 160,
@@ -1730,6 +1754,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Widget _buildPermissionsTab() {
+    final l = context.loc;
     final perms = Map<String, dynamic>.from(
       _customer['permissions'] as Map? ?? {},
     );
@@ -1779,7 +1804,10 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               ),
               const SizedBox(height: 16),
               ShwakelButton(
-                label: 'استعادة صلاحيات نوع الحساب',
+                label: l.text(
+                  'استعادة صلاحيات نوع الحساب',
+                  'Restore account type permissions',
+                ),
                 icon: Icons.restore_rounded,
                 isSecondary: true,
                 onPressed: _busy ? null : _restoreDefaultPermissions,
@@ -2194,6 +2222,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   void _openVerificationImage(String title, String url) {
+    final l = context.loc;
     showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -2209,7 +2238,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                   children: [
                     Expanded(child: Text(title, style: AppTheme.bodyBold)),
                     IconButton(
-                      tooltip: 'إغلاق',
+                      tooltip: l.text('إغلاق', 'Close'),
                       onPressed: () => Navigator.of(dialogContext).pop(),
                       icon: const Icon(Icons.close_rounded),
                     ),

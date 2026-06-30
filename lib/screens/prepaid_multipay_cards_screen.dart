@@ -3017,7 +3017,7 @@ class _PrepaidMultipayCardsScreenState
           width: double.infinity,
           padding: EdgeInsets.all(isLarge ? 22 : 18),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF8EC),
+            color: AppTheme.warningLight,
             border: Border.all(color: AppTheme.primaryBorder, width: 2),
             borderRadius: BorderRadius.circular(24),
             boxShadow: AppTheme.mediumShadow,
@@ -3046,7 +3046,7 @@ class _PrepaidMultipayCardsScreenState
                       height: isLarge ? 30 : 24,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFFF97316),
+                        color: AppTheme.orange,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -3055,7 +3055,7 @@ class _PrepaidMultipayCardsScreenState
                       height: isLarge ? 30 : 24,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFFFBBF24),
+                        color: AppTheme.highlight,
                       ),
                     ),
                   ],
@@ -3081,7 +3081,7 @@ class _PrepaidMultipayCardsScreenState
                             Text(
                               'بطاقة دفع مسبق',
                               style: AppTheme.caption.copyWith(
-                                color: const Color(0xFF64748B),
+                                color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -3128,14 +3128,14 @@ class _PrepaidMultipayCardsScreenState
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFE4E6),
+                          color: AppTheme.errorLight,
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: const Color(0xFFFB7185)),
+                          border: Border.all(color: AppTheme.error.withValues(alpha: 0.45)),
                         ),
                         child: Text(
                           _statusLabel(card['status']?.toString() ?? 'active'),
                           style: AppTheme.caption.copyWith(
-                            color: const Color(0xFFBE123C),
+                            color: AppTheme.error,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -3147,7 +3147,7 @@ class _PrepaidMultipayCardsScreenState
                     displayNumber,
                     textDirection: TextDirection.ltr,
                     style: AppTheme.h2.copyWith(
-                      color: const Color(0xFF047857),
+                      color: AppTheme.success,
                       letterSpacing: 0,
                       fontWeight: FontWeight.w900,
                     ),
@@ -3158,7 +3158,7 @@ class _PrepaidMultipayCardsScreenState
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.bodyBold.copyWith(
-                      color: const Color(0xFF16302B),
+                      color: AppTheme.primaryDeep,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -3167,7 +3167,7 @@ class _PrepaidMultipayCardsScreenState
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.caption.copyWith(
-                      color: const Color(0xFF64748B),
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                   SizedBox(height: isLarge ? 20 : 16),
@@ -3206,7 +3206,7 @@ class _PrepaidMultipayCardsScreenState
                           ? 'اضغط على البطاقة لإظهار الباركود'
                           : 'اضغط على البطاقة لإظهار بيانات الدفع',
                       style: AppTheme.caption.copyWith(
-                        color: const Color(0xFF64748B),
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                   ] else if (rawNumber.isNotEmpty) ...[
@@ -3216,7 +3216,7 @@ class _PrepaidMultipayCardsScreenState
                       textDirection: TextDirection.ltr,
                       textAlign: TextAlign.center,
                       style: AppTheme.caption.copyWith(
-                        color: const Color(0xFF16302B),
+                        color: AppTheme.primaryDeep,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -3241,7 +3241,7 @@ class _PrepaidMultipayCardsScreenState
                               'shwakil.alkmal.com',
                               textDirection: TextDirection.ltr,
                               style: AppTheme.caption.copyWith(
-                                color: const Color(0xFF16302B),
+                                color: AppTheme.primaryDeep,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -3251,7 +3251,7 @@ class _PrepaidMultipayCardsScreenState
                                 'هاتف المصدر: $issuerPhone',
                                 textDirection: TextDirection.ltr,
                                 style: AppTheme.caption.copyWith(
-                                  color: const Color(0xFF64748B),
+                                  color: AppTheme.textSecondary,
                                 ),
                               ),
                             ],
@@ -3289,7 +3289,7 @@ class _PrepaidMultipayCardsScreenState
         children: [
           Text(
             title,
-            style: AppTheme.caption.copyWith(color: const Color(0xFF64748B)),
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(

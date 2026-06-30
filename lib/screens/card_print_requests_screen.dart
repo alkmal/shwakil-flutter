@@ -818,10 +818,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFF1F2),
+                              color: AppTheme.errorLight,
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: const Color(0xFFFFCDD5),
+                                color: AppTheme.error.withValues(alpha: 0.30),
                               ),
                             ),
                             child: Column(
@@ -832,7 +832,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                     'screens_card_print_requests_screen.078',
                                   ),
                                   style: AppTheme.bodyBold.copyWith(
-                                    color: const Color(0xFFBE123C),
+                                    color: AppTheme.error,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -841,7 +841,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                     'screens_card_print_requests_screen.079',
                                   ),
                                   style: AppTheme.caption.copyWith(
-                                    color: const Color(0xFF9F1239),
+                                    color: AppTheme.error,
                                   ),
                                 ),
                                 const SizedBox(height: 10),

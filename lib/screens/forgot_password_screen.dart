@@ -492,7 +492,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             params: {'code': _debugOtpCode ?? ''},
                           ),
                           style: const TextStyle(
-                            color: Color(0xFFB45309),
+                            color: AppTheme.warning,
                             fontWeight: FontWeight.w900,
                           ),
                         ),

@@ -126,7 +126,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل تقرير الإدارة',
+        title: context.loc.text('تعذر تحميل تقرير الإدارة', 'Failed to load admin report'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -503,13 +503,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           badge: l.tr('screens_admin_dashboard_screen.089'),
         ),
       if (permissions.canManageUsers)
-        const _AdminEntry(
-          title: 'تقارير فحص البطاقات',
-          subtitle: 'قراءات ونسب الاستخدام.',
+        _AdminEntry(
+          title: l.text('تقارير فحص البطاقات', 'Card scan reports'),
+          subtitle: l.text('قراءات ونسب الاستخدام.', 'Scan readings and usage rates.'),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.accent,
           routeName: '/admin-card-scan-reports',
-          badge: 'تقارير',
+          badge: l.text('تقارير', 'Reports'),
         ),
       if (permissions.canReviewDevices)
         _AdminEntry(
@@ -857,6 +857,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildAdminCenterTab() {
+    final l = context.loc;
     final overview = Map<String, dynamic>.from(
       _adminCenterPayload['overview'] as Map? ?? const {},
     );
@@ -899,7 +900,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
         children: [
           _buildSectionHeader(
-            title: 'مركز الإدارة',
+            title: l.text('مركز الإدارة', 'Admin center'),
             subtitle:
                 'إحصائيات وتقارير يومية وأسبوعية وشهرية مع قراءة مباشرة للعمليات المهمة.',
             actionLabel: '${counts['pendingAll'] ?? 0} إجراء بانتظار المتابعة',
@@ -931,28 +932,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 children: [
                   _metricCard(
                     icon: Icons.people_alt_rounded,
-                    label: 'المستخدمون',
+                    label: l.text('المستخدمون', 'Users'),
                     value: _formatInt(stats['totalUsers']),
                     detail: '${_formatInt(stats['activeUsers'])} نشط',
                     color: AppTheme.primary,
                   ),
                   _metricCard(
                     icon: Icons.pending_actions_rounded,
-                    label: 'قيد المتابعة',
+                    label: l.text('قيد المتابعة', 'Under review'),
                     value: _formatInt(counts['pendingAll']),
                     detail: 'طلبات مالية وأجهزة وتوثيق',
                     color: AppTheme.warning,
                   ),
                   _metricCard(
                     icon: Icons.account_balance_wallet_rounded,
-                    label: 'أرصدة الحسابات',
+                    label: l.text('أرصدة الحسابات', 'Account balances'),
                     value: CurrencyFormatter.ils(_num(stats['totalBalance'])),
                     detail: 'الرصيد الإجمالي الحالي',
                     color: AppTheme.secondary,
                   ),
                   _metricCard(
                     icon: Icons.receipt_long_rounded,
-                    label: 'عمليات اليوم',
+                    label: l.text('عمليات اليوم', "Today's transactions"),
                     value: _formatInt(stats['dailyCount']),
                     detail: CurrencyFormatter.ils(_num(stats['dailyVolume'])),
                     color: AppTheme.accent,
@@ -1145,6 +1146,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _adminReportEmptyState() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(22),
       borderRadius: BorderRadius.circular(22),
@@ -1174,7 +1176,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           OutlinedButton.icon(
             onPressed: () => _loadAdminReport(_selectedReportPeriod),
             icon: const Icon(Icons.sync_rounded),
-            label: const Text('تحديث'),
+            label: Text(l.text('تحديث', 'Refresh')),
           ),
         ],
       ),
@@ -1299,6 +1301,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     List<Map<String, dynamic>> operations, {
     required String periodLabel,
   }) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(24),
@@ -1310,7 +1313,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
               const SizedBox(width: 10),
-              Expanded(child: Text('تفاصيل آخر العمليات', style: AppTheme.h3)),
+              Expanded(child: Text(l.text('تفاصيل آخر العمليات', 'Latest transactions details'), style: AppTheme.h3)),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -1494,6 +1497,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _breakdownList(List<Map<String, dynamic>> breakdown) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(24),
@@ -1501,7 +1505,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('توزيع أنواع العمليات', style: AppTheme.h3),
+          Text(l.text('توزيع أنواع العمليات', 'Transaction type distribution'), style: AppTheme.h3),
           const SizedBox(height: 12),
           if (breakdown.isEmpty)
             Text(

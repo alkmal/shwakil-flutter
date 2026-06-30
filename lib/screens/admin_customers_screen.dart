@@ -530,7 +530,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('إرسال OTP'),
+        title: Text(l.text('إرسال OTP', 'Send OTP')),
         content: const Text(
           'سيتم إرسال رمز تحقق عبر قناة واحدة فقط. كل إعادة إرسال تستخدم القناة التالية حتى تصل إلى SMS. هل تريد المتابعة؟',
         ),
@@ -792,12 +792,12 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
             runSpacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('الأحدث'),
+                label: Text(l.text('الأحدث', 'Newest')),
                 selected: _sortMode == 'newest',
                 onSelected: (_) => _changeSortMode('newest'),
               ),
               ChoiceChip(
-                label: const Text('الأكثر ربحًا'),
+                label: Text(l.text('الأكثر ربحًا', 'Most profitable')),
                 selected: _sortMode == 'profit_desc',
                 onSelected: (_) => _changeSortMode('profit_desc'),
               ),

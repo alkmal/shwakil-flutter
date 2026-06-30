@@ -216,7 +216,6 @@ bool _isPublicRoute(String? routeName) {
       routeName == '/register' ||
       routeName == '/support-tickets' ||
       routeName == '/forgot-password' ||
-      routeName == '/prepaid-multipay-cards' ||
       routeName == '/unlock';
 }
 
@@ -232,7 +231,8 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
   return switch (routeName) {
     '/home' || '/offline-sync' => true,
     '/balance' => permissions.canViewBalance,
-    '/notifications' => true,
+    '/notifications' =>
+      permissions.canViewTransactions || permissions.canViewBalance,
     '/create-card' => permissions.canIssueCards,
     '/create-card-quick' => permissions.canIssueCards,
     '/card-print-requests' => permissions.canRequestCardPrinting,
@@ -957,13 +957,7 @@ class _GlobalConnectivityBannerState extends State<_GlobalConnectivityBanner> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: color.withValues(alpha: 0.18)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x200F172A),
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
+                  boxShadow: AppTheme.softShadow,
                 ),
                 child: Row(
                   children: [

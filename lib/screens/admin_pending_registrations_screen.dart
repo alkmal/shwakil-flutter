@@ -331,6 +331,7 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _editWhatsapp(Map<String, dynamic> request) async {
+    final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {
       return;
@@ -342,14 +343,14 @@ class _AdminPendingRegistrationsScreenState
     final updatedPhone = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تعديل رقم المستخدم'),
+        title: Text(l.text('تعديل رقم المستخدم', 'Edit user phone')),
         content: TextField(
           controller: controller,
           autofocus: true,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'رقم المستخدم',
-            prefixIcon: Icon(Icons.phone_rounded),
+          decoration: InputDecoration(
+            labelText: l.text('رقم المستخدم', 'User phone number'),
+            prefixIcon: const Icon(Icons.phone_rounded),
           ),
         ),
         actions: [
@@ -363,7 +364,7 @@ class _AdminPendingRegistrationsScreenState
             onPressed: () =>
                 Navigator.pop(dialogContext, controller.text.trim()),
             icon: const Icon(Icons.save_rounded),
-            label: const Text('حفظ الرقم'),
+            label: Text(l.text('حفظ الرقم', 'Save number')),
           ),
         ],
       ),
@@ -385,7 +386,7 @@ class _AdminPendingRegistrationsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم تحديث الرقم',
+        title: l.text('تم تحديث الرقم', 'Number updated'),
         message:
             response['message']?.toString() ??
             'تم تحديث رقم المستخدم ويمكنك متابعة الطلب.',
@@ -397,7 +398,7 @@ class _AdminPendingRegistrationsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحديث الرقم',
+        title: l.text('تعذر تحديث الرقم', 'Failed to update number'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -632,7 +633,7 @@ class _AdminPendingRegistrationsScreenState
               _copyPhoneChip(request),
               ActionChip(
                 avatar: const Icon(Icons.edit_rounded, size: 16),
-                label: const Text('تعديل الرقم'),
+                label: Text(l.text('تعديل الرقم', 'Edit number')),
                 onPressed: isBusy ? null : () => _editWhatsapp(request),
                 backgroundColor: AppTheme.primarySoft,
                 labelStyle: AppTheme.caption.copyWith(

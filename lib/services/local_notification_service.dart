@@ -114,7 +114,7 @@ class LocalNotificationService {
         channelDescription: _tr('services_local_notification_service.004'),
         importance: Importance.max,
         priority: Priority.high,
-        color: isCredit ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+        color: isCredit ? AppTheme.success : AppTheme.error,
       ),
       iOS: const DarwinNotificationDetails(),
       macOS: const DarwinNotificationDetails(),

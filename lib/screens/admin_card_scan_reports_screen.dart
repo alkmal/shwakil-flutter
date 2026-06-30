@@ -149,14 +149,16 @@ class _AdminCardScanReportsScreenState
       if (!mounted) return;
       AppAlertService.showSnack(
         context,
-        message:
-            'تم تصدير ${exportItems.length} سجل من تقرير الحضور والانصراف.',
+        message: context.loc.text(
+          'تم تصدير ${exportItems.length} سجل من تقرير الحضور والانصراف.',
+          'Exported ${exportItems.length} records from the attendance report.',
+        ),
       );
     } catch (error) {
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: 'تعذر التصدير',
+        title: context.loc.text('تعذر التصدير', 'Export failed'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -173,13 +175,16 @@ class _AdminCardScanReportsScreenState
       if (!mounted) return;
       AppAlertService.showSnack(
         context,
-        message: 'تم تصدير ${daily.length} سجل من الملخص اليومي.',
+        message: context.loc.text(
+          'تم تصدير ${daily.length} سجل من الملخص اليومي.',
+          'Exported ${daily.length} records from the daily summary.',
+        ),
       );
     } catch (error) {
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: 'تعذر تصدير الملخص',
+        title: context.loc.text('تعذر تصدير الملخص', 'Failed to export summary'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -243,7 +248,7 @@ class _AdminCardScanReportsScreenState
         backgroundColor: AppTheme.background,
         body: Center(
           child: Text(
-            'لا تملك صلاحية عرض هذه الصفحة',
+            l.text('لا تملك صلاحية عرض هذه الصفحة', 'You are not authorized to view this page'),
             style: AppTheme.bodyBold,
           ),
         ),
@@ -264,15 +269,15 @@ class _AdminCardScanReportsScreenState
             const SizedBox(height: 14),
             Text(
               _attendanceMode
-                  ? 'تقارير الحضور والانصراف'
-                  : 'تقارير فحص البطاقات (خاصة)',
+                  ? l.text('تقارير الحضور والانصراف', 'Attendance reports')
+                  : l.text('تقارير فحص البطاقات (خاصة)', 'Card scan reports (private)'),
               style: AppTheme.h2,
             ),
             const SizedBox(height: 6),
             Text(
               _attendanceMode
-                  ? 'سجل قراءات بطاقات الحضور والانصراف مع بيانات الموظف ومكان القراءة.'
-                  : 'ترتيب حسب أكثر قراءة. اضغط على المستخدم لعرض تفاصيل المواقع.',
+                  ? l.text('سجل قراءات بطاقات الحضور والانصراف مع بيانات الموظف ومكان القراءة.', 'Attendance card scan log with employee data and scan location.')
+                  : l.text('ترتيب حسب أكثر قراءة. اضغط على المستخدم لعرض تفاصيل المواقع.', 'Sorted by most scans. Tap a user to view location details.'),
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
@@ -284,16 +289,16 @@ class _AdminCardScanReportsScreenState
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 SegmentedButton<bool>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: false,
-                      icon: Icon(Icons.query_stats_rounded),
-                      label: Text('الفحص'),
+                      icon: const Icon(Icons.query_stats_rounded),
+                      label: Text(l.text('الفحص', 'Scan')),
                     ),
                     ButtonSegment(
                       value: true,
-                      icon: Icon(Icons.badge_rounded),
-                      label: Text('الحضور'),
+                      icon: const Icon(Icons.badge_rounded),
+                      label: Text(l.text('الحضور', 'Attendance')),
                     ),
                   ],
                   selected: {_attendanceMode},
@@ -304,9 +309,9 @@ class _AdminCardScanReportsScreenState
                     width: 280,
                     child: TextField(
                       controller: _attendanceQueryC,
-                      decoration: const InputDecoration(
-                        labelText: 'بحث',
-                        prefixIcon: Icon(Icons.search_rounded),
+                      decoration: InputDecoration(
+                        labelText: l.text('بحث', 'Search'),
+                        prefixIcon: const Icon(Icons.search_rounded),
                         isDense: true,
                       ),
                       onSubmitted: (_) => _load(page: 1),
@@ -318,9 +323,9 @@ class _AdminCardScanReportsScreenState
                     child: TextField(
                       controller: _attendanceFromC,
                       readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'من تاريخ',
-                        prefixIcon: Icon(Icons.date_range_rounded),
+                      decoration: InputDecoration(
+                        labelText: l.text('من تاريخ', 'From date'),
+                        prefixIcon: const Icon(Icons.date_range_rounded),
                         isDense: true,
                       ),
                       onTap: () => _pickAttendanceDate(_attendanceFromC),
@@ -332,9 +337,9 @@ class _AdminCardScanReportsScreenState
                     child: TextField(
                       controller: _attendanceToC,
                       readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'إلى تاريخ',
-                        prefixIcon: Icon(Icons.event_available_rounded),
+                      decoration: InputDecoration(
+                        labelText: l.text('إلى تاريخ', 'To date'),
+                        prefixIcon: const Icon(Icons.event_available_rounded),
                         isDense: true,
                       ),
                       onTap: () => _pickAttendanceDate(_attendanceToC),
@@ -342,13 +347,13 @@ class _AdminCardScanReportsScreenState
                   ),
                 if (_attendanceMode)
                   IconButton.filledTonal(
-                    tooltip: 'تطبيق الفلاتر',
+                    tooltip: l.text('تطبيق الفلاتر', 'Apply filters'),
                     onPressed: () => _load(page: 1),
                     icon: const Icon(Icons.tune_rounded),
                   ),
                 if (_attendanceMode)
                   IconButton.outlined(
-                    tooltip: 'مسح الفلاتر',
+                    tooltip: l.text('مسح الفلاتر', 'Clear filters'),
                     onPressed: _clearAttendanceFilters,
                     icon: const Icon(Icons.filter_alt_off_rounded),
                   ),
@@ -358,7 +363,7 @@ class _AdminCardScanReportsScreenState
                         ? null
                         : _exportAttendance,
                     icon: const Icon(Icons.download_rounded),
-                    label: Text(_exporting ? 'جارٍ التصدير' : 'تصدير CSV'),
+                    label: Text(_exporting ? l.text('جارٍ التصدير', 'Exporting...') : l.text('تصدير CSV', 'Export CSV')),
                   ),
                 if (_attendanceMode)
                   OutlinedButton.icon(
@@ -366,7 +371,7 @@ class _AdminCardScanReportsScreenState
                         ? null
                         : _exportAttendanceDailySummary,
                     icon: const Icon(Icons.summarize_rounded),
-                    label: const Text('تصدير الملخص'),
+                    label: Text(l.text('تصدير الملخص', 'Export summary')),
                   ),
               ],
             ),
@@ -446,22 +451,22 @@ class _AdminCardScanReportsScreenState
                                     runSpacing: 6,
                                     children: [
                                       _metricChip(
-                                        label: 'قراءات',
+                                        label: l.text('قراءات', 'Scans'),
                                         value: '$scanCount',
                                         color: AppTheme.primary,
                                       ),
                                       _metricChip(
-                                        label: 'استخدام',
+                                        label: l.text('استخدام', 'Used'),
                                         value: '$redeemCount',
                                         color: AppTheme.success,
                                       ),
                                       _metricChip(
-                                        label: 'بدون استخدام',
+                                        label: l.text('بدون استخدام', 'Unused'),
                                         value: '$scanWithoutUse',
                                         color: AppTheme.warning,
                                       ),
                                       _metricChip(
-                                        label: 'نسبة الاستخدام',
+                                        label: l.text('نسبة الاستخدام', 'Usage rate'),
                                         value: '${ratio.toStringAsFixed(2)}%',
                                         color: AppTheme.accent,
                                       ),
@@ -514,6 +519,7 @@ class _AdminCardScanReportsScreenState
   }
 
   Widget _buildAttendanceSummary() {
+    final l = context.loc;
     final total =
         (_attendanceSummary['total'] as num?)?.toInt() ?? _items.length;
     final checkIns = (_attendanceSummary['checkIns'] as num?)?.toInt() ?? 0;
@@ -538,47 +544,47 @@ class _AdminCardScanReportsScreenState
         runSpacing: 8,
         children: [
           _metricChip(
-            label: truncated ? 'الإجمالي+' : 'الإجمالي',
+            label: truncated ? l.text('الإجمالي+', 'Total+') : l.text('الإجمالي', 'Total'),
             value: '$total',
             color: AppTheme.primary,
           ),
           _metricChip(
-            label: 'حضور',
+            label: l.text('حضور', 'Check-in'),
             value: '$checkIns',
             color: AppTheme.success,
           ),
           _metricChip(
-            label: 'انصراف',
+            label: l.text('انصراف', 'Check-out'),
             value: '$checkOuts',
             color: AppTheme.accent,
           ),
           _metricChip(
-            label: 'موظفون',
+            label: l.text('موظفون', 'Employees'),
             value: '$employeeCount',
             color: AppTheme.warning,
           ),
           _metricChip(
-            label: 'أنظمة',
+            label: l.text('أنظمة', 'Systems'),
             value: '$systemCount',
             color: AppTheme.info,
           ),
           _metricChip(
-            label: 'أيام',
+            label: l.text('أيام', 'Days'),
             value: '$dailyCount',
             color: AppTheme.primary,
           ),
           _metricChip(
-            label: 'مكتملة',
+            label: l.text('مكتملة', 'Complete'),
             value: '$completeDays',
             color: AppTheme.success,
           ),
           _metricChip(
-            label: 'ناقصة',
+            label: l.text('ناقصة', 'Incomplete'),
             value: '$incompleteDays',
             color: AppTheme.warning,
           ),
           _metricChip(
-            label: 'هذه الصفحة',
+            label: l.text('هذه الصفحة', 'This page'),
             value: '${_items.length}',
             color: AppTheme.textSecondary,
           ),
@@ -588,6 +594,7 @@ class _AdminCardScanReportsScreenState
   }
 
   Widget _buildAttendanceDailySummaries() {
+    final l = context.loc;
     final daily = _attendanceDailySummaries.take(8).toList();
     if (daily.isEmpty) {
       return const SizedBox.shrink();
@@ -600,7 +607,7 @@ class _AdminCardScanReportsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('ملخص يومي مختصر', style: AppTheme.bodyBold),
+          Text(l.text('ملخص يومي مختصر', 'Daily summary'), style: AppTheme.bodyBold),
           const SizedBox(height: 10),
           ListView.separated(
             shrinkWrap: true,
@@ -616,11 +623,12 @@ class _AdminCardScanReportsScreenState
   }
 
   Widget _buildAttendanceDailySummaryRow(Map<String, dynamic> item) {
+    final l = context.loc;
     final complete = item['status'] == 'complete';
     final workedMinutes = (item['workedMinutes'] as num?)?.toInt();
     final duration = workedMinutes == null
-        ? 'غير مكتمل'
-        : '${workedMinutes ~/ 60}س ${workedMinutes % 60}د';
+        ? l.text('غير مكتمل', 'Incomplete')
+        : '${workedMinutes ~/ 60}${l.text('س', 'h')} ${workedMinutes % 60}${l.text('د', 'm')}';
     final employee = item['employeeName']?.toString().trim() ?? '';
     final code = item['employeeCode']?.toString().trim() ?? '';
 
@@ -641,12 +649,12 @@ class _AdminCardScanReportsScreenState
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           _metricChip(
-            label: 'اليوم',
+            label: l.text('اليوم', 'Date'),
             value: item['date']?.toString() ?? '',
             color: AppTheme.primary,
           ),
           _metricChip(
-            label: 'الموظف',
+            label: l.text('الموظف', 'Employee'),
             value: [
               if (employee.isNotEmpty) employee,
               if (code.isNotEmpty) code,
@@ -654,17 +662,17 @@ class _AdminCardScanReportsScreenState
             color: AppTheme.info,
           ),
           _metricChip(
-            label: 'الحضور',
+            label: l.text('الحضور', 'Check-in'),
             value: item['firstCheckInAt']?.toString() ?? '-',
             color: AppTheme.success,
           ),
           _metricChip(
-            label: 'الانصراف',
+            label: l.text('الانصراف', 'Check-out'),
             value: item['lastCheckOutAt']?.toString() ?? '-',
             color: AppTheme.accent,
           ),
           _metricChip(
-            label: 'المدة',
+            label: l.text('المدة', 'Duration'),
             value: duration,
             color: complete ? AppTheme.success : AppTheme.warning,
           ),
@@ -674,6 +682,7 @@ class _AdminCardScanReportsScreenState
   }
 
   Widget _buildAttendanceItem(Map<String, dynamic> item) {
+    final l = context.loc;
     final employeeName = item['employeeName']?.toString().trim() ?? '';
     final employeeCode = item['employeeCode']?.toString().trim() ?? '';
     final department = item['department']?.toString().trim() ?? '';
@@ -681,11 +690,11 @@ class _AdminCardScanReportsScreenState
     final barcode = item['barcode']?.toString() ?? '';
     final scanner = item['scannerName']?.toString().trim() ?? '';
     final createdAt = item['createdAt']?.toString() ?? '';
-    final location = item['locationKey']?.toString() ?? 'غير متوفر';
+    final location = item['locationKey']?.toString() ?? l.text('غير متوفر', 'N/A');
     final action = Map<String, dynamic>.from(
       item['attendanceAction'] as Map? ?? const {},
     );
-    final actionLabel = action['label']?.toString() ?? 'قراءة حضور';
+    final actionLabel = action['label']?.toString() ?? l.text('قراءة حضور', 'Attendance scan');
     final isCheckOut = action['action'] == 'check_out';
     final actionColor = isCheckOut ? AppTheme.accent : AppTheme.success;
 
@@ -716,7 +725,7 @@ class _AdminCardScanReportsScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    employeeName.isEmpty ? 'موظف غير مسمى' : employeeName,
+                    employeeName.isEmpty ? l.text('موظف غير مسمى', 'Unnamed employee') : employeeName,
                     style: AppTheme.bodyBold,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -724,7 +733,7 @@ class _AdminCardScanReportsScreenState
                   const SizedBox(height: 6),
                   Text(
                     [
-                      if (employeeCode.isNotEmpty) 'كود: $employeeCode',
+                      if (employeeCode.isNotEmpty) '${l.text('كود', 'Code')}: $employeeCode',
                       if (department.isNotEmpty) department,
                       if (system.isNotEmpty) system,
                     ].join(' · '),
@@ -740,27 +749,27 @@ class _AdminCardScanReportsScreenState
                     runSpacing: 6,
                     children: [
                       _metricChip(
-                        label: 'الحركة',
+                        label: l.text('الحركة', 'Action'),
                         value: actionLabel,
                         color: actionColor,
                       ),
                       _metricChip(
-                        label: 'البطاقة',
+                        label: l.text('البطاقة', 'Card'),
                         value: barcode,
                         color: AppTheme.primary,
                       ),
                       _metricChip(
-                        label: 'القارئ',
+                        label: l.text('القارئ', 'Scanner'),
                         value: scanner.isEmpty ? '-' : scanner,
                         color: AppTheme.accent,
                       ),
                       _metricChip(
-                        label: 'الموقع',
+                        label: l.text('الموقع', 'Location'),
                         value: location,
                         color: AppTheme.warning,
                       ),
                       _metricChip(
-                        label: 'الوقت',
+                        label: l.text('الوقت', 'Time'),
                         value: createdAt,
                         color: AppTheme.success,
                       ),
@@ -795,7 +804,7 @@ class _UserLocationsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('تفاصيل المواقع'),
+        title: Text(context.loc.text('تفاصيل المواقع', 'Location details')),
         actions: const [AppNotificationAction()],
       ),
       body: ResponsiveScaffoldContainer(
@@ -866,6 +875,7 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
     }
 
     if (_error != null) {
+      final l = context.loc;
       return SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -873,14 +883,14 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('تعذر تحميل التفاصيل', style: AppTheme.h3),
+              Text(l.text('تعذر تحميل التفاصيل', 'Failed to load details'), style: AppTheme.h3),
               const SizedBox(height: 10),
               Text(_error!, style: AppTheme.bodyAction),
               const SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: _load,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('إعادة المحاولة'),
+                label: Text(l.text('إعادة المحاولة', 'Retry')),
               ),
             ],
           ),
@@ -895,10 +905,10 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('تفاصيل المواقع', style: AppTheme.h3),
+            Text(context.loc.text('تفاصيل المواقع', 'Location details'), style: AppTheme.h3),
             const SizedBox(height: 6),
             Text(
-              'يعرض أكثر الأماكن التي حصل فيها فحص بدون استخدام/مع استخدام.',
+              context.loc.text('يعرض أكثر الأماكن التي حصل فيها فحص بدون استخدام/مع استخدام.', 'Shows locations with the most scans with/without usage.'),
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
@@ -920,9 +930,10 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
                   final locationKey = item['locationKey']?.toString() ?? '-';
                   final lat = (item['latitude'] as num?)?.toDouble();
                   final lng = (item['longitude'] as num?)?.toDouble();
+                  final l = context.loc;
                   final coords = (lat != null && lng != null)
                       ? '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}'
-                      : 'غير متوفر';
+                      : l.text('غير متوفر', 'N/A');
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -951,19 +962,19 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
                             spacing: 10,
                             runSpacing: 6,
                             children: [
-                              _chip('قراءات', '$scanCount', AppTheme.primary),
+                              _chip(l.text('قراءات', 'Scans'), '$scanCount', AppTheme.primary),
                               _chip(
-                                'استخدام',
+                                l.text('استخدام', 'Used'),
                                 '$redeemCount',
                                 AppTheme.success,
                               ),
                               _chip(
-                                'بدون استخدام',
+                                l.text('بدون استخدام', 'Unused'),
                                 '$scanWithoutUse',
                                 AppTheme.warning,
                               ),
                               _chip(
-                                'نسبة الاستخدام',
+                                l.text('نسبة الاستخدام', 'Usage rate'),
                                 '${ratio.toStringAsFixed(2)}%',
                                 AppTheme.accent,
                               ),

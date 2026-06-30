@@ -170,7 +170,8 @@ class AppPermissions {
       canWithdraw ||
       canFinanceTopup ||
       canOpenPrepaidMultipayCards;
-  bool get canOpenExternalCardStore => externalCardStoreEnabled && isAdminRole;
+  bool get canOpenExternalCardStore =>
+      externalCardStoreEnabled && canUseExternalCardStore;
   bool get canRedeemCards => _isEnabled('canRedeemCards');
   bool get canViewCustomers => _isEnabled('canViewCustomers');
   bool get canLookupMembers => _isEnabled('canLookupMembers');

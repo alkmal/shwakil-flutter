@@ -32,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
   final DebtBookService _debtBookService = DebtBookService();
+  final StoreManagementService _storeManagementService =
+      StoreManagementService();
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
@@ -41,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _isBalanceVisible = true;
   bool _lastKnownDeviceOnline = ConnectivityService.instance.isOnline.value;
   int _pendingOfflineCount = 0;
+  int _pendingStoreManagementCount = 0;
   int _availableOfflineCount = 0;
   int _cachedOfflineCount = 0;
   int _rejectedOfflineCount = 0;
@@ -102,6 +105,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   bool get _canOfflineScan {
     return AppPermissions.fromUser(_user).canOfflineCardScan;
+  }
+
+  bool get _canSyncWorkspace {
+    final permissions = AppPermissions.fromUser(_user);
+    return permissions.canOfflineCardScan ||
+        permissions.canManageDebtBook ||
+        permissions.canAccessStoreManagement;
   }
 
   bool get _canOpenPrepaidOfflineCards {
@@ -282,6 +292,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _isBalanceVisible = isBalanceVisible;
       _pendingOfflineCount =
           (offlineOverview['pendingCount'] as num?)?.toInt() ?? 0;
+      _pendingStoreManagementCount =
+          (offlineOverview['storePendingCount'] as num?)?.toInt() ?? 0;
       _availableOfflineCount =
           (offlineOverview['availableCount'] as num?)?.toInt() ?? 0;
       _cachedOfflineCount =
@@ -326,6 +338,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
     _shownAnnouncementVersionInSession = version;
 
+    final l = context.loc;
     final neverAgain = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -335,14 +348,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         final imageUrl = announcement['imageUrl']?.toString().trim() ?? '';
         final route = announcement['route']?.toString().trim() ?? '';
         final actionLabel =
-            announcement['actionLabel']?.toString().trim() ?? 'فتح';
+            announcement['actionLabel']?.toString().trim() ??
+            l.text('فتح', 'Open');
 
         return AlertDialog(
           title: Row(
             children: [
-              Expanded(child: Text(title.isEmpty ? 'إعلان' : title)),
+              Expanded(
+                child: Text(
+                  title.isEmpty ? l.text('إعلان', 'Announcement') : title,
+                ),
+              ),
               IconButton(
-                tooltip: 'إغلاق',
+                tooltip: l.text('إغلاق', 'Close'),
                 onPressed: () => Navigator.pop(dialogContext, false),
                 icon: const Icon(Icons.close_rounded),
               ),
@@ -373,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('عدم الظهور مرة ثانية'),
+              child: Text(l.text('عدم الظهور مرة ثانية', "Don't show again")),
             ),
             if (route.isNotEmpty)
               FilledButton(
@@ -439,9 +457,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     Map<String, dynamic>? user,
   ) async {
     final permissions = AppPermissions.fromUser(user);
-    if (user == null || user['id'] == null || !permissions.canOfflineCardScan) {
+    if (user == null || user['id'] == null) {
       return const {
         'pendingCount': 0,
+        'storePendingCount': 0,
         'availableCount': 0,
         'cachedCount': 0,
         'rejectedCount': 0,
@@ -450,9 +469,23 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         'expired': false,
       };
     }
-    final overview = await _offlineCardService.offlineOverview(
-      user['id'].toString(),
-    );
+    final userId = user['id'].toString();
+    final storePendingCount = permissions.canAccessStoreManagement
+        ? (await _storeManagementService.getPendingOperations(userId)).length
+        : 0;
+    if (!permissions.canOfflineCardScan) {
+      return {
+        'pendingCount': storePendingCount,
+        'storePendingCount': storePendingCount,
+        'availableCount': 0,
+        'cachedCount': 0,
+        'rejectedCount': 0,
+        'syncIntervalMinutes': 60,
+        'lastSyncAt': null,
+        'expired': false,
+      };
+    }
+    final overview = await _offlineCardService.offlineOverview(userId);
     final summary = Map<String, dynamic>.from(
       overview['summary'] as Map? ?? const {},
     );
@@ -471,7 +504,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         DateTime.now().difference(parsedLastSync.toLocal()).inMinutes >=
             interval;
     return {
-      'pendingCount': (summary['count'] as num?)?.toInt() ?? 0,
+      'pendingCount':
+          ((summary['count'] as num?)?.toInt() ?? 0) + storePendingCount,
+      'storePendingCount': storePendingCount,
       'availableCount': (overview['availableCount'] as num?)?.toInt() ?? 0,
       'cachedCount': (overview['cachedCount'] as num?)?.toInt() ?? 0,
       'rejectedCount': (summary['rejectedCount'] as num?)?.toInt() ?? 0,
@@ -500,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   void _maybeSyncOfflineWorkspaceInBackground() {
     if (!mounted ||
-        !_canOfflineScan ||
+        !_canSyncWorkspace ||
         !_isDeviceOnline ||
         _isSyncingOfflineWorkspace) {
       return;
@@ -525,36 +560,50 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       return;
     }
     final permissions = AppPermissions.fromUser(user);
-    if (!permissions.canOfflineCardScan) {
+    final canSyncCards = permissions.canOfflineCardScan;
+    final canSyncDebtBook = permissions.canManageDebtBook;
+    final canSyncStoreManagement = permissions.canAccessStoreManagement;
+    if (!canSyncCards && !canSyncDebtBook && !canSyncStoreManagement) {
       return;
     }
 
     final userId = user['id'].toString();
-    final queuedBeforeSync = await _offlineCardService.getRedeemQueue(userId);
-    final unknownLookups = await _offlineCardService.getUnknownCardLookups(
-      userId,
-    );
+    final queuedBeforeSync = canSyncCards
+        ? await _offlineCardService.getRedeemQueue(userId)
+        : const <Map<String, dynamic>>[];
+    final unknownLookups = canSyncCards
+        ? await _offlineCardService.getUnknownCardLookups(userId)
+        : const <Map<String, dynamic>>[];
     var rejectedSyncCount = 0;
     if (mounted) {
       setState(() => _isSyncingOfflineWorkspace = true);
     }
 
     try {
-      final payload = await _apiService.getOfflineCardCache();
-      await _offlineCardService.cacheCards(
-        userId: userId,
-        cards: List<VirtualCard>.from(payload['cards'] as List? ?? const []),
-        settings: Map<String, dynamic>.from(
-          payload['settings'] as Map? ?? const {},
-        ),
-      );
+      if (canSyncCards) {
+        final payload = await _apiService.getOfflineCardCache();
+        await _offlineCardService.cacheCards(
+          userId: userId,
+          cards: List<VirtualCard>.from(payload['cards'] as List? ?? const []),
+          settings: Map<String, dynamic>.from(
+            payload['settings'] as Map? ?? const {},
+          ),
+        );
 
-      if (unknownLookups.isNotEmpty) {
-        await _resolveUnknownOfflineLookups(userId, unknownLookups);
+        if (unknownLookups.isNotEmpty) {
+          await _resolveUnknownOfflineLookups(userId, unknownLookups);
+        }
       }
 
-      if (permissions.canManageDebtBook) {
+      if (canSyncDebtBook) {
         await _debtBookService.syncPending(userId: userId, api: _apiService);
+      }
+
+      if (canSyncStoreManagement) {
+        await _storeManagementService.syncPending(
+          userId: userId,
+          api: _apiService,
+        );
       }
 
       if (queuedBeforeSync.isNotEmpty) {
@@ -636,10 +685,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         // Keep the cached user if refreshing the profile is temporarily unavailable.
       }
 
-      await _offlineCardService.recordLastSync(
-        userId,
-        source: queuedBeforeSync.isNotEmpty ? 'queue' : 'inventory',
-      );
+      if (canSyncCards) {
+        await _offlineCardService.recordLastSync(
+          userId,
+          source: queuedBeforeSync.isNotEmpty ? 'queue' : 'inventory',
+        );
+      }
       OfflineSessionService.setOfflineMode(false);
 
       await _loadUser();
@@ -826,7 +877,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       appBar: AppBar(
         title: const SizedBox.shrink(),
         actions: [
-          if (_canOfflineScan) _buildSyncStatusAction(),
+          if (_canSyncWorkspace) _buildSyncStatusAction(),
           if (!OfflineSessionService.isOfflineMode)
             const AppNotificationAction(),
           const QuickLogoutAction(),
@@ -874,7 +925,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         permissions.canAcceptPrepaidMultipayContactless;
     final l = context.loc;
     final showOfflineSyncAction =
-        _canOfflineScan &&
+        _canSyncWorkspace &&
         _isDeviceOnline &&
         (_pendingOfflineCount > 0 || _isSyncingOfflineWorkspace);
 
@@ -931,8 +982,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canAccessStoreManagement)
           _HomeServiceItem(
-            title: 'إدارة المحل',
-            subtitle: 'المخزون والمبيعات والمشتريات والديون والتقارير.',
+            title: l.text('إدارة المحل', 'Store management'),
+            subtitle: l.text(
+              'المخزون والمبيعات والمشتريات والديون والتقارير.',
+              'Inventory, sales, purchases, debts and reports.',
+            ),
             icon: Icons.storefront_rounded,
             color: AppTheme.secondary,
             kind: _HomeServiceKind.storeManagement,
@@ -952,7 +1006,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         if (canOpenPrepaidMultipayCards)
           _HomeServiceItem(
             title: l.tr('screens_home_screen.118'),
-            subtitle: 'بطاقات محفوظة على الجهاز.',
+            subtitle: l.text(
+              'بطاقات محفوظة على الجهاز.',
+              'Saved cards on device.',
+            ),
             icon: Icons.credit_card_rounded,
             color: AppTheme.secondaryLight,
             kind: _HomeServiceKind.prepaidMultipay,
@@ -1008,8 +1065,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canAccessStoreManagement)
           _HomeServiceItem(
-            title: 'إدارة المحل',
-            subtitle: 'مخزون وفواتير وديون المحل.',
+            title: l.text('إدارة المحل', 'Store management'),
+            subtitle: l.text(
+              'مخزون وفواتير وديون المحل.',
+              'Inventory, invoices and debts.',
+            ),
             icon: Icons.storefront_rounded,
             color: AppTheme.secondary,
             kind: _HomeServiceKind.storeManagement,
@@ -1070,8 +1130,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canOpenExternalCardStore)
         _HomeServiceItem(
-          title: 'متجر الكروت',
-          subtitle: 'شراء البطاقات الرقمية وعرض الطلبات من المتجر الخارجي.',
+          title: l.text('متجر الكروت', 'Card store'),
+          subtitle: l.text(
+            'شراء البطاقات الرقمية وعرض الطلبات من المتجر الخارجي.',
+            'Buy digital cards and view orders from the external store.',
+          ),
           icon: Icons.store_mall_directory_rounded,
           color: AppTheme.primary,
           kind: _HomeServiceKind.externalCardStore,
@@ -1079,8 +1142,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canViewPublicStores)
         _HomeServiceItem(
-          title: 'المتاجر',
-          subtitle: 'تصفح متاجر التجار والشراء حسب الكمية المتاحة.',
+          title: l.text('المتاجر', 'Stores'),
+          subtitle: l.text(
+            'تصفح متاجر التجار والشراء حسب الكمية المتاحة.',
+            'Browse merchant stores and buy by available quantity.',
+          ),
           icon: Icons.store_mall_directory_rounded,
           color: AppTheme.primary,
           kind: _HomeServiceKind.publicStores,
@@ -1125,8 +1191,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (_canTransfer)
         _HomeServiceItem(
-          title: 'استلام التاجر',
-          subtitle: 'شاشة مستقلة لعرض رمز الاستلام وقبول التحويل بوضوح.',
+          title: l.text('استلام التاجر', 'Merchant receive'),
+          subtitle: l.text(
+            'شاشة مستقلة لعرض رمز الاستلام وقبول التحويل بوضوح.',
+            'Standalone screen to display receive code and accept transfers clearly.',
+          ),
           icon: Icons.storefront_rounded,
           color: AppTheme.secondary,
           kind: _HomeServiceKind.merchantReceive,
@@ -1193,8 +1262,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canAccessStoreManagement)
         _HomeServiceItem(
-          title: 'إدارة المحل',
-          subtitle: 'المخزون والمبيعات والمشتريات والديون والأرباح.',
+          title: l.text('إدارة المحل', 'Store management'),
+          subtitle: l.text(
+            'المخزون والمبيعات والمشتريات والديون والأرباح.',
+            'Inventory, sales, purchases, debts and profits.',
+          ),
           icon: Icons.storefront_rounded,
           color: AppTheme.secondary,
           kind: _HomeServiceKind.storeManagement,
@@ -1222,7 +1294,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
     final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
     final balanceTextColor = balance < 0
-        ? const Color(0xFFFCA5A5)
+        ? AppTheme.errorTextOnDark
         : Colors.white;
 
     return ShwakelCard(
@@ -1290,8 +1362,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     : Icons.pending_outlined,
                 label: _verificationLabel,
                 color: _isVerifiedUser
-                    ? const Color(0xFFA7F3D0)
-                    : const Color(0xFFFDE68A),
+                    ? AppTheme.successTextOnDark
+                    : AppTheme.warningTextOnDark,
               ),
             ],
           );
@@ -1953,6 +2025,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         _t('screens_home_screen.102'),
                         '$_pendingOfflineCount',
                       ),
+                      if (_pendingStoreManagementCount > 0)
+                        _syncInfoRow(
+                          context.loc.text(
+                            'عمليات إدارة المحل المعلقة',
+                            'Pending store operations',
+                          ),
+                          '$_pendingStoreManagementCount',
+                        ),
                       if (_rejectedOfflineCount > 0)
                         _syncInfoRow(
                           _t('screens_home_screen.103'),

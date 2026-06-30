@@ -1,44 +1,46 @@
-# virtual_currency_cards
+# Shwakil - Flutter App
 
-Flutter app with a Laravel backend workspace and MySQL database.
+نظام بطاقات الدفع المسبق - تطبيق Flutter متعدد المنصات (Android / iOS / Web)
 
-## Backend Status
+## متطلبات التشغيل
 
-The backend is now organized around:
+- Flutter SDK 3.x+
+- Dart 3.x+
+- Backend: Laravel (راجع `../backend/`)
 
-- `backend/laravel` for the new Laravel project
-- `backend/php` for the current custom PHP API logic
-- `backend/public` for the ready-to-upload web + PHP deployment package
-
-Laravel has been scaffolded, configured for the current database, and prepared with API routing.
-The full migration of all existing API business logic from `backend/php` into Laravel controllers and services is still a separate next step.
-
-## Current Environment
-
-Backend environment values:
-
-- `MYSQL_HOST=127.0.0.1`
-- `MYSQL_PORT=3306`
-- `MYSQL_USER=root`
-- `MYSQL_PASSWORD=123456`
-- `MYSQL_DATABASE=alkmal_wa`
-
-## Laravel Local Run
+## تشغيل التطبيق
 
 ```powershell
-cd backend/laravel
-php artisan serve
+cd flutter
+flutter pub get
 ```
 
-## Current PHP API Local Run
-
+### Android / iOS
 ```powershell
-cd backend/php
-php -S 127.0.0.1:8080
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api --dart-define=API_CLIENT_KEY=your-key
 ```
 
-## Flutter Local Run
-
+### Web (Chrome)
 ```powershell
-flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8080/api --dart-define=API_CLIENT_KEY=local-debug-key
+flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api --dart-define=API_CLIENT_KEY=your-key
 ```
+
+## هيكل المشروع
+
+```
+lib/
+├── main.dart              # نقطة الدخول
+├── screens/               # 50 شاشة
+├── services/              # 26+ service للتواصل مع API
+├── widgets/               # مكونات UI مشتركة
+├── models/                # نماذج البيانات
+├── utils/                 # أدوات مساعدة والثيم
+└── localization/          # دعم تعدد اللغات
+```
+
+## الشاشات الرئيسية
+
+- **المصادقة**: تسجيل دخول، تسجيل، OTP، نسيت كلمة المرور
+- **البطاقات**: إنشاء بطاقة، مسح بطاقة، طلبات طباعة، مخزون
+- **المحفظة**: رصيد، تحويل سريع، طلبات شحن/سحب
+- **الأدمن**: لوحة تحكم كاملة لإدارة النظام

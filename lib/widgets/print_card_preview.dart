@@ -277,7 +277,7 @@ class PrintCardPreview extends StatelessWidget {
           textAlign: TextAlign.center,
           style: AppTheme.caption.copyWith(
             fontSize: 4.9,
-            color: const Color(0xFF991B1B),
+            color: AppTheme.error,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -289,7 +289,7 @@ class PrintCardPreview extends StatelessWidget {
           textAlign: TextAlign.center,
           style: AppTheme.caption.copyWith(
             fontSize: 5.1,
-            color: const Color(0xFF16302B),
+            color: AppTheme.primaryDeep,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -314,7 +314,7 @@ class PrintCardPreview extends StatelessWidget {
             height: _printCardBaseHeight,
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8EC),
+                color: AppTheme.warningLight,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: palette.border),
               ),
@@ -424,7 +424,7 @@ class PrintCardPreview extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: AppTheme.caption.copyWith(
                                 fontSize: 5.2,
-                                color: const Color(0xFF64748B),
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 1.5),
@@ -453,7 +453,7 @@ class PrintCardPreview extends StatelessWidget {
                                     barcode: Barcode.code128(),
                                     data: card.barcode,
                                     drawText: false,
-                                    color: const Color(0xFF16302B),
+                                    color: AppTheme.primaryDeep,
                                     width: 100,
                                     height: 18,
                                   ),
@@ -467,7 +467,7 @@ class PrintCardPreview extends StatelessWidget {
                               textDirection: TextDirection.ltr,
                               style: AppTheme.bodyBold.copyWith(
                                 fontSize: 5.7,
-                                color: const Color(0xFF16302B),
+                                color: AppTheme.primaryDeep,
                                 fontFamily: 'monospace',
                                 letterSpacing: 0,
                               ),
@@ -507,7 +507,7 @@ class PrintCardPreview extends StatelessWidget {
                               textDirection: TextDirection.ltr,
                               style: AppTheme.caption.copyWith(
                                 fontSize: 4.8,
-                                color: const Color(0xFF16302B),
+                                color: AppTheme.primaryDeep,
                                 fontWeight: FontWeight.w800,
                                 fontFamily: 'monospace',
                               ),
@@ -527,7 +527,7 @@ class PrintCardPreview extends StatelessWidget {
                               textAlign: TextAlign.right,
                               style: AppTheme.caption.copyWith(
                                 fontSize: 4.1,
-                                color: const Color(0xFF64748B),
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                             Text(
@@ -535,7 +535,7 @@ class PrintCardPreview extends StatelessWidget {
                               textAlign: TextAlign.right,
                               style: AppTheme.caption.copyWith(
                                 fontSize: 4.1,
-                                color: const Color(0xFF64748B),
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                             Text(
@@ -607,10 +607,10 @@ class _Header extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 4.2, vertical: 1.8),
           decoration: BoxDecoration(
-            color: isPrivate ? const Color(0xFFFFE4E6) : palette.soft,
+            color: isPrivate ? AppTheme.errorLight : palette.soft,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isPrivate ? const Color(0xFFFB7185) : palette.border,
+              color: isPrivate ? AppTheme.error.withValues(alpha: 0.45) : palette.border,
               width: 0.45,
             ),
           ),
@@ -619,7 +619,7 @@ class _Header extends StatelessWidget {
             style: AppTheme.caption.copyWith(
               fontSize: 4.8,
               fontWeight: FontWeight.w800,
-              color: isPrivate ? const Color(0xFFBE123C) : palette.primary,
+              color: isPrivate ? AppTheme.error : palette.primary,
             ),
           ),
         ),
@@ -632,10 +632,10 @@ class _Header extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 4.2, vertical: 1.8),
           decoration: BoxDecoration(
-            color: isPrivate ? const Color(0xFFFFE4E6) : palette.soft,
+            color: isPrivate ? AppTheme.errorLight : palette.soft,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isPrivate ? const Color(0xFFFB7185) : palette.border,
+              color: isPrivate ? AppTheme.error.withValues(alpha: 0.45) : palette.border,
               width: 0.45,
             ),
           ),
@@ -644,7 +644,7 @@ class _Header extends StatelessWidget {
             style: AppTheme.caption.copyWith(
               fontSize: 4.8,
               fontWeight: FontWeight.w800,
-              color: isPrivate ? const Color(0xFFBE123C) : palette.primary,
+              color: isPrivate ? AppTheme.error : palette.primary,
             ),
           ),
         ),
@@ -687,7 +687,7 @@ class _Header extends StatelessWidget {
                       style: AppTheme.caption.copyWith(
                         fontSize: 4.2,
                         height: 1.25,
-                        color: const Color(0xFF64748B),
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                   ],

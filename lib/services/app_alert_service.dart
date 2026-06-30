@@ -404,8 +404,8 @@ class AppAlertService {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF16A34A),
-                      side: const BorderSide(color: Color(0xFF16A34A)),
+                      foregroundColor: AppTheme.success,
+                      side: const BorderSide(color: AppTheme.success),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

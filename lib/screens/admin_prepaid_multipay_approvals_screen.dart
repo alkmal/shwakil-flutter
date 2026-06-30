@@ -62,7 +62,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل الطلبات',
+        title: context.loc.text('تعذر تحميل الطلبات', 'Failed to load requests'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -87,6 +87,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _reviewCard(Map<String, dynamic> card, String action) async {
+    final l = context.loc;
     final noteController = TextEditingController();
     try {
       final confirmed = await showDialog<bool>(
@@ -105,9 +106,9 @@ class _AdminPrepaidMultipayApprovalsScreenState
               TextField(
                 controller: noteController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'ملاحظة للإدارة أو المستخدم',
-                  hintText: 'اختيارية',
+                decoration: InputDecoration(
+                  labelText: l.text('ملاحظة للإدارة أو المستخدم', 'Note for admin or user'),
+                  hintText: l.text('اختيارية', 'Optional'),
                 ),
               ),
             ],
@@ -115,11 +116,11 @@ class _AdminPrepaidMultipayApprovalsScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('إلغاء'),
+              child: Text(l.text('إلغاء', 'Cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(action == 'approve' ? 'اعتماد' : 'رفض'),
+              child: Text(action == 'approve' ? l.text('اعتماد', 'Approve') : l.text('رفض', 'Reject')),
             ),
           ],
         ),
@@ -152,7 +153,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تنفيذ المراجعة',
+        title: l.text('تعذر تنفيذ المراجعة', 'Review failed'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -175,13 +176,14 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _adjustBalance(Map<String, dynamic> card) async {
+    final l = context.loc;
     final amountController = TextEditingController();
     final noteController = TextEditingController();
     try {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('تعديل رصيد البطاقة'),
+          title: Text(l.text('تعديل رصيد البطاقة', 'Edit card balance')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -207,11 +209,11 @@ class _AdminPrepaidMultipayApprovalsScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('إلغاء'),
+              child: Text(l.text('إلغاء', 'Cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('حفظ'),
+              child: Text(l.text('حفظ', 'Save')),
             ),
           ],
         ),
@@ -222,7 +224,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       final amount = double.tryParse(amountController.text.trim()) ?? 0;
       await _runAdminAction(
         card,
-        title: 'تعديل رصيد البطاقة',
+        title: l.text('تعديل رصيد البطاقة', 'Edit card balance'),
         action: () => _api.adjustAdminPrepaidMultipayCardBalance(
           cardId: card['id']?.toString() ?? '',
           amount: amount,
@@ -236,12 +238,13 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _cancelCard(Map<String, dynamic> card) async {
+    final l = context.loc;
     final noteController = TextEditingController();
     try {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('إلغاء البطاقة'),
+          title: Text(l.text('إلغاء البطاقة', 'Cancel card')),
           content: TextField(
             controller: noteController,
             maxLines: 3,
@@ -250,11 +253,11 @@ class _AdminPrepaidMultipayApprovalsScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('رجوع'),
+              child: Text(l.text('رجوع', 'Back')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('تأكيد الإلغاء'),
+              child: Text(l.text('تأكيد الإلغاء', 'Confirm cancellation')),
             ),
           ],
         ),
@@ -264,7 +267,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       }
       await _runAdminAction(
         card,
-        title: 'إلغاء البطاقة',
+        title: l.text('إلغاء البطاقة', 'Cancel card'),
         action: () => _api.cancelAdminPrepaidMultipayCard(
           cardId: card['id']?.toString() ?? '',
           note: noteController.text,
@@ -280,6 +283,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
     required String title,
     required Future<Map<String, dynamic>> Function() action,
   }) async {
+    final l = context.loc;
     try {
       setState(() => _actingCardId = card['id']?.toString());
       await action();
@@ -289,7 +293,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم التنفيذ',
+        title: l.text('تم التنفيذ', 'Done'),
         message: title,
       );
     } catch (error) {
@@ -298,7 +302,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر التنفيذ',
+        title: l.text('تعذر التنفيذ', 'Operation failed'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -310,24 +314,25 @@ class _AdminPrepaidMultipayApprovalsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final permissions = AppPermissions.fromUser(_user);
     final canManage = permissions.canManageSystemSettings;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('إدارة البطاقات المسبقة'),
+        title: Text(l.text('إدارة البطاقات المسبقة', 'Manage prepaid cards')),
         actions: [
           if (permissions.canUsePrepaidMultipayCards)
             IconButton(
               onPressed: () => _openRoute('/prepaid-multipay-cards'),
-              tooltip: 'إضافة بطاقة',
+              tooltip: l.text('إضافة بطاقة', 'Add card'),
               icon: const Icon(Icons.add_card_rounded),
             ),
           IconButton(
             onPressed: _isLoading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'تحديث',
+            tooltip: l.text('تحديث', 'Refresh'),
           ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
@@ -343,7 +348,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('إدارة البطاقات المسبقة', style: AppTheme.h2),
+                Text(l.text('إدارة البطاقات المسبقة', 'Manage prepaid cards'), style: AppTheme.h2),
                 const SizedBox(height: 6),
                 Text(
                   'كل البطاقات المسبقة في قائمة واحدة مع التحكم بالرصيد والحالة.',
@@ -394,6 +399,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Widget _buildFiltersAndSummary() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -424,14 +430,14 @@ class _AdminPrepaidMultipayApprovalsScreenState
           DropdownButtonFormField<String>(
             initialValue: _statusFilter,
             decoration: const InputDecoration(labelText: 'الحالة'),
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('كل البطاقات')),
-              DropdownMenuItem(value: 'pending_approval', child: Text('معلقة')),
-              DropdownMenuItem(value: 'active', child: Text('نشطة')),
-              DropdownMenuItem(value: 'frozen', child: Text('مجمدة')),
-              DropdownMenuItem(value: 'spent', child: Text('مستهلكة')),
-              DropdownMenuItem(value: 'cancelled', child: Text('ملغاة')),
-              DropdownMenuItem(value: 'rejected', child: Text('مرفوضة')),
+            items: [
+              DropdownMenuItem(value: 'all', child: Text(l.text('كل البطاقات', 'All cards'))),
+              DropdownMenuItem(value: 'pending_approval', child: Text(l.text('معلقة', 'Pending'))),
+              DropdownMenuItem(value: 'active', child: Text(l.text('نشطة', 'Active'))),
+              DropdownMenuItem(value: 'frozen', child: Text(l.text('مجمدة', 'Frozen'))),
+              DropdownMenuItem(value: 'spent', child: Text(l.text('مستهلكة', 'Spent'))),
+              DropdownMenuItem(value: 'cancelled', child: Text(l.text('ملغاة', 'Cancelled'))),
+              DropdownMenuItem(value: 'rejected', child: Text(l.text('مرفوضة', 'Rejected'))),
             ],
             onChanged: (value) {
               setState(() => _statusFilter = value ?? 'all');
@@ -475,6 +481,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Widget _buildApprovalCard(Map<String, dynamic> card) {
+    final l = context.loc;
     final acting = _actingCardId == card['id']?.toString();
     final ownerName = card['ownerFullName']?.toString().trim();
     final ownerUsername = card['ownerUsername']?.toString().trim() ?? '';
@@ -560,12 +567,12 @@ class _AdminPrepaidMultipayApprovalsScreenState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.check_circle_rounded),
-                  label: const Text('اعتماد'),
+                  label: Text(l.text('اعتماد', 'Approve')),
                 ),
                 OutlinedButton.icon(
                   onPressed: acting ? null : () => _reviewCard(card, 'reject'),
                   icon: const Icon(Icons.cancel_rounded),
-                  label: const Text('رفض'),
+                  label: Text(l.text('رفض', 'Reject')),
                 ),
               ],
               if ((card['status']?.toString() ?? '') == 'active')
@@ -574,7 +581,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
                       ? null
                       : () => _setCardStatus(card, 'freeze'),
                   icon: const Icon(Icons.pause_circle_rounded),
-                  label: const Text('تجميد'),
+                  label: Text(l.text('تجميد', 'Freeze')),
                 ),
               if ((card['status']?.toString() ?? '') == 'frozen')
                 FilledButton.icon(
@@ -582,12 +589,12 @@ class _AdminPrepaidMultipayApprovalsScreenState
                       ? null
                       : () => _setCardStatus(card, 'activate'),
                   icon: const Icon(Icons.play_circle_rounded),
-                  label: const Text('تفعيل'),
+                  label: Text(l.text('تفعيل', 'Activate')),
                 ),
               OutlinedButton.icon(
                 onPressed: acting ? null : () => _adjustBalance(card),
                 icon: const Icon(Icons.account_balance_wallet_rounded),
-                label: const Text('شحن/خصم'),
+                label: Text(l.text('شحن/خصم', 'Credit/Debit')),
               ),
               if ([
                 'pending_approval',
@@ -597,7 +604,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
                 OutlinedButton.icon(
                   onPressed: acting ? null : () => _cancelCard(card),
                   icon: const Icon(Icons.block_rounded),
-                  label: const Text('إلغاء'),
+                  label: Text(l.text('إلغاء', 'Cancel')),
                 ),
             ],
           ),

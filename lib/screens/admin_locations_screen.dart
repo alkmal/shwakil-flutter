@@ -154,8 +154,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                   ? l.tr('screens_admin_locations_screen.004')
                   : l.tr('screens_admin_locations_screen.005'),
             ),
-            content: SizedBox(
-              width: 520,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
               child: SingleChildScrollView(
                 child: Column(
                   children: [

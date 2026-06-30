@@ -23,11 +23,7 @@ class ShwakelPageHeader extends StatelessWidget {
     final hasTrailing = trailing != null;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
-      gradient: const LinearGradient(
-        colors: [Color(0xFFFFFFFF), Color(0xFFF4FFFC), Color(0xFFECFDF5)],
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-      ),
+      gradient: AppTheme.pageHeaderGradient,
       shadowLevel: ShwakelShadowLevel.medium,
       child: LayoutBuilder(
         builder: (context, constraints) {

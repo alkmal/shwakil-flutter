@@ -214,7 +214,7 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.storefront_rounded,
-                          title: 'استلام التاجر',
+                          title: l.text('استلام التاجر', 'Merchant receive'),
                           routeName: '/merchant-receive',
                         ),
                       if (canWithdraw)
@@ -247,7 +247,7 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.add_card_rounded,
-                          title: 'إنشاء بطاقة سريعة',
+                          title: l.text('إنشاء بطاقة سريعة', 'Quick card issue'),
                           routeName: '/create-card-quick',
                         ),
                       if (canIssueCards)
@@ -284,7 +284,7 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.analytics_rounded,
-                          title: 'تقارير استخدام البطاقات',
+                          title: l.text('تقارير استخدام البطاقات', 'Card usage reports'),
                           routeName: '/card-usage-report',
                         ),
                       if (canOpenPrepaidMultipayCards)
@@ -298,14 +298,14 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.storefront_rounded,
-                          title: 'متجر البطاقات',
+                          title: l.text('متجر البطاقات', 'Card store'),
                           routeName: '/external-card-store',
                         ),
                       if (canViewPublicStores)
                         _buildItem(
                           context,
                           icon: Icons.store_mall_directory_rounded,
-                          title: 'المتاجر',
+                          title: l.text('المتاجر', 'Stores'),
                           routeName: '/public-stores',
                         ),
                     ],
@@ -353,7 +353,7 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.storefront_rounded,
-                          title: 'إدارة المحل والمخزون',
+                          title: l.text('إدارة المحل والمخزون', 'Store & inventory'),
                           routeName: '/store-management',
                         ),
                       if (canViewAffiliateCenter)
@@ -459,7 +459,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           _buildItem(
                             context,
                             icon: Icons.store_rounded,
-                            title: 'إدارة المتاجر والمخزون',
+                            title: l.text('إدارة المتاجر والمخزون', 'Stores & inventory'),
                             routeName: '/store-management',
                           ),
                         if (permissions.canManageLocations)
@@ -578,13 +578,13 @@ class _AppSidebarState extends State<AppSidebar> {
     var label = l.tr('widgets_app_sidebar.027');
     var color = Colors.white24;
     if (status == 'approved') {
-      label = 'الحساب موثق';
+      label = l.text('الحساب موثق', 'Account verified');
       color = AppTheme.success.withValues(alpha: 0.28);
     } else if (status == 'pending') {
-      label = 'توثيق الحساب قيد المراجعة';
+      label = l.text('توثيق الحساب قيد المراجعة', 'Verification under review');
       color = AppTheme.warning.withValues(alpha: 0.28);
     } else {
-      label = 'الحساب غير موثق';
+      label = l.text('الحساب غير موثق', 'Account not verified');
     }
 
     return Container(

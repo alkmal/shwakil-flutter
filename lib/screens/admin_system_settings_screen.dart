@@ -741,6 +741,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     if (!_isAuthorized) {
       return;
     }
+    final l = context.loc;
     setState(() => _isLoadingGatewayDashboard = true);
     try {
       final payload = await _apiService.getAdminMessageGatewayDashboard();
@@ -758,13 +759,17 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       setState(() => _isLoadingGatewayDashboard = false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل متابعة الرسائل',
+        title: l.text(
+          'تعذر تحميل متابعة الرسائل',
+          'Failed to load message tracking',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     }
   }
 
   Future<void> _toggleWhatsAppChannel(String channelKey, bool enabled) async {
+    final l = context.loc;
     setState(() => _gatewayBusyChannelKey = channelKey);
     try {
       final payload = await _apiService.toggleWhatsAppGatewayChannel(
@@ -788,7 +793,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحديث حالة التوكن',
+        title: l.text(
+          'تعذر تحديث حالة التوكن',
+          'Failed to update token status',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -799,6 +807,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   }
 
   Future<void> _testWhatsAppChannel(String channelKey) async {
+    final l = context.loc;
     setState(() => _gatewayBusyChannelKey = channelKey);
     try {
       final payload = await _apiService.testWhatsAppGatewayChannel(
@@ -810,7 +819,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'نجح الاختبار',
+        title: l.text('نجح الاختبار', 'Test succeeded'),
         message: (payload['message']?.toString().trim().isNotEmpty ?? false)
             ? payload['message'].toString()
             : 'تم اختبار التوكن بنجاح.',
@@ -822,7 +831,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'فشل اختبار التوكن',
+        title: l.text('فشل اختبار التوكن', 'Token test failed'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -833,6 +842,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   }
 
   Future<void> _testSmsGateway() async {
+    final l = context.loc;
     setState(() => _isTestingSmsGateway = true);
     try {
       final payload = await _apiService.testSmsGateway();
@@ -843,13 +853,13 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       if (payload['ok'] == true) {
         await AppAlertService.showSuccess(
           context,
-          title: 'بوابة SMS جاهزة',
+          title: l.text('بوابة SMS جاهزة', 'SMS gateway ready'),
           message: payload['message']?.toString() ?? 'الفحص ناجح.',
         );
       } else {
         await AppAlertService.showInfo(
           context,
-          title: 'فحص SMS',
+          title: l.text('فحص SMS', 'SMS check'),
           message: payload['message']?.toString() ?? 'تم تنفيذ الفحص.',
         );
       }
@@ -859,7 +869,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر فحص SMS',
+        title: l.text('تعذر فحص SMS', 'Failed to check SMS'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1124,6 +1134,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
 
   Future<void> _syncExternalCatalog() async {
     if (_isSyncingExternalCatalog) return;
+    final l = context.loc;
     setState(() => _isSyncingExternalCatalog = true);
     try {
       final payload = await _apiService.syncAdminExternalCardStoreCatalog();
@@ -1134,7 +1145,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       );
       await AppAlertService.showSuccess(
         context,
-        title: 'تمت المزامنة',
+        title: l.text('تمت المزامنة', 'Sync complete'),
         message:
             'الأقسام: ${synced['categories'] ?? 0}، البطاقات: ${synced['cards'] ?? 0}.',
       );
@@ -1142,7 +1153,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: 'تعذر مزامنة الكتالوج',
+        title: l.text('تعذر مزامنة الكتالوج', 'Failed to sync catalog'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1154,6 +1165,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
 
   Future<void> _loadExternalCatalogControls() async {
     if (_isLoadingExternalCatalog) return;
+    final l = context.loc;
     setState(() => _isLoadingExternalCatalog = true);
     try {
       final payload = await _apiService.getAdminExternalCardStoreCatalog(
@@ -1164,7 +1176,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحميل الكتالوج',
+        title: l.text('تعذر تحميل الكتالوج', 'Failed to load catalog'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1175,6 +1187,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   }
 
   Future<void> _refreshExternalProviderBalance() async {
+    final l = context.loc;
     try {
       final payload = await _apiService.getAdminExternalCardStoreSettings();
       if (!mounted) return;
@@ -1187,7 +1200,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحديث رصيد المصدر',
+        title: l.text(
+          'تعذر تحديث رصيد المصدر',
+          'Failed to update provider balance',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -1203,6 +1219,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     bool? hidden,
     bool? forceUnavailable,
   }) async {
+    final l = context.loc;
     try {
       final payload = await _apiService.updateAdminExternalCardStoreCatalogItem(
         kind: kind,
@@ -1219,7 +1236,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحديث الكتالوج',
+        title: l.text('تعذر تحديث الكتالوج', 'Failed to update catalog'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -1229,6 +1246,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     required String kind,
     required Map<String, dynamic> item,
   }) async {
+    final l = context.loc;
     final id = (kind == 'card' ? item['ean'] : item['id'])?.toString() ?? '';
     if (id.isEmpty) return;
 
@@ -1249,31 +1267,39 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(kind == 'card' ? 'تعديل البطاقة' : 'تعديل القسم'),
-        content: SizedBox(
-          width: 480,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(labelText: 'الاسم المعروض'),
+                decoration: InputDecoration(
+                  labelText: l.text('الاسم المعروض', 'Display name'),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: descriptionController,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'الوصف'),
+                decoration: InputDecoration(
+                  labelText: l.text('الوصف', 'Description'),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: imageController,
-                decoration: const InputDecoration(labelText: 'رابط الصورة'),
+                decoration: InputDecoration(
+                  labelText: l.text('رابط الصورة', 'Image URL'),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: sortController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'الترتيب'),
+                decoration: InputDecoration(
+                  labelText: l.text('الترتيب', 'Sort order'),
+                ),
               ),
             ],
           ),
@@ -1281,11 +1307,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('حفظ'),
+            child: Text(l.text('حفظ', 'Save')),
           ),
         ],
       ),
@@ -1404,8 +1430,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   ? l.tr('screens_admin_system_settings_screen.005')
                   : l.tr('screens_admin_system_settings_screen.006'),
             ),
-            content: SizedBox(
-              width: 460,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
               child: SingleChildScrollView(
                 child: Column(
                   children: [
@@ -1604,8 +1630,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   ? l.tr('screens_admin_system_settings_screen.134')
                   : l.tr('screens_admin_system_settings_screen.135'),
             ),
-            content: SizedBox(
-              width: 460,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
               child: SingleChildScrollView(
                 child: Column(
                   children: [
@@ -1709,11 +1735,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   }
 
   Future<void> _deleteWithdrawalMethod(Map<String, dynamic> method) async {
+    final l = context.loc;
     final methodId = method['id']?.toString().trim() ?? '';
     if (methodId.isEmpty) {
       await AppAlertService.showError(
         context,
-        title: 'تعذر الحذف',
+        title: l.text('تعذر الحذف', 'Failed to delete'),
         message: 'تعذر تحديد طريقة السحب المطلوبة.',
       );
       return;
@@ -1731,7 +1758,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر الحذف',
+        title: l.text('تعذر الحذف', 'Failed to delete'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -1850,7 +1877,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       text: 'متجر البطاقات',
                     ),
                     Tab(
-                      icon: Icon(Icons.campaign_rounded),
+                      icon: const Icon(Icons.campaign_rounded),
                       text: l.tr('screens_admin_system_settings_screen.066'),
                     ),
                     Tab(
@@ -2042,17 +2069,20 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _messageDeliveryPriority,
-                  decoration: const InputDecoration(
-                    labelText: 'أولوية إرسال الرسائل',
+                  decoration: InputDecoration(
+                    labelText: l.text(
+                      'أولوية إرسال الرسائل',
+                      'Message delivery priority',
+                    ),
                     helperText:
                         'القناة الأولى للرسائل، ويتم استخدام القناة الأخرى تلقائيًا عند الفشل.',
                   ),
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: 'whatsapp',
-                      child: Text('واتساب ثم SMS'),
+                      child: Text(l.text('واتساب ثم SMS', 'WhatsApp then SMS')),
                     ),
-                    DropdownMenuItem(
+                    const DropdownMenuItem(
                       value: 'sms',
                       child: Text('SMS ثم واتساب'),
                     ),
@@ -2068,7 +2098,12 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _adminAlertsWhatsappEnabled,
                   onChanged: (value) =>
                       setState(() => _adminAlertsWhatsappEnabled = value),
-                  title: const Text('تنبيهات الإدارة عبر واتساب'),
+                  title: Text(
+                    l.text(
+                      'تنبيهات الإدارة عبر واتساب',
+                      'Admin alerts via WhatsApp',
+                    ),
+                  ),
                   subtitle: const Text(
                     'عند إيقافه تبقى التنبيهات داخل النظام فقط ولا ترسل عبر واتساب.',
                   ),
@@ -2078,7 +2113,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   value: _adminAlertsSmsEnabled,
                   onChanged: (value) =>
                       setState(() => _adminAlertsSmsEnabled = value),
-                  title: const Text('تنبيهات الإدارة عبر SMS'),
+                  title: Text(
+                    l.text('تنبيهات الإدارة عبر SMS', 'Admin alerts via SMS'),
+                  ),
                   subtitle: const Text(
                     'عند إيقافه لن يستخدم SMS لتنبيهات الإدارة الخارجية.',
                   ),
@@ -2145,6 +2182,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   }
 
   Widget _buildMessagingTab() {
+    final l = context.loc;
     final summary = Map<String, dynamic>.from(
       _messageGatewayDashboard['summary'] as Map? ?? const {},
     );
@@ -2164,8 +2202,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AdminSectionHeader(
-            title: 'متابعة الرسائل',
+          AdminSectionHeader(
+            title: l.text('متابعة الرسائل', 'Message tracking'),
             subtitle:
                 'مراقبة واتساب و SMS خلال آخر 24 ساعة مع إيقاف وإعادة تفعيل التوكنات يدويًا.',
             icon: Icons.wifi_tethering_rounded,
@@ -2180,14 +2218,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   runSpacing: 12,
                   children: [
                     _buildGatewayStatCard(
-                      title: 'واتساب 24 ساعة',
+                      title: l.text('واتساب 24 ساعة', 'WhatsApp 24h'),
                       value: '${whatsappSummary['sentCount24h'] ?? 0} إرسال',
                       subtitle:
                           '${whatsappSummary['uniqueRecipients24h'] ?? 0} رقم مختلف',
                       icon: Icons.mark_chat_unread_rounded,
                     ),
                     _buildGatewayStatCard(
-                      title: 'فشل واتساب',
+                      title: l.text('فشل واتساب', 'WhatsApp failures'),
                       value: '${whatsappSummary['failedCount24h'] ?? 0} عملية',
                       subtitle: '${summary['blockedChannels'] ?? 0} توكن متوقف',
                       icon: Icons.warning_amber_rounded,
@@ -2200,7 +2238,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       icon: Icons.sms_rounded,
                     ),
                     _buildGatewayStatCard(
-                      title: 'أجهزة SMS',
+                      title: l.text('أجهزة SMS', 'SMS devices'),
                       value: '${smsSummary['onlineDevicesCount'] ?? 0} أونلاين',
                       subtitle: '${smsSummary['devicesCount'] ?? 0} إجمالي',
                       icon: Icons.phonelink_ring_rounded,
@@ -2222,14 +2260,14 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                     ),
                     const SizedBox(width: 12),
                     ShwakelButton(
-                      label: 'تحديث',
+                      label: l.text('تحديث', 'Refresh'),
                       icon: Icons.refresh_rounded,
                       onPressed: _refreshMessageGatewayDashboard,
                       isLoading: _isLoadingGatewayDashboard,
                     ),
                     const SizedBox(width: 8),
                     ShwakelButton(
-                      label: 'فحص SMS',
+                      label: l.text('فحص SMS', 'Check SMS'),
                       icon: Icons.sms_rounded,
                       onPressed: _testSmsGateway,
                       isLoading: _isTestingSmsGateway,
@@ -2260,6 +2298,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   }
 
   Widget _buildWhatsAppChannelCard(Map<String, dynamic> channel) {
+    final l = context.loc;
     final channelKey = channel['channelKey']?.toString() ?? '';
     final isBusy = _gatewayBusyChannelKey == channelKey;
     final isEnabled = channel['isEnabled'] == true;
@@ -2353,7 +2392,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             const SizedBox(height: 12),
             Text(
               'سبب الإيقاف: $blockedReason',
-              style: AppTheme.caption.copyWith(color: Colors.red.shade700),
+              style: AppTheme.caption.copyWith(color: AppTheme.error),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -2362,7 +2401,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             const SizedBox(height: 8),
             Text(
               'آخر خطأ: $lastFailureReason',
-              style: AppTheme.caption.copyWith(color: Colors.red.shade700),
+              style: AppTheme.caption.copyWith(color: AppTheme.error),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -2382,7 +2421,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             runSpacing: 10,
             children: [
               ShwakelButton(
-                label: 'اختبار',
+                label: l.text('اختبار', 'Test'),
                 icon: Icons.play_arrow_rounded,
                 onPressed: isBusy
                     ? null
@@ -2443,7 +2482,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.border),
       ),
@@ -2491,9 +2530,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       return AppTheme.primary;
     }
     if (status.contains('غير')) {
-      return const Color(0xFF92400E);
+      return AppTheme.warning;
     }
-    return const Color(0xFFB91C1C);
+    return AppTheme.error;
   }
 
   String _shortDateTime(String? value) {
@@ -3381,7 +3420,9 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     return Row(
       children: [
         Icon(
-          available ? Icons.account_balance_wallet_rounded : Icons.warning_rounded,
+          available
+              ? Icons.account_balance_wallet_rounded
+              : Icons.warning_rounded,
           color: available ? AppTheme.success : AppTheme.warning,
         ),
         const SizedBox(width: 12),
@@ -3501,7 +3542,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           Icons.folder_rounded,
           '${_externalCatalogCategories.length} قسم',
         ),
-        _summaryChip(Icons.style_rounded, '${_externalCatalogCards.length} بطاقة'),
+        _summaryChip(
+          Icons.style_rounded,
+          '${_externalCatalogCards.length} بطاقة',
+        ),
         _summaryChip(
           Icons.visibility_off_rounded,
           '${_externalCatalogCategories.where((e) => e['hidden'] == true).length + _externalCatalogCards.where((e) => e['hidden'] == true).length} مخفي',
@@ -3548,10 +3592,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
             onChanged: id.isEmpty
                 ? null
                 : (value) => _updateExternalCatalogItem(
-                      kind: 'category',
-                      id: id,
-                      hidden: value,
-                    ),
+                    kind: 'category',
+                    id: id,
+                    hidden: value,
+                  ),
           ),
         ],
       ),
@@ -3588,10 +3632,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 onChanged: ean.isEmpty
                     ? null
                     : (value) => _updateExternalCatalogItem(
-                          kind: 'card',
-                          id: ean,
-                          hidden: value,
-                        ),
+                        kind: 'card',
+                        id: ean,
+                        hidden: value,
+                      ),
               ),
             ],
           ),
@@ -3603,10 +3647,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           onChanged: ean.isEmpty
               ? null
               : (value) => _updateExternalCatalogItem(
-                    kind: 'card',
-                    id: ean,
-                    forceUnavailable: value ?? false,
-                  ),
+                  kind: 'card',
+                  id: ean,
+                  forceUnavailable: value ?? false,
+                ),
           title: const Text('عرضها كغير متوفرة'),
           controlAffinity: ListTileControlAffinity.leading,
         ),

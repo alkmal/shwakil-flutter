@@ -177,8 +177,8 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
 
           return AlertDialog(
             title: Text(l.tr('screens_supported_locations_screen.020')),
-            content: SizedBox(
-              width: 520,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -994,8 +994,8 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           title: Text(l.tr('screens_supported_locations_screen.051')),
-          content: SizedBox(
-            width: 540,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

@@ -493,7 +493,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SizedBox(
             width: double.infinity,
             child: ShwakelButton(
-              label: 'فتح بطاقات الدفع المحفوظة',
+              label: l.text('فتح بطاقات الدفع المحفوظة', 'Open saved prepaid cards'),
               onPressed: _openOfflinePrepaidCards,
               icon: Icons.credit_card_rounded,
               isSecondary: true,
@@ -556,7 +556,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if ((_supportWhatsapp ?? '').isNotEmpty)
           TextButton(
             onPressed: () => _openRoute('/support-tickets'),
-            child: const Text('الدعم'),
+            child: Text(l.text('الدعم', 'Support')),
           ),
       ],
     );

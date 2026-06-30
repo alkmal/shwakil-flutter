@@ -417,7 +417,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextButton(
                       onPressed: () =>
                           Navigator.pushNamed(context, '/support-tickets'),
-                      child: const Text('الدعم'),
+                      child: Text(l.text('الدعم', 'Support')),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -450,18 +450,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if ((_supportWhatsapp ?? '').isNotEmpty)
           TextButton(
             onPressed: () => Navigator.pushNamed(context, '/support-tickets'),
-            child: const Text('الدعم'),
+            child: Text(l.text('الدعم', 'Support')),
           ),
       ],
     );
   }
 
   Widget _buildReferralAppliedCard() {
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    final title = isEnglish ? 'Applied referral' : 'إحالة مطبقة تلقائيًا';
-    final subtitle = isEnglish
-        ? 'This registration will use the referral code captured from your invite link.'
-        : 'سيتم استخدام رمز الإحالة الملتقط من رابط الدعوة تلقائيًا في هذا التسجيل.';
+    final l = context.loc;
+    final title = l.text('إحالة مطبقة تلقائيًا', 'Applied referral');
+    final subtitle = l.text(
+      'سيتم استخدام رمز الإحالة الملتقط من رابط الدعوة تلقائيًا في هذا التسجيل.',
+      'This registration will use the referral code captured from your invite link.',
+    );
 
     return Container(
       width: double.infinity,

@@ -507,8 +507,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
                       ? _t('screens_debt_book_customer_screen.029')
                       : _t('screens_debt_book_customer_screen.030')),
           ),
-          content: SizedBox(
-            width: 420,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -622,8 +622,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(_t('screens_debt_book_customer_screen.038')),
-          content: SizedBox(
-            width: 420,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -802,8 +802,8 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(_t('screens_debt_book_customer_screen.067')),
-        content: SizedBox(
-          width: 460,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isCompact = constraints.maxWidth < 420;

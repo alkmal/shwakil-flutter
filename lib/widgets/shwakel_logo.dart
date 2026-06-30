@@ -12,8 +12,8 @@ class ShwakelLogo extends StatelessWidget {
     this.labelColor = AppTheme.primary,
     this.framed = false,
     this.framePadding,
-    this.frameColor = const Color(0x14FFFFFF),
-    this.frameBorderColor = const Color(0x22FFFFFF),
+    this.frameColor = AppTheme.frameColorOnDark,
+    this.frameBorderColor = AppTheme.frameBorderColorOnDark,
   });
   final double size;
   final bool showLabel;

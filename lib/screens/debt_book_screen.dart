@@ -250,8 +250,8 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
                 ? _t('screens_debt_book_screen.004')
                 : _t('screens_debt_book_screen.005'),
           ),
-          content: SizedBox(
-            width: 420,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

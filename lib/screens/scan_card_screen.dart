@@ -3827,8 +3827,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isUsed
-                        ? const [Color(0xFFFFE4E6), Color(0xFFFFF1F2)]
-                        : const [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                        ? AppTheme.usedCardGradient.colors
+                        : AppTheme.unusedCardGradient.colors,
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                   ),
@@ -4109,8 +4109,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isUsed
-                  ? const [Color(0xFFFFE4E6), Color(0xFFFFF1F2)]
-                  : const [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                  ? AppTheme.usedCardGradient.colors
+                  : AppTheme.unusedCardGradient.colors,
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
             ),

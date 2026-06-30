@@ -34,7 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingSlideData(
       id: 'security',
       icon: Icons.verified_user_rounded,
-      accentColor: Color(0xFFF97316),
+      accentColor: AppTheme.orange,
     ),
   ];
 
@@ -92,7 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           gradient: LinearGradient(
             colors: [
               Colors.white,
-              const Color(0xFFF1F8F7),
+              AppTheme.surfaceMuted,
               AppTheme.primarySoft.withValues(alpha: 0.75),
             ],
             begin: Alignment.topCenter,

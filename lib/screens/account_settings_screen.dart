@@ -829,6 +829,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _createOrChangePinFromAccount() async {
+    final l = context.loc;
     final wasPinEnabled = _hasPin;
     if (wasPinEnabled && !await _confirmCurrentPinFromAccount()) {
       return;
@@ -870,7 +871,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحديث PIN',
+        title: l.text('تعذر تحديث PIN', 'Failed to update PIN'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -881,6 +882,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _removePinFromAccount() async {
+    final l = context.loc;
     if (!_hasPin || !await _confirmCurrentPinFromAccount()) {
       return;
     }
@@ -891,8 +893,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('إلغاء PIN'),
-        content: const Text('سيتم إلغاء استخدام PIN في حماية الدخول والعمليات.'),
+        title: Text(l.text('إلغاء PIN', 'Disable PIN')),
+        content: Text(l.text('سيتم إلغاء استخدام PIN في حماية الدخول والعمليات.', 'PIN will be disabled from protecting login and transactions.')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -900,7 +902,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('إلغاء PIN'),
+            child: Text(l.text('إلغاء PIN', 'Disable PIN')),
           ),
         ],
       ),
@@ -926,7 +928,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر إلغاء PIN',
+        title: l.text('تعذر إلغاء PIN', 'Failed to disable PIN'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -993,6 +995,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<String?> _showAccountPinDialog({required bool isEdit}) async {
+    final l = context.loc;
     final pinController = TextEditingController();
     final confirmController = TextEditingController();
     var obscurePin = true;
@@ -1070,7 +1073,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   Navigator.pop(dialogContext, pin);
                 },
                 icon: const Icon(Icons.check_rounded),
-                label: const Text('حفظ'),
+                label: Text(l.text('حفظ', 'Save')),
               ),
             ],
           ),
@@ -1083,6 +1086,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<String?> _showCurrentPinDialog() async {
+    final l = context.loc;
     final pinController = TextEditingController();
     var obscurePin = true;
     try {
@@ -1090,7 +1094,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (dialogContext, setDialogState) => AlertDialog(
-            title: const Text('تأكيد PIN الحالي'),
+            title: Text(l.text('تأكيد PIN الحالي', 'Confirm current PIN')),
             content: TextField(
               controller: pinController,
               maxLength: 4,
@@ -1122,7 +1126,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     Navigator.pop(dialogContext, pin);
                   }
                 },
-                child: const Text('تأكيد'),
+                child: Text(l.text('تأكيد', 'Confirm')),
               ),
             ],
           ),

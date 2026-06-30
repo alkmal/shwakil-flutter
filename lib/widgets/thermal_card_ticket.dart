@@ -65,7 +65,7 @@ class ThermalCardTicket extends StatelessWidget {
       child: Container(
         width: 320,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF8EC),
+          color: AppTheme.warningLight,
           border: Border.all(color: AppTheme.primaryBorder, width: 2),
           borderRadius: BorderRadius.circular(14),
         ),
@@ -87,7 +87,7 @@ class ThermalCardTicket extends StatelessWidget {
               _typeLabel,
               textAlign: TextAlign.center,
               style: AppTheme.bodyAction.copyWith(
-                color: const Color(0xFFBE123C),
+                color: AppTheme.error,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
@@ -98,7 +98,7 @@ class ThermalCardTicket extends StatelessWidget {
                 'محمّلة للسائق كسلوك توصيل. النوع الأصلي: $_originalTypeLabel',
                 textAlign: TextAlign.center,
                 style: AppTheme.caption.copyWith(
-                  color: Colors.red.shade700,
+                  color: AppTheme.error,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -166,7 +166,7 @@ class ThermalCardTicket extends StatelessWidget {
               textDirection: TextDirection.ltr,
               textAlign: TextAlign.center,
               style: AppTheme.bodyBold.copyWith(
-                color: const Color(0xFF16302B),
+                color: AppTheme.primaryDeep,
                 fontSize: 13,
                 letterSpacing: 0,
               ),
@@ -177,7 +177,7 @@ class ThermalCardTicket extends StatelessWidget {
               textDirection: TextDirection.ltr,
               textAlign: TextAlign.center,
               style: AppTheme.caption.copyWith(
-                color: const Color(0xFF16302B),
+                color: AppTheme.primaryDeep,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),

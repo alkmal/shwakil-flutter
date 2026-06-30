@@ -387,7 +387,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         label: _t('screens_transactions_screen.060'),
         value: CurrencyFormatter.ils(_totalDebits),
         icon: Icons.north_east_rounded,
-        color: const Color(0xFFB45309),
+        color: AppTheme.warning,
       ),
       (
         label: _t('screens_transactions_screen.061'),
