@@ -2004,7 +2004,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(
+            const Icon(
               Icons.chevron_left_rounded,
               color: AppTheme.textTertiary,
               size: 22,
