@@ -1376,6 +1376,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Widget _buildRequestsSummaryBar() {
+    final l = context.loc;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1389,7 +1390,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
           const SizedBox(width: 10),
           Expanded(
-            child: Text('طلبات الطباعة الحالية', style: AppTheme.bodyBold),
+            child: Text(
+              l.text('طلبات الطباعة الحالية', 'Current print requests'),
+              style: AppTheme.bodyBold,
+            ),
           ),
           Text(
             '${_requests.length}',
@@ -1509,6 +1513,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
   }
 
   Widget _buildUsageResultsHeader(int count) {
+    final l = context.loc;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1522,7 +1527,10 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           const Icon(Icons.history_rounded, color: AppTheme.primary, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text('آخر استخدامات البطاقات', style: AppTheme.bodyBold),
+            child: Text(
+              l.text('آخر استخدامات البطاقات', 'Recent card usage'),
+              style: AppTheme.bodyBold,
+            ),
           ),
           Text(
             '$count',
