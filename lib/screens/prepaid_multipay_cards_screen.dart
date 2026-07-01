@@ -284,12 +284,12 @@ class _PrepaidMultipayCardsScreenState
                     _buildCardFinancialOverview(card),
                     const SizedBox(height: 14),
                     Text(
-                      'الرصيد الحالي: ${CurrencyFormatter.ils((card['balance'] as num?)?.toDouble() ?? 0)}',
+                      '${l.text('الرصيد الحالي', 'Current Balance')}: ${CurrencyFormatter.ils((card['balance'] as num?)?.toDouble() ?? 0)}',
                       style: AppTheme.bodyBold,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'سيتم خصم مبلغ الشحن من رصيد حسابك وإضافته مباشرة إلى البطاقة.',
+                      l.text('سيتم خصم مبلغ الشحن من رصيد حسابك وإضافته مباشرة إلى البطاقة.', 'The reload amount will be deducted from your account balance and added directly to the card.'),
                       style: AppTheme.caption,
                     ),
                     const SizedBox(height: 16),
@@ -872,11 +872,13 @@ class _PrepaidMultipayCardsScreenState
 
     final rawNumber = _resolvedRawCardNumber(card);
     if (rawNumber.isEmpty) {
+      final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: 'بيانات البطاقة غير متاحة',
-        message:
+        title: l.text('بيانات البطاقة غير متاحة', 'Card Data Unavailable'),
+        message: l.text(
             'تعذر تحميل رقم البطاقة الكامل لهذه البطاقة حاليًا. حدّث الصفحة ثم حاول مرة أخرى.',
+            'Could not load the full card number for this card. Refresh the page and try again.'),
       );
       return;
     }
@@ -893,8 +895,10 @@ class _PrepaidMultipayCardsScreenState
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('بطاقة دفع مسبق جاهزة'),
+      builder: (dialogContext) {
+        final l = context.loc;
+        return AlertDialog(
+        title: Text(l.text('بطاقة دفع مسبق جاهزة', 'Prepaid Card Ready')),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -902,13 +906,13 @@ class _PrepaidMultipayCardsScreenState
               _buildVisualCard(card, isLarge: true),
               const SizedBox(height: 12),
               Text(
-                'اعرض هذا الرمز للتاجر. المبلغ وتاريخ الانتهاء مرفقان تلقائيًا، والتاجر يدخل كود البطاقة الثلاثي فقط.',
+                l.text('اعرض هذا الرمز للتاجر. المبلغ وتاريخ الانتهاء مرفقان تلقائيًا، والتاجر يدخل كود البطاقة الثلاثي فقط.', 'Show this code to the merchant. The amount and expiry are included automatically; the merchant only needs to enter the 3-digit card code.'),
                 textAlign: TextAlign.center,
                 style: AppTheme.caption,
               ),
               const SizedBox(height: 8),
               SelectableText(
-                'المبلغ المطلوب دفعه: ${CurrencyFormatter.ils(paymentAmount)}',
+                '${l.text('المبلغ المطلوب دفعه', 'Amount to Pay')}: ${CurrencyFormatter.ils(paymentAmount)}',
                 textAlign: TextAlign.center,
                 style: AppTheme.h3.copyWith(color: AppTheme.success),
               ),
@@ -940,14 +944,15 @@ class _PrepaidMultipayCardsScreenState
                 _openUnifiedScanner(initialBarcode: paymentPayload);
               },
               icon: const Icon(Icons.qr_code_scanner_rounded),
-              label: const Text('فحص كتاجر'),
+              label: Text(l.text('فحص كتاجر', 'Scan as Merchant')),
             ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('تم'),
+            child: Text(l.text('تم', 'Done')),
           ),
         ],
-      ),
+      );
+},
     );
   }
 
@@ -957,10 +962,11 @@ class _PrepaidMultipayCardsScreenState
       return Navigator.of(context).push<double>(
         MaterialPageRoute(
           builder: (dialogContext) {
+            final l = context.loc;
             String? errorText;
             return StatefulBuilder(
               builder: (dialogContext, setDialogState) => Scaffold(
-                appBar: AppBar(title: const Text('تحديد مبلغ الدفع')),
+                appBar: AppBar(title: Text(l.text('تحديد مبلغ الدفع', 'Set Payment Amount'))),
                 body: SafeArea(
                   child: Align(
                     alignment: Alignment.topCenter,
@@ -970,7 +976,7 @@ class _PrepaidMultipayCardsScreenState
                         padding: const EdgeInsets.all(20),
                         children: [
                           Text(
-                            'أدخل المبلغ المطلوب دفعه. سيظهر للتاجر جاهزًا، ولن يحتاج إلا إلى كود البطاقة الثلاثي.',
+                            l.text('أدخل المبلغ المطلوب دفعه. سيظهر للتاجر جاهزًا، ولن يحتاج إلا إلى كود البطاقة الثلاثي.', 'Enter the amount to pay. It will appear ready for the merchant who only needs the 3-digit card code.'),
                             style: AppTheme.caption.copyWith(
                               color: AppTheme.textSecondary,
                               height: 1.4,
@@ -983,9 +989,8 @@ class _PrepaidMultipayCardsScreenState
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'المبلغ المطلوب',
-                              helperText:
-                                  'سيتم التحقق من الرصيد قبل إنشاء الطلب.',
+                              labelText: l.text('المبلغ المطلوب', 'Required Amount'),
+                              helperText: l.text('سيتم التحقق من الرصيد قبل إنشاء الطلب.', 'Balance will be verified before creating the request.'),
                               errorText: errorText,
                               prefixIcon: const Icon(Icons.payments_rounded),
                             ),
@@ -1001,7 +1006,7 @@ class _PrepaidMultipayCardsScreenState
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () => Navigator.pop(dialogContext),
-                                  child: const Text('إلغاء'),
+                                  child: Text(l.text('إلغاء', 'Cancel')),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -1013,21 +1018,21 @@ class _PrepaidMultipayCardsScreenState
                                         0;
                                     if (amount <= 0) {
                                       setDialogState(
-                                        () => errorText = 'أدخل مبلغًا صحيحًا.',
+                                        () => errorText = l.text('أدخل مبلغًا صحيحًا.', 'Enter a valid amount.'),
                                       );
                                       return;
                                     }
                                     if (amount > balance) {
                                       setDialogState(
                                         () => errorText =
-                                            'المبلغ أكبر من الرصيد المتاح.',
+                                            l.text('المبلغ أكبر من الرصيد المتاح.', 'Amount exceeds available balance.'),
                                       );
                                       return;
                                     }
                                     Navigator.pop(dialogContext, amount);
                                   },
                                   icon: const Icon(Icons.check_rounded),
-                                  label: const Text('متابعة'),
+                                  label: Text(l.text('متابعة', 'Continue')),
                                 ),
                               ),
                             ],
@@ -1057,11 +1062,13 @@ class _PrepaidMultipayCardsScreenState
 
     final rawNumber = _resolvedRawCardNumber(card);
     if (rawNumber.isEmpty) {
+      final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: 'بيانات البطاقة غير متاحة',
-        message:
+        title: l.text('بيانات البطاقة غير متاحة', 'Card Data Unavailable'),
+        message: l.text(
             'تعذر تحميل رقم البطاقة الكامل للطباعة. حدّث الصفحة ثم حاول مرة أخرى.',
+            'Could not load the full card number for printing. Refresh the page and try again.'),
       );
       return;
     }
@@ -1125,9 +1132,10 @@ class _PrepaidMultipayCardsScreenState
       if (!mounted) {
         return;
       }
+      final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: 'تعذر طباعة البطاقة',
+        title: l.text('تعذر طباعة البطاقة', 'Could Not Print Card'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -1511,12 +1519,13 @@ class _PrepaidMultipayCardsScreenState
       return;
     }
 
+    final l = context.loc;
     final status = card['status']?.toString() ?? '';
     if (status != 'active') {
       await AppAlertService.showError(
         context,
-        title: 'بطاقة غير نشطة',
-        message: 'يمكن حفظ البطاقة على وسم للبطاقات النشطة فقط.',
+        title: l.text('بطاقة غير نشطة', 'Card Not Active'),
+        message: l.text('يمكن حفظ البطاقة على وسم للبطاقات النشطة فقط.', 'Cards can only be saved to a tag when active.'),
       );
       return;
     }
@@ -1529,18 +1538,18 @@ class _PrepaidMultipayCardsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('حفظ البطاقة على وسم'),
-        content: const Text(
-          'قرّب وسمًا فارغًا أو قابلًا للكتابة من الجهاز. لن يتم تخزين الرقم السري للبطاقة داخل الوسم.',
+        title: Text(l.text('حفظ البطاقة على وسم', 'Save Card to Tag')),
+        content: Text(
+          l.text('قرّب وسمًا فارغًا أو قابلًا للكتابة من الجهاز. لن يتم تخزين الرقم السري للبطاقة داخل الوسم.', 'Hold an empty or writable tag near the device. The card PIN will not be stored in the tag.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('بدء الكتابة'),
+            child: Text(l.text('بدء الكتابة', 'Start Writing')),
           ),
         ],
       ),
@@ -1557,8 +1566,8 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم حفظ البطاقة',
-        message: 'تم حفظ بيانات البطاقة على الوسم بنجاح.',
+        title: l.text('تم حفظ البطاقة', 'Card Saved'),
+        message: l.text('تم حفظ بيانات البطاقة على الوسم بنجاح.', 'Card data has been saved to the tag successfully.'),
       );
     } catch (error) {
       if (!mounted) {
@@ -1566,7 +1575,7 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر حفظ البطاقة',
+        title: l.text('تعذر حفظ البطاقة', 'Could Not Save Card'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1608,12 +1617,13 @@ class _PrepaidMultipayCardsScreenState
       return;
     }
 
+    final l = context.loc;
     final status = card['status']?.toString() ?? '';
     if (status != 'active') {
       await AppAlertService.showError(
         context,
-        title: 'بطاقة غير نشطة',
-        message: 'يمكن تجهيز الدفع بدون تلامس للبطاقات النشطة فقط.',
+        title: l.text('بطاقة غير نشطة', 'Card Not Active'),
+        message: l.text('يمكن تجهيز الدفع بدون تلامس للبطاقات النشطة فقط.', 'Contactless payment can only be set up for active cards.'),
       );
       return;
     }
@@ -1625,8 +1635,8 @@ class _PrepaidMultipayCardsScreenState
     if (!available) {
       await AppAlertService.showError(
         context,
-        title: 'الاتصال القريب غير متاح',
-        message: 'فعّل الاتصال القريب على الجهاز ثم حاول مرة أخرى.',
+        title: l.text('الاتصال القريب غير متاح', 'NFC Not Available'),
+        message: l.text('فعّل الاتصال القريب على الجهاز ثم حاول مرة أخرى.', 'Enable NFC on the device then try again.'),
       );
       return;
     }
@@ -1634,18 +1644,18 @@ class _PrepaidMultipayCardsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تجهيز الدفع بدون تلامس'),
-        content: const Text(
-          'سيتم ربط هذه البطاقة بهذا الجهاز وإنشاء مفتاح توقيع محفوظ محليًا. البطاقة داخلية لشواكل وليست بطاقة دولية.',
+        title: Text(l.text('تجهيز الدفع بدون تلامس', 'Set Up Contactless Payment')),
+        content: Text(
+          l.text('سيتم ربط هذه البطاقة بهذا الجهاز وإنشاء مفتاح توقيع محفوظ محليًا. البطاقة داخلية لشواكل وليست بطاقة دولية.', 'This card will be linked to this device and a locally stored signing key will be created. The card is internal to Shwakil and is not an international card.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('تفعيل'),
+            child: Text(l.text('تفعيل', 'Activate')),
           ),
         ],
       ),
@@ -1694,9 +1704,10 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم تجهيز الجهاز',
-        message:
+        title: l.text('تم تجهيز الجهاز', 'Device Set Up'),
+        message: l.text(
             'أصبح هذا الجهاز مخولًا بإنشاء أذونات دفع بدون تلامس لهذه البطاقة.',
+            'This device is now authorized to create contactless payment authorizations for this card.'),
       );
     } catch (error) {
       if (!mounted) {
@@ -1704,7 +1715,7 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تجهيز الجهاز',
+        title: l.text('تعذر تجهيز الجهاز', 'Could Not Set Up Device'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1715,21 +1726,22 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Future<void> _revokeThisNfcDevice(Map<String, dynamic> card) async {
+    final l = context.loc;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('إلغاء ربط الجهاز'),
-        content: const Text(
-          'سيتم منع هذا الجهاز من إنشاء أذونات دفع بدون تلامس جديدة لهذه البطاقة.',
+        title: Text(l.text('إلغاء ربط الجهاز', 'Unlink Device')),
+        content: Text(
+          l.text('سيتم منع هذا الجهاز من إنشاء أذونات دفع بدون تلامس جديدة لهذه البطاقة.', 'This device will be prevented from creating new contactless payment authorizations for this card.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('تراجع'),
+            child: Text(l.text('تراجع', 'Back')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('إلغاء الربط'),
+            child: Text(l.text('إلغاء الربط', 'Unlink')),
           ),
         ],
       ),
@@ -1759,8 +1771,8 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم إلغاء الربط',
-        message: 'تم إيقاف الدفع بدون تلامس لهذه البطاقة على هذا الجهاز.',
+        title: l.text('تم إلغاء الربط', 'Device Unlinked'),
+        message: l.text('تم إيقاف الدفع بدون تلامس لهذه البطاقة على هذا الجهاز.', 'Contactless payment for this card on this device has been disabled.'),
       );
     } catch (error) {
       if (!mounted) {
@@ -1768,7 +1780,7 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر إلغاء ربط الجهاز',
+        title: l.text('تعذر إلغاء ربط الجهاز', 'Could Not Unlink Device'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1788,12 +1800,13 @@ class _PrepaidMultipayCardsScreenState
       return;
     }
 
+    final l = context.loc;
     final status = card['status']?.toString() ?? '';
     if (status != 'active') {
       await AppAlertService.showError(
         context,
-        title: 'بطاقة غير نشطة',
-        message: 'يمكن تجهيز الدفع بدون تلامس للبطاقات النشطة فقط.',
+        title: l.text('بطاقة غير نشطة', 'Card Not Active'),
+        message: l.text('يمكن تجهيز الدفع بدون تلامس للبطاقات النشطة فقط.', 'Contactless payment can only be set up for active cards.'),
       );
       return;
     }
@@ -1866,10 +1879,11 @@ class _PrepaidMultipayCardsScreenState
       await AppAlertService.showSuccess(
         context,
         title: preparedOffline
-            ? 'تم تجهيز دفع محفوظ محليًا'
-            : 'تم تجهيز دفع بدون تلامس',
-        message:
+            ? l.text('تم تجهيز دفع محفوظ محليًا', 'Offline Payment Prepared')
+            : l.text('تم تجهيز دفع بدون تلامس', 'Contactless Payment Prepared'),
+        message: l.text(
             'قرّب هذا الهاتف من هاتف التاجر قبل ${_formatDateTime(authorization.expiresAt.toLocal())}. يستخدم التاجر اختصار قبول الدفع بدون تلامس.',
+            'Hold this phone near the merchant\'s phone before ${_formatDateTime(authorization.expiresAt.toLocal())}. The merchant uses the contactless payment acceptance shortcut.'),
       );
     } catch (error) {
       if (!mounted) {
@@ -1877,7 +1891,7 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تجهيز دفع بدون وسم',
+        title: l.text('تعذر تجهيز دفع بدون وسم', 'Could Not Prepare Tagless Payment'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1891,30 +1905,32 @@ class _PrepaidMultipayCardsScreenState
     if (_nfcEnabled) {
       return true;
     }
+    final l = context.loc;
     await AppAlertService.showError(
       context,
-      title: 'الدفع بدون تلامس غير مفعل',
-      message: 'الدفع بدون تلامس غير مفعل حاليًا من إعدادات النظام.',
+      title: l.text('الدفع بدون تلامس غير مفعل', 'Contactless Payment Disabled'),
+      message: l.text('الدفع بدون تلامس غير مفعل حاليًا من إعدادات النظام.', 'Contactless payment is currently disabled in the system settings.'),
     );
     return false;
   }
 
   Future<_NfcPaymentInput?> _showNfcPaymentInput() async {
+    final l = context.loc;
     final amountC = TextEditingController();
     final pinC = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('الدفع بدون تلامس'),
+        title: Text(l.text('الدفع بدون تلامس', 'Contactless Payment')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: amountC,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'المبلغ',
-                prefixIcon: Icon(Icons.payments_rounded),
+              decoration: InputDecoration(
+                labelText: l.text('المبلغ', 'Amount'),
+                prefixIcon: const Icon(Icons.payments_rounded),
               ),
             ),
             const SizedBox(height: 12),
@@ -1923,10 +1939,10 @@ class _PrepaidMultipayCardsScreenState
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 3,
-              decoration: const InputDecoration(
-                labelText: 'كود البطاقة',
+              decoration: InputDecoration(
+                labelText: l.text('كود البطاقة', 'Card Code'),
                 counterText: '',
-                prefixIcon: Icon(Icons.pin_rounded),
+                prefixIcon: const Icon(Icons.pin_rounded),
               ),
             ),
           ],
@@ -1934,11 +1950,11 @@ class _PrepaidMultipayCardsScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('تجهيز'),
+            child: Text(l.text('تجهيز', 'Prepare')),
           ),
         ],
       ),
@@ -1958,8 +1974,8 @@ class _PrepaidMultipayCardsScreenState
     if (amount <= 0 || !RegExp(r'^\d{3}$').hasMatch(pin)) {
       await AppAlertService.showError(
         context,
-        title: 'بيانات غير مكتملة',
-        message: 'أدخل مبلغًا صحيحًا وكود البطاقة من 3 أرقام.',
+        title: l.text('بيانات غير مكتملة', 'Incomplete Data'),
+        message: l.text('أدخل مبلغًا صحيحًا وكود البطاقة من 3 أرقام.', 'Enter a valid amount and the 3-digit card code.'),
       );
       return null;
     }
@@ -1967,12 +1983,13 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Future<void> _changeSecurityCode(Map<String, dynamic> card) async {
+    final l = context.loc;
     final currentCodeC = TextEditingController();
     final newCodeC = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تغيير الرقم السري'),
+        title: Text(l.text('تغيير الرقم السري', 'Change PIN')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1981,8 +1998,8 @@ class _PrepaidMultipayCardsScreenState
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 3,
-              decoration: const InputDecoration(
-                labelText: 'الكود الحالي',
+              decoration: InputDecoration(
+                labelText: l.text('الكود الحالي', 'Current Code'),
                 counterText: '',
               ),
             ),
@@ -1992,8 +2009,8 @@ class _PrepaidMultipayCardsScreenState
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 3,
-              decoration: const InputDecoration(
-                labelText: 'الكود الجديد',
+              decoration: InputDecoration(
+                labelText: l.text('الكود الجديد', 'New Code'),
                 counterText: '',
               ),
             ),
@@ -2002,11 +2019,11 @@ class _PrepaidMultipayCardsScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
+            child: Text(l.text('إلغاء', 'Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('تحديث'),
+            child: Text(l.text('تحديث', 'Update')),
           ),
         ],
       ),
@@ -2028,8 +2045,8 @@ class _PrepaidMultipayCardsScreenState
         !RegExp(r'^\d{3}$').hasMatch(newCode)) {
       await AppAlertService.showError(
         context,
-        title: 'كود غير صالح',
-        message: 'أدخل الكود الحالي والجديد من 3 أرقام.',
+        title: l.text('كود غير صالح', 'Invalid Code'),
+        message: l.text('أدخل الكود الحالي والجديد من 3 أرقام.', 'Enter the current and new codes as 3 digits.'),
       );
       return;
     }
@@ -2053,8 +2070,8 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم تحديث الكود',
-        message: 'تم تغيير الرقم السري الخاص بالبطاقة.',
+        title: l.text('تم تحديث الكود', 'Code Updated'),
+        message: l.text('تم تغيير الرقم السري الخاص بالبطاقة.', 'The card PIN has been changed.'),
       );
     } catch (error) {
       if (!mounted) {
@@ -2062,7 +2079,7 @@ class _PrepaidMultipayCardsScreenState
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر تحديث الكود',
+        title: l.text('تعذر تحديث الكود', 'Could Not Update Code'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -2276,7 +2293,7 @@ class _PrepaidMultipayCardsScreenState
                             const SizedBox(width: 8),
                             IconButton.filledTonal(
                               onPressed: () => _openUnifiedScanner(),
-                              tooltip: 'قبول دفع',
+                              tooltip: l.text('قبول دفع', 'Accept Payment'),
                               icon: const Icon(Icons.point_of_sale_rounded),
                             ),
                           ],
@@ -2522,7 +2539,7 @@ class _PrepaidMultipayCardsScreenState
             const SizedBox(height: 16),
           ],
           _buildDetailsSection(
-            title: 'إجراءات البطاقة',
+            title: l.text('إجراءات البطاقة', 'Card Actions'),
             icon: Icons.tune_rounded,
             child: Wrap(
               spacing: 8,
@@ -2641,7 +2658,7 @@ class _PrepaidMultipayCardsScreenState
           if (canManageLifecycle) ...[
             const SizedBox(height: 14),
             _buildDetailsSection(
-              title: 'إدارة الحالة والأمان',
+              title: l.text('إدارة الحالة والأمان', 'Status & Security Management'),
               icon: Icons.admin_panel_settings_rounded,
               child: Wrap(
                 spacing: 8,
@@ -2688,13 +2705,13 @@ class _PrepaidMultipayCardsScreenState
             label: Text(
               _showCardTechnicalDetails
                   ? l.tr('screens_prepaid_multipay_cards_screen.079')
-                  : 'عرض تفاصيل البطاقة والاستخدام',
+                  : l.text('عرض تفاصيل البطاقة والاستخدام', 'Show Card Details & Usage'),
             ),
           ),
           if (_showCardTechnicalDetails) ...[
             const SizedBox(height: 12),
             _buildDetailsSection(
-              title: 'تفاصيل البطاقة',
+              title: l.text('تفاصيل البطاقة', 'Card Details'),
               icon: Icons.credit_card_rounded,
               child: _detailsGrid(card),
             ),
@@ -2770,6 +2787,7 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Widget _buildCardFinancialOverview(Map<String, dynamic> card) {
+    final l = context.loc;
     final dailyUsage = card['dailyUsage'] as Map?;
     final balance = (card['balance'] as num?)?.toDouble() ?? 0;
     final loaded = (card['loadedAmount'] as num?)?.toDouble() ?? 0;
@@ -2779,7 +2797,7 @@ class _PrepaidMultipayCardsScreenState
     final status = card['status']?.toString() ?? 'active';
 
     return _buildDetailsSection(
-      title: 'ملخص الدفع المسبق',
+      title: l.text('ملخص الدفع المسبق', 'Prepaid Summary'),
       icon: Icons.account_balance_wallet_rounded,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -2799,35 +2817,35 @@ class _PrepaidMultipayCardsScreenState
               _buildSummaryTile(
                 width: itemWidth,
                 icon: Icons.account_balance_wallet_rounded,
-                title: 'الرصيد المتاح',
+                title: l.text('الرصيد المتاح', 'Available Balance'),
                 value: CurrencyFormatter.ils(balance),
                 color: AppTheme.success,
               ),
               _buildSummaryTile(
                 width: itemWidth,
                 icon: Icons.add_card_rounded,
-                title: 'إجمالي الشحن',
+                title: l.text('إجمالي الشحن', 'Total Loaded'),
                 value: CurrencyFormatter.ils(loaded),
                 color: AppTheme.primary,
               ),
               _buildSummaryTile(
                 width: itemWidth,
                 icon: Icons.payments_rounded,
-                title: 'إجمالي المصروف',
+                title: l.text('إجمالي المصروف', 'Total Spent'),
                 value: CurrencyFormatter.ils(spent),
                 color: AppTheme.warning,
               ),
               _buildSummaryTile(
                 width: itemWidth,
                 icon: Icons.verified_rounded,
-                title: 'الحالة',
+                title: l.text('الحالة', 'Status'),
                 value: _statusLabel(status),
                 color: _statusColor(status),
               ),
               _buildSummaryTile(
                 width: itemWidth,
                 icon: Icons.today_rounded,
-                title: 'استخدام اليوم',
+                title: l.text('استخدام اليوم', 'Today\'s Usage'),
                 value:
                     '${CurrencyFormatter.ils(dailyAmount)} / ${CurrencyFormatter.ils(dailyLimit)}',
                 color: AppTheme.info,
@@ -2919,32 +2937,33 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Widget _detailsGrid(Map<String, dynamic> card) {
+    final l = context.loc;
     final details = <MapEntry<String, String>>[
       MapEntry(
-        'الرصيد المتاح',
+        l.text('الرصيد المتاح', 'Available Balance'),
         CurrencyFormatter.ils((card['balance'] as num?)?.toDouble() ?? 0),
       ),
       MapEntry(
-        'إجمالي الشحن',
+        l.text('إجمالي الشحن', 'Total Loaded'),
         CurrencyFormatter.ils((card['loadedAmount'] as num?)?.toDouble() ?? 0),
       ),
       MapEntry(
-        'إجمالي المصروف',
+        l.text('إجمالي المصروف', 'Total Spent'),
         CurrencyFormatter.ils((card['spentAmount'] as num?)?.toDouble() ?? 0),
       ),
-      MapEntry('الحالة', _statusLabel(card['status']?.toString() ?? 'active')),
+      MapEntry(l.text('الحالة', 'Status'), _statusLabel(card['status']?.toString() ?? 'active')),
       MapEntry(
-        'حد المبلغ اليومي',
+        l.text('حد المبلغ اليومي', 'Daily Amount Limit'),
         '${CurrencyFormatter.ils(((card['dailyUsage'] as Map?)?['amount'] as num?)?.toDouble() ?? 0)} / ${CurrencyFormatter.ils(((card['dailyUsage'] as Map?)?['amountLimit'] as num?)?.toDouble() ?? 0)}',
       ),
-      MapEntry('رقم البطاقة', card['cardNumber']?.toString() ?? '-'),
-      MapEntry('الانتهاء', card['expiryLabel']?.toString() ?? '-'),
+      MapEntry(l.text('رقم البطاقة', 'Card Number'), card['cardNumber']?.toString() ?? '-'),
+      MapEntry(l.text('الانتهاء', 'Expiry'), card['expiryLabel']?.toString() ?? '-'),
       MapEntry(
-        'تاريخ الإنشاء',
+        l.text('تاريخ الإنشاء', 'Creation Date'),
         _formatDateTime(DateTime.tryParse(card['createdAt']?.toString() ?? '')),
       ),
       MapEntry(
-        'حد العدد اليومي',
+        l.text('حد العدد اليومي', 'Daily Count Limit'),
         '${((card['dailyUsage'] as Map?)?['count'] as num?)?.toInt() ?? 0} / ${((card['dailyUsage'] as Map?)?['countLimit'] as num?)?.toInt() ?? 0}',
       ),
     ];
@@ -2993,6 +3012,7 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Widget _buildVisualCard(Map<String, dynamic> card, {bool isLarge = false}) {
+    final l = context.loc;
     final cardId = card['id']?.toString() ?? '';
     final isRevealed = _revealedCardIds.contains(cardId);
     final rawNumber = _resolvedRawCardNumber(card);
@@ -3071,7 +3091,7 @@ class _PrepaidMultipayCardsScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'شواكل',
+                              l.text('شواكل', 'Shwakil'),
                               style: AppTheme.h3.copyWith(
                                 color: AppTheme.primary,
                                 fontWeight: FontWeight.w900,
@@ -3079,7 +3099,7 @@ class _PrepaidMultipayCardsScreenState
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'بطاقة دفع مسبق',
+                              l.text('بطاقة دفع مسبق', 'Prepaid Card'),
                               style: AppTheme.caption.copyWith(
                                 color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w800,
@@ -3163,7 +3183,7 @@ class _PrepaidMultipayCardsScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    ownerName.isEmpty ? 'صاحب البطاقة' : ownerName,
+                    ownerName.isEmpty ? l.text('صاحب البطاقة', 'Cardholder') : ownerName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.caption.copyWith(
@@ -3171,7 +3191,7 @@ class _PrepaidMultipayCardsScreenState
                     ),
                   ),
                   SizedBox(height: isLarge ? 20 : 16),
-                  _buildPrepaidInfoPill(title: 'تاريخ الانتهاء', value: expiry),
+                  _buildPrepaidInfoPill(title: l.text('تاريخ الانتهاء', 'Expiry Date'), value: expiry),
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
@@ -3203,8 +3223,8 @@ class _PrepaidMultipayCardsScreenState
                     const SizedBox(height: 8),
                     Text(
                       rawNumber.isNotEmpty
-                          ? 'اضغط على البطاقة لإظهار الباركود'
-                          : 'اضغط على البطاقة لإظهار بيانات الدفع',
+                          ? l.text('اضغط على البطاقة لإظهار الباركود', 'Tap the card to show barcode')
+                          : l.text('اضغط على البطاقة لإظهار بيانات الدفع', 'Tap the card to show payment data'),
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textSecondary,
                       ),
@@ -3230,7 +3250,7 @@ class _PrepaidMultipayCardsScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'شواكل بطاقتك الرقمية الموثقة',
+                              l.text('شواكل بطاقتك الرقمية الموثقة', 'Shwakil Your Verified Digital Card'),
                               style: AppTheme.caption.copyWith(
                                 color: AppTheme.primary,
                                 fontWeight: FontWeight.w800,
@@ -3248,7 +3268,7 @@ class _PrepaidMultipayCardsScreenState
                             if (issuerPhone.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Text(
-                                'هاتف المصدر: $issuerPhone',
+                                '${l.text('هاتف المصدر', 'Issuer Phone')}: $issuerPhone',
                                 textDirection: TextDirection.ltr,
                                 style: AppTheme.caption.copyWith(
                                   color: AppTheme.textSecondary,
@@ -3356,6 +3376,7 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Widget _buildCardPaymentRow(Map<String, dynamic> payment) {
+    final l = context.loc;
     final amount = (payment['amount'] as num?)?.toDouble() ?? 0;
     final note = payment['note']?.toString() ?? '';
     final direction = payment['direction']?.toString() ?? 'out';
@@ -3370,10 +3391,10 @@ class _PrepaidMultipayCardsScreenState
     final title = note.isNotEmpty
         ? note
         : isIncoming
-        ? 'دفعة مستلمة'
+        ? l.text('دفعة مستلمة', 'Payment Received')
         : merchant.isNotEmpty
-        ? 'دفع إلى $merchant'
-        : 'دفع بالبطاقة المسبقة';
+        ? '${l.text('دفع إلى', 'Payment to')} $merchant'
+        : l.text('دفع بالبطاقة المسبقة', 'Prepaid Card Payment');
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -3423,7 +3444,7 @@ class _PrepaidMultipayCardsScreenState
               ),
               if (remaining != null && !isIncoming)
                 Text(
-                  'الرصيد الحالي ${CurrencyFormatter.ils(remaining)}',
+                  '${l.text('الرصيد الحالي', 'Current Balance')} ${CurrencyFormatter.ils(remaining)}',
                   style: AppTheme.caption,
                 ),
             ],
@@ -3462,10 +3483,11 @@ class _PrepaidMultipayCardsScreenState
     List<Map<String, dynamic>> payments, {
     int? limit,
   }) {
+    final l = context.loc;
     final visible = limit == null ? payments : payments.take(limit).toList();
 
     return _buildDetailsSection(
-      title: limit == null ? 'آخر عمليات الدفع' : 'آخر مدفوعات البطاقة',
+      title: limit == null ? l.text('آخر عمليات الدفع', 'Latest Payments') : l.text('آخر مدفوعات البطاقة', 'Latest Card Payments'),
       icon: Icons.receipt_long_rounded,
       child: Column(
         children: [
@@ -3608,11 +3630,12 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Widget _buildEmpty() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Center(
         child: Text(
-          'لا توجد بطاقات مسبقة حتى الآن.',
+          l.text('لا توجد بطاقات مسبقة حتى الآن.', 'No prepaid cards yet.'),
           style: AppTheme.bodyAction,
         ),
       ),
@@ -3620,11 +3643,12 @@ class _PrepaidMultipayCardsScreenState
   }
 
   Widget _buildUnauthorized() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       child: Center(
         child: Text(
-          'بطاقات الدفع المسبق غير مفعلة لحسابك.',
+          l.text('بطاقات الدفع المسبق غير مفعلة لحسابك.', 'Prepaid cards are not enabled for your account.'),
           style: AppTheme.bodyAction,
         ),
       ),
@@ -3645,14 +3669,15 @@ class _PrepaidMultipayCardsScreenState
   }
 
   String _statusLabel(String status) {
+    final l = context.loc;
     return switch (status) {
-      'pending_approval' => 'بانتظار الموافقة',
-      'active' => 'نشطة',
-      'frozen' => 'مجمدة',
-      'spent' => 'مستهلكة',
-      'cancelled' => 'ملغاة',
-      'rejected' => 'مرفوضة',
-      'expired' => 'منتهية',
+      'pending_approval' => l.text('بانتظار الموافقة', 'Pending Approval'),
+      'active' => l.text('نشطة', 'Active'),
+      'frozen' => l.text('مجمدة', 'Frozen'),
+      'spent' => l.text('مستهلكة', 'Spent'),
+      'cancelled' => l.text('ملغاة', 'Cancelled'),
+      'rejected' => l.text('مرفوضة', 'Rejected'),
+      'expired' => l.text('منتهية', 'Expired'),
       _ => status,
     };
   }

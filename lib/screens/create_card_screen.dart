@@ -31,7 +31,7 @@ class CreateCardScreen extends StatefulWidget {
 
 class _CreateCardScreenState extends State<CreateCardScreen> {
   static const int _cardsPerA4Page = 30;
-  static const double _trialCardsLimit = 10;
+  static const double _trialCardsLimit = 100;
   static const int _printTitleMaxLength = 24;
   static const String _lastPrintTitleKey = 'create_card.last_print_title';
   static const String _lastPrintStampKey = 'create_card.last_print_stamp';
@@ -150,13 +150,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         return;
       }
       final permissions = AppPermissions.fromUser(user);
+      final isTrialMode =
+          (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
+          'approved';
       setState(() {
         _user = user;
         _feeSettings = feeSettings;
-        _isAuthorized = permissions.canIssueCards;
-        final isTrialMode =
-            (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
-            'approved';
+        _isAuthorized = permissions.canIssueCards || isTrialMode;
         final accountName = UserDisplayName.fromMap(
           user,
           fallback: l.tr('screens_create_card_screen.001'),
@@ -388,8 +388,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       }
     }
     final permissions = AppPermissions.fromUser(user);
+    final isTrialMode =
+        (user?['transferVerificationStatus']?.toString() ?? 'unverified') !=
+        'approved';
     if (!permissions.canIssueCards) {
-      return const [];
+      return isTrialMode ? const ['standard'] : const [];
     }
     if (user?['role']?.toString() == 'driver') {
       return const ['standard'];
@@ -700,10 +703,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 CardNumberExtractor.cardNumberLength)) {
       await AppAlertService.showError(
         context,
-        title: 'تحقق من رقم البطاقة',
+        title: l.text('تحقق من رقم البطاقة', 'Check Card Number'),
         message: quantity != 1
-            ? 'يمكن تخصيص الرقم عند إصدار بطاقة واحدة فقط.'
-            : 'رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.',
+            ? l.text('يمكن تخصيص الرقم عند إصدار بطاقة واحدة فقط.', 'Custom number is only available when issuing one card.')
+            : l.text('رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.', 'Custom card number must be 16 digits.'),
       );
       return;
     }
@@ -1007,10 +1010,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Future<bool> _showQuickIssueConfirmation({required double amount}) async {
+    final l = context.loc;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تأكيد إنشاء البطاقة'),
+        title: Text(l.text('تأكيد إنشاء البطاقة', 'Confirm Card Creation')),
         contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -1019,7 +1023,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'سيتم إنشاء بطاقة فعلية واحدة وعرضها مباشرة بعد التأكيد.',
+                l.text('سيتم إنشاء بطاقة فعلية واحدة وعرضها مباشرة بعد التأكيد.', 'A real card will be created and shown immediately after confirmation.'),
                 textDirection: TextDirection.rtl,
                 style: AppTheme.bodyAction.copyWith(height: 1.5),
               ),
@@ -1031,12 +1035,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildPreviewSummaryRow(
-                      'قيمة البطاقة',
+                      l.text('قيمة البطاقة', 'Card Value'),
                       CurrencyFormatter.ils(amount),
                     ),
                     const SizedBox(height: 8),
                     _buildPreviewSummaryRow(
-                      'الخصم من الرصيد',
+                      l.text('الخصم من الرصيد', 'Balance Deduction'),
                       CurrencyFormatter.ils(_currentTotalChargeNow),
                     ),
                   ],
@@ -1051,13 +1055,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('إلغاء'),
+                  child: Text(l.text('إلغاء', 'Cancel')),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ShwakelButton(
-                  label: 'تأكيد الإنشاء',
+                  label: l.text('تأكيد الإنشاء', 'Confirm Creation'),
                   onPressed: () => Navigator.pop(dialogContext, true),
                 ),
               ),
@@ -1076,11 +1080,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     if (!AppPermissions.fromUser(_user).canTransfer) {
+      final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: 'الإنشاء الأوفلاين غير متاح',
-        message:
+        title: l.text('الإنشاء الأوفلاين غير متاح', 'Offline Creation Unavailable'),
+        message: l.text(
             'إنشاء بطاقة أوفلاين يحتاج صلاحية التحويل لأن المستلم سيستلم القيمة مباشرة عند مسح الرمز وهو متصل.',
+            'Offline card creation requires transfer permission because the recipient receives the value directly when scanning the code while online.'),
       );
       return;
     }
@@ -1120,11 +1126,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       if (!mounted) {
         return null;
       }
+      final l = context.loc;
       await AppAlertService.showInfo(
         context,
-        title: 'لا توجد بطاقات أوفلاين جاهزة',
-        message:
+        title: l.text('لا توجد بطاقات أوفلاين جاهزة', 'No Offline Cards Ready'),
+        message: l.text(
             'افتح هذه الشاشة مرة واحدة أثناء الاتصال ليتم تجهيز بطاقات أوفلاين آمنة مرتبطة بهذا الجهاز.',
+            'Open this screen once while connected to prepare secure offline cards linked to this device.'),
       );
       return null;
     }
@@ -1262,16 +1270,17 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   String _cardValueLabel(AppLocalizer l, double amount) {
     if (_cardType == 'single_use' || _isQueueCard || _isAttendanceCard) {
       return amount <= 0
-          ? 'تذكرة استخدام تنظيمي'
+          ? l.text('تذكرة استخدام تنظيمي', 'Organizational Use Ticket')
           : CurrencyFormatter.ils(amount);
     }
     if ((_isAppointmentCard || _isSubscriptionCard) && amount <= 0) {
-      return 'بدون قيمة مالية';
+      return l.text('بدون قيمة مالية', 'No Monetary Value');
     }
     return CurrencyFormatter.ils(amount);
   }
 
   String _formatValidityWindow() {
+    final l = context.loc;
     if (_validFrom == null && _validUntil == null) {
       return '';
     }
@@ -1279,9 +1288,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return '${_formatDateTime(_validFrom)} - ${_formatDateTime(_validUntil)}';
     }
     if (_validFrom != null) {
-      return 'من ${_formatDateTime(_validFrom)}';
+      return '${l.text('من', 'From')} ${_formatDateTime(_validFrom)}';
     }
-    return 'حتى ${_formatDateTime(_validUntil)}';
+    return '${l.text('حتى', 'Until')} ${_formatDateTime(_validUntil)}';
   }
 
   String _formatDateTime(DateTime? value) {
@@ -1330,7 +1339,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ),
         ),
         child: Text(
-          value == null ? 'اختر التاريخ والوقت' : _formatDateTime(value),
+          value == null ? context.loc.text('اختر التاريخ والوقت', 'Select date and time') : _formatDateTime(value),
           style: value == null
               ? AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary)
               : AppTheme.bodyBold,
@@ -1515,6 +1524,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (!mounted) {
       return;
     }
+    final l = context.loc;
 
     final cardIds = cards
         .map((card) => card.id.trim())
@@ -1523,8 +1533,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (cardIds.isEmpty) {
       await AppAlertService.showError(
         context,
-        title: 'تعذر إرسال طلب الطباعة',
-        message: 'لا توجد بطاقات صالحة لإرسالها للإدارة.',
+        title: l.text('تعذر إرسال طلب الطباعة', 'Failed to Send Print Request'),
+        message: l.text('لا توجد بطاقات صالحة لإرسالها للإدارة.', 'No valid cards to send to the admin.'),
       );
       return;
     }
@@ -1533,24 +1543,29 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final estimatedFee = (estimatedPages / 3).ceil();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد طلب الطباعة'),
+      builder: (context) {
+        final dl = context.loc;
+        return AlertDialog(
+        title: Text(dl.text('تأكيد طلب الطباعة', 'Confirm Print Request')),
         content: Text(
-          'سيتم إرسال ${cardIds.length} بطاقة للإدارة وخصم رسوم الطباعة حسب إعدادات النظام.\n'
-          'التقدير الحالي: $estimatedPages صفحة A4، ورسوم تقريبية $estimatedFee شيكل.',
+          dl.text(
+            'سيتم إرسال ${cardIds.length} بطاقة للإدارة وخصم رسوم الطباعة حسب إعدادات النظام.\nالتقدير الحالي: $estimatedPages صفحة A4، ورسوم تقريبية $estimatedFee شيكل.',
+            '${cardIds.length} cards will be sent to admin and printing fees deducted per system settings.\nCurrent estimate: $estimatedPages A4 page(s), approx. $estimatedFee shekel.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
+            child: Text(dl.text('إلغاء', 'Cancel')),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.of(context).pop(true),
             icon: const Icon(Icons.print_rounded),
-            label: const Text('إرسال الطلب'),
+            label: Text(dl.text('إرسال الطلب', 'Send Request')),
           ),
         ],
-      ),
+      );
+      },
     );
     if (confirmed != true) {
       return;
@@ -1558,8 +1573,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
     _setLoadingState(
       true,
-      headline: 'جارٍ إرسال طلب الطباعة...',
-      details: 'سيتم إشعار الإدارة بالبطاقات المطلوبة للطباعة.',
+      headline: l.text('جارٍ إرسال طلب الطباعة...', 'Sending print request...'),
+      details: l.text('سيتم إشعار الإدارة بالبطاقات المطلوبة للطباعة.', 'Admin will be notified about the requested cards for printing.'),
     );
     try {
       final response = await _apiService.requestExistingCardsPrint(
@@ -1572,10 +1587,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _setLoadingState(false);
       await AppAlertService.showSuccess(
         context,
-        title: 'تم إرسال طلب الطباعة',
+        title: l.text('تم إرسال طلب الطباعة', 'Print Request Sent'),
         message:
             response['message']?.toString() ??
-            'تم إرسال الطلب إلى الإدارة وبانتظار المراجعة.',
+            l.text('تم إرسال الطلب إلى الإدارة وبانتظار المراجعة.', 'Request sent to admin and awaiting review.'),
       );
     } catch (error) {
       if (!mounted) {
@@ -1584,7 +1599,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       _setLoadingState(false);
       await AppAlertService.showError(
         context,
-        title: 'تعذر إرسال طلب الطباعة',
+        title: l.text('تعذر إرسال طلب الطباعة', 'Failed to Send Print Request'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -1614,8 +1629,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       }
       await AppAlertService.showInfo(
         context,
-        title: 'تم حفظ نسخة PDF',
-        message: 'تم تنزيل الملف في:\n${file.path}',
+        title: l.text('تم حفظ نسخة PDF', 'PDF Copy Saved'),
+        message: l.text('تم تنزيل الملف في:\n${file.path}', 'File downloaded to:\n${file.path}'),
       );
     } catch (error) {
       if (!mounted) {
@@ -1728,6 +1743,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildQuickIssuedCard(VirtualCard card) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(14),
       color: AppTheme.surface,
@@ -1741,7 +1757,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'البطاقة جاهزة للاستخدام المباشر',
+                  l.text('البطاقة جاهزة للاستخدام المباشر', 'Card Ready for Direct Use'),
                   style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
                 ),
               ),
@@ -1750,20 +1766,21 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           const SizedBox(height: 12),
           _buildCardPreviewWidget(card, serialNumber: 1),
           const SizedBox(height: 10),
-          _buildPreviewSummaryRow('رقم البطاقة', card.barcode),
+          _buildPreviewSummaryRow(l.text('رقم البطاقة', 'Card Number'), card.barcode),
           const SizedBox(height: 8),
-          _buildPreviewSummaryRow('القيمة', CurrencyFormatter.ils(card.value)),
+          _buildPreviewSummaryRow(l.text('القيمة', 'Value'), CurrencyFormatter.ils(card.value)),
         ],
       ),
     );
   }
 
   Future<void> _cancelIssuedCard(VirtualCard card) async {
+    final l = context.loc;
     if (card.status != CardStatus.unused) {
       await AppAlertService.showError(
         context,
-        title: 'لا يمكن إلغاء البطاقة',
-        message: 'يمكن إلغاء البطاقة فقط قبل استخدامها.',
+        title: l.text('لا يمكن إلغاء البطاقة', 'Cannot Cancel Card'),
+        message: l.text('يمكن إلغاء البطاقة فقط قبل استخدامها.', 'The card can only be cancelled before use.'),
       );
       return;
     }
@@ -1782,8 +1799,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       }
       await AppAlertService.showSuccess(
         context,
-        title: 'تم إلغاء البطاقة',
-        message: 'تم إلغاء البطاقة غير المستخدمة واسترجاع الرصيد حسب النظام.',
+        title: l.text('تم إلغاء البطاقة', 'Card Cancelled'),
+        message: l.text('تم إلغاء البطاقة غير المستخدمة واسترجاع الرصيد حسب النظام.', 'The unused card has been cancelled and balance refunded per system policy.'),
       );
     } catch (error) {
       if (!mounted) {
@@ -1791,7 +1808,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: 'تعذر إلغاء البطاقة',
+        title: l.text('تعذر إلغاء البطاقة', 'Failed to Cancel Card'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1820,37 +1837,37 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('تفاصيل الدفعة المنشأة', style: AppTheme.bodyBold),
+          Text(l.text('تفاصيل الدفعة المنشأة', 'Created Batch Details'), style: AppTheme.bodyBold),
           const SizedBox(height: 10),
-          _buildPreviewSummaryRow('النوع', _cardTypeLabel(l, first.cardType)),
+          _buildPreviewSummaryRow(l.text('النوع', 'Type'), _cardTypeLabel(l, first.cardType)),
           const SizedBox(height: 8),
-          _buildPreviewSummaryRow('عدد البطاقات', '${cards.length}'),
+          _buildPreviewSummaryRow(l.text('عدد البطاقات', 'Card Count'), '${cards.length}'),
           if (!isPrivateBatch) ...[
             const SizedBox(height: 8),
             _buildPreviewSummaryRow(
-              'إجمالي القيم',
+              l.text('إجمالي القيم', 'Total Values'),
               CurrencyFormatter.ils(totalFaceValue),
             ),
           ],
           if (isPrivateBatch) ...[
             const SizedBox(height: 8),
             _buildPreviewSummaryRow(
-              'إجمالي الرسوم',
+              l.text('إجمالي الرسوم', 'Total Fees'),
               CurrencyFormatter.ils(totalIssueCost),
             ),
           ],
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
-            isPrivateBatch ? 'المخصوم من الرصيد' : 'إجمالي الخصم',
+            isPrivateBatch ? l.text('المخصوم من الرصيد', 'Deducted from Balance') : l.text('إجمالي الخصم', 'Total Deduction'),
             CurrencyFormatter.ils(totalCharge),
           ),
           if (first.title?.trim().isNotEmpty == true) ...[
             const SizedBox(height: 8),
-            _buildPreviewSummaryRow('العنوان', first.title!.trim()),
+            _buildPreviewSummaryRow(l.text('العنوان', 'Title'), first.title!.trim()),
           ],
           if (first.validUntil != null) ...[
             const SizedBox(height: 8),
-            _buildPreviewSummaryRow('تنتهي', _formatDateTime(first.validUntil)),
+            _buildPreviewSummaryRow(l.text('تنتهي', 'Expires'), _formatDateTime(first.validUntil)),
           ],
         ],
       ),
@@ -1858,17 +1875,17 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Future<void> _pickPrivateUsers() async {
+    final l = context.loc;
     if (_isTrialMode) {
       await AppAlertService.showInfo(
         context,
-        title: 'اختيار المستفيدين غير متاح',
-        message:
+        title: l.text('اختيار المستفيدين غير متاح', 'Recipient Selection Unavailable'),
+        message: l.text(
             'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط ولا يمكن البحث عن مستخدمين آخرين.',
+            'Account is not verified, so private cards are for your account only and you cannot search for other users.'),
       );
       return;
     }
-
-    final l = context.loc;
     final results = await showDialog<List<Map<String, dynamic>>>(
       context: context,
       builder: (dialogContext) {
@@ -2064,7 +2081,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       appBar: AppBar(
         title: Text(
           _quickMode
-              ? 'إنشاء بطاقة سريعة'
+              ? l.text('إنشاء بطاقة سريعة', 'Quick Card Creation')
               : l.tr('screens_create_card_screen.029'),
         ),
         actions: const [AppNotificationAction(), QuickLogoutAction()],
@@ -2072,23 +2089,29 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       drawer: const AppSidebar(),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: ResponsiveScaffoldContainer(
-              padding: const EdgeInsets.all(AppTheme.spacingLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_quickMode)
-                    _buildQuickCreationFlow()
-                  else
-                    _buildCreationStepper(),
-                  if (!_quickMode && _recent.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    _buildRecent(),
-                  ],
-                ],
-              ),
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 520;
+              return SingleChildScrollView(
+                child: ResponsiveScaffoldContainer(
+                  maxWidth: compact ? double.infinity : 1200,
+                  padding: EdgeInsets.all(compact ? 2 : AppTheme.spacingLg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_quickMode)
+                        _buildQuickCreationFlow()
+                      else
+                        _buildCreationStepper(),
+                      if (!_quickMode && _recent.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        _buildRecent(),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           if (_isLoading) _buildLoadingOverlay(),
         ],
@@ -2097,6 +2120,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildQuickCreationFlow() {
+    final l = context.loc;
     final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
     final issuedCard = _recent.isNotEmpty ? _recent.first : null;
     final canIssue = (double.tryParse(_amountC.text.trim()) ?? 0) > 0;
@@ -2130,10 +2154,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('بطاقة جاهزة للاستخدام', style: AppTheme.h3),
+                          Text(l.text('بطاقة جاهزة للاستخدام', 'Card Ready for Use'), style: AppTheme.h3),
                           const SizedBox(height: 4),
                           Text(
-                            'أدخل القيمة فقط، ثم استخدم البطاقة مباشرة من الشاشة.',
+                            l.text('أدخل القيمة فقط، ثم استخدم البطاقة مباشرة من الشاشة.', 'Enter the value only, then use the card directly from the screen.'),
                             style: AppTheme.bodyText.copyWith(
                               color: AppTheme.textSecondary,
                               fontSize: 13,
@@ -2152,25 +2176,25 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     decimal: true,
                   ),
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'قيمة البطاقة',
-                    prefixIcon: Icon(Icons.payments_rounded),
+                  decoration: InputDecoration(
+                    labelText: l.text('قيمة البطاقة', 'Card Value'),
+                    prefixIcon: const Icon(Icons.payments_rounded),
                   ),
                 ),
                 const SizedBox(height: 16),
                 _buildPreviewSummaryRow(
-                  'الرصيد الحالي',
+                  l.text('الرصيد الحالي', 'Current Balance'),
                   CurrencyFormatter.ils(balance),
                 ),
                 const SizedBox(height: 8),
                 _buildPreviewSummaryRow(
-                  'الخصم عند الإنشاء',
+                  l.text('الخصم عند الإنشاء', 'Deduction on Creation'),
                   CurrencyFormatter.ils(_currentTotalChargeNow),
                 ),
                 if (_quickMode) ...[
                   const SizedBox(height: 8),
                   _buildPreviewSummaryRow(
-                    'بطاقات أوفلاين جاهزة',
+                    l.text('بطاقات أوفلاين جاهزة', 'Offline Cards Ready'),
                     '$_availableOfflineTransferSlots',
                   ),
                 ],
@@ -2178,8 +2202,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 if (issuedCard == null)
                   ShwakelButton(
                     label: _isDeviceOffline
-                        ? 'إنشاء بطاقة أوفلاين'
-                        : 'إنشاء البطاقة الآن',
+                        ? l.text('إنشاء بطاقة أوفلاين', 'Create Offline Card')
+                        : l.text('إنشاء البطاقة الآن', 'Create Card Now'),
                     icon: _isDeviceOffline
                         ? Icons.qr_code_2_rounded
                         : Icons.add_card_rounded,
@@ -2188,7 +2212,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   )
                 else ...[
                   ShwakelButton(
-                    label: 'إنشاء بطاقة أخرى',
+                    label: l.text('إنشاء بطاقة أخرى', 'Create Another Card'),
                     icon: Icons.add_rounded,
                     isSecondary: true,
                     onPressed: () {
@@ -2202,7 +2226,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   TextButton.icon(
                     onPressed: () => _openRoute('/create-card'),
                     icon: const Icon(Icons.tune_rounded),
-                    label: const Text('فتح خيارات إنشاء البطاقات الكاملة'),
+                    label: Text(l.text('فتح خيارات إنشاء البطاقات الكاملة', 'Open Full Card Creation Options')),
                   ),
                 ],
               ],
@@ -2214,7 +2238,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             if (issuedCard.status == CardStatus.unused) ...[
               const SizedBox(height: 12),
               ShwakelButton(
-                label: 'إلغاء البطاقة واسترجاع الرصيد',
+                label: l.text('إلغاء البطاقة واسترجاع الرصيد', 'Cancel Card and Refund Balance'),
                 icon: Icons.undo_rounded,
                 isDanger: true,
                 onPressed: () => _cancelIssuedCard(issuedCard),
@@ -2228,6 +2252,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildCreationStepper() {
+    final l = context.loc;
     final canContinue = _canContinueCurrentStep();
     return SizedBox(
       width: double.infinity,
@@ -2245,7 +2270,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               runSpacing: 10,
               children: [
                 ShwakelButton(
-                  label: isLast ? 'إصدار الدفعة الآن' : 'التالي',
+                  label: isLast ? l.text('إصدار الدفعة الآن', 'Issue Batch Now') : l.text('التالي', 'Next'),
                   icon: isLast
                       ? Icons.verified_user_rounded
                       : Icons.arrow_forward_rounded,
@@ -2257,7 +2282,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ),
                 if (_currentStep > 0)
                   ShwakelButton(
-                    label: 'السابق',
+                    label: l.text('السابق', 'Previous'),
                     icon: Icons.arrow_back_rounded,
                     isSecondary: true,
                     onPressed: () => setState(() => _currentStep -= 1),
@@ -2274,8 +2299,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         },
         steps: [
           Step(
-            title: const Text('اختيار نوع البطاقة'),
-            subtitle: const Text('تظهر الأنواع المتاحة حسب صلاحيات الحساب.'),
+            title: Text(l.text('اختيار نوع البطاقة', 'Select Card Type')),
+            subtitle: Text(l.text('تظهر الأنواع المتاحة حسب صلاحيات الحساب.', 'Available types appear based on account permissions.')),
             isActive: _currentStep >= 0,
             state: _hasSelectedCardType
                 ? StepState.complete
@@ -2283,8 +2308,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             content: _buildCardTypeStep(),
           ),
           Step(
-            title: const Text('البيانات والمستفيدون'),
-            subtitle: const Text('القيمة والكمية ونطاق الصلاحية والخصوصية.'),
+            title: Text(l.text('البيانات والمستفيدون', 'Data and Recipients')),
+            subtitle: Text(l.text('القيمة والكمية ونطاق الصلاحية والخصوصية.', 'Value, quantity, validity range, and privacy.')),
             isActive: _currentStep >= 1,
             state: _currentStep > 1 ? StepState.complete : StepState.indexed,
             content: _hasSelectedCardType
@@ -2292,8 +2317,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 : _buildCardTypeEmptyState(),
           ),
           Step(
-            title: const Text('تصميم الطباعة والمعاينة'),
-            subtitle: const Text('تحديث مباشر للشعار والعنوان والختم.'),
+            title: Text(l.text('تصميم الطباعة والمعاينة', 'Print Design and Preview')),
+            subtitle: Text(l.text('تحديث مباشر للشعار والعنوان والختم.', 'Live update for logo, title, and stamp.')),
             isActive: _currentStep >= 2,
             state: _currentStep > 2 ? StepState.complete : StepState.indexed,
             content: _hasSelectedCardType
@@ -2301,8 +2326,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 : _buildCardTypeEmptyState(),
           ),
           Step(
-            title: const Text('ملخص الحساب والتأكيد'),
-            subtitle: const Text('مراجعة الرسوم والتكلفة قبل الإصدار.'),
+            title: Text(l.text('ملخص الحساب والتأكيد', 'Account Summary and Confirmation')),
+            subtitle: Text(l.text('مراجعة الرسوم والتكلفة قبل الإصدار.', 'Review fees and cost before issuing.')),
             isActive: _currentStep >= 3,
             state: StepState.indexed,
             content: _hasSelectedCardType
@@ -2332,12 +2357,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Future<void> _handleStepContinue({required bool isLast}) async {
+    final l = context.loc;
     if (_currentStep == 1) {
       final message = _propertiesStepValidationMessage();
       if (message != null) {
         await AppAlertService.showError(
           context,
-          title: 'تحقق من البيانات',
+          title: l.text('تحقق من البيانات', 'Check Data'),
           message: message,
         );
         return;
@@ -2353,28 +2379,29 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   String? _propertiesStepValidationMessage() {
+    final l = context.loc;
     if (!_hasSelectedCardType) {
-      return 'اختر نوع البطاقة أولًا.';
+      return l.text('اختر نوع البطاقة أولًا.', 'Select a card type first.');
     }
 
     final amount = double.tryParse(_amountC.text.trim()) ?? 0;
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
 
     if (quantity <= 0) {
-      return 'أدخل كمية صحيحة للبطاقات.';
+      return l.text('أدخل كمية صحيحة للبطاقات.', 'Enter a valid card quantity.');
     }
 
     if (!_useCustomBarcode && quantity < _minimumCardQuantity) {
-      return 'الكمية أقل من الحد الأدنى $_minimumCardQuantity.';
+      return l.text('الكمية أقل من الحد الأدنى $_minimumCardQuantity.', 'Quantity is below the minimum of $_minimumCardQuantity.');
     }
 
     if (_useCustomBarcode) {
       if (quantity != 1) {
-        return 'يمكن تخصيص رقم البطاقة عند إصدار بطاقة واحدة فقط.';
+        return l.text('يمكن تخصيص رقم البطاقة عند إصدار بطاقة واحدة فقط.', 'Custom card number is only available when issuing one card.');
       }
       if (_normalizedCustomBarcode.length !=
           CardNumberExtractor.cardNumberLength) {
-        return 'رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.';
+        return l.text('رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.', 'Custom card number must be 16 digits.');
       }
     }
 
@@ -2385,41 +2412,41 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
     if (_isAppointmentCard &&
         (_detailsTitleC.text.trim().isEmpty || _appointmentStartsAt == null)) {
-      return 'أدخل عنوان الموعد ووقت بدايته قبل المتابعة.';
+      return l.text('أدخل عنوان الموعد ووقت بدايته قبل المتابعة.', 'Enter the appointment title and start time before continuing.');
     }
 
     if (_isAppointmentCard &&
         _appointmentEndsAt != null &&
         !_appointmentEndsAt!.isAfter(_appointmentStartsAt!)) {
-      return 'نهاية الموعد يجب أن تكون بعد بدايته.';
+      return l.text('نهاية الموعد يجب أن تكون بعد بدايته.', 'Appointment end time must be after the start time.');
     }
 
     if (_isQueueCard && _detailsTitleC.text.trim().isEmpty) {
-      return 'أدخل عنوان التذكرة التنظيمية قبل المتابعة.';
+      return l.text('أدخل عنوان التذكرة التنظيمية قبل المتابعة.', 'Enter the organizational ticket title before continuing.');
     }
 
     if (_isSubscriptionCard) {
       if (_detailsTitleC.text.trim().isEmpty) {
-        return 'أدخل اسم الاشتراك قبل المتابعة.';
+        return l.text('أدخل اسم الاشتراك قبل المتابعة.', 'Enter the subscription name before continuing.');
       }
       if (_validFrom == null || _validUntil == null) {
-        return 'حدد بداية ونهاية الاشتراك قبل المتابعة.';
+        return l.text('حدد بداية ونهاية الاشتراك قبل المتابعة.', 'Set the subscription start and end before continuing.');
       }
     }
 
     if (_isAttendanceCard) {
       if (_detailsTitleC.text.trim().isEmpty) {
-        return 'أدخل اسم الموظف أو عنوان بطاقة الحضور قبل المتابعة.';
+        return l.text('أدخل اسم الموظف أو عنوان بطاقة الحضور قبل المتابعة.', 'Enter the employee name or attendance card title before continuing.');
       }
       if (quantity > 1) {
-        return 'بطاقات الحضور تصدر بطاقة واحدة لكل موظف.';
+        return l.text('بطاقات الحضور تصدر بطاقة واحدة لكل موظف.', 'Attendance cards issue one card per employee.');
       }
     }
 
     if (_validFrom != null &&
         _validUntil != null &&
         !_validUntil!.isAfter(_validFrom!)) {
-      return 'تاريخ انتهاء الصلاحية يجب أن يكون بعد تاريخ البداية.';
+      return l.text('تاريخ انتهاء الصلاحية يجب أن يكون بعد تاريخ البداية.', 'Expiry date must be after the start date.');
     }
 
     return null;
@@ -2474,6 +2501,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildLoadingOverlay() {
+    final l = context.loc;
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.16),
@@ -2494,7 +2522,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 const SizedBox(height: 16),
                 Text(
                   _loadingHeadline.trim().isEmpty
-                      ? 'جارٍ تنفيذ العملية'
+                      ? l.text('جارٍ تنفيذ العملية', 'Processing...')
                       : _loadingHeadline,
                   style: AppTheme.h3.copyWith(fontSize: 18),
                   textAlign: TextAlign.center,
@@ -2525,7 +2553,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('البيانات المالية والمستفيدون', style: AppTheme.h3),
+          Text(l.text('البيانات المالية والمستفيدون', 'Financial Data and Recipients'), style: AppTheme.h3),
           const SizedBox(height: 18),
           Container(
             width: double.infinity,
@@ -2539,7 +2567,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [Text('البيانات الأساسية', style: AppTheme.bodyBold)],
+              children: [Text(l.text('البيانات الأساسية', 'Basic Data'), style: AppTheme.bodyBold)],
             ),
           ),
           const SizedBox(height: 20),
@@ -2555,7 +2583,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: _isAppointmentCard
-                      ? 'القيمة المالية إن وجدت'
+                      ? l.text('القيمة المالية إن وجدت', 'Monetary value if any')
                       : l.tr('screens_create_card_screen.035'),
                   prefixIcon: const Icon(Icons.money_rounded),
                 ),
@@ -2570,10 +2598,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 labelText: l.tr('screens_create_card_screen.037'),
                 prefixIcon: const Icon(Icons.pin_rounded),
                 helperText: _isTrialMode
-                    ? 'المتاح: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.'
+                    ? l.text('المتاح: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.', 'Available: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.')
                     : _isAttendanceCard
-                    ? 'بطاقة واحدة لكل موظف.'
-                    : 'الحد الأدنى $_minimumCardQuantity.',
+                    ? l.text('بطاقة واحدة لكل موظف.', 'One card per employee.')
+                    : l.text('الحد الأدنى $_minimumCardQuantity.', 'Minimum: $_minimumCardQuantity.'),
               ),
             ),
             const SizedBox(height: 16),
@@ -2584,11 +2612,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   ? (value) => setState(() => _useCustomBarcode = value)
                   : null,
               secondary: const Icon(Icons.pin_outlined),
-              title: const Text('تخصيص رقم البطاقة'),
+              title: Text(l.text('تخصيص رقم البطاقة', 'Customize Card Number')),
               subtitle: Text(
                 (int.tryParse(_qtyC.text.trim()) ?? 0) == 1
-                    ? 'أدخل رقمًا مخصصًا من 16 خانة بدل الرقم التلقائي.'
-                    : 'متاح عند إصدار بطاقة واحدة فقط.',
+                    ? l.text('أدخل رقمًا مخصصًا من 16 خانة بدل الرقم التلقائي.', 'Enter a custom 16-digit number instead of the automatic one.')
+                    : l.text('متاح عند إصدار بطاقة واحدة فقط.', 'Available when issuing one card only.'),
               ),
             ),
             if (_useCustomBarcode) ...[
@@ -2599,10 +2627,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 textDirection: TextDirection.ltr,
                 maxLength: CardNumberExtractor.cardNumberLength,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  labelText: 'رقم البطاقة المخصص',
+                decoration: InputDecoration(
+                  labelText: l.text('رقم البطاقة المخصص', 'Custom Card Number'),
                   hintText: '1234567890123456',
-                  prefixIcon: Icon(Icons.credit_card_rounded),
+                  prefixIcon: const Icon(Icons.credit_card_rounded),
                   counterText: '',
                 ),
               ),
@@ -2761,7 +2789,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                         color: AppTheme.warning.withValues(alpha: 0.06),
                         borderColor: AppTheme.warning.withValues(alpha: 0.15),
                         child: Text(
-                          'كل بطاقة تمثل موظفًا واحدًا. عند فحصها يسجل النظام دخولًا ثم خروجًا بالتناوب، ويظهر تقرير شهري من تقارير الحضور والانصراف.',
+                          l.text('كل بطاقة تمثل موظفًا واحدًا. عند فحصها يسجل النظام دخولًا ثم خروجًا بالتناوب، ويظهر تقرير شهري من تقارير الحضور والانصراف.', 'Each card represents one employee. When scanned, the system records entry then exit alternately, and a monthly report appears in attendance reports.'),
                           style: AppTheme.bodyAction.copyWith(
                             fontSize: 13,
                             height: 1.5,
@@ -2781,7 +2809,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
-                title: Text('إعدادات متقدمة', style: AppTheme.bodyBold),
+                title: Text(l.text('إعدادات متقدمة', 'Advanced Settings'), style: AppTheme.bodyBold),
                 children: [
                   const SizedBox(height: 12),
                   ShwakelCard(
@@ -2790,7 +2818,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('نافذة الصلاحية', style: AppTheme.bodyBold),
+                        Text(l.text('نافذة الصلاحية', 'Validity Window'), style: AppTheme.bodyBold),
                         const SizedBox(height: 12),
                         _buildDateTimeField(
                           label: 'فعالة من',
@@ -2891,7 +2919,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                         ),
                       ),
                       child: Text(
-                        'هذا النوع خاص. اختر المستفيدين قبل الإصدار.',
+                        l.text('هذا النوع خاص. اختر المستفيدين قبل الإصدار.', 'This type is private. Select recipients before issuing.'),
                         style: AppTheme.bodyText.copyWith(fontSize: 13),
                       ),
                     ),
@@ -2929,9 +2957,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                                 child: TextField(
                                   controller: _allowedPhoneC,
                                   keyboardType: TextInputType.phone,
-                                  decoration: const InputDecoration(
-                                    labelText: 'رقم هاتف المستفيد',
-                                    prefixIcon: Icon(Icons.phone_rounded),
+                                  decoration: InputDecoration(
+                                    labelText: l.text('رقم هاتف المستفيد', 'Recipient Phone Number'),
+                                    prefixIcon: const Icon(Icons.phone_rounded),
                                   ),
                                   onSubmitted: (_) =>
                                       _addAllowedPhoneFromInput(),
@@ -2941,7 +2969,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                               IconButton.filledTonal(
                                 onPressed: _addAllowedPhoneFromInput,
                                 icon: const Icon(Icons.add_rounded),
-                                tooltip: 'إضافة الرقم',
+                                tooltip: l.text('إضافة الرقم', 'Add Number'),
                               ),
                             ],
                           ),
@@ -3003,7 +3031,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       color: AppTheme.warning.withValues(alpha: 0.05),
                       borderColor: AppTheme.warning.withValues(alpha: 0.15),
                       child: Text(
-                        'البطاقات التجريبية خاصة بحسابك فقط.',
+                        l.text('البطاقات التجريبية خاصة بحسابك فقط.', 'Trial cards are for your account only.'),
                         style: AppTheme.bodyText.copyWith(fontSize: 13),
                       ),
                     ),
@@ -3077,6 +3105,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildCardTypeEmptyState() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(18),
       color: AppTheme.surfaceVariant,
@@ -3096,7 +3125,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'اختر نوع البطاقة أولًا. بعد الاختيار ستظهر حقول الإنشاء ومعاينة الدفع فقط لهذا النوع.',
+              l.text('اختر نوع البطاقة أولًا. بعد الاختيار ستظهر حقول الإنشاء ومعاينة الدفع فقط لهذا النوع.', 'Select a card type first. After selection, creation fields and payment preview for that type will appear.'),
               style: AppTheme.bodyAction.copyWith(fontSize: 13, height: 1.5),
             ),
           ),
@@ -3121,7 +3150,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             color: AppTheme.warning.withValues(alpha: 0.06),
             borderColor: AppTheme.warning.withValues(alpha: 0.15),
             child: Text(
-              'لا توجد أنواع بطاقات متاحة لحسابك حاليًا. تواصل مع الإدارة لتفعيل صلاحية الإصدار المناسبة.',
+              l.text('لا توجد أنواع بطاقات متاحة لحسابك حاليًا. تواصل مع الإدارة لتفعيل صلاحية الإصدار المناسبة.', 'No card types are available for your account currently. Contact admin to activate the appropriate issuance permission.'),
               style: AppTheme.bodyAction.copyWith(fontSize: 13, height: 1.5),
             ),
           ),
@@ -3193,7 +3222,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                               if (isSelected &&
                                   _sortedIssuableCardTypes.length > 1)
                                 IconButton.filledTonal(
-                                  tooltip: 'تغيير نوع البطاقة',
+                                  tooltip: l.text('تغيير نوع البطاقة', 'Change Card Type'),
                                   onPressed: _clearSelectedCardType,
                                   icon: const Icon(Icons.close_rounded),
                                 ),
@@ -3217,8 +3246,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                             ),
                             child: Text(
                               fee > 0
-                                  ? 'رسوم الإصدار: ${CurrencyFormatter.ils(fee)} لكل بطاقة'
-                                  : 'بدون رسوم إصدار مباشرة',
+                                  ? l.text('رسوم الإصدار: ${CurrencyFormatter.ils(fee)} لكل بطاقة', 'Issue fee: ${CurrencyFormatter.ils(fee)} per card')
+                                  : l.text('بدون رسوم إصدار مباشرة', 'No direct issue fees'),
                               style: AppTheme.caption.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -3238,6 +3267,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Widget _buildIssueCostSummary() {
+    final l = context.loc;
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
     final note = _issueCostPolicyNote();
     final showIssueFee = _isPrivateIssuance;
@@ -3249,46 +3279,46 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ملخص الدفع والرسوم', style: AppTheme.bodyBold),
+          Text(l.text('ملخص الدفع والرسوم', 'Payment and Fees Summary'), style: AppTheme.bodyBold),
           const SizedBox(height: 6),
           Text(
-            'راجع ما سيتم خصمه الآن لكل بطاقة وفي إجمالي العملية قبل المتابعة.',
+            l.text('راجع ما سيتم خصمه الآن لكل بطاقة وفي إجمالي العملية قبل المتابعة.', 'Review what will be deducted now per card and in total before continuing.'),
             style: AppTheme.caption.copyWith(fontSize: 12),
           ),
           const SizedBox(height: 14),
           _buildPreviewSummaryRow(
             _isPrivateIssuance && _isBalanceCard
-                ? 'قيمة البطاقة للمستفيد'
-                : 'قيمة البطاقة الواحدة',
+                ? l.text('قيمة البطاقة للمستفيد', 'Card Value for Recipient')
+                : l.text('قيمة البطاقة الواحدة', 'Single Card Value'),
             CurrencyFormatter.ils(_currentCardFaceValue),
           ),
           if (showIssueFee) ...[
             const SizedBox(height: 8),
             _buildPreviewSummaryRow(
-              'رسوم الإصدار لكل بطاقة',
+              l.text('رسوم الإصدار لكل بطاقة', 'Issue Fee per Card'),
               CurrencyFormatter.ils(_currentIssueFeePerCard),
             ),
             if (_currentFreeIssueFeeAmount > 0) ...[
               const SizedBox(height: 8),
               _buildPreviewSummaryRow(
-                'مجانا عرض خاص',
+                l.text('مجانا عرض خاص', 'Free Special Offer'),
                 '- ${CurrencyFormatter.ils(_currentFreeIssueFeeAmount)}',
               ),
               const SizedBox(height: 8),
               _buildPreviewSummaryRow(
-                'من مجموع قيمة البطاقات المجانية هذا الشهر',
+                l.text('من مجموع قيمة البطاقات المجانية هذا الشهر', 'From total free card value this month'),
                 '${CurrencyFormatter.ils(_currentFreePrivateCardValueApplied)} / ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)}',
               ),
             ],
           ],
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
-            'المخصوم الآن لكل بطاقة',
+            l.text('المخصوم الآن لكل بطاقة', 'Deducted Now per Card'),
             CurrencyFormatter.ils(_currentChargeNowPerCard),
           ),
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
-            'إجمالي الخصم الآن',
+            l.text('إجمالي الخصم الآن', 'Total Deduction Now'),
             quantity > 0 ? CurrencyFormatter.ils(_currentTotalChargeNow) : '-',
           ),
           const SizedBox(height: 12),
@@ -3305,23 +3335,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   String _issueCostPolicyNote() {
+    final l = context.loc;
     if (_isTrialMode) {
-      return 'في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.';
+      return l.text('في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.', 'In trial cards, only the card value is counted within the available limit for this account.');
     }
 
     if (_isBalanceCard && _isPrivateIssuance) {
-      return 'هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار. أول ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} من مجموع قيم البطاقات الخاصة شهريًا لأي حساب مسجل تشمل رسوم إصدار مجانية، وبعدها تُخصم رسوم الإصدار فقط.';
+      return l.text('هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار. أول ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} من مجموع قيم البطاقات الخاصة شهريًا لأي حساب مسجل تشمل رسوم إصدار مجانية، وبعدها تُخصم رسوم الإصدار فقط.', 'This is a private balance card: the card value is not deducted from your balance upon issuance. The first ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} of monthly private card values for any registered account includes free issue fees, after which only issue fees are deducted.');
     }
 
     if (_isBalanceCard && !_isPrivateIssuance) {
-      return 'هذه بطاقة رصيد عامة: يتم خصم قيمة البطاقة فقط عند الإنشاء، ورسوم الاستخدام لا تظهر ضمن تكلفة الإنشاء.';
+      return l.text('هذه بطاقة رصيد عامة: يتم خصم قيمة البطاقة فقط عند الإنشاء، ورسوم الاستخدام لا تظهر ضمن تكلفة الإنشاء.', 'This is a public balance card: only the card value is deducted upon creation, and usage fees do not appear in the creation cost.');
     }
 
     if (!_isPrivateIssuance) {
-      return 'لا تظهر رسوم الاستخدام ضمن تكلفة الإنشاء، ويتم احتسابها عند استخدام البطاقة.';
+      return l.text('لا تظهر رسوم الاستخدام ضمن تكلفة الإنشاء، ويتم احتسابها عند استخدام البطاقة.', 'Usage fees do not appear in the creation cost and are calculated when the card is used.');
     }
 
-    return 'رسوم الإصدار لهذه العملية تُخصم الآن حسب نوع البطاقة.';
+    return l.text('رسوم الإصدار لهذه العملية تُخصم الآن حسب نوع البطاقة.', 'Issue fees for this operation are deducted now based on the card type.');
   }
 
   Widget _buildPrintPreviewPanel({required bool isCompact}) {
@@ -3635,10 +3666,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         }
         final data = snapshot.data;
         if (data == null || data.isEmpty) {
-          return ShwakelCard(
-            padding: const EdgeInsets.all(18),
+          return const ShwakelCard(
+            padding: EdgeInsets.all(18),
             color: AppTheme.surfaceVariant,
-            child: const Text('تعذر توليد معاينة الطباعة.'),
+            child: Text('تعذر توليد معاينة الطباعة.'),
           );
         }
         return ClipRRect(

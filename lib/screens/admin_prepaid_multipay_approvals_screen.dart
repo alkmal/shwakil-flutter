@@ -193,16 +193,16 @@ class _AdminPrepaidMultipayApprovalsScreenState
                   decimal: true,
                   signed: true,
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'المبلغ',
-                  hintText: 'اكتب موجبًا للشحن أو سالبًا للخصم',
+                decoration: InputDecoration(
+                  labelText: l.text('المبلغ', 'Amount'),
+                  hintText: l.text('اكتب موجبًا للشحن أو سالبًا للخصم', 'Positive to add, negative to deduct'),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: noteController,
                 maxLines: 2,
-                decoration: const InputDecoration(labelText: 'ملاحظة'),
+                decoration: InputDecoration(labelText: l.text('ملاحظة', 'Note')),
               ),
             ],
           ),
@@ -248,7 +248,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
           content: TextField(
             controller: noteController,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'سبب الإلغاء'),
+            decoration: InputDecoration(labelText: l.text('سبب الإلغاء', 'Cancellation reason')),
           ),
           actions: [
             TextButton(
@@ -429,7 +429,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
             initialValue: _statusFilter,
-            decoration: const InputDecoration(labelText: 'الحالة'),
+            decoration: InputDecoration(labelText: l.text('الحالة', 'Status')),
             items: [
               DropdownMenuItem(value: 'all', child: Text(l.text('كل البطاقات', 'All cards'))),
               DropdownMenuItem(value: 'pending_approval', child: Text(l.text('معلقة', 'Pending'))),
@@ -449,7 +449,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
             controller: _searchController,
             onSubmitted: (_) => _load(),
             decoration: InputDecoration(
-              labelText: 'بحث',
+              labelText: l.text('بحث', 'Search'),
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: IconButton(
                 onPressed: _load,

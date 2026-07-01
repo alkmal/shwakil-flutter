@@ -1563,6 +1563,7 @@ List<Widget> _notificationPrimaryContextChips(
   BuildContext context,
   Map<String, dynamic> data,
 ) {
+  final l = context.loc;
   final chips = <Widget>[];
   final actor = _notificationActorLabel(data);
   final from = _displayUser(
@@ -1599,7 +1600,7 @@ List<Widget> _notificationPrimaryContextChips(
     chips.add(
       _InfoChip(
         icon: Icons.south_west_rounded,
-        label: 'من: $from',
+        label: '${l.text('من', 'From')}: $from',
         color: AppTheme.success,
       ),
     );
@@ -1608,7 +1609,7 @@ List<Widget> _notificationPrimaryContextChips(
     chips.add(
       _InfoChip(
         icon: Icons.north_east_rounded,
-        label: 'إلى: $to',
+        label: '${l.text('إلى', 'To')}: $to',
         color: AppTheme.primary,
       ),
     );

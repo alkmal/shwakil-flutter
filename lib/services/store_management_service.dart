@@ -75,9 +75,16 @@ class StoreManagementService {
     Map<String, dynamic>? latestSnapshot;
     Object? firstError;
 
-    for (final operation in operations) {
+    final syncOperations = operations
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList()
+      ..sort(_syncPriorityCompare);
+
+    for (final operation in syncOperations) {
       try {
-        final snapshot = await api.syncStoreManagement([operation]);
+        final snapshot = await api.syncStoreManagement([
+          _operationPayload(operation),
+        ]);
         latestSnapshot = snapshot;
         await _storeSnapshot(userId, snapshot);
         final index = remaining.indexWhere(
@@ -309,6 +316,35 @@ class StoreManagementService {
     }
     return jsonEncode(_operationPayload(queued)) ==
         jsonEncode(_operationPayload(candidate));
+  }
+
+  int _syncPriorityCompare(
+    Map<String, dynamic> left,
+    Map<String, dynamic> right,
+  ) {
+    final priority = _syncPriority(left).compareTo(_syncPriority(right));
+    if (priority != 0) return priority;
+    return _operationCreatedAt(left).compareTo(_operationCreatedAt(right));
+  }
+
+  int _syncPriority(Map<String, dynamic> operation) {
+    final entity = operation['entity']?.toString() ?? '';
+    if (entity == 'workspace') return 0;
+    if (entity == 'product') return 1;
+    if (entity == 'party') return 2;
+    if (entity == 'invoice') {
+      return operation['invoiceType']?.toString() == 'purchase' ? 3 : 4;
+    }
+    if (entity == 'payment') return 5;
+    return 9;
+  }
+
+  DateTime _operationCreatedAt(Map<String, dynamic> operation) {
+    final raw =
+        operation['createdAt']?.toString() ??
+        operation['occurredAt']?.toString() ??
+        '';
+    return DateTime.tryParse(raw) ?? DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   Map<String, dynamic> _operationPayload(Map<String, dynamic> operation) {

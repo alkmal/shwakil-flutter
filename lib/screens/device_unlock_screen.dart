@@ -294,6 +294,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   }
 
   Future<String?> _showDeviceOtpDialog(String message, String? debugOtp) async {
+    final l = context.loc;
     final controller = TextEditingController(text: debugOtp ?? '');
     try {
       return showDialog<String>(
@@ -301,7 +302,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
         barrierDismissible: false,
         builder: (context) {
           return AlertDialog(
-            title: const Text('تأكيد الجهاز'),
+            title: Text(l.text('تأكيد الجهاز', 'Confirm device')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -313,8 +314,8 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
                   autofocus: true,
                   keyboardType: TextInputType.number,
                   maxLength: 8,
-                  decoration: const InputDecoration(
-                    labelText: 'رمز التحقق',
+                  decoration: InputDecoration(
+                    labelText: l.text('رمز التحقق', 'Verification code'),
                     counterText: '',
                   ),
                 ),
@@ -323,11 +324,11 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('إلغاء'),
+                child: Text(l.text('إلغاء', 'Cancel')),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, controller.text),
-                child: const Text('تأكيد'),
+                child: Text(l.text('تأكيد', 'Confirm')),
               ),
             ],
           );
@@ -371,7 +372,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
                       if (_hasOfflinePrepaidCards) ...[
                         const SizedBox(height: 12),
                         ShwakelButton(
-                          label: 'فتح بطاقات الدفع المحفوظة',
+                          label: l.text('فتح بطاقات الدفع المحفوظة', 'Open saved prepaid cards'),
                           icon: Icons.credit_card_rounded,
                           isSecondary: true,
                           onPressed: () => Navigator.pushNamed(
@@ -422,7 +423,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('فتح التطبيق', style: AppTheme.h2, textAlign: TextAlign.center),
+          Text(l.text('فتح التطبيق', 'Open app'), style: AppTheme.h2, textAlign: TextAlign.center),
           const SizedBox(height: 10),
           Text(
             _subtitle(l),

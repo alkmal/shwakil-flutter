@@ -132,6 +132,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   }
 
   Future<void> _startTransferToRecipient(Map<String, dynamic> recipient) async {
+    final l = context.loc;
     final recipientId = recipient['id']?.toString() ?? '';
     if (recipientId.isEmpty) {
       await AppAlertService.showError(
@@ -164,7 +165,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     if (creditedAmount <= 0) {
       await AppAlertService.showError(
         context,
-        title: 'قيمة غير صالحة',
+        title: l.text('قيمة غير صالحة', 'Invalid amount'),
         message: 'المبلغ بعد الخصم غير صالح للتحويل.',
       );
       return;
@@ -279,11 +280,12 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     required double fee,
     required double creditedAmount,
   }) {
+    final l = context.loc;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('تأكيد التحويل'),
+          title: Text(l.text('تأكيد التحويل', 'Confirm transfer')),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -293,17 +295,17 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                 _RecipientPreviewCard(recipient: recipient),
                 const SizedBox(height: 16),
                 _transferDetailRow(
-                  'قيمة التحويل',
+                  l.text('قيمة التحويل', 'Transfer amount'),
                   CurrencyFormatter.ils(amount),
                 ),
                 const SizedBox(height: 8),
                 _transferDetailRow(
-                  'قيمة الخصم',
-                  fee <= 0 ? 'مجانا عرض خاص' : CurrencyFormatter.ils(fee),
+                  l.text('قيمة الخصم', 'Deduction'),
+                  fee <= 0 ? l.text('مجانا عرض خاص', 'Free special offer') : CurrencyFormatter.ils(fee),
                 ),
                 const SizedBox(height: 8),
                 _transferDetailRow(
-                  'الصافي للمستلم',
+                  l.text('الصافي للمستلم', 'Net to recipient'),
                   CurrencyFormatter.ils(creditedAmount),
                 ),
               ],
@@ -315,7 +317,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               child: Text(_t('screens_quick_transfer_screen.014')),
             ),
             ShwakelButton(
-              label: 'تأكيد',
+              label: l.text('تأكيد', 'Confirm'),
               width: 140,
               onPressed: () {
                 Navigator.pop(dialogContext, true);
@@ -369,17 +371,18 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   }
 
   Future<void> _showTransferReport(Map<String, dynamic> report) {
+    final l = context.loc;
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تقرير التحويل'),
+        title: Text(l.text('تقرير التحويل', 'Transfer report')),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: SingleChildScrollView(child: _transferReportCard(report)),
         ),
         actions: [
           ShwakelButton(
-            label: 'تحميل التقرير',
+            label: l.text('تحميل التقرير', 'Download report'),
             icon: Icons.picture_as_pdf_rounded,
             onPressed: () async {
               Navigator.pop(dialogContext);
@@ -388,7 +391,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إغلاق'),
+            child: Text(l.text('إغلاق', 'Close')),
           ),
         ],
       ),
@@ -607,6 +610,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   }
 
   Widget _buildLookupCard({required bool compact}) {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(22),
       shadowLevel: ShwakelShadowLevel.medium,
@@ -614,9 +618,10 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeading(
-            title: 'تحويل سريع',
-            subtitle:
+            title: l.text('تحويل سريع', 'Quick transfer'),
+            subtitle: l.text(
                 'أدخل رقم الهاتف والقيمة فقط، ثم راجع تفاصيل التحويل قبل التأكيد.',
+                'Enter phone number and amount only, then review transfer details before confirming.'),
             icon: Icons.phone_iphone_rounded,
           ),
           const SizedBox(height: 18),
@@ -652,7 +657,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           ),
           const SizedBox(height: 16),
           ShwakelButton(
-            label: 'متابعة التحويل',
+            label: l.text('متابعة التحويل', 'Continue transfer'),
             icon: Icons.arrow_forward_rounded,
             gradient: AppTheme.primaryGradient,
             isLoading: _isLookingUpRecipient || _isTransfering,

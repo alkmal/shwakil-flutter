@@ -364,7 +364,8 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
                 Text(
                   store == null
                       ? l.text('متاجر التجار والمحلات', 'Merchant stores')
-                      : (store['name']?.toString() ?? l.text('المتجر', 'Store')),
+                      : (store['name']?.toString() ??
+                            l.text('المتجر', 'Store')),
                   style: AppTheme.h2,
                 ),
                 const SizedBox(height: 6),
@@ -415,7 +416,12 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
   Widget _storesView() {
     final l = context.loc;
     if (!_permissions.canViewPublicStores) {
-      return _emptyState(l.text('هذه الشاشة غير متاحة حسب صلاحيات حسابك.', 'This screen is not available based on your account permissions.'));
+      return _emptyState(
+        l.text(
+          'هذه الشاشة غير متاحة حسب صلاحيات حسابك.',
+          'This screen is not available based on your account permissions.',
+        ),
+      );
     }
     return Column(
       children: [
@@ -423,7 +429,10 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
           controller: _searchController,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search_rounded),
-            hintText: l.text('ابحث باسم المتجر أو الوصف', 'Search by store name or description'),
+            hintText: l.text(
+              'ابحث باسم المتجر أو الوصف',
+              'Search by store name or description',
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -480,8 +489,15 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
           Icons.receipt_long_rounded,
           color: AppTheme.primary,
         ),
-        title: Text('${l.text('طلباتي', 'My orders')} ($activeCount ${l.text('نشطة', 'active')})'),
-        subtitle: Text(l.text('تابع حالة الطلبات وأكد الاستلام عند وصولها.', 'Track order status and confirm receipt when delivered.')),
+        title: Text(
+          '${l.text('طلباتي', 'My orders')} ($activeCount ${l.text('نشطة', 'active')})',
+        ),
+        subtitle: Text(
+          l.text(
+            'تابع حالة الطلبات وأكد الاستلام عند وصولها.',
+            'Track order status and confirm receipt when delivered.',
+          ),
+        ),
         children: _buyerOrders.map(_buyerOrderTile).toList(),
       ),
     );

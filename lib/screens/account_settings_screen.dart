@@ -1039,7 +1039,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   obscureText: obscureConfirm,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'تأكيد PIN',
+                    labelText: l.text('تأكيد PIN', 'Confirm PIN'),
                     prefixIcon: const Icon(Icons.verified_user_rounded),
                     suffixIcon: IconButton(
                       onPressed: () => setDialogState(

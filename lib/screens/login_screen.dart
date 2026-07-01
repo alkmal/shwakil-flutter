@@ -45,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _registrationEnabled = true;
   bool _hasOfflinePrepaidCards = false;
+  String _selectedCountryCode = PhoneNumberService.countries.first.dialCode;
   String? _supportWhatsapp;
 
   String get _postAuthRoute => widget.redirectRoute?.trim().isNotEmpty == true
@@ -135,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _continueToOtp() async {
-    final username = _usernameController.text.trim();
+    final username = _loginIdentifierInput();
     final password = _passwordController.text;
     final validationMessage = _validateLoginInputs(
       username: username,
@@ -229,6 +230,17 @@ class _LoginScreenState extends State<LoginScreen> {
         username: username,
       );
     }
+  }
+
+  String _loginIdentifierInput() {
+    final raw = _usernameController.text.trim();
+    if (!PhoneNumberService.looksLikePhoneInput(raw)) {
+      return raw;
+    }
+    return PhoneNumberService.normalize(
+      input: raw,
+      defaultDialCode: _selectedCountryCode,
+    );
   }
 
   Future<void> _waitForWebDeviceApproval({
@@ -447,15 +459,25 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 18),
         ],
-        TextField(
-          focusNode: _usernameFocusNode,
-          controller: _usernameController,
-          textInputAction: TextInputAction.next,
-          onSubmitted: (_) => _submitFromUsername(),
-          decoration: InputDecoration(
-            labelText: l.tr('screens_login_screen.005'),
-            prefixIcon: const Icon(Icons.person_outline_rounded),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 132, child: _countrySelector()),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                focusNode: _usernameFocusNode,
+                controller: _usernameController,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.text,
+                onSubmitted: (_) => _submitFromUsername(),
+                decoration: InputDecoration(
+                  labelText: l.tr('screens_login_screen.005'),
+                  prefixIcon: const Icon(Icons.person_outline_rounded),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         TextField(
@@ -559,6 +581,36 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Text(l.text('الدعم', 'Support')),
           ),
       ],
+    );
+  }
+
+  Widget _countrySelector() {
+    return DropdownButtonFormField<String>(
+      initialValue: _selectedCountryCode,
+      isExpanded: true,
+      menuMaxHeight: 420,
+      decoration: const InputDecoration(
+        labelText: 'الدولة',
+        prefixIcon: Icon(Icons.public_rounded, size: 20),
+      ),
+      items: PhoneNumberService.countries
+          .map(
+            (country) => DropdownMenuItem<String>(
+              value: country.dialCode,
+              child: Text(
+                '+${country.dialCode}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      selectedItemBuilder: (context) => PhoneNumberService.countries
+          .map((country) => Text('+${country.dialCode}'))
+          .toList(),
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() => _selectedCountryCode = value);
+      },
     );
   }
 }

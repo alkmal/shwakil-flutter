@@ -97,13 +97,14 @@ class _IssuedCardUsageReportScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('تقارير استخدام البطاقات'),
+        title: Text(l.text('تقارير استخدام البطاقات', 'Card usage reports')),
         actions: [
           IconButton(
-            tooltip: 'أدوات التقرير',
+            tooltip: l.text('أدوات التقرير', 'Report tools'),
             onPressed: _authorized ? _openReportTools : null,
             icon: const Icon(Icons.tune_rounded),
           ),
@@ -246,6 +247,7 @@ class _IssuedCardUsageReportScreenState
   }
 
   Widget _filtersCard() {
+    final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
       borderRadius: BorderRadius.circular(22),
@@ -258,11 +260,11 @@ class _IssuedCardUsageReportScreenState
             width: 210,
             child: DropdownButtonFormField<String>(
               initialValue: _scope,
-              decoration: const InputDecoration(labelText: 'النطاق'),
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('كل البطاقات')),
-                DropdownMenuItem(value: 'private', child: Text('الخاصة')),
-                DropdownMenuItem(value: 'public', child: Text('العامة')),
+              decoration: InputDecoration(labelText: l.text('النطاق', 'Scope')),
+              items: [
+                DropdownMenuItem(value: 'all', child: Text(l.text('كل البطاقات', 'All cards'))),
+                DropdownMenuItem(value: 'private', child: Text(l.text('الخاصة', 'Private'))),
+                DropdownMenuItem(value: 'public', child: Text(l.text('العامة', 'Public'))),
               ],
               onChanged: (value) {
                 if (value == null) return;
@@ -275,7 +277,7 @@ class _IssuedCardUsageReportScreenState
             width: 180,
             child: TextField(
               controller: _fromC,
-              decoration: const InputDecoration(labelText: 'من تاريخ'),
+              decoration: InputDecoration(labelText: l.text('من تاريخ', 'From date')),
               keyboardType: TextInputType.datetime,
             ),
           ),

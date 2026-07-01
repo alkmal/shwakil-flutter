@@ -1094,7 +1094,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildPeriodSelector() {
-    final periods = const [
+    const periods = [
       ('daily', 'اليومي', Icons.today_rounded),
       ('weekly', 'الأسبوعي', Icons.view_week_rounded),
       ('monthly', 'الشهري', Icons.calendar_month_rounded),

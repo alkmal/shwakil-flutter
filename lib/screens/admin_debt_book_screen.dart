@@ -535,16 +535,16 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
                   tabAlignment: TabAlignment.start,
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: EdgeInsets.all(6),
-                  labelPadding: EdgeInsets.symmetric(horizontal: 8),
+                  indicatorPadding: const EdgeInsets.all(6),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                   tabs: [
                     Tab(
                       text: _t('screens_admin_debt_book_screen.042'),
-                      icon: Icon(Icons.people_alt_rounded),
+                      icon: const Icon(Icons.people_alt_rounded),
                     ),
                     Tab(
                       text: _t('screens_admin_debt_book_screen.043'),
-                      icon: Icon(Icons.analytics_rounded),
+                      icon: const Icon(Icons.analytics_rounded),
                     ),
                   ],
                 ),

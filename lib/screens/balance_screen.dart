@@ -978,7 +978,7 @@ class _BalanceScreenState extends State<BalanceScreen>
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('الرصيد والحركات'),
+          title: Text(context.loc.text('الرصيد والحركات', 'Balance & transactions')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
@@ -1408,28 +1408,29 @@ class _BalanceScreenState extends State<BalanceScreen>
   }
 
   Widget _buildAdminProfitSummaryCard({required bool isPhone}) {
+    final l = context.loc;
     final items = [
       _AdminProfitSummaryItem(
         icon: Icons.qr_code_scanner_rounded,
-        label: 'أرباح قراءة البطاقات',
+        label: l.text('أرباح قراءة البطاقات', 'Card scan profits'),
         value: _adminProfitAmount('cardReadProfits'),
         color: AppTheme.success,
       ),
       _AdminProfitSummaryItem(
         icon: Icons.swap_horiz_rounded,
-        label: 'رسوم التحويلات',
+        label: l.text('رسوم التحويلات', 'Transfer fees'),
         value: _adminProfitAmount('transferFees'),
         color: AppTheme.accent,
       ),
       _AdminProfitSummaryItem(
         icon: Icons.toll_rounded,
-        label: 'رسوم التطبيق الأخرى',
+        label: l.text('رسوم التطبيق الأخرى', 'Other app fees'),
         value: _adminProfitAmount('otherAppFees'),
         color: AppTheme.warning,
       ),
       _AdminProfitSummaryItem(
         icon: Icons.summarize_rounded,
-        label: 'إجمالي رسوم التطبيق',
+        label: l.text('إجمالي رسوم التطبيق', 'Total app fees'),
         value: _adminProfitAmount('totalAppFees'),
         color: AppTheme.primary,
       ),
@@ -1460,10 +1461,10 @@ class _BalanceScreenState extends State<BalanceScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ملخص أرباح الإدارة', style: AppTheme.h3),
+                    Text(l.text('ملخص أرباح الإدارة', 'Admin profit summary'), style: AppTheme.h3),
                     const SizedBox(height: 4),
                     Text(
-                      'تظهر كإجماليات فقط ولا تتكرر داخل كشف الحركات.',
+                      l.text('تظهر كإجماليات فقط ولا تتكرر داخل كشف الحركات.', 'Shown as totals only and not repeated in the transaction statement.'),
                       style: AppTheme.caption,
                     ),
                   ],

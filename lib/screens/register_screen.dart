@@ -31,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isCheckingPendingRegistration = true;
   bool _registrationEnabled = true;
   bool _termsAccepted = false;
+  String _selectedCountryCode = _registrationDefaultCountryCode;
   String? _supportWhatsapp;
   String? _pendingReferralCode;
 
@@ -137,10 +138,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _validateContactStep() {
     final l = context.loc;
-    final whatsapp = _registrationWhatsappInput();
     if (!PhoneNumberService.isSupportedMobile(
-      whatsapp,
-      defaultDialCode: _registrationDefaultCountryCode,
+      _whatsappC.text,
+      defaultDialCode: _selectedCountryCode,
     )) {
       return l.tr('screens_register_screen.031');
     }
@@ -179,7 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final otp = await _authService.startRegistration(
         fullName: _fullNameC.text.trim(),
         whatsapp: whatsapp,
-        countryCode: _registrationDefaultCountryCode,
+        countryCode: _selectedCountryCode,
         termsAccepted: true,
         referralPhone: _pendingReferralCode,
       );
@@ -217,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               whatsapp: otp.whatsapp?.trim().isNotEmpty == true
                   ? otp.whatsapp!.trim()
                   : whatsapp,
-              countryCode: _registrationDefaultCountryCode,
+              countryCode: _selectedCountryCode,
               termsAccepted: true,
               referralPhone: _pendingReferralCode,
               pendingRegistrationId: pendingRegistrationId,
@@ -251,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             fullName: _fullNameC.text.trim(),
             username: '',
             whatsapp: whatsapp,
-            countryCode: _registrationDefaultCountryCode,
+            countryCode: _selectedCountryCode,
             termsAccepted: true,
             referralPhone: _pendingReferralCode,
             pendingRegistrationId: pendingRegistrationId,
@@ -281,14 +281,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _registrationWhatsappInput() {
     return PhoneNumberService.normalize(
       input: _whatsappC.text,
-      defaultDialCode: _registrationDefaultCountryCode,
+      defaultDialCode: _selectedCountryCode,
     );
   }
 
   Map<String, dynamic> _registrationErrorContext({required String action}) {
     final normalizedWhatsapp = PhoneNumberService.normalize(
       input: _whatsappC.text,
-      defaultDialCode: _registrationDefaultCountryCode,
+      defaultDialCode: _selectedCountryCode,
     );
     return {
       'screen': 'register',
@@ -296,7 +296,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       'enteredFullName': _fullNameC.text.trim(),
       'enteredWhatsapp': _whatsappC.text.trim(),
       'normalizedWhatsapp': normalizedWhatsapp,
-      'countryCode': 'auto',
+      'countryCode': _selectedCountryCode,
       'defaultCountryCode': _registrationDefaultCountryCode,
       'termsAccepted': _termsAccepted,
       'referralPhone': _pendingReferralCode ?? '',
@@ -306,9 +306,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isCheckingPendingRegistration) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: AppTheme.background,
-        body: const Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -337,11 +337,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Icons.badge_rounded,
             ),
             const SizedBox(height: 16),
-            _field(
-              l.tr('screens_register_screen.017'),
-              _whatsappC,
-              Icons.chat_rounded,
-              type: TextInputType.phone,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: 132, child: _countrySelector()),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _field(
+                    l.tr('screens_register_screen.017'),
+                    _whatsappC,
+                    Icons.chat_rounded,
+                    type: TextInputType.phone,
+                  ),
+                ),
+              ],
             ),
             if ((_pendingReferralCode ?? '').isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -534,6 +543,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
         helperText: helperText,
         suffixIcon: suffixIcon,
       ),
+    );
+  }
+
+  Widget _countrySelector() {
+    return DropdownButtonFormField<String>(
+      initialValue: _selectedCountryCode,
+      isExpanded: true,
+      menuMaxHeight: 420,
+      decoration: const InputDecoration(
+        labelText: 'الدولة',
+        prefixIcon: Icon(Icons.public_rounded, size: 20),
+      ),
+      items: PhoneNumberService.countries
+          .map(
+            (country) => DropdownMenuItem<String>(
+              value: country.dialCode,
+              child: Text(
+                '+${country.dialCode}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      selectedItemBuilder: (context) => PhoneNumberService.countries
+          .map((country) => Text('+${country.dialCode}'))
+          .toList(),
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() => _selectedCountryCode = value);
+      },
     );
   }
 }

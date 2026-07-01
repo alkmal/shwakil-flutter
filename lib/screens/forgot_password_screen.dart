@@ -360,7 +360,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Text('استعادة الحساب', style: AppTheme.h2),
+                      Text(l.text('استعادة الحساب', 'Account recovery'), style: AppTheme.h2),
                       const SizedBox(height: 18),
                       if ((_supportWhatsapp ?? '').isNotEmpty) ...[
                         SupportContactCard(
@@ -382,7 +382,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         child: Column(
                           children: [
-                            Text('تحقق من بياناتك', style: AppTheme.bodyBold),
+                            Text(l.text('تحقق من بياناتك', 'Verify your details'), style: AppTheme.bodyBold),
                             const SizedBox(height: 12),
                             TextField(
                               controller: _nationalIdController,
