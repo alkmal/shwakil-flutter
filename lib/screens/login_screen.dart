@@ -459,25 +459,22 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 18),
         ],
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(width: 132, child: _countrySelector()),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                focusNode: _usernameFocusNode,
-                controller: _usernameController,
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.text,
-                onSubmitted: (_) => _submitFromUsername(),
-                decoration: InputDecoration(
-                  labelText: l.tr('screens_login_screen.005'),
-                  prefixIcon: const Icon(Icons.person_outline_rounded),
-                ),
-              ),
+        _countrySelector(),
+        const SizedBox(height: 12),
+        TextField(
+          focusNode: _usernameFocusNode,
+          controller: _usernameController,
+          textInputAction: TextInputAction.next,
+          keyboardType: TextInputType.text,
+          onSubmitted: (_) => _submitFromUsername(),
+          decoration: InputDecoration(
+            labelText: l.tr('screens_login_screen.005'),
+            prefixIcon: const Icon(Icons.person_outline_rounded),
+            helperText: l.text(
+              'اكتب اسم المستخدم أو رقم الهاتف بدون ضغط بجانب كود الدولة.',
+              'Enter username or phone number.',
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -515,7 +512,10 @@ class _LoginScreenState extends State<LoginScreen> {
           SizedBox(
             width: double.infinity,
             child: ShwakelButton(
-              label: l.text('فتح بطاقات الدفع المحفوظة', 'Open saved prepaid cards'),
+              label: l.text(
+                'فتح بطاقات الدفع المحفوظة',
+                'Open saved prepaid cards',
+              ),
               onPressed: _openOfflinePrepaidCards,
               icon: Icons.credit_card_rounded,
               isSecondary: true,
@@ -585,32 +585,141 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _countrySelector() {
-    return DropdownButtonFormField<String>(
-      initialValue: _selectedCountryCode,
-      isExpanded: true,
-      menuMaxHeight: 420,
-      decoration: const InputDecoration(
-        labelText: 'الدولة',
-        prefixIcon: Icon(Icons.public_rounded, size: 20),
+    final selected = PhoneNumberService.countries.firstWhere(
+      (country) => country.dialCode == _selectedCountryCode,
+      orElse: () => PhoneNumberService.countries.first,
+    );
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: _pickCountry,
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'الدولة',
+          prefixIcon: Icon(Icons.public_rounded, size: 20),
+          suffixIcon: Icon(Icons.search_rounded),
+        ),
+        child: Text(
+          '${selected.name} (+${selected.dialCode})',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.bodyBold,
+        ),
       ),
-      items: PhoneNumberService.countries
-          .map(
-            (country) => DropdownMenuItem<String>(
-              value: country.dialCode,
-              child: Text(
-                '+${country.dialCode}',
-                overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Future<void> _pickCountry() async {
+    final picked = await showModalBottomSheet<CountryOption>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => const _CountryPickerSheet(),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _selectedCountryCode = picked.dialCode);
+  }
+}
+
+class _CountryPickerSheet extends StatefulWidget {
+  const _CountryPickerSheet();
+
+  @override
+  State<_CountryPickerSheet> createState() => _CountryPickerSheetState();
+}
+
+class _CountryPickerSheetState extends State<_CountryPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<CountryOption> get _filteredCountries {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return PhoneNumberService.countries;
+    final digits = query.replaceAll(RegExp(r'\D'), '');
+    return PhoneNumberService.countries.where((country) {
+      final name = country.name.toLowerCase();
+      return name.contains(query) ||
+          country.flag.toLowerCase().contains(query) ||
+          (digits.isNotEmpty && country.dialCode.contains(digits));
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final countries = _filteredCountries;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.78,
+      minChildSize: 0.45,
+      maxChildSize: 0.94,
+      builder: (context, scrollController) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 14,
+          bottom: 16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
             ),
-          )
-          .toList(),
-      selectedItemBuilder: (context) => PhoneNumberService.countries
-          .map((country) => Text('+${country.dialCode}'))
-          .toList(),
-      onChanged: (value) {
-        if (value == null) return;
-        setState(() => _selectedCountryCode = value);
-      },
+            const SizedBox(height: 16),
+            Text('اختر الدولة', style: AppTheme.h3),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'ابحث باسم الدولة أو كود الاتصال',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: countries.isEmpty
+                  ? const Center(child: Text('لا توجد دولة بهذا البحث'))
+                  : ListView.separated(
+                      controller: scrollController,
+                      itemCount: countries.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final country = countries[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            child: Text(
+                              country.flag,
+                              style: AppTheme.caption.copyWith(fontSize: 11),
+                            ),
+                          ),
+                          title: Text(country.name),
+                          subtitle: Text('+${country.dialCode}'),
+                          onTap: () => Navigator.pop(context, country),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

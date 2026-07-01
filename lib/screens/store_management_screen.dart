@@ -23,6 +23,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   final _api = ApiService();
   final _auth = AuthService();
   final _store = StoreManagementService();
+  final TextEditingController _productSearchController =
+      TextEditingController();
+  final TextEditingController _partySearchController = TextEditingController();
   late final TabController _tabs = TabController(length: 5, vsync: this)
     ..addListener(() => setState(() {}));
   Map<String, dynamic>? _user;
@@ -32,6 +35,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   bool _loading = true;
   bool _syncing = false;
   String? _error;
+  String _productSearchQuery = '';
+  String _partySearchQuery = '';
 
   AppPermissions get _permissions => AppPermissions.fromUser(_user);
   String get _userId => _user?['id']?.toString() ?? '';
@@ -60,6 +65,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
 
   @override
   void dispose() {
+    _productSearchController.dispose();
+    _partySearchController.dispose();
     _tabs.dispose();
     super.dispose();
   }
@@ -151,17 +158,22 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final confirmed = await _confirm(
       title: l.text('حذف عملية معلقة', 'Delete pending operation'),
       message: l.text(
-          'سيتم حذف هذه العملية من قائمة المزامنة المحلية. استخدمها فقط للعمليات القديمة أو الخاطئة التي تمنع المزامنة.',
-          'This operation will be removed from the local sync queue. Use only for old or incorrect operations blocking sync.'),
+        'سيتم حذف هذه العملية من قائمة المزامنة المحلية. استخدمها فقط للعمليات القديمة أو الخاطئة التي تمنع المزامنة.',
+        'This operation will be removed from the local sync queue. Use only for old or incorrect operations blocking sync.',
+      ),
       actionLabel: l.text('حذف العملية', 'Delete operation'),
     );
     if (confirmed != true) return;
     await _store.removePendingOperation(userId: _userId, opId: opId);
     await _reloadLocalPending();
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l.text('تم حذف العملية المعلقة.', 'Pending operation deleted.'))));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          l.text('تم حذف العملية المعلقة.', 'Pending operation deleted.'),
+        ),
+      ),
+    );
   }
 
   Future<void> _clearPendingOperations() async {
@@ -169,8 +181,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final confirmed = await _confirm(
       title: l.text('حذف كل المزامنات المعلقة', 'Delete all pending syncs'),
       message: l.text(
-          'سيتم حذف كل العمليات المحلية بانتظار المزامنة. بعد ذلك سنحاول تحديث البيانات من السيرفر حتى تعود الشاشة لآخر بيانات مؤكدة.',
-          'All local operations awaiting sync will be deleted. Afterwards we will try to refresh data from the server.'),
+        'سيتم حذف كل العمليات المحلية بانتظار المزامنة. بعد ذلك سنحاول تحديث البيانات من السيرفر حتى تعود الشاشة لآخر بيانات مؤكدة.',
+        'All local operations awaiting sync will be deleted. Afterwards we will try to refresh data from the server.',
+      ),
       actionLabel: l.text('حذف الكل', 'Delete all'),
     );
     if (confirmed != true) return;
@@ -305,9 +318,13 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       final publicOrders = await _fetchPublicOrders();
       if (!mounted) return;
       setState(() => _publicOrders = publicOrders);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.loc.text('تم تحديث حالة الطلب.', 'Order status updated.'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.loc.text('تم تحديث حالة الطلب.', 'Order status updated.'),
+          ),
+        ),
+      );
       await _sync();
     } catch (error) {
       if (!mounted) return;
@@ -350,7 +367,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         children: [
           TextField(
             controller: storeName,
-            decoration: InputDecoration(labelText: l.text('اسم المحل الداخلي', 'Internal store name')),
+            decoration: InputDecoration(
+              labelText: l.text('اسم المحل الداخلي', 'Internal store name'),
+            ),
           ),
           const SizedBox(height: 10),
           SwitchListTile(
@@ -358,34 +377,54 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             value: publicEnabled,
             title: Text(l.text('إظهار المتجر في التطبيق', 'Show store in app')),
             subtitle: Text(
-              l.text('لن تظهر المنتجات إلا إذا تم تفعيلها كمنتجات عامة.', 'Products will only appear if enabled as public products.'),
+              l.text(
+                'لن تظهر المنتجات إلا إذا تم تفعيلها كمنتجات عامة.',
+                'Products will only appear if enabled as public products.',
+              ),
             ),
             onChanged: (value) => setDialogState(() => publicEnabled = value),
           ),
           TextField(
             controller: publicName,
             decoration: InputDecoration(
-              labelText: l.text('اسم المتجر الظاهر للعامة', 'Public store name'),
+              labelText: l.text(
+                'اسم المتجر الظاهر للعامة',
+                'Public store name',
+              ),
             ),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: publicDescription,
             maxLines: 3,
-            decoration: InputDecoration(labelText: l.text('وصف مختصر للمتجر', 'Short store description')),
+            decoration: InputDecoration(
+              labelText: l.text('وصف مختصر للمتجر', 'Short store description'),
+            ),
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             initialValue: publicOrderMode,
-            decoration: InputDecoration(labelText: l.text('آلية الطلب', 'Order mode')),
+            decoration: InputDecoration(
+              labelText: l.text('آلية الطلب', 'Order mode'),
+            ),
             items: [
               DropdownMenuItem(
                 value: 'manual',
-                child: Text(l.text('تأكيد يدوي من التاجر', 'Manual confirmation by merchant')),
+                child: Text(
+                  l.text(
+                    'تأكيد يدوي من التاجر',
+                    'Manual confirmation by merchant',
+                  ),
+                ),
               ),
               DropdownMenuItem(
                 value: 'auto',
-                child: Text(l.text('مستقبلاً: تأكيد تلقائي حسب المتوفر', 'Future: automatic confirmation based on stock')),
+                child: Text(
+                  l.text(
+                    'مستقبلاً: تأكيد تلقائي حسب المتوفر',
+                    'Future: automatic confirmation based on stock',
+                  ),
+                ),
               ),
             ],
             onChanged: (value) =>
@@ -395,7 +434,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           TextField(
             controller: minOrder,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: l.text('الحد الأدنى للطلب', 'Minimum order amount')),
+            decoration: InputDecoration(
+              labelText: l.text('الحد الأدنى للطلب', 'Minimum order amount'),
+            ),
           ),
         ],
       ),
@@ -443,17 +484,33 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         children: [
           TextField(
             controller: name,
-            decoration: InputDecoration(labelText: l.text('اسم الصنف', 'Item name')),
+            decoration: InputDecoration(
+              labelText: l.text('اسم الصنف', 'Item name'),
+            ),
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             initialValue: baseUnit,
-            decoration: InputDecoration(labelText: l.text('الوحدة الأساسية', 'Base unit')),
+            decoration: InputDecoration(
+              labelText: l.text('الوحدة الأساسية', 'Base unit'),
+            ),
             items: [
-              DropdownMenuItem(value: 'piece', child: Text(l.text('حبة', 'Piece'))),
-              DropdownMenuItem(value: 'kg', child: Text(l.text('كيلو', 'Kilogram'))),
-              DropdownMenuItem(value: 'liter', child: Text(l.text('لتر', 'Liter'))),
-              DropdownMenuItem(value: 'box', child: Text(l.text('صندوق', 'Box'))),
+              DropdownMenuItem(
+                value: 'piece',
+                child: Text(l.text('حبة', 'Piece')),
+              ),
+              DropdownMenuItem(
+                value: 'kg',
+                child: Text(l.text('كيلو', 'Kilogram')),
+              ),
+              DropdownMenuItem(
+                value: 'liter',
+                child: Text(l.text('لتر', 'Liter')),
+              ),
+              DropdownMenuItem(
+                value: 'box',
+                child: Text(l.text('صندوق', 'Box')),
+              ),
             ],
             onChanged: (value) =>
                 setDialogState(() => baseUnit = value ?? 'piece'),
@@ -462,14 +519,29 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           DropdownButtonFormField<String>(
             initialValue: packageUnit,
             decoration: InputDecoration(
-              labelText: l.text('وحدة التجميع أو الكمية الكبيرة', 'Package or bulk unit'),
-              helperText: l.text('مثال: كيس، كرتونة، مشطاح.', 'Example: bag, carton, pallet.'),
+              labelText: l.text(
+                'وحدة التجميع أو الكمية الكبيرة',
+                'Package or bulk unit',
+              ),
+              helperText: l.text(
+                'مثال: كيس، كرتونة، مشطاح.',
+                'Example: bag, carton, pallet.',
+              ),
             ),
             items: [
-              DropdownMenuItem(value: 'carton', child: Text(l.text('كرتونة', 'Carton'))),
+              DropdownMenuItem(
+                value: 'carton',
+                child: Text(l.text('كرتونة', 'Carton')),
+              ),
               DropdownMenuItem(value: 'bag', child: Text(l.text('كيس', 'Bag'))),
-              DropdownMenuItem(value: 'box', child: Text(l.text('صندوق', 'Box'))),
-              DropdownMenuItem(value: 'pallet', child: Text(l.text('مشطاح', 'Pallet'))),
+              DropdownMenuItem(
+                value: 'box',
+                child: Text(l.text('صندوق', 'Box')),
+              ),
+              DropdownMenuItem(
+                value: 'pallet',
+                child: Text(l.text('مشطاح', 'Pallet')),
+              ),
             ],
             onChanged: (value) =>
                 setDialogState(() => packageUnit = value ?? 'carton'),
@@ -479,15 +551,24 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             controller: factor,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: l.text('عدد الوحدات الأساسية داخل وحدة التجميع', 'Number of base units per package unit'),
-              helperText: l.text('مثال: الكرتونة = 24 حبة، المشطاح = 50 كرتونة.', 'Example: carton = 24 pieces, pallet = 50 cartons.'),
+              labelText: l.text(
+                'عدد الوحدات الأساسية داخل وحدة التجميع',
+                'Number of base units per package unit',
+              ),
+              helperText: l.text(
+                'مثال: الكرتونة = 24 حبة، المشطاح = 50 كرتونة.',
+                'Example: carton = 24 pieces, pallet = 50 cartons.',
+              ),
             ),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: barcode,
             decoration: InputDecoration(
-              labelText: l.text('باركود الصنف أو وحدة التجميع', 'Item or package barcode'),
+              labelText: l.text(
+                'باركود الصنف أو وحدة التجميع',
+                'Item or package barcode',
+              ),
             ),
           ),
           Align(
@@ -496,7 +577,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               onPressed: () async {
                 final value = await _scanBarcode(
                   title: l.text('قراءة باركود الصنف', 'Scan item barcode'),
-                  description: l.text('وجه الكاميرا إلى باركود الكرتونة أو الوحدة.', 'Point the camera at the carton or unit barcode.'),
+                  description: l.text(
+                    'وجه الكاميرا إلى باركود الكرتونة أو الوحدة.',
+                    'Point the camera at the carton or unit barcode.',
+                  ),
                 );
                 if (value != null) {
                   barcode.text = value;
@@ -511,8 +595,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             controller: purchasePrice,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: l.text('سعر شراء الوحدة الأساسية', 'Base unit purchase price'),
-              helperText: l.text('يستخدم تلقائيًا عند فواتير الشراء.', 'Used automatically in purchase invoices.'),
+              labelText: l.text(
+                'سعر شراء الوحدة الأساسية',
+                'Base unit purchase price',
+              ),
+              helperText: l.text(
+                'يستخدم تلقائيًا عند فواتير الشراء.',
+                'Used automatically in purchase invoices.',
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -520,8 +610,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             controller: salePrice,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: l.text('سعر بيع الوحدة الأساسية', 'Base unit sale price'),
-              helperText: l.text('يظهر تلقائيًا عند البيع أو POS.', 'Appears automatically when selling or at POS.'),
+              labelText: l.text(
+                'سعر بيع الوحدة الأساسية',
+                'Base unit sale price',
+              ),
+              helperText: l.text(
+                'يظهر تلقائيًا عند البيع أو POS.',
+                'Appears automatically when selling or at POS.',
+              ),
             ),
           ),
           if (_permissions.canManagePublicStorefront) ...[
@@ -529,15 +625,32 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: publicVisible,
-              title: Text(l.text('إظهار الصنف في المتجر العام', 'Show item in public store')),
-              subtitle: Text(l.text('لن يظهر إلا إذا كان المتجر نفسه منشورًا.', 'Only visible if the store itself is published.')),
+              title: Text(
+                l.text(
+                  'إظهار الصنف في المتجر العام',
+                  'Show item in public store',
+                ),
+              ),
+              subtitle: Text(
+                l.text(
+                  'لن يظهر إلا إذا كان المتجر نفسه منشورًا.',
+                  'Only visible if the store itself is published.',
+                ),
+              ),
               onChanged: (value) => setDialogState(() => publicVisible = value),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: publicAllowOnlineSale,
-              title: Text(l.text('السماح بالشراء من التطبيق', 'Allow purchase from app')),
-              subtitle: Text(l.text('يتم إنشاء طلب للمتجر حسب الكمية المتاحة.', 'An order is created based on available quantity.')),
+              title: Text(
+                l.text('السماح بالشراء من التطبيق', 'Allow purchase from app'),
+              ),
+              subtitle: Text(
+                l.text(
+                  'يتم إنشاء طلب للمتجر حسب الكمية المتاحة.',
+                  'An order is created based on available quantity.',
+                ),
+              ),
               onChanged: publicVisible
                   ? (value) =>
                         setDialogState(() => publicAllowOnlineSale = value)
@@ -550,8 +663,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 decimal: true,
               ),
               decoration: InputDecoration(
-                labelText: l.text('أقصى كمية مسموحة للطلب', 'Maximum allowed order quantity'),
-                helperText: l.text('اتركه فارغًا لاستخدام المتوفر بالمخزون.', 'Leave empty to use available stock.'),
+                labelText: l.text(
+                  'أقصى كمية مسموحة للطلب',
+                  'Maximum allowed order quantity',
+                ),
+                helperText: l.text(
+                  'اتركه فارغًا لاستخدام المتوفر بالمخزون.',
+                  'Leave empty to use available stock.',
+                ),
               ),
             ),
           ],
@@ -642,11 +761,22 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           children: [
             DropdownButtonFormField<String>(
               initialValue: type,
-              decoration: InputDecoration(labelText: l.text('نوع الحساب', 'Account type')),
+              decoration: InputDecoration(
+                labelText: l.text('نوع الحساب', 'Account type'),
+              ),
               items: [
-                DropdownMenuItem(value: 'customer', child: Text(l.text('زبون', 'Customer'))),
-                DropdownMenuItem(value: 'supplier', child: Text(l.text('تاجر', 'Supplier'))),
-                DropdownMenuItem(value: 'both', child: Text(l.text('زبون وتاجر', 'Customer and supplier'))),
+                DropdownMenuItem(
+                  value: 'customer',
+                  child: Text(l.text('زبون', 'Customer')),
+                ),
+                DropdownMenuItem(
+                  value: 'supplier',
+                  child: Text(l.text('تاجر', 'Supplier')),
+                ),
+                DropdownMenuItem(
+                  value: 'both',
+                  child: Text(l.text('زبون وتاجر', 'Customer and supplier')),
+                ),
               ],
               onChanged: (value) =>
                   setDialogState(() => type = value ?? 'customer'),
@@ -663,12 +793,17 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             DropdownButtonFormField<String?>(
               initialValue: selectedDebtBookAccountId,
               decoration: InputDecoration(
-                labelText: l.text('اعتماد حساب من دفتر الديون', 'Link account from debt book'),
+                labelText: l.text(
+                  'اعتماد حساب من دفتر الديون',
+                  'Link account from debt book',
+                ),
               ),
               items: [
                 DropdownMenuItem<String?>(
                   value: null,
-                  child: Text(l.text('حساب جديد غير مربوط', 'New unlinked account')),
+                  child: Text(
+                    l.text('حساب جديد غير مربوط', 'New unlinked account'),
+                  ),
                 ),
                 ...debtAccounts.map(
                   (account) => DropdownMenuItem<String?>(
@@ -690,7 +825,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             ),
             TextField(
               controller: phone,
-              decoration: InputDecoration(labelText: l.text('رقم الهاتف', 'Phone number')),
+              decoration: InputDecoration(
+                labelText: l.text('رقم الهاتف', 'Phone number'),
+              ),
             ),
           ],
         );
@@ -743,6 +880,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     String invoiceType = _permissions.canCreateStoreSales ? 'sale' : 'purchase';
     String? partyId;
     String? manualProductId = _products.first['id']?.toString();
+    String partySearchQuery = '';
+    String productSearchQuery = '';
     String paymentStatus = 'paid';
     final paid = TextEditingController(text: '0');
     final discount = TextEditingController(text: '0');
@@ -829,7 +968,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final accepted = await _openFullScreenForm(
       title: invoiceType == 'sale'
           ? l.text('نقطة بيع POS - فاتورة بيع', 'POS - Sale invoice')
-          : l.text('نقطة شراء - فاتورة مشتريات', 'Purchase point - Purchase invoice'),
+          : l.text(
+              'نقطة شراء - فاتورة مشتريات',
+              'Purchase point - Purchase invoice',
+            ),
       actionLabel: l.text('حفظ الفاتورة', 'Save invoice'),
       canSubmit: () =>
           lines.isNotEmpty && !(invoiceType == 'purchase' && partyId == null),
@@ -840,6 +982,35 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               ? type == 'customer' || type == 'both'
               : type == 'supplier' || type == 'both';
         }).toList();
+        final filteredParties = _filterParties(
+          allowedParties,
+          partySearchQuery,
+        );
+        final selectedParty = allowedParties.firstWhere(
+          (party) => party['id']?.toString() == partyId,
+          orElse: () => const <String, dynamic>{},
+        );
+        final partyOptions = [
+          if (selectedParty.isNotEmpty &&
+              !filteredParties.any(
+                (party) => party['id']?.toString() == partyId,
+              ))
+            selectedParty,
+          ...filteredParties,
+        ];
+        final filteredProducts = _filterProducts(_products, productSearchQuery);
+        final selectedProduct = _products.firstWhere(
+          (product) => product['id']?.toString() == manualProductId,
+          orElse: () => const <String, dynamic>{},
+        );
+        final productOptions = [
+          if (selectedProduct.isNotEmpty &&
+              !filteredProducts.any(
+                (product) => product['id']?.toString() == manualProductId,
+              ))
+            selectedProduct,
+          ...filteredProducts,
+        ];
         final subtotal = lines.fold<double>(
           0,
           (sum, line) =>
@@ -855,14 +1026,21 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         Future<void> scanIntoInvoice() async {
           final barcode = await _scanBarcode(
             title: l.text('قراءة باركود الصنف', 'Scan item barcode'),
-            description: l.text('امسح باركود المنتج ليتم إضافته للفاتورة مباشرة.', 'Scan the product barcode to add it directly to the invoice.'),
+            description: l.text(
+              'امسح باركود المنتج ليتم إضافته للفاتورة مباشرة.',
+              'Scan the product barcode to add it directly to the invoice.',
+            ),
           );
           if (barcode == null) return;
           final match = findByBarcode(barcode);
           if (match == null) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${l.text('لا يوجد صنف بهذا الباركود', 'No item found with barcode')}: $barcode')),
+                SnackBar(
+                  content: Text(
+                    '${l.text('لا يوجد صنف بهذا الباركود', 'No item found with barcode')}: $barcode',
+                  ),
+                ),
               );
             }
             return;
@@ -895,9 +1073,15 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             SegmentedButton<String>(
               segments: [
                 if (_permissions.canCreateStoreSales)
-                  ButtonSegment(value: 'sale', label: Text(l.text('بيع', 'Sale'))),
+                  ButtonSegment(
+                    value: 'sale',
+                    label: Text(l.text('بيع', 'Sale')),
+                  ),
                 if (_permissions.canCreateStorePurchases)
-                  ButtonSegment(value: 'purchase', label: Text(l.text('شراء', 'Purchase'))),
+                  ButtonSegment(
+                    value: 'purchase',
+                    label: Text(l.text('شراء', 'Purchase')),
+                  ),
               ],
               selected: {invoiceType},
               onSelectionChanged: (selection) {
@@ -909,10 +1093,31 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               },
             ),
             const SizedBox(height: 12),
+            TextField(
+              decoration: InputDecoration(
+                labelText: invoiceType == 'sale'
+                    ? l.text('بحث في الزبائن', 'Search customers')
+                    : l.text('بحث في التجار', 'Search suppliers'),
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: partySearchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: l.text('مسح البحث', 'Clear search'),
+                        onPressed: () =>
+                            setDialogState(() => partySearchQuery = ''),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+              ),
+              onChanged: (value) =>
+                  setDialogState(() => partySearchQuery = value),
+            ),
+            const SizedBox(height: 10),
             DropdownButtonFormField<String?>(
               initialValue: partyId,
               decoration: InputDecoration(
-                labelText: invoiceType == 'sale' ? l.text('الزبون', 'Customer') : l.text('التاجر المطلوب', 'Required supplier'),
+                labelText: invoiceType == 'sale'
+                    ? l.text('الزبون', 'Customer')
+                    : l.text('التاجر المطلوب', 'Required supplier'),
               ),
               items: [
                 if (invoiceType == 'sale')
@@ -920,7 +1125,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                     value: null,
                     child: Text(l.text('زبون نقدي', 'Cash customer')),
                   ),
-                ...allowedParties.map(
+                ...partyOptions.map(
                   (party) => DropdownMenuItem<String?>(
                     value: party['id']?.toString(),
                     child: Text(party['name']?.toString() ?? ''),
@@ -938,7 +1143,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                   decoration: InputDecoration(
                     labelText: l.text('إضافة صنف يدويًا', 'Add item manually'),
                   ),
-                  items: _products
+                  items: productOptions
                       .map(
                         (item) => DropdownMenuItem(
                           value: item['id']?.toString(),
@@ -974,22 +1179,72 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 if (compact) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [selector, const SizedBox(height: 8), buttons],
+                    children: [
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: l.text('بحث في الأصناف', 'Search items'),
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: productSearchQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: l.text('مسح البحث', 'Clear search'),
+                                  onPressed: () => setDialogState(
+                                    () => productSearchQuery = '',
+                                  ),
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                        ),
+                        onChanged: (value) =>
+                            setDialogState(() => productSearchQuery = value),
+                      ),
+                      const SizedBox(height: 8),
+                      selector,
+                      const SizedBox(height: 8),
+                      buttons,
+                    ],
                   );
                 }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: selector),
-                    const SizedBox(width: 8),
-                    buttons,
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: l.text('بحث في الأصناف', 'Search items'),
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: productSearchQuery.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: l.text('مسح البحث', 'Clear search'),
+                                onPressed: () => setDialogState(
+                                  () => productSearchQuery = '',
+                                ),
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                      ),
+                      onChanged: (value) =>
+                          setDialogState(() => productSearchQuery = value),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: selector),
+                        const SizedBox(width: 8),
+                        buttons,
+                      ],
+                    ),
                   ],
                 );
               },
             ),
             const SizedBox(height: 12),
             if (lines.isEmpty)
-              Text(l.text('أضف صنفًا واحدًا على الأقل للفاتورة.', 'Add at least one item to the invoice.'))
+              Text(
+                l.text(
+                  'أضف صنفًا واحدًا على الأقل للفاتورة.',
+                  'Add at least one item to the invoice.',
+                ),
+              )
             else
               ...lines.asMap().entries.map((entry) {
                 final index = entry.key;
@@ -1078,7 +1333,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                                         decimal: true,
                                       ),
                                   decoration: InputDecoration(
-                                    labelText: l.text('سعر البيع لاحقًا', 'Future sale price'),
+                                    labelText: l.text(
+                                      'سعر البيع لاحقًا',
+                                      'Future sale price',
+                                    ),
                                   ),
                                   onChanged: (value) => setDialogState(
                                     () => line['salePrice'] =
@@ -1104,7 +1362,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                           },
                         ),
                         const SizedBox(height: 6),
-                        Text('${l.text('المجموع', 'Total')}: ${_money(lineTotal)}'),
+                        Text(
+                          '${l.text('المجموع', 'Total')}: ${_money(lineTotal)}',
+                        ),
                       ],
                     ),
                   ),
@@ -1122,14 +1382,22 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: paymentStatus,
-              decoration: InputDecoration(labelText: l.text('حالة الفاتورة', 'Invoice status')),
+              decoration: InputDecoration(
+                labelText: l.text('حالة الفاتورة', 'Invoice status'),
+              ),
               items: [
-                DropdownMenuItem(value: 'paid', child: Text(l.text('مدفوعة بالكامل', 'Fully paid'))),
+                DropdownMenuItem(
+                  value: 'paid',
+                  child: Text(l.text('مدفوعة بالكامل', 'Fully paid')),
+                ),
                 DropdownMenuItem(
                   value: 'partial',
                   child: Text(l.text('مدفوعة جزئيًا', 'Partially paid')),
                 ),
-                DropdownMenuItem(value: 'debt', child: Text(l.text('دين بالكامل', 'Full debt'))),
+                DropdownMenuItem(
+                  value: 'debt',
+                  child: Text(l.text('دين بالكامل', 'Full debt')),
+                ),
               ],
               onChanged: (value) =>
                   setDialogState(() => paymentStatus = value ?? 'paid'),
@@ -1142,7 +1410,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: InputDecoration(labelText: l.text('المبلغ المدفوع', 'Amount paid')),
+                decoration: InputDecoration(
+                  labelText: l.text('المبلغ المدفوع', 'Amount paid'),
+                ),
               ),
             ],
             const SizedBox(height: 14),
@@ -1214,7 +1484,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final amount = TextEditingController(text: due.toStringAsFixed(2));
     final l = context.loc;
     final accepted = await _openFullScreenForm(
-      title: '${l.text('تسجيل دفعة', 'Record payment')} ${invoice['invoiceNumber']}',
+      title:
+          '${l.text('تسجيل دفعة', 'Record payment')} ${invoice['invoiceNumber']}',
       actionLabel: l.text('حفظ الدفعة', 'Save payment'),
       canSubmit: () => (double.tryParse(amount.text) ?? 0) > 0,
       builder: (context, setFormState) => Column(
@@ -1263,7 +1534,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(workspace['name']?.toString() ?? l.text('إدارة المحل', 'Store management')),
+        title: Text(
+          workspace['name']?.toString() ??
+              l.text('إدارة المحل', 'Store management'),
+        ),
         actions: [
           IconButton(
             onPressed: _syncing ? null : _sync,
@@ -1281,11 +1555,26 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           tabs: [
-            Tab(text: l.text('الرئيسية', 'Dashboard'), icon: const Icon(Icons.dashboard_rounded)),
-            Tab(text: l.text('المخزون', 'Inventory'), icon: const Icon(Icons.inventory_2_rounded)),
-            Tab(text: l.text('الفواتير', 'Invoices'), icon: const Icon(Icons.receipt_long_rounded)),
-            Tab(text: l.text('الحسابات', 'Accounts'), icon: const Icon(Icons.people_alt_rounded)),
-            Tab(text: l.text('التقارير', 'Reports'), icon: const Icon(Icons.insights_rounded)),
+            Tab(
+              text: l.text('الرئيسية', 'Dashboard'),
+              icon: const Icon(Icons.dashboard_rounded),
+            ),
+            Tab(
+              text: l.text('المخزون', 'Inventory'),
+              icon: const Icon(Icons.inventory_2_rounded),
+            ),
+            Tab(
+              text: l.text('الفواتير', 'Invoices'),
+              icon: const Icon(Icons.receipt_long_rounded),
+            ),
+            Tab(
+              text: l.text('الحسابات', 'Accounts'),
+              icon: const Icon(Icons.people_alt_rounded),
+            ),
+            Tab(
+              text: l.text('التقارير', 'Reports'),
+              icon: const Icon(Icons.insights_rounded),
+            ),
           ],
         ),
       ),
@@ -1363,12 +1652,32 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         ? Map<String, dynamic>.from(_snapshot['workspace'] as Map)
         : const <String, dynamic>{};
     final cards = [
-      (l.text('مبيعات اليوم', "Today's sales"), _money(_summary['salesToday']), Icons.point_of_sale),
+      (
+        l.text('مبيعات اليوم', "Today's sales"),
+        _money(_summary['salesToday']),
+        Icons.point_of_sale,
+      ),
       if (_permissions.canViewStoreProfits)
-        (l.text('أرباح اليوم', "Today's profits"), _money(_summary['profitToday']), Icons.trending_up),
-      (l.text('قيمة المخزون', 'Inventory value'), _money(_summary['inventoryValue']), Icons.warehouse),
-      (l.text('ديون الزبائن', 'Customer debts'), _money(_summary['customerDebts']), Icons.person),
-      (l.text('ديون التجار', 'Supplier debts'), _money(_summary['supplierDebts']), Icons.local_shipping),
+        (
+          l.text('أرباح اليوم', "Today's profits"),
+          _money(_summary['profitToday']),
+          Icons.trending_up,
+        ),
+      (
+        l.text('قيمة المخزون', 'Inventory value'),
+        _money(_summary['inventoryValue']),
+        Icons.warehouse,
+      ),
+      (
+        l.text('ديون الزبائن', 'Customer debts'),
+        _money(_summary['customerDebts']),
+        Icons.person,
+      ),
+      (
+        l.text('ديون التجار', 'Supplier debts'),
+        _money(_summary['supplierDebts']),
+        Icons.local_shipping,
+      ),
     ];
     return ListView(
       children: [
@@ -1440,11 +1749,23 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               builder: (context, constraints) {
                 final enabled = workspace['publicEnabled'] == true;
                 final status = enabled
-                    ? l.text('متجرك ظاهر للعامة', 'Your store is visible to the public')
-                    : l.text('متجرك غير ظاهر للعامة', 'Your store is not visible to the public');
+                    ? l.text(
+                        'متجرك ظاهر للعامة',
+                        'Your store is visible to the public',
+                      )
+                    : l.text(
+                        'متجرك غير ظاهر للعامة',
+                        'Your store is not visible to the public',
+                      );
                 final details = enabled
-                    ? l.text('سيظهر فقط المنتجات المفعلة للبيع العام وبكمياتها المتاحة.', 'Only products enabled for public sale will appear with their available quantities.')
-                    : l.text('فعّل الظهور وحدد المنتجات المسموح بيعها أونلاين.', 'Enable visibility and specify the products allowed to be sold online.');
+                    ? l.text(
+                        'سيظهر فقط المنتجات المفعلة للبيع العام وبكمياتها المتاحة.',
+                        'Only products enabled for public sale will appear with their available quantities.',
+                      )
+                    : l.text(
+                        'فعّل الظهور وحدد المنتجات المسموح بيعها أونلاين.',
+                        'Enable visibility and specify the products allowed to be sold online.',
+                      );
                 final icon = CircleAvatar(
                   backgroundColor:
                       (enabled ? AppTheme.success : AppTheme.textTertiary)
@@ -1480,11 +1801,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                     children: [
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          icon,
-                          const SizedBox(width: 12),
-                          text,
-                        ],
+                        children: [icon, const SizedBox(width: 12), text],
                       ),
                       const SizedBox(height: 12),
                       Align(
@@ -1511,10 +1828,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           _publicOrdersPanel(),
           const SizedBox(height: 18),
         ],
-        Text(l.text('الفاتورة هي مصدر المخزون والدين والربح', 'The invoice is the source of inventory, debt, and profit'), style: AppTheme.h3),
+        Text(
+          l.text(
+            'الفاتورة هي مصدر المخزون والدين والربح',
+            'The invoice is the source of inventory, debt, and profit',
+          ),
+          style: AppTheme.h3,
+        ),
         const SizedBox(height: 6),
         Text(
-          l.text('الشراء يزيد المخزون ويحدث متوسط التكلفة ودين التاجر، والبيع يخصم المخزون ويحسب الربح ودين الزبون تلقائيًا.', 'Purchase increases inventory and updates average cost and supplier debt, while sale decreases inventory and calculates profit and customer debt automatically.'),
+          l.text(
+            'الشراء يزيد المخزون ويحدث متوسط التكلفة ودين التاجر، والبيع يخصم المخزون ويحسب الربح ودين الزبون تلقائيًا.',
+            'Purchase increases inventory and updates average cost and supplier debt, while sale decreases inventory and calculates profit and customer debt automatically.',
+          ),
         ),
       ],
     );
@@ -1526,43 +1852,48 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         .clamp(260.0, 420.0)
         .toDouble();
     final panel = ShwakelCard(
-        color: AppTheme.warning.withValues(alpha: 0.08),
-        borderColor: AppTheme.warning.withValues(alpha: 0.24),
-        child: SingleChildScrollView(
-          child: ExpansionTile(
-            initiallyExpanded: true,
-            leading: const Icon(
-              Icons.cloud_upload_rounded,
-              color: AppTheme.warning,
-            ),
-            title: Text('${_pending.length} ${l.text('عمليات محفوظة محليًا بانتظار المزامنة', 'operations saved locally awaiting sync')}'),
-            subtitle: Text(
-              l.text('يمكنك مراجعة كل عملية وحذف القديم أو الخاطئ فقط إذا كان يمنع المزامنة.', 'You can review each operation and delete old or incorrect ones only if they are blocking sync.'),
-            ),
-            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton.icon(
-                    onPressed: _syncing ? null : _sync,
-                    icon: const Icon(Icons.sync_rounded),
-                    label: Text(l.text('مزامنة الآن', 'Sync now')),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _syncing ? null : _clearPendingOperations,
-                    icon: const Icon(Icons.delete_sweep_rounded),
-                    label: Text(l.text('حذف كل القديم', 'Delete all old')),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ..._pending.map(_pendingOperationTile),
-            ],
+      color: AppTheme.warning.withValues(alpha: 0.08),
+      borderColor: AppTheme.warning.withValues(alpha: 0.24),
+      child: SingleChildScrollView(
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          leading: const Icon(
+            Icons.cloud_upload_rounded,
+            color: AppTheme.warning,
           ),
+          title: Text(
+            '${_pending.length} ${l.text('عمليات محفوظة محليًا بانتظار المزامنة', 'operations saved locally awaiting sync')}',
+          ),
+          subtitle: Text(
+            l.text(
+              'يمكنك مراجعة كل عملية وحذف القديم أو الخاطئ فقط إذا كان يمنع المزامنة.',
+              'You can review each operation and delete old or incorrect ones only if they are blocking sync.',
+            ),
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: _syncing ? null : _sync,
+                  icon: const Icon(Icons.sync_rounded),
+                  label: Text(l.text('مزامنة الآن', 'Sync now')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _syncing ? null : _clearPendingOperations,
+                  icon: const Icon(Icons.delete_sweep_rounded),
+                  label: Text(l.text('حذف كل القديم', 'Delete all old')),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._pending.map(_pendingOperationTile),
+          ],
         ),
-      );
+      ),
+    );
     if (!constrainHeight) {
       return panel;
     }
@@ -1620,9 +1951,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           builder: (routeContext, setRouteState) => Scaffold(
             backgroundColor: AppTheme.background,
             appBar: AppBar(
-              title: Text(
-                context.loc.text('مزامنة إدارة المحل', 'Store sync'),
-              ),
+              title: Text(context.loc.text('مزامنة إدارة المحل', 'Store sync')),
               actions: [
                 IconButton(
                   onPressed: () async {
@@ -1726,7 +2055,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             ),
           ),
           IconButton(
-            tooltip: context.loc.text('حذف هذه العملية', 'Delete this operation'),
+            tooltip: context.loc.text(
+              'حذف هذه العملية',
+              'Delete this operation',
+            ),
             onPressed: _syncing
                 ? null
                 : () => unawaited(_deletePendingOperation(operation)),
@@ -1818,15 +2150,25 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           Icons.shopping_bag_rounded,
           color: AppTheme.primary,
         ),
-        title: Text('${context.loc.text('طلبات المتجر العام', 'Public store orders')} ($pendingCount ${context.loc.text('بانتظار التأكيد', 'awaiting confirmation')})'),
+        title: Text(
+          '${context.loc.text('طلبات المتجر العام', 'Public store orders')} ($pendingCount ${context.loc.text('بانتظار التأكيد', 'awaiting confirmation')})',
+        ),
         subtitle: Text(
-          context.loc.text('تأكيد الطلب يخصم الكمية من المخزون، ثم يمكن تعليم الطلب كمرسل.', 'Confirming the order deducts quantity from inventory, then the order can be marked as shipped.'),
+          context.loc.text(
+            'تأكيد الطلب يخصم الكمية من المخزون، ثم يمكن تعليم الطلب كمرسل.',
+            'Confirming the order deducts quantity from inventory, then the order can be marked as shipped.',
+          ),
         ),
         children: _publicOrders.isEmpty
             ? [
                 Padding(
                   padding: const EdgeInsets.all(18),
-                  child: Text(context.loc.text('لا توجد طلبات عامة حاليًا.', 'No public orders currently.')),
+                  child: Text(
+                    context.loc.text(
+                      'لا توجد طلبات عامة حاليًا.',
+                      'No public orders currently.',
+                    ),
+                  ),
                 ),
               ]
             : _publicOrders.map(_publicOrderTile).toList(),
@@ -1858,11 +2200,20 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 unawaited(_updatePublicOrder(order['id'].toString(), action)),
             itemBuilder: (context) => [
               if (status == 'pending')
-                PopupMenuItem(value: 'accept', child: Text(context.loc.text('تأكيد', 'Confirm'))),
+                PopupMenuItem(
+                  value: 'accept',
+                  child: Text(context.loc.text('تأكيد', 'Confirm')),
+                ),
               if (status == 'accepted')
-                PopupMenuItem(value: 'ship', child: Text(context.loc.text('تم الإرسال', 'Shipped'))),
+                PopupMenuItem(
+                  value: 'ship',
+                  child: Text(context.loc.text('تم الإرسال', 'Shipped')),
+                ),
               if (status == 'pending' || status == 'accepted')
-                PopupMenuItem(value: 'cancel', child: Text(context.loc.text('إلغاء', 'Cancel'))),
+                PopupMenuItem(
+                  value: 'cancel',
+                  child: Text(context.loc.text('إلغاء', 'Cancel')),
+                ),
             ],
           ),
         ),
@@ -1880,42 +2231,75 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     };
   }
 
-  Widget _productsView() => _products.isEmpty
-      ? _empty(context.loc.text('لا توجد أصناف بعد', 'No items yet'))
-      : ListView.separated(
-          padding: const EdgeInsets.only(bottom: 96),
-          itemCount: _products.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final item = _products[index];
-            final unit = _unitName(item['baseUnit']?.toString() ?? '');
-            return ShwakelCard(
-              padding: const EdgeInsets.all(14),
-              borderColor: item['publicVisible'] == true
-                  ? AppTheme.success.withValues(alpha: 0.22)
-                  : null,
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(child: Icon(Icons.inventory_2)),
-                title: Text(
-                  item['name']?.toString() ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyBold,
-                ),
-                subtitle: Text(
-                  '${context.loc.text('المتوفر', 'Available')}: ${item['stockQuantity'] ?? 0} $unit'
-                  '${item['publicVisible'] == true ? ' • ${context.loc.text('ظاهر للعامة', 'visible to public')}' : ''}'
-                  '${item['publicAllowOnlineSale'] == true ? ' • ${context.loc.text('بيع أونلاين', 'online sale')}' : ''}'
-                  ' • ${_syncLabel(item)}',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Text(_money(item['defaultSalePrice'])),
-              ),
-            );
+  Widget _productsView() {
+    final products = _filterProducts(_products, _productSearchQuery);
+    if (_products.isEmpty) {
+      return _empty(context.loc.text('لا توجد أصناف بعد', 'No items yet'));
+    }
+    return Column(
+      children: [
+        _searchField(
+          controller: _productSearchController,
+          label: context.loc.text('بحث في الأصناف', 'Search items'),
+          hint: context.loc.text(
+            'اسم الصنف أو الباركود أو الوحدة',
+            'Item name, barcode, or unit',
+          ),
+          onChanged: (value) => setState(() => _productSearchQuery = value),
+          onClear: () {
+            _productSearchController.clear();
+            setState(() => _productSearchQuery = '');
           },
-        );
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: products.isEmpty
+              ? _empty(
+                  context.loc.text(
+                    'لا توجد أصناف مطابقة للبحث',
+                    'No matching items',
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  itemCount: products.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final item = products[index];
+                    final unit = _unitName(item['baseUnit']?.toString() ?? '');
+                    return ShwakelCard(
+                      padding: const EdgeInsets.all(14),
+                      borderColor: item['publicVisible'] == true
+                          ? AppTheme.success.withValues(alpha: 0.22)
+                          : null,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.inventory_2),
+                        ),
+                        title: Text(
+                          item['name']?.toString() ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.bodyBold,
+                        ),
+                        subtitle: Text(
+                          '${context.loc.text('المتوفر', 'Available')}: ${item['stockQuantity'] ?? 0} $unit'
+                          '${item['publicVisible'] == true ? ' • ${context.loc.text('ظاهر للعامة', 'visible to public')}' : ''}'
+                          '${item['publicAllowOnlineSale'] == true ? ' • ${context.loc.text('بيع أونلاين', 'online sale')}' : ''}'
+                          ' • ${_syncLabel(item)}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Text(_money(item['defaultSalePrice'])),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
 
   Widget _invoicesView() => _invoices.isEmpty
       ? _empty(context.loc.text('لا توجد فواتير بعد', 'No invoices yet'))
@@ -1952,38 +2336,162 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           },
         );
 
-  Widget _partiesView() => _parties.isEmpty
-      ? _empty(context.loc.text('لا توجد حسابات زبائن أو تجار', 'No customer or supplier accounts'))
-      : ListView.separated(
-          padding: const EdgeInsets.only(bottom: 96),
-          itemCount: _parties.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final item = _parties[index];
-            return ShwakelCard(
-              padding: const EdgeInsets.all(14),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-                title: Text(
-                  item['name']?.toString() ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyBold,
-                ),
-                subtitle: Text(
-                  '${context.loc.text('عليه', 'Owes')}: ${_money(item['receivableBalance'])} • ${context.loc.text('له', 'Owed to him')}: ${_money(item['payableBalance'])} • ${_syncLabel(item)}',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Text(
-                  item['phone']?.toString() ?? '',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            );
+  Widget _partiesView() {
+    final parties = _filterParties(_parties, _partySearchQuery);
+    if (_parties.isEmpty) {
+      return _empty(
+        context.loc.text(
+          'لا توجد حسابات زبائن أو تجار',
+          'No customer or supplier accounts',
+        ),
+      );
+    }
+    return Column(
+      children: [
+        _searchField(
+          controller: _partySearchController,
+          label: context.loc.text(
+            'بحث في الزبائن والتجار',
+            'Search customers and suppliers',
+          ),
+          hint: context.loc.text(
+            'الاسم أو الهاتف أو نوع الحساب',
+            'Name, phone, or account type',
+          ),
+          onChanged: (value) => setState(() => _partySearchQuery = value),
+          onClear: () {
+            _partySearchController.clear();
+            setState(() => _partySearchQuery = '');
           },
-        );
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: parties.isEmpty
+              ? _empty(
+                  context.loc.text(
+                    'لا توجد حسابات مطابقة للبحث',
+                    'No matching accounts',
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  itemCount: parties.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final item = parties[index];
+                    return ShwakelCard(
+                      padding: const EdgeInsets.all(14),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.person_outline),
+                        ),
+                        title: Text(
+                          item['name']?.toString() ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.bodyBold,
+                        ),
+                        subtitle: Text(
+                          '${context.loc.text('عليه', 'Owes')}: ${_money(item['receivableBalance'])} • ${context.loc.text('له', 'Owed to him')}: ${_money(item['payableBalance'])} • ${_syncLabel(item)}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Text(
+                          item['phone']?.toString() ?? '',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _searchField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required ValueChanged<String> onChanged,
+    required VoidCallback onClear,
+  }) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: controller.text.trim().isEmpty
+            ? null
+            : IconButton(
+                tooltip: context.loc.text('مسح البحث', 'Clear search'),
+                onPressed: onClear,
+                icon: const Icon(Icons.close_rounded),
+              ),
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _filterProducts(
+    List<Map<String, dynamic>> products,
+    String query,
+  ) {
+    final normalized = _normalizeSearch(query);
+    if (normalized.isEmpty) return products;
+    return products.where((product) {
+      final units = _list(product['units'])
+          .map(
+            (unit) => [
+              unit['name'],
+              unit['code'],
+              unit['barcode'],
+            ].whereType<Object>().join(' '),
+          )
+          .join(' ');
+      return _normalizeSearch(
+        [
+          product['name'],
+          product['sku'],
+          product['barcode'],
+          product['baseUnit'],
+          units,
+        ].whereType<Object>().join(' '),
+      ).contains(normalized);
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _filterParties(
+    List<Map<String, dynamic>> parties,
+    String query,
+  ) {
+    final normalized = _normalizeSearch(query);
+    if (normalized.isEmpty) return parties;
+    return parties.where((party) {
+      return _normalizeSearch(
+        [
+          party['name'],
+          party['phone'],
+          party['type'],
+          _partyTypeLabel(party['type']?.toString() ?? ''),
+        ].whereType<Object>().join(' '),
+      ).contains(normalized);
+    }).toList();
+  }
+
+  String _normalizeSearch(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\u064B-\u065F]'), '')
+        .replaceAll('أ', 'ا')
+        .replaceAll('إ', 'ا')
+        .replaceAll('آ', 'ا')
+        .replaceAll('ة', 'ه')
+        .replaceAll(RegExp(r'\s+'), ' ');
+  }
 
   Widget _reportsView() {
     final l = context.loc;
@@ -2039,15 +2547,39 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
 
     return ListView(
       children: [
-        _reportTile(l.text('مبيعات اليوم', "Today's sales"), _money(salesIn(const Duration(days: 1)))),
-        _reportTile(l.text('مبيعات الأسبوع', "This week's sales"), _money(salesIn(const Duration(days: 7)))),
-        _reportTile(l.text('مبيعات الشهر', "This month's sales"), _money(salesIn(const Duration(days: 31)))),
-        _reportTile(l.text('مبيعات السنة', "This year's sales"), _money(yearSales)),
+        _reportTile(
+          l.text('مبيعات اليوم', "Today's sales"),
+          _money(salesIn(const Duration(days: 1))),
+        ),
+        _reportTile(
+          l.text('مبيعات الأسبوع', "This week's sales"),
+          _money(salesIn(const Duration(days: 7))),
+        ),
+        _reportTile(
+          l.text('مبيعات الشهر', "This month's sales"),
+          _money(salesIn(const Duration(days: 31))),
+        ),
+        _reportTile(
+          l.text('مبيعات السنة', "This year's sales"),
+          _money(yearSales),
+        ),
         if (_permissions.canViewStoreProfits)
-          _reportTile(l.text('إجمالي الأرباح الظاهرة', 'Total visible profits'), _money(profit)),
-        _reportTile(l.text('قيمة المخزون', 'Inventory value'), _money(_summary['inventoryValue'])),
-        _reportTile(l.text('ديون الزبائن', 'Customer debts'), _money(_summary['customerDebts'])),
-        _reportTile(l.text('ديون التجار', 'Supplier debts'), _money(_summary['supplierDebts'])),
+          _reportTile(
+            l.text('إجمالي الأرباح الظاهرة', 'Total visible profits'),
+            _money(profit),
+          ),
+        _reportTile(
+          l.text('قيمة المخزون', 'Inventory value'),
+          _money(_summary['inventoryValue']),
+        ),
+        _reportTile(
+          l.text('ديون الزبائن', 'Customer debts'),
+          _money(_summary['customerDebts']),
+        ),
+        _reportTile(
+          l.text('ديون التجار', 'Supplier debts'),
+          _money(_summary['supplierDebts']),
+        ),
         const Divider(),
         ListTile(
           title: Text(l.text('أكثر الأصناف مبيعًا', 'Best selling items')),
@@ -2074,14 +2606,20 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           title: Text(l.text('المخزون المنخفض', 'Low stock')),
           subtitle: Text(
             lowStock.isEmpty
-                ? l.text('كل الأصناف أعلى من حد التنبيه', 'All items are above the alert threshold')
+                ? l.text(
+                    'كل الأصناف أعلى من حد التنبيه',
+                    'All items are above the alert threshold',
+                  )
                 : lowStock.map((item) => item['name']).join('، '),
           ),
         ),
         ListTile(
           title: Text(l.text('حركة المستخدمين', 'User activity')),
           subtitle: Text(
-            l.text('تُحفظ كل عمليات الإضافة والفواتير والدفعات في سجل النشاط على السيرفر.', 'All add operations, invoices, and payments are saved in the activity log on the server.'),
+            l.text(
+              'تُحفظ كل عمليات الإضافة والفواتير والدفعات في سجل النشاط على السيرفر.',
+              'All add operations, invoices, and payments are saved in the activity log on the server.',
+            ),
           ),
         ),
       ],
