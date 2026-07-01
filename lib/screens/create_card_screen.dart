@@ -3505,16 +3505,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Row(
-        textDirection: TextDirection.ltr,
         children: [
-          if (_currentStep > 0)
-            TextButton(
-              onPressed: () => setState(() => _currentStep -= 1),
-              child: Text(l.text('السابق', 'Previous')),
-            )
-          else
-            const SizedBox.shrink(),
-          const Spacer(),
           ShwakelButton(
             label: isLast
                 ? l.text('إصدار الدفعة الآن', 'Issue Batch Now')
@@ -3528,6 +3519,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             isLoading: _isLoading,
             width: isLast ? 210 : 160,
           ),
+          const Spacer(),
+          if (_currentStep > 0)
+            TextButton(
+              onPressed: () => setState(() => _currentStep -= 1),
+              child: Text(l.text('السابق', 'Previous')),
+            )
+          else
+            const SizedBox.shrink(),
         ],
       ),
     );
