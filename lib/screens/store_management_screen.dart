@@ -44,6 +44,13 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       ? Map<String, dynamic>.from(_snapshot['summary'] as Map)
       : const {};
   String get _syncedAt => _snapshot['syncedAt']?.toString() ?? '';
+  String get _syncedAtLabel {
+    final parsed = DateTime.tryParse(_syncedAt);
+    if (parsed == null) return _syncedAt;
+    final local = parsed.toLocal();
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} ${two(local.hour)}:${two(local.minute)}';
+  }
 
   @override
   void initState() {
@@ -1323,7 +1330,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                       alignment: AlignmentDirectional.centerStart,
                       child: Chip(
                         avatar: const Icon(Icons.verified_rounded, size: 18),
-                        label: Text('${l.text('آخر مزامنة', 'Last sync')}: $_syncedAt'),
+                        label: Text(
+                          '${l.text('آخر مزامنة', 'Last sync')}: $_syncedAtLabel',
+                        ),
                         backgroundColor: AppTheme.success.withValues(
                           alpha: 0.10,
                         ),

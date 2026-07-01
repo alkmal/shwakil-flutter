@@ -1809,7 +1809,7 @@ const Map<String, String> appStringsEn = {
   'screens_create_card_screen.030':
       'Issue digital cards with a polished layout',
   'screens_create_card_screen.031':
-      'Only the card value and quantity are required, and the quantity must be a multiple of 30 because one A4 page prints 30 cards.',
+      'Only the card value and quantity are required, and the quantity must be a multiple of 35 because one A4 page prints 35 cards.',
   'screens_create_card_screen.032': 'Issuance details',
   'screens_create_card_screen.033':
       'Enter the value and quantity first. The rest of the settings are optional when needed.',

@@ -610,7 +610,9 @@ class _Header extends StatelessWidget {
             color: isPrivate ? AppTheme.errorLight : palette.soft,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isPrivate ? AppTheme.error.withValues(alpha: 0.45) : palette.border,
+              color: isPrivate
+                  ? AppTheme.error.withValues(alpha: 0.45)
+                  : palette.border,
               width: 0.45,
             ),
           ),
@@ -635,7 +637,9 @@ class _Header extends StatelessWidget {
             color: isPrivate ? AppTheme.errorLight : palette.soft,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isPrivate ? AppTheme.error.withValues(alpha: 0.45) : palette.border,
+              color: isPrivate
+                  ? AppTheme.error.withValues(alpha: 0.45)
+                  : palette.border,
               width: 0.45,
             ),
           ),

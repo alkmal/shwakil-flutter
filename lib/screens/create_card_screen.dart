@@ -30,7 +30,7 @@ class CreateCardScreen extends StatefulWidget {
 }
 
 class _CreateCardScreenState extends State<CreateCardScreen> {
-  static const int _cardsPerA4Page = 30;
+  static const int _cardsPerA4Page = 35;
   static const double _trialCardsLimit = 100;
   static const int _printTitleMaxLength = 24;
   static const String _lastPrintTitleKey = 'create_card.last_print_title';
@@ -705,8 +705,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         context,
         title: l.text('تحقق من رقم البطاقة', 'Check Card Number'),
         message: quantity != 1
-            ? l.text('يمكن تخصيص الرقم عند إصدار بطاقة واحدة فقط.', 'Custom number is only available when issuing one card.')
-            : l.text('رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.', 'Custom card number must be 16 digits.'),
+            ? l.text(
+                'يمكن تخصيص الرقم عند إصدار بطاقة واحدة فقط.',
+                'Custom number is only available when issuing one card.',
+              )
+            : l.text(
+                'رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.',
+                'Custom card number must be 16 digits.',
+              ),
       );
       return;
     }
@@ -1023,7 +1029,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                l.text('سيتم إنشاء بطاقة فعلية واحدة وعرضها مباشرة بعد التأكيد.', 'A real card will be created and shown immediately after confirmation.'),
+                l.text(
+                  'سيتم إنشاء بطاقة فعلية واحدة وعرضها مباشرة بعد التأكيد.',
+                  'A real card will be created and shown immediately after confirmation.',
+                ),
                 textDirection: TextDirection.rtl,
                 style: AppTheme.bodyAction.copyWith(height: 1.5),
               ),
@@ -1083,10 +1092,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: l.text('الإنشاء الأوفلاين غير متاح', 'Offline Creation Unavailable'),
+        title: l.text(
+          'الإنشاء الأوفلاين غير متاح',
+          'Offline Creation Unavailable',
+        ),
         message: l.text(
-            'إنشاء بطاقة أوفلاين يحتاج صلاحية التحويل لأن المستلم سيستلم القيمة مباشرة عند مسح الرمز وهو متصل.',
-            'Offline card creation requires transfer permission because the recipient receives the value directly when scanning the code while online.'),
+          'إنشاء بطاقة أوفلاين يحتاج صلاحية التحويل لأن المستلم سيستلم القيمة مباشرة عند مسح الرمز وهو متصل.',
+          'Offline card creation requires transfer permission because the recipient receives the value directly when scanning the code while online.',
+        ),
       );
       return;
     }
@@ -1131,8 +1144,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         context,
         title: l.text('لا توجد بطاقات أوفلاين جاهزة', 'No Offline Cards Ready'),
         message: l.text(
-            'افتح هذه الشاشة مرة واحدة أثناء الاتصال ليتم تجهيز بطاقات أوفلاين آمنة مرتبطة بهذا الجهاز.',
-            'Open this screen once while connected to prepare secure offline cards linked to this device.'),
+          'افتح هذه الشاشة مرة واحدة أثناء الاتصال ليتم تجهيز بطاقات أوفلاين آمنة مرتبطة بهذا الجهاز.',
+          'Open this screen once while connected to prepare secure offline cards linked to this device.',
+        ),
       );
       return null;
     }
@@ -1339,7 +1353,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 ),
         ),
         child: Text(
-          value == null ? context.loc.text('اختر التاريخ والوقت', 'Select date and time') : _formatDateTime(value),
+          value == null
+              ? context.loc.text('اختر التاريخ والوقت', 'Select date and time')
+              : _formatDateTime(value),
           style: value == null
               ? AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary)
               : AppTheme.bodyBold,
@@ -1483,7 +1499,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
 
     final l = context.loc;
-    final printedBy = UserDisplayName.fromMap(_user);
+    final printedBy = _resolvedIssuerName(l);
 
     _applyCurrentPdfDesignSettings();
     await _savePrintPreferences();
@@ -1534,37 +1550,43 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       await AppAlertService.showError(
         context,
         title: l.text('تعذر إرسال طلب الطباعة', 'Failed to Send Print Request'),
-        message: l.text('لا توجد بطاقات صالحة لإرسالها للإدارة.', 'No valid cards to send to the admin.'),
+        message: l.text(
+          'لا توجد بطاقات صالحة لإرسالها للإدارة.',
+          'No valid cards to send to the admin.',
+        ),
       );
       return;
     }
 
-    final estimatedPages = (cardIds.length / 30).ceil().clamp(1, 9999);
+    final estimatedPages = (cardIds.length / _cardsPerA4Page).ceil().clamp(
+      1,
+      9999,
+    );
     final estimatedFee = (estimatedPages / 3).ceil();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         final dl = context.loc;
         return AlertDialog(
-        title: Text(dl.text('تأكيد طلب الطباعة', 'Confirm Print Request')),
-        content: Text(
-          dl.text(
-            'سيتم إرسال ${cardIds.length} بطاقة للإدارة وخصم رسوم الطباعة حسب إعدادات النظام.\nالتقدير الحالي: $estimatedPages صفحة A4، ورسوم تقريبية $estimatedFee شيكل.',
-            '${cardIds.length} cards will be sent to admin and printing fees deducted per system settings.\nCurrent estimate: $estimatedPages A4 page(s), approx. $estimatedFee shekel.',
+          title: Text(dl.text('تأكيد طلب الطباعة', 'Confirm Print Request')),
+          content: Text(
+            dl.text(
+              'سيتم إرسال ${cardIds.length} بطاقة للإدارة وخصم رسوم الطباعة حسب إعدادات النظام.\nالتقدير الحالي: $estimatedPages صفحة A4، ورسوم تقريبية $estimatedFee شيكل.',
+              '${cardIds.length} cards will be sent to admin and printing fees deducted per system settings.\nCurrent estimate: $estimatedPages A4 page(s), approx. $estimatedFee shekel.',
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(dl.text('إلغاء', 'Cancel')),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(context).pop(true),
-            icon: const Icon(Icons.print_rounded),
-            label: Text(dl.text('إرسال الطلب', 'Send Request')),
-          ),
-        ],
-      );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(dl.text('إلغاء', 'Cancel')),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.print_rounded),
+              label: Text(dl.text('إرسال الطلب', 'Send Request')),
+            ),
+          ],
+        );
       },
     );
     if (confirmed != true) {
@@ -1574,7 +1596,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _setLoadingState(
       true,
       headline: l.text('جارٍ إرسال طلب الطباعة...', 'Sending print request...'),
-      details: l.text('سيتم إشعار الإدارة بالبطاقات المطلوبة للطباعة.', 'Admin will be notified about the requested cards for printing.'),
+      details: l.text(
+        'سيتم إشعار الإدارة بالبطاقات المطلوبة للطباعة.',
+        'Admin will be notified about the requested cards for printing.',
+      ),
     );
     try {
       final response = await _apiService.requestExistingCardsPrint(
@@ -1590,7 +1615,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         title: l.text('تم إرسال طلب الطباعة', 'Print Request Sent'),
         message:
             response['message']?.toString() ??
-            l.text('تم إرسال الطلب إلى الإدارة وبانتظار المراجعة.', 'Request sent to admin and awaiting review.'),
+            l.text(
+              'تم إرسال الطلب إلى الإدارة وبانتظار المراجعة.',
+              'Request sent to admin and awaiting review.',
+            ),
       );
     } catch (error) {
       if (!mounted) {
@@ -1610,7 +1638,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       return;
     }
     final l = context.loc;
-    final printedBy = UserDisplayName.fromMap(_user);
+    final printedBy = _resolvedIssuerName(l);
     _applyCurrentPdfDesignSettings();
     await _savePrintPreferences();
     try {
@@ -1630,7 +1658,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       await AppAlertService.showInfo(
         context,
         title: l.text('تم حفظ نسخة PDF', 'PDF Copy Saved'),
-        message: l.text('تم تنزيل الملف في:\n${file.path}', 'File downloaded to:\n${file.path}'),
+        message: l.text(
+          'تم تنزيل الملف في:\n${file.path}',
+          'File downloaded to:\n${file.path}',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -1647,6 +1678,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   String _resolvedIssuerName(AppLocalizer l) {
+    final printTitle = _titleC.text.trim();
+    if (printTitle.isNotEmpty) {
+      return printTitle;
+    }
     return UserDisplayName.fromMap(
       _user,
       fallback: l.tr('screens_create_card_screen.001'),
@@ -1757,7 +1792,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  l.text('البطاقة جاهزة للاستخدام المباشر', 'Card Ready for Direct Use'),
+                  l.text(
+                    'البطاقة جاهزة للاستخدام المباشر',
+                    'Card Ready for Direct Use',
+                  ),
                   style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
                 ),
               ),
@@ -1766,9 +1804,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           const SizedBox(height: 12),
           _buildCardPreviewWidget(card, serialNumber: 1),
           const SizedBox(height: 10),
-          _buildPreviewSummaryRow(l.text('رقم البطاقة', 'Card Number'), card.barcode),
+          _buildPreviewSummaryRow(
+            l.text('رقم البطاقة', 'Card Number'),
+            card.barcode,
+          ),
           const SizedBox(height: 8),
-          _buildPreviewSummaryRow(l.text('القيمة', 'Value'), CurrencyFormatter.ils(card.value)),
+          _buildPreviewSummaryRow(
+            l.text('القيمة', 'Value'),
+            CurrencyFormatter.ils(card.value),
+          ),
         ],
       ),
     );
@@ -1780,7 +1824,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       await AppAlertService.showError(
         context,
         title: l.text('لا يمكن إلغاء البطاقة', 'Cannot Cancel Card'),
-        message: l.text('يمكن إلغاء البطاقة فقط قبل استخدامها.', 'The card can only be cancelled before use.'),
+        message: l.text(
+          'يمكن إلغاء البطاقة فقط قبل استخدامها.',
+          'The card can only be cancelled before use.',
+        ),
       );
       return;
     }
@@ -1800,7 +1847,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       await AppAlertService.showSuccess(
         context,
         title: l.text('تم إلغاء البطاقة', 'Card Cancelled'),
-        message: l.text('تم إلغاء البطاقة غير المستخدمة واسترجاع الرصيد حسب النظام.', 'The unused card has been cancelled and balance refunded per system policy.'),
+        message: l.text(
+          'تم إلغاء البطاقة غير المستخدمة واسترجاع الرصيد حسب النظام.',
+          'The unused card has been cancelled and balance refunded per system policy.',
+        ),
       );
     } catch (error) {
       if (!mounted) {
@@ -1837,11 +1887,20 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.text('تفاصيل الدفعة المنشأة', 'Created Batch Details'), style: AppTheme.bodyBold),
+          Text(
+            l.text('تفاصيل الدفعة المنشأة', 'Created Batch Details'),
+            style: AppTheme.bodyBold,
+          ),
           const SizedBox(height: 10),
-          _buildPreviewSummaryRow(l.text('النوع', 'Type'), _cardTypeLabel(l, first.cardType)),
+          _buildPreviewSummaryRow(
+            l.text('النوع', 'Type'),
+            _cardTypeLabel(l, first.cardType),
+          ),
           const SizedBox(height: 8),
-          _buildPreviewSummaryRow(l.text('عدد البطاقات', 'Card Count'), '${cards.length}'),
+          _buildPreviewSummaryRow(
+            l.text('عدد البطاقات', 'Card Count'),
+            '${cards.length}',
+          ),
           if (!isPrivateBatch) ...[
             const SizedBox(height: 8),
             _buildPreviewSummaryRow(
@@ -1858,16 +1917,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ],
           const SizedBox(height: 8),
           _buildPreviewSummaryRow(
-            isPrivateBatch ? l.text('المخصوم من الرصيد', 'Deducted from Balance') : l.text('إجمالي الخصم', 'Total Deduction'),
+            isPrivateBatch
+                ? l.text('المخصوم من الرصيد', 'Deducted from Balance')
+                : l.text('إجمالي الخصم', 'Total Deduction'),
             CurrencyFormatter.ils(totalCharge),
           ),
           if (first.title?.trim().isNotEmpty == true) ...[
             const SizedBox(height: 8),
-            _buildPreviewSummaryRow(l.text('العنوان', 'Title'), first.title!.trim()),
+            _buildPreviewSummaryRow(
+              l.text('العنوان', 'Title'),
+              first.title!.trim(),
+            ),
           ],
           if (first.validUntil != null) ...[
             const SizedBox(height: 8),
-            _buildPreviewSummaryRow(l.text('تنتهي', 'Expires'), _formatDateTime(first.validUntil)),
+            _buildPreviewSummaryRow(
+              l.text('تنتهي', 'Expires'),
+              _formatDateTime(first.validUntil),
+            ),
           ],
         ],
       ),
@@ -1879,10 +1946,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (_isTrialMode) {
       await AppAlertService.showInfo(
         context,
-        title: l.text('اختيار المستفيدين غير متاح', 'Recipient Selection Unavailable'),
+        title: l.text(
+          'اختيار المستفيدين غير متاح',
+          'Recipient Selection Unavailable',
+        ),
         message: l.text(
-            'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط ولا يمكن البحث عن مستخدمين آخرين.',
-            'Account is not verified, so private cards are for your account only and you cannot search for other users.'),
+          'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط ولا يمكن البحث عن مستخدمين آخرين.',
+          'Account is not verified, so private cards are for your account only and you cannot search for other users.',
+        ),
       );
       return;
     }
@@ -2154,10 +2225,19 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(l.text('بطاقة جاهزة للاستخدام', 'Card Ready for Use'), style: AppTheme.h3),
+                          Text(
+                            l.text(
+                              'بطاقة جاهزة للاستخدام',
+                              'Card Ready for Use',
+                            ),
+                            style: AppTheme.h3,
+                          ),
                           const SizedBox(height: 4),
                           Text(
-                            l.text('أدخل القيمة فقط، ثم استخدم البطاقة مباشرة من الشاشة.', 'Enter the value only, then use the card directly from the screen.'),
+                            l.text(
+                              'أدخل القيمة فقط، ثم استخدم البطاقة مباشرة من الشاشة.',
+                              'Enter the value only, then use the card directly from the screen.',
+                            ),
                             style: AppTheme.bodyText.copyWith(
                               color: AppTheme.textSecondary,
                               fontSize: 13,
@@ -2226,7 +2306,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   TextButton.icon(
                     onPressed: () => _openRoute('/create-card'),
                     icon: const Icon(Icons.tune_rounded),
-                    label: Text(l.text('فتح خيارات إنشاء البطاقات الكاملة', 'Open Full Card Creation Options')),
+                    label: Text(
+                      l.text(
+                        'فتح خيارات إنشاء البطاقات الكاملة',
+                        'Open Full Card Creation Options',
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -2238,7 +2323,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             if (issuedCard.status == CardStatus.unused) ...[
               const SizedBox(height: 12),
               ShwakelButton(
-                label: l.text('إلغاء البطاقة واسترجاع الرصيد', 'Cancel Card and Refund Balance'),
+                label: l.text(
+                  'إلغاء البطاقة واسترجاع الرصيد',
+                  'Cancel Card and Refund Balance',
+                ),
                 icon: Icons.undo_rounded,
                 isDanger: true,
                 onPressed: () => _cancelIssuedCard(issuedCard),
@@ -2253,89 +2341,98 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Widget _buildCreationStepper() {
     final l = context.loc;
-    final canContinue = _canContinueCurrentStep();
-    return SizedBox(
-      width: double.infinity,
-      child: Stepper(
-        currentStep: _currentStep,
-        type: StepperType.vertical,
-        physics: const NeverScrollableScrollPhysics(),
-        margin: EdgeInsets.zero,
-        controlsBuilder: (context, details) {
-          final isLast = _currentStep == 3;
-          return Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                ShwakelButton(
-                  label: isLast ? l.text('إصدار الدفعة الآن', 'Issue Batch Now') : l.text('التالي', 'Next'),
-                  icon: isLast
-                      ? Icons.verified_user_rounded
-                      : Icons.arrow_forward_rounded,
-                  onPressed: canContinue
-                      ? () => _handleStepContinue(isLast: isLast)
-                      : null,
-                  isLoading: _isLoading,
-                  width: 180,
-                ),
-                if (_currentStep > 0)
-                  ShwakelButton(
-                    label: l.text('السابق', 'Previous'),
-                    icon: Icons.arrow_back_rounded,
-                    isSecondary: true,
-                    onPressed: () => setState(() => _currentStep -= 1),
-                    width: 140,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 560) {
+          return _buildCompactCreationFlow();
+        }
+        return SizedBox(
+          width: double.infinity,
+          child: Stepper(
+            currentStep: _currentStep,
+            type: StepperType.vertical,
+            physics: const NeverScrollableScrollPhysics(),
+            margin: EdgeInsets.zero,
+            controlsBuilder: (context, details) => _buildStepControls(),
+            onStepTapped: (step) {
+              if (step <= _highestReachableStep) {
+                setState(() => _currentStep = step);
+              }
+            },
+            steps: [
+              Step(
+                title: Text(l.text('اختيار نوع البطاقة', 'Select Card Type')),
+                subtitle: Text(
+                  l.text(
+                    'تظهر الأنواع المتاحة حسب صلاحيات الحساب.',
+                    'Available types appear based on account permissions.',
                   ),
-              ],
-            ),
-          );
-        },
-        onStepTapped: (step) {
-          if (step <= _highestReachableStep) {
-            setState(() => _currentStep = step);
-          }
-        },
-        steps: [
-          Step(
-            title: Text(l.text('اختيار نوع البطاقة', 'Select Card Type')),
-            subtitle: Text(l.text('تظهر الأنواع المتاحة حسب صلاحيات الحساب.', 'Available types appear based on account permissions.')),
-            isActive: _currentStep >= 0,
-            state: _hasSelectedCardType
-                ? StepState.complete
-                : StepState.indexed,
-            content: _buildCardTypeStep(),
+                ),
+                isActive: _currentStep >= 0,
+                state: _hasSelectedCardType
+                    ? StepState.complete
+                    : StepState.indexed,
+                content: _buildCardTypeStep(),
+              ),
+              Step(
+                title: Text(
+                  l.text('البيانات والمستفيدون', 'Data and Recipients'),
+                ),
+                subtitle: Text(
+                  l.text(
+                    'القيمة والكمية ونطاق الصلاحية والخصوصية.',
+                    'Value, quantity, validity range, and privacy.',
+                  ),
+                ),
+                isActive: _currentStep >= 1,
+                state: _currentStep > 1
+                    ? StepState.complete
+                    : StepState.indexed,
+                content: _hasSelectedCardType
+                    ? _buildForm()
+                    : _buildCardTypeEmptyState(),
+              ),
+              Step(
+                title: Text(
+                  l.text('تصميم الطباعة والمعاينة', 'Print Design and Preview'),
+                ),
+                subtitle: Text(
+                  l.text(
+                    'تحديث مباشر للشعار والعنوان والختم.',
+                    'Live update for logo, title, and stamp.',
+                  ),
+                ),
+                isActive: _currentStep >= 2,
+                state: _currentStep > 2
+                    ? StepState.complete
+                    : StepState.indexed,
+                content: _hasSelectedCardType
+                    ? _buildDesignStep()
+                    : _buildCardTypeEmptyState(),
+              ),
+              Step(
+                title: Text(
+                  l.text(
+                    'ملخص الحساب والتأكيد',
+                    'Account Summary and Confirmation',
+                  ),
+                ),
+                subtitle: Text(
+                  l.text(
+                    'مراجعة الرسوم والتكلفة قبل الإصدار.',
+                    'Review fees and cost before issuing.',
+                  ),
+                ),
+                isActive: _currentStep >= 3,
+                state: StepState.indexed,
+                content: _hasSelectedCardType
+                    ? _buildConfirmationStep()
+                    : _buildCardTypeEmptyState(),
+              ),
+            ],
           ),
-          Step(
-            title: Text(l.text('البيانات والمستفيدون', 'Data and Recipients')),
-            subtitle: Text(l.text('القيمة والكمية ونطاق الصلاحية والخصوصية.', 'Value, quantity, validity range, and privacy.')),
-            isActive: _currentStep >= 1,
-            state: _currentStep > 1 ? StepState.complete : StepState.indexed,
-            content: _hasSelectedCardType
-                ? _buildForm()
-                : _buildCardTypeEmptyState(),
-          ),
-          Step(
-            title: Text(l.text('تصميم الطباعة والمعاينة', 'Print Design and Preview')),
-            subtitle: Text(l.text('تحديث مباشر للشعار والعنوان والختم.', 'Live update for logo, title, and stamp.')),
-            isActive: _currentStep >= 2,
-            state: _currentStep > 2 ? StepState.complete : StepState.indexed,
-            content: _hasSelectedCardType
-                ? _buildDesignStep()
-                : _buildCardTypeEmptyState(),
-          ),
-          Step(
-            title: Text(l.text('ملخص الحساب والتأكيد', 'Account Summary and Confirmation')),
-            subtitle: Text(l.text('مراجعة الرسوم والتكلفة قبل الإصدار.', 'Review fees and cost before issuing.')),
-            isActive: _currentStep >= 3,
-            state: StepState.indexed,
-            content: _hasSelectedCardType
-                ? _buildConfirmationStep()
-                : _buildCardTypeEmptyState(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -2388,20 +2485,32 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
 
     if (quantity <= 0) {
-      return l.text('أدخل كمية صحيحة للبطاقات.', 'Enter a valid card quantity.');
+      return l.text(
+        'أدخل كمية صحيحة للبطاقات.',
+        'Enter a valid card quantity.',
+      );
     }
 
     if (!_useCustomBarcode && quantity < _minimumCardQuantity) {
-      return l.text('الكمية أقل من الحد الأدنى $_minimumCardQuantity.', 'Quantity is below the minimum of $_minimumCardQuantity.');
+      return l.text(
+        'الكمية أقل من الحد الأدنى $_minimumCardQuantity.',
+        'Quantity is below the minimum of $_minimumCardQuantity.',
+      );
     }
 
     if (_useCustomBarcode) {
       if (quantity != 1) {
-        return l.text('يمكن تخصيص رقم البطاقة عند إصدار بطاقة واحدة فقط.', 'Custom card number is only available when issuing one card.');
+        return l.text(
+          'يمكن تخصيص رقم البطاقة عند إصدار بطاقة واحدة فقط.',
+          'Custom card number is only available when issuing one card.',
+        );
       }
       if (_normalizedCustomBarcode.length !=
           CardNumberExtractor.cardNumberLength) {
-        return l.text('رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.', 'Custom card number must be 16 digits.');
+        return l.text(
+          'رقم البطاقة المخصص يجب أن يتكون من 16 رقمًا.',
+          'Custom card number must be 16 digits.',
+        );
       }
     }
 
@@ -2412,41 +2521,65 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
     if (_isAppointmentCard &&
         (_detailsTitleC.text.trim().isEmpty || _appointmentStartsAt == null)) {
-      return l.text('أدخل عنوان الموعد ووقت بدايته قبل المتابعة.', 'Enter the appointment title and start time before continuing.');
+      return l.text(
+        'أدخل عنوان الموعد ووقت بدايته قبل المتابعة.',
+        'Enter the appointment title and start time before continuing.',
+      );
     }
 
     if (_isAppointmentCard &&
         _appointmentEndsAt != null &&
         !_appointmentEndsAt!.isAfter(_appointmentStartsAt!)) {
-      return l.text('نهاية الموعد يجب أن تكون بعد بدايته.', 'Appointment end time must be after the start time.');
+      return l.text(
+        'نهاية الموعد يجب أن تكون بعد بدايته.',
+        'Appointment end time must be after the start time.',
+      );
     }
 
     if (_isQueueCard && _detailsTitleC.text.trim().isEmpty) {
-      return l.text('أدخل عنوان التذكرة التنظيمية قبل المتابعة.', 'Enter the organizational ticket title before continuing.');
+      return l.text(
+        'أدخل عنوان التذكرة التنظيمية قبل المتابعة.',
+        'Enter the organizational ticket title before continuing.',
+      );
     }
 
     if (_isSubscriptionCard) {
       if (_detailsTitleC.text.trim().isEmpty) {
-        return l.text('أدخل اسم الاشتراك قبل المتابعة.', 'Enter the subscription name before continuing.');
+        return l.text(
+          'أدخل اسم الاشتراك قبل المتابعة.',
+          'Enter the subscription name before continuing.',
+        );
       }
       if (_validFrom == null || _validUntil == null) {
-        return l.text('حدد بداية ونهاية الاشتراك قبل المتابعة.', 'Set the subscription start and end before continuing.');
+        return l.text(
+          'حدد بداية ونهاية الاشتراك قبل المتابعة.',
+          'Set the subscription start and end before continuing.',
+        );
       }
     }
 
     if (_isAttendanceCard) {
       if (_detailsTitleC.text.trim().isEmpty) {
-        return l.text('أدخل اسم الموظف أو عنوان بطاقة الحضور قبل المتابعة.', 'Enter the employee name or attendance card title before continuing.');
+        return l.text(
+          'أدخل اسم الموظف أو عنوان بطاقة الحضور قبل المتابعة.',
+          'Enter the employee name or attendance card title before continuing.',
+        );
       }
       if (quantity > 1) {
-        return l.text('بطاقات الحضور تصدر بطاقة واحدة لكل موظف.', 'Attendance cards issue one card per employee.');
+        return l.text(
+          'بطاقات الحضور تصدر بطاقة واحدة لكل موظف.',
+          'Attendance cards issue one card per employee.',
+        );
       }
     }
 
     if (_validFrom != null &&
         _validUntil != null &&
         !_validUntil!.isAfter(_validFrom!)) {
-      return l.text('تاريخ انتهاء الصلاحية يجب أن يكون بعد تاريخ البداية.', 'Expiry date must be after the start date.');
+      return l.text(
+        'تاريخ انتهاء الصلاحية يجب أن يكون بعد تاريخ البداية.',
+        'Expiry date must be after the start date.',
+      );
     }
 
     return null;
@@ -2546,6 +2679,192 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
+  Widget _buildPrivacyAndRecipientsSection() {
+    final l = context.loc;
+    final canChooseVisibility =
+        !_isTrialMode &&
+        _canIssuePrivateCards &&
+        _isBalanceCard &&
+        _cardType != 'delivery';
+    final showTargetedRecipients =
+        !_isTrialMode &&
+        _canPickTargetedUsers &&
+        _effectiveVisibilityScope == 'restricted';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (canChooseVisibility) ...[
+          Text(
+            l.tr('screens_create_card_screen.038'),
+            style: AppTheme.bodyBold,
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 520;
+              if (isCompact) {
+                return Column(
+                  children: [
+                    _buildVisibilityChoiceCard(
+                      value: 'general',
+                      icon: Icons.public_rounded,
+                      label: l.tr('screens_create_card_screen.011'),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildVisibilityChoiceCard(
+                      value: 'restricted',
+                      icon: Icons.lock_rounded,
+                      label: l.tr('screens_create_card_screen.010'),
+                    ),
+                  ],
+                );
+              }
+              return SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'general',
+                    icon: const Icon(Icons.public_rounded),
+                    label: Text(l.tr('screens_create_card_screen.011')),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'restricted',
+                    icon: const Icon(Icons.lock_rounded),
+                    label: Text(l.tr('screens_create_card_screen.010')),
+                  ),
+                ],
+                selected: {_visibilityScope},
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _visibilityScope = selection.first;
+                    if (_visibilityScope != 'restricted') {
+                      _selectedUsers = [];
+                      _selectedPhoneNumbers = [];
+                    }
+                  });
+                },
+              );
+            },
+          ),
+        ] else if (_isTrialMode || _requiresTargetedPrivateCard) ...[
+          Text(
+            l.text('ظهور البطاقة', 'Card Visibility'),
+            style: AppTheme.bodyBold,
+          ),
+          const SizedBox(height: 12),
+          _buildVisibilityChoiceCard(
+            value: 'restricted',
+            icon: Icons.lock_rounded,
+            label: l.tr('screens_create_card_screen.010'),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _isTrialMode
+                ? l.text(
+                    'البطاقات المجانية خاصة بحسابك فقط.',
+                    'Free cards are private to your account only.',
+                  )
+                : l.text(
+                    'هذا النوع خاص. اختر المستفيدين قبل الإصدار.',
+                    'This type is private. Select recipients before issuing.',
+                  ),
+            style: AppTheme.caption.copyWith(fontSize: 13, height: 1.4),
+          ),
+        ] else ...[
+          Text(
+            l.text(
+              'ظهور البطاقة مضبوط حسب صلاحيات الحساب.',
+              'Card visibility follows account permissions.',
+            ),
+            style: AppTheme.bodyAction.copyWith(fontSize: 13),
+          ),
+        ],
+        if (showTargetedRecipients) ...[
+          const SizedBox(height: 18),
+          Text(
+            l.tr('screens_create_card_screen.039'),
+            style: AppTheme.bodyBold,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l.tr('screens_create_card_screen.040'),
+            style: AppTheme.caption.copyWith(fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _allowedPhoneC,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: l.text(
+                      'رقم هاتف المستفيد',
+                      'Recipient Phone Number',
+                    ),
+                    prefixIcon: const Icon(Icons.phone_rounded),
+                  ),
+                  onSubmitted: (_) => _addAllowedPhoneFromInput(),
+                ),
+              ),
+              const SizedBox(width: 10),
+              IconButton.filledTonal(
+                onPressed: _addAllowedPhoneFromInput,
+                icon: const Icon(Icons.add_rounded),
+                tooltip: l.text('إضافة الرقم', 'Add Number'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_selectedPhoneNumbers.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _selectedPhoneNumbers.map((phone) {
+                return Chip(
+                  avatar: const Icon(Icons.phone_rounded),
+                  label: Text(phone),
+                  onDeleted: () {
+                    setState(() {
+                      _selectedPhoneNumbers.remove(phone);
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          if (_selectedPhoneNumbers.isNotEmpty) const SizedBox(height: 12),
+          if (_selectedUsers.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _selectedUsers.map((user) {
+                return Chip(
+                  label: Text(_userOptionLabel(user)),
+                  onDeleted: () {
+                    setState(() {
+                      _selectedUsers.removeWhere(
+                        (item) =>
+                            item['id']?.toString() == user['id']?.toString(),
+                      );
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: 12),
+          ShwakelButton(
+            label: _selectedUsers.isEmpty
+                ? l.tr('screens_create_card_screen.041')
+                : l.tr('screens_create_card_screen.042'),
+            icon: Icons.group_add_rounded,
+            isSecondary: true,
+            onPressed: _pickPrivateUsers,
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildForm() {
     final l = context.loc;
     return ShwakelCard(
@@ -2553,7 +2872,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.text('البيانات المالية والمستفيدون', 'Financial Data and Recipients'), style: AppTheme.h3),
+          Text(
+            l.text(
+              'البيانات المالية والمستفيدون',
+              'Financial Data and Recipients',
+            ),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 18),
           Container(
             width: double.infinity,
@@ -2567,7 +2892,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [Text(l.text('البيانات الأساسية', 'Basic Data'), style: AppTheme.bodyBold)],
+              children: [_buildPrivacyAndRecipientsSection()],
             ),
           ),
           const SizedBox(height: 20),
@@ -2583,25 +2908,43 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: _isAppointmentCard
-                      ? l.text('القيمة المالية إن وجدت', 'Monetary value if any')
+                      ? l.text(
+                          'القيمة المالية إن وجدت',
+                          'Monetary value if any',
+                        )
                       : l.tr('screens_create_card_screen.035'),
                   prefixIcon: const Icon(Icons.money_rounded),
                 ),
               ),
               const SizedBox(height: 16),
             ],
-            TextField(
-              controller: _qtyC,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                labelText: l.tr('screens_create_card_screen.037'),
-                prefixIcon: const Icon(Icons.pin_rounded),
-                helperText: _isTrialMode
-                    ? l.text('المتاح: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.', 'Available: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.')
-                    : _isAttendanceCard
-                    ? l.text('بطاقة واحدة لكل موظف.', 'One card per employee.')
-                    : l.text('الحد الأدنى $_minimumCardQuantity.', 'Minimum: $_minimumCardQuantity.'),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
+                child: TextField(
+                  controller: _qtyC,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    labelText: l.tr('screens_create_card_screen.037'),
+                    prefixIcon: const Icon(Icons.pin_rounded),
+                    helperText: _isTrialMode
+                        ? l.text(
+                            'المتاح: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.',
+                            'Available: ${CurrencyFormatter.formatAmount(_trialCardsRemainingAmount)}.',
+                          )
+                        : _isAttendanceCard
+                        ? l.text(
+                            'بطاقة واحدة لكل موظف.',
+                            'One card per employee.',
+                          )
+                        : l.text(
+                            'كل صفحة A4 تحتوي $_cardsPerA4Page بطاقة. الحد الأدنى $_minimumCardQuantity.',
+                            'Each A4 page contains $_cardsPerA4Page cards. Minimum: $_minimumCardQuantity.',
+                          ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -2615,8 +2958,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               title: Text(l.text('تخصيص رقم البطاقة', 'Customize Card Number')),
               subtitle: Text(
                 (int.tryParse(_qtyC.text.trim()) ?? 0) == 1
-                    ? l.text('أدخل رقمًا مخصصًا من 16 خانة بدل الرقم التلقائي.', 'Enter a custom 16-digit number instead of the automatic one.')
-                    : l.text('متاح عند إصدار بطاقة واحدة فقط.', 'Available when issuing one card only.'),
+                    ? l.text(
+                        'أدخل رقمًا مخصصًا من 16 خانة بدل الرقم التلقائي.',
+                        'Enter a custom 16-digit number instead of the automatic one.',
+                      )
+                    : l.text(
+                        'متاح عند إصدار بطاقة واحدة فقط.',
+                        'Available when issuing one card only.',
+                      ),
               ),
             ),
             if (_useCustomBarcode) ...[
@@ -2789,7 +3138,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                         color: AppTheme.warning.withValues(alpha: 0.06),
                         borderColor: AppTheme.warning.withValues(alpha: 0.15),
                         child: Text(
-                          l.text('كل بطاقة تمثل موظفًا واحدًا. عند فحصها يسجل النظام دخولًا ثم خروجًا بالتناوب، ويظهر تقرير شهري من تقارير الحضور والانصراف.', 'Each card represents one employee. When scanned, the system records entry then exit alternately, and a monthly report appears in attendance reports.'),
+                          l.text(
+                            'كل بطاقة تمثل موظفًا واحدًا. عند فحصها يسجل النظام دخولًا ثم خروجًا بالتناوب، ويظهر تقرير شهري من تقارير الحضور والانصراف.',
+                            'Each card represents one employee. When scanned, the system records entry then exit alternately, and a monthly report appears in attendance reports.',
+                          ),
                           style: AppTheme.bodyAction.copyWith(
                             fontSize: 13,
                             height: 1.5,
@@ -2809,7 +3161,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
-                title: Text(l.text('إعدادات متقدمة', 'Advanced Settings'), style: AppTheme.bodyBold),
+                title: Text(
+                  l.text('إعدادات متقدمة', 'Advanced Settings'),
+                  style: AppTheme.bodyBold,
+                ),
                 children: [
                   const SizedBox(height: 12),
                   ShwakelCard(
@@ -2818,7 +3173,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(l.text('نافذة الصلاحية', 'Validity Window'), style: AppTheme.bodyBold),
+                        Text(
+                          l.text('نافذة الصلاحية', 'Validity Window'),
+                          style: AppTheme.bodyBold,
+                        ),
                         const SizedBox(height: 12),
                         _buildDateTimeField(
                           label: 'فعالة من',
@@ -2845,197 +3203,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                       ],
                     ),
                   ),
-                  if (!_isTrialMode &&
-                      _canIssuePrivateCards &&
-                      _isBalanceCard &&
-                      _cardType != 'delivery') ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l.tr('screens_create_card_screen.038'),
-                      style: AppTheme.bodyBold,
-                    ),
-                    const SizedBox(height: 12),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isCompact = constraints.maxWidth < 520;
-                        if (isCompact) {
-                          return Column(
-                            children: [
-                              _buildVisibilityChoiceCard(
-                                value: 'general',
-                                icon: Icons.public_rounded,
-                                label: l.tr('screens_create_card_screen.011'),
-                              ),
-                              const SizedBox(height: 10),
-                              _buildVisibilityChoiceCard(
-                                value: 'restricted',
-                                icon: Icons.lock_rounded,
-                                label: l.tr('screens_create_card_screen.010'),
-                              ),
-                            ],
-                          );
-                        }
-                        return SegmentedButton<String>(
-                          segments: [
-                            ButtonSegment<String>(
-                              value: 'general',
-                              icon: const Icon(Icons.public_rounded),
-                              label: Text(
-                                l.tr('screens_create_card_screen.011'),
-                              ),
-                            ),
-                            ButtonSegment<String>(
-                              value: 'restricted',
-                              icon: const Icon(Icons.lock_rounded),
-                              label: Text(
-                                l.tr('screens_create_card_screen.010'),
-                              ),
-                            ),
-                          ],
-                          selected: {_visibilityScope},
-                          onSelectionChanged: (selection) {
-                            setState(() {
-                              _visibilityScope = selection.first;
-                              if (_visibilityScope != 'restricted') {
-                                _selectedUsers = [];
-                                _selectedPhoneNumbers = [];
-                              }
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                  if (!_isTrialMode && _requiresTargetedPrivateCard) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.warning.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppTheme.warning.withValues(alpha: 0.15),
-                        ),
-                      ),
-                      child: Text(
-                        l.text('هذا النوع خاص. اختر المستفيدين قبل الإصدار.', 'This type is private. Select recipients before issuing.'),
-                        style: AppTheme.bodyText.copyWith(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                  if (!_isTrialMode &&
-                      _canPickTargetedUsers &&
-                      _effectiveVisibilityScope == 'restricted') ...[
-                    const SizedBox(height: 20),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppTheme.warning.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppTheme.warning.withValues(alpha: 0.15),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l.tr('screens_create_card_screen.039'),
-                            style: AppTheme.bodyBold,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l.tr('screens_create_card_screen.040'),
-                            style: AppTheme.caption.copyWith(fontSize: 13),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _allowedPhoneC,
-                                  keyboardType: TextInputType.phone,
-                                  decoration: InputDecoration(
-                                    labelText: l.text('رقم هاتف المستفيد', 'Recipient Phone Number'),
-                                    prefixIcon: const Icon(Icons.phone_rounded),
-                                  ),
-                                  onSubmitted: (_) =>
-                                      _addAllowedPhoneFromInput(),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              IconButton.filledTonal(
-                                onPressed: _addAllowedPhoneFromInput,
-                                icon: const Icon(Icons.add_rounded),
-                                tooltip: l.text('إضافة الرقم', 'Add Number'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (_selectedPhoneNumbers.isNotEmpty)
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _selectedPhoneNumbers.map((phone) {
-                                return Chip(
-                                  avatar: const Icon(Icons.phone_rounded),
-                                  label: Text(phone),
-                                  onDeleted: () {
-                                    setState(() {
-                                      _selectedPhoneNumbers.remove(phone);
-                                    });
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          if (_selectedPhoneNumbers.isNotEmpty)
-                            const SizedBox(height: 12),
-                          if (_selectedUsers.isNotEmpty)
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _selectedUsers.map((user) {
-                                return Chip(
-                                  label: Text(_userOptionLabel(user)),
-                                  onDeleted: () {
-                                    setState(() {
-                                      _selectedUsers.removeWhere(
-                                        (item) =>
-                                            item['id']?.toString() ==
-                                            user['id']?.toString(),
-                                      );
-                                    });
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          const SizedBox(height: 12),
-                          ShwakelButton(
-                            label: _selectedUsers.isEmpty
-                                ? l.tr('screens_create_card_screen.041')
-                                : l.tr('screens_create_card_screen.042'),
-                            icon: Icons.group_add_rounded,
-                            isSecondary: true,
-                            onPressed: _pickPrivateUsers,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (_isTrialMode) ...[
-                    const SizedBox(height: 16),
-                    ShwakelCard(
-                      padding: const EdgeInsets.all(16),
-                      color: AppTheme.warning.withValues(alpha: 0.05),
-                      borderColor: AppTheme.warning.withValues(alpha: 0.15),
-                      child: Text(
-                        l.text('البطاقات التجريبية خاصة بحسابك فقط.', 'Trial cards are for your account only.'),
-                        style: AppTheme.bodyText.copyWith(fontSize: 13),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -3125,7 +3292,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              l.text('اختر نوع البطاقة أولًا. بعد الاختيار ستظهر حقول الإنشاء ومعاينة الدفع فقط لهذا النوع.', 'Select a card type first. After selection, creation fields and payment preview for that type will appear.'),
+              l.text(
+                'اختر نوع البطاقة أولًا. بعد الاختيار ستظهر حقول الإنشاء ومعاينة الدفع فقط لهذا النوع.',
+                'Select a card type first. After selection, creation fields and payment preview for that type will appear.',
+              ),
               style: AppTheme.bodyAction.copyWith(fontSize: 13, height: 1.5),
             ),
           ),
@@ -3150,7 +3320,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
             color: AppTheme.warning.withValues(alpha: 0.06),
             borderColor: AppTheme.warning.withValues(alpha: 0.15),
             child: Text(
-              l.text('لا توجد أنواع بطاقات متاحة لحسابك حاليًا. تواصل مع الإدارة لتفعيل صلاحية الإصدار المناسبة.', 'No card types are available for your account currently. Contact admin to activate the appropriate issuance permission.'),
+              l.text(
+                'لا توجد أنواع بطاقات متاحة لحسابك حاليًا. تواصل مع الإدارة لتفعيل صلاحية الإصدار المناسبة.',
+                'No card types are available for your account currently. Contact admin to activate the appropriate issuance permission.',
+              ),
               style: AppTheme.bodyAction.copyWith(fontSize: 13, height: 1.5),
             ),
           ),
@@ -3222,7 +3395,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                               if (isSelected &&
                                   _sortedIssuableCardTypes.length > 1)
                                 IconButton.filledTonal(
-                                  tooltip: l.text('تغيير نوع البطاقة', 'Change Card Type'),
+                                  tooltip: l.text(
+                                    'تغيير نوع البطاقة',
+                                    'Change Card Type',
+                                  ),
                                   onPressed: _clearSelectedCardType,
                                   icon: const Icon(Icons.close_rounded),
                                 ),
@@ -3246,8 +3422,14 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                             ),
                             child: Text(
                               fee > 0
-                                  ? l.text('رسوم الإصدار: ${CurrencyFormatter.ils(fee)} لكل بطاقة', 'Issue fee: ${CurrencyFormatter.ils(fee)} per card')
-                                  : l.text('بدون رسوم إصدار مباشرة', 'No direct issue fees'),
+                                  ? l.text(
+                                      'رسوم الإصدار: ${CurrencyFormatter.ils(fee)} لكل بطاقة',
+                                      'Issue fee: ${CurrencyFormatter.ils(fee)} per card',
+                                    )
+                                  : l.text(
+                                      'بدون رسوم إصدار مباشرة',
+                                      'No direct issue fees',
+                                    ),
                               style: AppTheme.caption.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -3266,6 +3448,127 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
+  Widget _buildCompactCreationFlow() {
+    final l = context.loc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ShwakelCard(
+          padding: const EdgeInsets.all(14),
+          color: AppTheme.surfaceVariant,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _currentStepTitle(l),
+                style: AppTheme.h3.copyWith(fontSize: 20),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _currentStepSubtitle(l),
+                style: AppTheme.caption.copyWith(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: List.generate(4, (index) {
+                  final active = index <= _currentStep;
+                  return Expanded(
+                    child: Container(
+                      height: 4,
+                      margin: EdgeInsetsDirectional.only(
+                        end: index == 3 ? 0 : 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? AppTheme.primary
+                            : AppTheme.border.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        _currentStepContent(),
+        _buildStepControls(),
+      ],
+    );
+  }
+
+  Widget _buildStepControls() {
+    final l = context.loc;
+    final isLast = _currentStep == 3;
+    final canContinue = _canContinueCurrentStep();
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Row(
+        textDirection: TextDirection.ltr,
+        children: [
+          if (_currentStep > 0)
+            TextButton(
+              onPressed: () => setState(() => _currentStep -= 1),
+              child: Text(l.text('السابق', 'Previous')),
+            )
+          else
+            const SizedBox.shrink(),
+          const Spacer(),
+          ShwakelButton(
+            label: isLast
+                ? l.text('إصدار الدفعة الآن', 'Issue Batch Now')
+                : l.text('التالي', 'Next'),
+            icon: isLast
+                ? Icons.verified_user_rounded
+                : Icons.arrow_back_rounded,
+            onPressed: canContinue
+                ? () => _handleStepContinue(isLast: isLast)
+                : null,
+            isLoading: _isLoading,
+            width: isLast ? 210 : 160,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _currentStepTitle(AppLocalizer l) => switch (_currentStep) {
+    0 => l.text('اختيار نوع البطاقة', 'Select Card Type'),
+    1 => l.text('البيانات والمستفيدون', 'Data and Recipients'),
+    2 => l.text('تصميم الطباعة والمعاينة', 'Print Design and Preview'),
+    _ => l.text('ملخص الحساب والتأكيد', 'Account Summary and Confirmation'),
+  };
+
+  String _currentStepSubtitle(AppLocalizer l) => switch (_currentStep) {
+    0 => l.text(
+      'تظهر الأنواع المتاحة حسب صلاحيات الحساب.',
+      'Available types appear based on account permissions.',
+    ),
+    1 => l.text(
+      'القيمة والكمية والخصوصية في مكان واحد.',
+      'Value, quantity, and privacy in one place.',
+    ),
+    2 => l.text(
+      'تحديث مباشر للشعار والعنوان والختم.',
+      'Live update for logo, title, and stamp.',
+    ),
+    _ => l.text(
+      'مراجعة الرسوم والتكلفة قبل الإصدار.',
+      'Review fees and cost before issuing.',
+    ),
+  };
+
+  Widget _currentStepContent() {
+    if (_currentStep == 0) return _buildCardTypeStep();
+    if (!_hasSelectedCardType) return _buildCardTypeEmptyState();
+    return switch (_currentStep) {
+      1 => _buildForm(),
+      2 => _buildDesignStep(),
+      _ => _buildConfirmationStep(),
+    };
+  }
+
   Widget _buildIssueCostSummary() {
     final l = context.loc;
     final quantity = int.tryParse(_qtyC.text.trim()) ?? 0;
@@ -3279,10 +3582,16 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.text('ملخص الدفع والرسوم', 'Payment and Fees Summary'), style: AppTheme.bodyBold),
+          Text(
+            l.text('ملخص الدفع والرسوم', 'Payment and Fees Summary'),
+            style: AppTheme.bodyBold,
+          ),
           const SizedBox(height: 6),
           Text(
-            l.text('راجع ما سيتم خصمه الآن لكل بطاقة وفي إجمالي العملية قبل المتابعة.', 'Review what will be deducted now per card and in total before continuing.'),
+            l.text(
+              'راجع ما سيتم خصمه الآن لكل بطاقة وفي إجمالي العملية قبل المتابعة.',
+              'Review what will be deducted now per card and in total before continuing.',
+            ),
             style: AppTheme.caption.copyWith(fontSize: 12),
           ),
           const SizedBox(height: 14),
@@ -3306,7 +3615,10 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               ),
               const SizedBox(height: 8),
               _buildPreviewSummaryRow(
-                l.text('من مجموع قيمة البطاقات المجانية هذا الشهر', 'From total free card value this month'),
+                l.text(
+                  'من مجموع قيمة البطاقات المجانية هذا الشهر',
+                  'From total free card value this month',
+                ),
                 '${CurrencyFormatter.ils(_currentFreePrivateCardValueApplied)} / ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)}',
               ),
             ],
@@ -3337,22 +3649,37 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   String _issueCostPolicyNote() {
     final l = context.loc;
     if (_isTrialMode) {
-      return l.text('في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.', 'In trial cards, only the card value is counted within the available limit for this account.');
+      return l.text(
+        'في البطاقات التجريبية يتم احتساب قيمة البطاقة فقط ضمن الحد المتاح لهذا الحساب.',
+        'In trial cards, only the card value is counted within the available limit for this account.',
+      );
     }
 
     if (_isBalanceCard && _isPrivateIssuance) {
-      return l.text('هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار. أول ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} من مجموع قيم البطاقات الخاصة شهريًا لأي حساب مسجل تشمل رسوم إصدار مجانية، وبعدها تُخصم رسوم الإصدار فقط.', 'This is a private balance card: the card value is not deducted from your balance upon issuance. The first ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} of monthly private card values for any registered account includes free issue fees, after which only issue fees are deducted.');
+      return l.text(
+        'هذه بطاقة رصيد خاصة: لا يتم خصم قيمة البطاقة من رصيدك عند الإصدار. أول ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} من مجموع قيم البطاقات الخاصة شهريًا لأي حساب مسجل تشمل رسوم إصدار مجانية، وبعدها تُخصم رسوم الإصدار فقط.',
+        'This is a private balance card: the card value is not deducted from your balance upon issuance. The first ${CurrencyFormatter.ils(_monthlyPrivateCardFreeValueLimit)} of monthly private card values for any registered account includes free issue fees, after which only issue fees are deducted.',
+      );
     }
 
     if (_isBalanceCard && !_isPrivateIssuance) {
-      return l.text('هذه بطاقة رصيد عامة: يتم خصم قيمة البطاقة فقط عند الإنشاء، ورسوم الاستخدام لا تظهر ضمن تكلفة الإنشاء.', 'This is a public balance card: only the card value is deducted upon creation, and usage fees do not appear in the creation cost.');
+      return l.text(
+        'هذه بطاقة رصيد عامة: يتم خصم قيمة البطاقة فقط عند الإنشاء، ورسوم الاستخدام لا تظهر ضمن تكلفة الإنشاء.',
+        'This is a public balance card: only the card value is deducted upon creation, and usage fees do not appear in the creation cost.',
+      );
     }
 
     if (!_isPrivateIssuance) {
-      return l.text('لا تظهر رسوم الاستخدام ضمن تكلفة الإنشاء، ويتم احتسابها عند استخدام البطاقة.', 'Usage fees do not appear in the creation cost and are calculated when the card is used.');
+      return l.text(
+        'لا تظهر رسوم الاستخدام ضمن تكلفة الإنشاء، ويتم احتسابها عند استخدام البطاقة.',
+        'Usage fees do not appear in the creation cost and are calculated when the card is used.',
+      );
     }
 
-    return l.text('رسوم الإصدار لهذه العملية تُخصم الآن حسب نوع البطاقة.', 'Issue fees for this operation are deducted now based on the card type.');
+    return l.text(
+      'رسوم الإصدار لهذه العملية تُخصم الآن حسب نوع البطاقة.',
+      'Issue fees for this operation are deducted now based on the card type.',
+    );
   }
 
   Widget _buildPrintPreviewPanel({required bool isCompact}) {
@@ -3378,7 +3705,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   Text('معاينة البطاقة', style: AppTheme.h3),
                   const SizedBox(height: 4),
                   Text(
-                    'مطابقة لتصميم الطباعة على صفحة A4 بواقع 30 بطاقة.',
+                    'مطابقة لتصميم الطباعة على صفحة A4 بواقع $_cardsPerA4Page بطاقة.',
                     style: AppTheme.caption.copyWith(
                       color: AppTheme.textSecondary,
                     ),

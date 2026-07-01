@@ -48,8 +48,8 @@ class _DenominationPalette {
 
 class PDFService {
   static final PDFService _instance = PDFService._internal();
-  static const int _cardsPerPage = 30;
-  static const int _rowsPerPage = 6;
+  static const int _cardsPerPage = 35;
+  static const int _rowsPerPage = 7;
   static const int _columnsPerPage = 5;
   static const double _a4PagePrintMargin = 3.5 * PdfPageFormat.mm;
   static const double _cardCutGap = 0.6 * PdfPageFormat.mm;
@@ -182,10 +182,9 @@ class PDFService {
   }
 
   String _brandName(String? printedBy) {
+    final customName = designSettings.logoText?.trim() ?? '';
     final displayName = (printedBy ?? '').trim();
-    final rawName = displayName.isNotEmpty
-        ? displayName
-        : (designSettings.logoText?.trim() ?? '');
+    final rawName = customName.isNotEmpty ? customName : displayName;
     final resolvedName = rawName.isEmpty ? _fallbackBrandName : rawName;
     return _limitText(resolvedName, _maxBrandNameLength);
   }
@@ -701,7 +700,7 @@ class PDFService {
   }
 
   /// Creates a single-page A4 PDF that renders the exact same "small card"
-  /// layout used inside the 30-cards-per-page sheet. This is used for an
+  /// layout used inside the 35-cards-per-page sheet. This is used for an
   /// accurate on-screen preview (rasterized from this PDF) so the user sees
   /// exactly what will be printed.
   Future<pw.Document> createSmallCardSheetPreviewPDF(
