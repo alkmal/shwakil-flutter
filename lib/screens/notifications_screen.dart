@@ -189,10 +189,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (!mounted) return;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => _NotificationDetailsScreen(item: item),
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.78,
+        minChildSize: 0.42,
+        maxChildSize: 0.94,
+        builder: (context, scrollController) => DecoratedBox(
+          decoration: const BoxDecoration(
+            color: AppTheme.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: _NotificationDetailsSheet(
+            item: item,
+            scrollController: scrollController,
+          ),
+        ),
       ),
     );
   }
@@ -634,7 +650,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     final beforeMarker = body.substring(0, markerIndex).trimRight();
-    final stackLine = 'الأثر البرمجي: متوفر في سجلات الخادم';
+    const stackLine = 'الأثر البرمجي: متوفر في سجلات الخادم';
 
     return beforeMarker.isEmpty ? stackLine : '$beforeMarker\n$stackLine';
   }
@@ -675,180 +691,163 @@ class _NotificationCard extends StatelessWidget {
     final categoryColor = _notificationCategoryColor(categoryKind);
     final notificationIcon = _notificationVisualIcon(item);
     final createdAt = item['createdAt']?.toString() ?? '';
-    final isFinancial = categoryKind == _NotificationKind.financial;
     final typeLabel = _notificationTypeLabel(context, item);
     final status = _notificationStatusValue(item);
     final statusLabel = _notificationStatusLabel(context, status);
     final statusColor = _notificationStatusColor(status);
     final messageTitle = _notificationListTitle(item, data);
     final messageDetails = _notificationListDetails(item, data, messageTitle);
+    final subtitle = amount != null
+        ? '${CurrencyFormatter.ils(amount)}${messageDetails.isNotEmpty ? ' - $messageDetails' : ''}'
+        : messageDetails;
+    final title = messageTitle.trim().isEmpty
+        ? _notificationCategoryLabel(context, categoryKind)
+        : messageTitle.trim();
 
     return ShwakelCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       color: isRead ? AppTheme.surface : AppTheme.tabSurface,
       shadowLevel: isRead ? ShwakelShadowLevel.soft : ShwakelShadowLevel.medium,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: categoryColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(notificationIcon, color: categoryColor),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: categoryColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(notificationIcon, color: categoryColor, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: categoryColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            _notificationCategoryLabel(context, categoryKind),
-                            style: AppTheme.caption.copyWith(
-                              color: categoryColor,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodyBold.copyWith(
+                          color: isRead
+                              ? AppTheme.textPrimary
+                              : AppTheme.primaryDark,
                         ),
-                        if (typeLabel.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceVariant,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              typeLabel,
-                              style: AppTheme.caption.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        if (statusLabel != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              statusLabel,
-                              style: AppTheme.caption.copyWith(
-                                color: statusColor,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        if (!isRead) const _UnreadDot(),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      messageTitle,
-                      style: AppTheme.bodyBold.copyWith(
-                        color: isRead
-                            ? AppTheme.textPrimary
-                            : AppTheme.primaryDark,
                       ),
                     ),
+                    if (!isRead) ...[
+                      const SizedBox(width: 8),
+                      const _UnreadDot(),
+                    ],
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (isFinancial && amount != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: categoryColor.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: categoryColor.withValues(alpha: 0.12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.82),
-                      borderRadius: BorderRadius.circular(14),
+                const SizedBox(height: 5),
+                if (subtitle.trim().isNotEmpty)
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.bodyAction.copyWith(
+                      height: 1.35,
+                      color: AppTheme.textSecondary,
                     ),
-                    child: Icon(notificationIcon, color: categoryColor),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          CurrencyFormatter.ils(amount),
-                          style: AppTheme.h3.copyWith(
-                            color: categoryColor,
-                            fontWeight: FontWeight.w900,
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _MiniMetaChip(
+                      icon: _notificationCategoryIcon(categoryKind),
+                      label: _notificationCategoryLabel(context, categoryKind),
+                      color: categoryColor,
+                    ),
+                    if (typeLabel.isNotEmpty)
+                      _MiniMetaChip(
+                        icon: Icons.category_rounded,
+                        label: typeLabel,
+                        color: AppTheme.textSecondary,
+                      ),
+                    if (statusLabel != null)
+                      _MiniMetaChip(
+                        icon: Icons.flag_rounded,
+                        label: statusLabel,
+                        color: statusColor,
+                      ),
+                    if (createdAt.trim().isNotEmpty)
+                      _MiniMetaChip(
+                        icon: Icons.schedule_rounded,
+                        label: createdAt,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ..._notificationPrimaryContextChips(context, data)
+                        .take(1)
+                        .map(
+                          (chip) => ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 190),
+                            child: chip,
                           ),
                         ),
-                        if (messageDetails.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            messageDetails,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTheme.bodyAction.copyWith(height: 1.4),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else if (messageDetails.isNotEmpty)
-            Text(
-              messageDetails,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.bodyAction.copyWith(height: 1.5),
+                  ],
+                ),
+              ],
             ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (createdAt.trim().isNotEmpty)
-                _InfoChip(icon: Icons.schedule_rounded, label: createdAt),
-              ..._notificationPrimaryContextChips(context, data),
-            ],
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Directionality.of(context) == TextDirection.rtl
+                ? Icons.chevron_left_rounded
+                : Icons.chevron_right_rounded,
+            color: AppTheme.textTertiary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniMetaChip extends StatelessWidget {
+  const _MiniMetaChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 190),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.caption.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -925,9 +924,10 @@ String _stripNotificationFieldLabel(String value) {
 }
 
 class _NotificationDetailsSheet extends StatelessWidget {
-  const _NotificationDetailsSheet({required this.item});
+  const _NotificationDetailsSheet({required this.item, this.scrollController});
 
   final Map<String, dynamic> item;
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -978,14 +978,27 @@ class _NotificationDetailsSheet extends StatelessWidget {
     );
 
     return SafeArea(
-      child: Padding(
+      child: ListView(
+        controller: scrollController,
         padding: EdgeInsets.only(
           left: 22,
           right: 22,
+          top: 14,
           bottom: MediaQuery.viewInsetsOf(context).bottom + 22,
         ),
-        child: SingleChildScrollView(
-          child: Column(
+        children: [
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppTheme.border,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1151,40 +1164,7 @@ class _NotificationDetailsSheet extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NotificationDetailsScreen extends StatelessWidget {
-  const _NotificationDetailsScreen({required this.item});
-
-  final Map<String, dynamic> item;
-
-  @override
-  Widget build(BuildContext context) {
-    final title = item['title']?.toString().trim();
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: Text(
-          title == null || title.isEmpty
-              ? context.loc.tr('widgets_app_top_actions.004')
-              : title,
-        ),
-        actions: const [QuickLogoutAction()],
-      ),
-      body: ResponsiveScaffoldContainer(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: ListView(
-          children: [
-            ShwakelCard(
-              padding: EdgeInsets.zero,
-              child: _NotificationDetailsSheet(item: item),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

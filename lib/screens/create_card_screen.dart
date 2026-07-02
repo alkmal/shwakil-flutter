@@ -79,6 +79,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   String _loadingDetails = '';
   String _cardType = '';
   String _visibilityScope = 'general';
+  String _recipientCountryCode = PhoneNumberService.countries.first.dialCode;
   DateTime? _validFrom;
   DateTime? _validUntil;
   DateTime? _appointmentStartsAt;
@@ -1413,23 +1414,88 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         .toList();
   }
 
-  void _addAllowedPhoneFromInput() {
+  Future<void> _addAllowedPhoneFromInput() async {
+    final l = context.loc;
     final raw = _allowedPhoneC.text.trim();
-    final digits = raw.replaceAll(RegExp(r'\D'), '');
-    if (digits.length < 6) {
+    final normalized = PhoneNumberService.normalize(
+      input: raw,
+      defaultDialCode: _recipientCountryCode,
+    );
+    if (normalized.length < 6) {
+      await AppAlertService.showError(
+        context,
+        title: l.text('رقم غير صالح', 'Invalid Number'),
+        message: l.text(
+          'أدخل رقم الهاتف مع اختيار الدولة أولًا.',
+          'Enter the phone number after selecting the country.',
+        ),
+      );
       return;
     }
 
-    final normalized = raw.startsWith('+') ? '+$digits' : digits;
-    if (_selectedPhoneNumbers.any((item) => item == normalized)) {
+    if (_selectedPhoneNumbers.any((item) => item == normalized) ||
+        _selectedUsers.any(
+          (user) => user['whatsapp']?.toString() == normalized,
+        )) {
       _allowedPhoneC.clear();
       return;
     }
 
-    setState(() {
-      _selectedPhoneNumbers = [..._selectedPhoneNumbers, normalized];
-      _allowedPhoneC.clear();
-    });
+    setState(() => _isLoading = true);
+    try {
+      final lookup = await _apiService.lookupUserByPhone(
+        phone: raw,
+        countryCode: _recipientCountryCode,
+        inviteIfMissing: true,
+      );
+      if (!mounted) return;
+      if (lookup['exists'] == true && lookup['user'] is Map) {
+        final user = Map<String, dynamic>.from(lookup['user'] as Map);
+        setState(() {
+          _selectedUsers = [
+            ..._selectedUsers.where(
+              (item) => item['id']?.toString() != user['id']?.toString(),
+            ),
+            user,
+          ];
+          _allowedPhoneC.clear();
+        });
+        await AppAlertService.showSuccess(
+          context,
+          title: l.text('تم اختيار الحساب', 'Account Selected'),
+          message: l.text(
+            'تم العثور على الحساب وإضافته للمستفيدين.',
+            'The account was found and added as a recipient.',
+          ),
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _selectedPhoneNumbers = [..._selectedPhoneNumbers, normalized];
+        _allowedPhoneC.clear();
+      });
+      await AppAlertService.showInfo(
+        context,
+        title: l.text('تم إرسال دعوة', 'Invitation Sent'),
+        message: l.text(
+          'لا يوجد حساب بهذا الرقم حاليًا. تم إرسال دعوة واتساب له، وسيبقى الرقم ضمن المستفيدين عند التسجيل بنفس الرقم.',
+          'No account exists for this number yet. A WhatsApp invitation was sent, and the number remains allowed when they register with it.',
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      await AppAlertService.showError(
+        context,
+        title: l.text('تعذر إضافة المستفيد', 'Could Not Add Recipient'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   bool _isLocalSecurityRequiredMessage(String message) {
@@ -1941,150 +2007,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
   }
 
-  Future<void> _pickPrivateUsers() async {
-    final l = context.loc;
-    if (_isTrialMode) {
-      await AppAlertService.showInfo(
-        context,
-        title: l.text(
-          'اختيار المستفيدين غير متاح',
-          'Recipient Selection Unavailable',
-        ),
-        message: l.text(
-          'الحساب غير موثق، لذلك تكون البطاقات الخاصة مخصصة لحسابك فقط ولا يمكن البحث عن مستخدمين آخرين.',
-          'Account is not verified, so private cards are for your account only and you cannot search for other users.',
-        ),
-      );
-      return;
-    }
-    final results = await showDialog<List<Map<String, dynamic>>>(
-      context: context,
-      builder: (dialogContext) {
-        final searchController = TextEditingController();
-        final selected = List<Map<String, dynamic>>.from(_selectedUsers);
-        List<Map<String, dynamic>> results = [];
-        bool loading = false;
-
-        Future<void> searchUsers(
-          StateSetter setModalState,
-          String query,
-        ) async {
-          setModalState(() => loading = true);
-          try {
-            results = await _apiService.searchUsers(query);
-          } catch (_) {
-            results = [];
-          } finally {
-            setModalState(() => loading = false);
-          }
-        }
-
-        bool isSelected(Map<String, dynamic> user) {
-          final id = user['id']?.toString();
-          return selected.any((item) => item['id']?.toString() == id);
-        }
-
-        return StatefulBuilder(
-          builder: (context, setModalState) => AlertDialog(
-            title: Text(l.tr('screens_create_card_screen.024')),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      labelText: l.tr('screens_create_card_screen.025'),
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      suffixIcon: loading
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
-                    onChanged: (value) => searchUsers(setModalState, value),
-                  ),
-                  const SizedBox(height: 16),
-                  if (selected.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: selected.map((user) {
-                        return Chip(
-                          label: Text(_userOptionLabel(user)),
-                          onDeleted: () {
-                            setModalState(() {
-                              selected.removeWhere(
-                                (item) =>
-                                    item['id']?.toString() ==
-                                    user['id']?.toString(),
-                              );
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  const SizedBox(height: 12),
-                  Flexible(
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: results.map((user) {
-                        final selectedNow = isSelected(user);
-                        return CheckboxListTile(
-                          value: selectedNow,
-                          title: Text(_userOptionLabel(user)),
-                          subtitle: Text(_userOptionSubtitle(l, user)),
-                          onChanged: (value) {
-                            setModalState(() {
-                              if (value == true && !selectedNow) {
-                                selected.add(user);
-                              } else if (value == false) {
-                                selected.removeWhere(
-                                  (item) =>
-                                      item['id']?.toString() ==
-                                      user['id']?.toString(),
-                                );
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(l.tr('screens_create_card_screen.016')),
-              ),
-              ShwakelButton(
-                label: l.tr('screens_create_card_screen.028'),
-                width: 120,
-                onPressed: () => Navigator.pop(dialogContext, selected),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (results == null || !mounted) {
-      return;
-    }
-
-    setState(() => _selectedUsers = results);
-  }
-
   String _userOptionLabel(Map<String, dynamic> user) {
     final displayName = user['displayName']?.toString().trim() ?? '';
     if (displayName.isNotEmpty) {
@@ -2097,16 +2019,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ? user['username'].toString()
           : '${user['id'] ?? ''}',
     );
-  }
-
-  String _userOptionSubtitle(AppLocalizer l, Map<String, dynamic> user) {
-    final username = user['username']?.toString().trim() ?? '';
-    final id = user['id']?.toString().trim() ?? '-';
-    if (username.isNotEmpty) {
-      return '@$username - ${l.tr('screens_create_card_screen.027', params: {'id': id})}';
-    }
-
-    return l.tr('screens_create_card_screen.027', params: {'id': id});
   }
 
   @override
@@ -2773,8 +2685,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ] else ...[
           Text(
             l.text(
-              'ظهور البطاقة مضبوط حسب صلاحيات الحساب.',
-              'Card visibility follows account permissions.',
+              'البطاقات العامة يمكن استخدامها ونقل رصيدها لدى كل المحلات والأماكن المشاركة حسب صلاحيات الحساب.',
+              'General cards can be used and their balance transferred across all participating stores and places, according to the account permissions.',
             ),
             style: AppTheme.bodyAction.copyWith(fontSize: 13),
           ),
@@ -2782,38 +2694,89 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         if (showTargetedRecipients) ...[
           const SizedBox(height: 18),
           Text(
-            l.tr('screens_create_card_screen.039'),
+            l.text('المستفيدون من البطاقات الخاصة', 'Private Card Recipients'),
             style: AppTheme.bodyBold,
           ),
           const SizedBox(height: 8),
           Text(
-            l.tr('screens_create_card_screen.040'),
+            l.text(
+              'البطاقات الخاصة مخصصة للأرقام المحددة فقط. اختر الدولة ثم أدخل رقم الهاتف للتحقق من وجود الحساب. إذا لم يكن موجودًا نرسل له دعوة واتساب لاستخدام النظام.',
+              'Private cards are limited to the selected phone numbers only. Select the country, enter the phone number, and the system will verify the account. If it does not exist, a WhatsApp invitation is sent.',
+            ),
             style: AppTheme.caption.copyWith(fontSize: 13),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _allowedPhoneC,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: l.text(
-                      'رقم هاتف المستفيد',
-                      'Recipient Phone Number',
-                    ),
-                    prefixIcon: const Icon(Icons.phone_rounded),
-                  ),
-                  onSubmitted: (_) => _addAllowedPhoneFromInput(),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stacked = constraints.maxWidth < 560;
+              final countryField = DropdownButtonFormField<String>(
+                initialValue: _recipientCountryCode,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: l.text('الدولة', 'Country'),
+                  prefixIcon: const Icon(Icons.public_rounded),
                 ),
-              ),
-              const SizedBox(width: 10),
-              IconButton.filledTonal(
-                onPressed: _addAllowedPhoneFromInput,
-                icon: const Icon(Icons.add_rounded),
-                tooltip: l.text('إضافة الرقم', 'Add Number'),
-              ),
-            ],
+                items: PhoneNumberService.countries.map((country) {
+                  return DropdownMenuItem<String>(
+                    value: country.dialCode,
+                    child: Text(
+                      '${country.name} (+${country.dialCode})',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _recipientCountryCode = value);
+                },
+              );
+              final phoneField = TextField(
+                controller: _allowedPhoneC,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: l.text(
+                    'رقم هاتف المستفيد',
+                    'Recipient Phone Number',
+                  ),
+                  prefixIcon: const Icon(Icons.phone_rounded),
+                ),
+                onSubmitted: (_) => unawaited(_addAllowedPhoneFromInput()),
+              );
+              final addButton = SizedBox(
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () => unawaited(_addAllowedPhoneFromInput()),
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
+                  label: Text(l.text('تحقق وأضف', 'Verify and Add')),
+                ),
+              );
+
+              if (stacked) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    countryField,
+                    const SizedBox(height: 10),
+                    phoneField,
+                    const SizedBox(height: 10),
+                    addButton,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 220, child: countryField),
+                  const SizedBox(width: 10),
+                  Expanded(child: phoneField),
+                  const SizedBox(width: 10),
+                  addButton,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           if (_selectedPhoneNumbers.isNotEmpty)
@@ -2822,8 +2785,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               runSpacing: 8,
               children: _selectedPhoneNumbers.map((phone) {
                 return Chip(
-                  avatar: const Icon(Icons.phone_rounded),
-                  label: Text(phone),
+                  avatar: const Icon(Icons.mark_email_read_rounded),
+                  label: Text(l.text('دعوة: $phone', 'Invited: $phone')),
                   onDeleted: () {
                     setState(() {
                       _selectedPhoneNumbers.remove(phone);
@@ -2839,6 +2802,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               runSpacing: 8,
               children: _selectedUsers.map((user) {
                 return Chip(
+                  avatar: const Icon(Icons.verified_user_rounded),
                   label: Text(_userOptionLabel(user)),
                   onDeleted: () {
                     setState(() {
@@ -2852,14 +2816,6 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
               }).toList(),
             ),
           const SizedBox(height: 12),
-          ShwakelButton(
-            label: _selectedUsers.isEmpty
-                ? l.tr('screens_create_card_screen.041')
-                : l.tr('screens_create_card_screen.042'),
-            icon: Icons.group_add_rounded,
-            isSecondary: true,
-            onPressed: _pickPrivateUsers,
-          ),
         ],
       ],
     );

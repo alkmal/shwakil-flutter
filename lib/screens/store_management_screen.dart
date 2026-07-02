@@ -2079,32 +2079,34 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   };
 
   String _operationTitle(Map<String, dynamic> operation) {
+    final l = context.loc;
     final entity = operation['entity']?.toString() ?? '';
     if (entity == 'product') {
-      return 'صنف: ${operation['name'] ?? ''}'.trim();
+      return '${l.text('صنف', 'Item')}: ${operation['name'] ?? ''}'.trim();
     }
     if (entity == 'invoice') {
       return operation['invoiceType'] == 'purchase'
-          ? 'فاتورة شراء معلقة'
-          : 'فاتورة بيع معلقة';
+          ? l.text('فاتورة شراء معلقة', 'Pending purchase invoice')
+          : l.text('فاتورة بيع معلقة', 'Pending sale invoice');
     }
     if (entity == 'party') {
-      return 'حساب: ${operation['name'] ?? ''}'.trim();
+      return '${l.text('حساب', 'Account')}: ${operation['name'] ?? ''}'.trim();
     }
     if (entity == 'payment') {
-      return 'دفعة معلقة';
+      return l.text('دفعة معلقة', 'Pending payment');
     }
     if (entity == 'workspace') {
-      return 'تحديث إعدادات المتجر';
+      return l.text('تحديث إعدادات المتجر', 'Store settings update');
     }
-    return 'عملية مزامنة معلقة';
+    return l.text('عملية مزامنة معلقة', 'Pending sync operation');
   }
 
   String _operationDescription(Map<String, dynamic> operation) {
+    final l = context.loc;
     final entity = operation['entity']?.toString() ?? '';
     if (entity == 'invoice') {
       final items = _list(operation['items']);
-      return '${items.length} أصناف • مدفوع ${_money(operation['paidAmount'])} • ${operation['paymentMethod'] ?? 'cash'}';
+      return '${items.length} ${l.text('أصناف', 'items')} • ${l.text('مدفوع', 'paid')} ${_money(operation['paidAmount'])} • ${operation['paymentMethod'] ?? 'cash'}';
     }
     if (entity == 'product') {
       final units = _list(operation['units']);
@@ -2113,13 +2115,13 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             (unit) =>
                 '${unit['name'] ?? _unitName(unit['code']?.toString() ?? '')}: ${unit['factorToBase'] ?? 1}',
           )
-          .join('، ');
+          .join(l.text('، ', ', '));
     }
     if (entity == 'party') {
       return '${_partyTypeLabel(operation['partyType']?.toString())} • ${operation['phone'] ?? ''}';
     }
     if (entity == 'payment') {
-      return 'المبلغ ${_money(operation['amount'])}';
+      return '${l.text('المبلغ', 'Amount')} ${_money(operation['amount'])}';
     }
     if (entity == 'workspace') {
       return operation['name']?.toString() ?? '';
@@ -2134,9 +2136,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   }
 
   String _partyTypeLabel(String? type) => switch (type) {
-    'supplier' => 'تاجر',
-    'both' => 'زبون وتاجر',
-    _ => 'زبون',
+    'supplier' => context.loc.text('تاجر', 'Supplier'),
+    'both' => context.loc.text('زبون وتاجر', 'Customer and supplier'),
+    _ => context.loc.text('زبون', 'Customer'),
   };
 
   Widget _publicOrdersPanel() {
@@ -2192,7 +2194,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             '${order['orderNumber'] ?? ''} • ${_publicOrderStatusLabel(status)}',
           ),
           subtitle: Text(
-            '${items.map((item) => '${item['productName']} × ${item['quantity']}').join('، ')}\nالإجمالي: ${_money(order['total'])}',
+            '${items.map((item) => '${item['productName']} × ${item['quantity']}').join(context.loc.text('، ', ', '))}\n${context.loc.text('الإجمالي', 'Total')}: ${_money(order['total'])}',
           ),
           isThreeLine: true,
           trailing: PopupMenuButton<String>(
@@ -2223,11 +2225,11 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
 
   String _publicOrderStatusLabel(String status) {
     return switch (status) {
-      'accepted' => 'مؤكد',
-      'shipped' => 'مرسل',
-      'received' => 'مستلم',
-      'cancelled' => 'ملغي',
-      _ => 'بانتظار التأكيد',
+      'accepted' => context.loc.text('مؤكد', 'Confirmed'),
+      'shipped' => context.loc.text('مرسل', 'Shipped'),
+      'received' => context.loc.text('مستلم', 'Received'),
+      'cancelled' => context.loc.text('ملغي', 'Cancelled'),
+      _ => context.loc.text('بانتظار التأكيد', 'Awaiting confirmation'),
     };
   }
 

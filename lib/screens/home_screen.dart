@@ -137,56 +137,75 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   _RoleExperience get _roleExperience {
+    final l = context.loc;
     final permissions = AppPermissions.fromUser(_user);
     final role = permissions.role;
     if (permissions.isDriverRole || permissions.canOfflineCardScan) {
-      return const _RoleExperience(
-        title: 'مساحة السائق',
-        subtitle: 'فحص سريع ومزامنة واضحة.',
+      return _RoleExperience(
+        title: l.text('مساحة السائق', 'Driver Workspace'),
+        subtitle: l.text(
+          'فحص سريع ومزامنة واضحة.',
+          'Fast scanning and clear sync.',
+        ),
         icon: Icons.local_shipping_rounded,
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [AppTheme.secondary, AppTheme.primary],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
         accent: AppTheme.accent,
-        servicesTitle: 'مهام السائق',
-        scanTitle: 'فحص بطاقة',
-        scanSubtitle: 'افتح الكاميرا وابدأ مباشرة.',
+        servicesTitle: l.text('مهام السائق', 'Driver Tasks'),
+        scanTitle: l.text('فحص بطاقة', 'Scan Card'),
+        scanSubtitle: l.text(
+          'افتح الكاميرا وابدأ مباشرة.',
+          'Open the camera and start immediately.',
+        ),
       );
     }
     if (permissions.canIssueCards ||
         permissions.canRequestCardPrinting ||
         permissions.canAcceptPrepaidMultipayPayments ||
         role == 'merchant') {
-      return const _RoleExperience(
-        title: 'مساحة التاجر',
-        subtitle: 'أدوات البيع والبطاقات في مكان واحد.',
+      return _RoleExperience(
+        title: l.text('مساحة التاجر', 'Merchant Workspace'),
+        subtitle: l.text(
+          'أدوات البيع والبطاقات في مكان واحد.',
+          'Sales and card tools in one place.',
+        ),
         icon: Icons.storefront_rounded,
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [AppTheme.primary, AppTheme.primaryLight],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
         accent: AppTheme.primary,
-        servicesTitle: 'أدوات التاجر',
-        scanTitle: 'قبول أو فحص بطاقة',
-        scanSubtitle: 'نفذ العملية الأساسية بدون خطوات إضافية.',
+        servicesTitle: l.text('أدوات التاجر', 'Merchant Tools'),
+        scanTitle: l.text('قبول أو فحص بطاقة', 'Accept or Scan Card'),
+        scanSubtitle: l.text(
+          'نفذ العملية الأساسية بدون خطوات إضافية.',
+          'Run the core action without extra steps.',
+        ),
       );
     }
-    return const _RoleExperience(
-      title: 'مساحة المستخدم',
-      subtitle: 'رصيدك وتحويلاتك بشكل مختصر.',
+    return _RoleExperience(
+      title: l.text('مساحة المستخدم', 'User Workspace'),
+      subtitle: l.text(
+        'رصيدك وتحويلاتك بشكل مختصر.',
+        'Your balance and transfers at a glance.',
+      ),
       icon: Icons.account_circle_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [AppTheme.secondary, AppTheme.primary],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),
       accent: AppTheme.primary,
-      servicesTitle: 'الخدمات',
-      scanTitle: 'فحص بطاقة',
-      scanSubtitle: 'استخدم البطاقة أو تحقق منها بسرعة.',
+      servicesTitle: l.text('الخدمات', 'Services'),
+      scanTitle: l.text('فحص بطاقة', 'Scan Card'),
+      scanSubtitle: l.text(
+        'استخدم البطاقة أو تحقق منها بسرعة.',
+        'Use or verify a card quickly.',
+      ),
     );
   }
 
@@ -1803,7 +1822,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'إنشاء بطاقة سريعة',
+                          context.loc.text(
+                            'إنشاء بطاقة سريعة',
+                            'Quick Card Creation',
+                          ),
                           style: AppTheme.caption.copyWith(
                             color: AppTheme.primary,
                             fontWeight: FontWeight.w800,

@@ -1207,6 +1207,7 @@ class ApiService {
     required double value,
     required int quantity,
     required String cardType,
+    String? chargeUserId,
     String notes = '',
     List<String> allowedUserIds = const [],
     List<String> allowedUserPhones = const [],
@@ -1222,6 +1223,8 @@ class ApiService {
         'value': value,
         'quantity': quantity,
         'cardType': cardType,
+        if ((chargeUserId ?? '').trim().isNotEmpty)
+          'chargeUserId': chargeUserId!.trim(),
         'notes': notes.trim(),
         if (allowedUserIds.isNotEmpty) 'allowedUserIds': allowedUserIds,
         if (allowedUserPhones.isNotEmpty)
@@ -2059,16 +2062,36 @@ class ApiService {
   Future<Map<String, dynamic>> lookupUserByPhone({
     required String phone,
     required String countryCode,
+    bool inviteIfMissing = false,
   }) async {
     final response = await http.get(
       AppConfig.apiUri('users/lookup-by-phone', {
         'phone': phone,
         'countryCode': countryCode,
+        if (inviteIfMissing) 'invite': '1',
       }),
       headers: await _headers(),
     );
+    if (response.statusCode == 404) {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    }
     final body = _decodeObject(response);
     return Map<String, dynamic>.from(body);
+  }
+
+  Future<Map<String, dynamic>> sendCardRecipientInvite({
+    required String phone,
+    required String countryCode,
+  }) async {
+    final response = await http.post(
+      AppConfig.apiUri('cards/recipient-invite'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'phone': phone.trim(),
+        'countryCode': countryCode.trim(),
+      }),
+    );
+    return _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> topUpUser({

@@ -459,6 +459,313 @@ class _AdminCardPrintRequestsScreenState
     }
   }
 
+  Future<void> _showCreateAdminRequestDialog() async {
+    final l = context.loc;
+    final valueController = TextEditingController(text: '0');
+    final quantityController = TextEditingController(text: '35');
+    final notesController = TextEditingController();
+    final ownerSearchController = TextEditingController();
+    final chargeSearchController = TextEditingController();
+    Map<String, dynamic>? selectedOwner;
+    Map<String, dynamic>? selectedChargeUser;
+    List<Map<String, dynamic>> ownerResults = const [];
+    List<Map<String, dynamic>> chargeResults = const [];
+    bool searchingOwner = false;
+    bool searchingCharge = false;
+    String cardType = 'standard';
+
+    Future<void> searchUsers(
+      StateSetter setDialogState,
+      String query,
+      bool chargeSearch,
+    ) async {
+      setDialogState(() {
+        if (chargeSearch) {
+          searchingCharge = true;
+        } else {
+          searchingOwner = true;
+        }
+      });
+      try {
+        final results = await _apiService.searchUsers(query);
+        setDialogState(() {
+          if (chargeSearch) {
+            chargeResults = results;
+          } else {
+            ownerResults = results;
+          }
+        });
+      } catch (_) {
+        setDialogState(() {
+          if (chargeSearch) {
+            chargeResults = const [];
+          } else {
+            ownerResults = const [];
+          }
+        });
+      } finally {
+        setDialogState(() {
+          if (chargeSearch) {
+            searchingCharge = false;
+          } else {
+            searchingOwner = false;
+          }
+        });
+      }
+    }
+
+    Widget userSearchBox({
+      required StateSetter setDialogState,
+      required TextEditingController controller,
+      required String label,
+      required String helper,
+      required Map<String, dynamic>? selected,
+      required List<Map<String, dynamic>> results,
+      required bool loading,
+      required bool chargeSearch,
+    }) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: label,
+              helperText: helper,
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+            ),
+            onChanged: (value) => unawaited(
+              searchUsers(setDialogState, value.trim(), chargeSearch),
+            ),
+          ),
+          if (selected != null) ...[
+            const SizedBox(height: 8),
+            Chip(
+              avatar: const Icon(Icons.account_circle_rounded),
+              label: Text(UserDisplayName.fromMap(selected)),
+              onDeleted: () {
+                setDialogState(() {
+                  if (chargeSearch) {
+                    selectedChargeUser = null;
+                  } else {
+                    selectedOwner = null;
+                  }
+                });
+              },
+            ),
+          ],
+          if (results.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 150),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: results.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final user = results[index];
+                  return ListTile(
+                    dense: true,
+                    title: Text(UserDisplayName.fromMap(user)),
+                    subtitle: Text(user['whatsapp']?.toString() ?? ''),
+                    onTap: () {
+                      setDialogState(() {
+                        if (chargeSearch) {
+                          selectedChargeUser = user;
+                          chargeResults = const [];
+                          chargeSearchController.clear();
+                        } else {
+                          selectedOwner = user;
+                          selectedChargeUser ??= user;
+                          ownerResults = const [];
+                          ownerSearchController.clear();
+                        }
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            l.text('إنشاء طلب طباعة إداري', 'Create Admin Print Request'),
+          ),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  userSearchBox(
+                    setDialogState: setDialogState,
+                    controller: ownerSearchController,
+                    label: l.text('صاحب البطاقات', 'Card owner'),
+                    helper: l.text(
+                      'ابحث عن الحساب الذي ستصدر له البطاقات.',
+                      'Search for the account that will own the cards.',
+                    ),
+                    selected: selectedOwner,
+                    results: ownerResults,
+                    loading: searchingOwner,
+                    chargeSearch: false,
+                  ),
+                  const SizedBox(height: 14),
+                  userSearchBox(
+                    setDialogState: setDialogState,
+                    controller: chargeSearchController,
+                    label: l.text(
+                      'حساب خصم رسوم الطباعة',
+                      'Printing fee payer',
+                    ),
+                    helper: l.text(
+                      'يمكن خصم رسوم الطباعة من هذا الحساب حتى لو أصبح رصيده بالسالب.',
+                      'Printing fees can be deducted from this account even if its balance becomes negative.',
+                    ),
+                    selected: selectedChargeUser,
+                    results: chargeResults,
+                    loading: searchingCharge,
+                    chargeSearch: true,
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: cardType,
+                    decoration: InputDecoration(
+                      labelText: l.text('نوع البطاقة', 'Card type'),
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'standard',
+                        child: Text(l.text('بطاقة رصيد', 'Balance card')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'delivery',
+                        child: Text(l.tr('shared.delivery_card_label')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'single_use',
+                        child: Text(l.text('بطاقة خاصة', 'Private card')),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => cardType = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: valueController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: l.text('قيمة البطاقة', 'Card value'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: quantityController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: l.text('عدد البطاقات', 'Card count'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: notesController,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      labelText: l.text('ملاحظات', 'Notes'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l.tr('screens_card_print_requests_screen.015')),
+            ),
+            FilledButton.icon(
+              onPressed: selectedOwner == null
+                  ? null
+                  : () => Navigator.pop(dialogContext, true),
+              icon: const Icon(Icons.print_rounded),
+              label: Text(l.text('إنشاء الطلب', 'Create request')),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final owner = selectedOwner;
+    final chargeUser = selectedChargeUser ?? selectedOwner;
+    final value = double.tryParse(valueController.text.trim()) ?? 0;
+    final quantity = int.tryParse(quantityController.text.trim()) ?? 35;
+    final notes = notesController.text;
+    valueController.dispose();
+    quantityController.dispose();
+    notesController.dispose();
+    ownerSearchController.dispose();
+    chargeSearchController.dispose();
+    if (submitted != true || owner == null) {
+      return;
+    }
+
+    try {
+      setState(() => _isRefreshing = true);
+      await _apiService.createAdminCardPrintRequest(
+        userId: owner['id'].toString(),
+        chargeUserId: chargeUser?['id']?.toString(),
+        value: value,
+        quantity: quantity,
+        cardType: cardType,
+        notes: notes,
+      );
+      await _load(preserveContent: true);
+      if (!mounted) return;
+      await AppAlertService.showSuccess(
+        context,
+        message: l.text('تم إنشاء طلب الطباعة.', 'Print request created.'),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isRefreshing = false);
+      await AppAlertService.showError(
+        context,
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.loc;
@@ -576,6 +883,13 @@ class _AdminCardPrintRequestsScreenState
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isLoading
+            ? null
+            : () => unawaited(_showCreateAdminRequestDialog()),
+        icon: const Icon(Icons.add_rounded),
+        label: Text(l.text('طلب طباعة', 'Print request')),
+      ),
     );
   }
 
@@ -649,125 +963,114 @@ class _AdminCardPrintRequestsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            Text(
-              context.loc.tr('screens_admin_card_print_requests_screen.039'),
-              style: AppTheme.h2,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.tr('screens_admin_card_print_requests_screen.042'),
-              style: AppTheme.bodyAction.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final stacked = constraints.maxWidth < 760;
-                final searchField = TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_admin_card_print_requests_screen.search_label',
-                    ),
-                    prefixIcon: const Icon(Icons.search_rounded),
+          Text(
+            context.loc.tr('screens_admin_card_print_requests_screen.039'),
+            style: AppTheme.h2,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.loc.tr('screens_admin_card_print_requests_screen.042'),
+            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stacked = constraints.maxWidth < 760;
+              final searchField = TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: l.tr(
+                    'screens_admin_card_print_requests_screen.search_label',
                   ),
-                  onChanged: (_) {
-                    _searchDebounce?.cancel();
-                    _searchDebounce = Timer(
-                      const Duration(milliseconds: 550),
-                      () {
-                        if (!mounted) {
-                          return;
-                        }
-                        _submitSearch();
-                      },
-                    );
-                  },
-                  onSubmitted: (_) {
-                    _page = 1;
-                    _submitSearch(force: true);
-                  },
-                );
-                final filterField = DropdownButtonFormField<String>(
-                  initialValue: _status,
-                  decoration: InputDecoration(
-                    labelText: l.tr(
-                      'screens_admin_card_print_requests_screen.003',
-                    ),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'all',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.004'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'pending_review',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.005'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'approved',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.006'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'printing',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.007'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'ready',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.008'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'completed',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.009'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'rejected',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.010'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'archive',
-                      child: Text(
-                        l.tr('screens_admin_card_print_requests_screen.029'),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    setState(() {
-                      _status = value;
-                      _page = 1;
-                    });
-                    _load(preserveContent: true);
-                  },
-                );
-
-                if (stacked) {
-                  return Column(
-                    children: [
-                      searchField,
-                      const SizedBox(height: 12),
-                      filterField,
-                    ],
+                  prefixIcon: const Icon(Icons.search_rounded),
+                ),
+                onChanged: (_) {
+                  _searchDebounce?.cancel();
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 550),
+                    () {
+                      if (!mounted) {
+                        return;
+                      }
+                      _submitSearch();
+                    },
                   );
-                }
+                },
+                onSubmitted: (_) {
+                  _page = 1;
+                  _submitSearch(force: true);
+                },
+              );
+              final filterField = DropdownButtonFormField<String>(
+                initialValue: _status,
+                decoration: InputDecoration(
+                  labelText: l.tr(
+                    'screens_admin_card_print_requests_screen.003',
+                  ),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'all',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.004'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'pending_review',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.005'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'approved',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.006'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'printing',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.007'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'ready',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.008'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'completed',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.009'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'rejected',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.010'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'archive',
+                    child: Text(
+                      l.tr('screens_admin_card_print_requests_screen.029'),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() {
+                    _status = value;
+                    _page = 1;
+                  });
+                  _load(preserveContent: true);
+                },
+              );
 
+              if (stacked) {
                 return Column(
                   children: [
                     searchField,
@@ -775,8 +1078,17 @@ class _AdminCardPrintRequestsScreenState
                     filterField,
                   ],
                 );
-              },
-            ),
+              }
+
+              return Column(
+                children: [
+                  searchField,
+                  const SizedBox(height: 12),
+                  filterField,
+                ],
+              );
+            },
+          ),
         ],
       ),
     );

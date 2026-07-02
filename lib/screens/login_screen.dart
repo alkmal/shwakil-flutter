@@ -500,7 +500,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 24),
         ShwakelButton(
           label: _isWaitingForDeviceApproval
-              ? 'بانتظار موافقة الجهاز'
+              ? l.text('بانتظار موافقة الجهاز', 'Waiting for device approval')
               : l.tr('screens_login_screen.007'),
           isLoading: _isLoading || _isWaitingForDeviceApproval,
           onPressed: _isWaitingForDeviceApproval ? null : _continueToOtp,
@@ -585,6 +585,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _countrySelector() {
+    final l = context.loc;
     final selected = PhoneNumberService.countries.firstWhere(
       (country) => country.dialCode == _selectedCountryCode,
       orElse: () => PhoneNumberService.countries.first,
@@ -593,10 +594,10 @@ class _LoginScreenState extends State<LoginScreen> {
       borderRadius: BorderRadius.circular(16),
       onTap: _pickCountry,
       child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'الدولة',
-          prefixIcon: Icon(Icons.public_rounded, size: 20),
-          suffixIcon: Icon(Icons.search_rounded),
+        decoration: InputDecoration(
+          labelText: l.text('الدولة', 'Country'),
+          prefixIcon: const Icon(Icons.public_rounded, size: 20),
+          suffixIcon: const Icon(Icons.search_rounded),
         ),
         child: Text(
           '${selected.name} (+${selected.dialCode})',
@@ -655,6 +656,7 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.loc;
     final countries = _filteredCountries;
     return DraggableScrollableSheet(
       expand: false,
@@ -682,21 +684,31 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('اختر الدولة', style: AppTheme.h3),
+            Text(l.text('اختر الدولة', 'Choose Country'), style: AppTheme.h3),
             const SizedBox(height: 12),
             TextField(
               controller: _searchController,
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'ابحث باسم الدولة أو كود الاتصال',
-                prefixIcon: Icon(Icons.search_rounded),
+              decoration: InputDecoration(
+                labelText: l.text(
+                  'ابحث باسم الدولة أو كود الاتصال',
+                  'Search by country name or calling code',
+                ),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
               onChanged: (value) => setState(() => _query = value),
             ),
             const SizedBox(height: 12),
             Expanded(
               child: countries.isEmpty
-                  ? const Center(child: Text('لا توجد دولة بهذا البحث'))
+                  ? Center(
+                      child: Text(
+                        l.text(
+                          'لا توجد دولة بهذا البحث',
+                          'No country matches this search',
+                        ),
+                      ),
+                    )
                   : ListView.separated(
                       controller: scrollController,
                       itemCount: countries.length,
