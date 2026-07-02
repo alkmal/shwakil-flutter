@@ -758,43 +758,60 @@ class _NotificationCard extends StatelessWidget {
                       color: AppTheme.textSecondary,
                     ),
                   ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                const SizedBox(height: 7),
+                Row(
                   children: [
-                    _MiniMetaChip(
-                      icon: _notificationCategoryIcon(categoryKind),
-                      label: _notificationCategoryLabel(context, categoryKind),
+                    Icon(
+                      _notificationCategoryIcon(categoryKind),
+                      size: 14,
                       color: categoryColor,
                     ),
-                    if (typeLabel.isNotEmpty)
-                      _MiniMetaChip(
-                        icon: Icons.category_rounded,
-                        label: typeLabel,
-                        color: AppTheme.textSecondary,
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        typeLabel.isNotEmpty
+                            ? typeLabel
+                            : _notificationCategoryLabel(context, categoryKind),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    if (statusLabel != null)
-                      _MiniMetaChip(
-                        icon: Icons.flag_rounded,
-                        label: statusLabel,
-                        color: statusColor,
+                    ),
+                    if (typeLabel.isNotEmpty)
+                      Text(
+                        ' • ${_notificationCategoryLabel(context, categoryKind)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.textTertiary,
+                        ),
                       ),
                     if (createdAt.trim().isNotEmpty)
-                      _MiniMetaChip(
-                        icon: Icons.schedule_rounded,
-                        label: createdAt,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ..._notificationPrimaryContextChips(context, data)
-                        .take(1)
-                        .map(
-                          (chip) => ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 190),
-                            child: chip,
+                      Flexible(
+                        child: Text(
+                          ' • $createdAt',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.caption.copyWith(
+                            color: AppTheme.textTertiary,
                           ),
                         ),
+                      ),
+                    if (statusLabel != null)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(start: 6),
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -806,48 +823,6 @@ class _NotificationCard extends StatelessWidget {
                 ? Icons.chevron_left_rounded
                 : Icons.chevron_right_rounded,
             color: AppTheme.textTertiary,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniMetaChip extends StatelessWidget {
-  const _MiniMetaChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 190),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.caption.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),
