@@ -18,6 +18,7 @@ import 'local_security_service.dart';
 import 'network_client_service.dart';
 import 'offline_session_service.dart';
 import 'realtime_notification_service.dart';
+import 'telemetry_redaction_service.dart';
 
 enum AppAlertType { success, error, info }
 
@@ -209,8 +210,8 @@ class AppAlertService {
       } catch (_) {}
 
       final payload = <String, dynamic>{
-        'title': title.trim(),
-        'message': message.trim(),
+        'title': TelemetryRedactionService.scrub(title, maxLength: 120),
+        'message': TelemetryRedactionService.scrub(message, maxLength: 4000),
         'platform': defaultTargetPlatform.name,
         'route': route ?? '',
         'appVersion': appHeaders['X-App-Version'] ?? '',
@@ -222,20 +223,22 @@ class AppAlertService {
       }
 
       if (details != null && details.trim().isNotEmpty) {
-        payload['details'] = details.trim();
+        payload['details'] = TelemetryRedactionService.scrub(
+          details,
+          maxLength: 4000,
+        );
       }
       if (stackTrace != null && stackTrace.trim().isNotEmpty) {
-        payload['stackTrace'] = stackTrace.trim();
+        payload['stackTrace'] = TelemetryRedactionService.scrub(
+          stackTrace,
+          maxLength: 8000,
+        );
       }
 
       if (currentUser != null) {
         payload['accountId'] = currentUser['id']?.toString();
-        payload['username'] = currentUser['username']?.toString();
-        payload['fullName'] = currentUser['fullName']?.toString();
-        payload['whatsapp'] = currentUser['whatsapp']?.toString();
         payload['role'] = (currentUser['roleLabel'] ?? currentUser['role'])
             ?.toString();
-        payload['balance'] = currentUser['balance']?.toString();
       }
 
       (extraContext ?? const <String, dynamic>{}).forEach((key, value) {
@@ -398,7 +401,7 @@ class AppAlertService {
                     icon: const Icon(Icons.chat_rounded),
                     label: Text(
                       context.loc.tr('services_app_alert_service.005'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -433,7 +436,7 @@ class AppAlertService {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
-                      side: BorderSide(color: AppTheme.primary),
+                      side: const BorderSide(color: AppTheme.primary),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -471,7 +474,10 @@ class AppAlertService {
                   ),
                   child: Text(
                     context.loc.tr('services_app_alert_service.006'),
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
@@ -519,8 +525,8 @@ class AppAlertService {
       } catch (_) {}
 
       final payload = <String, dynamic>{
-        'title': title,
-        'message': message,
+        'title': TelemetryRedactionService.scrub(title, maxLength: 120),
+        'message': TelemetryRedactionService.scrub(message, maxLength: 4000),
         'platform': defaultTargetPlatform.name,
         'route': route ?? '',
         'errorKind': 'client_visible_error',
@@ -538,12 +544,8 @@ class AppAlertService {
 
       if (currentUser != null) {
         payload['accountId'] = currentUser['id']?.toString();
-        payload['username'] = currentUser['username']?.toString();
-        payload['fullName'] = currentUser['fullName']?.toString();
-        payload['whatsapp'] = currentUser['whatsapp']?.toString();
         payload['role'] = (currentUser['roleLabel'] ?? currentUser['role'])
             ?.toString();
-        payload['balance'] = currentUser['balance']?.toString();
       }
 
       (extraContext ?? const <String, dynamic>{}).forEach((key, value) {
@@ -678,33 +680,42 @@ class AppAlertService {
         normalizedKey.contains('otp') ||
         normalizedKey.contains('pin') ||
         normalizedKey.contains('token') ||
-        normalizedKey.contains('secret')) {
+        normalizedKey.contains('secret') ||
+        normalizedKey.contains('whatsapp') ||
+        normalizedKey.contains('phone') ||
+        normalizedKey.contains('mobile') ||
+        normalizedKey.contains('email') ||
+        normalizedKey.contains('address') ||
+        normalizedKey.contains('national') ||
+        normalizedKey.contains('identity') ||
+        normalizedKey.contains('barcode') ||
+        normalizedKey.contains('cardnumber') ||
+        normalizedKey.contains('card_number')) {
       return 'محجوب';
     }
-    final text = value.toString().trim();
+    final text = TelemetryRedactionService.scrub(value);
     if (text.isEmpty) {
       return null;
     }
-
-    return text.length > 500 ? '${text.substring(0, 500)}...' : text;
+    return text;
   }
 
   static _AlertStyle _styleFor(AppAlertType type) {
     switch (type) {
       case AppAlertType.success:
-        return _AlertStyle(
+        return const _AlertStyle(
           color: AppTheme.success,
           softColor: AppTheme.successLight,
           icon: Icons.check_circle_rounded,
         );
       case AppAlertType.error:
-        return _AlertStyle(
+        return const _AlertStyle(
           color: AppTheme.error,
           softColor: AppTheme.errorLight,
           icon: Icons.cancel_rounded,
         );
       case AppAlertType.info:
-        return _AlertStyle(
+        return const _AlertStyle(
           color: AppTheme.info,
           softColor: AppTheme.infoLight,
           icon: Icons.info_rounded,

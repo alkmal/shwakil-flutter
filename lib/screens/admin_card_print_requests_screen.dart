@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -41,6 +43,10 @@ class _AdminCardPrintRequestsScreenState
   int _lastPage = 1;
   String? _busyId;
   bool _isRefreshing = false;
+  bool _isCreatingRequest = false;
+  String? _pendingCreateFingerprint;
+  String? _pendingCreateIdempotencyKey;
+  static const Uuid _uuid = Uuid();
   Timer? _searchDebounce;
   int _loadRequestId = 0;
   String _lastSubmittedQuery = '';
@@ -460,6 +466,9 @@ class _AdminCardPrintRequestsScreenState
   }
 
   Future<void> _showCreateAdminRequestDialog() async {
+    if (_isCreatingRequest) {
+      return;
+    }
     final l = context.loc;
     final valueController = TextEditingController(text: '0');
     final quantityController = TextEditingController(text: '35');
@@ -739,17 +748,49 @@ class _AdminCardPrintRequestsScreenState
     if (submitted != true || owner == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    final fingerprint = jsonEncode({
+      'userId': owner['id']?.toString() ?? '',
+      'chargeUserId': chargeUser?['id']?.toString() ?? '',
+      'value': value,
+      'quantity': quantity,
+      'cardType': cardType,
+      'notes': notes.trim(),
+    });
+    if (_pendingCreateFingerprint != fingerprint) {
+      _pendingCreateFingerprint = fingerprint;
+      _pendingCreateIdempotencyKey = _uuid.v4();
+    }
 
     try {
-      setState(() => _isRefreshing = true);
+      setState(() {
+        _isCreatingRequest = true;
+        _isRefreshing = true;
+      });
       await _apiService.createAdminCardPrintRequest(
+        idempotencyKey: _pendingCreateIdempotencyKey!,
         userId: owner['id'].toString(),
         chargeUserId: chargeUser?['id']?.toString(),
         value: value,
         quantity: quantity,
         cardType: cardType,
         notes: notes,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
       );
+      _pendingCreateFingerprint = null;
+      _pendingCreateIdempotencyKey = null;
       await _load(preserveContent: true);
       if (!mounted) return;
       await AppAlertService.showSuccess(
@@ -763,6 +804,10 @@ class _AdminCardPrintRequestsScreenState
         context,
         message: ErrorMessageService.sanitize(error),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingRequest = false);
+      }
     }
   }
 
@@ -884,7 +929,7 @@ class _AdminCardPrintRequestsScreenState
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isLoading
+        onPressed: _isLoading || _isCreatingRequest
             ? null
             : () => unawaited(_showCreateAdminRequestDialog()),
         icon: const Icon(Icons.add_rounded),

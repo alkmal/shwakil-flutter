@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,7 +10,10 @@ import '../widgets/shwakel_card.dart';
 import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  const RegisterScreen({super.key, this.loadInitialData = true});
+
+  @visibleForTesting
+  final bool loadInitialData;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -39,7 +40,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void initState() {
     super.initState();
     OfflineSessionService.setOfflineMode(false);
-    unawaited(_authService.logout());
+    if (!widget.loadInitialData) {
+      _isCheckingPendingRegistration = false;
+      return;
+    }
     _loadSettings();
     _loadPendingReferral();
     _checkPendingRegistrationForDevice();

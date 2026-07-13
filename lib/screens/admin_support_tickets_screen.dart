@@ -9,6 +9,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -39,11 +40,14 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
   bool _loading = true;
   bool _authorized = false;
+  String? _loadError;
   bool _busy = false;
   bool _ticketLoading = false;
   bool _chatRouteOpen = false;
   StateSetter? _chatRouteSetState;
   String _replyAs = 'support';
+  String _newCountryCode = PhoneNumberService.countries.first.dialCode;
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
@@ -66,6 +70,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     _editTitle.dispose();
     _followerUserId.dispose();
     _notificationSubscription?.cancel();
+    _stopChatAutoRefresh();
     super.dispose();
   }
 
@@ -148,20 +153,27 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   }
 
   Future<void> _load() async {
-    final user = await _auth.currentUser();
-    final permissions = AppPermissions.fromUser(user);
-    if (!permissions.isAdminRole &&
-        !permissions.isSupportRole &&
-        !permissions.canManageUsers) {
+    try {
       if (mounted) {
         setState(() {
-          _authorized = false;
-          _loading = false;
+          _loadError = null;
+          _loading = _tickets.isEmpty;
         });
       }
-      return;
-    }
-    try {
+      final user = await _auth.currentUser();
+      final permissions = AppPermissions.fromUser(user);
+      if (!permissions.isAdminRole &&
+          !permissions.isSupportRole &&
+          !permissions.canManageUsers) {
+        if (mounted) {
+          setState(() {
+            _authorized = false;
+            _loadError = null;
+            _loading = false;
+          });
+        }
+        return;
+      }
       final results = await Future.wait<dynamic>([
         _api.getAdminSupportTickets(),
         _api.getAdminSupportTicketStatuses(),
@@ -171,21 +183,17 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       if (!mounted) return;
       setState(() {
         _authorized = true;
+        _loadError = null;
         _loading = false;
         _tickets = tickets;
         _statuses = statuses;
       });
     } catch (error) {
       if (mounted) {
-        setState(() => _loading = false);
-        AppAlertService.showError(
-          context,
-          title: context.loc.text(
-            'تعذر تحميل التذاكر',
-            'Could not load tickets',
-          ),
-          message: ErrorMessageService.sanitize(error),
-        );
+        setState(() {
+          _loadError = ErrorMessageService.sanitize(error);
+          _loading = false;
+        });
       }
     }
   }
@@ -304,6 +312,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       return;
     }
     _chatRouteOpen = true;
+    _startChatAutoRefresh();
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (routeContext) => StatefulBuilder(
@@ -322,6 +331,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         ),
       ),
     );
+    _stopChatAutoRefresh();
     _chatRouteOpen = false;
     _chatRouteSetState = null;
     if (mounted) {
@@ -333,6 +343,21 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     _chatRouteSetState?.call(() {});
   }
 
+  void _startChatAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted || !_chatRouteOpen || _selected == null || _busy) {
+        return;
+      }
+      unawaited(_refreshSelected());
+    });
+  }
+
+  void _stopChatAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
+  }
+
   Future<void> _openCreateDialog() async {
     final l = context.loc;
     _newUserId.clear();
@@ -340,6 +365,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     _newWhatsapp.clear();
     _newTitle.clear();
     _newDetails.clear();
+    _newCountryCode = PhoneNumberService.countries.first.dialCode;
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (dialogContext) => Scaffold(
@@ -377,6 +403,13 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                         ),
                         prefixIcon: const Icon(Icons.badge_outlined),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    _AdminCountrySelector(
+                      initialCode: _newCountryCode,
+                      onChanged: (countryCode) {
+                        _newCountryCode = countryCode;
+                      },
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -466,6 +499,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         userId: _newUserId.text,
         name: _newName.text,
         whatsapp: _newWhatsapp.text,
+        countryCode: _newCountryCode,
         title: _newTitle.text,
         details: _newDetails.text,
       );
@@ -936,6 +970,21 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    if (_loadError != null && !_authorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(context.loc.text('تذاكر التواصل', 'Support tickets')),
+        ),
+        drawer: const AppSidebar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -974,6 +1023,10 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_loadError != null) ...[
+          AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+          const SizedBox(height: 10),
+        ],
         Text(
           context.loc.text('التذاكر المفتوحة', 'Open tickets'),
           style: AppTheme.h3,
@@ -1149,12 +1202,9 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
             icon: const Icon(Icons.arrow_back_rounded),
           ),
           const SizedBox(width: 4),
-          CircleAvatar(
+          const CircleAvatar(
             backgroundColor: AppTheme.primarySoft,
-            child: const Icon(
-              Icons.support_agent_rounded,
-              color: AppTheme.primary,
-            ),
+            child: Icon(Icons.support_agent_rounded, color: AppTheme.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1622,5 +1672,176 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       return '${(bytes / 1024).toStringAsFixed(1)} KB';
     }
     return '$bytes B';
+  }
+}
+
+class _AdminCountrySelector extends StatefulWidget {
+  const _AdminCountrySelector({
+    required this.initialCode,
+    required this.onChanged,
+  });
+
+  final String initialCode;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_AdminCountrySelector> createState() => _AdminCountrySelectorState();
+}
+
+class _AdminCountrySelectorState extends State<_AdminCountrySelector> {
+  late String _selectedCountryCode = widget.initialCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    final selected = PhoneNumberService.countries.firstWhere(
+      (country) => country.dialCode == _selectedCountryCode,
+      orElse: () => PhoneNumberService.countries.first,
+    );
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: _pickCountry,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: l.text('الدولة', 'Country'),
+          prefixIcon: const Icon(Icons.public_rounded, size: 20),
+          suffixIcon: const Icon(Icons.search_rounded),
+        ),
+        child: Text(
+          '${selected.name} (+${selected.dialCode})',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.bodyBold,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickCountry() async {
+    final picked = await showModalBottomSheet<CountryOption>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => const _AdminCountryPickerSheet(),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _selectedCountryCode = picked.dialCode);
+    widget.onChanged(picked.dialCode);
+  }
+}
+
+class _AdminCountryPickerSheet extends StatefulWidget {
+  const _AdminCountryPickerSheet();
+
+  @override
+  State<_AdminCountryPickerSheet> createState() =>
+      _AdminCountryPickerSheetState();
+}
+
+class _AdminCountryPickerSheetState extends State<_AdminCountryPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<CountryOption> get _filteredCountries {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return PhoneNumberService.countries;
+    final digits = query.replaceAll(RegExp(r'\D'), '');
+    return PhoneNumberService.countries.where((country) {
+      final name = country.name.toLowerCase();
+      return name.contains(query) ||
+          country.flag.toLowerCase().contains(query) ||
+          (digits.isNotEmpty && country.dialCode.contains(digits));
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    final countries = _filteredCountries;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.78,
+      minChildSize: 0.45,
+      maxChildSize: 0.94,
+      builder: (context, scrollController) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 14,
+          bottom: 16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(l.text('اختر الدولة', 'Choose Country'), style: AppTheme.h3),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l.text(
+                  'ابحث باسم الدولة أو كود الاتصال',
+                  'Search by country name or calling code',
+                ),
+                prefixIcon: const Icon(Icons.search_rounded),
+              ),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: countries.isEmpty
+                  ? Center(
+                      child: Text(
+                        l.text(
+                          'لا توجد دولة بهذا البحث',
+                          'No country matches this search',
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      controller: scrollController,
+                      itemCount: countries.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final country = countries[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            child: Text(
+                              country.flag,
+                              style: AppTheme.caption.copyWith(fontSize: 11),
+                            ),
+                          ),
+                          title: Text(country.name),
+                          subtitle: Text('+${country.dialCode}'),
+                          onTap: () => Navigator.pop(context, country),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

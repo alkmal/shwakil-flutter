@@ -10,14 +10,17 @@ import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
-  const AccountSettingsScreen({super.key});
+  const AccountSettingsScreen({super.key, this.authService});
+
+  @visibleForTesting
+  final AuthService? authService;
 
   @override
   State<AccountSettingsScreen> createState() => _AccountSettingsScreenState();
 }
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
-  final AuthService _authService = AuthService();
+  late final AuthService _authService;
   final ApiService _apiService = ApiService();
 
   final TextEditingController _businessNameController = TextEditingController();
@@ -42,12 +45,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _hasPin = false;
   bool _biometricEnabled = false;
   bool _canUseBiometrics = false;
+  bool _needsSessionRecovery = false;
+  String? _loadError;
   Set<String> _editableProfileFields = const <String>{};
   Map<String, dynamic>? _user;
 
   @override
   void initState() {
     super.initState();
+    _authService = widget.authService ?? AuthService();
     _load();
   }
 
@@ -69,50 +75,97 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _load() async {
-    final user =
-        AuthService.peekCurrentUser() ?? await _authService.currentUser();
-    final hasPin = await LocalSecurityService.hasPin();
-    final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
-    final biometricEnabled =
-        await LocalSecurityService.isBiometricEnabled() && canUseBiometrics;
-    if (!mounted) {
-      return;
+    if (mounted) {
+      setState(() {
+        _isLoading = _user == null;
+        _loadError = null;
+      });
     }
-    if (user == null) {
-      setState(() => _isLoading = false);
-      return;
+    try {
+      var user =
+          AuthService.peekCurrentUser() ?? await _authService.currentUser();
+      final token = (await _authService.token())?.trim() ?? '';
+      if (user == null && token.isNotEmpty) {
+        try {
+          await _authService.tryRefreshCurrentUser();
+          user = await _authService.currentUser();
+        } catch (_) {
+          user = await _authService.currentUser();
+        }
+      }
+      if (!mounted) {
+        return;
+      }
+      if (user == null) {
+        setState(() {
+          _needsSessionRecovery = token.isNotEmpty;
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        return;
+      }
+      final resolvedUser = user;
+
+      final hasPin = await LocalSecurityService.hasPin();
+      final canUseBiometrics = await LocalSecurityService.canUseBiometrics();
+      final biometricEnabled =
+          await LocalSecurityService.isBiometricEnabled() && canUseBiometrics;
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _needsSessionRecovery = false;
+        _loadError = null;
+        _isAuthorized = AppPermissions.fromUser(
+          resolvedUser,
+        ).canViewAccountSettings;
+        _user = resolvedUser;
+        _businessNameController.text =
+            resolvedUser['businessName']?.toString() ?? '';
+        _fullNameController.text = resolvedUser['fullName']?.toString() ?? '';
+        _usernameController.text = resolvedUser['username']?.toString() ?? '';
+        _whatsappController.text = PhoneNumberService.localDisplay(
+          resolvedUser['whatsapp']?.toString(),
+        );
+        _emailController.text = resolvedUser['email']?.toString() ?? '';
+        _addressController.text = resolvedUser['address']?.toString() ?? '';
+        _nationalIdController.text =
+            resolvedUser['nationalId']?.toString() ?? '';
+        _birthDateController.text = resolvedUser['birthDate']?.toString() ?? '';
+        _referralPhoneController.text =
+            resolvedUser['referralPhone']?.toString() ?? '';
+        _hasPin = hasPin;
+        _canUseBiometrics = canUseBiometrics;
+        _biometricEnabled = biometricEnabled;
+
+        final verification =
+            resolvedUser['transferVerificationStatus']?.toString() ??
+            'unverified';
+        _editableProfileFields = Set<String>.from(
+          (resolvedUser['editableProfileFields'] as List? ?? const []).map(
+            (item) => item.toString(),
+          ),
+        );
+        _profileLocked =
+            resolvedUser['profileEditable'] == false ||
+            (verification == 'approved' && _editableProfileFields.isEmpty);
+        _isLoading = false;
+      });
+    } catch (error) {
+      String token = '';
+      try {
+        token = (await _authService.token())?.trim() ?? '';
+      } catch (_) {}
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _needsSessionRecovery = token.isNotEmpty;
+        _loadError = ErrorMessageService.sanitize(error);
+        _isLoading = false;
+      });
     }
-
-    setState(() {
-      _isAuthorized = AppPermissions.fromUser(user).canViewAccountSettings;
-      _user = user;
-      _businessNameController.text = user['businessName']?.toString() ?? '';
-      _fullNameController.text = user['fullName']?.toString() ?? '';
-      _usernameController.text = user['username']?.toString() ?? '';
-      _whatsappController.text = PhoneNumberService.localDisplay(
-        user['whatsapp']?.toString(),
-      );
-      _emailController.text = user['email']?.toString() ?? '';
-      _addressController.text = user['address']?.toString() ?? '';
-      _nationalIdController.text = user['nationalId']?.toString() ?? '';
-      _birthDateController.text = user['birthDate']?.toString() ?? '';
-      _referralPhoneController.text = user['referralPhone']?.toString() ?? '';
-      _hasPin = hasPin;
-      _canUseBiometrics = canUseBiometrics;
-      _biometricEnabled = biometricEnabled;
-
-      final verification =
-          user['transferVerificationStatus']?.toString() ?? 'unverified';
-      _editableProfileFields = Set<String>.from(
-        (user['editableProfileFields'] as List? ?? const []).map(
-          (item) => item.toString(),
-        ),
-      );
-      _profileLocked =
-          user['profileEditable'] == false ||
-          (verification == 'approved' && _editableProfileFields.isEmpty);
-      _isLoading = false;
-    });
   }
 
   Future<void> _save() async {
@@ -246,7 +299,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
               context.loc.tr('screens_account_settings_screen.056'),
-              style: TextStyle(color: AppTheme.error),
+              style: const TextStyle(color: AppTheme.error),
             ),
           ),
         ],
@@ -299,6 +352,80 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_needsSessionRecovery) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.text('استعادة الجلسة', 'Restore session')),
+        ),
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 680,
+          child: Center(
+            child: ShwakelCard(
+              key: const ValueKey('account-session-recovery'),
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(
+                    Icons.sync_problem_rounded,
+                    size: 52,
+                    color: AppTheme.warning,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l.text(
+                      'تعذر استعادة بيانات الحساب مؤقتًا',
+                      'Account data could not be restored temporarily',
+                    ),
+                    style: AppTheme.h2,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _loadError ??
+                        l.text(
+                          'جلستك محفوظة ولم يتم تسجيل خروجك. أعد المحاولة عند استقرار الاتصال.',
+                          'Your session is saved and you were not signed out. Retry when the connection is stable.',
+                        ),
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ShwakelButton(
+                    label: l.text('إعادة المحاولة', 'Retry'),
+                    icon: Icons.refresh_rounded,
+                    onPressed: _load,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_user == null) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_account_settings_screen.008')),
+        ),
+        body: Center(
+          child: ShwakelButton(
+            label: l.tr('screens_account_settings_screen.063'),
+            icon: Icons.login_rounded,
+            onPressed: () => Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/login', (route) => false),
+          ),
+        ),
+      );
+    }
+
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -329,59 +456,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ),
       );
     }
-    if (_user == null) {
-      return Scaffold(
-        backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          title: Text(l.tr('screens_account_settings_screen.008')),
-          actions: const [AppNotificationAction(), QuickLogoutAction()],
-        ),
-        drawer: const AppSidebar(),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: ResponsiveScaffoldContainer(
-              child: ShwakelCard(
-                padding: const EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.lock_person_rounded,
-                      color: AppTheme.primary,
-                      size: 52,
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      l.tr('screens_account_settings_screen.061'),
-                      style: AppTheme.h2,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l.tr('screens_account_settings_screen.062'),
-                      style: AppTheme.bodyAction.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    ShwakelButton(
-                      label: l.tr('screens_account_settings_screen.063'),
-                      icon: Icons.login_rounded,
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).pushNamedAndRemoveUntil('/login', (route) => false),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -831,10 +905,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Future<void> _createOrChangePinFromAccount() async {
     final l = context.loc;
     final wasPinEnabled = _hasPin;
-    if (wasPinEnabled && !await _confirmCurrentPinFromAccount()) {
-      return;
-    }
-    if (!mounted) {
+    final confirmation = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !confirmation.isVerified) {
       return;
     }
 
@@ -847,9 +922,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     try {
       final payload = await _apiService.updateSecurityPin(
         pin: pin,
-        localAuthMethod: wasPinEnabled
-            ? await LocalSecurityService.lastLocalAuthMethod()
-            : null,
+        currentPin: confirmation.securityPin,
+        otpCode: confirmation.otpCode,
       );
       final user = payload['user'];
       if (user is Map) {
@@ -883,10 +957,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<void> _removePinFromAccount() async {
     final l = context.loc;
-    if (!_hasPin || !await _confirmCurrentPinFromAccount()) {
+    if (!_hasPin) {
       return;
     }
-    if (!mounted) {
+    final confirmation = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !confirmation.isVerified) {
       return;
     }
 
@@ -894,7 +972,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.text('إلغاء PIN', 'Disable PIN')),
-        content: Text(l.text('سيتم إلغاء استخدام PIN في حماية الدخول والعمليات.', 'PIN will be disabled from protecting login and transactions.')),
+        content: Text(
+          l.text(
+            'سيتم إلغاء استخدام PIN في حماية الدخول والعمليات.',
+            'PIN will be disabled from protecting login and transactions.',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -914,7 +997,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() => _isSaving = true);
     try {
       final payload = await _apiService.removeSecurityPin(
-        localAuthMethod: await LocalSecurityService.lastLocalAuthMethod(),
+        currentPin: confirmation.securityPin,
+        otpCode: confirmation.otpCode,
       );
       final user = payload['user'];
       if (user is Map) {
@@ -965,35 +1049,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
-  Future<bool> _confirmCurrentPinFromAccount() async {
-    if (_biometricEnabled &&
-        await LocalSecurityService.authenticateWithBiometrics()) {
-      return true;
-    }
-    if (!mounted) {
-      return false;
-    }
-
-    final currentPin = await _showCurrentPinDialog();
-    if (currentPin == null) {
-      return false;
-    }
-    final verified = await LocalSecurityService.verifyPin(currentPin);
-    if (verified) {
-      await LocalSecurityService.setLastLocalAuthMethod('pin');
-      return true;
-    }
-    if (!mounted) {
-      return false;
-    }
-    await AppAlertService.showError(
-      context,
-      title: 'PIN غير صحيح',
-      message: 'تحقق من الرقم وحاول مرة أخرى.',
-    );
-    return false;
-  }
-
   Future<String?> _showAccountPinDialog({required bool isEdit}) async {
     final l = context.loc;
     final pinController = TextEditingController();
@@ -1021,9 +1076,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     prefixIcon: const Icon(Icons.pin_rounded),
                     errorText: errorText,
                     suffixIcon: IconButton(
-                      onPressed: () => setDialogState(
-                        () => obscurePin = !obscurePin,
-                      ),
+                      onPressed: () =>
+                          setDialogState(() => obscurePin = !obscurePin),
                       icon: Icon(
                         obscurePin
                             ? Icons.visibility_rounded
@@ -1065,9 +1119,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   final pin = pinController.text.trim();
                   final confirm = confirmController.text.trim();
                   if (!RegExp(r'^\d{4}$').hasMatch(pin) || pin != confirm) {
-                    setDialogState(
-                      () => errorText = 'أدخل 4 أرقام متطابقة.',
-                    );
+                    setDialogState(() => errorText = 'أدخل 4 أرقام متطابقة.');
                     return;
                   }
                   Navigator.pop(dialogContext, pin);
@@ -1082,58 +1134,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     } finally {
       pinController.dispose();
       confirmController.dispose();
-    }
-  }
-
-  Future<String?> _showCurrentPinDialog() async {
-    final l = context.loc;
-    final pinController = TextEditingController();
-    var obscurePin = true;
-    try {
-      return await showDialog<String>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (dialogContext, setDialogState) => AlertDialog(
-            title: Text(l.text('تأكيد PIN الحالي', 'Confirm current PIN')),
-            content: TextField(
-              controller: pinController,
-              maxLength: 4,
-              obscureText: obscurePin,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'PIN الحالي',
-                prefixIcon: const Icon(Icons.password_rounded),
-                suffixIcon: IconButton(
-                  onPressed: () =>
-                      setDialogState(() => obscurePin = !obscurePin),
-                  icon: Icon(
-                    obscurePin
-                        ? Icons.visibility_rounded
-                        : Icons.visibility_off_rounded,
-                  ),
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(context.loc.tr('shared.cancel')),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final pin = pinController.text.trim();
-                  if (pin.length == 4) {
-                    Navigator.pop(dialogContext, pin);
-                  }
-                },
-                child: Text(l.text('تأكيد', 'Confirm')),
-              ),
-            ],
-          ),
-        ),
-      );
-    } finally {
-      pinController.dispose();
     }
   }
 

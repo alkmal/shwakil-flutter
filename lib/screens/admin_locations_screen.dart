@@ -6,6 +6,7 @@ import '../utils/app_theme.dart';
 import '../widgets/admin/admin_location_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
@@ -23,6 +24,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   List<Map<String, dynamic>> _locations = const [];
   bool _isLoading = true;
   bool _isAuthorized = false;
+  String? _loadError;
   String? _busyId;
 
   @override
@@ -32,7 +34,10 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _loadError = null;
+      _isLoading = _locations.isEmpty;
+    });
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
@@ -42,6 +47,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
         }
         setState(() {
           _isAuthorized = false;
+          _loadError = null;
           _isLoading = false;
         });
         return;
@@ -52,6 +58,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
       }
       setState(() {
         _isAuthorized = true;
+        _loadError = null;
         _locations = data;
         _isLoading = false;
       });
@@ -59,12 +66,10 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _isLoading = false);
-      await AppAlertService.showError(
-        context,
-        title: context.loc.tr('screens_admin_locations_screen.001'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      setState(() {
+        _loadError = ErrorMessageService.sanitize(error);
+        _isLoading = false;
+      });
     }
   }
 
@@ -359,6 +364,20 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_loadError != null && !_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(title: Text(l.tr('screens_admin_locations_screen.018'))),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 620,
+          child: Center(
+            child: AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+          ),
+        ),
+      );
+    }
+
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -418,6 +437,10 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_loadError != null) ...[
+                  AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   l.tr(
                     'screens_admin_locations_screen.025',

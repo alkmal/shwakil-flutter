@@ -37,14 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
   );
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
-  final PrepaidMultipayOfflineCacheService _prepaidOfflineCache =
-      const PrepaidMultipayOfflineCacheService();
 
   bool _isLoading = false;
   bool _isWaitingForDeviceApproval = false;
   bool _obscurePassword = true;
   bool _registrationEnabled = true;
-  bool _hasOfflinePrepaidCards = false;
   String _selectedCountryCode = PhoneNumberService.countries.first.dialCode;
   String? _supportWhatsapp;
 
@@ -61,7 +58,6 @@ class _LoginScreenState extends State<LoginScreen> {
         : (kDebugMode ? 'debug_admin' : '');
     OfflineSessionService.setOfflineMode(widget.offlineMode);
     _loadAuthSettings();
-    _loadOfflinePrepaidCardsState();
   }
 
   @override
@@ -81,14 +77,6 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.pushNamed(context, routeName);
   }
 
-  void _openOfflinePrepaidCards() {
-    Navigator.pushNamed(
-      context,
-      '/prepaid-multipay-cards',
-      arguments: const {'offlineOnly': true},
-    );
-  }
-
   Future<void> _loadAuthSettings() async {
     try {
       final results = await Future.wait<dynamic>([
@@ -105,14 +93,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _supportWhatsapp = ContactInfoService.supportWhatsapp(contact);
       });
     } catch (_) {}
-  }
-
-  Future<void> _loadOfflinePrepaidCardsState() async {
-    final hasCards = await _prepaidOfflineCache.hasCards();
-    if (!mounted) {
-      return;
-    }
-    setState(() => _hasOfflinePrepaidCards = hasCards);
   }
 
   String? _validateLoginInputs({
@@ -136,6 +116,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _continueToOtp() async {
+    if (widget.offlineMode) {
+      await _openSavedSessionWithLocalSecurity();
+      return;
+    }
+
     final username = _loginIdentifierInput();
     final password = _passwordController.text;
     final validationMessage = _validateLoginInputs(
@@ -149,20 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final isTrustedDevice = await _isTrustedDeviceForUsername(username);
-      if (isTrustedDevice) {
-        await _authService.login(
-          username: username,
-          password: password,
-          otpCode: '',
-        );
-        if (!mounted) {
-          return;
-        }
-        await _finishLogin(username);
-        return;
-      }
-
       final otpResult = await _authService.requestOtp(
         purpose: 'login',
         username: username,
@@ -211,15 +182,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         return;
       }
-      final cachedUser = await _authService.currentUser();
-      final isTrustedDevice = await _isTrustedDeviceForUsername(username);
-      if (isTrustedDevice &&
-          cachedUser != null &&
-          cachedUser['username']?.toString().toLowerCase() ==
-              username.toLowerCase()) {
-        await _finishLogin(username);
-        return;
-      }
       if (!mounted) {
         return;
       }
@@ -230,6 +192,35 @@ class _LoginScreenState extends State<LoginScreen> {
         username: username,
       );
     }
+  }
+
+  Future<void> _openSavedSessionWithLocalSecurity() async {
+    setState(() => _isLoading = true);
+    final cachedUser = await _authService.currentUser();
+    final cachedUsername = cachedUser?['username']?.toString().trim() ?? '';
+    final hasSession = await _authService.isLoggedIn();
+    final canUnlock = await LocalSecurityService.canUseTrustedUnlock();
+
+    if (!mounted) {
+      return;
+    }
+    if (!hasSession || cachedUsername.isEmpty || !canUnlock) {
+      setState(() => _isLoading = false);
+      await _showMessage(
+        context.loc.text(
+          'الوصول دون اتصال يحتاج جلسة محفوظة وPIN أو بصمة مفعّلة مسبقًا. الجلسة الحالية لم تُحذف.',
+          'Offline access requires a saved session and a previously configured PIN or biometric. Your session was not removed.',
+        ),
+        isError: true,
+      );
+      return;
+    }
+
+    Navigator.pushReplacementNamed(
+      context,
+      '/unlock',
+      arguments: {'returnRoute': _postAuthRoute},
+    );
   }
 
   String _loginIdentifierInput() {
@@ -331,11 +322,15 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     if (!localSecurityReady) {
-      await _authService.logout();
-      if (!mounted) {
-        return;
-      }
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      setState(() => _isLoading = false);
+      await AppAlertService.showError(
+        context,
+        title: context.loc.text('تعذر تأمين الجلسة', 'Session setup failed'),
+        message: context.loc.text(
+          'جلستك ما زالت محفوظة. أعد المحاولة لإكمال إعداد أمان الجهاز.',
+          'Your session is still saved. Retry to finish device security setup.',
+        ),
+      );
       return;
     }
     setState(() => _isLoading = false);
@@ -365,14 +360,6 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
     navigator.pushNamedAndRemoveUntil(_postAuthRoute, (route) => false);
-  }
-
-  Future<bool> _isTrustedDeviceForUsername(String username) async {
-    final trustedDevice = await LocalSecurityService.isTrustedDevice();
-    final trustedUsername =
-        (await LocalSecurityService.trustedUsername())?.trim().toLowerCase() ??
-        '';
-    return trustedDevice && trustedUsername == username.trim().toLowerCase();
   }
 
   Future<bool> _setupLocalSecurityIfNeeded(String username) async {
@@ -459,69 +446,61 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 18),
         ],
-        _countrySelector(),
-        const SizedBox(height: 12),
-        TextField(
-          focusNode: _usernameFocusNode,
-          controller: _usernameController,
-          textInputAction: TextInputAction.next,
-          keyboardType: TextInputType.text,
-          onSubmitted: (_) => _submitFromUsername(),
-          decoration: InputDecoration(
-            labelText: l.tr('screens_login_screen.005'),
-            prefixIcon: const Icon(Icons.person_outline_rounded),
-            helperText: l.text(
-              'اكتب اسم المستخدم أو رقم الهاتف بدون ضغط بجانب كود الدولة.',
-              'Enter username or phone number.',
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          focusNode: _passwordFocusNode,
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _submitFromPassword(),
-          decoration: InputDecoration(
-            labelText: l.tr('screens_login_screen.006'),
-            prefixIcon: const Icon(Icons.lock_outline_rounded),
-            suffixIcon: IconButton(
-              onPressed: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
+        if (!widget.offlineMode) ...[
+          _countrySelector(),
+          const SizedBox(height: 12),
+          TextField(
+            focusNode: _usernameFocusNode,
+            controller: _usernameController,
+            textInputAction: TextInputAction.next,
+            keyboardType: TextInputType.text,
+            onSubmitted: (_) => _submitFromUsername(),
+            decoration: InputDecoration(
+              labelText: l.tr('screens_login_screen.005'),
+              prefixIcon: const Icon(Icons.person_outline_rounded),
+              helperText: l.text(
+                'اكتب اسم المستخدم أو رقم الهاتف بدون ضغط بجانب كود الدولة.',
+                'Enter username or phone number.',
               ),
             ),
           ),
-        ),
+          const SizedBox(height: 16),
+          TextField(
+            focusNode: _passwordFocusNode,
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submitFromPassword(),
+            decoration: InputDecoration(
+              labelText: l.tr('screens_login_screen.006'),
+              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              suffixIcon: IconButton(
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         ShwakelButton(
           label: _isWaitingForDeviceApproval
               ? l.text('بانتظار موافقة الجهاز', 'Waiting for device approval')
+              : widget.offlineMode
+              ? l.text(
+                  'فتح الجلسة عبر PIN أو البصمة',
+                  'Unlock with PIN or biometric',
+                )
               : l.tr('screens_login_screen.007'),
           isLoading: _isLoading || _isWaitingForDeviceApproval,
           onPressed: _isWaitingForDeviceApproval ? null : _continueToOtp,
           icon: Icons.login_rounded,
           gradient: AppTheme.primaryGradient,
         ),
-        if (_hasOfflinePrepaidCards) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ShwakelButton(
-              label: l.text(
-                'فتح بطاقات الدفع المحفوظة',
-                'Open saved prepaid cards',
-              ),
-              onPressed: _openOfflinePrepaidCards,
-              icon: Icons.credit_card_rounded,
-              isSecondary: true,
-            ),
-          ),
-        ],
         if (!widget.offlineMode) ...[
           const SizedBox(height: 14),
           _buildSecondaryActions(l),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,17 +62,55 @@ class AuthRequestException implements Exception {
 }
 
 class AuthService {
+  AuthService({http.Client? client})
+    : _client = client ?? NetworkClientService.client;
+
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user_json';
   static const _refreshTokenKey = 'device_session_refresh_token';
   static const Duration _requestTimeout = Duration(seconds: 10);
-  static final http.Client _client = NetworkClientService.client;
+  final http.Client _client;
   static SharedPreferences? _cachedPrefs;
   static String? _cachedToken;
   static Map<String, dynamic>? _cachedUser;
   static String? _cachedRefreshToken;
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static Future<void>? _pendingRefreshCurrentUser;
+  static Future<bool>? _pendingTrustedSessionRefresh;
+  static int _sessionEpoch = 0;
+  static Future<void> _sessionMutationTail = Future<void>.value();
+
+  @visibleForTesting
+  static void resetMemoryCacheForTesting() {
+    _cachedPrefs = null;
+    _cachedToken = null;
+    _cachedUser = null;
+    _cachedRefreshToken = null;
+    _pendingRefreshCurrentUser = null;
+    _pendingTrustedSessionRefresh = null;
+    _sessionEpoch = 0;
+    _sessionMutationTail = Future<void>.value();
+  }
+
+  static Future<T> _synchronizeSessionMutation<T>(
+    Future<T> Function() operation,
+  ) {
+    final previous = _sessionMutationTail;
+    final completed = Completer<void>();
+    _sessionMutationTail = completed.future;
+    return (() async {
+      try {
+        await previous;
+      } catch (_) {
+        // A failed persistence operation must not block future session writes.
+      }
+      try {
+        return await operation();
+      } finally {
+        completed.complete();
+      }
+    })();
+  }
 
   static String _normalizeUsername(String? value) {
     return value?.trim().toLowerCase() ?? '';
@@ -151,6 +190,9 @@ class AuthService {
     bool termsAccepted = false,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final deviceRefreshToken = purpose.trim() == 'login'
+        ? await _deviceRefreshToken()
+        : null;
     final response = await _postWithFallback(
       'auth/request-otp',
       body: {
@@ -166,6 +208,8 @@ class AuthService {
         'referralPhone': referralPhone?.trim(),
         'pendingRegistrationId': pendingRegistrationId?.trim(),
         'deviceId': deviceId,
+        if (deviceRefreshToken != null && deviceRefreshToken.isNotEmpty)
+          'deviceRefreshToken': deviceRefreshToken,
         'termsAccepted': termsAccepted,
       },
     );
@@ -232,6 +276,7 @@ class AuthService {
     String? referralPhone,
   }) async {
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final deviceRefreshToken = await _deviceRefreshToken();
     final response = await _postWithFallback(
       'auth/register',
       body: {
@@ -248,6 +293,8 @@ class AuthService {
             : referralPhone?.trim(),
         'termsAccepted': termsAccepted,
         'deviceId': deviceId,
+        if (deviceRefreshToken != null && deviceRefreshToken.isNotEmpty)
+          'deviceRefreshToken': deviceRefreshToken,
       },
     );
     if (response.statusCode >= 400) {
@@ -339,7 +386,9 @@ class AuthService {
     required String password,
     String? otpCode,
   }) async {
+    final expectedEpoch = _sessionEpoch;
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    final deviceRefreshToken = await _deviceRefreshToken();
     final response = await _postWithFallback(
       'auth/login',
       body: {
@@ -349,15 +398,21 @@ class AuthService {
         'otpCode': (otpCode ?? '').trim(),
         'otpPurpose': 'login',
         'deviceId': deviceId,
+        if (deviceRefreshToken != null && deviceRefreshToken.isNotEmpty)
+          'deviceRefreshToken': deviceRefreshToken,
       },
     );
     if (response.statusCode >= 400) {
       throw _exceptionFromResponse(response.body);
     }
-    await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
+    await _saveAuthPayload(
+      jsonDecode(response.body) as Map<String, dynamic>,
+      expectedEpoch: expectedEpoch,
+    );
   }
 
   Future<OtpRequestResult> requestDeviceSessionOtp() async {
+    final expectedEpoch = _sessionEpoch;
     final authToken = await token();
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
     final response = await _postWithFallback(
@@ -371,7 +426,7 @@ class AuthService {
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     if ((body['token']?.toString() ?? '').isNotEmpty) {
-      await _saveAuthPayload(body);
+      await _saveAuthPayload(body, expectedEpoch: expectedEpoch);
     }
     return OtpRequestResult(
       message: body['message']?.toString(),
@@ -384,6 +439,7 @@ class AuthService {
   }
 
   Future<void> confirmDeviceSessionOtp({required String otpCode}) async {
+    final expectedEpoch = _sessionEpoch;
     final authToken = await token();
     final deviceId = await LocalSecurityService.getOrCreateDeviceId();
     final response = await _postWithFallback(
@@ -394,10 +450,30 @@ class AuthService {
     if (response.statusCode >= 400) {
       throw _exceptionFromResponse(response.body);
     }
-    await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
+    await _saveAuthPayload(
+      jsonDecode(response.body) as Map<String, dynamic>,
+      expectedEpoch: expectedEpoch,
+    );
   }
 
   Future<bool> refreshTrustedDeviceSession() async {
+    final pending = _pendingTrustedSessionRefresh;
+    if (pending != null) {
+      return pending;
+    }
+    final future = _refreshTrustedDeviceSessionInternal();
+    _pendingTrustedSessionRefresh = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_pendingTrustedSessionRefresh, future)) {
+        _pendingTrustedSessionRefresh = null;
+      }
+    }
+  }
+
+  Future<bool> _refreshTrustedDeviceSessionInternal() async {
+    final expectedEpoch = _sessionEpoch;
     final refreshToken = await _deviceRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
       return false;
@@ -410,18 +486,55 @@ class AuthService {
     if (response.statusCode >= 400) {
       return false;
     }
-    await _saveAuthPayload(jsonDecode(response.body) as Map<String, dynamic>);
-    return true;
+    return _saveAuthPayload(
+      jsonDecode(response.body) as Map<String, dynamic>,
+      expectedEpoch: expectedEpoch,
+    );
   }
 
   Future<void> logout() async {
-    final prefs = await _prefs();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userKey);
-    _cachedToken = null;
-    _cachedUser = null;
-    _cachedRefreshToken = null;
-    await _secureStorage.delete(key: _refreshTokenKey);
+    String? authToken;
+    String? deviceId;
+    try {
+      authToken = await token();
+      deviceId = await LocalSecurityService.getOrCreateDeviceId();
+    } catch (_) {
+      // Local cleanup below must always remain available.
+    }
+
+    _sessionEpoch++;
+    _pendingRefreshCurrentUser = null;
+    _pendingTrustedSessionRefresh = null;
+
+    try {
+      if (authToken != null &&
+          authToken.isNotEmpty &&
+          deviceId != null &&
+          deviceId.trim().isNotEmpty) {
+        await _client
+            .post(
+              AppConfig.apiUri('auth/logout'),
+              headers: await _jsonHeaders(token: authToken),
+              body: jsonEncode({'deviceId': deviceId.trim()}),
+            )
+            .timeout(const Duration(seconds: 4));
+      }
+    } catch (_) {
+      // Server logout is best-effort. A network/auth failure must never keep
+      // local credentials after the user explicitly requested logout.
+    } finally {
+      _cachedToken = null;
+      _cachedUser = null;
+      _cachedRefreshToken = null;
+      await _synchronizeSessionMutation(() async {
+        final prefs = await _prefs();
+        await prefs.remove(_tokenKey);
+        await prefs.remove(_userKey);
+        await _deleteSecure(_tokenKey);
+        await _deleteSecure(_userKey);
+        await _deleteSecure(_refreshTokenKey);
+      });
+    }
   }
 
   Future<bool> isLoggedIn() async {
@@ -438,13 +551,41 @@ class AuthService {
     if (cached != null) {
       return Map<String, dynamic>.from(cached);
     }
-    final prefs = await _prefs();
-    final raw = prefs.getString(_userKey);
-    if (raw == null || raw.isEmpty) {
+    return _synchronizeSessionMutation(() async {
+      final inMemory = _cachedUser;
+      if (inMemory != null) {
+        return Map<String, dynamic>.from(inMemory);
+      }
+
+      final prefs = await _prefs();
+      final securedRaw = (await _readSecure(_userKey))?.trim() ?? '';
+      final legacyRaw = prefs.getString(_userKey)?.trim() ?? '';
+      for (final candidate in [
+        (raw: securedRaw, legacy: false),
+        (raw: legacyRaw, legacy: true),
+      ]) {
+        if (candidate.raw.isEmpty) {
+          continue;
+        }
+        try {
+          _cachedUser = Map<String, dynamic>.from(
+            jsonDecode(candidate.raw) as Map,
+          );
+        } catch (_) {
+          if (candidate.legacy) {
+            await prefs.remove(_userKey);
+          } else {
+            await _deleteSecure(_userKey);
+          }
+          continue;
+        }
+        if (candidate.legacy && await _writeSecure(_userKey, candidate.raw)) {
+          await prefs.remove(_userKey);
+        }
+        return Map<String, dynamic>.from(_cachedUser!);
+      }
       return null;
-    }
-    _cachedUser = Map<String, dynamic>.from(jsonDecode(raw) as Map);
-    return Map<String, dynamic>.from(_cachedUser!);
+    });
   }
 
   Future<String?> token() async {
@@ -452,37 +593,123 @@ class AuthService {
     if (cached != null) {
       return cached;
     }
-    final prefs = await _prefs();
-    _cachedToken = prefs.getString(_tokenKey);
-    return _cachedToken;
+    return _synchronizeSessionMutation(() async {
+      final inMemory = _cachedToken;
+      if (inMemory != null) {
+        return inMemory;
+      }
+
+      final secured = (await _readSecure(_tokenKey))?.trim() ?? '';
+      if (secured.isNotEmpty) {
+        _cachedToken = secured;
+        return secured;
+      }
+
+      final prefs = await _prefs();
+      final legacy = prefs.getString(_tokenKey)?.trim() ?? '';
+      if (legacy.isEmpty) {
+        return null;
+      }
+
+      _cachedToken = legacy;
+      if (await _writeSecure(_tokenKey, legacy)) {
+        await prefs.remove(_tokenKey);
+      }
+      return legacy;
+    });
   }
 
-  Future<void> cacheCurrentUser(Map<String, dynamic> user) async {
-    final prefs = await _prefs();
-    _cachedUser = Map<String, dynamic>.from(user);
-    await prefs.setString(_userKey, jsonEncode(user));
+  Future<void> cacheCurrentUser(
+    Map<String, dynamic> user, {
+    int? expectedSessionEpoch,
+  }) async {
+    final operationEpoch = expectedSessionEpoch ?? _sessionEpoch;
+    if (operationEpoch != _sessionEpoch) {
+      return;
+    }
+    final current = await currentUser();
+    final currentId = current?['id']?.toString().trim() ?? '';
+    final incomingId = user['id']?.toString().trim() ?? '';
+    if (currentId.isNotEmpty &&
+        incomingId.isNotEmpty &&
+        currentId != incomingId) {
+      return;
+    }
+    await _synchronizeSessionMutation(() async {
+      if (operationEpoch != _sessionEpoch) {
+        return;
+      }
+      final activeId = _cachedUser?['id']?.toString().trim() ?? '';
+      if (activeId.isNotEmpty &&
+          incomingId.isNotEmpty &&
+          activeId != incomingId) {
+        return;
+      }
+      final prefs = await _prefs();
+      _cachedUser = Map<String, dynamic>.from(user);
+      final encoded = jsonEncode(user);
+      if (await _writeSecure(_userKey, encoded)) {
+        await prefs.remove(_userKey);
+      } else {
+        await prefs.setString(_userKey, encoded);
+      }
+    });
   }
 
-  Future<void> cacheToken(String token) async {
+  Future<void> cacheToken(String token, {String? expectedToken}) async {
     final normalized = token.trim();
     if (normalized.isEmpty) {
       return;
     }
-    final prefs = await _prefs();
+    final operationEpoch = _sessionEpoch;
+    String? current;
+    if (expectedToken != null) {
+      current = _cachedToken ?? await this.token();
+      if (current == null || !identicalSessionToken(current, expectedToken)) {
+        return;
+      }
+    }
+    if (operationEpoch != _sessionEpoch) {
+      return;
+    }
+    // Make a response token immediately available to the request that received
+    // it. Persistence remains serialized and epoch-guarded below.
     _cachedToken = normalized;
-    await prefs.setString(_tokenKey, normalized);
+    await _synchronizeSessionMutation(() async {
+      if (operationEpoch != _sessionEpoch) {
+        return;
+      }
+      if (expectedToken != null) {
+        final active = _cachedToken ?? current;
+        if (active == null ||
+            (!identicalSessionToken(active, expectedToken) &&
+                !identicalSessionToken(active, normalized))) {
+          return;
+        }
+      }
+      final prefs = await _prefs();
+      if (await _writeSecure(_tokenKey, normalized)) {
+        if (_cachedToken == normalized && operationEpoch == _sessionEpoch) {
+          await prefs.remove(_tokenKey);
+        }
+      } else if (_cachedToken == normalized &&
+          operationEpoch == _sessionEpoch) {
+        await prefs.setString(_tokenKey, normalized);
+      }
+    });
   }
 
   Future<void> patchCurrentUser(Map<String, dynamic> patch) async {
     if (patch.isEmpty) {
       return;
     }
+    final expectedEpoch = _sessionEpoch;
     final current = await currentUser();
     if (current == null) {
       return;
     }
     current.addAll(patch);
-    await cacheCurrentUser(current);
+    await cacheCurrentUser(current, expectedSessionEpoch: expectedEpoch);
   }
 
   Future<void> refreshCurrentUser() async {
@@ -515,31 +742,42 @@ class AuthService {
   }
 
   Future<void> _refreshCurrentUserInternal() async {
-    final authToken = await token();
-    if (authToken == null || authToken.isEmpty) {
-      return;
-    }
+    final expectedEpoch = _sessionEpoch;
     final stopwatch = Stopwatch()..start();
-    final response = await _client
-        .get(
-          AppConfig.apiUri('auth/me'),
-          headers: await _requestHeaders(token: authToken),
-        )
-        .timeout(_requestTimeout);
-    if (response.statusCode >= 400) {
-      throw Exception(_extractMessage(response.body));
-    }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    if (body['authenticated'] == false) {
-      throw const AuthRequestException(
-        'يتطلب تأكيد الجهاز من جديد.',
-        deviceSessionOtpRequired: true,
-      );
-    }
-    if ((body['token']?.toString() ?? '').isNotEmpty) {
-      await _saveAuthPayload(body);
-    } else {
-      await cacheCurrentUser(Map<String, dynamic>.from(body['user'] as Map));
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final authToken = await token();
+      if (authToken == null || authToken.isEmpty) {
+        return;
+      }
+      final response = await _client
+          .get(
+            AppConfig.apiUri('auth/me'),
+            headers: await _requestHeaders(token: authToken),
+          )
+          .timeout(_requestTimeout);
+      _captureRefreshedToken(response, expectedToken: authToken);
+      if (response.statusCode >= 400) {
+        throw Exception(_extractMessage(response.body));
+      }
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (body['authenticated'] == false) {
+        if (attempt == 0 && await refreshTrustedDeviceSession()) {
+          continue;
+        }
+        throw const AuthRequestException(
+          'يتطلب تأكيد الجهاز من جديد.',
+          deviceSessionOtpRequired: true,
+        );
+      }
+      if ((body['token']?.toString() ?? '').isNotEmpty) {
+        await _saveAuthPayload(body, expectedEpoch: expectedEpoch);
+      } else {
+        await cacheCurrentUser(
+          Map<String, dynamic>.from(body['user'] as Map),
+          expectedSessionEpoch: expectedEpoch,
+        );
+      }
+      break;
     }
     assert(() {
       // ignore: avoid_print
@@ -558,8 +796,9 @@ class AuthService {
     required String birthDate,
     required String referralPhone,
   }) async {
+    final expectedEpoch = _sessionEpoch;
     final authToken = await token();
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('auth/profile'),
       headers: await _jsonHeaders(token: authToken),
       body: jsonEncode({
@@ -573,11 +812,15 @@ class AuthService {
         'referralPhone': referralPhone.trim(),
       }),
     );
+    _captureRefreshedToken(response, expectedToken: authToken);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    await cacheCurrentUser(Map<String, dynamic>.from(body['user'] as Map));
+    await cacheCurrentUser(
+      Map<String, dynamic>.from(body['user'] as Map),
+      expectedSessionEpoch: expectedEpoch,
+    );
     return body;
   }
 
@@ -586,7 +829,7 @@ class AuthService {
     required String newPassword,
   }) async {
     final authToken = await token();
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('auth/change-password'),
       headers: await _jsonHeaders(token: authToken),
       body: jsonEncode({
@@ -594,6 +837,7 @@ class AuthService {
         'newPassword': newPassword,
       }),
     );
+    _captureRefreshedToken(response, expectedToken: authToken);
     if (response.statusCode >= 400) {
       throw Exception(_extractMessage(response.body));
     }
@@ -601,7 +845,7 @@ class AuthService {
 
   Future<void> deleteAccount() async {
     final authToken = await token();
-    final response = await http.delete(
+    final response = await _client.delete(
       AppConfig.apiUri('auth/account'),
       headers: await _jsonHeaders(token: authToken),
     );
@@ -614,7 +858,7 @@ class AuthService {
   Future<OtpRequestResult> requestPasswordResetOtp({
     required String username,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('auth/password-reset/request-otp'),
       headers: await _jsonHeaders(),
       body: jsonEncode({
@@ -637,7 +881,7 @@ class AuthService {
     required String otpCode,
     required String newPassword,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('auth/password-reset/reset'),
       headers: await _jsonHeaders(),
       body: jsonEncode({
@@ -658,7 +902,7 @@ class AuthService {
     required String whatsapp,
     required String countryCode,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('auth/account-recovery/lookup'),
       headers: await _jsonHeaders(),
       body: jsonEncode({
@@ -676,19 +920,52 @@ class AuthService {
     );
   }
 
-  Future<void> _saveAuthPayload(Map<String, dynamic> payload) async {
-    final prefs = await _prefs();
-    _cachedToken = payload['token']?.toString() ?? '';
-    _cachedUser = payload['user'] is Map
-        ? Map<String, dynamic>.from(payload['user'] as Map)
-        : null;
-    await prefs.setString(_tokenKey, _cachedToken ?? '');
-    await prefs.setString(_userKey, jsonEncode(payload['user']));
-    final refreshToken = payload['refreshToken']?.toString().trim() ?? '';
-    if (refreshToken.isNotEmpty) {
-      _cachedRefreshToken = refreshToken;
-      await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
-    }
+  Future<bool> _saveAuthPayload(
+    Map<String, dynamic> payload, {
+    int? expectedEpoch,
+  }) async {
+    final operationEpoch = expectedEpoch ?? _sessionEpoch;
+    return _synchronizeSessionMutation(() async {
+      if (operationEpoch != _sessionEpoch) {
+        return false;
+      }
+      final nextToken = payload['token']?.toString().trim() ?? '';
+      if (nextToken.isEmpty) {
+        return false;
+      }
+
+      final nextUser = payload['user'] is Map
+          ? Map<String, dynamic>.from(payload['user'] as Map)
+          : _cachedUser;
+      final refreshToken = payload['refreshToken']?.toString().trim() ?? '';
+      _sessionEpoch++;
+      _cachedToken = nextToken;
+      _cachedUser = nextUser == null
+          ? null
+          : Map<String, dynamic>.from(nextUser);
+      if (refreshToken.isNotEmpty) {
+        _cachedRefreshToken = refreshToken;
+      }
+
+      final prefs = await _prefs();
+      if (await _writeSecure(_tokenKey, nextToken)) {
+        await prefs.remove(_tokenKey);
+      } else {
+        await prefs.setString(_tokenKey, nextToken);
+      }
+      if (nextUser != null) {
+        final encodedUser = jsonEncode(nextUser);
+        if (await _writeSecure(_userKey, encodedUser)) {
+          await prefs.remove(_userKey);
+        } else {
+          await prefs.setString(_userKey, encodedUser);
+        }
+      }
+      if (refreshToken.isNotEmpty) {
+        await _writeSecure(_refreshTokenKey, refreshToken);
+      }
+      return true;
+    });
   }
 
   Future<String?> _deviceRefreshToken() async {
@@ -696,9 +973,36 @@ class AuthService {
     if (cached != null) {
       return cached;
     }
-    _cachedRefreshToken = await _secureStorage.read(key: _refreshTokenKey);
+    _cachedRefreshToken = await _readSecure(_refreshTokenKey);
     return _cachedRefreshToken;
   }
+
+  static Future<String?> _readSecure(String key) async {
+    try {
+      return await _secureStorage.read(key: key);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> _writeSecure(String key, String value) async {
+    try {
+      await _secureStorage.write(key: key, value: value);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> _deleteSecure(String key) async {
+    try {
+      await _secureStorage.delete(key: key);
+    } catch (_) {
+      // SharedPreferences fallback is still cleared on explicit logout.
+    }
+  }
+
+  Future<String?> deviceRefreshToken() => _deviceRefreshToken();
 
   String _extractMessage(String body) {
     return ErrorMessageService.fromResponseBody(body);
@@ -743,13 +1047,15 @@ class AuthService {
     Object? lastError;
     for (final uri in AppConfig.apiCandidateUris(path)) {
       try {
-        return await _client
+        final response = await _client
             .post(
               uri,
               headers: await _jsonHeaders(token: token),
               body: jsonEncode(body),
             )
             .timeout(_requestTimeout);
+        _captureRefreshedToken(response);
+        return response;
       } on TimeoutException catch (error) {
         lastError = error;
       } on http.ClientException catch (error) {
@@ -758,5 +1064,40 @@ class AuthService {
     }
 
     throw lastError ?? Exception('Request failed');
+  }
+
+  void _captureRefreshedToken(
+    http.BaseResponse response, {
+    String? expectedToken,
+  }) {
+    final refreshedToken = response.headers['x-auth-token']?.trim() ?? '';
+    if (refreshedToken.isNotEmpty) {
+      final requestToken =
+          expectedToken ?? _authorizationTokenFromRequest(response.request);
+      if (requestToken != null) {
+        unawaited(cacheToken(refreshedToken, expectedToken: requestToken));
+      }
+    }
+  }
+
+  static String? _authorizationTokenFromRequest(http.BaseRequest? request) {
+    if (request == null) {
+      return null;
+    }
+    String authorization = '';
+    for (final entry in request.headers.entries) {
+      if (entry.key.toLowerCase() == 'authorization') {
+        authorization = entry.value.trim();
+        break;
+      }
+    }
+    const prefix = 'Bearer ';
+    return authorization.startsWith(prefix)
+        ? authorization.substring(prefix.length).trim()
+        : null;
+  }
+
+  static bool identicalSessionToken(String current, String expected) {
+    return current.trim() == expected.trim();
   }
 }

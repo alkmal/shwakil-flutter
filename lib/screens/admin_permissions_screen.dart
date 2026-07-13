@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/permission_catalog.dart';
 import '../widgets/admin/admin_section_header.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -24,6 +25,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isAuthorized = false;
+  String? _loadError;
   List<Map<String, dynamic>> _roles = const [];
   Map<String, dynamic> _templates = const {};
 
@@ -34,16 +36,20 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _loadError = null;
+      _isLoading = _roles.isEmpty;
+    });
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
-      if (!permissions.canManageSystemSettings) {
+      if (!permissions.canManagePermissionTemplates) {
         if (!mounted) {
           return;
         }
         setState(() {
           _isAuthorized = false;
+          _loadError = null;
           _isLoading = false;
         });
         return;
@@ -54,6 +60,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       }
       setState(() {
         _isAuthorized = true;
+        _loadError = null;
         _roles = List<Map<String, dynamic>>.from(
           payload['roles'] as List? ?? const [],
         );
@@ -66,12 +73,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _isLoading = false);
-      await AppAlertService.showError(
-        context,
-        title: context.loc.tr('screens_admin_permissions_screen.044'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      setState(() {
+        _loadError = ErrorMessageService.sanitize(error);
+        _isLoading = false;
+      });
     }
   }
 
@@ -108,6 +113,22 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_loadError != null && !_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_permissions_screen.003')),
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 620,
+          child: Center(
+            child: AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+          ),
+        ),
+      );
     }
 
     if (!_isAuthorized) {
@@ -187,6 +208,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_loadError != null) ...[
+              AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+              const SizedBox(height: 20),
+            ],
             ShwakelCard(
               padding: const EdgeInsets.all(24),
               gradient: AppTheme.primaryGradient,

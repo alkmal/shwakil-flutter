@@ -569,6 +569,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     amountController.dispose();
     notesController.dispose();
 
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
     setState(() => _busy = true);
     try {
       final response = isCredit
@@ -576,11 +584,15 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               userId: _customer['id'].toString(),
               amount: amount,
               notes: notes,
+              otpCode: security.otpCode,
+              securityPin: security.securityPin,
             )
           : await _api.deductAdminUserBalance(
               userId: _customer['id'].toString(),
               amount: amount,
               notes: notes,
+              otpCode: security.otpCode,
+              securityPin: security.securityPin,
             );
 
       if (!mounted) {
@@ -750,6 +762,14 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       return;
     }
 
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
     setState(() => _busy = true);
     try {
       final response = await _api.adminCreatePrepaidMultipayCardForUser(
@@ -758,6 +778,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         amount: amount,
         pin: pin,
         validityYears: selectedValidityYears,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) {
         return;

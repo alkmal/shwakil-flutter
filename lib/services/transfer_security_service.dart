@@ -11,11 +11,13 @@ class TransferSecurityResult {
     required this.isVerified,
     this.method,
     this.otpCode,
+    this.securityPin,
   });
 
   final bool isVerified;
   final String? method;
   final String? otpCode;
+  final String? securityPin;
 }
 
 class TransferSecurityService {
@@ -55,7 +57,8 @@ class TransferSecurityService {
       if (!context.mounted) {
         return const TransferSecurityResult(isVerified: false);
       }
-      if (pinResult.isVerified && requireOtpAfterLocalAuth) {
+      if (pinResult.isVerified &&
+          (requireOtpAfterLocalAuth || pinResult.method == 'biometric')) {
         return _confirmWithOtp(
           context,
           introText: context.loc.tr('services_transfer_security_service.002'),
@@ -71,15 +74,9 @@ class TransferSecurityService {
         if (!context.mounted) {
           return const TransferSecurityResult(isVerified: false);
         }
-        if (requireOtpAfterLocalAuth) {
-          return _confirmWithOtp(
-            context,
-            introText: context.loc.tr('services_transfer_security_service.001'),
-          );
-        }
-        return const TransferSecurityResult(
-          isVerified: true,
-          method: 'biometric',
+        return _confirmWithOtp(
+          context,
+          introText: context.loc.tr('services_transfer_security_service.001'),
         );
       }
     }
@@ -164,7 +161,11 @@ class TransferSecurityService {
             if (isValid) {
               Navigator.pop(
                 dialogContext,
-                const TransferSecurityResult(isVerified: true, method: 'pin'),
+                TransferSecurityResult(
+                  isVerified: true,
+                  method: 'pin',
+                  securityPin: pin,
+                ),
               );
               return;
             }

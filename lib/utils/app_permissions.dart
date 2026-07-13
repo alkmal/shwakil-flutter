@@ -213,6 +213,10 @@ class AppPermissions {
       _isEnabled('canManagePublicMarketplace') || isAdminRole;
   bool get canManageLocations => _isEnabled('canManageLocations');
   bool get canManageSystemSettings => _isEnabled('canManageSystemSettings');
+  bool get canManagePrepaidMultipayApprovals => canManageSystemSettings;
+  bool get canManagePermissionTemplates => canManageSystemSettings;
+  bool get canManageAdminNotifications => canManageSystemSettings;
+  bool get canViewAdminCardScanReports => canManageUsers;
   bool get canManageSubUsers => _isEnabled('canManageSubUsers');
   bool get canViewSubUsers =>
       _isEnabled('canViewSubUsers') || canManageSubUsers;

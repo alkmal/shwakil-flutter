@@ -15,6 +15,7 @@ export 'realtime_notification_service.dart';
 export 'referral_attribution_service.dart';
 export 'local_security_service.dart';
 export 'transfer_security_service.dart';
+export 'telemetry_redaction_service.dart';
 export 'transaction_location_service.dart';
 export 'location_audit_service.dart';
 export 'thermal_printer_service.dart';

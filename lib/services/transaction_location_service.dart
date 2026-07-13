@@ -66,7 +66,8 @@ class TransactionLocationService {
     }
   }
 
-  static Future<Map<String, dynamic>?> captureCurrentLocationIfPermitted() async {
+  static Future<Map<String, dynamic>?>
+  captureCurrentLocationIfPermitted() async {
     try {
       final position = await currentPositionIfPermitted();
       if (position == null) {

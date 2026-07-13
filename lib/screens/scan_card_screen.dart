@@ -1053,6 +1053,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         final response = await _api.createTemporaryTransferCode(
           amount: amount,
           otpCode: security.otpCode,
+          securityPin: security.securityPin,
           localAuthMethod: security.method,
         );
         if (!mounted) {
@@ -1076,7 +1077,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: l.text('تعذر إنشاء الرمز المؤقت', 'Failed to Create Temporary Code'),
+        title: l.text(
+          'تعذر إنشاء الرمز المؤقت',
+          'Failed to Create Temporary Code',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1188,7 +1192,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (payload.senderId != null && payload.senderId == currentUserId) {
       final l = context.loc;
       return BarcodeScannerDialogResult.error(
-        headline: l.text('رمز غير صالح لهذا الحساب', 'Code Invalid for This Account'),
+        headline: l.text(
+          'رمز غير صالح لهذا الحساب',
+          'Code Invalid for This Account',
+        ),
         message: l.text(
           'لا يمكنك استخدام رمز التحويل المؤقت على نفس الحساب الذي أنشأه.',
           'You cannot use a temporary transfer code on the same account that created it.',
@@ -1293,7 +1300,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       );
     } catch (error) {
       return BarcodeScannerDialogResult.error(
-        headline: context.loc.text('تعذر استلام التحويل', 'Failed to Receive Transfer'),
+        headline: l.text('تعذر استلام التحويل', 'Failed to Receive Transfer'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -1383,7 +1390,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l.text('المبلغ المطلوب دفعه', 'Amount to Pay'), style: AppTheme.caption),
+                      Text(
+                        l.text('المبلغ المطلوب دفعه', 'Amount to Pay'),
+                        style: AppTheme.caption,
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         payload.paymentAmount > 0
@@ -1565,7 +1575,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    labelText: l.text('المبلغ المطلوب من البطاقة', 'Amount Required from Card'),
+                    labelText: l.text(
+                      'المبلغ المطلوب من البطاقة',
+                      'Amount Required from Card',
+                    ),
                     prefixIcon: const Icon(Icons.payments_rounded),
                     errorText: errorText,
                   ),
@@ -1582,7 +1595,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                   final amount =
                       double.tryParse(amountController.text.trim()) ?? 0;
                   if (amount <= 0) {
-                    setDialogState(() => errorText = l.text('أدخل مبلغًا صحيحًا.', 'Enter a valid amount.'));
+                    setDialogState(
+                      () => errorText = l.text(
+                        'أدخل مبلغًا صحيحًا.',
+                        'Enter a valid amount.',
+                      ),
+                    );
                     return;
                   }
                   Navigator.of(dialogContext).pop(amount);
@@ -1619,7 +1637,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           shrinkWrap: true,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
           children: [
-            Text(l.text('اختر رقم البطاقة', 'Choose Card Number'), style: AppTheme.h3),
+            Text(
+              l.text('اختر رقم البطاقة', 'Choose Card Number'),
+              style: AppTheme.h3,
+            ),
             const SizedBox(height: 8),
             ...candidates.map(
               (candidate) => ListTile(
@@ -2136,8 +2157,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: l.text('الدفع بدون تلامس غير متاح', 'Contactless Payment Unavailable'),
-        message: l.text('فعّل الاتصال القريب ثم حاول مرة أخرى.', 'Enable NFC and try again.'),
+        title: l.text(
+          'الدفع بدون تلامس غير متاح',
+          'Contactless Payment Unavailable',
+        ),
+        message: l.text(
+          'فعّل الاتصال القريب ثم حاول مرة أخرى.',
+          'Enable NFC and try again.',
+        ),
         includeSupportGuidance: false,
         reportVisibleError: false,
       );
@@ -2171,7 +2198,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       final l = context.loc;
       await AppAlertService.showError(
         context,
-        title: l.text('تعذر قراءة الدفع بدون تلامس', 'Failed to Read Contactless Payment'),
+        title: l.text(
+          'تعذر قراءة الدفع بدون تلامس',
+          'Failed to Read Contactless Payment',
+        ),
         message: ErrorMessageService.sanitize(error),
         includeSupportGuidance: false,
         reportVisibleError: false,
@@ -2234,7 +2264,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (status == 'approved') {
       await AppAlertService.showSuccess(
         context,
-        title: l.text('تم قبول الدفع بدون تلامس', 'Contactless Payment Accepted'),
+        title: l.text(
+          'تم قبول الدفع بدون تلامس',
+          'Contactless Payment Accepted',
+        ),
         message: l.text(
           'تم استلام ${CurrencyFormatter.ils(authorization.amount)} من شاشة الفحص الموحدة.',
           '${CurrencyFormatter.ils(authorization.amount)} received from the unified scan screen.',
@@ -2478,8 +2511,14 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       if (showFeedback) {
         await AppAlertService.showError(
           context,
-          title: l.text('لا يمكن استرداد هذه البطاقة', 'Cannot Redeem This Card'),
-          message: l.text('هذا الحساب مقيّد لبطاقاته الخاصة فقط.', 'This account is restricted to its own private cards only.'),
+          title: l.text(
+            'لا يمكن استرداد هذه البطاقة',
+            'Cannot Redeem This Card',
+          ),
+          message: l.text(
+            'هذا الحساب مقيّد لبطاقاته الخاصة فقط.',
+            'This account is restricted to its own private cards only.',
+          ),
         );
       }
       return false;
@@ -2608,6 +2647,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         cardId: card.id,
         durationDays: days,
         otpCode: security.otpCode,
+        securityPin: security.securityPin,
         localAuthMethod: security.method,
       );
       final renewed = response['card'];
@@ -2627,7 +2667,11 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         context,
         title: l.text('تم تجديد الاشتراك', 'Subscription Renewed'),
         message:
-            response['message']?.toString() ?? l.text('تم تحديث مدة الاشتراك بنجاح.', 'Subscription duration updated successfully.'),
+            response['message']?.toString() ??
+            l.text(
+              'تم تحديث مدة الاشتراك بنجاح.',
+              'Subscription duration updated successfully.',
+            ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -2845,7 +2889,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       ),
     );
 
-    if (confirmed != true) return;
+    if (!mounted || confirmed != true) return;
+
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) return;
 
     setState(() => _isSubmitting = true);
     try {
@@ -2853,6 +2903,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           await TransactionLocationService.captureCurrentLocation();
       final response = await _api.resellCard(
         cardId: _card!.id,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+        localAuthMethod: security.method,
         location: location,
       );
       final updatedBalance = (response['balance'] as num?)?.toDouble();
@@ -2887,12 +2940,23 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       return;
     }
 
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final location =
           await TransactionLocationService.captureCurrentLocation();
       final response = await _api.resellCard(
         cardId: card.id,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+        localAuthMethod: security.method,
         location: location,
       );
       final updatedBalance = (response['balance'] as num?)?.toDouble();
@@ -3374,7 +3438,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                     enabled: !_isPreparingScreen,
                     decoration: InputDecoration(
                       labelText: l.text('رقم الباركود', 'Barcode number'),
-                      hintText: _isPreparingScreen ? l.text('جارٍ التجهيز...', 'Preparing...') : null,
+                      hintText: _isPreparingScreen
+                          ? l.text('جارٍ التجهيز...', 'Preparing...')
+                          : null,
                       prefixIcon: const Icon(Icons.qr_code_rounded),
                       suffixIcon: _isSearching
                           ? const Padding(
@@ -3411,7 +3477,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.document_scanner_rounded),
-                label: Text(l.text('قراءة رقم مكتوب بالكاميرا', 'Read handwritten number with camera')),
+                label: Text(
+                  l.text(
+                    'قراءة رقم مكتوب بالكاميرا',
+                    'Read handwritten number with camera',
+                  ),
+                ),
               ),
             ],
           ),

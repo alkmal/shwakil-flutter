@@ -41,6 +41,7 @@ class RealtimeNotificationService {
 
   static final AuthService _authService = AuthService();
   static StreamSubscription<RemoteMessage>? _foregroundSubscription;
+  static StreamSubscription<RemoteMessage>? _openedAppSubscription;
   static StreamSubscription<String>? _tokenRefreshSubscription;
   static bool _initialized = false;
   static bool _firebaseAvailable = false;
@@ -64,14 +65,31 @@ class RealtimeNotificationService {
       return;
     }
 
+    _startLocalListeners();
     await _syncCurrentToken();
     _tokenRefreshSubscription ??= FirebaseMessaging.instance.onTokenRefresh
         .listen((token) => unawaited(_registerToken(token)));
   }
 
   static Future<void> stop() async {
-    await _tokenRefreshSubscription?.cancel();
+    await Future.wait<void>([
+      if (_foregroundSubscription != null) _foregroundSubscription!.cancel(),
+      if (_openedAppSubscription != null) _openedAppSubscription!.cancel(),
+      if (_tokenRefreshSubscription != null)
+        _tokenRefreshSubscription!.cancel(),
+    ]);
+    _foregroundSubscription = null;
+    _openedAppSubscription = null;
     _tokenRefreshSubscription = null;
+  }
+
+  static void _startLocalListeners() {
+    _foregroundSubscription ??= FirebaseMessaging.onMessage.listen(
+      _handleForegroundMessage,
+    );
+    _openedAppSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen(
+      _handleNotificationOpen,
+    );
   }
 
   static void notifyBalanceUpdated([Map<String, dynamic> payload = const {}]) {
@@ -111,11 +129,6 @@ class RealtimeNotificationService {
         sound: true,
       );
       await _waitForApplePushToken(messaging);
-
-      _foregroundSubscription ??= FirebaseMessaging.onMessage.listen(
-        _handleForegroundMessage,
-      );
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
 
       final initialMessage = await messaging.getInitialMessage();
       if (initialMessage != null) {

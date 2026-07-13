@@ -601,11 +601,23 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     if (review == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
     setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingTopupRequest(
         requestId,
         approvalImageBase64: review.imageBase64,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
       );
       if (!mounted) {
         return;

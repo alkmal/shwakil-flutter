@@ -13,12 +13,14 @@ import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
+import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.openSyncStatus = false});
+  const HomeScreen({super.key, this.openSyncStatus = false, this.authService});
 
   final bool openSyncStatus;
+  final AuthService? authService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -28,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   static const String _balanceVisibleKeyPrefix = 'home_balance_visible';
   static const String _dismissedAnnouncementKey =
       'home.dismissed_announcement_version';
-  final AuthService _authService = AuthService();
+  late final AuthService _authService;
   final ApiService _apiService = ApiService();
   final OfflineCardService _offlineCardService = OfflineCardService();
   final DebtBookService _debtBookService = DebtBookService();
@@ -37,6 +39,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Map<String, dynamic>? _user;
   bool _isLoading = true;
+  bool _needsSessionRecovery = false;
+  Future<void>? _pendingUserLoad;
   bool _hasOfflineWorkspace = false;
   bool _isSyncingOfflineWorkspace = false;
   bool _didPromptLocalSecuritySetup = false;
@@ -57,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void initState() {
     super.initState();
+    _authService = widget.authService ?? AuthService();
     ConnectivityService.instance.isOnline.addListener(
       _handleConnectivityChanged,
     );
@@ -229,57 +234,105 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         : context.loc.tr('screens_balance_screen.037');
   }
 
-  Future<void> _loadUser() async {
-    final hadUser = _user != null;
-    if (!hadUser) {
-      setState(() => _isLoading = true);
+  Future<void> _loadUser() {
+    final pending = _pendingUserLoad;
+    if (pending != null) {
+      return pending;
     }
-    try {
-      var user = await _authService.currentUser();
-      if (user == null) {
-        await _redirectToLogin();
-        return;
+
+    final future = _loadUserInternal();
+    _pendingUserLoad = future;
+    return future.whenComplete(() {
+      if (identical(_pendingUserLoad, future)) {
+        _pendingUserLoad = null;
       }
+    });
+  }
+
+  Future<void> _loadUserInternal() async {
+    final hadUsableSnapshot = AuthService.hasPermissionSnapshot(_user);
+    if (!hadUsableSnapshot && mounted) {
+      setState(() {
+        _isLoading = true;
+        _needsSessionRecovery = false;
+      });
+    }
+
+    Map<String, dynamic>? user;
+    try {
+      user = await _authService.currentUser();
       final cachedHasPermissions = AuthService.hasPermissionSnapshot(user);
       if (cachedHasPermissions) {
         await _applyUserSnapshot(user, isLoading: false);
       }
 
-      try {
-        final refreshed = await _authService.tryRefreshCurrentUser();
-        if (refreshed) {
-          user = await _authService.currentUser();
-        }
-      } catch (error) {
-        if (ErrorMessageService.requiresFreshLogin(
-          ErrorMessageService.sanitize(error),
-        )) {
-          user ??= await _authService.currentUser();
-          if (user == null) {
-            await _redirectToLogin();
-            return;
+      final token = (await _authService.token())?.trim() ?? '';
+      if (token.isNotEmpty) {
+        try {
+          final refreshed = await _authService.tryRefreshCurrentUser();
+          if (refreshed) {
+            user = await _authService.currentUser();
           }
+        } catch (_) {
+          // A rejected or temporarily unavailable refresh must never discard
+          // the locally stored session. The cached snapshot remains usable.
+          user ??= await _authService.currentUser();
         }
-        user ??= await _authService.currentUser();
       }
 
-      if (user == null) {
-        await _redirectToLogin();
+      if (AuthService.hasPermissionSnapshot(user)) {
+        await _applyUserSnapshot(user, isLoading: false);
         return;
       }
-      if (!AuthService.hasPermissionSnapshot(user)) {
-        await _redirectToLogin();
+
+      if (token.isNotEmpty || user != null) {
+        _showSessionRecovery(user);
         return;
       }
-      await _applyUserSnapshot(user, isLoading: false);
+
+      await _redirectToLogin();
     } catch (_) {
-      final user = await _authService.currentUser();
-      if (user == null || !AuthService.hasPermissionSnapshot(user)) {
-        await _redirectToLogin();
+      user ??= await _safeCurrentUser();
+      if (AuthService.hasPermissionSnapshot(user)) {
+        await _applyUserSnapshot(user, isLoading: false);
         return;
       }
-      await _applyUserSnapshot(user, isLoading: false);
+
+      final token = (await _safeToken()).trim();
+      if (token.isNotEmpty || user != null) {
+        _showSessionRecovery(user);
+        return;
+      }
+
+      await _redirectToLogin();
     }
+  }
+
+  Future<Map<String, dynamic>?> _safeCurrentUser() async {
+    try {
+      return await _authService.currentUser();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String> _safeToken() async {
+    try {
+      return (await _authService.token()) ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  void _showSessionRecovery(Map<String, dynamic>? user) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _user = user;
+      _isLoading = false;
+      _needsSessionRecovery = true;
+    });
   }
 
   Future<void> _redirectToLogin() async {
@@ -324,6 +377,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _lastOfflineSyncAt = offlineOverview['lastSyncAt']?.toString();
       _offlineAccessExpired = offlineOverview['expired'] == true;
       _isLoading = isLoading;
+      _needsSessionRecovery = false;
     });
     _maybeSyncOfflineWorkspaceInBackground();
     unawaited(_maybePromptLocalSecuritySetup());
@@ -879,7 +933,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final services = _serviceItems(context);
+    final services = _needsSessionRecovery
+        ? const <_HomeServiceItem>[]
+        : _serviceItems(context);
     _HomeServiceItem? scanShortcut;
     for (final item in services) {
       if (item.kind == _HomeServiceKind.scan) {
@@ -894,17 +950,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const SizedBox.shrink(),
+        title: _needsSessionRecovery
+            ? Text(context.loc.text('استعادة الجلسة', 'Restore session'))
+            : const SizedBox.shrink(),
         actions: [
-          if (_canSyncWorkspace) _buildSyncStatusAction(),
-          if (!OfflineSessionService.isOfflineMode)
+          if (!_needsSessionRecovery && _canSyncWorkspace)
+            _buildSyncStatusAction(),
+          if (!_needsSessionRecovery && !OfflineSessionService.isOfflineMode)
             const AppNotificationAction(),
-          const QuickLogoutAction(),
+          if (!_needsSessionRecovery) const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: _needsSessionRecovery ? null : const AppSidebar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _needsSessionRecovery
+          ? _buildSessionRecoveryState()
           : RefreshIndicator(
               onRefresh: _loadUser,
               child: ListView(
@@ -921,6 +982,68 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildSessionRecoveryState() {
+    final l = context.loc;
+    return RefreshIndicator(
+      onRefresh: _loadUser,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: [
+          ResponsiveScaffoldContainer(
+            maxWidth: 680,
+            padding: const EdgeInsets.fromLTRB(0, 24, 0, 32),
+            child: ShwakelCard(
+              key: const ValueKey('session-recovery'),
+              padding: EdgeInsets.all(AppTheme.isPhone(context) ? 20 : 28),
+              shadowLevel: ShwakelShadowLevel.medium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppTheme.warningLight,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.sync_problem_rounded,
+                      color: AppTheme.warning,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    l.text(
+                      'تعذر تحديث صلاحيات الحساب مؤقتًا',
+                      'Account permissions could not be refreshed',
+                    ),
+                    style: AppTheme.h2,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    l.text(
+                      'جلستك محفوظة ولم يتم تسجيل خروجك. أعد المحاولة عند استقرار الاتصال لاستعادة مساحة العمل بأمان.',
+                      'Your session is saved and you were not signed out. Retry when the connection is stable to restore your workspace safely.',
+                    ),
+                    style: AppTheme.bodyAction.copyWith(height: 1.6),
+                  ),
+                  const SizedBox(height: 22),
+                  ShwakelButton(
+                    label: l.text('إعادة المحاولة', 'Retry'),
+                    icon: Icons.refresh_rounded,
+                    onPressed: _loadUser,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

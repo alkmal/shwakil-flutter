@@ -202,9 +202,12 @@ Route<dynamic> _buildNamedRoute(RouteSettings settings) {
     settings: RouteSettings(name: resolvedName, arguments: settings.arguments),
     builder: (context) => _OfflineRouteGuard(
       routeName: resolvedName,
-      child: _PermissionRouteGuard(
+      child: _LocalSecurityRouteGuard(
         routeName: resolvedName,
-        child: builder(context),
+        child: _PermissionRouteGuard(
+          routeName: resolvedName,
+          child: builder(context),
+        ),
       ),
     ),
   );
@@ -215,6 +218,14 @@ bool _isPublicRoute(String? routeName) {
       routeName == '/login-offline' ||
       routeName == '/register' ||
       routeName == '/support-tickets' ||
+      routeName == '/forgot-password' ||
+      routeName == '/unlock';
+}
+
+bool _isLocalSecurityExemptRoute(String? routeName) {
+  return routeName == '/login' ||
+      routeName == '/login-offline' ||
+      routeName == '/register' ||
       routeName == '/forgot-password' ||
       routeName == '/unlock';
 }
@@ -276,21 +287,18 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/admin-verification-requests' => permissions.canManageUsers,
     '/admin-device-requests' => permissions.canReviewDevices,
     '/admin-locations' => permissions.canManageLocations,
-    '/admin-notifications' =>
-      permissions.canManageUsers || permissions.canManageSystemSettings,
+    '/admin-notifications' => permissions.canManageAdminNotifications,
     '/admin-support-tickets' =>
       permissions.isAdminRole ||
           permissions.isSupportRole ||
           permissions.canManageUsers,
-    '/admin-prepaid-multipay-approvals' => permissions.canManageUsers,
+    '/admin-prepaid-multipay-approvals' =>
+      permissions.canManagePrepaidMultipayApprovals,
     '/admin-system-settings' => permissions.canManageSystemSettings,
-    '/admin-permissions' => permissions.canManageUsers,
+    '/admin-permissions' => permissions.canManagePermissionTemplates,
     '/admin-debt-book' => permissions.canManageDebtBook,
     '/admin-card-print-requests' => permissions.canManageCardPrintRequests,
-    '/admin-card-scan-reports' =>
-      permissions.canManageUsers ||
-          permissions.canReviewDevices ||
-          permissions.canManageCardPrintRequests,
+    '/admin-card-scan-reports' => permissions.canViewAdminCardScanReports,
     _ => true,
   };
 }
@@ -318,6 +326,36 @@ class _PermissionRouteGuard extends StatelessWidget {
         }
 
         return _PermissionDeniedFallback(isLoggedIn: user != null);
+      },
+    );
+  }
+}
+
+class _LocalSecurityRouteGuard extends StatelessWidget {
+  const _LocalSecurityRouteGuard({
+    required this.routeName,
+    required this.child,
+  });
+
+  final String routeName;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLocalSecurityExemptRoute(routeName)) {
+      return child;
+    }
+
+    return ValueListenableBuilder<int>(
+      valueListenable: LocalSecurityService.securityStateListenable,
+      builder: (context, _, _) {
+        if (LocalSecurityService.securitySetupRequired) {
+          return const SecuritySettingsScreen(showSetupHint: true);
+        }
+        if (LocalSecurityService.relockRequired) {
+          return DeviceUnlockScreen(returnRoute: routeName);
+        }
+        return child;
       },
     );
   }
@@ -612,10 +650,9 @@ class MyApp extends StatelessWidget {
               textDirection: localizer.textDirection,
               child: Stack(
                 children: [
-                  MediaQuery(
-                    data: MediaQuery.of(
-                      context,
-                    ).copyWith(textScaler: const TextScaler.linear(1)),
+                  MediaQuery.withClampedTextScaling(
+                    minScaleFactor: 0.8,
+                    maxScaleFactor: 1.4,
                     child: _RootBackNavigationGuard(
                       child: _AdaptiveWebSidebarShell(
                         child: child ?? const SizedBox.shrink(),
@@ -1069,7 +1106,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       return const _LaunchDecision(state: _LaunchState.onboarding);
     }
 
-    final cachedUser = await cachedUserFuture;
+    var cachedUser = await cachedUserFuture;
     final isLoggedIn = await isLoggedInFuture;
     final connectivityProbe = await ConnectivityService.instance
         .checkNow()
@@ -1086,25 +1123,46 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     }
     if (cachedUser == null) {
       unawaited(RealtimeNotificationService.stop());
-      _debugLaunchDecision('login(noCachedUser)', stopwatch.elapsed);
-      return const _LaunchDecision(state: _LaunchState.login);
-    }
-    if (!isOnline) {
-      unawaited(RealtimeNotificationService.stop());
-      if (await _canOpenOfflineWorkspace(cachedUser)) {
-        _debugLaunchDecision('homeOffline(noConnection)', stopwatch.elapsed);
-        return const _LaunchDecision(state: _LaunchState.homeOffline);
+      try {
+        await authService.tryRefreshCurrentUser().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => false,
+        );
+        cachedUser = await authService.currentUser().timeout(
+          const Duration(seconds: 1),
+          onTimeout: () => null,
+        );
+      } catch (_) {
+        cachedUser = await authService.currentUser().timeout(
+          const Duration(seconds: 1),
+          onTimeout: () => null,
+        );
       }
-      _debugLaunchDecision('login(noConnectionNoOffline)', stopwatch.elapsed);
-      return const _LaunchDecision(state: _LaunchState.login);
+      if (cachedUser == null) {
+        _debugLaunchDecision(
+          'home(sessionRecoveryNoSnapshot)',
+          stopwatch.elapsed,
+        );
+        return const _LaunchDecision(state: _LaunchState.home);
+      }
     }
     final hasLocalSecurity =
         await LocalSecurityService.hasConfiguredLocalSecurity().timeout(
           const Duration(seconds: 1),
           onTimeout: () => false,
         );
+    if (LocalSecurityService.securitySetupRequired) {
+      unawaited(RealtimeNotificationService.stop());
+      _debugLaunchDecision('securitySetup(required)', stopwatch.elapsed);
+      return const _LaunchDecision(state: _LaunchState.securitySetup);
+    }
     final skipNextUnlock = await LocalSecurityService.consumeSkipNextUnlock();
     if (skipNextUnlock) {
+      if (!isOnline && await _canOpenOfflineWorkspace(cachedUser)) {
+        unawaited(RealtimeNotificationService.stop());
+        _debugLaunchDecision('homeOffline(skipNextUnlock)', stopwatch.elapsed);
+        return const _LaunchDecision(state: _LaunchState.homeOffline);
+      }
       unawaited(RealtimeNotificationService.start());
       _debugLaunchDecision('home(skipNextUnlock)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.home);
@@ -1121,6 +1179,15 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       _debugLaunchDecision('securitySetup(relockUntrusted)', stopwatch.elapsed);
       return const _LaunchDecision(state: _LaunchState.securitySetup);
     }
+    if (!isOnline) {
+      unawaited(RealtimeNotificationService.stop());
+      if (await _canOpenOfflineWorkspace(cachedUser)) {
+        _debugLaunchDecision('homeOffline(noConnection)', stopwatch.elapsed);
+        return const _LaunchDecision(state: _LaunchState.homeOffline);
+      }
+      _debugLaunchDecision('home(noConnection)', stopwatch.elapsed);
+      return const _LaunchDecision(state: _LaunchState.home);
+    }
     try {
       final refreshed = await authService.tryRefreshCurrentUser();
       if (!refreshed) {
@@ -1136,9 +1203,10 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       }
     } catch (error) {
       unawaited(RealtimeNotificationService.stop());
-      if (ErrorMessageService.requiresFreshLogin(
-        ErrorMessageService.sanitize(error),
-      )) {
+      if ((error is AuthRequestException && error.deviceSessionOtpRequired) ||
+          ErrorMessageService.requiresFreshLogin(
+            ErrorMessageService.sanitize(error),
+          )) {
         final fallbackUser = await authService.currentUser();
         if (fallbackUser != null) {
           if (hasLocalSecurity && canUseTrustedUnlock) {
@@ -1148,9 +1216,12 @@ class _AppEntryPointState extends State<AppEntryPoint> {
             );
             return const _LaunchDecision(state: _LaunchState.unlock);
           }
-          unawaited(RealtimeNotificationService.start());
-          _debugLaunchDecision('home(refreshAuthRequired)', stopwatch.elapsed);
-          return const _LaunchDecision(state: _LaunchState.home);
+          unawaited(RealtimeNotificationService.stop());
+          _debugLaunchDecision(
+            'login(refreshAuthRequiredNoLocalUnlock)',
+            stopwatch.elapsed,
+          );
+          return const _LaunchDecision(state: _LaunchState.login);
         }
         _debugLaunchDecision(
           'login(noCachedUserExpiredToken)',
@@ -1184,20 +1255,22 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     final cachedUser = await authService.currentUser();
     final isLoggedIn = await authService.isLoggedIn();
 
-    if (!isLoggedIn || cachedUser == null) {
+    if (!isLoggedIn) {
       unawaited(RealtimeNotificationService.stop());
       return const _LaunchDecision(state: _LaunchState.login);
     }
-    if (!ConnectivityService.instance.isOnline.value &&
-        await _canOpenOfflineWorkspace(cachedUser)) {
+    if (cachedUser == null) {
       unawaited(RealtimeNotificationService.stop());
-      return const _LaunchDecision(state: _LaunchState.homeOffline);
+      return const _LaunchDecision(state: _LaunchState.home);
     }
     final hasLocalSecurity =
         await LocalSecurityService.hasConfiguredLocalSecurity().timeout(
           const Duration(seconds: 1),
           onTimeout: () => false,
         );
+    if (LocalSecurityService.securitySetupRequired) {
+      return const _LaunchDecision(state: _LaunchState.securitySetup);
+    }
     final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
         .timeout(const Duration(seconds: 1), onTimeout: () => false);
     if (hasLocalSecurity &&
@@ -1207,6 +1280,14 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     }
     if (hasLocalSecurity && LocalSecurityService.relockRequired) {
       return const _LaunchDecision(state: _LaunchState.securitySetup);
+    }
+
+    if (!ConnectivityService.instance.isOnline.value) {
+      unawaited(RealtimeNotificationService.stop());
+      if (await _canOpenOfflineWorkspace(cachedUser)) {
+        return const _LaunchDecision(state: _LaunchState.homeOffline);
+      }
+      return const _LaunchDecision(state: _LaunchState.home);
     }
 
     return const _LaunchDecision(state: _LaunchState.home);
@@ -1304,7 +1385,7 @@ class _SplashScreen extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 l.tr('main.001'),
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 30,
                   fontWeight: FontWeight.w900,

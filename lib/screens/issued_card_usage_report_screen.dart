@@ -262,9 +262,18 @@ class _IssuedCardUsageReportScreenState
               initialValue: _scope,
               decoration: InputDecoration(labelText: l.text('النطاق', 'Scope')),
               items: [
-                DropdownMenuItem(value: 'all', child: Text(l.text('كل البطاقات', 'All cards'))),
-                DropdownMenuItem(value: 'private', child: Text(l.text('الخاصة', 'Private'))),
-                DropdownMenuItem(value: 'public', child: Text(l.text('العامة', 'Public'))),
+                DropdownMenuItem(
+                  value: 'all',
+                  child: Text(l.text('كل البطاقات', 'All cards')),
+                ),
+                DropdownMenuItem(
+                  value: 'private',
+                  child: Text(l.text('الخاصة', 'Private')),
+                ),
+                DropdownMenuItem(
+                  value: 'public',
+                  child: Text(l.text('العامة', 'Public')),
+                ),
               ],
               onChanged: (value) {
                 if (value == null) return;
@@ -277,7 +286,9 @@ class _IssuedCardUsageReportScreenState
             width: 180,
             child: TextField(
               controller: _fromC,
-              decoration: InputDecoration(labelText: l.text('من تاريخ', 'From date')),
+              decoration: InputDecoration(
+                labelText: l.text('من تاريخ', 'From date'),
+              ),
               keyboardType: TextInputType.datetime,
             ),
           ),

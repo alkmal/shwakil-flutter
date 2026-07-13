@@ -250,6 +250,7 @@ class _BalanceScreenState extends State<BalanceScreen>
         amount: result.amount,
         notes: result.notes,
         otpCode: securityResult.otpCode,
+        securityPin: securityResult.securityPin,
         localAuthMethod: securityResult.method,
         location: location,
       );
@@ -302,6 +303,9 @@ class _BalanceScreenState extends State<BalanceScreen>
         bankName: result.bankName,
         notes: result.notes,
         agreementAccepted: true,
+        otpCode: securityResult.otpCode,
+        securityPin: securityResult.securityPin,
+        localAuthMethod: securityResult.method,
         location: location,
       );
       await _loadBalance();
@@ -355,6 +359,7 @@ class _BalanceScreenState extends State<BalanceScreen>
         amount: result.amount,
         notes: result.notes,
         otpCode: securityResult.otpCode,
+        securityPin: securityResult.securityPin,
         localAuthMethod: securityResult.method,
         location: location,
       );
@@ -978,7 +983,9 @@ class _BalanceScreenState extends State<BalanceScreen>
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: Text(context.loc.text('الرصيد والحركات', 'Balance & transactions')),
+          title: Text(
+            context.loc.text('الرصيد والحركات', 'Balance & transactions'),
+          ),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: const AppSidebar(),
@@ -998,9 +1005,9 @@ class _BalanceScreenState extends State<BalanceScreen>
     }
 
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: AppTheme.background,
-        body: const Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -1461,10 +1468,16 @@ class _BalanceScreenState extends State<BalanceScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(l.text('ملخص أرباح الإدارة', 'Admin profit summary'), style: AppTheme.h3),
+                    Text(
+                      l.text('ملخص أرباح الإدارة', 'Admin profit summary'),
+                      style: AppTheme.h3,
+                    ),
                     const SizedBox(height: 4),
                     Text(
-                      l.text('تظهر كإجماليات فقط ولا تتكرر داخل كشف الحركات.', 'Shown as totals only and not repeated in the transaction statement.'),
+                      l.text(
+                        'تظهر كإجماليات فقط ولا تتكرر داخل كشف الحركات.',
+                        'Shown as totals only and not repeated in the transaction statement.',
+                      ),
                       style: AppTheme.caption,
                     ),
                   ],
@@ -1712,7 +1725,7 @@ class _BalanceScreenState extends State<BalanceScreen>
       child: Center(
         child: Column(
           children: [
-            Icon(
+            const Icon(
               Icons.receipt_long_rounded,
               size: 48,
               color: AppTheme.textTertiary,

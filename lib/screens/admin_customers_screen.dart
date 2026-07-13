@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/admin/admin_customer_card.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -34,6 +35,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   bool _canManageUsers = false;
   bool _canManageMarketingAccounts = false;
   bool _showSummaryInline = false;
+  String? _loadError;
   String? _resendBusyId;
   String? _otpBusyId;
   int _customerPage = 1;
@@ -60,6 +62,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     if (reset) {
       _customerPage = 1;
       setState(() {
+        _loadError = null;
         if (_customers.isEmpty) {
           _isLoading = true;
         } else {
@@ -79,6 +82,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         }
         setState(() {
           _isAuthorized = false;
+          _loadError = null;
           _isLoading = false;
           _isLoadingCustomers = false;
         });
@@ -112,6 +116,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
       setState(() {
         _isAuthorized = true;
+        _loadError = null;
         _summary = Map<String, dynamic>.from(
           payload['summary'] as Map? ?? const {},
         );
@@ -130,14 +135,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         return;
       }
       setState(() {
+        _loadError = ErrorMessageService.sanitize(error);
         _isLoading = false;
         _isLoadingCustomers = false;
       });
-      await AppAlertService.showError(
-        context,
-        title: context.loc.tr('screens_admin_customers_screen.001'),
-        message: ErrorMessageService.sanitize(error),
-      );
     }
   }
 
@@ -349,12 +350,12 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                           segments: [
                             ButtonSegment<String>(
                               value: 'whatsapp',
-                              icon: Icon(Icons.chat_rounded),
+                              icon: const Icon(Icons.chat_rounded),
                               label: Text(l.tr('shared.delivery_whatsapp')),
                             ),
                             ButtonSegment<String>(
                               value: 'sms',
-                              icon: Icon(Icons.sms_rounded),
+                              icon: const Icon(Icons.sms_rounded),
                               label: Text(l.tr('shared.delivery_sms')),
                             ),
                           ],
@@ -445,12 +446,12 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 segments: [
                   ButtonSegment<String>(
                     value: 'whatsapp',
-                    icon: Icon(Icons.chat_rounded),
+                    icon: const Icon(Icons.chat_rounded),
                     label: Text(l.tr('shared.delivery_whatsapp')),
                   ),
                   ButtonSegment<String>(
                     value: 'sms',
-                    icon: Icon(Icons.sms_rounded),
+                    icon: const Icon(Icons.sms_rounded),
                     label: Text(l.tr('shared.delivery_sms')),
                   ),
                 ],
@@ -589,6 +590,23 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_loadError != null && !_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(title: Text(l.tr('screens_admin_customers_screen.017'))),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 620,
+          child: Center(
+            child: AdminLoadErrorCard(
+              message: _loadError!,
+              onRetry: () => _loadCustomers(reset: true),
+            ),
+          ),
+        ),
+      );
+    }
+
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -664,6 +682,13 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
+              if (_loadError != null) ...[
+                AdminLoadErrorCard(
+                  message: _loadError!,
+                  onRetry: () => _loadCustomers(reset: true),
+                ),
+                const SizedBox(height: 16),
+              ],
               if (_isLoadingCustomers)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),

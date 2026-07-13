@@ -8,6 +8,7 @@ import '../utils/app_permissions.dart';
 import 'api_service.dart';
 import 'app_alert_service.dart';
 import 'auth_service.dart';
+import 'local_security_service.dart';
 import 'offline_session_service.dart';
 
 class NotificationNavigationService {
@@ -15,7 +16,18 @@ class NotificationNavigationService {
 
   static Map<String, dynamic>? _pendingPayload;
   static int _pendingAttempts = 0;
+  static VoidCallback? _unlockListener;
   static const int _maxPendingAttempts = 8;
+
+  static String? requiredLocalSecurityRoute() {
+    if (LocalSecurityService.securitySetupRequired) {
+      return '/security-settings';
+    }
+    if (LocalSecurityService.relockRequired) {
+      return '/unlock';
+    }
+    return null;
+  }
 
   static Future<void> openFromPushPayload(Map<String, dynamic> payload) {
     return _openResolvedPayload(
@@ -54,6 +66,11 @@ class NotificationNavigationService {
     required bool includeDefaultNotificationsRoute,
   }) async {
     if (payload.isEmpty) {
+      return;
+    }
+
+    if (requiredLocalSecurityRoute() != null) {
+      _deferUntilLocalSecurityClears(payload);
       return;
     }
 
@@ -191,18 +208,69 @@ class NotificationNavigationService {
       if (pending == null) {
         return;
       }
+      _pendingPayload = null;
       unawaited(
         _openResolvedPayload(
           pending,
           includeDefaultNotificationsRoute: true,
         ).whenComplete(() {
-          if (_pendingPayload == null || identical(_pendingPayload, pending)) {
-            _pendingPayload = null;
+          if (_pendingPayload == null) {
             _pendingAttempts = 0;
           }
         }),
       );
     });
+  }
+
+  static void _deferUntilLocalSecurityClears(Map<String, dynamic> payload) {
+    _pendingPayload = payload;
+    final existingListener = _unlockListener;
+    if (existingListener != null) {
+      LocalSecurityService.securityStateListenable.removeListener(
+        existingListener,
+      );
+    }
+
+    void listener() {
+      if (LocalSecurityService.relockRequired ||
+          LocalSecurityService.securitySetupRequired) {
+        return;
+      }
+      LocalSecurityService.securityStateListenable.removeListener(listener);
+      _unlockListener = null;
+      final pending = _pendingPayload;
+      _pendingPayload = null;
+      if (pending == null) {
+        return;
+      }
+      Timer(const Duration(milliseconds: 700), () {
+        unawaited(
+          _openResolvedPayload(pending, includeDefaultNotificationsRoute: true),
+        );
+      });
+    }
+
+    _unlockListener = listener;
+    LocalSecurityService.securityStateListenable.addListener(listener);
+    final navigator = AppAlertService.navigatorKey.currentState;
+    final context = AppAlertService.navigatorKey.currentContext;
+    if (navigator != null && context != null) {
+      final gateRoute = requiredLocalSecurityRoute();
+      if (gateRoute == null) {
+        return;
+      }
+      final currentRoute = ModalRoute.of(context)?.settings.name;
+      if (currentRoute != gateRoute) {
+        unawaited(
+          navigator.pushNamed(
+            gateRoute,
+            arguments: gateRoute == '/unlock'
+                ? const {'returnRoute': '/home'}
+                : null,
+          ),
+        );
+      }
+    }
   }
 
   static Future<void> _pushNamedIfDifferent(String route) async {

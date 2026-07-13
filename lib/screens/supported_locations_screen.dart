@@ -1240,7 +1240,9 @@ class _LocationPickerScreenState extends State<_LocationPickerScreen> {
           TextButton.icon(
             onPressed: () => Navigator.pop(context, _selected),
             icon: const Icon(Icons.check_rounded),
-            label: Text(context.loc.tr('screens_supported_locations_screen.048')),
+            label: Text(
+              context.loc.tr('screens_supported_locations_screen.048'),
+            ),
           ),
         ],
       ),

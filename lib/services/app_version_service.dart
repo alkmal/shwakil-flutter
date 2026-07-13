@@ -118,7 +118,9 @@ class AppVersionService {
 
     assert(() {
       // ignore: avoid_print
-      print('[startup] GET app/auth-settings ${stopwatch.elapsed.inMilliseconds}ms');
+      print(
+        '[startup] GET app/auth-settings ${stopwatch.elapsed.inMilliseconds}ms',
+      );
       return true;
     }());
     return AppUpdateRequirement(

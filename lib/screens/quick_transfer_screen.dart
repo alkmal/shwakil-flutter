@@ -200,6 +200,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
         recipientId: recipientId,
         amount: amount,
         otpCode: securityResult.otpCode,
+        securityPin: securityResult.securityPin,
         localAuthMethod: securityResult.method,
         location: location,
       );
@@ -301,7 +302,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
                 const SizedBox(height: 8),
                 _transferDetailRow(
                   l.text('قيمة الخصم', 'Deduction'),
-                  fee <= 0 ? l.text('مجانا عرض خاص', 'Free special offer') : CurrencyFormatter.ils(fee),
+                  fee <= 0
+                      ? l.text('مجانا عرض خاص', 'Free special offer')
+                      : CurrencyFormatter.ils(fee),
                 ),
                 const SizedBox(height: 8),
                 _transferDetailRow(
@@ -620,8 +623,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           _buildSectionHeading(
             title: l.text('تحويل سريع', 'Quick transfer'),
             subtitle: l.text(
-                'أدخل رقم الهاتف والقيمة فقط، ثم راجع تفاصيل التحويل قبل التأكيد.',
-                'Enter phone number and amount only, then review transfer details before confirming.'),
+              'أدخل رقم الهاتف والقيمة فقط، ثم راجع تفاصيل التحويل قبل التأكيد.',
+              'Enter phone number and amount only, then review transfer details before confirming.',
+            ),
             icon: Icons.phone_iphone_rounded,
           ),
           const SizedBox(height: 18),

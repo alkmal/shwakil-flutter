@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/index.dart';
@@ -23,6 +24,7 @@ class AffiliateCenterScreen extends StatefulWidget {
 
 class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
   static const String _cacheKeyPrefix = 'affiliate_center_cache_';
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
 
@@ -121,7 +123,27 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
       return null;
     }
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('$_cacheKeyPrefix$userId');
+    final key = '$_cacheKeyPrefix$userId';
+    String? raw;
+    try {
+      raw = await _secureStorage.read(key: key);
+    } catch (_) {
+      await prefs.remove(key);
+      return null;
+    }
+    final legacyRaw = prefs.getString(key);
+    if ((raw == null || raw.trim().isEmpty) &&
+        legacyRaw != null &&
+        legacyRaw.trim().isNotEmpty) {
+      raw = legacyRaw;
+      try {
+        await _secureStorage.write(key: key, value: legacyRaw);
+        await prefs.remove(key);
+      } catch (_) {
+        await prefs.remove(key);
+        return null;
+      }
+    }
     if (raw == null || raw.trim().isEmpty) {
       return null;
     }
@@ -140,8 +162,10 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
     if (userId == null || userId.isEmpty || affiliate.isEmpty) {
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('$_cacheKeyPrefix$userId', jsonEncode(affiliate));
+    await _secureStorage.write(
+      key: '$_cacheKeyPrefix$userId',
+      value: jsonEncode(affiliate),
+    );
   }
 
   Future<void> _copyValue(String label, String value) async {

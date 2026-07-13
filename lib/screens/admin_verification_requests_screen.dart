@@ -231,7 +231,9 @@ class _AdminVerificationRequestsScreenState
           ),
           body: ResponsiveScaffoldContainer(
             padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: ListView(children: [_verificationDetailsContent(request, user, title)]),
+            child: ListView(
+              children: [_verificationDetailsContent(request, user, title)],
+            ),
           ),
         ),
       ),
@@ -289,7 +291,10 @@ class _AdminVerificationRequestsScreenState
             ],
           ),
           const SizedBox(height: 16),
-          Text(_t('screens_admin_verification_requests_screen.025'), style: AppTheme.h3),
+          Text(
+            _t('screens_admin_verification_requests_screen.025'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -298,7 +303,11 @@ class _AdminVerificationRequestsScreenState
                   label: _t('screens_admin_verification_requests_screen.026'),
                   icon: Icons.badge_rounded,
                   isSecondary: true,
-                  onPressed: () => _downloadFile(request, 'identity', 'identity-${request['id']}'),
+                  onPressed: () => _downloadFile(
+                    request,
+                    'identity',
+                    'identity-${request['id']}',
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -307,7 +316,11 @@ class _AdminVerificationRequestsScreenState
                   label: _t('screens_admin_verification_requests_screen.027'),
                   icon: Icons.face_retouching_natural_rounded,
                   isSecondary: true,
-                  onPressed: () => _downloadFile(request, 'selfie', 'selfie-${request['id']}'),
+                  onPressed: () => _downloadFile(
+                    request,
+                    'selfie',
+                    'selfie-${request['id']}',
+                  ),
                 ),
               ),
             ],

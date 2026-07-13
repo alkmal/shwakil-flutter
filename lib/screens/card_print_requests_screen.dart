@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -354,6 +357,9 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
     var cardType = availableTypes.contains('standard')
         ? 'standard'
         : (availableTypes.isNotEmpty ? availableTypes.first : 'standard');
+    String? pendingSubmissionFingerprint;
+    String? pendingIdempotencyKey;
+    const uuid = Uuid();
 
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -483,21 +489,46 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                 return;
               }
 
+              final details = <String, dynamic>{
+                if (detailsTitleController.text.trim().isNotEmpty)
+                  'title': detailsTitleController.text.trim(),
+                if (detailsDescriptionController.text.trim().isNotEmpty)
+                  'description': detailsDescriptionController.text.trim(),
+                if (detailsLocationController.text.trim().isNotEmpty)
+                  'location': detailsLocationController.text.trim(),
+                if (startsAtController.text.trim().isNotEmpty)
+                  'startsAt': startsAtController.text.trim(),
+                if (endsAtController.text.trim().isNotEmpty)
+                  'endsAt': endsAtController.text.trim(),
+              };
+              final submissionFingerprint = jsonEncode({
+                'value': isBalanceCard ? value : 0,
+                'quantity': quantity,
+                'cardType': cardType,
+                'notes': notesController.text.trim(),
+                'allowedUserIds': selectedUserIds,
+                'allowedUserPhones': selectedPhones,
+                'validFrom': validFromController.text.trim(),
+                'validUntil': validUntilController.text.trim(),
+                'cardDetails': details,
+              });
+              if (pendingSubmissionFingerprint != submissionFingerprint) {
+                pendingSubmissionFingerprint = submissionFingerprint;
+                pendingIdempotencyKey = uuid.v4();
+              }
+
+              final security = await TransferSecurityService.confirmTransfer(
+                dialogContext,
+                allowOtpFallback: true,
+              );
+              if (!dialogContext.mounted || !security.isVerified) {
+                return;
+              }
+
               setDialogState(() => _isSubmitting = true);
               try {
-                final details = <String, dynamic>{
-                  if (detailsTitleController.text.trim().isNotEmpty)
-                    'title': detailsTitleController.text.trim(),
-                  if (detailsDescriptionController.text.trim().isNotEmpty)
-                    'description': detailsDescriptionController.text.trim(),
-                  if (detailsLocationController.text.trim().isNotEmpty)
-                    'location': detailsLocationController.text.trim(),
-                  if (startsAtController.text.trim().isNotEmpty)
-                    'startsAt': startsAtController.text.trim(),
-                  if (endsAtController.text.trim().isNotEmpty)
-                    'endsAt': endsAtController.text.trim(),
-                };
                 final response = await _apiService.requestCardPrint(
+                  idempotencyKey: pendingIdempotencyKey!,
                   value: isBalanceCard ? value : 0,
                   quantity: quantity,
                   cardType: cardType,
@@ -507,6 +538,8 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   validFrom: validFromController.text,
                   validUntil: validUntilController.text,
                   cardDetails: details,
+                  otpCode: security.otpCode,
+                  securityPin: security.securityPin,
                 );
                 if (!dialogContext.mounted) {
                   return;

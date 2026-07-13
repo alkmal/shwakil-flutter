@@ -126,7 +126,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: context.loc.text('تعذر تحميل تقرير الإدارة', 'Failed to load admin report'),
+        title: context.loc.text(
+          'تعذر تحميل تقرير الإدارة',
+          'Failed to load admin report',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -502,10 +505,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-pending-registrations',
           badge: l.tr('screens_admin_dashboard_screen.089'),
         ),
-      if (permissions.canManageUsers)
+      if (permissions.canViewAdminCardScanReports)
         _AdminEntry(
           title: l.text('تقارير فحص البطاقات', 'Card scan reports'),
-          subtitle: l.text('قراءات ونسب الاستخدام.', 'Scan readings and usage rates.'),
+          subtitle: l.text(
+            'قراءات ونسب الاستخدام.',
+            'Scan readings and usage rates.',
+          ),
           icon: Icons.qr_code_scanner_rounded,
           color: AppTheme.accent,
           routeName: '/admin-card-scan-reports',
@@ -556,7 +562,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-system-settings',
           badge: l.tr('screens_admin_dashboard_screen.027'),
         ),
-      if (permissions.canManageSystemSettings)
+      if (permissions.canManagePrepaidMultipayApprovals)
         _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.090'),
           subtitle: l.tr('screens_admin_dashboard_screen.091'),
@@ -565,7 +571,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-prepaid-multipay-approvals',
           badge: l.tr('screens_admin_dashboard_screen.092'),
         ),
-      if (permissions.canManageSystemSettings)
+      if (permissions.canManagePermissionTemplates)
         _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.018'),
           subtitle: l.tr('screens_admin_dashboard_screen.019'),
@@ -1189,10 +1195,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }) {
     final isError = error.isNotEmpty;
     final color = isError ? AppTheme.error : AppTheme.warning;
-    final messages = [
-      if (error.isNotEmpty) error,
-      ...warnings,
-    ];
+    final messages = [if (error.isNotEmpty) error, ...warnings];
 
     return Container(
       width: double.infinity,
@@ -1313,7 +1316,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               const Icon(Icons.receipt_long_rounded, color: AppTheme.primary),
               const SizedBox(width: 10),
-              Expanded(child: Text(l.text('تفاصيل آخر العمليات', 'Latest transactions details'), style: AppTheme.h3)),
+              Expanded(
+                child: Text(
+                  l.text('تفاصيل آخر العمليات', 'Latest transactions details'),
+                  style: AppTheme.h3,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -1505,7 +1513,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.text('توزيع أنواع العمليات', 'Transaction type distribution'), style: AppTheme.h3),
+          Text(
+            l.text('توزيع أنواع العمليات', 'Transaction type distribution'),
+            style: AppTheme.h3,
+          ),
           const SizedBox(height: 12),
           if (breakdown.isEmpty)
             Text(

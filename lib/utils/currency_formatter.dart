@@ -3,8 +3,15 @@ import 'package:intl/intl.dart';
 class CurrencyFormatter {
   CurrencyFormatter._();
 
+  static const String _leftToRightIsolate = '\u2066';
+  static const String _popDirectionalIsolate = '\u2069';
+
+  /// A display-safe amount that keeps the sign on the left in RTL layouts.
+  ///
+  /// Use [formatAmount] when a plain value is needed for exports or parsing.
   static String ils(num? amount, {int decimals = 2}) {
-    return formatAmount(amount, decimals: decimals);
+    final value = formatAmount(amount, decimals: decimals);
+    return '$_leftToRightIsolate$value$_popDirectionalIsolate';
   }
 
   static String formatAmount(num? amount, {int decimals = 2}) {

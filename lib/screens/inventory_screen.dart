@@ -320,7 +320,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           ),
                         ),
                         child: Text(
-                          context.loc.text('بطاقات محفوظة محليًا.', 'Cards saved locally.'),
+                          context.loc.text(
+                            'بطاقات محفوظة محليًا.',
+                            'Cards saved locally.',
+                          ),
                           style: AppTheme.bodyAction.copyWith(fontSize: 14),
                         ),
                       );
@@ -334,7 +337,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           runSpacing: 10,
                           children: [
                             ShwakelButton(
-                              label: context.loc.text('إنشاء بطاقة لمستخدم', 'Create card for user'),
+                              label: context.loc.text(
+                                'إنشاء بطاقة لمستخدم',
+                                'Create card for user',
+                              ),
                               icon: Icons.add_card_rounded,
                               onPressed: _createAdminCard,
                             ),
@@ -353,7 +359,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       return Align(
                         alignment: Alignment.centerRight,
                         child: ShwakelButton(
-                          label: context.loc.text('طباعة البطاقات الظاهرة', 'Print visible cards'),
+                          label: context.loc.text(
+                            'طباعة البطاقات الظاهرة',
+                            'Print visible cards',
+                          ),
                           icon: Icons.print_rounded,
                           isSecondary: true,
                           onPressed: _reprintFilteredCards,
@@ -640,7 +649,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
           );
           final meta = Text(
             _cards.isEmpty
-                ? context.loc.text('لا توجد بطاقات ضمن هذا القسم', 'No cards in this section')
+                ? context.loc.text(
+                    'لا توجد بطاقات ضمن هذا القسم',
+                    'No cards in this section',
+                  )
                 : '${context.loc.text('عرض', 'Showing')} $firstItem - $lastItem ${context.loc.text('من', 'of')} $_filteredTotalCards',
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           );
@@ -659,7 +671,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget _buildInventoryPagination() {
     final perPage = _canUseAdminInventory ? _adminPerPage : _perPage;
     final l = context.loc;
-    final totalText = '$_filteredTotalCards ${l.text('بطاقة', 'card')} • ${l.text('صفحة', 'page')} $_page ${l.text('من', 'of')} $_lastPage';
+    final totalText =
+        '$_filteredTotalCards ${l.text('بطاقة', 'card')} • ${l.text('صفحة', 'page')} $_page ${l.text('من', 'of')} $_lastPage';
     if (_lastPage <= 1) {
       return Container(
         width: double.infinity,
@@ -760,10 +773,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(context.loc.text('متابعة البطاقات الأوفلاين', 'Offline card tracking'), style: AppTheme.bodyBold),
+                    Text(
+                      context.loc.text(
+                        'متابعة البطاقات الأوفلاين',
+                        'Offline card tracking',
+                      ),
+                      style: AppTheme.bodyBold,
+                    ),
                     const SizedBox(height: 4),
                     Text(
-                      context.loc.text('هذه اللوحة تظهر فقط للحسابات المصرح لها بمتابعة المسار الأوفلاين على هذا الجهاز.', 'This panel is only visible to accounts authorized to monitor the offline workflow on this device.'),
+                      context.loc.text(
+                        'هذه اللوحة تظهر فقط للحسابات المصرح لها بمتابعة المسار الأوفلاين على هذا الجهاز.',
+                        'This panel is only visible to accounts authorized to monitor the offline workflow on this device.',
+                      ),
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textSecondary,
                         height: 1.5,
@@ -835,7 +857,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
             const Divider(),
             const SizedBox(height: 12),
             if (unknownLookups.isNotEmpty) ...[
-              Text(context.loc.text('تنبيهات تحتاج متابعة', 'Alerts needing follow-up'), style: AppTheme.bodyBold),
+              Text(
+                context.loc.text(
+                  'تنبيهات تحتاج متابعة',
+                  'Alerts needing follow-up',
+                ),
+                style: AppTheme.bodyBold,
+              ),
               const SizedBox(height: 8),
               ...unknownLookups
                   .take(3)
@@ -848,14 +876,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         title: item['barcode']?.toString() ?? '-',
                         subtitle:
                             item['message']?.toString() ??
-                            context.loc.text('بانتظار التحقق عند توفر الإنترنت.', 'Awaiting verification when internet is available.'),
+                            context.loc.text(
+                              'بانتظار التحقق عند توفر الإنترنت.',
+                              'Awaiting verification when internet is available.',
+                            ),
                       ),
                     ),
                   ),
             ],
             if (history.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(context.loc.text('آخر نشاط مزامنة', 'Last sync activity'), style: AppTheme.bodyBold),
+              Text(
+                context.loc.text('آخر نشاط مزامنة', 'Last sync activity'),
+                style: AppTheme.bodyBold,
+              ),
               const SizedBox(height: 8),
               ...history
                   .take(3)
@@ -865,11 +899,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       child: _buildOfflineFollowupRow(
                         icon: Icons.sync_rounded,
                         color: AppTheme.success,
-                        title: item['barcode']?.toString() ?? context.loc.text('دفعة مزامنة', 'Sync batch'),
+                        title:
+                            item['barcode']?.toString() ??
+                            context.loc.text('دفعة مزامنة', 'Sync batch'),
                         subtitle:
                             item['message']?.toString() ??
                             item['status']?.toString() ??
-                            context.loc.text('تمت مزامنة نشاط أوفلاين.', 'Offline activity synced.'),
+                            context.loc.text(
+                              'تمت مزامنة نشاط أوفلاين.',
+                              'Offline activity synced.',
+                            ),
                       ),
                     ),
                   ),
@@ -1218,7 +1257,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     if (isUnused)
                       _buildInfoChip(
                         Icons.touch_app_rounded,
-                        isRevealed ? l.text('تم عرض البطاقة', 'Card revealed') : l.text('اضغط لعرض البطاقة', 'Tap to reveal card'),
+                        isRevealed
+                            ? l.text('تم عرض البطاقة', 'Card revealed')
+                            : l.text('اضغط لعرض البطاقة', 'Tap to reveal card'),
                       ),
                     if (card.usedBy != null && card.usedBy!.trim().isNotEmpty)
                       _buildInfoChip(Icons.person_rounded, card.usedBy!),
@@ -1254,7 +1295,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       children: [
         Text(
           (card.isAppointment || card.isQueueTicket) && card.value <= 0
-              ? (card.isQueueTicket ? l.text('تذكرة طابور', 'Queue ticket') : l.text('تذكرة موعد', 'Appointment ticket'))
+              ? (card.isQueueTicket
+                    ? l.text('تذكرة طابور', 'Queue ticket')
+                    : l.text('تذكرة موعد', 'Appointment ticket'))
               : CurrencyFormatter.ils(card.value),
           style: AppTheme.h3,
         ),
@@ -1522,7 +1565,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 color: AppTheme.error,
               ),
               const SizedBox(width: 8),
-              Text(l.text('حذف إداري', 'Admin delete'), style: const TextStyle(color: AppTheme.error)),
+              Text(
+                l.text('حذف إداري', 'Admin delete'),
+                style: const TextStyle(color: AppTheme.error),
+              ),
             ],
           ),
         ),
@@ -1576,7 +1622,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
       await AppAlertService.showInfo(
         context,
         title: context.loc.text('الطباعة غير متاحة', 'Printing not available'),
-        message: context.loc.text('لا يمكن طباعة بطاقة مستخدمة أو مؤرشفة.', 'Cannot print a used or archived card.'),
+        message: context.loc.text(
+          'لا يمكن طباعة بطاقة مستخدمة أو مؤرشفة.',
+          'Cannot print a used or archived card.',
+        ),
       );
       return;
     }
@@ -1589,7 +1638,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final fallbackPrintedBy = context.loc.tr('screens_inventory_screen.010');
     final successMessage = context.loc.tr('screens_inventory_screen.016');
     final user = await _authService.currentUser();
-    _setBusyState(true, message: context.loc.text('جارٍ تجهيز البطاقة للطباعة...', 'Preparing card for printing...'));
+    _setBusyState(
+      true,
+      message: context.loc.text(
+        'جارٍ تجهيز البطاقة للطباعة...',
+        'Preparing card for printing...',
+      ),
+    );
     try {
       final printedBy = UserDisplayName.fromMap(
         user,
@@ -1618,7 +1673,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
       }
       await AppAlertService.showError(
         context,
-        title: context.loc.text('تعذر إعادة طباعة البطاقة', 'Could not reprint card'),
+        title: context.loc.text(
+          'تعذر إعادة طباعة البطاقة',
+          'Could not reprint card',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -1639,7 +1697,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
     var previewCard = card;
 
     if (isOnline) {
-      _setBusyState(true, message: context.loc.text('جارٍ تحديث بيانات البطاقة...', 'Updating card data...'));
+      _setBusyState(
+        true,
+        message: context.loc.text(
+          'جارٍ تحديث بيانات البطاقة...',
+          'Updating card data...',
+        ),
+      );
       try {
         final freshCard = await _apiService.getCardByBarcode(card.barcode);
         if (!mounted) {
@@ -1652,8 +1716,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
           }
           await AppAlertService.showInfo(
             context,
-            title: context.loc.text('تم تحديث حالة البطاقة', 'Card status updated'),
-            message: context.loc.text('هذه البطاقة لم تعد متاحة للعرض الآن.', 'This card is no longer available for display.'),
+            title: context.loc.text(
+              'تم تحديث حالة البطاقة',
+              'Card status updated',
+            ),
+            message: context.loc.text(
+              'هذه البطاقة لم تعد متاحة للعرض الآن.',
+              'This card is no longer available for display.',
+            ),
           );
           return;
         }
@@ -1664,7 +1734,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         }
         await AppAlertService.showError(
           context,
-          title: context.loc.text('تعذر تحديث البطاقة', 'Could not update card'),
+          title: context.loc.text(
+            'تعذر تحديث البطاقة',
+            'Could not update card',
+          ),
           message: ErrorMessageService.sanitize(error),
         );
         return;
@@ -1744,6 +1817,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _delete(String id) async {
+    if (_isActionInProgress) {
+      return;
+    }
     final l = context.loc;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1778,10 +1854,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (confirmed != true) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
 
     try {
       _setBusyState(true, message: 'جارٍ حذف البطاقة وتحديث الرصيد...');
-      await _apiService.deleteCard(id);
+      await _apiService.deleteCard(
+        id,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+      );
       await _load();
       if (mounted) {
         AppAlertService.showSuccess(
@@ -1796,10 +1886,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
           message: ErrorMessageService.sanitize(error),
         );
       }
+    } finally {
+      _setBusyState(false);
     }
   }
 
   Future<void> _deleteAdminCard(String id) async {
+    if (_isActionInProgress) {
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1820,10 +1915,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (confirmed != true) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
 
     try {
       _setBusyState(true, message: 'جارٍ حذف البطاقة إداريًا...');
-      await _apiService.deleteAdminCard(id);
+      await _apiService.deleteAdminCard(
+        id,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+      );
       await _load();
       if (mounted) {
         AppAlertService.showSuccess(context, message: 'تم حذف البطاقة.');
@@ -1934,8 +2043,44 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _transferAdminCard(VirtualCard card) async {
+    if (_isActionInProgress) {
+      return;
+    }
     final target = await _selectUserDialog('نقل البطاقة إلى مستخدم');
     if (target == null) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    final targetName = UserDisplayName.fromMap(target);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تأكيد نقل البطاقة'),
+        content: Text(
+          'سيتم نقل ملكية البطاقة إلى $targetName. هل تريد المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('متابعة'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
       return;
     }
 
@@ -1944,6 +2089,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       await _apiService.transferAdminCard(
         cardId: card.id,
         targetUserId: target['id']?.toString() ?? '',
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
       );
       await _load();
       if (mounted) {

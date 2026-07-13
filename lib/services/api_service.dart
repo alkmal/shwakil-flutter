@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
-import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
@@ -18,11 +17,19 @@ import 'error_message_service.dart';
 import 'local_security_service.dart';
 import 'network_client_service.dart';
 import 'phone_number_service.dart';
+import 'session_refreshing_http_client.dart';
 
 class ApiService {
-  final AuthService _authService = AuthService();
+  ApiService({http.Client? client, AuthService? authService})
+    : _authService = authService ?? AuthService(),
+      _client = SessionRefreshingHttpClient(
+        client ?? NetworkClientService.client,
+        authService ?? AuthService(),
+      );
+
+  final AuthService _authService;
   bool lastCardLookupAutoRedeemed = false;
-  static final http.Client _client = NetworkClientService.client;
+  final http.Client _client;
   static const Duration _publicRequestTimeout = Duration(seconds: 8);
   static const Duration _authenticatedRequestTimeout = Duration(seconds: 12);
   static const Duration _authSettingsCacheLifetime = Duration(minutes: 5);
@@ -34,8 +41,9 @@ class ApiService {
   static Future<Map<String, dynamic>>? _pendingAuthSettingsRequest;
   static Map<String, dynamic>? _cachedNotificationSummary;
   static DateTime? _cachedNotificationSummaryAt;
+  static String? _cachedNotificationSummaryOwnerId;
   static Future<Map<String, dynamic>>? _pendingNotificationSummaryRequest;
-  static bool _isRedirectingToLogin = false;
+  static String? _pendingNotificationSummaryOwnerId;
 
   Future<Map<String, String>> _headers() async {
     final token = await _authService.token();
@@ -53,6 +61,27 @@ class ApiService {
   }
 
   Future<Map<String, String>> authenticatedHeaders() => _headers();
+
+  Map<String, dynamic> _transactionConfirmationPayload({
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
+  }) {
+    final normalizedOtp = otpCode?.trim() ?? '';
+    if (normalizedOtp.isNotEmpty) {
+      return {'otpCode': normalizedOtp};
+    }
+
+    final normalizedPin = securityPin?.trim() ?? '';
+    if (normalizedPin.isNotEmpty) {
+      return {'securityPin': normalizedPin};
+    }
+
+    final normalizedMethod = localAuthMethod?.trim() ?? '';
+    return normalizedMethod.isEmpty
+        ? const <String, dynamic>{}
+        : {'localAuthMethod': normalizedMethod};
+  }
 
   Uri adminVerificationFileUri({
     required String requestId,
@@ -177,6 +206,9 @@ class ApiService {
   static void invalidateNotificationSummaryCache() {
     _cachedNotificationSummary = null;
     _cachedNotificationSummaryAt = null;
+    _cachedNotificationSummaryOwnerId = null;
+    _pendingNotificationSummaryRequest = null;
+    _pendingNotificationSummaryOwnerId = null;
   }
 
   static void invalidateAuthSettingsCache() {
@@ -186,7 +218,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getTopupRequestSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('app/topup-request-settings'),
       headers: await _publicHeaders(),
     );
@@ -195,7 +227,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminAffiliateSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/affiliate'),
       headers: await _headers(),
     );
@@ -204,7 +236,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getTransferSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/transfer'),
       headers: await _headers(),
     );
@@ -213,7 +245,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getFeeSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/fees'),
       headers: await _headers(),
     );
@@ -222,7 +254,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getOfflineCardSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/offline-cards'),
       headers: await _headers(),
     );
@@ -231,7 +263,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getPermissionTemplates() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/permissions'),
       headers: await _headers(),
     );
@@ -239,7 +271,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getUsagePolicy() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('app/usage-policy'),
       headers: await _publicHeaders(),
     );
@@ -248,7 +280,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getSupportedLocations() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('app/supported-locations'),
       headers: await _publicHeaders(),
     );
@@ -261,7 +293,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getSupportedLocationsDashboard() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('supported-locations/dashboard'),
       headers: await _headers(),
     );
@@ -282,7 +314,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getAdminSupportedLocations() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/supported-locations'),
       headers: await _headers(),
     );
@@ -305,7 +337,7 @@ class ApiService {
     required double latitude,
     required double longitude,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('supported-locations/submissions'),
       headers: await _headers(),
       body: jsonEncode({
@@ -341,7 +373,7 @@ class ApiService {
     required double longitude,
     required bool isActive,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('supported-locations/my/$locationId'),
       headers: await _headers(),
       body: jsonEncode({
@@ -387,12 +419,12 @@ class ApiService {
       'sortOrder': sortOrder,
     };
     final response = locationId == null
-        ? await http.post(
+        ? await _client.post(
             AppConfig.apiUri('admin/supported-locations'),
             headers: await _headers(),
             body: jsonEncode(payload),
           )
-        : await http.put(
+        : await _client.put(
             AppConfig.apiUri('admin/supported-locations/$locationId'),
             headers: await _headers(),
             body: jsonEncode(payload),
@@ -408,7 +440,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> approveAdminSupportedLocation(
     String locationId,
   ) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/supported-locations/$locationId/approve'),
       headers: await _headers(),
     );
@@ -424,7 +456,7 @@ class ApiService {
     String locationId, {
     String reason = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/supported-locations/$locationId/reject'),
       headers: await _headers(),
       body: jsonEncode({'reason': reason.trim()}),
@@ -440,7 +472,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> deleteAdminSupportedLocation(
     String locationId,
   ) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       AppConfig.apiUri('admin/supported-locations/$locationId'),
       headers: await _headers(),
     );
@@ -466,7 +498,7 @@ class ApiService {
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();
     }
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/customers', params),
       headers: await _headers(),
     );
@@ -477,7 +509,7 @@ class ApiService {
     String userId, {
     String locationFilter = 'all',
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri(
         'admin/customers/$userId/transactions',
         locationFilter == 'all' ? null : {'locationFilter': locationFilter},
@@ -488,7 +520,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getSubUsers() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('sub-users'),
       headers: await _headers(),
     );
@@ -506,7 +538,7 @@ class ApiService {
     required String password,
     required Map<String, bool> permissions,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('sub-users'),
       headers: await _headers(),
       body: jsonEncode({
@@ -531,7 +563,7 @@ class ApiService {
     required Map<String, bool> permissions,
     bool isDisabled = false,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('sub-users/$subUserId'),
       headers: await _headers(),
       body: jsonEncode({
@@ -555,15 +587,24 @@ class ApiService {
     required String direction,
     required double amount,
     String notes = '',
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final payload = <String, dynamic>{
+      'direction': direction,
+      'amount': amount,
+      'notes': notes.trim(),
+    };
+    payload.addAll(
+      _transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+      ),
+    );
+    final response = await _client.post(
       AppConfig.apiUri('sub-users/$subUserId/balance-transfer'),
       headers: await _headers(),
-      body: jsonEncode({
-        'direction': direction,
-        'amount': amount,
-        'notes': notes.trim(),
-      }),
+      body: jsonEncode(payload),
     );
     final body = _decodeObject(response);
     if (body['currentUser'] is Map) {
@@ -579,7 +620,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminUserDevices(String userId) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/users/$userId/devices'),
       headers: await _headers(),
     );
@@ -587,7 +628,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminUserVerification(String userId) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/users/$userId/verification'),
       headers: await _headers(),
     );
@@ -595,7 +636,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getPendingDeviceAccessRequests() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/devices/pending'),
       headers: await _headers(),
     );
@@ -608,7 +649,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getPendingRegistrationRequests() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/registrations/pending'),
       headers: await _headers(),
     );
@@ -621,7 +662,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getPendingWithdrawalRequests() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/withdrawals/pending'),
       headers: await _headers(),
     );
@@ -634,7 +675,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getPendingTopupRequests() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/topup-requests/pending'),
       headers: await _headers(),
     );
@@ -647,7 +688,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getPendingVerificationRequests() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/verifications/pending'),
       headers: await _headers(),
     );
@@ -675,7 +716,7 @@ class ApiService {
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();
     }
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/withdrawals', params),
       headers: await _headers(),
     );
@@ -698,7 +739,7 @@ class ApiService {
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();
     }
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/topup-requests', params),
       headers: await _headers(),
     );
@@ -709,7 +750,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/devices/$requestId/approve'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -721,7 +762,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/devices/$requestId/reject'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -733,7 +774,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/verifications/$requestId/approve'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -745,7 +786,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/verifications/$requestId/reject'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -758,10 +799,11 @@ class ApiService {
     required String fileType,
     required String fileName,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       adminVerificationFileUri(requestId: requestId, fileType: fileType),
       headers: await _headers(),
     );
+    unawaited(_cacheRefreshedSession(response));
 
     if (response.statusCode >= 400) {
       _decodeObject(response);
@@ -791,14 +833,23 @@ class ApiService {
     String requestId, {
     required String approvalImageBase64,
     String notes = '',
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final payload = <String, dynamic>{
+      'approvalImageBase64': approvalImageBase64,
+      if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+    };
+    payload.addAll(
+      _transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+      ),
+    );
+    final response = await _client.post(
       AppConfig.apiUri('admin/withdrawals/$requestId/approve'),
       headers: await _headers(),
-      body: jsonEncode({
-        'approvalImageBase64': approvalImageBase64,
-        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
-      }),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -806,11 +857,22 @@ class ApiService {
   Future<Map<String, dynamic>> approvePendingTopupRequest(
     String requestId, {
     required String approvalImageBase64,
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final payload = <String, dynamic>{
+      'approvalImageBase64': approvalImageBase64,
+    };
+    payload.addAll(
+      _transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+      ),
+    );
+    final response = await _client.post(
       AppConfig.apiUri('admin/topup-requests/$requestId/approve'),
       headers: await _headers(),
-      body: jsonEncode({'approvalImageBase64': approvalImageBase64}),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -819,15 +881,24 @@ class ApiService {
     String requestId, {
     String notes = '',
     String approvalImageBase64 = '',
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final payload = <String, dynamic>{
+      if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+      if (approvalImageBase64.trim().isNotEmpty)
+        'approvalImageBase64': approvalImageBase64.trim(),
+    };
+    payload.addAll(
+      _transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+      ),
+    );
+    final response = await _client.post(
       AppConfig.apiUri('admin/withdrawals/$requestId/reject'),
       headers: await _headers(),
-      body: jsonEncode({
-        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
-        if (approvalImageBase64.trim().isNotEmpty)
-          'approvalImageBase64': approvalImageBase64.trim(),
-      }),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -836,7 +907,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/topup-requests/$requestId/reject'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -849,7 +920,7 @@ class ApiService {
     required bool allowMultiDevice,
     required int maxDevices,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/users/$userId/device-policy'),
       headers: await _headers(),
       body: jsonEncode({
@@ -905,7 +976,7 @@ class ApiService {
       ...permissionOverrides,
       if (restoreDefaults) 'restoreDefaults': true,
     };
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/users/$userId/card-permissions'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -914,7 +985,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getDebtBookSnapshot() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('debt-book/snapshot'),
       headers: await _headers(),
     );
@@ -924,7 +995,7 @@ class ApiService {
   Future<Map<String, dynamic>> syncDebtBook(
     List<Map<String, dynamic>> operations,
   ) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('debt-book/sync'),
       headers: await _headers(),
       body: jsonEncode({'operations': operations}),
@@ -988,7 +1059,7 @@ class ApiService {
     if (referralPhone != null) payload['referralPhone'] = referralPhone;
     if (printLogoBase64 != null) payload['printLogoBase64'] = printLogoBase64;
 
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/users/$userId/account-controls'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -997,7 +1068,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getCardScanLimitSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/card-scan-limits'),
       headers: await _headers(),
     );
@@ -1021,7 +1092,7 @@ class ApiService {
     required int withoutRedeemChargeEvery,
     required double withoutRedeemChargeAmount,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/card-scan-limits'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1061,7 +1132,7 @@ class ApiService {
     required double subscriptionCardIssueCost,
     required double attendanceCardIssueCost,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/fees'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1090,7 +1161,7 @@ class ApiService {
   Future<Map<String, dynamic>> updatePermissionTemplates({
     required Map<String, dynamic> templates,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/permissions'),
       headers: await _headers(),
       body: jsonEncode({'templates': templates}),
@@ -1103,7 +1174,7 @@ class ApiService {
     int perPage = 12,
     bool compact = true,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('cards/print-requests', {
         'page': page.toString(),
         'perPage': perPage.toString(),
@@ -1115,6 +1186,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> requestCardPrint({
+    required String idempotencyKey,
     required double value,
     required int quantity,
     required String cardType,
@@ -1124,11 +1196,14 @@ class ApiService {
     String? validFrom,
     String? validUntil,
     Map<String, dynamic> cardDetails = const {},
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/print-requests'),
       headers: await _headers(),
       body: jsonEncode({
+        'idempotencyKey': idempotencyKey.trim(),
         'value': value,
         'quantity': quantity,
         'cardType': cardType,
@@ -1140,6 +1215,10 @@ class ApiService {
         if ((validUntil ?? '').trim().isNotEmpty)
           'validUntil': validUntil!.trim(),
         if (cardDetails.isNotEmpty) 'cardDetails': cardDetails,
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+        ),
       }),
     );
     final body = _decodeObject(response);
@@ -1156,15 +1235,23 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> requestExistingCardsPrint({
+    required String idempotencyKey,
     required List<String> cardIds,
     String notes = '',
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/print-requests/existing'),
       headers: await _headers(),
       body: jsonEncode({
+        'idempotencyKey': idempotencyKey.trim(),
         'cardIds': cardIds.where((id) => id.trim().isNotEmpty).toList(),
         if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+        ),
       }),
     );
     final body = _decodeObject(response);
@@ -1195,7 +1282,7 @@ class ApiService {
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();
     }
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/card-print-requests', params),
       headers: await _headers(),
     );
@@ -1203,6 +1290,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> createAdminCardPrintRequest({
+    required String idempotencyKey,
     required String userId,
     required double value,
     required int quantity,
@@ -1214,11 +1302,14 @@ class ApiService {
     String? validFrom,
     String? validUntil,
     Map<String, dynamic> cardDetails = const {},
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests'),
       headers: await _headers(),
       body: jsonEncode({
+        'idempotencyKey': idempotencyKey.trim(),
         'userId': userId,
         'value': value,
         'quantity': quantity,
@@ -1233,6 +1324,10 @@ class ApiService {
         if ((validUntil ?? '').trim().isNotEmpty)
           'validUntil': validUntil!.trim(),
         if (cardDetails.isNotEmpty) 'cardDetails': cardDetails,
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -1242,7 +1337,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests/$requestId/approve'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -1254,7 +1349,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests/$requestId/start'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -1266,7 +1361,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests/$requestId/ready'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -1278,7 +1373,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests/$requestId/complete'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -1289,7 +1384,7 @@ class ApiService {
   Future<Map<String, dynamic>> markCardPrintRequestPrinted(
     String requestId,
   ) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests/$requestId/printed'),
       headers: await _headers(),
     );
@@ -1301,7 +1396,7 @@ class ApiService {
     required String status,
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests/$requestId/override-status'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1316,7 +1411,7 @@ class ApiService {
     String requestId, {
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests/$requestId/reject'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -1338,7 +1433,7 @@ class ApiService {
       defaultDialCode: countryCode.trim(),
     );
 
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/users'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1358,7 +1453,7 @@ class ApiService {
     bool regeneratePassword = true,
     String deliveryMethod = 'whatsapp',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/users/$userId/resend-account-details'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1377,14 +1472,14 @@ class ApiService {
 
     // Some production nodes still expose this admin action as GET only.
     // Try POST first to match the action semantics, then fall back safely.
-    var response = await http.post(
+    var response = await _client.post(
       uri,
       headers: headers,
       body: jsonEncode(const <String, dynamic>{}),
     );
 
     if (response.statusCode == 405) {
-      response = await http.get(uri, headers: headers);
+      response = await _client.get(uri, headers: headers);
     }
 
     return _decodeObject(response);
@@ -1394,7 +1489,7 @@ class ApiService {
     required String userId,
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/users/$userId/settle-printing-debt'),
       headers: await _headers(),
       body: jsonEncode({if (notes.trim().isNotEmpty) 'notes': notes.trim()}),
@@ -1416,7 +1511,7 @@ class ApiService {
     required String iosStoreUrl,
     required String webStoreUrl,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/auth'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1449,7 +1544,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateAdminTransferSettings({
     required double unverifiedTransferLimit,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/transfer'),
       headers: await _headers(),
       body: jsonEncode({'unverifiedTransferLimit': unverifiedTransferLimit}),
@@ -1463,7 +1558,7 @@ class ApiService {
     required int maxCachedCards,
     required int syncIntervalMinutes,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/offline-cards'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1477,7 +1572,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminTopupRequestSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/topup-request'),
       headers: await _headers(),
     );
@@ -1501,7 +1596,7 @@ class ApiService {
     if (maxAmount != null) {
       payload['maxAmount'] = maxAmount;
     }
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/topup-request'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -1510,7 +1605,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminWithdrawalRequestSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/withdrawal-request'),
       headers: await _headers(),
     );
@@ -1526,7 +1621,7 @@ class ApiService {
     required double minAmount,
     required double maxAmount,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/withdrawal-request'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1540,7 +1635,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getCardQuantityLimitSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/card-quantity-limits'),
       headers: await _headers(),
     );
@@ -1561,7 +1656,7 @@ class ApiService {
     required int financeLimit,
     required int adminLimit,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/card-quantity-limits'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1585,7 +1680,7 @@ class ApiService {
     required double firstTopupMinAmount,
     required double marketerDebtLimit,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/affiliate'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1599,7 +1694,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getAdminTopupPaymentMethods() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/topup-payment-methods'),
       headers: await _headers(),
     );
@@ -1629,12 +1724,12 @@ class ApiService {
       'sortOrder': sortOrder,
     };
     final response = methodId == null
-        ? await http.post(
+        ? await _client.post(
             AppConfig.apiUri('admin/topup-payment-methods'),
             headers: await _headers(),
             body: jsonEncode(payload),
           )
-        : await http.put(
+        : await _client.put(
             AppConfig.apiUri('admin/topup-payment-methods/$methodId'),
             headers: await _headers(),
             body: jsonEncode(payload),
@@ -1650,7 +1745,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> deleteAdminTopupPaymentMethod(
     String methodId,
   ) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       AppConfig.apiUri('admin/topup-payment-methods/$methodId'),
       headers: await _headers(),
     );
@@ -1663,7 +1758,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> getAdminWithdrawalMethods() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/withdrawal-methods'),
       headers: await _headers(),
     );
@@ -1695,12 +1790,12 @@ class ApiService {
       'sortOrder': sortOrder,
     };
     final response = methodId == null
-        ? await http.post(
+        ? await _client.post(
             AppConfig.apiUri('admin/withdrawal-methods'),
             headers: await _headers(),
             body: jsonEncode(payload),
           )
-        : await http.put(
+        : await _client.put(
             AppConfig.apiUri('admin/withdrawal-methods/$methodId'),
             headers: await _headers(),
             body: jsonEncode(payload),
@@ -1716,7 +1811,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> deleteAdminWithdrawalMethod(
     String methodId,
   ) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       AppConfig.apiUri('admin/withdrawal-methods/$methodId'),
       headers: await _headers(),
     );
@@ -1732,7 +1827,7 @@ class ApiService {
     String? logoBase64,
     bool remove = false,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('auth/profile/print-logo'),
       headers: await _headers(),
       body: jsonEncode({'logoBase64': logoBase64, 'remove': remove}),
@@ -1748,7 +1843,7 @@ class ApiService {
     required String supportEmail,
     required String address,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/contact'),
       headers: await _headers(),
       body: jsonEncode({
@@ -1765,7 +1860,7 @@ class ApiService {
     required String title,
     required String content,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/usage-policy'),
       headers: await _headers(),
       body: jsonEncode({'title': title, 'content': content}),
@@ -1819,7 +1914,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminMessageGatewayDashboard() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/message-gateway/dashboard'),
       headers: await _headers(),
     );
@@ -1829,7 +1924,7 @@ class ApiService {
   Future<Map<String, dynamic>> getAdminDashboard({
     String period = 'daily',
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/dashboard', {'period': period}),
       headers: await _headers(),
     );
@@ -1840,7 +1935,7 @@ class ApiService {
     required String channelKey,
     required bool enabled,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/message-gateway/whatsapp/$channelKey/toggle'),
       headers: await _headers(),
       body: jsonEncode({'enabled': enabled}),
@@ -1852,7 +1947,7 @@ class ApiService {
     required String channelKey,
     String phone = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/message-gateway/whatsapp/$channelKey/test'),
       headers: await _headers(),
       body: jsonEncode({if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
@@ -1861,7 +1956,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> testSmsGateway({String phone = ''}) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/message-gateway/sms/test'),
       headers: await _headers(),
       body: jsonEncode({if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
@@ -1945,7 +2040,7 @@ class ApiService {
     required String userId,
     required String deviceRecordId,
   }) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       AppConfig.apiUri('admin/users/$userId/devices/$deviceRecordId'),
       headers: await _headers(),
     );
@@ -1955,7 +2050,7 @@ class ApiService {
   Future<Map<String, dynamic>> releaseAllAdminUserDevices({
     required String userId,
   }) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       AppConfig.apiUri('admin/users/$userId/devices'),
       headers: await _headers(),
     );
@@ -1963,7 +2058,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getMyDevices() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('auth/devices'),
       headers: await _headers(),
     );
@@ -1973,7 +2068,7 @@ class ApiService {
   Future<Map<String, dynamic>> releaseMyDevice({
     required String deviceRecordId,
   }) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       AppConfig.apiUri('auth/devices/$deviceRecordId'),
       headers: await _headers(),
     );
@@ -1981,7 +2076,7 @@ class ApiService {
   }
 
   Future<OtpRequestResult> requestTransferSecurityOtp() async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('auth/transfer-security/request-otp'),
       headers: await _headers(),
     );
@@ -2049,7 +2144,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('users', {'q': query}),
       headers: await _headers(),
     );
@@ -2064,7 +2159,7 @@ class ApiService {
     required String countryCode,
     bool inviteIfMissing = false,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('users/lookup-by-phone', {
         'phone': phone,
         'countryCode': countryCode,
@@ -2072,6 +2167,7 @@ class ApiService {
       }),
       headers: await _headers(),
     );
+    unawaited(_cacheRefreshedSession(response));
     if (response.statusCode == 404) {
       return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
     }
@@ -2083,7 +2179,7 @@ class ApiService {
     required String phone,
     required String countryCode,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/recipient-invite'),
       headers: await _headers(),
       body: jsonEncode({
@@ -2099,6 +2195,7 @@ class ApiService {
     required double amount,
     String notes = '',
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
     Map<String, dynamic>? location,
   }) async {
@@ -2112,10 +2209,12 @@ class ApiService {
     }
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
+    } else if (securityPin != null && securityPin.trim().isNotEmpty) {
+      payload['securityPin'] = securityPin.trim();
     } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
       payload['localAuthMethod'] = localAuthMethod.trim();
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('wallet/topup'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2127,11 +2226,20 @@ class ApiService {
     required String userId,
     required double amount,
     String notes = '',
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final payload = <String, dynamic>{'amount': amount, 'notes': notes};
+    payload.addAll(
+      _transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+      ),
+    );
+    final response = await _client.post(
       AppConfig.apiUri('admin/users/$userId/add-balance'),
       headers: await _headers(),
-      body: jsonEncode({'amount': amount, 'notes': notes}),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -2140,11 +2248,20 @@ class ApiService {
     required String userId,
     required double amount,
     String notes = '',
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final payload = <String, dynamic>{'amount': amount, 'notes': notes};
+    payload.addAll(
+      _transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+      ),
+    );
+    final response = await _client.post(
       AppConfig.apiUri('admin/users/$userId/deduct-balance'),
       headers: await _headers(),
-      body: jsonEncode({'amount': amount, 'notes': notes}),
+      body: jsonEncode(payload),
     );
     return _decodeObject(response);
   }
@@ -2154,6 +2271,7 @@ class ApiService {
     required double amount,
     String notes = '',
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
     Map<String, dynamic>? location,
   }) async {
@@ -2167,10 +2285,12 @@ class ApiService {
     }
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
+    } else if (securityPin != null && securityPin.trim().isNotEmpty) {
+      payload['securityPin'] = securityPin.trim();
     } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
       payload['localAuthMethod'] = localAuthMethod.trim();
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('wallet/transfer'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2183,15 +2303,18 @@ class ApiService {
   Future<Map<String, dynamic>> createTemporaryTransferCode({
     required double amount,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{'amount': amount};
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
+    } else if (securityPin != null && securityPin.trim().isNotEmpty) {
+      payload['securityPin'] = securityPin.trim();
     } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
       payload['localAuthMethod'] = localAuthMethod.trim();
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('wallet/temporary-transfer-code'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2204,7 +2327,7 @@ class ApiService {
     bool allowUnverifiedWhatsapp = false,
     String deliveryMethod = 'whatsapp',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/registrations/$requestId/approve'),
       headers: await _headers(),
       body: jsonEncode({
@@ -2218,7 +2341,7 @@ class ApiService {
   Future<Map<String, dynamic>> confirmPendingRegistrationWithoutOtp(
     String requestId,
   ) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/registrations/$requestId/confirm-without-otp'),
       headers: await _headers(),
     );
@@ -2234,7 +2357,7 @@ class ApiService {
       input: whatsapp.trim(),
       defaultDialCode: countryCode.trim(),
     );
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/registrations/$requestId/whatsapp'),
       headers: await _headers(),
       body: jsonEncode({'whatsapp': normalizedWhatsapp}),
@@ -2246,7 +2369,7 @@ class ApiService {
     String requestId, {
     String reason = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/registrations/$requestId/reject'),
       headers: await _headers(),
       body: jsonEncode({'rejectionReason': reason.trim()}),
@@ -2258,7 +2381,7 @@ class ApiService {
     required String deviceId,
     int count = 5,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('wallet/temporary-transfer-code/prefetch'),
       headers: await _headers(),
       body: jsonEncode({'deviceId': deviceId, 'count': count}),
@@ -2274,7 +2397,7 @@ class ApiService {
     if (location != null) {
       requestPayload['location'] = location;
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('wallet/temporary-transfer-code/redeem'),
       headers: await _headers(),
       body: jsonEncode(requestPayload),
@@ -2292,6 +2415,9 @@ class ApiService {
     String? bankName,
     String notes = '',
     required bool agreementAccepted,
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
     Map<String, dynamic>? location,
   }) async {
     final payload = <String, dynamic>{
@@ -2308,7 +2434,14 @@ class ApiService {
     if (location != null) {
       payload['location'] = location;
     }
-    final response = await http.post(
+    payload.addAll(
+      _transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
+      ),
+    );
+    final response = await _client.post(
       AppConfig.apiUri('wallet/withdrawal'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2319,7 +2452,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getWithdrawalRequestOptions() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('wallet/withdrawal/options'),
       headers: await _headers(),
     );
@@ -2327,7 +2460,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getTopupRequestOptions() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('wallet/topup-request/options'),
       headers: await _headers(),
     );
@@ -2335,7 +2468,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAffiliateDashboard() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('affiliate/dashboard'),
       headers: await _headers(),
     );
@@ -2362,7 +2495,7 @@ class ApiService {
     if (transferredAt != null && transferredAt.trim().isNotEmpty) {
       payload['transferredAt'] = transferredAt.trim();
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('wallet/topup-request'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2371,7 +2504,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getVerificationStatus() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('auth/verification'),
       headers: await _headers(),
     );
@@ -2387,7 +2520,7 @@ class ApiService {
     String requestedRole = 'verified_member',
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('auth/verification'),
       headers: await _headers(),
       body: jsonEncode({
@@ -2421,6 +2554,7 @@ class ApiService {
     String? validUntil,
     Map<String, dynamic>? cardDetails,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
     String? customBarcode,
   }) async {
@@ -2441,11 +2575,17 @@ class ApiService {
         'customBarcode': customBarcode.trim(),
       if (otpCode != null && otpCode.trim().isNotEmpty)
         'otpCode': otpCode.trim(),
+      if ((otpCode == null || otpCode.trim().isEmpty) &&
+          securityPin != null &&
+          securityPin.trim().isNotEmpty)
+        'securityPin': securityPin.trim(),
       if (otpCode == null || otpCode.trim().isEmpty)
-        if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty)
+        if ((securityPin == null || securityPin.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
           'localAuthMethod': localAuthMethod.trim(),
     };
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/issue'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2470,6 +2610,7 @@ class ApiService {
     String? validFrom,
     String? validUntil,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{};
@@ -2482,10 +2623,12 @@ class ApiService {
     }
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
+    } else if (securityPin != null && securityPin.trim().isNotEmpty) {
+      payload['securityPin'] = securityPin.trim();
     } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
       payload['localAuthMethod'] = localAuthMethod.trim();
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/$cardId/subscription/renew'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2510,6 +2653,7 @@ class ApiService {
     required List<Map<String, dynamic>> items,
     String cardType = 'standard',
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
     final normalizedCardType = cardType.trim().isEmpty
@@ -2520,11 +2664,17 @@ class ApiService {
       'cardType': normalizedCardType,
       if (otpCode != null && otpCode.trim().isNotEmpty)
         'otpCode': otpCode.trim(),
+      if ((otpCode == null || otpCode.trim().isEmpty) &&
+          securityPin != null &&
+          securityPin.trim().isNotEmpty)
+        'securityPin': securityPin.trim(),
       if (otpCode == null || otpCode.trim().isEmpty)
-        if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty)
+        if ((securityPin == null || securityPin.trim().isEmpty) &&
+            localAuthMethod != null &&
+            localAuthMethod.trim().isNotEmpty)
           'localAuthMethod': localAuthMethod.trim(),
     };
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/trial-issue'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -2560,7 +2710,7 @@ class ApiService {
     if (status != null && status.trim().isNotEmpty) {
       query['status'] = status.trim();
     }
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('cards', query.isEmpty ? null : query),
       headers: await _headers(),
     );
@@ -2609,7 +2759,7 @@ class ApiService {
     if (issuedTo.trim().isNotEmpty) {
       query['issuedTo'] = issuedTo.trim();
     }
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/cards', query),
       headers: await _headers(),
     );
@@ -2634,7 +2784,7 @@ class ApiService {
     String cardType = 'standard',
     String notes = '',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/users/$userId/cards'),
       headers: await _headers(),
       body: jsonEncode({
@@ -2658,13 +2808,19 @@ class ApiService {
     required String cardId,
     required String targetUserId,
     String notes = '',
+    String? otpCode,
+    String? securityPin,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/cards/$cardId/transfer'),
       headers: await _headers(),
       body: jsonEncode({
         'targetUserId': targetUserId,
         if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+        ),
       }),
     );
     final body = _decodeObject(response);
@@ -2676,16 +2832,26 @@ class ApiService {
     return body;
   }
 
-  Future<void> deleteAdminCard(String cardId) async {
-    final response = await http.delete(
+  Future<void> deleteAdminCard(
+    String cardId, {
+    String? otpCode,
+    String? securityPin,
+  }) async {
+    final response = await _client.delete(
       AppConfig.apiUri('admin/cards/$cardId'),
       headers: await _headers(),
+      body: jsonEncode(
+        _transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+        ),
+      ),
     );
     _decodeObject(response);
   }
 
   Future<Map<String, dynamic>> getOfflineCardCache() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('cards/offline-cache'),
       headers: await _headers(),
     );
@@ -2702,10 +2868,20 @@ class ApiService {
     };
   }
 
-  Future<void> deleteCard(String cardId) async {
-    final response = await http.delete(
+  Future<void> deleteCard(
+    String cardId, {
+    String? otpCode,
+    String? securityPin,
+  }) async {
+    final response = await _client.delete(
       AppConfig.apiUri('cards/$cardId'),
       headers: await _headers(),
+      body: jsonEncode(
+        _transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+        ),
+      ),
     );
     final body = _decodeObject(response);
     await _patchCachedBalanceFromPayload(body);
@@ -2726,7 +2902,7 @@ class ApiService {
     List<String> allowedUserIds = const [],
     List<String> allowedUserPhones = const [],
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('cards/$cardId/audience'),
       headers: await _headers(),
       body: jsonEncode({
@@ -2752,7 +2928,7 @@ class ApiService {
       // Server accepts either `location[lat]=..` style or a json string; we use json for simplicity.
       query['location'] = jsonEncode(location);
     }
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('cards/$barcode', query.isEmpty ? null : query),
       headers: await _headers(),
     );
@@ -2795,7 +2971,7 @@ class ApiService {
     if (from != null && from.trim().isNotEmpty) params['from'] = from.trim();
     if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
 
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/reports/card-scans/users', params),
       headers: await _headers(),
     );
@@ -2821,7 +2997,7 @@ class ApiService {
       params['query'] = query.trim();
     }
 
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('cards/usage-report', params),
       headers: await _headers(),
     );
@@ -2838,7 +3014,7 @@ class ApiService {
     if (from != null && from.trim().isNotEmpty) params['from'] = from.trim();
     if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
 
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri(
         'admin/reports/card-scans/users/$userId/locations',
         params,
@@ -2857,7 +3033,7 @@ class ApiService {
     if (from != null && from.trim().isNotEmpty) params['from'] = from.trim();
     if (to != null && to.trim().isNotEmpty) params['to'] = to.trim();
 
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/reports/card-scans/locations', params),
       headers: await _headers(),
     );
@@ -2885,7 +3061,7 @@ class ApiService {
     }
     if (query != null && query.trim().isNotEmpty) params['q'] = query.trim();
 
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/reports/attendance-cards', params),
       headers: await _headers(),
     );
@@ -2974,7 +3150,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateCardAutoRedeemOnScanPreference({
     required bool enabled,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('cards/auto-redeem-on-scan'),
       headers: await _headers(),
       body: jsonEncode({'enabled': enabled}),
@@ -2997,7 +3173,7 @@ class ApiService {
     if (location != null) {
       payload['location'] = location;
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/$cardId/redeem'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -3020,7 +3196,7 @@ class ApiService {
   Future<Map<String, dynamic>> syncOfflineCardRedeems({
     required List<Map<String, dynamic>> items,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/offline-redeem'),
       headers: await _headers(),
       body: jsonEncode({'items': items}),
@@ -3038,7 +3214,7 @@ class ApiService {
     int page = 1,
     int perPage = 10,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('transactions/me', {
         if (locationFilter != 'all') 'locationFilter': locationFilter,
         if (query.trim().isNotEmpty) 'q': query.trim(),
@@ -3053,7 +3229,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminPrepaidMultipaySettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/prepaid-multipay'),
       headers: await _headers(),
     );
@@ -3108,7 +3284,7 @@ class ApiService {
       payload['nfcRequireBiometrics'] = nfcRequireBiometrics;
     }
 
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/prepaid-multipay'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -3122,7 +3298,7 @@ class ApiService {
     int perPage = 100,
     String? query,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('external-card-store/catalog', {
         'category_id': categoryId.toString(),
         'type': type.toString(),
@@ -3140,7 +3316,7 @@ class ApiService {
     int perPage = 100,
     String? query,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('external-card-store/cards', {
         'category_id': categoryId.toString(),
         'type': type.toString(),
@@ -3164,6 +3340,7 @@ class ApiService {
     double? providerPriceUsd,
     required int categoryId,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
     int quantity = 1,
   }) async {
@@ -3179,11 +3356,13 @@ class ApiService {
     }
     if (otpCode != null && otpCode.trim().isNotEmpty) {
       payload['otpCode'] = otpCode.trim();
+    } else if (securityPin != null && securityPin.trim().isNotEmpty) {
+      payload['securityPin'] = securityPin.trim();
     } else if (localAuthMethod != null && localAuthMethod.trim().isNotEmpty) {
       payload['localAuthMethod'] = localAuthMethod.trim();
     }
 
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('external-card-store/purchase'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -3204,7 +3383,7 @@ class ApiService {
     int page = 1,
     int perPage = 12,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('external-card-store/orders', {
         'page': page.toString(),
         'perPage': perPage.toString(),
@@ -3226,7 +3405,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getAdminExternalCardStoreSettings() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/settings/external-card-store'),
       headers: await _headers(),
     );
@@ -3236,7 +3415,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateAdminExternalCardStoreSettings(
     Map<String, dynamic> settings,
   ) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/settings/external-card-store'),
       headers: await _headers(),
       body: jsonEncode(settings),
@@ -3245,7 +3424,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getStoreManagementSnapshot() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('store-management/snapshot'),
       headers: await _headers(),
     );
@@ -3255,7 +3434,7 @@ class ApiService {
   Future<Map<String, dynamic>> syncStoreManagement(
     List<Map<String, dynamic>> operations,
   ) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('store-management/sync'),
       headers: await _headers(),
       body: jsonEncode({'operations': operations}),
@@ -3264,7 +3443,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getPublicStores({String? query}) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('public-stores', {
         if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
       }),
@@ -3274,7 +3453,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getPublicStore(String workspaceId) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('public-stores/$workspaceId'),
       headers: await _headers(),
     );
@@ -3286,7 +3465,7 @@ class ApiService {
     required List<Map<String, dynamic>> items,
     String? buyerNote,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('public-stores/orders'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3300,7 +3479,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getSellerPublicStoreOrders() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('public-stores/orders/seller'),
       headers: await _headers(),
     );
@@ -3308,7 +3487,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getBuyerPublicStoreOrders() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('public-stores/orders/buyer'),
       headers: await _headers(),
     );
@@ -3319,7 +3498,7 @@ class ApiService {
     required String orderId,
     required String action,
   }) async {
-    final response = await http.patch(
+    final response = await _client.patch(
       AppConfig.apiUri('public-stores/orders/$orderId'),
       headers: await _headers(),
       body: jsonEncode({'action': action}),
@@ -3331,7 +3510,7 @@ class ApiService {
     String? query,
     int limit = 200,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/external-card-store/catalog', {
         if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
         'limit': limit.toString(),
@@ -3346,7 +3525,7 @@ class ApiService {
     int type = 2,
     int maxDepth = 3,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/external-card-store/catalog/sync'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3388,7 +3567,7 @@ class ApiService {
       payload['sortOrder'] = sortOrder;
     }
 
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('admin/external-card-store/catalog/$kind/$id'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -3405,7 +3584,7 @@ class ApiService {
     String? cardStatus,
     int perPage = 50,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/prepaid-multipay/payments', {
         if (buyerUserId != null && buyerUserId.trim().isNotEmpty)
           'buyerUserId': buyerUserId.trim(),
@@ -3431,7 +3610,7 @@ class ApiService {
     String search = '',
     int perPage = 50,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/prepaid-multipay/approvals', {
         if (status.trim().isNotEmpty) 'status': status.trim(),
         if (search.trim().isNotEmpty) 'q': search.trim(),
@@ -3446,7 +3625,7 @@ class ApiService {
     String? status,
     int perPage = 50,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('admin/prepaid-multipay/nfc/attempts', {
         if (status != null && status.trim().isNotEmpty && status != 'all')
           'status': status.trim(),
@@ -3461,13 +3640,21 @@ class ApiService {
     required String cardId,
     required String action,
     String? note,
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/prepaid-multipay/approvals/$cardId'),
       headers: await _headers(),
       body: jsonEncode({
         'action': action.trim(),
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3477,13 +3664,21 @@ class ApiService {
     required String cardId,
     required String action,
     String? note,
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/status'),
       headers: await _headers(),
       body: jsonEncode({
         'action': action.trim(),
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3493,13 +3688,21 @@ class ApiService {
     required String cardId,
     required double amount,
     String? note,
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/adjust-balance'),
       headers: await _headers(),
       body: jsonEncode({
         'amount': amount,
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3508,13 +3711,21 @@ class ApiService {
   Future<Map<String, dynamic>> cancelAdminPrepaidMultipayCard({
     required String cardId,
     String? note,
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/cancel'),
       headers: await _headers(),
       body: jsonEncode({
         'confirmed': true,
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3555,7 +3766,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getPrepaidMultipayCards() async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('prepaid-multipay-cards'),
       headers: await _headers(),
     );
@@ -3568,9 +3779,10 @@ class ApiService {
     required String pin,
     required int validityYears,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3578,12 +3790,11 @@ class ApiService {
         'amount': amount,
         'pin': pin.trim(),
         'validityYears': validityYears,
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     final body = _decodeObject(response);
@@ -3601,8 +3812,11 @@ class ApiService {
     required double amount,
     required String pin,
     required int validityYears,
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('admin/users/$userId/prepaid-multipay-cards'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3610,6 +3824,11 @@ class ApiService {
         'amount': amount,
         'pin': pin.trim(),
         'validityYears': validityYears,
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3619,19 +3838,19 @@ class ApiService {
     required String cardId,
     required double amount,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/reload'),
       headers: await _headers(),
       body: jsonEncode({
         'amount': amount,
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     final body = _decodeObject(response);
@@ -3646,18 +3865,18 @@ class ApiService {
   Future<Map<String, dynamic>> renewPrepaidMultipayCard({
     required String cardId,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/renew'),
       headers: await _headers(),
       body: jsonEncode({
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     final body = _decodeObject(response);
@@ -3674,20 +3893,20 @@ class ApiService {
     required String label,
     required int validityYears,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId'),
       headers: await _headers(),
       body: jsonEncode({
         'label': label.trim(),
         'validityYears': validityYears,
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3696,6 +3915,7 @@ class ApiService {
   Future<Map<String, dynamic>> deletePrepaidMultipayCard({
     required String cardId,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
     final request = http.Request(
@@ -3704,22 +3924,15 @@ class ApiService {
     );
     request.headers.addAll(await _headers());
     request.body = jsonEncode({
-      if (otpCode != null && otpCode.trim().isNotEmpty)
-        'otpCode': otpCode.trim(),
-      if ((otpCode == null || otpCode.trim().isEmpty) &&
-          localAuthMethod != null &&
-          localAuthMethod.trim().isNotEmpty)
-        'localAuthMethod': localAuthMethod.trim(),
+      ..._transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
+      ),
     });
 
-    final client = http.Client();
-    late final http.Response response;
-    try {
-      final streamed = await client.send(request);
-      response = await http.Response.fromStream(streamed);
-    } finally {
-      client.close();
-    }
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
     final body = _decodeObject(response);
     if (body['balance'] is num) {
       await _authService.patchCurrentUser({
@@ -3733,19 +3946,19 @@ class ApiService {
     required String cardId,
     required String action,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/status'),
       headers: await _headers(),
       body: jsonEncode({
         'action': action,
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     final body = _decodeObject(response);
@@ -3762,20 +3975,20 @@ class ApiService {
     required String currentPin,
     required String newPin,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/pin'),
       headers: await _headers(),
       body: jsonEncode({
         'currentPin': currentPin.trim(),
         'newPin': newPin.trim(),
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3784,7 +3997,7 @@ class ApiService {
   Future<Map<String, dynamic>> getPrepaidMultipayNfcDevices({
     required String cardId,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/devices'),
       headers: await _headers(),
     );
@@ -3798,9 +4011,10 @@ class ApiService {
     required String publicKey,
     String keyAlgorithm = 'ed25519',
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/devices'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3808,12 +4022,11 @@ class ApiService {
         'deviceName': deviceName.trim(),
         'publicKey': publicKey.trim(),
         'keyAlgorithm': keyAlgorithm.trim(),
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3823,6 +4036,7 @@ class ApiService {
     required String cardId,
     required String deviceId,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
     final request = http.Request(
@@ -3831,22 +4045,15 @@ class ApiService {
     );
     request.headers.addAll(await _headers());
     request.body = jsonEncode({
-      if (otpCode != null && otpCode.trim().isNotEmpty)
-        'otpCode': otpCode.trim(),
-      if ((otpCode == null || otpCode.trim().isEmpty) &&
-          localAuthMethod != null &&
-          localAuthMethod.trim().isNotEmpty)
-        'localAuthMethod': localAuthMethod.trim(),
+      ..._transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
+      ),
     });
 
-    final client = http.Client();
-    late final http.Response response;
-    try {
-      final streamed = await client.send(request);
-      response = await http.Response.fromStream(streamed);
-    } finally {
-      client.close();
-    }
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
     return _decodeObject(response);
   }
 
@@ -3858,9 +4065,10 @@ class ApiService {
     String? merchantId,
     String? appVersion,
     String? otpCode,
+    String? securityPin,
     String? localAuthMethod,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/$cardId/nfc/prepare'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3871,12 +4079,11 @@ class ApiService {
           'merchantId': merchantId.trim(),
         if (appVersion != null && appVersion.trim().isNotEmpty)
           'appVersion': appVersion.trim(),
-        if (otpCode != null && otpCode.trim().isNotEmpty)
-          'otpCode': otpCode.trim(),
-        if ((otpCode == null || otpCode.trim().isEmpty) &&
-            localAuthMethod != null &&
-            localAuthMethod.trim().isNotEmpty)
-          'localAuthMethod': localAuthMethod.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
       }),
     );
     return _decodeObject(response);
@@ -3890,7 +4097,7 @@ class ApiService {
     String? acceptedAt,
     bool offlineAccepted = false,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/nfc/payments'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3916,7 +4123,7 @@ class ApiService {
   Future<Map<String, dynamic>> getPrepaidMultipayNfcPaymentStatus({
     required String idempotencyKey,
   }) async {
-    final response = await http.get(
+    final response = await _client.get(
       AppConfig.apiUri(
         'prepaid-multipay-cards/nfc/payments/status/${Uri.encodeComponent(idempotencyKey.trim())}',
       ),
@@ -3940,7 +4147,7 @@ class ApiService {
     required String idempotencyKey,
     String? note,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('prepaid-multipay-cards/payments'),
       headers: await _headers(),
       body: jsonEncode({
@@ -3963,30 +4170,35 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getNotificationSummary() async {
+    final ownerId =
+        (await _authService.currentUser())?['id']?.toString().trim() ?? '';
     final cached = _cachedNotificationSummary;
     final cachedAt = _cachedNotificationSummaryAt;
     if (cached != null &&
         cachedAt != null &&
+        _cachedNotificationSummaryOwnerId == ownerId &&
         DateTime.now().difference(cachedAt) <
             _notificationSummaryCacheLifetime) {
       return Map<String, dynamic>.from(cached);
     }
     final pending = _pendingNotificationSummaryRequest;
-    if (pending != null) {
+    if (pending != null && _pendingNotificationSummaryOwnerId == ownerId) {
       return Map<String, dynamic>.from(await pending);
     }
-    final future = _fetchNotificationSummary();
+    final future = _fetchNotificationSummary(ownerId);
     _pendingNotificationSummaryRequest = future;
+    _pendingNotificationSummaryOwnerId = ownerId;
     try {
       return Map<String, dynamic>.from(await future);
     } finally {
       if (identical(_pendingNotificationSummaryRequest, future)) {
         _pendingNotificationSummaryRequest = null;
+        _pendingNotificationSummaryOwnerId = null;
       }
     }
   }
 
-  Future<Map<String, dynamic>> _fetchNotificationSummary() async {
+  Future<Map<String, dynamic>> _fetchNotificationSummary(String ownerId) async {
     final response = await _getNotificationWithFallback(
       'notifications/summary',
       query: const {'sync': 'false'},
@@ -3994,6 +4206,7 @@ class ApiService {
     final payload = _decodeObject(response);
     _cachedNotificationSummary = Map<String, dynamic>.from(payload);
     _cachedNotificationSummaryAt = DateTime.now();
+    _cachedNotificationSummaryOwnerId = ownerId;
     return payload;
   }
 
@@ -4052,6 +4265,7 @@ class ApiService {
   Future<Map<String, dynamic>> createSupportTicket({
     String name = '',
     String whatsapp = '',
+    String countryCode = '970',
     required String title,
     required String details,
   }) async {
@@ -4060,6 +4274,7 @@ class ApiService {
       body: jsonEncode({
         if (name.trim().isNotEmpty) 'name': name.trim(),
         if (whatsapp.trim().isNotEmpty) 'whatsapp': whatsapp.trim(),
+        if (countryCode.trim().isNotEmpty) 'countryCode': countryCode.trim(),
         'title': title.trim(),
         'details': details.trim(),
       }),
@@ -4070,10 +4285,14 @@ class ApiService {
   Future<Map<String, dynamic>> requestSupportTicketAccess({
     required String ticketId,
     required String whatsapp,
+    String countryCode = '970',
   }) async {
     final response = await _supportPost(
       'support/tickets/${ticketId.trim()}/request-access',
-      body: jsonEncode({'whatsapp': whatsapp.trim()}),
+      body: jsonEncode({
+        'whatsapp': whatsapp.trim(),
+        if (countryCode.trim().isNotEmpty) 'countryCode': countryCode.trim(),
+      }),
     );
     return _decodeObject(response);
   }
@@ -4082,6 +4301,7 @@ class ApiService {
     String userId = '',
     String name = '',
     String whatsapp = '',
+    String countryCode = '970',
     required String title,
     required String details,
   }) async {
@@ -4091,6 +4311,7 @@ class ApiService {
         if (userId.trim().isNotEmpty) 'userId': userId.trim(),
         if (name.trim().isNotEmpty) 'name': name.trim(),
         if (whatsapp.trim().isNotEmpty) 'whatsapp': whatsapp.trim(),
+        if (countryCode.trim().isNotEmpty) 'countryCode': countryCode.trim(),
         'title': title.trim(),
         'details': details.trim(),
       }),
@@ -4100,10 +4321,14 @@ class ApiService {
 
   Future<Map<String, dynamic>> requestSupportTicketPhoneAccess({
     required String whatsapp,
+    String countryCode = '970',
   }) async {
     final response = await _supportPost(
       'support/tickets/request-phone-access',
-      body: jsonEncode({'whatsapp': whatsapp.trim()}),
+      body: jsonEncode({
+        'whatsapp': whatsapp.trim(),
+        if (countryCode.trim().isNotEmpty) 'countryCode': countryCode.trim(),
+      }),
     );
     return _decodeObject(response);
   }
@@ -4111,12 +4336,14 @@ class ApiService {
   Future<Map<String, dynamic>> verifySupportTicketPhoneAccess({
     required String whatsapp,
     required String otpCode,
+    String countryCode = '970',
   }) async {
     final response = await _supportPost(
       'support/tickets/verify-phone-access',
       body: jsonEncode({
         'whatsapp': whatsapp.trim(),
         'otpCode': otpCode.trim(),
+        if (countryCode.trim().isNotEmpty) 'countryCode': countryCode.trim(),
       }),
     );
     return _decodeObject(response);
@@ -4205,6 +4432,7 @@ class ApiService {
         final response = await _client
             .get(uri, headers: headers)
             .timeout(_authenticatedRequestTimeout);
+        unawaited(_cacheRefreshedSession(response));
         if (response.statusCode >= 200 && response.statusCode < 300) {
           return Uint8List.fromList(response.bodyBytes);
         }
@@ -4232,7 +4460,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateSecurityPin({
     required String pin,
     String? currentPin,
-    String? localAuthMethod,
+    String? otpCode,
   }) async {
     return _decodeObject(
       await _authenticatedPostWithFallback(
@@ -4241,8 +4469,7 @@ class ApiService {
           'pin': pin.trim(),
           if ((currentPin ?? '').trim().isNotEmpty)
             'currentPin': currentPin!.trim(),
-          if ((localAuthMethod ?? '').trim().isNotEmpty)
-            'localAuthMethod': localAuthMethod!.trim(),
+          if ((otpCode ?? '').trim().isNotEmpty) 'otpCode': otpCode!.trim(),
         }),
       ),
     );
@@ -4250,13 +4477,12 @@ class ApiService {
 
   Future<Map<String, dynamic>> removeSecurityPin({
     String? currentPin,
-    String? localAuthMethod,
+    String? otpCode,
   }) async {
     final body = jsonEncode({
       if ((currentPin ?? '').trim().isNotEmpty)
         'currentPin': currentPin!.trim(),
-      if ((localAuthMethod ?? '').trim().isNotEmpty)
-        'localAuthMethod': localAuthMethod!.trim(),
+      if ((otpCode ?? '').trim().isNotEmpty) 'otpCode': otpCode!.trim(),
     });
     return _decodeObject(
       await _authenticatedDeleteWithFallback('auth/security-pin', body: body),
@@ -4462,8 +4688,31 @@ class ApiService {
   Future<void> _cacheRefreshedSession(http.Response response) async {
     final refreshedToken = response.headers['x-auth-token']?.trim() ?? '';
     if (refreshedToken.isNotEmpty) {
-      await _authService.cacheToken(refreshedToken);
+      final expectedToken = _authorizationTokenFromRequest(response.request);
+      if (expectedToken != null) {
+        await _authService.cacheToken(
+          refreshedToken,
+          expectedToken: expectedToken,
+        );
+      }
     }
+  }
+
+  String? _authorizationTokenFromRequest(http.BaseRequest? request) {
+    if (request == null) {
+      return null;
+    }
+    String authorization = '';
+    for (final entry in request.headers.entries) {
+      if (entry.key.toLowerCase() == 'authorization') {
+        authorization = entry.value.trim();
+        break;
+      }
+    }
+    const prefix = 'Bearer ';
+    return authorization.startsWith(prefix)
+        ? authorization.substring(prefix.length).trim()
+        : null;
   }
 
   Future<http.Response> _supportGet(
@@ -4582,16 +4831,19 @@ class ApiService {
   Future<Map<String, dynamic>> resellCard({
     required String cardId,
     String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
     Map<String, dynamic>? location,
   }) async {
-    final payload = <String, dynamic>{};
-    if (otpCode != null && otpCode.trim().isNotEmpty) {
-      payload['otpCode'] = otpCode.trim();
-    }
+    final payload = _transactionConfirmationPayload(
+      otpCode: otpCode,
+      securityPin: securityPin,
+      localAuthMethod: localAuthMethod,
+    );
     if (location != null) {
       payload['location'] = location;
     }
-    final response = await http.post(
+    final response = await _client.post(
       AppConfig.apiUri('cards/$cardId/resell'),
       headers: await _headers(),
       body: jsonEncode(payload),
@@ -4662,6 +4914,7 @@ class ApiService {
   }
 
   Map<String, dynamic> _decodeObject(http.Response response) {
+    unawaited(_cacheRefreshedSession(response));
     final contentType = response.headers['content-type'] ?? '';
     final rawBody = response.body;
     final trimmedBody = rawBody.trimLeft();
@@ -4697,9 +4950,6 @@ class ApiService {
 
     if (response.statusCode == 401) {
       final message = ErrorMessageService.sanitize(body['message']);
-      if (ErrorMessageService.requiresFreshLogin(message)) {
-        unawaited(_redirectToLoginAfterExpiredSession());
-      }
       throw Exception(message);
     }
 
@@ -4747,38 +4997,5 @@ class ApiService {
       return appStringsEn[key] ?? key;
     }
     return appStringsAr[key] ?? appStringsEn[key] ?? key;
-  }
-
-  Future<void> _redirectToLoginAfterExpiredSession() async {
-    if (_isRedirectingToLogin) {
-      return;
-    }
-    _isRedirectingToLogin = true;
-    try {
-      final navigator = AppAlertService.navigatorKey.currentState;
-      final context = AppAlertService.navigatorKey.currentContext;
-      final routeName = context != null
-          ? ModalRoute.of(context)?.settings.name
-          : null;
-      if (navigator == null ||
-          routeName == '/login' ||
-          routeName == '/login-offline') {
-        return;
-      }
-      final hasLocalSecurity =
-          await LocalSecurityService.hasConfiguredLocalSecurity();
-      final targetRoute = hasLocalSecurity ? '/unlock' : '/login';
-      navigator.pushNamedAndRemoveUntil(
-        targetRoute,
-        (route) => false,
-        arguments: hasLocalSecurity && routeName != null
-            ? {'returnRoute': routeName}
-            : null,
-      );
-    } finally {
-      Future<void>.delayed(const Duration(seconds: 2), () {
-        _isRedirectingToLogin = false;
-      });
-    }
   }
 }

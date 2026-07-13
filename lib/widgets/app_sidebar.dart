@@ -247,7 +247,10 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.add_card_rounded,
-                          title: l.text('إنشاء بطاقة سريعة', 'Quick card issue'),
+                          title: l.text(
+                            'إنشاء بطاقة سريعة',
+                            'Quick card issue',
+                          ),
                           routeName: '/create-card-quick',
                         ),
                       if (canIssueCards)
@@ -284,7 +287,10 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.analytics_rounded,
-                          title: l.text('تقارير استخدام البطاقات', 'Card usage reports'),
+                          title: l.text(
+                            'تقارير استخدام البطاقات',
+                            'Card usage reports',
+                          ),
                           routeName: '/card-usage-report',
                         ),
                       if (canOpenPrepaidMultipayCards)
@@ -353,7 +359,10 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.storefront_rounded,
-                          title: l.text('إدارة المحل والمخزون', 'Store & inventory'),
+                          title: l.text(
+                            'إدارة المحل والمخزون',
+                            'Store & inventory',
+                          ),
                           routeName: '/store-management',
                         ),
                       if (canViewAffiliateCenter)
@@ -378,9 +387,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                           routeName: '/admin-dashboard',
                         ),
-                        if (permissions.canManageUsers ||
-                            permissions.canReviewDevices ||
-                            permissions.canManageCardPrintRequests)
+                        if (permissions.canViewAdminCardScanReports)
                           _buildItem(
                             context,
                             icon: Icons.query_stats_rounded,
@@ -434,7 +441,7 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.tr('widgets_app_sidebar.032'),
                             routeName: '/admin-card-print-requests',
                           ),
-                        if (permissions.canManageUsers)
+                        if (permissions.canManagePrepaidMultipayApprovals)
                           _buildItem(
                             context,
                             icon: Icons.credit_score_rounded,
@@ -459,7 +466,10 @@ class _AppSidebarState extends State<AppSidebar> {
                           _buildItem(
                             context,
                             icon: Icons.store_rounded,
-                            title: l.text('إدارة المتاجر والمخزون', 'Stores & inventory'),
+                            title: l.text(
+                              'إدارة المتاجر والمخزون',
+                              'Stores & inventory',
+                            ),
                             routeName: '/store-management',
                           ),
                         if (permissions.canManageLocations)
@@ -469,8 +479,7 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.tr('widgets_app_sidebar.018'),
                             routeName: '/admin-locations',
                           ),
-                        if (permissions.canManageUsers ||
-                            permissions.canManageSystemSettings)
+                        if (permissions.canManageAdminNotifications)
                           _buildItem(
                             context,
                             icon: Icons.notification_add_rounded,
@@ -486,7 +495,7 @@ class _AppSidebarState extends State<AppSidebar> {
                             title: l.text('تذاكر التواصل', 'Support tickets'),
                             routeName: '/admin-support-tickets',
                           ),
-                        if (permissions.canManageUsers)
+                        if (permissions.canManagePermissionTemplates)
                           _buildItem(
                             context,
                             icon: Icons.rule_rounded,

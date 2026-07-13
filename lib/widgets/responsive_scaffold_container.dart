@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
 
@@ -25,19 +27,20 @@ class ResponsiveScaffoldContainer extends StatelessWidget {
             : width >= 720
             ? 24.0
             : 14.0;
-        final verticalPadding = width >= 720
-            ? padding
-            : padding.add(const EdgeInsets.symmetric(vertical: 2));
+        // The responsive gutter is a minimum, not an extra inset. Several
+        // screens pass their own page padding; adding both values made mobile
+        // content unnecessarily narrow (for example 24 + 14 on each side).
+        final effectivePadding = EdgeInsets.fromLTRB(
+          math.max(horizontalPadding, padding.left),
+          padding.top + (width < 720 ? 2 : 0),
+          math.max(horizontalPadding, padding.right),
+          padding.bottom + (width < 720 ? 2 : 0),
+        );
         return Align(
           alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: Padding(
-              padding: verticalPadding.add(
-                EdgeInsets.symmetric(horizontal: horizontalPadding),
-              ),
-              child: child,
-            ),
+          child: SizedBox(
+            width: width.isFinite ? math.min(width, maxWidth) : maxWidth,
+            child: Padding(padding: effectivePadding, child: child),
           ),
         );
       },

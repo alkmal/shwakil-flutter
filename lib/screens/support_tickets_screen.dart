@@ -40,6 +40,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   String _pendingTicketId = '';
   String _pendingPhone = '';
   String _supportWhatsapp = '';
+  String _selectedCountryCode = PhoneNumberService.countries.first.dialCode;
   String? _debugOtp;
   bool _phoneOtpPending = false;
   bool _tracking = false;
@@ -50,6 +51,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   bool _chatRouteOpen = false;
   StateSetter? _chatRouteSetState;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
@@ -69,6 +71,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     _otp.dispose();
     _message.dispose();
     _notificationSubscription?.cancel();
+    _stopChatAutoRefresh();
     super.dispose();
   }
 
@@ -93,7 +96,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
 
     final currentId = _ticket?['id']?.toString() ?? '';
     if (currentId.isNotEmpty && ticketId == currentId) {
-      setState(() => _hasFreshMessage = true);
+      setState(() => _hasFreshMessage = !_chatRouteOpen);
       unawaited(_refreshTicket(silent: true));
       return;
     }
@@ -154,6 +157,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       final response = await _api.createSupportTicket(
         name: _name.text,
         whatsapp: _phone.text,
+        countryCode: _selectedCountryCode,
         title: _title.text,
         details: _details.text,
       );
@@ -215,6 +219,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     try {
       final response = await _api.requestSupportTicketPhoneAccess(
         whatsapp: _phone.text,
+        countryCode: _selectedCountryCode,
       );
       if (!mounted) {
         return;
@@ -252,6 +257,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           ? await _api.verifySupportTicketPhoneAccess(
               whatsapp: _pendingPhone,
               otpCode: _otp.text,
+              countryCode: _selectedCountryCode,
             )
           : await _api.verifySupportTicket(
               ticketId: _pendingTicketId,
@@ -387,7 +393,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       }
       setState(() {
         _ticket = Map<String, dynamic>.from(response['ticket'] as Map);
-        if (!silent) {
+        if (_chatRouteOpen || !silent) {
           _hasFreshMessage = false;
         }
         _ticketLoading = false;
@@ -435,6 +441,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       return;
     }
     _chatRouteOpen = true;
+    _startChatAutoRefresh();
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (routeContext) => StatefulBuilder(
@@ -453,6 +460,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         ),
       ),
     );
+    _stopChatAutoRefresh();
     _chatRouteOpen = false;
     _chatRouteSetState = null;
     if (mounted) {
@@ -462,6 +470,21 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
 
   void _refreshChatRoute() {
     _chatRouteSetState?.call(() {});
+  }
+
+  void _startChatAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted || !_chatRouteOpen || _ticket == null || _busy) {
+        return;
+      }
+      unawaited(_refreshTicket(silent: true));
+    });
+  }
+
+  void _stopChatAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
   }
 
   Future<void> _upload() async {
@@ -727,6 +750,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           if (_user == null) ...[
             _field(_name, l.text('الاسم', 'Name'), Icons.badge_outlined),
             const SizedBox(height: 12),
+            _countrySelector(),
+            const SizedBox(height: 12),
             _field(
               _phone,
               l.text('رقم واتساب', 'WhatsApp number'),
@@ -780,6 +805,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
+          _countrySelector(),
+          const SizedBox(height: 12),
           _field(
             _phone,
             l.text(
@@ -837,6 +864,46 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _countrySelector() {
+    final l = context.loc;
+    final selected = PhoneNumberService.countries.firstWhere(
+      (country) => country.dialCode == _selectedCountryCode,
+      orElse: () => PhoneNumberService.countries.first,
+    );
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: _pickCountry,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: l.text('الدولة', 'Country'),
+          prefixIcon: const Icon(Icons.public_rounded, size: 20),
+          suffixIcon: const Icon(Icons.search_rounded),
+        ),
+        child: Text(
+          '${selected.name} (+${selected.dialCode})',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.bodyBold,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickCountry() async {
+    final picked = await showModalBottomSheet<CountryOption>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => const _SupportCountryPickerSheet(),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _selectedCountryCode = picked.dialCode);
   }
 
   Widget _chat() {
@@ -976,12 +1043,9 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             icon: const Icon(Icons.arrow_back_rounded),
           ),
           const SizedBox(width: 4),
-          CircleAvatar(
+          const CircleAvatar(
             backgroundColor: AppTheme.primarySoft,
-            child: const Icon(
-              Icons.support_agent_rounded,
-              color: AppTheme.primary,
-            ),
+            child: Icon(Icons.support_agent_rounded, color: AppTheme.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1353,6 +1417,119 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       maxLines: lines,
       keyboardType: phone ? TextInputType.phone : TextInputType.multiline,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+    );
+  }
+}
+
+class _SupportCountryPickerSheet extends StatefulWidget {
+  const _SupportCountryPickerSheet();
+
+  @override
+  State<_SupportCountryPickerSheet> createState() =>
+      _SupportCountryPickerSheetState();
+}
+
+class _SupportCountryPickerSheetState
+    extends State<_SupportCountryPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<CountryOption> get _filteredCountries {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return PhoneNumberService.countries;
+    final digits = query.replaceAll(RegExp(r'\D'), '');
+    return PhoneNumberService.countries.where((country) {
+      final name = country.name.toLowerCase();
+      return name.contains(query) ||
+          country.flag.toLowerCase().contains(query) ||
+          (digits.isNotEmpty && country.dialCode.contains(digits));
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    final countries = _filteredCountries;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.78,
+      minChildSize: 0.45,
+      maxChildSize: 0.94,
+      builder: (context, scrollController) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 14,
+          bottom: 16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(l.text('اختر الدولة', 'Choose Country'), style: AppTheme.h3),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l.text(
+                  'ابحث باسم الدولة أو كود الاتصال',
+                  'Search by country name or calling code',
+                ),
+                prefixIcon: const Icon(Icons.search_rounded),
+              ),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: countries.isEmpty
+                  ? Center(
+                      child: Text(
+                        l.text(
+                          'لا توجد دولة بهذا البحث',
+                          'No country matches this search',
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      controller: scrollController,
+                      itemCount: countries.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final country = countries[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            child: Text(
+                              country.flag,
+                              style: AppTheme.caption.copyWith(fontSize: 11),
+                            ),
+                          ),
+                          title: Text(country.name),
+                          subtitle: Text('+${country.dialCode}'),
+                          onTap: () => Navigator.pop(context, country),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

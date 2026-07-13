@@ -193,10 +193,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_withdrawal_requests_screen.001')),
-        actions: [
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
+        actions: [const AppNotificationAction(), const QuickLogoutAction()],
       ),
       drawer: const AppSidebar(),
       body: RefreshIndicator(
@@ -599,12 +596,24 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     if (review == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
     setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingWithdrawalRequest(
         requestId,
         approvalImageBase64: review.imageBase64,
         notes: review.notes,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
       );
       if (!mounted) {
         return;
@@ -638,6 +647,17 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
     if (review == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
 
     setState(() => _busyId = requestId);
     try {
@@ -645,6 +665,8 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         requestId,
         notes: review.notes,
         approvalImageBase64: review.imageBase64,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
       );
       if (!mounted) {
         return;

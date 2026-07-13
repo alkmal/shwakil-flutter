@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/index.dart';
 import '../services/index.dart';
@@ -94,6 +95,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   String _cardPreviewSignature = '';
   Future<Uint8List>? _cardPreviewFuture;
   int _availableOfflineTransferSlots = 0;
+  String? _pendingPrintRequestFingerprint;
+  String? _pendingPrintRequestIdempotencyKey;
+  static const Uuid _uuid = Uuid();
 
   bool get _isDeviceOffline => !ConnectivityService.instance.isOnline.value;
 
@@ -886,6 +890,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           validUntil: _validUntil?.toUtc().toIso8601String(),
           cardDetails: _currentCardDetails(),
           otpCode: securityResult.otpCode,
+          securityPin: securityResult.securityPin,
           localAuthMethod: securityResult.method,
           allowedUserIds: _selectedAllowedUserIds(),
           allowedUserPhones: _selectedAllowedUserPhones(),
@@ -966,6 +971,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           items: items,
           cardType: trialCardType,
           otpCode: securityResult.otpCode,
+          securityPin: securityResult.securityPin,
           localAuthMethod: securityResult.method,
         );
         final userId = _user?['id']?.toString();
@@ -1603,7 +1609,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Future<void> _requestCardsPrint(List<VirtualCard> cards) async {
-    if (!mounted) {
+    if (!mounted || _isLoading) {
       return;
     }
     final l = context.loc;
@@ -1658,6 +1664,24 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     if (confirmed != true) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
+    const notes = 'طلب طباعة من شاشة إنشاء البطاقة';
+    final fingerprint = jsonEncode({'cardIds': cardIds, 'notes': notes});
+    if (_pendingPrintRequestFingerprint != fingerprint) {
+      _pendingPrintRequestFingerprint = fingerprint;
+      _pendingPrintRequestIdempotencyKey = _uuid.v4();
+    }
 
     _setLoadingState(
       true,
@@ -1669,13 +1693,18 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     );
     try {
       final response = await _apiService.requestExistingCardsPrint(
+        idempotencyKey: _pendingPrintRequestIdempotencyKey!,
         cardIds: cardIds,
-        notes: 'طلب طباعة من شاشة إنشاء البطاقة',
+        notes: notes,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
       );
       if (!mounted) {
         return;
       }
       _setLoadingState(false);
+      _pendingPrintRequestFingerprint = null;
+      _pendingPrintRequestIdempotencyKey = null;
       await AppAlertService.showSuccess(
         context,
         title: l.text('تم إرسال طلب الطباعة', 'Print Request Sent'),
@@ -1886,6 +1915,9 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
 
   Future<void> _cancelIssuedCard(VirtualCard card) async {
     final l = context.loc;
+    if (_isLoading) {
+      return;
+    }
     if (card.status != CardStatus.unused) {
       await AppAlertService.showError(
         context,
@@ -1897,9 +1929,45 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       );
       return;
     }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.text('تأكيد إلغاء البطاقة', 'Confirm Card Cancellation')),
+        content: Text(
+          l.text(
+            'سيتم إلغاء البطاقة غير المستخدمة واسترجاع الرصيد حسب النظام. هل تريد المتابعة؟',
+            'The unused card will be cancelled and the balance refunded according to policy. Continue?',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l.text('تراجع', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l.text('متابعة', 'Continue')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
     try {
       setState(() => _isLoading = true);
-      await _apiService.deleteCard(card.id);
+      await _apiService.deleteCard(
+        card.id,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+      );
       if (!mounted) {
         return;
       }

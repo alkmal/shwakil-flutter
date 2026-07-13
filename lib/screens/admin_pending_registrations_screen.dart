@@ -7,6 +7,7 @@ import '../utils/app_theme.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
@@ -28,6 +29,7 @@ class _AdminPendingRegistrationsScreenState
   List<Map<String, dynamic>> _requests = const [];
   bool _isLoading = true;
   bool _isAuthorized = false;
+  String? _loadError;
   String? _busyId;
   String _searchQuery = '';
 
@@ -48,7 +50,10 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _loadError = null;
+      _isLoading = _requests.isEmpty;
+    });
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
@@ -59,6 +64,7 @@ class _AdminPendingRegistrationsScreenState
         }
         setState(() {
           _isAuthorized = false;
+          _loadError = null;
           _isLoading = false;
         });
         return;
@@ -70,6 +76,7 @@ class _AdminPendingRegistrationsScreenState
       }
       setState(() {
         _isAuthorized = true;
+        _loadError = null;
         _requests = data;
         _isLoading = false;
       });
@@ -77,12 +84,10 @@ class _AdminPendingRegistrationsScreenState
       if (!mounted) {
         return;
       }
-      setState(() => _isLoading = false);
-      await AppAlertService.showError(
-        context,
-        title: context.loc.tr('screens_admin_pending_registrations_screen.004'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      setState(() {
+        _loadError = ErrorMessageService.sanitize(error);
+        _isLoading = false;
+      });
     }
   }
 
@@ -108,12 +113,12 @@ class _AdminPendingRegistrationsScreenState
                 segments: [
                   ButtonSegment<String>(
                     value: 'whatsapp',
-                    icon: Icon(Icons.chat_rounded),
+                    icon: const Icon(Icons.chat_rounded),
                     label: Text(l.tr('shared.delivery_whatsapp')),
                   ),
                   ButtonSegment<String>(
                     value: 'sms',
-                    icon: Icon(Icons.sms_rounded),
+                    icon: const Icon(Icons.sms_rounded),
                     label: Text(l.tr('shared.delivery_sms')),
                   ),
                 ],
@@ -454,6 +459,22 @@ class _AdminPendingRegistrationsScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_loadError != null && !_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_pending_registrations_screen.015')),
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 620,
+          child: Center(
+            child: AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+          ),
+        ),
+      );
+    }
+
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -508,6 +529,10 @@ class _AdminPendingRegistrationsScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_loadError != null) ...[
+                    AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+                    const SizedBox(height: 16),
+                  ],
                   ShwakelCard(
                     padding: const EdgeInsets.all(18),
                     child: Column(

@@ -86,18 +86,18 @@ class AppTheme {
 
   // --- Shadows ---
   static List<BoxShadow> get softShadow => [
-    BoxShadow(
-      color: const Color(0x0A0F172A),
+    const BoxShadow(
+      color: Color(0x0A0F172A),
       blurRadius: 22,
-      offset: const Offset(0, 10),
+      offset: Offset(0, 10),
     ),
   ];
 
   static List<BoxShadow> get mediumShadow => [
-    BoxShadow(
-      color: const Color(0x120F172A),
+    const BoxShadow(
+      color: Color(0x120F172A),
       blurRadius: 32,
-      offset: const Offset(0, 16),
+      offset: Offset(0, 16),
     ),
   ];
 

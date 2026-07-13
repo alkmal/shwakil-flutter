@@ -75,10 +75,9 @@ class StoreManagementService {
     Map<String, dynamic>? latestSnapshot;
     Object? firstError;
 
-    final syncOperations = operations
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList()
-      ..sort(_syncPriorityCompare);
+    final syncOperations =
+        operations.map((item) => Map<String, dynamic>.from(item)).toList()
+          ..sort(_syncPriorityCompare);
 
     for (final operation in syncOperations) {
       try {

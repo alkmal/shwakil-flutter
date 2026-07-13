@@ -6,6 +6,7 @@ import '../utils/app_theme.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -31,6 +32,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
 
   bool _isLoading = true;
   bool _isAuthorized = false;
+  String? _loadError;
   bool _isSending = false;
   bool _isSearchingUsers = false;
   String _targetType = 'all';
@@ -158,17 +160,21 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _loadError = null;
+      _isLoading = _recentBatches.isEmpty;
+    });
     try {
       final currentUser =
           AuthService.peekCurrentUser() ?? await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
-      if (!permissions.canManageSystemSettings) {
+      if (!permissions.canManageAdminNotifications) {
         if (!mounted) {
           return;
         }
         setState(() {
           _isAuthorized = false;
+          _loadError = null;
           _isLoading = false;
         });
         return;
@@ -183,6 +189,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       );
       setState(() {
         _isAuthorized = true;
+        _loadError = null;
         _roles = _listFrom(audiences['roles']);
         _verificationStatuses = _listFrom(audiences['verificationStatuses']);
         _permissions = _listFrom(audiences['permissions']);
@@ -193,12 +200,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _isLoading = false);
-      await AppAlertService.showError(
-        context,
-        title: _t('screens_admin_notifications_screen.001'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      setState(() {
+        _loadError = ErrorMessageService.sanitize(error);
+        _isLoading = false;
+      });
     }
   }
 
@@ -319,6 +324,22 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_loadError != null && !_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(_t('screens_admin_notifications_screen.002')),
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 620,
+          child: Center(
+            child: AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+          ),
+        ),
+      );
+    }
+
     if (!_isAuthorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -372,6 +393,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_loadError != null) ...[
+                AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+                const SizedBox(height: 16),
+              ],
               _buildComposer(),
               const SizedBox(height: 16),
               _buildPreview(),

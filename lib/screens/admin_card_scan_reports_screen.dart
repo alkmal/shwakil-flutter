@@ -5,6 +5,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
@@ -30,6 +31,7 @@ class _AdminCardScanReportsScreenState
   bool _authorized = false;
   bool _attendanceMode = false;
   bool _exporting = false;
+  String? _loadError;
   int _page = 1;
   int _perPage = 12;
   int _pages = 1;
@@ -53,21 +55,26 @@ class _AdminCardScanReportsScreenState
   Future<void> _load({int? page}) async {
     final targetPage = page ?? _page;
     setState(() {
-      _loading = true;
+      _loadError = null;
+      _loading = _items.isEmpty;
     });
-    final user = AuthService.peekCurrentUser() ?? await _auth.currentUser();
-    final perms = AppPermissions.fromUser(user);
-    final authorized = perms.hasAdminWorkspaceAccess && perms.canManageUsers;
-    if (!authorized) {
-      if (!mounted) return;
-      setState(() {
-        _authorized = false;
-        _loading = false;
-      });
-      return;
-    }
-
     try {
+      final user = AuthService.peekCurrentUser() ?? await _auth.currentUser();
+      final perms = AppPermissions.fromUser(user);
+      final authorized =
+          perms.hasAdminWorkspaceAccess && perms.canViewAdminCardScanReports;
+      if (!authorized) {
+        if (!mounted) return;
+        setState(() {
+          _authorized = false;
+          _loadError = null;
+          _loading = false;
+        });
+        return;
+      }
+      if (mounted) {
+        setState(() => _authorized = true);
+      }
       final payload = _attendanceMode
           ? await _api.getAdminAttendanceCardReports(
               page: targetPage,
@@ -96,6 +103,7 @@ class _AdminCardScanReportsScreenState
       if (!mounted) return;
       setState(() {
         _authorized = true;
+        _loadError = null;
         _page = targetPage;
         _perPage = (pagination['perPage'] as num?)?.toInt() ?? _perPage;
         _pages = (pagination['pages'] as num?)?.toInt() ?? 1;
@@ -103,13 +111,12 @@ class _AdminCardScanReportsScreenState
         _attendanceSummary = _attendanceMode ? attendanceSummary : const {};
         _loading = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
-        _authorized = true;
+        _loadError = ErrorMessageService.sanitize(error);
         _loading = false;
       });
-      rethrow;
     }
   }
 
@@ -184,7 +191,10 @@ class _AdminCardScanReportsScreenState
       if (!mounted) return;
       await AppAlertService.showError(
         context,
-        title: context.loc.text('تعذر تصدير الملخص', 'Failed to export summary'),
+        title: context.loc.text(
+          'تعذر تصدير الملخص',
+          'Failed to export summary',
+        ),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
@@ -243,12 +253,30 @@ class _AdminCardScanReportsScreenState
       );
     }
 
+    if (_loadError != null && !_authorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 620,
+          child: Center(
+            child: AdminLoadErrorCard(
+              message: _loadError!,
+              onRetry: () => _load(page: 1),
+            ),
+          ),
+        ),
+      );
+    }
+
     if (!_authorized) {
       return Scaffold(
         backgroundColor: AppTheme.background,
         body: Center(
           child: Text(
-            l.text('لا تملك صلاحية عرض هذه الصفحة', 'You are not authorized to view this page'),
+            l.text(
+              'لا تملك صلاحية عرض هذه الصفحة',
+              'You are not authorized to view this page',
+            ),
             style: AppTheme.bodyBold,
           ),
         ),
@@ -266,18 +294,34 @@ class _AdminCardScanReportsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_loadError != null) ...[
+              AdminLoadErrorCard(
+                message: _loadError!,
+                onRetry: () => _load(page: _page),
+              ),
+              const SizedBox(height: 14),
+            ],
             const SizedBox(height: 14),
             Text(
               _attendanceMode
                   ? l.text('تقارير الحضور والانصراف', 'Attendance reports')
-                  : l.text('تقارير فحص البطاقات (خاصة)', 'Card scan reports (private)'),
+                  : l.text(
+                      'تقارير فحص البطاقات (خاصة)',
+                      'Card scan reports (private)',
+                    ),
               style: AppTheme.h2,
             ),
             const SizedBox(height: 6),
             Text(
               _attendanceMode
-                  ? l.text('سجل قراءات بطاقات الحضور والانصراف مع بيانات الموظف ومكان القراءة.', 'Attendance card scan log with employee data and scan location.')
-                  : l.text('ترتيب حسب أكثر قراءة. اضغط على المستخدم لعرض تفاصيل المواقع.', 'Sorted by most scans. Tap a user to view location details.'),
+                  ? l.text(
+                      'سجل قراءات بطاقات الحضور والانصراف مع بيانات الموظف ومكان القراءة.',
+                      'Attendance card scan log with employee data and scan location.',
+                    )
+                  : l.text(
+                      'ترتيب حسب أكثر قراءة. اضغط على المستخدم لعرض تفاصيل المواقع.',
+                      'Sorted by most scans. Tap a user to view location details.',
+                    ),
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
@@ -363,7 +407,11 @@ class _AdminCardScanReportsScreenState
                         ? null
                         : _exportAttendance,
                     icon: const Icon(Icons.download_rounded),
-                    label: Text(_exporting ? l.text('جارٍ التصدير', 'Exporting...') : l.text('تصدير CSV', 'Export CSV')),
+                    label: Text(
+                      _exporting
+                          ? l.text('جارٍ التصدير', 'Exporting...')
+                          : l.text('تصدير CSV', 'Export CSV'),
+                    ),
                   ),
                 if (_attendanceMode)
                   OutlinedButton.icon(
@@ -466,7 +514,10 @@ class _AdminCardScanReportsScreenState
                                         color: AppTheme.warning,
                                       ),
                                       _metricChip(
-                                        label: l.text('نسبة الاستخدام', 'Usage rate'),
+                                        label: l.text(
+                                          'نسبة الاستخدام',
+                                          'Usage rate',
+                                        ),
                                         value: '${ratio.toStringAsFixed(2)}%',
                                         color: AppTheme.accent,
                                       ),
@@ -544,7 +595,9 @@ class _AdminCardScanReportsScreenState
         runSpacing: 8,
         children: [
           _metricChip(
-            label: truncated ? l.text('الإجمالي+', 'Total+') : l.text('الإجمالي', 'Total'),
+            label: truncated
+                ? l.text('الإجمالي+', 'Total+')
+                : l.text('الإجمالي', 'Total'),
             value: '$total',
             color: AppTheme.primary,
           ),
@@ -607,7 +660,10 @@ class _AdminCardScanReportsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l.text('ملخص يومي مختصر', 'Daily summary'), style: AppTheme.bodyBold),
+          Text(
+            l.text('ملخص يومي مختصر', 'Daily summary'),
+            style: AppTheme.bodyBold,
+          ),
           const SizedBox(height: 10),
           ListView.separated(
             shrinkWrap: true,
@@ -690,11 +746,13 @@ class _AdminCardScanReportsScreenState
     final barcode = item['barcode']?.toString() ?? '';
     final scanner = item['scannerName']?.toString().trim() ?? '';
     final createdAt = item['createdAt']?.toString() ?? '';
-    final location = item['locationKey']?.toString() ?? l.text('غير متوفر', 'N/A');
+    final location =
+        item['locationKey']?.toString() ?? l.text('غير متوفر', 'N/A');
     final action = Map<String, dynamic>.from(
       item['attendanceAction'] as Map? ?? const {},
     );
-    final actionLabel = action['label']?.toString() ?? l.text('قراءة حضور', 'Attendance scan');
+    final actionLabel =
+        action['label']?.toString() ?? l.text('قراءة حضور', 'Attendance scan');
     final isCheckOut = action['action'] == 'check_out';
     final actionColor = isCheckOut ? AppTheme.accent : AppTheme.success;
 
@@ -725,7 +783,9 @@ class _AdminCardScanReportsScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    employeeName.isEmpty ? l.text('موظف غير مسمى', 'Unnamed employee') : employeeName,
+                    employeeName.isEmpty
+                        ? l.text('موظف غير مسمى', 'Unnamed employee')
+                        : employeeName,
                     style: AppTheme.bodyBold,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -733,7 +793,8 @@ class _AdminCardScanReportsScreenState
                   const SizedBox(height: 6),
                   Text(
                     [
-                      if (employeeCode.isNotEmpty) '${l.text('كود', 'Code')}: $employeeCode',
+                      if (employeeCode.isNotEmpty)
+                        '${l.text('كود', 'Code')}: $employeeCode',
                       if (department.isNotEmpty) department,
                       if (system.isNotEmpty) system,
                     ].join(' · '),
@@ -883,7 +944,10 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l.text('تعذر تحميل التفاصيل', 'Failed to load details'), style: AppTheme.h3),
+              Text(
+                l.text('تعذر تحميل التفاصيل', 'Failed to load details'),
+                style: AppTheme.h3,
+              ),
               const SizedBox(height: 10),
               Text(_error!, style: AppTheme.bodyAction),
               const SizedBox(height: 18),
@@ -905,10 +969,16 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(context.loc.text('تفاصيل المواقع', 'Location details'), style: AppTheme.h3),
+            Text(
+              context.loc.text('تفاصيل المواقع', 'Location details'),
+              style: AppTheme.h3,
+            ),
             const SizedBox(height: 6),
             Text(
-              context.loc.text('يعرض أكثر الأماكن التي حصل فيها فحص بدون استخدام/مع استخدام.', 'Shows locations with the most scans with/without usage.'),
+              context.loc.text(
+                'يعرض أكثر الأماكن التي حصل فيها فحص بدون استخدام/مع استخدام.',
+                'Shows locations with the most scans with/without usage.',
+              ),
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
@@ -962,7 +1032,11 @@ class _UserLocationsSheetState extends State<_UserLocationsSheet> {
                             spacing: 10,
                             runSpacing: 6,
                             children: [
-                              _chip(l.text('قراءات', 'Scans'), '$scanCount', AppTheme.primary),
+                              _chip(
+                                l.text('قراءات', 'Scans'),
+                                '$scanCount',
+                                AppTheme.primary,
+                              ),
                               _chip(
                                 l.text('استخدام', 'Used'),
                                 '$redeemCount',

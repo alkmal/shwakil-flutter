@@ -6,6 +6,7 @@ import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -27,6 +28,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
   List<Map<String, dynamic>> _cards = const [];
   Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
+  String? _loadError;
   String? _actingCardId;
   String _statusFilter = 'all';
 
@@ -37,7 +39,10 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _loadError = null;
+      _isLoading = _user == null;
+    });
     try {
       final user = await _auth.currentUser();
       final payload = await _api.getAdminPendingPrepaidMultipayApprovals(
@@ -49,6 +54,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       }
       setState(() {
         _user = user;
+        _loadError = null;
         _cards = (payload['cards'] as List? ?? const [])
             .map((item) => Map<String, dynamic>.from(item as Map))
             .toList();
@@ -60,11 +66,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
       if (!mounted) {
         return;
       }
-      await AppAlertService.showError(
-        context,
-        title: context.loc.text('تعذر تحميل الطلبات', 'Failed to load requests'),
-        message: ErrorMessageService.sanitize(error),
-      );
+      setState(() => _loadError = ErrorMessageService.sanitize(error));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -107,7 +109,10 @@ class _AdminPrepaidMultipayApprovalsScreenState
                 controller: noteController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: l.text('ملاحظة للإدارة أو المستخدم', 'Note for admin or user'),
+                  labelText: l.text(
+                    'ملاحظة للإدارة أو المستخدم',
+                    'Note for admin or user',
+                  ),
                   hintText: l.text('اختيارية', 'Optional'),
                 ),
               ),
@@ -120,7 +125,11 @@ class _AdminPrepaidMultipayApprovalsScreenState
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(action == 'approve' ? l.text('اعتماد', 'Approve') : l.text('رفض', 'Reject')),
+              child: Text(
+                action == 'approve'
+                    ? l.text('اعتماد', 'Approve')
+                    : l.text('رفض', 'Reject'),
+              ),
             ),
           ],
         ),
@@ -129,12 +138,26 @@ class _AdminPrepaidMultipayApprovalsScreenState
       if (confirmed != true) {
         return;
       }
+      if (!mounted) {
+        return;
+      }
+
+      final security = await TransferSecurityService.confirmTransfer(
+        context,
+        allowOtpFallback: true,
+      );
+      if (!mounted || !security.isVerified) {
+        return;
+      }
 
       setState(() => _actingCardId = card['id']?.toString());
       await _api.reviewAdminPrepaidMultipayApproval(
         cardId: card['id']?.toString() ?? '',
         action: action,
         note: noteController.text,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       await _load();
       if (!mounted) {
@@ -165,12 +188,23 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _setCardStatus(Map<String, dynamic> card, String action) async {
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
     await _runAdminAction(
       card,
       title: action == 'freeze' ? 'تجميد البطاقة' : 'تفعيل البطاقة',
       action: () => _api.updateAdminPrepaidMultipayCardStatus(
         cardId: card['id']?.toString() ?? '',
         action: action,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+        localAuthMethod: security.method,
       ),
     );
   }
@@ -195,14 +229,19 @@ class _AdminPrepaidMultipayApprovalsScreenState
                 ),
                 decoration: InputDecoration(
                   labelText: l.text('المبلغ', 'Amount'),
-                  hintText: l.text('اكتب موجبًا للشحن أو سالبًا للخصم', 'Positive to add, negative to deduct'),
+                  hintText: l.text(
+                    'اكتب موجبًا للشحن أو سالبًا للخصم',
+                    'Positive to add, negative to deduct',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: noteController,
                 maxLines: 2,
-                decoration: InputDecoration(labelText: l.text('ملاحظة', 'Note')),
+                decoration: InputDecoration(
+                  labelText: l.text('ملاحظة', 'Note'),
+                ),
               ),
             ],
           ),
@@ -221,7 +260,28 @@ class _AdminPrepaidMultipayApprovalsScreenState
       if (confirmed != true) {
         return;
       }
+      if (!mounted) {
+        return;
+      }
       final amount = double.tryParse(amountController.text.trim()) ?? 0;
+      if (amount.abs() < 0.01) {
+        await AppAlertService.showError(
+          context,
+          title: l.text('قيمة غير صالحة', 'Invalid amount'),
+          message: l.text(
+            'أدخل قيمة موجبة للإضافة أو سالبة للخصم.',
+            'Enter a positive value to credit or a negative value to debit.',
+          ),
+        );
+        return;
+      }
+      final security = await TransferSecurityService.confirmTransfer(
+        context,
+        allowOtpFallback: true,
+      );
+      if (!mounted || !security.isVerified) {
+        return;
+      }
       await _runAdminAction(
         card,
         title: l.text('تعديل رصيد البطاقة', 'Edit card balance'),
@@ -229,6 +289,9 @@ class _AdminPrepaidMultipayApprovalsScreenState
           cardId: card['id']?.toString() ?? '',
           amount: amount,
           note: noteController.text,
+          otpCode: security.otpCode,
+          securityPin: security.securityPin,
+          localAuthMethod: security.method,
         ),
       );
     } finally {
@@ -248,7 +311,9 @@ class _AdminPrepaidMultipayApprovalsScreenState
           content: TextField(
             controller: noteController,
             maxLines: 3,
-            decoration: InputDecoration(labelText: l.text('سبب الإلغاء', 'Cancellation reason')),
+            decoration: InputDecoration(
+              labelText: l.text('سبب الإلغاء', 'Cancellation reason'),
+            ),
           ),
           actions: [
             TextButton(
@@ -265,12 +330,25 @@ class _AdminPrepaidMultipayApprovalsScreenState
       if (confirmed != true) {
         return;
       }
+      if (!mounted) {
+        return;
+      }
+      final security = await TransferSecurityService.confirmTransfer(
+        context,
+        allowOtpFallback: true,
+      );
+      if (!mounted || !security.isVerified) {
+        return;
+      }
       await _runAdminAction(
         card,
         title: l.text('إلغاء البطاقة', 'Cancel card'),
         action: () => _api.cancelAdminPrepaidMultipayCard(
           cardId: card['id']?.toString() ?? '',
           note: noteController.text,
+          otpCode: security.otpCode,
+          securityPin: security.securityPin,
+          localAuthMethod: security.method,
         ),
       );
     } finally {
@@ -316,7 +394,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
   Widget build(BuildContext context) {
     final l = context.loc;
     final permissions = AppPermissions.fromUser(_user);
-    final canManage = permissions.canManageSystemSettings;
+    final canManage = permissions.canManagePrepaidMultipayApprovals;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -348,7 +426,10 @@ class _AdminPrepaidMultipayApprovalsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(l.text('إدارة البطاقات المسبقة', 'Manage prepaid cards'), style: AppTheme.h2),
+                Text(
+                  l.text('إدارة البطاقات المسبقة', 'Manage prepaid cards'),
+                  style: AppTheme.h2,
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'كل البطاقات المسبقة في قائمة واحدة مع التحكم بالرصيد والحالة.',
@@ -360,6 +441,8 @@ class _AdminPrepaidMultipayApprovalsScreenState
                     padding: EdgeInsets.all(40),
                     child: Center(child: CircularProgressIndicator()),
                   )
+                else if (_loadError != null && _user == null)
+                  AdminLoadErrorCard(message: _loadError!, onRetry: _load)
                 else if (!canManage)
                   ShwakelCard(
                     padding: const EdgeInsets.all(20),
@@ -369,6 +452,10 @@ class _AdminPrepaidMultipayApprovalsScreenState
                     ),
                   )
                 else ...[
+                  if (_loadError != null) ...[
+                    AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+                    const SizedBox(height: 12),
+                  ],
                   _buildFiltersAndSummary(),
                   const SizedBox(height: 12),
                   if (_cards.isEmpty)
@@ -431,13 +518,34 @@ class _AdminPrepaidMultipayApprovalsScreenState
             initialValue: _statusFilter,
             decoration: InputDecoration(labelText: l.text('الحالة', 'Status')),
             items: [
-              DropdownMenuItem(value: 'all', child: Text(l.text('كل البطاقات', 'All cards'))),
-              DropdownMenuItem(value: 'pending_approval', child: Text(l.text('معلقة', 'Pending'))),
-              DropdownMenuItem(value: 'active', child: Text(l.text('نشطة', 'Active'))),
-              DropdownMenuItem(value: 'frozen', child: Text(l.text('مجمدة', 'Frozen'))),
-              DropdownMenuItem(value: 'spent', child: Text(l.text('مستهلكة', 'Spent'))),
-              DropdownMenuItem(value: 'cancelled', child: Text(l.text('ملغاة', 'Cancelled'))),
-              DropdownMenuItem(value: 'rejected', child: Text(l.text('مرفوضة', 'Rejected'))),
+              DropdownMenuItem(
+                value: 'all',
+                child: Text(l.text('كل البطاقات', 'All cards')),
+              ),
+              DropdownMenuItem(
+                value: 'pending_approval',
+                child: Text(l.text('معلقة', 'Pending')),
+              ),
+              DropdownMenuItem(
+                value: 'active',
+                child: Text(l.text('نشطة', 'Active')),
+              ),
+              DropdownMenuItem(
+                value: 'frozen',
+                child: Text(l.text('مجمدة', 'Frozen')),
+              ),
+              DropdownMenuItem(
+                value: 'spent',
+                child: Text(l.text('مستهلكة', 'Spent')),
+              ),
+              DropdownMenuItem(
+                value: 'cancelled',
+                child: Text(l.text('ملغاة', 'Cancelled')),
+              ),
+              DropdownMenuItem(
+                value: 'rejected',
+                child: Text(l.text('مرفوضة', 'Rejected')),
+              ),
             ],
             onChanged: (value) {
               setState(() => _statusFilter = value ?? 'all');

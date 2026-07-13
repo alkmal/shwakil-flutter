@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class PrepaidMultipayOfflineCacheService {
   const PrepaidMultipayOfflineCacheService();
@@ -10,6 +9,7 @@ class PrepaidMultipayOfflineCacheService {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   Future<void> save({
+    required String ownerUserId,
     required List<Map<String, dynamic>> cards,
     required List<Map<String, dynamic>> payments,
     required bool nfcEnabled,
@@ -17,13 +17,15 @@ class PrepaidMultipayOfflineCacheService {
     required bool canAcceptPrepaidPayments,
     required bool canUsePrepaidNfc,
   }) async {
-    if (cards.isEmpty || !canUsePrepaidCards) {
+    final key = _keyForUser(ownerUserId);
+    if (key == null || cards.isEmpty || !canUsePrepaidCards) {
       return;
     }
 
     await _secureStorage.write(
-      key: cacheKey,
+      key: key,
       value: jsonEncode({
+        'ownerUserId': ownerUserId.trim(),
         'cachedAt': DateTime.now().toUtc().toIso8601String(),
         'cards': cards,
         'payments': payments.take(20).toList(),
@@ -35,9 +37,13 @@ class PrepaidMultipayOfflineCacheService {
     );
   }
 
-  Future<Map<String, dynamic>?> load() async {
-    final raw =
-        await _secureStorage.read(key: cacheKey) ?? await _migrateLegacyCache();
+  Future<Map<String, dynamic>?> load({required String ownerUserId}) async {
+    final key = _keyForUser(ownerUserId);
+    if (key == null) {
+      return null;
+    }
+    await _discardUnscopedLegacyCache();
+    final raw = await _secureStorage.read(key: key);
     if (raw == null || raw.isEmpty) {
       return null;
     }
@@ -45,6 +51,10 @@ class PrepaidMultipayOfflineCacheService {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) {
+        return null;
+      }
+      if ((decoded['ownerUserId']?.toString().trim() ?? '') !=
+          ownerUserId.trim()) {
         return null;
       }
       final cards = List<Map<String, dynamic>>.from(
@@ -75,20 +85,24 @@ class PrepaidMultipayOfflineCacheService {
     }
   }
 
-  Future<bool> hasCards() async {
-    final cached = await load();
+  Future<bool> hasCards({required String ownerUserId}) async {
+    final cached = await load(ownerUserId: ownerUserId);
     final cards = cached?['cards'];
     return cards is List && cards.isNotEmpty;
   }
 
-  Future<String?> _migrateLegacyCache() async {
-    final prefs = await SharedPreferences.getInstance();
-    final legacy = prefs.getString(cacheKey);
-    if (legacy == null || legacy.isEmpty) {
+  String? _keyForUser(String userId) {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) {
       return null;
     }
-    await _secureStorage.write(key: cacheKey, value: legacy);
-    await prefs.remove(cacheKey);
-    return legacy;
+    final encoded = base64Url
+        .encode(utf8.encode(normalized))
+        .replaceAll('=', '');
+    return '$cacheKey:$encoded';
+  }
+
+  Future<void> _discardUnscopedLegacyCache() async {
+    await _secureStorage.delete(key: cacheKey);
   }
 }

@@ -4,6 +4,7 @@ import '../services/index.dart';
 import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../widgets/admin/admin_device_request_card.dart';
+import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/rejection_reason_dialog.dart';
@@ -24,6 +25,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
   List<Map<String, dynamic>> _requests = const [];
   bool _isLoading = true;
   bool _isAuthorized = false;
+  String? _loadError;
   String? _busyId;
 
   @override
@@ -33,7 +35,10 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _loadError = null;
+      _isLoading = _requests.isEmpty;
+    });
     try {
       final currentUser = await _authService.currentUser();
       final permissions = AppPermissions.fromUser(currentUser);
@@ -43,6 +48,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
         }
         setState(() {
           _isAuthorized = false;
+          _loadError = null;
           _isLoading = false;
         });
         return;
@@ -53,6 +59,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
       }
       setState(() {
         _isAuthorized = true;
+        _loadError = null;
         _requests = data;
         _isLoading = false;
       });
@@ -60,14 +67,10 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _isLoading = false);
-      await AppAlertService.showError(
-        context,
-        title: context.loc.tr(
-          'screens_admin_device_requests_screen.load_error_title',
-        ),
-        message: ErrorMessageService.sanitize(error),
-      );
+      setState(() {
+        _loadError = ErrorMessageService.sanitize(error);
+        _isLoading = false;
+      });
     }
   }
 
@@ -115,6 +118,22 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
     final l = context.loc;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_loadError != null && !_isAuthorized) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(l.tr('screens_admin_device_requests_screen.001')),
+        ),
+        drawer: const AppSidebar(),
+        body: ResponsiveScaffoldContainer(
+          maxWidth: 620,
+          child: Center(
+            child: AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+          ),
+        ),
+      );
     }
 
     if (!_isAuthorized) {
@@ -170,6 +189,10 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_loadError != null) ...[
+                  AdminLoadErrorCard(message: _loadError!, onRetry: _load),
+                  const SizedBox(height: 16),
+                ],
                 if (_requests.isEmpty)
                   ShwakelCard(
                     padding: const EdgeInsets.all(28),

@@ -267,6 +267,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     notesController.dispose();
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
     if (amount <= 0) {
       if (!mounted) return;
@@ -278,6 +279,14 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       return;
     }
 
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) {
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       final users = await _api.transferSubUserBalance(
@@ -285,6 +294,8 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         direction: direction,
         amount: amount,
         notes: notes,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
       );
       if (!mounted) return;
       setState(() {

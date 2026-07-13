@@ -304,6 +304,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
         providerPriceUsd: providerPriceUsd,
         categoryId: _categoryId,
         otpCode: security.otpCode,
+        securityPin: security.securityPin,
         localAuthMethod: security.method,
       );
       if (!mounted) return;

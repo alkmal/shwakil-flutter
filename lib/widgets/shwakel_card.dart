@@ -61,7 +61,8 @@ class ShwakelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isNested = context.dependOnInheritedWidgetOfExactType<_ShwakelCardScope>() != null;
+    final isNested =
+        context.dependOnInheritedWidgetOfExactType<_ShwakelCardScope>() != null;
     final safeGradient = AppTheme.webSafeGradient(gradient);
     final effectiveRadius = shape == BoxShape.circle
         ? null
@@ -77,7 +78,9 @@ class ShwakelCard extends StatelessWidget {
         (safeGradient == null
             ? AppTheme.border.withValues(alpha: isNested ? 0.45 : 0.9)
             : AppTheme.glassStroke.withValues(alpha: 0.55));
-    final effectiveShadowLevel = isNested ? ShwakelShadowLevel.none : shadowLevel;
+    final effectiveShadowLevel = isNested
+        ? ShwakelShadowLevel.none
+        : shadowLevel;
 
     return Padding(
       padding: margin ?? EdgeInsets.zero,

@@ -723,16 +723,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
   Future<void> _createOrChangePin() async {
     final wasPinEnabled = _hasPin;
-    if (_hasPin) {
-      final verified = await _confirmCurrentPinOrBiometric();
-      if (!verified) {
-        return;
-      }
-    }
-    final localAuthMethod = wasPinEnabled
-        ? await LocalSecurityService.lastLocalAuthMethod()
-        : null;
-    if (!mounted) {
+    final confirmation = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !confirmation.isVerified) {
       return;
     }
     final pin = await showDialog<String>(
@@ -743,7 +738,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       try {
         final payload = await _apiService.updateSecurityPin(
           pin: pin,
-          localAuthMethod: localAuthMethod,
+          currentPin: confirmation.securityPin,
+          otpCode: confirmation.otpCode,
         );
         final user = payload['user'];
         if (user is Map) {
@@ -790,11 +786,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       return;
     }
 
-    final verified = await _confirmCurrentPinOrBiometric();
-    if (!verified) {
-      return;
-    }
-    if (!mounted) {
+    final confirmation = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !confirmation.isVerified) {
       return;
     }
 
@@ -822,7 +818,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
     try {
       final payload = await _apiService.removeSecurityPin(
-        localAuthMethod: await LocalSecurityService.lastLocalAuthMethod(),
+        currentPin: confirmation.securityPin,
+        otpCode: confirmation.otpCode,
       );
       final user = payload['user'];
       if (user is Map) {
@@ -841,40 +838,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     }
     await LocalSecurityService.removePin();
     await _load();
-  }
-
-  Future<bool> _confirmCurrentPinOrBiometric() async {
-    if (_biometricEnabled &&
-        await LocalSecurityService.authenticateWithBiometrics()) {
-      return true;
-    }
-    if (!mounted) {
-      return false;
-    }
-
-    final currentPin = await showDialog<String>(
-      context: context,
-      builder: (_) => const _VerifyCurrentPinDialog(),
-    );
-    if (currentPin == null) {
-      return false;
-    }
-
-    final isValid = await LocalSecurityService.verifyPin(currentPin);
-    if (isValid) {
-      await LocalSecurityService.setLastLocalAuthMethod('pin');
-      return true;
-    }
-    if (!mounted) {
-      return false;
-    }
-    final l = context.loc;
-    await AppAlertService.showError(
-      context,
-      title: l.tr('screens_security_settings_screen.060'),
-      message: l.tr('screens_security_settings_screen.070'),
-    );
-    return false;
   }
 
   Future<void> _toggleBiometric(bool value) async {
@@ -1156,99 +1119,6 @@ class _StyledPinDialogState extends State<_StyledPinDialog> {
         title: l.tr('screens_security_settings_screen.060'),
         message: l.tr('screens_security_settings_screen.061'),
       );
-      return;
-    }
-    Navigator.pop(context, _pinController.text);
-  }
-}
-
-class _VerifyCurrentPinDialog extends StatefulWidget {
-  const _VerifyCurrentPinDialog();
-
-  @override
-  State<_VerifyCurrentPinDialog> createState() =>
-      _VerifyCurrentPinDialogState();
-}
-
-class _VerifyCurrentPinDialogState extends State<_VerifyCurrentPinDialog> {
-  final TextEditingController _pinController = TextEditingController();
-  bool _obscurePin = true;
-
-  @override
-  void dispose() {
-    _pinController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = context.loc;
-    return Dialog(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l.tr('screens_security_settings_screen.068'),
-              style: AppTheme.h3,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              l.tr('screens_security_settings_screen.069'),
-              style: AppTheme.bodyAction,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _pinController,
-              maxLength: 4,
-              obscureText: _obscurePin,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                labelText: l.tr('screens_security_settings_screen.071'),
-                prefixIcon: const Icon(Icons.password_rounded),
-                suffixIcon: IconButton(
-                  onPressed: () {
-                    setState(() => _obscurePin = !_obscurePin);
-                  },
-                  icon: Icon(
-                    _obscurePin
-                        ? Icons.visibility_rounded
-                        : Icons.visibility_off_rounded,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: ShwakelButton(
-                    label: l.tr('screens_security_settings_screen.050'),
-                    isSecondary: true,
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ShwakelButton(
-                    label: l.tr('screens_quick_transfer_screen.015'),
-                    onPressed: _submit,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _submit() {
-    if (_pinController.text.length != 4) {
       return;
     }
     Navigator.pop(context, _pinController.text);

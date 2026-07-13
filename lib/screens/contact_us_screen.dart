@@ -100,7 +100,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.access_time_rounded,
                         color: AppTheme.textTertiary,
                       ),
@@ -208,7 +208,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
             ),
           ),
           if (url != null)
-            Icon(
+            const Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,
               color: AppTheme.textTertiary,

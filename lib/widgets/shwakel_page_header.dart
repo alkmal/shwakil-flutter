@@ -22,7 +22,7 @@ class ShwakelPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasTrailing = trailing != null;
     return ShwakelCard(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(AppTheme.isPhone(context) ? 18 : 24),
       gradient: AppTheme.pageHeaderGradient,
       shadowLevel: ShwakelShadowLevel.medium,
       child: LayoutBuilder(
@@ -34,7 +34,10 @@ class ShwakelPageHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 content,
-                if (hasTrailing) ...[const SizedBox(height: 18), trailing!],
+                if (hasTrailing) ...[
+                  const SizedBox(height: 18),
+                  SizedBox(width: double.infinity, child: trailing!),
+                ],
               ],
             );
           }
@@ -132,11 +135,15 @@ class ShwakelInfoBadge extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: AppTheme.caption.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.caption.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

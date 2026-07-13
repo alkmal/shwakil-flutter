@@ -22,10 +22,7 @@ class ErrorMessageService {
 
     if (lower.contains('غير مصرح.') ||
         lower == 'غير مصرح' ||
-        lower.contains('session version') ||
-        lower.contains('bearer ') ||
-        lower.contains('jwt') ||
-        lower.contains('token')) {
+        _looksLikeAuthenticationSessionError(lower)) {
       return _tr('services_error_message_service.011');
     }
 
@@ -139,14 +136,25 @@ class ErrorMessageService {
     final lower = (error?.toString() ?? clean).toLowerCase();
     if (lower.contains('401') ||
         lower.contains('unauthorized') ||
-        lower.contains('session version') ||
-        lower.contains('bearer ') ||
-        lower.contains('jwt') ||
-        lower.contains('token')) {
+        _looksLikeAuthenticationSessionError(lower)) {
       return true;
     }
 
     return _matchesAnyMessage(clean, ['services_error_message_service.011']);
+  }
+
+  static bool _looksLikeAuthenticationSessionError(String lower) {
+    return lower.contains('session version') ||
+        lower.contains('bearer token') ||
+        lower.contains('jwt') ||
+        lower.contains('access token expired') ||
+        lower.contains('expired access token') ||
+        lower.contains('invalid access token') ||
+        lower.contains('authentication token expired') ||
+        lower.contains('unauthenticated') ||
+        lower.contains('انتهت الجلسة') ||
+        lower.contains('تجديد جلسة الجهاز') ||
+        lower.contains('تسجيل الدخول صالح');
   }
 
   static String fromResponseBody(String body) {

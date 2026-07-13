@@ -7,7 +7,9 @@ import '../widgets/shwakel_card.dart';
 import '../widgets/shwakel_logo.dart';
 
 class DeviceUnlockScreen extends StatefulWidget {
-  const DeviceUnlockScreen({super.key});
+  const DeviceUnlockScreen({super.key, this.returnRoute});
+
+  final String? returnRoute;
 
   @override
   State<DeviceUnlockScreen> createState() => _DeviceUnlockScreenState();
@@ -17,13 +19,10 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   final TextEditingController _pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
   final AuthService _auth = AuthService();
-  final PrepaidMultipayOfflineCacheService _prepaidOfflineCache =
-      const PrepaidMultipayOfflineCacheService();
 
   String _username = '';
   bool _hasPin = false;
   bool _biometricEnabled = false;
-  bool _hasOfflinePrepaidCards = false;
   bool _isLoading = true;
   bool _isUnlocking = false;
   bool _didAutoPromptBiometric = false;
@@ -34,6 +33,10 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
   @override
   void initState() {
     super.initState();
+    final requested = widget.returnRoute?.trim() ?? '';
+    if (requested.isNotEmpty) {
+      _returnRoute = requested;
+    }
     _load();
   }
 
@@ -68,13 +71,11 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
     final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
     final pinRetryAfterSeconds =
         await LocalSecurityService.pinRetryAfterSeconds();
-    final hasOfflinePrepaidCards = await _prepaidOfflineCache.hasCards();
     if (mounted) {
       setState(() {
         _username = trustedUsername;
         _hasPin = hasPin;
         _biometricEnabled = biometricEnabled && canUseBiometrics;
-        _hasOfflinePrepaidCards = hasOfflinePrepaidCards;
         _pinRetryAfterSeconds = pinRetryAfterSeconds;
         _isLoading = false;
       });
@@ -369,19 +370,6 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
                       const ShwakelLogo(size: 80, framed: true),
                       const SizedBox(height: 28),
                       _buildMainCard(),
-                      if (_hasOfflinePrepaidCards) ...[
-                        const SizedBox(height: 12),
-                        ShwakelButton(
-                          label: l.text('فتح بطاقات الدفع المحفوظة', 'Open saved prepaid cards'),
-                          icon: Icons.credit_card_rounded,
-                          isSecondary: true,
-                          onPressed: () => Navigator.pushNamed(
-                            context,
-                            '/prepaid-multipay-cards',
-                            arguments: const {'offlineOnly': true},
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 20),
                       TextButton(
                         onPressed: _loginAnotherAccount,
@@ -423,7 +411,11 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text(l.text('فتح التطبيق', 'Open app'), style: AppTheme.h2, textAlign: TextAlign.center),
+          Text(
+            l.text('فتح التطبيق', 'Open app'),
+            style: AppTheme.h2,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 10),
           Text(
             _subtitle(l),

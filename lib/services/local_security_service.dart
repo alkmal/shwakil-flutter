@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -32,6 +34,11 @@ class LocalSecurityService {
   static const Uuid _uuid = Uuid();
   static final ValueNotifier<int> _securityStateVersion = ValueNotifier<int>(0);
   static final Sha256 _sha256 = Sha256();
+  static final Pbkdf2 _pinKdf = Pbkdf2(
+    macAlgorithm: Hmac.sha256(),
+    iterations: 210000,
+    bits: 256,
+  );
 
   static bool _relockRequired = false;
   static bool _skipNextUnlock = false;
@@ -183,7 +190,7 @@ class LocalSecurityService {
     final prefs = await SharedPreferences.getInstance();
     await _secureStorage.write(
       key: _pinHashKey,
-      value: await _hashPin(normalizedPin),
+      value: await _derivePinHash(normalizedPin),
     );
     await prefs.remove(_legacyPinKey);
     await prefs.remove(_pinFailedAttemptsKey);
@@ -223,9 +230,12 @@ class LocalSecurityService {
     final isValid =
         normalizedPin.length == 4 &&
         (storedHash ?? '').isNotEmpty &&
-        storedHash == await _hashPin(normalizedPin);
+        await _verifyStoredPin(normalizedPin, storedHash!);
 
     if (isValid) {
+      if (!storedHash.startsWith('pbkdf2-sha256\$')) {
+        await savePin(normalizedPin);
+      }
       await prefs.remove(_pinFailedAttemptsKey);
       await prefs.remove(_pinLockoutUntilKey);
       await setLastLocalAuthMethod('pin');
@@ -237,7 +247,7 @@ class LocalSecurityService {
     if (failedAttempts >= _pinMaxFailedAttempts) {
       await prefs.setInt(
         _pinLockoutUntilKey,
-        now + Duration(seconds: _pinLockoutSeconds).inMilliseconds,
+        now + const Duration(seconds: _pinLockoutSeconds).inMilliseconds,
       );
       await prefs.setInt(_pinFailedAttemptsKey, 0);
     }
@@ -393,7 +403,32 @@ class LocalSecurityService {
     final prefs = await SharedPreferences.getInstance();
     final backgroundedAt = prefs.getInt(_backgroundedAtKey);
     if (backgroundedAt == null) {
-      return false;
+      if (!forceOnNextLaunch) {
+        return false;
+      }
+
+      final hasLocalSecurity = await hasConfiguredLocalSecurity();
+      final deviceTrusted = prefs.getBool(_deviceTrustedKey) ?? false;
+      if (!hasLocalSecurity) {
+        if (deviceTrusted && !_securitySetupRequired) {
+          _securitySetupRequired = true;
+          changed = true;
+          _notifySecurityStateChanged();
+        }
+        return changed;
+      }
+
+      final canUseUnlock = await canUseTrustedUnlock();
+      if (canUseUnlock && !_relockRequired) {
+        _relockRequired = true;
+        changed = true;
+        _notifySecurityStateChanged();
+      } else if (!canUseUnlock && !_securitySetupRequired) {
+        _securitySetupRequired = true;
+        changed = true;
+        _notifySecurityStateChanged();
+      }
+      return changed;
     }
 
     if (consumeEvent) {
@@ -463,7 +498,7 @@ class LocalSecurityService {
 
     await _secureStorage.write(
       key: _pinHashKey,
-      value: await _hashPin(legacyPin),
+      value: await _derivePinHash(legacyPin),
     );
     await legacyPrefs.remove(_legacyPinKey);
   }
@@ -498,11 +533,67 @@ class LocalSecurityService {
         _ignoreLifecycleEventsUntilMs;
   }
 
-  static Future<String> _hashPin(String pin) async {
+  static Future<String> _legacyHashPin(String pin) async {
     final digest = await _sha256.hash(pin.codeUnits);
     return digest.bytes
         .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
         .join();
+  }
+
+  static Future<String> _derivePinHash(String pin) async {
+    final random = Random.secure();
+    final salt = List<int>.generate(16, (_) => random.nextInt(256));
+    final key = await _pinKdf.deriveKeyFromPassword(password: pin, nonce: salt);
+    final bytes = await key.extractBytes();
+    return 'pbkdf2-sha256\$210000\$${base64UrlEncode(salt)}\$${base64UrlEncode(bytes)}';
+  }
+
+  static Future<bool> _verifyStoredPin(String pin, String stored) async {
+    if (!stored.startsWith('pbkdf2-sha256\$')) {
+      return _constantTimeEquals(stored, await _legacyHashPin(pin));
+    }
+
+    final parts = stored.split('\$');
+    if (parts.length != 4) {
+      return false;
+    }
+    final iterations = int.tryParse(parts[1]);
+    if (iterations == null || iterations < 100000 || iterations > 1000000) {
+      return false;
+    }
+    try {
+      final salt = base64Url.decode(base64Url.normalize(parts[2]));
+      final expected = base64Url.decode(base64Url.normalize(parts[3]));
+      final algorithm = iterations == 210000
+          ? _pinKdf
+          : Pbkdf2(
+              macAlgorithm: Hmac.sha256(),
+              iterations: iterations,
+              bits: expected.length * 8,
+            );
+      final key = await algorithm.deriveKeyFromPassword(
+        password: pin,
+        nonce: salt,
+      );
+      return _constantTimeBytesEqual(expected, await key.extractBytes());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool _constantTimeEquals(String left, String right) {
+    return _constantTimeBytesEqual(utf8.encode(left), utf8.encode(right));
+  }
+
+  static bool _constantTimeBytesEqual(List<int> left, List<int> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+    var difference = 0;
+    for (var index = 0; index < left.length; index++) {
+      difference |= left[index] ^ right[index];
+    }
+    return difference == 0;
   }
 
   static String _normalizePin(String pin) {
