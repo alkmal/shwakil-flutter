@@ -1033,6 +1033,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         return;
       }
       await LocalSecurityService.setBiometricEnabled(value);
+      if (value) {
+        await LocalSecurityService.markLocalUnlockCompleted();
+      }
       await _load();
       if (!mounted) {
         return;

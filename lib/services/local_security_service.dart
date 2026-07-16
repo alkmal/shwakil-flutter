@@ -346,6 +346,10 @@ class LocalSecurityService {
       );
       if (authenticated) {
         await setLastLocalAuthMethod('biometric');
+        // A successful biometric prompt is itself a completed local unlock.
+        // Persist it here (not only on the unlock screen) because Android may
+        // emit pause/resume events while enrolling or confirming biometrics.
+        await markLocalUnlockCompleted();
       }
       return authenticated;
     } catch (_) {
@@ -353,7 +357,7 @@ class LocalSecurityService {
     } finally {
       _biometricPromptActive = false;
       _ignoreLifecycleEventsUntilMs = DateTime.now()
-          .add(const Duration(milliseconds: 1500))
+          .add(const Duration(seconds: 5))
           .millisecondsSinceEpoch;
     }
   }

@@ -59,7 +59,7 @@
   <div id="app-loader"><div><span></span><b>جاري تحميل شواكل...</b></div></div>
   <script>
     if ('serviceWorker' in navigator) {
-      const reloadKey = 'shwakil-sw-reloaded-27';
+      const reloadKey = 'shwakil-sw-reloaded-28';
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (sessionStorage.getItem(reloadKey) === '1') return;
         sessionStorage.setItem(reloadKey, '1');

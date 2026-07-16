@@ -848,6 +848,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       }
       await LocalSecurityService.setBiometricEnabled(value);
       if (value) {
+        await LocalSecurityService.markLocalUnlockCompleted();
         await _returnHomeAfterSecuritySetup();
         return;
       }
