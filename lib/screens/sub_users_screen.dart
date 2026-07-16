@@ -158,6 +158,38 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     });
   }
 
+  void _applyStoreRole(String role) {
+    const storeKeys = {
+      'canAccessStoreManagement',
+      'canManageStoreInventory',
+      'canCreateStoreSales',
+      'canCreateStorePurchases',
+      'canManageStoreDebts',
+      'canEditStorePrices',
+      'canViewStoreProfits',
+      'canViewStoreReports',
+      'canManagePublicStorefront',
+    };
+    setState(() {
+      for (final key in storeKeys) {
+        _permissions[key] = false;
+      }
+      _permissions['canAccessStoreManagement'] = true;
+      _permissions['canCreateStoreSales'] = true;
+      if (role == 'supervisor') {
+        _permissions['canManageStoreInventory'] = true;
+        _permissions['canCreateStorePurchases'] = true;
+        _permissions['canManageStoreDebts'] = true;
+        _permissions['canViewStoreReports'] = true;
+      }
+      if (role == 'manager') {
+        for (final key in storeKeys) {
+          _permissions[key] = true;
+        }
+      }
+    });
+  }
+
   Future<void> _save() async {
     if (!_canManageSubUsers) {
       return;
@@ -911,6 +943,40 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            context.loc.text('قوالب موظفي المحل', 'Store employee presets'),
+            style: AppTheme.bodyBold,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                avatar: const Icon(Icons.point_of_sale_rounded, size: 18),
+                label: Text(
+                  context.loc.text('كاشير - بيع فقط', 'Cashier - sales only'),
+                ),
+                onPressed: () => _applyStoreRole('cashier'),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.supervisor_account_rounded, size: 18),
+                label: Text(
+                  context.loc.text('مشرف مبيعات', 'Sales supervisor'),
+                ),
+                onPressed: () => _applyStoreRole('supervisor'),
+              ),
+              ActionChip(
+                avatar: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  size: 18,
+                ),
+                label: Text(context.loc.text('مدير محل', 'Store manager')),
+                onPressed: () => _applyStoreRole('manager'),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           ..._permissionKeysOrder.map(

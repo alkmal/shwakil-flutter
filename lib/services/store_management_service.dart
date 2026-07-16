@@ -217,6 +217,7 @@ class StoreManagementService {
     required List<Map<String, dynamic>> items,
     double discount = 0,
     String notes = '',
+    bool quickSale = false,
   }) {
     return _enqueueAndApply(userId, {
       'opId': _uuid.v4(),
@@ -231,6 +232,7 @@ class StoreManagementService {
       'paymentMethod': paymentMethod,
       'discount': discount,
       'notes': notes.trim(),
+      'quickSale': quickSale,
       'occurredAt': DateTime.now().toIso8601String(),
       'items': items,
     });

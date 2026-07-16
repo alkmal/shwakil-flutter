@@ -349,9 +349,6 @@ class _LocalSecurityRouteGuard extends StatelessWidget {
     return ValueListenableBuilder<int>(
       valueListenable: LocalSecurityService.securityStateListenable,
       builder: (context, _, _) {
-        if (LocalSecurityService.securitySetupRequired) {
-          return const SecuritySettingsScreen(showSetupHint: true);
-        }
         if (LocalSecurityService.relockRequired) {
           return DeviceUnlockScreen(returnRoute: routeName);
         }
@@ -1151,11 +1148,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
           const Duration(seconds: 1),
           onTimeout: () => false,
         );
-    if (LocalSecurityService.securitySetupRequired) {
-      unawaited(RealtimeNotificationService.stop());
-      _debugLaunchDecision('securitySetup(required)', stopwatch.elapsed);
-      return const _LaunchDecision(state: _LaunchState.securitySetup);
-    }
     final skipNextUnlock = await LocalSecurityService.consumeSkipNextUnlock();
     if (skipNextUnlock) {
       if (!isOnline && await _canOpenOfflineWorkspace(cachedUser)) {
@@ -1176,8 +1168,8 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         _debugLaunchDecision('unlock', stopwatch.elapsed);
         return const _LaunchDecision(state: _LaunchState.unlock);
       }
-      _debugLaunchDecision('securitySetup(relockUntrusted)', stopwatch.elapsed);
-      return const _LaunchDecision(state: _LaunchState.securitySetup);
+      _debugLaunchDecision('home(relockUnavailable)', stopwatch.elapsed);
+      return const _LaunchDecision(state: _LaunchState.home);
     }
     if (!isOnline) {
       unawaited(RealtimeNotificationService.stop());
@@ -1268,9 +1260,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
           const Duration(seconds: 1),
           onTimeout: () => false,
         );
-    if (LocalSecurityService.securitySetupRequired) {
-      return const _LaunchDecision(state: _LaunchState.securitySetup);
-    }
     final canUseTrustedUnlock = await LocalSecurityService.canUseTrustedUnlock()
         .timeout(const Duration(seconds: 1), onTimeout: () => false);
     if (hasLocalSecurity &&
@@ -1279,7 +1268,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       return const _LaunchDecision(state: _LaunchState.unlock);
     }
     if (hasLocalSecurity && LocalSecurityService.relockRequired) {
-      return const _LaunchDecision(state: _LaunchState.securitySetup);
+      return const _LaunchDecision(state: _LaunchState.home);
     }
 
     if (!ConnectivityService.instance.isOnline.value) {

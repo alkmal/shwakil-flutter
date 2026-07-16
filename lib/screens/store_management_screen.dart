@@ -875,13 +875,114 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     return normalized == null || normalized.isEmpty ? null : normalized;
   }
 
-  Future<void> _createInvoice() async {
+  Future<Map<String, dynamic>?> _pickStoreEntry({
+    required String title,
+    required List<Map<String, dynamic>> entries,
+    required String searchHint,
+    required String addLabel,
+    required Future<void> Function() onAdd,
+  }) async {
+    final search = TextEditingController();
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final query = search.text.trim().toLowerCase();
+          final filtered = entries
+              .where((entry) {
+                final haystack =
+                    '${entry['name'] ?? ''} ${entry['phone'] ?? ''} '
+                            '${entry['barcode'] ?? ''}'
+                        .toLowerCase();
+                return query.isEmpty || haystack.contains(query);
+              })
+              .take(60)
+              .toList();
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              MediaQuery.viewInsetsOf(context).bottom + 16,
+            ),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.72,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Text(title, style: AppTheme.h3)),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: search,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: searchHint,
+                      prefixIcon: const Icon(Icons.search_rounded),
+                    ),
+                    onChanged: (_) => setSheetState(() {}),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(sheetContext);
+                      await onAdd();
+                    },
+                    icon: const Icon(Icons.add_rounded),
+                    label: Text(addLabel),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              context.loc.text('لا توجد نتائج', 'No results'),
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final entry = filtered[index];
+                              return ListTile(
+                                leading: const Icon(Icons.search_rounded),
+                                title: Text(entry['name']?.toString() ?? ''),
+                                subtitle:
+                                    (entry['phone']?.toString() ?? '').isEmpty
+                                    ? null
+                                    : Text(entry['phone'].toString()),
+                                onTap: () => Navigator.pop(sheetContext, entry),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    search.dispose();
+    return result;
+  }
+
+  Future<void> _createInvoice({bool quickSale = false}) async {
     if (_products.isEmpty) return;
-    String invoiceType = _permissions.canCreateStoreSales ? 'sale' : 'purchase';
+    String invoiceType = quickSale || _permissions.canCreateStoreSales
+        ? 'sale'
+        : 'purchase';
     String? partyId;
-    String? manualProductId = _products.first['id']?.toString();
-    String partySearchQuery = '';
-    String productSearchQuery = '';
     String paymentStatus = 'paid';
     final paid = TextEditingController(text: '0');
     final discount = TextEditingController(text: '0');
@@ -959,14 +1060,11 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       return null;
     }
 
-    addLine(
-      productById(manualProductId),
-      firstUnit(productById(manualProductId)),
-    );
-
     final l = context.loc;
     final accepted = await _openFullScreenForm(
-      title: invoiceType == 'sale'
+      title: quickSale
+          ? l.text('البيع السريع', 'Quick sale')
+          : invoiceType == 'sale'
           ? l.text('نقطة بيع POS - فاتورة بيع', 'POS - Sale invoice')
           : l.text(
               'نقطة شراء - فاتورة مشتريات',
@@ -982,35 +1080,6 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               ? type == 'customer' || type == 'both'
               : type == 'supplier' || type == 'both';
         }).toList();
-        final filteredParties = _filterParties(
-          allowedParties,
-          partySearchQuery,
-        );
-        final selectedParty = allowedParties.firstWhere(
-          (party) => party['id']?.toString() == partyId,
-          orElse: () => const <String, dynamic>{},
-        );
-        final partyOptions = [
-          if (selectedParty.isNotEmpty &&
-              !filteredParties.any(
-                (party) => party['id']?.toString() == partyId,
-              ))
-            selectedParty,
-          ...filteredParties,
-        ];
-        final filteredProducts = _filterProducts(_products, productSearchQuery);
-        final selectedProduct = _products.firstWhere(
-          (product) => product['id']?.toString() == manualProductId,
-          orElse: () => const <String, dynamic>{},
-        );
-        final productOptions = [
-          if (selectedProduct.isNotEmpty &&
-              !filteredProducts.any(
-                (product) => product['id']?.toString() == manualProductId,
-              ))
-            selectedProduct,
-          ...filteredProducts,
-        ];
         final subtotal = lines.fold<double>(
           0,
           (sum, line) =>
@@ -1070,172 +1139,99 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SegmentedButton<String>(
-              segments: [
-                if (_permissions.canCreateStoreSales)
-                  ButtonSegment(
-                    value: 'sale',
-                    label: Text(l.text('بيع', 'Sale')),
-                  ),
-                if (_permissions.canCreateStorePurchases)
-                  ButtonSegment(
-                    value: 'purchase',
-                    label: Text(l.text('شراء', 'Purchase')),
-                  ),
-              ],
-              selected: {invoiceType},
-              onSelectionChanged: (selection) {
-                setDialogState(() {
-                  invoiceType = selection.first;
-                  partyId = null;
-                  refreshPricesForType();
-                });
-              },
-            ),
+            if (!quickSale)
+              SegmentedButton<String>(
+                segments: [
+                  if (_permissions.canCreateStoreSales)
+                    ButtonSegment(
+                      value: 'sale',
+                      label: Text(l.text('بيع', 'Sale')),
+                    ),
+                  if (_permissions.canCreateStorePurchases)
+                    ButtonSegment(
+                      value: 'purchase',
+                      label: Text(l.text('شراء', 'Purchase')),
+                    ),
+                ],
+                selected: {invoiceType},
+                onSelectionChanged: (selection) {
+                  setDialogState(() {
+                    invoiceType = selection.first;
+                    partyId = null;
+                    refreshPricesForType();
+                  });
+                },
+              ),
             const SizedBox(height: 12),
-            TextField(
-              decoration: InputDecoration(
-                labelText: invoiceType == 'sale'
-                    ? l.text('بحث في الزبائن', 'Search customers')
-                    : l.text('بحث في التجار', 'Search suppliers'),
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: partySearchQuery.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: l.text('مسح البحث', 'Clear search'),
-                        onPressed: () =>
-                            setDialogState(() => partySearchQuery = ''),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-              ),
-              onChanged: (value) =>
-                  setDialogState(() => partySearchQuery = value),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String?>(
-              initialValue: partyId,
-              decoration: InputDecoration(
-                labelText: invoiceType == 'sale'
-                    ? l.text('الزبون', 'Customer')
-                    : l.text('التاجر المطلوب', 'Required supplier'),
-              ),
-              items: [
-                if (invoiceType == 'sale')
-                  DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text(l.text('زبون نقدي', 'Cash customer')),
+            if (!quickSale) ...[
+              InkWell(
+                onTap: () async {
+                  final selected = await _pickStoreEntry(
+                    title: invoiceType == 'sale'
+                        ? l.text('اختيار الزبون', 'Choose customer')
+                        : l.text('اختيار المورد', 'Choose supplier'),
+                    entries: allowedParties,
+                    searchHint: l.text(
+                      'ابحث بالاسم أو الهاتف',
+                      'Search by name or phone',
+                    ),
+                    addLabel: l.text('إضافة حساب جديد', 'Add new account'),
+                    onAdd: _addParty,
+                  );
+                  if (selected != null) {
+                    setDialogState(() => partyId = selected['id']?.toString());
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: invoiceType == 'sale'
+                        ? l.text('الزبون (اختياري)', 'Customer (optional)')
+                        : l.text('المورد المطلوب', 'Required supplier'),
+                    prefixIcon: const Icon(Icons.person_search_rounded),
                   ),
-                ...partyOptions.map(
-                  (party) => DropdownMenuItem<String?>(
-                    value: party['id']?.toString(),
-                    child: Text(party['name']?.toString() ?? ''),
+                  child: Text(
+                    partyId == null
+                        ? (invoiceType == 'sale'
+                              ? l.text('زبون نقدي', 'Cash customer')
+                              : l.text('اضغط للاختيار', 'Tap to choose'))
+                        : allowedParties
+                                  .firstWhere(
+                                    (item) => item['id']?.toString() == partyId,
+                                    orElse: () => const {},
+                                  )['name']
+                                  ?.toString() ??
+                              '',
                   ),
                 ),
-              ],
-              onChanged: (value) => setDialogState(() => partyId = value),
-            ),
-            const SizedBox(height: 10),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 520;
-                final selector = DropdownButtonFormField<String>(
-                  initialValue: manualProductId,
-                  decoration: InputDecoration(
-                    labelText: l.text('إضافة صنف يدويًا', 'Add item manually'),
+              ),
+              const SizedBox(height: 10),
+            ],
+            OutlinedButton.icon(
+              onPressed: () async {
+                final selected = await _pickStoreEntry(
+                  title: l.text('اختيار المنتج', 'Choose product'),
+                  entries: _products,
+                  searchHint: l.text(
+                    'ابحث بالاسم أو الباركود',
+                    'Search by name or barcode',
                   ),
-                  items: productOptions
-                      .map(
-                        (item) => DropdownMenuItem(
-                          value: item['id']?.toString(),
-                          child: Text(
-                            item['name']?.toString() ?? '',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) =>
-                      setDialogState(() => manualProductId = value),
+                  addLabel: l.text('إضافة منتج جديد', 'Add new product'),
+                  onAdd: _addProduct,
                 );
-                final buttons = Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => setDialogState(() {
-                        final product = productById(manualProductId);
-                        addLine(product, firstUnit(product));
-                      }),
-                      icon: const Icon(Icons.add_rounded),
-                      label: Text(l.text('إضافة', 'Add')),
-                    ),
-                    FilledButton.tonalIcon(
-                      onPressed: scanIntoInvoice,
-                      icon: const Icon(Icons.qr_code_scanner_rounded),
-                      label: Text(l.text('إضافة بالكاميرا', 'Add with camera')),
-                    ),
-                  ],
-                );
-                if (compact) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: l.text('بحث في الأصناف', 'Search items'),
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          suffixIcon: productSearchQuery.isEmpty
-                              ? null
-                              : IconButton(
-                                  tooltip: l.text('مسح البحث', 'Clear search'),
-                                  onPressed: () => setDialogState(
-                                    () => productSearchQuery = '',
-                                  ),
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
-                        ),
-                        onChanged: (value) =>
-                            setDialogState(() => productSearchQuery = value),
-                      ),
-                      const SizedBox(height: 8),
-                      selector,
-                      const SizedBox(height: 8),
-                      buttons,
-                    ],
-                  );
+                if (selected != null) {
+                  setDialogState(() {
+                    addLine(selected, firstUnit(selected));
+                  });
                 }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: l.text('بحث في الأصناف', 'Search items'),
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: productSearchQuery.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: l.text('مسح البحث', 'Clear search'),
-                                onPressed: () => setDialogState(
-                                  () => productSearchQuery = '',
-                                ),
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                      ),
-                      onChanged: (value) =>
-                          setDialogState(() => productSearchQuery = value),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: selector),
-                        const SizedBox(width: 8),
-                        buttons,
-                      ],
-                    ),
-                  ],
-                );
               },
+              icon: const Icon(Icons.add_shopping_cart_rounded),
+              label: Text(l.text('بحث وإضافة منتج', 'Search and add product')),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: scanIntoInvoice,
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              label: Text(l.text('إضافة بالباركود', 'Add by barcode')),
             ),
             const SizedBox(height: 12),
             if (lines.isEmpty)
@@ -1471,6 +1467,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               },
             )
             .toList(),
+        quickSale: quickSale,
       );
       await _showLocalThenSync();
     }
@@ -1596,7 +1593,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 (_permissions.canCreateStoreSales ||
                     _permissions.canCreateStorePurchases)
           ? FloatingActionButton.extended(
-              onPressed: _createInvoice,
+              onPressed: () => _createInvoice(),
               icon: const Icon(Icons.receipt_long),
               label: Text(l.text('فاتورة جديدة', 'New invoice')),
             )
@@ -1743,6 +1740,25 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           },
         ),
         const SizedBox(height: 18),
+        if (_permissions.canViewSubUsers) ...[
+          ShwakelCard(
+            child: ListTile(
+              leading: const CircleAvatar(
+                child: Icon(Icons.point_of_sale_rounded),
+              ),
+              title: Text(l.text('الموظفون والكاشير', 'Employees and cashiers')),
+              subtitle: Text(
+                l.text(
+                  'أضف أكثر من كاشير وحدد البيع فقط أو صلاحيات المحل المناسبة لكل موظف.',
+                  'Add multiple cashiers and assign sales-only or suitable store permissions to each employee.',
+                ),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+              onTap: () => Navigator.pushNamed(context, '/sub-users'),
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
         if (_permissions.canManagePublicStorefront) ...[
           ShwakelCard(
             child: LayoutBuilder(
@@ -2303,40 +2319,55 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     );
   }
 
-  Widget _invoicesView() => _invoices.isEmpty
-      ? _empty(context.loc.text('لا توجد فواتير بعد', 'No invoices yet'))
-      : ListView.separated(
-          padding: const EdgeInsets.only(bottom: 96),
-          itemCount: _invoices.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final item = _invoices[index];
-            return ShwakelCard(
-              padding: const EdgeInsets.all(14),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  item['type'] == 'sale'
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                ),
-                title: Text(
-                  '${item['invoiceNumber']} • ${item['partyName']}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyBold,
-                ),
-                subtitle: Text(
-                  '${context.loc.text('المتبقي', 'Remaining')}: ${_money(item['dueAmount'])} • ${_syncLabel(item)}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Text(_money(item['total'])),
-                onTap: () => _recordInvoicePayment(item),
+  Widget _invoicesView() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (_permissions.canCreateStoreSales) ...[
+        FilledButton.icon(
+          onPressed: () => _createInvoice(quickSale: true),
+          icon: const Icon(Icons.bolt_rounded),
+          label: Text(context.loc.text('بيع سريع', 'Quick sale')),
+        ),
+        const SizedBox(height: 10),
+      ],
+      Expanded(
+        child: _invoices.isEmpty
+            ? _empty(context.loc.text('لا توجد فواتير بعد', 'No invoices yet'))
+            : ListView.separated(
+                padding: const EdgeInsets.only(bottom: 96),
+                itemCount: _invoices.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final item = _invoices[index];
+                  return ShwakelCard(
+                    padding: const EdgeInsets.all(14),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        item['type'] == 'sale'
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
+                      ),
+                      title: Text(
+                        '${item['isQuickSale'] == true ? context.loc.text('بيع سريع يومي', 'Daily quick sale') : item['invoiceNumber']} • ${item['partyName']}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodyBold,
+                      ),
+                      subtitle: Text(
+                        '${context.loc.text('الكاشير', 'Cashier')}: ${item['cashierName'] ?? ''}\n${context.loc.text('المتبقي', 'Remaining')}: ${_money(item['dueAmount'])} • ${_syncLabel(item)}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Text(_money(item['total'])),
+                      onTap: () => _recordInvoicePayment(item),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        );
+      ),
+    ],
+  );
 
   Widget _partiesView() {
     final parties = _filterParties(_parties, _partySearchQuery);

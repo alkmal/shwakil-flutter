@@ -22,6 +22,7 @@ class LocalSecurityService {
   static const _trustedUsernameKey = 'trusted_username';
   static const _deviceTrustedKey = 'device_trusted';
   static const _lastAuthMethodKey = 'last_local_auth_method';
+  static const _lastLocalUnlockAtKey = 'last_local_unlock_at';
   static const _backgroundedAtKey = 'app_backgrounded_at';
   static const _relockTimeoutSecondsKey = 'relock_timeout_seconds';
   static const _pinFailedAttemptsKey = 'pin_failed_attempts';
@@ -144,6 +145,7 @@ class LocalSecurityService {
     await prefs.remove(_pinFailedAttemptsKey);
     await prefs.remove(_pinLockoutUntilKey);
     await prefs.remove(_localSecurityReminderShownAtKey);
+    await prefs.remove(_lastLocalUnlockAtKey);
     await _secureStorage.delete(key: _pinHashKey);
     _relockRequired = false;
     _skipNextUnlock = false;
@@ -408,10 +410,9 @@ class LocalSecurityService {
       }
 
       final hasLocalSecurity = await hasConfiguredLocalSecurity();
-      final deviceTrusted = prefs.getBool(_deviceTrustedKey) ?? false;
       if (!hasLocalSecurity) {
-        if (deviceTrusted && !_securitySetupRequired) {
-          _securitySetupRequired = true;
+        if (_securitySetupRequired) {
+          _securitySetupRequired = false;
           changed = true;
           _notifySecurityStateChanged();
         }
@@ -419,12 +420,19 @@ class LocalSecurityService {
       }
 
       final canUseUnlock = await canUseTrustedUnlock();
-      if (canUseUnlock && !_relockRequired) {
+      final relockTimeout = await relockTimeoutInSeconds();
+      final lastUnlockAt = prefs.getInt(_lastLocalUnlockAtKey) ?? 0;
+      final launchGraceSeconds = relockTimeout < 15 ? 15 : relockTimeout;
+      final recentlyUnlocked =
+          lastUnlockAt > 0 &&
+          DateTime.now().millisecondsSinceEpoch - lastUnlockAt <
+              Duration(seconds: launchGraceSeconds).inMilliseconds;
+      if (canUseUnlock && !recentlyUnlocked && !_relockRequired) {
         _relockRequired = true;
         changed = true;
         _notifySecurityStateChanged();
-      } else if (!canUseUnlock && !_securitySetupRequired) {
-        _securitySetupRequired = true;
+      } else if ((!canUseUnlock || recentlyUnlocked) && _relockRequired) {
+        _relockRequired = false;
         changed = true;
         _notifySecurityStateChanged();
       }
@@ -437,8 +445,8 @@ class LocalSecurityService {
 
     final hasLocalSecurity = await hasConfiguredLocalSecurity();
     if (!hasLocalSecurity) {
-      if (!_securitySetupRequired) {
-        _securitySetupRequired = true;
+      if (_securitySetupRequired) {
+        _securitySetupRequired = false;
         changed = true;
         _notifySecurityStateChanged();
       }
@@ -465,6 +473,20 @@ class LocalSecurityService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_backgroundedAtKey);
     _relockRequired = false;
+    _notifySecurityStateChanged();
+  }
+
+  /// Records a completed PIN/biometric/password unlock so lifecycle rebuilds
+  /// cannot immediately ask for the same proof a second time.
+  static Future<void> markLocalUnlockCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      _lastLocalUnlockAtKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    await prefs.remove(_backgroundedAtKey);
+    _relockRequired = false;
+    _securitySetupRequired = false;
     _notifySecurityStateChanged();
   }
 
@@ -509,7 +531,7 @@ class LocalSecurityService {
     } on PlatformException catch (error) {
       if (_isSecureStorageDecryptError(error)) {
         await _secureStorage.delete(key: key);
-        _securitySetupRequired = true;
+        _securitySetupRequired = false;
         _notifySecurityStateChanged();
         return null;
       }

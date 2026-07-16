@@ -756,8 +756,13 @@ class AuthService {
           )
           .timeout(_requestTimeout);
       _captureRefreshedToken(response, expectedToken: authToken);
+      if (response.statusCode == 401 &&
+          attempt == 0 &&
+          await refreshTrustedDeviceSession()) {
+        continue;
+      }
       if (response.statusCode >= 400) {
-        throw Exception(_extractMessage(response.body));
+        throw _exceptionFromResponse(response.body);
       }
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       if (body['authenticated'] == false) {

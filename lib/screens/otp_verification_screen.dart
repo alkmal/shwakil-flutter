@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/auth_screen_shell.dart';
+import '../widgets/local_security_setup_prompt.dart';
 import '../widgets/shwakel_button.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -148,9 +149,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         password: widget.password ?? '',
         otpCode: _otpController.text.trim(),
       );
-      await LocalSecurityService.clearRelockRequirement();
-      await LocalSecurityService.clearSecuritySetupRequirement();
-      await LocalSecurityService.skipNextUnlock();
+      await LocalSecurityService.markLocalUnlockCompleted();
       await LocalSecurityService.markDeviceTrusted(
         widget.username.trim().toLowerCase(),
       );
@@ -162,11 +161,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         return;
       }
       final navigator = Navigator.of(context);
-      if (!await LocalSecurityService.hasConfiguredLocalSecurity()) {
-        await LocalSecurityService.markLocalSecuritySetupReminderShown();
-        if (!mounted) {
-          return;
-        }
+      if (await showOptionalLocalSecuritySetupPrompt(context)) {
+        if (!mounted) return;
         navigator.pushNamedAndRemoveUntil(
           '/security-settings',
           (route) => false,

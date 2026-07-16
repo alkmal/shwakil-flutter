@@ -17,6 +17,7 @@ import '../utils/app_permissions.dart';
 import '../utils/app_theme.dart';
 import '../utils/card_number_extractor.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/scan_card_presentation_policy.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/app_sidebar.dart';
@@ -75,8 +76,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _offlineAccessExpired = false;
   bool _clearedExpiredOfflineCards = false;
   bool _isSyncingOfflineCards = false;
-  bool _showUserBalance = true;
   bool _isPreparingScreen = true;
+  bool _showManualEntry = false;
+  bool _showAdditionalOptions = false;
   bool _autoRedeemOnScan = false;
   bool _autoRedeemOnScanForced = false;
   bool _isUpdatingAutoRedeemOnScan = false;
@@ -94,6 +96,20 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             permissions.canManageUsers ||
             _user?['id']?.toString() == '1');
   }
+
+  bool get _canRevealCardUsageIdentity =>
+      ScanCardPresentationPolicy.canRevealUsageIdentity(
+        _user,
+        offlineMode: widget.offlineMode,
+      );
+
+  bool get _canUseNfcScanner => ScanCardPresentationPolicy.canShowNfc(
+    _user,
+    offlineMode: widget.offlineMode,
+  );
+
+  bool get _canShowOfflineModeOption =>
+      ScanCardPresentationPolicy.canShowOfflineMode(_user);
 
   Map<String, dynamic> get _subUserOperationalLimits =>
       Map<String, dynamic>.from(
@@ -161,7 +177,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   Future<void> _load() async {
     try {
       final user = await _auth.currentUser();
-      final showUserBalanceFuture = _loadBalanceVisibilityPreference(user);
       if (mounted) {
         setState(() {
           _user = user;
@@ -172,12 +187,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           !widget.autoReadNfc &&
           !await _ensureOfflinePermissionAllowed(redirectIfDenied: true)) {
         return;
-      }
-      final showUserBalance = await showUserBalanceFuture;
-      if (mounted) {
-        setState(() {
-          _showUserBalance = showUserBalance;
-        });
       }
       await Future.wait<void>([
         _refreshOfflineCardStatus(),
@@ -239,31 +248,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         unverifiedForced;
     _autoRedeemOnScan =
         _autoRedeemOnScanForced || user?['cardAutoRedeemOnScanEnabled'] == true;
-  }
-
-  String _balanceVisibilityKey(Map<String, dynamic>? user) {
-    final userId = user?['id']?.toString().trim();
-    if (userId == null || userId.isEmpty) {
-      return 'scan_card_show_balance';
-    }
-    return 'scan_card_show_balance_$userId';
-  }
-
-  Future<bool> _loadBalanceVisibilityPreference(
-    Map<String, dynamic>? user,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_balanceVisibilityKey(user)) ?? true;
-  }
-
-  Future<void> _toggleBalanceVisibility() async {
-    final nextValue = !_showUserBalance;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_balanceVisibilityKey(_user), nextValue);
-    if (!mounted) {
-      return;
-    }
-    setState(() => _showUserBalance = nextValue);
   }
 
   Future<void> _toggleAutoRedeemOnScan() async {
@@ -396,6 +380,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         _autoNfcReadStarted ||
         !widget.autoReadNfc ||
         widget.offlineMode ||
+        !_canUseNfcScanner ||
         widget.initialBarcode?.isNotEmpty == true) {
       return;
     }
@@ -2150,6 +2135,25 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     if (_isReadingNfc || _isPreparingScreen) {
       return;
     }
+    if (!_canUseNfcScanner) {
+      if (!mounted) {
+        return;
+      }
+      await AppAlertService.showError(
+        context,
+        title: context.loc.text(
+          'الدفع بدون تلامس غير متاح',
+          'Contactless Payment Unavailable',
+        ),
+        message: context.loc.text(
+          'لا يملك هذا الحساب صلاحية قبول الدفع بدون تلامس.',
+          'This account is not allowed to accept contactless payments.',
+        ),
+        includeSupportGuidance: false,
+        reportVisibleError: false,
+      );
+      return;
+    }
     if (!await _nfc.isAvailable()) {
       if (!mounted) {
         return;
@@ -2420,12 +2424,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         !isUsed &&
         !_isInformationalCard(card) &&
         _canCurrentUserRedeemCard(card, permissions);
-    final canResellCards =
-        !widget.offlineMode &&
-        permissions.canResellCards &&
-        isUsed &&
-        !card.isPrivate;
-
     return BarcodeScannerDialogResult(
       headline: '',
       description: '',
@@ -2437,10 +2435,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       ),
       primaryActionLabel: canRedeemCards
           ? _t('screens_scan_card_screen.087')
-          : (canResellCards ? _t('screens_scan_card_screen.011') : null),
-      primaryActionIcon: canRedeemCards
-          ? Icons.download_done_rounded
-          : (canResellCards ? Icons.autorenew_rounded : null),
+          : null,
+      primaryActionIcon: canRedeemCards ? Icons.download_done_rounded : null,
       onPrimaryAction: canRedeemCards
           ? () async {
               final redeemed = await _redeemCard(card, showFeedback: false);
@@ -2454,12 +2450,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               );
               return null;
             }
-          : (canResellCards
-                ? () async {
-                    await _resellCardFromScannerResult(card);
-                    return _resolveScannerDialogResult(card.barcode);
-                  }
-                : null),
+          : null,
       hideDialogHeader: true,
       hideDialogDescription: true,
     );
@@ -2933,53 +2924,6 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
   }
 
-  Future<void> _resellCardFromScannerResult(VirtualCard card) async {
-    final l = context.loc;
-    final permissions = AppPermissions.fromUser(_user);
-    if (widget.offlineMode || !permissions.canResellCards) {
-      return;
-    }
-
-    final security = await TransferSecurityService.confirmTransfer(
-      context,
-      allowOtpFallback: true,
-    );
-    if (!mounted || !security.isVerified) {
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-    try {
-      final location =
-          await TransactionLocationService.captureCurrentLocation();
-      final response = await _api.resellCard(
-        cardId: card.id,
-        otpCode: security.otpCode,
-        securityPin: security.securityPin,
-        localAuthMethod: security.method,
-        location: location,
-      );
-      final updatedBalance = (response['balance'] as num?)?.toDouble();
-      final refreshed = await _lookupCard(card.barcode);
-      if (!mounted) return;
-      setState(() {
-        _card = refreshed.card;
-        if (updatedBalance != null) {
-          _user = {...?_user, 'balance': updatedBalance};
-        }
-      });
-    } catch (error) {
-      if (!mounted) return;
-      AppAlertService.showError(
-        context,
-        title: l.tr('screens_scan_card_screen.046'),
-        message: ErrorMessageService.sanitize(error),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
   String _statusLabel(VirtualCard card) {
     final l = context.loc;
     switch (card.status) {
@@ -3201,32 +3145,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         title: Text(l.text('فحص البطاقات', 'Card scan')),
         actions: widget.offlineMode
             ? _buildOfflineAppBarActions()
-            : [
-                IconButton(
-                  tooltip: _canCreateTemporaryTransferCode
-                      ? (_isDeviceOffline
-                            ? _t('screens_scan_card_screen.176')
-                            : _t('screens_scan_card_screen.174'))
-                      : _t('screens_scan_card_screen.177'),
-                  onPressed: _showTemporaryTransferCreator,
-                  icon: Icon(
-                    Icons.qr_code_2_rounded,
-                    color: _canCreateTemporaryTransferCode
-                        ? AppTheme.success
-                        : AppTheme.textTertiary,
-                  ),
-                ),
-                IconButton(
-                  tooltip: _t('screens_scan_card_screen.104'),
-                  onPressed: _switchScanMode,
-                  icon: const Icon(
-                    Icons.cloud_off_rounded,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                const AppNotificationAction(),
-                const QuickLogoutAction(),
-              ],
+            : const [AppNotificationAction(), QuickLogoutAction()],
       ),
       drawer: widget.offlineMode ? const AppSidebar() : null,
       body: SingleChildScrollView(
@@ -3385,8 +3304,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         ? l.text('مساحة السائق', 'Driver Workspace')
         : permissions.canIssueCards ||
               permissions.canAcceptPrepaidMultipayPayments
-        ? l.text('مساحة التاجر', 'Merchant Workspace')
-        : l.text('فحص البطاقة', 'Card Scan');
+        ? l.text('قبول بطاقة', 'Accept Card')
+        : l.text('تحقق من البطاقة', 'Check Card');
     return ShwakelCard(
       padding: const EdgeInsets.all(24),
       borderRadius: BorderRadius.circular(28),
@@ -3409,66 +3328,178 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                 ),
               ),
               const SizedBox(width: 14),
-              Expanded(child: Text(workspaceTitle, style: AppTheme.h3)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(workspaceTitle, style: AppTheme.h3),
+                    const SizedBox(height: 4),
+                    Text(
+                      l.text(
+                        'وجّه الكاميرا نحو رمز البطاقة',
+                        'Point the camera at the card code',
+                      ),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           if (widget.offlineMode) ...[
             const SizedBox(height: 14),
             _buildOfflineModeBanner(),
           ],
-          const SizedBox(height: 14),
-          _buildUserBalanceCard(),
-          if (!widget.offlineMode) ...[
-            const SizedBox(height: 12),
-            _buildAutoRedeemControl(),
+          const SizedBox(height: 20),
+          ShwakelButton(
+            key: const ValueKey('scan-open-camera'),
+            label: widget.offlineMode
+                ? _t('screens_scan_card_screen.077')
+                : l.tr('screens_scan_card_screen.005'),
+            icon: Icons.camera_alt_rounded,
+            onPressed: _isOfflineUseBlocked || _isPreparingScreen
+                ? null
+                : _openScannerDialog,
+          ),
+          if (_isPreparingScreen) ...[
+            const SizedBox(height: 10),
+            const LinearProgressIndicator(minHeight: 3),
           ],
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppTheme.border),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            key: const ValueKey('scan-toggle-manual-entry'),
+            onPressed: _isPreparingScreen
+                ? null
+                : () => setState(() {
+                    _showManualEntry = !_showManualEntry;
+                  }),
+            icon: Icon(
+              _showManualEntry
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_rounded,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _bcC,
-                    enabled: !_isPreparingScreen,
-                    decoration: InputDecoration(
-                      labelText: l.text('رقم الباركود', 'Barcode number'),
-                      hintText: _isPreparingScreen
-                          ? l.text('جارٍ التجهيز...', 'Preparing...')
-                          : null,
-                      prefixIcon: const Icon(Icons.qr_code_rounded),
-                      suffixIcon: _isSearching
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : null,
-                    ),
-                    onSubmitted: (_) => _search(),
-                  ),
-                ),
-              ],
+            label: Text(
+              _showManualEntry
+                  ? l.text('إخفاء الإدخال اليدوي', 'Hide manual entry')
+                  : l.text('إدخال الرقم يدويًا', 'Enter number manually'),
             ),
           ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            child: _showManualEntry
+                ? _buildManualEntrySection()
+                : const SizedBox.shrink(),
+          ),
+          TextButton.icon(
+            key: const ValueKey('scan-toggle-additional-options'),
+            onPressed: _isPreparingScreen
+                ? null
+                : () => setState(() {
+                    _showAdditionalOptions = !_showAdditionalOptions;
+                  }),
+            icon: Icon(
+              _showAdditionalOptions
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.tune_rounded,
+            ),
+            label: Text(
+              _showAdditionalOptions
+                  ? l.text('إخفاء الخيارات الأخرى', 'Hide other options')
+                  : l.text('خيارات أخرى', 'Other options'),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            child: _showAdditionalOptions
+                ? _buildAdditionalScanOptions(permissions)
+                : const SizedBox.shrink(),
+          ),
+          if (_card != null) ...[
+            const SizedBox(height: 18),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: _buildInlineResultSection(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManualEntrySection() {
+    final l = context.loc;
+    return Container(
+      key: const ValueKey('scan-manual-entry'),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _bcC,
+            enabled: !_isPreparingScreen,
+            textDirection: TextDirection.ltr,
+            decoration: InputDecoration(
+              labelText: l.text('رقم البطاقة', 'Card number'),
+              prefixIcon: const Icon(Icons.qr_code_rounded),
+              suffixIcon: _isSearching
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : null,
+            ),
+            onSubmitted: (_) => _search(),
+          ),
           const SizedBox(height: 10),
+          ShwakelButton(
+            label: widget.offlineMode
+                ? _t('screens_scan_card_screen.076')
+                : l.tr('screens_scan_card_screen.006'),
+            icon: Icons.search_rounded,
+            onPressed: _isOfflineUseBlocked || _isSearching ? null : _search,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdditionalScanOptions(AppPermissions permissions) {
+    final l = context.loc;
+    final canShowOfflineOption =
+        widget.offlineMode || _canShowOfflineModeOption;
+    return Container(
+      key: const ValueKey('scan-additional-options'),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               OutlinedButton.icon(
-                onPressed: _isPreparingScreen
-                    ? null
-                    : _readCardNumberFromClipboard,
+                onPressed: _readCardNumberFromClipboard,
                 icon: const Icon(Icons.content_paste_rounded),
                 label: Text(l.text('قراءة من رسالة', 'Read from message')),
               ),
               OutlinedButton.icon(
-                onPressed: _isPreparingScreen || _isReadingWrittenNumber
+                onPressed: _isReadingWrittenNumber
                     ? null
                     : _readWrittenCardNumber,
                 icon: _isReadingWrittenNumber
@@ -3477,113 +3508,67 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.document_scanner_rounded),
-                label: Text(
-                  l.text(
-                    'قراءة رقم مكتوب بالكاميرا',
-                    'Read handwritten number with camera',
+                label: Text(l.text('قراءة رقم مكتوب', 'Read a written number')),
+              ),
+              if (_canUseNfcScanner)
+                OutlinedButton.icon(
+                  key: const ValueKey('scan-nfc-option'),
+                  onPressed: _isReadingNfc ? null : _readNfcFromUnifiedScanner,
+                  icon: const Icon(Icons.contactless_rounded),
+                  label: Text(
+                    _isReadingNfc
+                        ? l.text('جارٍ القراءة', 'Reading')
+                        : l.text('الدفع بدون تلامس', 'Contactless payment'),
                   ),
                 ),
-              ),
+              if (canShowOfflineOption)
+                OutlinedButton.icon(
+                  key: const ValueKey('scan-offline-option'),
+                  onPressed: _switchScanMode,
+                  icon: Icon(
+                    widget.offlineMode
+                        ? Icons.cloud_done_rounded
+                        : Icons.cloud_off_rounded,
+                  ),
+                  label: Text(
+                    widget.offlineMode
+                        ? l.text('العودة للأونلاين', 'Return online')
+                        : l.text('وضع الأوفلاين', 'Offline mode'),
+                  ),
+                ),
+              if (!widget.offlineMode && permissions.canTransfer)
+                OutlinedButton.icon(
+                  onPressed: _showTemporaryTransferCreator,
+                  icon: const Icon(Icons.qr_code_2_rounded),
+                  label: Text(_t('screens_scan_card_screen.174')),
+                ),
+              if (!widget.offlineMode && permissions.canRedeemCards)
+                OutlinedButton.icon(
+                  onPressed: _isUpdatingAutoRedeemOnScan
+                      ? null
+                      : _toggleAutoRedeemOnScan,
+                  icon: _isUpdatingAutoRedeemOnScan
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _autoRedeemOnScan || _autoRedeemOnScanForced
+                              ? Icons.flash_on_rounded
+                              : Icons.touch_app_rounded,
+                        ),
+                  label: Text(
+                    _autoRedeemOnScan || _autoRedeemOnScanForced
+                        ? l.text('السحب التلقائي مفعّل', 'Auto redeem enabled')
+                        : l.text('السحب اليدوي', 'Manual redeem'),
+                  ),
+                ),
             ],
           ),
-          if (_isPreparingScreen) ...[
-            const SizedBox(height: 10),
-            const LinearProgressIndicator(minHeight: 3),
-          ],
           if (widget.offlineMode) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _offlineInventoryStatusCard(),
           ],
-          const SizedBox(height: 14),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 520;
-              if (isCompact) {
-                return Column(
-                  children: [
-                    ShwakelButton(
-                      label: widget.offlineMode
-                          ? _t('screens_scan_card_screen.077')
-                          : l.tr('screens_scan_card_screen.005'),
-                      icon: Icons.camera_alt_rounded,
-                      isSecondary: true,
-                      onPressed: _isOfflineUseBlocked
-                          ? null
-                          : _openScannerDialog,
-                    ),
-                    const SizedBox(height: 12),
-                    ShwakelButton(
-                      label: widget.offlineMode
-                          ? _t('screens_scan_card_screen.076')
-                          : l.tr('screens_scan_card_screen.006'),
-                      icon: Icons.search_rounded,
-                      onPressed: _isOfflineUseBlocked ? null : _search,
-                    ),
-                    if (!widget.offlineMode) ...[
-                      const SizedBox(height: 12),
-                      ShwakelButton(
-                        label: _isReadingNfc
-                            ? 'جارٍ قراءة الدفع'
-                            : 'قبول دفع بدون تلامس',
-                        icon: Icons.contactless_rounded,
-                        isSecondary: true,
-                        onPressed: _isReadingNfc
-                            ? null
-                            : _readNfcFromUnifiedScanner,
-                      ),
-                    ],
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(
-                    child: ShwakelButton(
-                      label: widget.offlineMode
-                          ? _t('screens_scan_card_screen.077')
-                          : l.tr('screens_scan_card_screen.005'),
-                      icon: Icons.camera_alt_rounded,
-                      isSecondary: true,
-                      onPressed: _isOfflineUseBlocked
-                          ? null
-                          : _openScannerDialog,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ShwakelButton(
-                      label: widget.offlineMode
-                          ? _t('screens_scan_card_screen.076')
-                          : l.tr('screens_scan_card_screen.006'),
-                      icon: Icons.search_rounded,
-                      onPressed: _isOfflineUseBlocked ? null : _search,
-                    ),
-                  ),
-                  if (!widget.offlineMode) ...[
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ShwakelButton(
-                        label: _isReadingNfc
-                            ? 'جارٍ قراءة الدفع'
-                            : 'قبول دفع بدون تلامس',
-                        icon: Icons.contactless_rounded,
-                        isSecondary: true,
-                        onPressed: _isReadingNfc
-                            ? null
-                            : _readNfcFromUnifiedScanner,
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 18),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            child: _buildInlineResultSection(),
-          ),
         ],
       ),
     );
@@ -3710,364 +3695,111 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     );
   }
 
-  Widget _buildUserBalanceCard() {
-    final rawBalance = (_user?['balance'] as num?)?.toDouble() ?? 0;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_rounded,
-              color: AppTheme.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'رصيدك الحالي',
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _showUserBalance
-                      ? CurrencyFormatter.ils(rawBalance)
-                      : '••••••',
-                  style: AppTheme.h3.copyWith(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: _showUserBalance
-                ? _t('screens_scan_card_screen.179')
-                : _t('screens_scan_card_screen.180'),
-            onPressed: _toggleBalanceVisibility,
-            icon: Icon(
-              _showUserBalance
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAutoRedeemControl() {
-    final active = _autoRedeemOnScan || _autoRedeemOnScanForced;
-    final unverifiedForced =
-        _user?['cardAutoRedeemOnScanUnverifiedForced'] == true ||
-        (![
-              'admin',
-              'support',
-              'finance',
-            ].contains(_user?['role']?.toString() ?? '') &&
-            (_user?['transferVerificationStatus']?.toString() ??
-                    'unverified') !=
-                'approved');
-    final color = _autoRedeemOnScanForced
-        ? AppTheme.warning
-        : active
-        ? AppTheme.success
-        : AppTheme.textSecondary;
-    final title = _autoRedeemOnScanForced
-        ? (unverifiedForced
-              ? 'السحب التلقائي مفعل للحساب غير الموثق'
-              : 'السحب التلقائي مفروض من الإدارة')
-        : active
-        ? 'السحب التلقائي مفعل'
-        : 'السحب اليدوي مفعل';
-    final subtitle = active
-        ? 'الاستخدام يتم مباشرة بعد القراءة.'
-        : 'اعرض البطاقة ثم أكد يدويًا.';
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: _isUpdatingAutoRedeemOnScan ? null : _toggleAutoRedeemOnScan,
-        child: Ink(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: 0.18)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: _isUpdatingAutoRedeemOnScan
-                    ? Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(color),
-                        ),
-                      )
-                    : Icon(
-                        active
-                            ? Icons.download_done_rounded
-                            : Icons.fingerprint_rounded,
-                        color: color,
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTheme.bodyBold.copyWith(color: color),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textSecondary,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch.adaptive(
-                value: active,
-                onChanged: _isUpdatingAutoRedeemOnScan
-                    ? null
-                    : (_) => _toggleAutoRedeemOnScan(),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildInlineResultSection() {
     final l = context.loc;
     if (_card == null) {
-      return Container(
-        key: const ValueKey('scan-empty'),
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l.tr('screens_scan_card_screen.014'), style: AppTheme.h3),
-          ],
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     final card = _card!;
     final isAutoRedeemSuccess = _lastAutoRedeemedBarcode == card.barcode;
     final actualUsed = card.status == CardStatus.used;
     final isUsed = actualUsed && !isAutoRedeemSuccess;
-    final accent = isUsed ? AppTheme.error : AppTheme.success;
+    final accent = _cardAccent(card, forceSuccess: isAutoRedeemSuccess);
     final appPermissions = AppPermissions.fromUser(_user);
     final canRedeemCards =
-        appPermissions.canRedeemCards && !_isInformationalCard(card);
+        appPermissions.canRedeemCards &&
+        !actualUsed &&
+        !_isInformationalCard(card) &&
+        _canCurrentUserRedeemCard(card, appPermissions);
     final canResellCards =
-        !widget.offlineMode && appPermissions.canResellCards && !card.isPrivate;
+        !widget.offlineMode &&
+        actualUsed &&
+        !isAutoRedeemSuccess &&
+        appPermissions.canResellCards &&
+        !card.isPrivate;
+    final temporal = _cardTemporalStatus(card);
+    final headline = isAutoRedeemSuccess
+        ? l.text('تم اعتماد البطاقة', 'Card approved')
+        : isUsed
+        ? l.tr('screens_scan_card_screen.015')
+        : temporal != null && !temporal.isActive
+        ? temporal.label
+        : l.tr('screens_scan_card_screen.016');
 
     return Container(
       key: ValueKey(card.barcode),
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: accent.withValues(alpha: 0.18)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 720;
-
-              final identityBlock = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        isUsed ? Icons.close_rounded : Icons.verified_rounded,
-                        color: accent,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          isUsed
-                              ? l.tr('screens_scan_card_screen.015')
-                              : l.tr('screens_scan_card_screen.016'),
-                          style: AppTheme.h3.copyWith(color: accent),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    card.barcode,
-                    style: AppTheme.bodyBold.copyWith(
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              );
-
-              final valueHero = Container(
-                width: compact ? double.infinity : 270,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isUsed
-                        ? AppTheme.usedCardGradient.colors
-                        : AppTheme.unusedCardGradient.colors,
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: accent.withValues(alpha: 0.18)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withValues(alpha: 0.14),
-                      blurRadius: 22,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.72),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(Icons.payments_rounded, color: accent),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            l.tr('screens_scan_card_screen.109'),
-                            style: AppTheme.bodyBold.copyWith(color: accent),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _cardAmountLabel(card),
-                      style: AppTheme.h1.copyWith(
-                        color: accent,
-                        fontSize: compact ? 34 : 42,
-                        fontWeight: FontWeight.w900,
-                        height: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      isUsed
-                          ? l.tr('screens_scan_card_screen.110')
-                          : l.tr('screens_scan_card_screen.087'),
-                      style: AppTheme.caption.copyWith(
-                        color: accent.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-
-              if (compact) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    identityBlock,
-                    const SizedBox(height: 14),
-                    valueHero,
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: identityBlock),
-                  const SizedBox(width: 14),
-                  valueHero,
-                ],
-              );
-            },
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.13),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isUsed ? Icons.close_rounded : Icons.verified_rounded,
+                color: accent,
+                size: 34,
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _infoChip(
-                icon: Icons.category_rounded,
-                label: _cardTypeLabel(card),
-              ),
-              if (card.isDelivery)
-                _infoChip(
-                  icon: Icons.payments_rounded,
-                  label: _cardUsageNote(card),
-                ),
-              _infoChip(
-                icon: Icons.public_rounded,
-                label: _visibilityLabel(card),
-              ),
-              _infoChip(
-                icon: isUsed
-                    ? Icons.cancel_schedule_send_rounded
-                    : Icons.verified_rounded,
-                label: _statusLabel(card),
-              ),
-            ],
+          const SizedBox(height: 12),
+          Text(
+            headline,
+            textAlign: TextAlign.center,
+            style: AppTheme.h3.copyWith(color: accent),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
+          Text(
+            _cardAmountLabel(card),
+            textAlign: TextAlign.center,
+            style: AppTheme.h1.copyWith(
+              color: accent,
+              fontSize: 38,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _cardTypeLabel(card),
+            textAlign: TextAlign.center,
+            style: AppTheme.bodyBold.copyWith(color: AppTheme.textSecondary),
+          ),
+          if (isUsed) ...[
+            const SizedBox(height: 10),
+            Text(
+              _usedCardDetails(card),
+              textAlign: TextAlign.center,
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textSecondary,
+                height: 1.45,
+              ),
+            ),
+          ] else if (temporal != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              temporal.message,
+              textAlign: TextAlign.center,
+              style: AppTheme.caption.copyWith(
+                color: temporal.color,
+                height: 1.45,
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
           if (!actualUsed && canRedeemCards)
             ShwakelButton(
               label: l.tr('screens_scan_card_screen.087'),
@@ -4075,14 +3807,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               onPressed: _isOfflineUseBlocked ? null : _redeem,
               isLoading: _isSubmitting,
             )
-          else if (actualUsed && !isAutoRedeemSuccess && canResellCards)
-            ShwakelButton(
-              label: l.tr('screens_scan_card_screen.011'),
-              icon: Icons.autorenew_rounded,
-              onPressed: _resell,
-              isLoading: _isSubmitting,
-            )
-          else
+          else if (!isAutoRedeemSuccess)
             Text(
               actualUsed
                   ? l.tr('screens_scan_card_screen.110')
@@ -4090,10 +3815,37 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               style: AppTheme.bodyAction.copyWith(
                 color: AppTheme.textSecondary,
               ),
+              textAlign: TextAlign.center,
+            ),
+          if (!actualUsed && canRedeemCards) const SizedBox(height: 10),
+          OutlinedButton.icon(
+            key: const ValueKey('scan-another-card'),
+            onPressed: _isSubmitting ? null : _scanAnotherCard,
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            label: Text(l.text('فحص بطاقة أخرى', 'Scan another card')),
+          ),
+          if (canResellCards)
+            TextButton.icon(
+              onPressed: _isSubmitting ? null : _resell,
+              icon: const Icon(Icons.autorenew_rounded),
+              label: Text(l.tr('screens_scan_card_screen.011')),
+            ),
+          if (_canRevealSensitiveCardData)
+            TextButton.icon(
+              onPressed: () => _showCardDetailsSheet(card),
+              icon: const Icon(Icons.info_outline_rounded),
+              label: Text(l.text('عرض التفاصيل', 'Show details')),
             ),
         ],
       ),
     );
+  }
+
+  void _scanAnotherCard() {
+    _clearTransientScanState(clearBarcode: true);
+    if (mounted) {
+      unawaited(_openScannerDialog());
+    }
   }
 
   // ignore: unused_element
@@ -4146,232 +3898,126 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     VirtualCard card, {
     bool forceSuccess = false,
   }) {
-    final isFailed = card.status == CardStatus.used && !forceSuccess;
+    final l = context.loc;
+    final isUsed = card.status == CardStatus.used && !forceSuccess;
+    final accent = _cardAccent(card, forceSuccess: forceSuccess);
     final temporal = _cardTemporalStatus(card);
     final attendanceScan = _attendanceScanInfo(card);
+    final headline = forceSuccess
+        ? l.text('تم اعتماد البطاقة', 'Card approved')
+        : isUsed
+        ? l.tr('screens_scan_card_screen.015')
+        : temporal != null && !temporal.isActive
+        ? temporal.label
+        : l.tr('screens_scan_card_screen.016');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildCardSummaryPanel(card, forceSuccess: forceSuccess),
-        const SizedBox(height: 14),
-        if (forceSuccess) ...[
-          _resultBadge(
-            'سحب تلقائي',
-            card.isPrivate
-                ? 'تم تأكيد استخدام البطاقة الخاصة تلقائيًا بدون إضافة رصيد.'
-                : 'تم سحب البطاقة تلقائيًا عند الفحص وإضافتها حسب الصلاحيات.',
-            AppTheme.success,
-            icon: Icons.flash_on_rounded,
-            isFullWidth: true,
+        Align(
+          alignment: Alignment.center,
+          child: Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isUsed ? Icons.close_rounded : Icons.verified_rounded,
+              color: accent,
+              size: 36,
+            ),
           ),
-          const SizedBox(height: 10),
-        ],
-        _resultBadge(
-          context.loc.tr('screens_scan_card_screen.024'),
-          _cardTypeLabel(card),
-          isFailed ? AppTheme.error : AppTheme.primary,
-          icon: Icons.category_rounded,
-          isFullWidth: isFailed,
         ),
-        if (card.status == CardStatus.used) ...[
+        const SizedBox(height: 12),
+        Text(
+          headline,
+          textAlign: TextAlign.center,
+          style: AppTheme.h3.copyWith(color: accent),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          _cardAmountLabel(card),
+          textAlign: TextAlign.center,
+          style: AppTheme.h1.copyWith(
+            color: accent,
+            fontSize: 38,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _cardTypeLabel(card),
+          textAlign: TextAlign.center,
+          style: AppTheme.bodyBold.copyWith(color: AppTheme.textSecondary),
+        ),
+        if (isUsed) ...[
           const SizedBox(height: 10),
-          _resultBadge(
-            forceSuccess ? 'تم الاستخدام الآن' : 'البطاقة مستخدمة',
+          Text(
             _usedCardDetails(card),
-            forceSuccess ? AppTheme.success : AppTheme.error,
-            icon: forceSuccess
-                ? Icons.task_alt_rounded
-                : Icons.assignment_late_rounded,
-            isFullWidth: true,
+            textAlign: TextAlign.center,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.45,
+            ),
           ),
         ],
         if (temporal != null) ...[
           const SizedBox(height: 10),
-          _resultBadge(
-            temporal.label,
+          Text(
             temporal.message,
-            temporal.color,
-            icon: temporal.icon,
-            isFullWidth: true,
+            textAlign: TextAlign.center,
+            style: AppTheme.caption.copyWith(
+              color: temporal.color,
+              height: 1.45,
+            ),
           ),
         ],
         if (attendanceScan != null) ...[
           const SizedBox(height: 10),
-          _resultBadge(
-            'نتيجة الحضور والانصراف',
+          Text(
             attendanceScan['label']?.toString() ?? 'تم تسجيل القراءة',
-            attendanceScan['action'] == 'check_out'
-                ? AppTheme.accent
-                : AppTheme.success,
-            icon: attendanceScan['action'] == 'check_out'
-                ? Icons.logout_rounded
-                : Icons.login_rounded,
-            isFullWidth: true,
+            textAlign: TextAlign.center,
+            style: AppTheme.bodyBold.copyWith(
+              color: attendanceScan['action'] == 'check_out'
+                  ? AppTheme.accent
+                  : AppTheme.success,
+            ),
           ),
         ],
-        if (_cardUsageNote(card).trim().isNotEmpty) ...[
+        if (_driverDeliveryProxyNote(card).isNotEmpty) ...[
           const SizedBox(height: 10),
-          _resultBadge(
-            card.isAttendance ? 'بيانات الربط' : 'التفاصيل',
-            _cardUsageNote(card),
-            AppTheme.info,
-            icon: card.isAttendance
-                ? Icons.badge_rounded
-                : Icons.description_rounded,
-            isFullWidth: true,
+          Text(
+            _driverDeliveryProxyNote(card),
+            textAlign: TextAlign.center,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.4,
+            ),
           ),
         ],
       ],
     );
   }
 
-  Widget _buildCardSummaryPanel(VirtualCard card, {bool forceSuccess = false}) {
-    final l = context.loc;
-    final isUsed = card.status == CardStatus.used && !forceSuccess;
-    final isAutoRedeemed = card.status == CardStatus.used && forceSuccess;
-    final accent = _cardAccent(card, forceSuccess: forceSuccess);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 720;
-        final hero = Container(
-          width: compact ? double.infinity : 270,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isUsed
-                  ? AppTheme.usedCardGradient.colors
-                  : AppTheme.unusedCardGradient.colors,
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: accent.withValues(alpha: 0.18)),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.14),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(Icons.payments_rounded, color: accent),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      l.tr('screens_scan_card_screen.109'),
-                      style: AppTheme.bodyBold.copyWith(color: accent),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _cardAmountLabel(card),
-                style: AppTheme.h1.copyWith(
-                  color: accent,
-                  fontSize: compact ? 34 : 42,
-                  fontWeight: FontWeight.w900,
-                  height: 1.0,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _cardTypeLabel(card),
-                style: AppTheme.caption.copyWith(
-                  color: accent.withValues(alpha: 0.9),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (_driverDeliveryProxyNote(card).isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _driverDeliveryProxyNote(card),
-                  style: AppTheme.caption.copyWith(
-                    color: accent.withValues(alpha: 0.92),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-
-        final header = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isUsed ? Icons.close_rounded : Icons.verified_rounded,
-                  color: accent,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    isAutoRedeemed
-                        ? 'تم سحب البطاقة تلقائيًا'
-                        : isUsed
-                        ? l.tr('screens_scan_card_screen.015')
-                        : l.tr('screens_scan_card_screen.016'),
-                    style: AppTheme.h3.copyWith(color: accent),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              card.barcode,
-              style: AppTheme.bodyBold.copyWith(color: AppTheme.textPrimary),
-            ),
-          ],
-        );
-
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [header, const SizedBox(height: 14), hero],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: header),
-            const SizedBox(width: 14),
-            hero,
-          ],
-        );
-      },
-    );
-  }
-
   String _usedCardDetails(VirtualCard card) {
-    final usedBy = (card.usedBy ?? '').trim().isNotEmpty
-        ? card.usedBy!.trim()
-        : 'غير معروف';
+    final l = context.loc;
     final usedAt = card.usedAt != null
         ? _formatDate(card.usedAt!.toLocal())
         : '-';
+    if (!_canRevealCardUsageIdentity) {
+      return l.text('وقت الاستخدام: $usedAt', 'Used at: $usedAt');
+    }
+    final usedBy = (card.usedBy ?? '').trim().isNotEmpty
+        ? card.usedBy!.trim()
+        : l.text('غير معروف', 'Unknown');
     final customerName = (card.customerName ?? '').trim();
     return [
-      'عند: $usedBy',
-      'وقت الاستخدام: $usedAt',
-      if (customerName.isNotEmpty) 'المستفيد: $customerName',
+      l.text('عند: $usedBy', 'By: $usedBy'),
+      l.text('وقت الاستخدام: $usedAt', 'Used at: $usedAt'),
+      if (customerName.isNotEmpty)
+        l.text('المستفيد: $customerName', 'Customer: $customerName'),
     ].join('\n');
   }
 
@@ -4925,14 +4571,16 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
                               l.tr('screens_scan_card_screen.029'),
                               card.issuedByUsername ?? '-',
                             ),
-                            _detailTile(
-                              l.tr('screens_scan_card_screen.030'),
-                              card.usedBy ?? '-',
-                            ),
-                            _detailTile(
-                              l.tr('screens_scan_card_screen.031'),
-                              card.customerName ?? '-',
-                            ),
+                            if (_canRevealCardUsageIdentity)
+                              _detailTile(
+                                l.tr('screens_scan_card_screen.030'),
+                                card.usedBy ?? '-',
+                              ),
+                            if (_canRevealCardUsageIdentity)
+                              _detailTile(
+                                l.tr('screens_scan_card_screen.031'),
+                                card.customerName ?? '-',
+                              ),
                             _detailTile(
                               l.tr('screens_scan_card_screen.032'),
                               _formatDate(card.createdAt),

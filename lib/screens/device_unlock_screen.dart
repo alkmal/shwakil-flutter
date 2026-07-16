@@ -180,8 +180,7 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
 
   Future<void> _completeUnlock() async {
     final l = context.loc;
-    await LocalSecurityService.skipNextUnlock();
-    await LocalSecurityService.clearRelockRequirement();
+    await LocalSecurityService.markLocalUnlockCompleted();
     try {
       final refreshed = await _auth.tryRefreshCurrentUser();
       final user = await _auth.currentUser();
@@ -220,6 +219,19 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       if (ErrorMessageService.requiresFreshLogin(error)) {
         final restored = await _auth.refreshTrustedDeviceSession();
         if (restored) {
+          await RealtimeNotificationService.start();
+          await LocalSecurityService.clearSecuritySetupRequirement();
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            _returnRoute,
+            (route) => false,
+          );
+          return;
+        }
+        final cachedUser = await _auth.currentUser();
+        final hasSavedSession = await _auth.isLoggedIn();
+        if (cachedUser != null && hasSavedSession) {
           await RealtimeNotificationService.start();
           await LocalSecurityService.clearSecuritySetupRequirement();
           if (!mounted) return;

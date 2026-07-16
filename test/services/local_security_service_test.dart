@@ -90,7 +90,7 @@ void main() {
   });
 
   test(
-    'requires security setup on a fresh launch for an unsecured trusted device',
+    'does not force security setup on an unsecured trusted device',
     () async {
       await LocalSecurityService.markDeviceTrusted('trusted-user');
       await LocalSecurityService.clearRelockRequirement();
@@ -98,7 +98,7 @@ void main() {
       await LocalSecurityService.syncRelockStateForLaunch();
 
       expect(LocalSecurityService.relockRequired, isFalse);
-      expect(LocalSecurityService.securitySetupRequired, isTrue);
+      expect(LocalSecurityService.securitySetupRequired, isFalse);
     },
   );
 
@@ -114,7 +114,7 @@ void main() {
       await LocalSecurityService.syncRelockStateForLaunch();
       expect(
         NotificationNavigationService.requiredLocalSecurityRoute(),
-        '/security-settings',
+        isNull,
       );
 
       await LocalSecurityService.clearTrustedState();
@@ -127,6 +127,16 @@ void main() {
       );
     },
   );
+
+  test('does not relock again immediately after a completed unlock', () async {
+    await LocalSecurityService.savePin('1234');
+    await LocalSecurityService.markDeviceTrusted('trusted-user');
+    await LocalSecurityService.markLocalUnlockCompleted();
+
+    await LocalSecurityService.syncRelockStateForLaunch();
+
+    expect(LocalSecurityService.relockRequired, isFalse);
+  });
 }
 
 Future<String> _legacyHash(String pin) async {

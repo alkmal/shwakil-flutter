@@ -150,6 +150,58 @@ void main() {
     });
 
     test(
+      'recovers auth/me 401 with the trusted device refresh token',
+      () async {
+        var meCalls = 0;
+        final auth = AuthService(
+          client: MockClient((request) async {
+            if (request.url.path.endsWith('/auth/device-session/refresh')) {
+              return http.Response(
+                jsonEncode({
+                  'token': 'recovered-token',
+                  'refreshToken': 'rotated-refresh-token',
+                  'user': {'id': 'user-1', 'name': 'Recovered user'},
+                }),
+                200,
+                headers: {'content-type': 'application/json'},
+              );
+            }
+            meCalls++;
+            if (meCalls == 1) {
+              return http.Response(
+                jsonEncode({'message': 'Unauthorized'}),
+                401,
+                headers: {'content-type': 'application/json'},
+              );
+            }
+            return http.Response(
+              jsonEncode({
+                'authenticated': true,
+                'user': {'id': 'user-1', 'name': 'Recovered user'},
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }),
+        );
+        await _seedSession(auth);
+        await const FlutterSecureStorage().write(
+          key: 'device_session_refresh_token',
+          value: 'trusted-refresh-token',
+        );
+
+        await auth.refreshCurrentUser();
+
+        expect(await auth.token(), 'recovered-token');
+        expect(
+          await auth.currentUser(),
+          containsPair('name', 'Recovered user'),
+        );
+        expect(meCalls, 2);
+      },
+    );
+
+    test(
       'keeps the cached session when the device needs confirmation',
       () async {
         final auth = AuthService(
