@@ -745,7 +745,7 @@ class _RootBackNavigationGuardState extends State<_RootBackNavigationGuard> {
 class _AdaptiveWebSidebarShell extends StatelessWidget {
   const _AdaptiveWebSidebarShell({required this.child});
 
-  static const double _desktopBreakpoint = 1100;
+  static const double _desktopBreakpoint = AppSidebar.desktopBreakpoint;
   static const double _sidebarWidth = 340;
   static const Set<String> _publicRoutes = {
     '/login',

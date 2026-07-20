@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -12,6 +13,17 @@ class AppSidebar extends StatefulWidget {
 
   final bool embedded;
   final String? currentRouteName;
+
+  /// The desktop web shell already renders an embedded navigation rail.
+  /// Returning null here prevents every page Scaffold from registering a
+  /// second Drawer (and therefore a second sidebar/hamburger) at wide widths.
+  static Widget? drawerFor(BuildContext context, {String? currentRouteName}) {
+    final isDesktopWeb =
+        kIsWeb && MediaQuery.sizeOf(context).width >= desktopBreakpoint;
+    return isDesktopWeb ? null : AppSidebar(currentRouteName: currentRouteName);
+  }
+
+  static const double desktopBreakpoint = 1100;
 
   @override
   State<AppSidebar> createState() => _AppSidebarState();

@@ -355,7 +355,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

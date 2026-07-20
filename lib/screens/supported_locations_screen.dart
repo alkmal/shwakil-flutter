@@ -334,7 +334,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

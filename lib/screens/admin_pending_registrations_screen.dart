@@ -465,7 +465,7 @@ class _AdminPendingRegistrationsScreenState
         appBar: AppBar(
           title: Text(l.tr('screens_admin_pending_registrations_screen.015')),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           maxWidth: 620,
           child: Center(
@@ -481,7 +481,7 @@ class _AdminPendingRegistrationsScreenState
         appBar: AppBar(
           title: Text(l.tr('screens_admin_pending_registrations_screen.015')),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -518,7 +518,7 @@ class _AdminPendingRegistrationsScreenState
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(

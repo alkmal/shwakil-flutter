@@ -247,7 +247,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           title: Text(l.tr('screens_inventory_screen.001')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -288,7 +288,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: Stack(
         children: [
           RefreshIndicator(

@@ -190,7 +190,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   title: Text(l.tr('screens_security_settings_screen.001')),
                   actions: const [AppNotificationAction(), QuickLogoutAction()],
                 ),
-                drawer: const AppSidebar(),
+                drawer: AppSidebar.drawerFor(context),
                 body: SingleChildScrollView(
                   padding: const EdgeInsets.all(AppTheme.spacingLg),
                   child: ResponsiveScaffoldContainer(

@@ -112,7 +112,7 @@ class _IssuedCardUsageReportScreenState
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: () => _load(page: 1),
         child: ResponsiveScaffoldContainer(

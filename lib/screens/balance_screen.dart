@@ -988,7 +988,7 @@ class _BalanceScreenState extends State<BalanceScreen>
           ),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           child: Center(
             child: ShwakelCard(
@@ -1034,7 +1034,7 @@ class _BalanceScreenState extends State<BalanceScreen>
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _loadBalance,
         child: SingleChildScrollView(

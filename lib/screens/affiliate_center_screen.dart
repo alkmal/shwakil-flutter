@@ -201,7 +201,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
           title: Text(l.tr('screens_affiliate_center_screen.004')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -262,7 +262,7 @@ class _AffiliateCenterScreenState extends State<AffiliateCenterScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(

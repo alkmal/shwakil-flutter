@@ -3116,7 +3116,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
               ? _buildOfflineAppBarActions()
               : const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: widget.offlineMode ? const AppSidebar() : null,
+        drawer: widget.offlineMode ? AppSidebar.drawerFor(context) : null,
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -3147,7 +3147,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             ? _buildOfflineAppBarActions()
             : const [AppNotificationAction(), QuickLogoutAction()],
       ),
-      drawer: widget.offlineMode ? const AppSidebar() : null,
+      drawer: widget.offlineMode ? AppSidebar.drawerFor(context) : null,
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
           padding: AppTheme.pagePadding(context, top: 18),

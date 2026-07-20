@@ -608,7 +608,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             ? null
             : const [AppNotificationAction(), QuickLogoutAction()],
       ),
-      drawer: _user == null ? null : const AppSidebar(),
+      drawer: _user == null ? null : AppSidebar.drawerFor(context),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
           maxWidth: 860,

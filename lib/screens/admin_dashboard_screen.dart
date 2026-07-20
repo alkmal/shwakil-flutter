@@ -442,7 +442,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           title: const SizedBox.shrink(),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -619,7 +619,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const QuickLogoutAction(),
           ],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: NestedScrollView(

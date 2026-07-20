@@ -368,7 +368,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(title: Text(l.tr('screens_admin_locations_screen.018'))),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           maxWidth: 620,
           child: Center(
@@ -385,7 +385,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
           title: Text(l.tr('screens_admin_locations_screen.003')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -428,7 +428,7 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _load,
         child: SingleChildScrollView(

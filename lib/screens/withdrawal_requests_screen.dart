@@ -159,7 +159,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
           title: Text(l.tr('screens_withdrawal_requests_screen.001')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -195,7 +195,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         title: Text(l.tr('screens_withdrawal_requests_screen.001')),
         actions: [const AppNotificationAction(), const QuickLogoutAction()],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ResponsiveScaffoldContainer(

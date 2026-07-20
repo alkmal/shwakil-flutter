@@ -63,7 +63,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
         title: Text(title),
         actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),

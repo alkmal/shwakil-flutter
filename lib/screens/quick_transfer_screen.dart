@@ -544,7 +544,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             const QuickLogoutAction(),
           ],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -575,7 +575,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
           padding: AppTheme.pagePadding(context, top: 18),

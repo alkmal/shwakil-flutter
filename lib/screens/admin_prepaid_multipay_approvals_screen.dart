@@ -416,7 +416,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _load,
         child: SingleChildScrollView(

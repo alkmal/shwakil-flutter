@@ -433,7 +433,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           title: Text(l.tr('screens_account_settings_screen.008')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -532,7 +532,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
           ),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: TabBarView(
           children: [
             _buildProfileTab(),

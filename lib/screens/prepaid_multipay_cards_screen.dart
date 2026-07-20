@@ -2326,7 +2326,7 @@ class _PrepaidMultipayCardsScreenState
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: ResponsiveScaffoldContainer(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: _isLoading

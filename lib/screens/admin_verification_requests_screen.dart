@@ -415,7 +415,7 @@ class _AdminVerificationRequestsScreenState
           const AppNotificationAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: ResponsiveScaffoldContainer(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: RefreshIndicator(

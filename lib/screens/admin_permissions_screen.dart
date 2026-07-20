@@ -121,7 +121,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         appBar: AppBar(
           title: Text(l.tr('screens_admin_permissions_screen.003')),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           maxWidth: 620,
           child: Center(
@@ -138,7 +138,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
           title: Text(l.tr('screens_admin_permissions_screen.003')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -178,7 +178,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                 .toList(),
           ),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: TabBarView(
           children: _roles
               .map(

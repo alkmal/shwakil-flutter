@@ -483,7 +483,7 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
       length: 2,
       child: Scaffold(
         backgroundColor: AppTheme.background,
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         appBar: AppBar(
           title: Text(_t('screens_admin_debt_book_screen.022')),
           actions: [

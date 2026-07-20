@@ -426,7 +426,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
       length: 2,
       child: Scaffold(
         backgroundColor: AppTheme.background,
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         appBar: AppBar(
           title: Text(_t('screens_debt_book_screen.023')),
           actions: [

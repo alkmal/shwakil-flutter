@@ -317,8 +317,9 @@ class _PublicStoresScreenState extends State<PublicStoresScreen> {
           title: Text(l.text('المتاجر', 'Stores')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const Drawer(
-          child: AppSidebar(currentRouteName: '/public-stores'),
+        drawer: AppSidebar.drawerFor(
+          context,
+          currentRouteName: '/public-stores',
         ),
         body: RefreshIndicator(
           onRefresh: _selectedStore == null

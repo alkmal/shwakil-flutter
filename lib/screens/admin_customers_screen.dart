@@ -594,7 +594,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(title: Text(l.tr('screens_admin_customers_screen.017'))),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           maxWidth: 620,
           child: Center(
@@ -614,7 +614,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
           title: Text(l.tr('screens_admin_customers_screen.017')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -674,7 +674,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: () => _loadCustomers(reset: true),
         child: ResponsiveScaffoldContainer(

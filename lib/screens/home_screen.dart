@@ -961,7 +961,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           if (!_needsSessionRecovery) const QuickLogoutAction(),
         ],
       ),
-      drawer: _needsSessionRecovery ? null : const AppSidebar(),
+      drawer: _needsSessionRecovery ? null : AppSidebar.drawerFor(context),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _needsSessionRecovery

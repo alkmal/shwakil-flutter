@@ -357,7 +357,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         appBar: AppBar(
           title: Text(context.loc.tr('screens_sub_users_screen.093')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
@@ -368,7 +368,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
 
     if (!_canViewSubUsers) {
       return Scaffold(
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         appBar: AppBar(
           title: Text(context.loc.tr('screens_sub_users_screen.093')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
@@ -404,7 +404,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       length: tabCount,
       initialIndex: 0,
       child: Scaffold(
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         appBar: AppBar(
           title: Text(context.loc.tr('screens_sub_users_screen.093')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],

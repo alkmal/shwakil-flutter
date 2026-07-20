@@ -219,7 +219,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           title: Text(_t('screens_transactions_screen.005')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           child: Center(
             child: ShwakelCard(
@@ -260,7 +260,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _loadTransactions,
         child: ResponsiveScaffoldContainer(

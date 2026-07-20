@@ -330,7 +330,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         appBar: AppBar(
           title: Text(_t('screens_admin_notifications_screen.002')),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           maxWidth: 620,
           child: Center(
@@ -347,7 +347,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           title: Text(_t('screens_admin_notifications_screen.002')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -386,7 +386,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: SingleChildScrollView(
         child: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),

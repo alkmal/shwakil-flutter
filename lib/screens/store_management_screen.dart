@@ -1613,7 +1613,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
           ],
         ),
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       floatingActionButton:
           _tabs.index == 1 && _permissions.canManageStoreInventory
           ? FloatingActionButton.extended(

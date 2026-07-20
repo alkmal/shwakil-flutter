@@ -289,7 +289,7 @@ class _AdminCardScanReportsScreenState
         title: const SizedBox.shrink(),
         actions: const [AppNotificationAction()],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: ResponsiveScaffoldContainer(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

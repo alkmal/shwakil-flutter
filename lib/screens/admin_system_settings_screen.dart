@@ -1778,7 +1778,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           title: const SizedBox.shrink(),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -1810,7 +1810,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           title: const SizedBox.shrink(),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Column(

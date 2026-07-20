@@ -65,7 +65,7 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
         ),
         actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

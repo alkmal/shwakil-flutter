@@ -1219,7 +1219,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           title: Text(l.tr('screens_card_print_requests_screen.018')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -1271,7 +1271,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   title: Text(l.tr('screens_card_print_requests_screen.018')),
                   actions: const [AppNotificationAction(), QuickLogoutAction()],
                 ),
-                drawer: const AppSidebar(),
+                drawer: AppSidebar.drawerFor(context),
                 body: RefreshIndicator(
                   onRefresh: _load,
                   child: SingleChildScrollView(

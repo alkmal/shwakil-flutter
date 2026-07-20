@@ -2103,7 +2103,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           title: Text(l.tr('screens_create_card_screen.029')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -2137,7 +2137,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         ),
         actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: Stack(
         children: [
           LayoutBuilder(

@@ -976,7 +976,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         appBar: AppBar(
           title: Text(context.loc.text('تذاكر التواصل', 'Support tickets')),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -999,7 +999,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: !_authorized
           ? Center(
               child: Text(

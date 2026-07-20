@@ -126,7 +126,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
         appBar: AppBar(
           title: Text(l.tr('screens_admin_device_requests_screen.001')),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: ResponsiveScaffoldContainer(
           maxWidth: 620,
           child: Center(
@@ -142,7 +142,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
         appBar: AppBar(
           title: Text(l.tr('screens_admin_device_requests_screen.001')),
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -180,7 +180,7 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _load,
         child: SingleChildScrollView(

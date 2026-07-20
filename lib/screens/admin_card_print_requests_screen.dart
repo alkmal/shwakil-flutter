@@ -825,7 +825,7 @@ class _AdminCardPrintRequestsScreenState
           title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        drawer: const AppSidebar(),
+        drawer: AppSidebar.drawerFor(context),
         body: Center(
           child: ShwakelCard(
             padding: const EdgeInsets.all(28),
@@ -865,7 +865,7 @@ class _AdminCardPrintRequestsScreenState
           const QuickLogoutAction(),
         ],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ResponsiveScaffoldContainer(

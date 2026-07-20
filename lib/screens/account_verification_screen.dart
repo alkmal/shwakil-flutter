@@ -317,7 +317,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
         title: Text(l.tr('screens_account_verification_screen.004')),
         actions: const [AppNotificationAction(), QuickLogoutAction()],
       ),
-      drawer: const AppSidebar(),
+      drawer: AppSidebar.drawerFor(context),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
