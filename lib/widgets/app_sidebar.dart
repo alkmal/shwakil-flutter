@@ -360,8 +360,8 @@ class _AppSidebarState extends State<AppSidebar> {
                           context,
                           icon: Icons.storefront_rounded,
                           title: l.text(
-                            'إدارة المحل والمخزون',
-                            'Store & inventory',
+                            'إدارة المخزون',
+                            'Inventory management',
                           ),
                           routeName: '/store-management',
                         ),

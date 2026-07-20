@@ -1124,7 +1124,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canAccessStoreManagement)
           _HomeServiceItem(
-            title: l.text('إدارة المحل', 'Store management'),
+            title: l.text('إدارة المخزون', 'Inventory management'),
             subtitle: l.text(
               'المخزون والمبيعات والمشتريات والديون والتقارير.',
               'Inventory, sales, purchases, debts and reports.',
@@ -1207,7 +1207,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canAccessStoreManagement)
           _HomeServiceItem(
-            title: l.text('إدارة المحل', 'Store management'),
+            title: l.text('إدارة المخزون', 'Inventory management'),
             subtitle: l.text(
               'مخزون وفواتير وديون المحل.',
               'Inventory, invoices and debts.',
@@ -1404,7 +1404,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canAccessStoreManagement)
         _HomeServiceItem(
-          title: l.text('إدارة المحل', 'Store management'),
+          title: l.text('إدارة المخزون', 'Inventory management'),
           subtitle: l.text(
             'المخزون والمبيعات والمشتريات والديون والأرباح.',
             'Inventory, sales, purchases, debts and profits.',
@@ -2173,7 +2173,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       if (_pendingStoreManagementCount > 0)
                         _syncInfoRow(
                           context.loc.text(
-                            'عمليات إدارة المحل المعلقة',
+                            'عمليات إدارة المخزون المعلقة',
                             'Pending store operations',
                           ),
                           '$_pendingStoreManagementCount',

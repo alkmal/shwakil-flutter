@@ -212,6 +212,8 @@ class StoreManagementService {
     String? partyId,
     String? partyClientRef,
     String? partyName,
+    String? warehouseId,
+    String? warehouseClientRef,
     required double paidAmount,
     required String paymentMethod,
     required List<Map<String, dynamic>> items,
@@ -228,6 +230,8 @@ class StoreManagementService {
       'partyId': ?partyId,
       'partyClientRef': ?partyClientRef,
       'partyName': ?partyName,
+      'warehouseId': ?warehouseId,
+      'warehouseClientRef': ?warehouseClientRef,
       'paidAmount': paidAmount,
       'paymentMethod': paymentMethod,
       'discount': discount,
@@ -237,6 +241,39 @@ class StoreManagementService {
       'items': items,
     });
   }
+
+  Future<void> queueWarehouse({
+    required String userId,
+    required String name,
+    String code = '',
+    String notes = '',
+  }) => _enqueueAndApply(userId, {
+    'opId': _uuid.v4(),
+    'entity': 'warehouse',
+    'type': 'upsert',
+    'clientRef': _uuid.v4(),
+    'name': name.trim(),
+    'code': code.trim(),
+    'notes': notes.trim(),
+  });
+
+  Future<void> queueStockTransfer({
+    required String userId,
+    required String fromWarehouseId,
+    required String toWarehouseId,
+    required List<Map<String, dynamic>> items,
+    String notes = '',
+  }) => _enqueueAndApply(userId, {
+    'opId': _uuid.v4(),
+    'entity': 'transfer',
+    'type': 'create',
+    'clientRef': _uuid.v4(),
+    'fromWarehouseId': fromWarehouseId,
+    'toWarehouseId': toWarehouseId,
+    'items': items,
+    'notes': notes.trim(),
+    'occurredAt': DateTime.now().toIso8601String(),
+  });
 
   Future<void> queuePayment({
     required String userId,
@@ -332,11 +369,13 @@ class StoreManagementService {
     final entity = operation['entity']?.toString() ?? '';
     if (entity == 'workspace') return 0;
     if (entity == 'product') return 1;
-    if (entity == 'party') return 2;
+    if (entity == 'warehouse') return 2;
+    if (entity == 'party') return 3;
     if (entity == 'invoice') {
-      return operation['invoiceType']?.toString() == 'purchase' ? 3 : 4;
+      return operation['invoiceType']?.toString() == 'purchase' ? 4 : 5;
     }
-    if (entity == 'payment') return 5;
+    if (entity == 'transfer') return 6;
+    if (entity == 'payment') return 7;
     return 9;
   }
 
@@ -377,6 +416,7 @@ class StoreManagementService {
       'currency': 'ILS',
     };
     next['products'] = _list(next['products']);
+    next['warehouses'] = _list(next['warehouses']);
     next['parties'] = _list(next['parties']);
     next['invoices'] = _list(next['invoices']);
     next['payments'] = _list(next['payments']);
@@ -392,8 +432,14 @@ class StoreManagementService {
       case 'party':
         _applyLocalParty(next, operation);
         break;
+      case 'warehouse':
+        _applyLocalWarehouse(next, operation);
+        break;
       case 'invoice':
         _applyLocalInvoice(next, operation);
+        break;
+      case 'transfer':
+        _applyLocalTransfer(next, operation);
         break;
       case 'payment':
         _applyLocalPayment(next, operation);
@@ -527,6 +573,15 @@ class StoreManagementService {
     final invoices = _list(snapshot['invoices']);
     final products = _list(snapshot['products']);
     final parties = _list(snapshot['parties']);
+    final warehouses = _list(snapshot['warehouses']);
+    final warehouseId =
+        operation['warehouseId']?.toString() ??
+        warehouses
+            .firstWhere(
+              (item) => item['isDefault'] == true,
+              orElse: () => warehouses.isNotEmpty ? warehouses.first : const {},
+            )['id']
+            ?.toString();
     final clientRef = operation['clientRef']?.toString() ?? _uuid.v4();
     final id = 'local:$clientRef';
     if (invoices.any(
@@ -594,6 +649,26 @@ class StoreManagementService {
         oldStock + (invoiceType == 'purchase' ? baseQuantity : -baseQuantity),
         4,
       );
+      final warehouseStocks = _list(product['warehouseStocks']);
+      final stockIndex = warehouseStocks.indexWhere(
+        (stock) => stock['warehouseId']?.toString() == warehouseId,
+      );
+      if (stockIndex >= 0) {
+        final stock = warehouseStocks[stockIndex];
+        stock['quantity'] = _decimal(
+          ((stock['quantity'] as num?)?.toDouble() ?? 0) +
+              (invoiceType == 'purchase' ? baseQuantity : -baseQuantity),
+          4,
+        );
+        warehouseStocks[stockIndex] = stock;
+      } else if (warehouseId != null) {
+        warehouseStocks.add({
+          'warehouseId': warehouseId,
+          'quantity': invoiceType == 'purchase' ? baseQuantity : -baseQuantity,
+          'minimumStock': product['minimumStock'] ?? 0,
+        });
+      }
+      product['warehouseStocks'] = warehouseStocks;
       product['syncStatus'] = 'pending';
       products[productIndex] = product;
       preparedItems.add({
@@ -625,6 +700,15 @@ class StoreManagementService {
       'syncStatus': 'pending',
       'invoiceNumber': 'محلي-${clientRef.substring(0, 6)}',
       'type': invoiceType,
+      'warehouseId': warehouseId,
+      'warehouseName':
+          warehouses
+              .firstWhere(
+                (item) => item['id']?.toString() == warehouseId,
+                orElse: () => const {},
+              )['name']
+              ?.toString() ??
+          '',
       'partyId': partyId,
       'partyName':
           party['name']?.toString() ??
@@ -663,6 +747,76 @@ class StoreManagementService {
     if (party.isNotEmpty) {
       _bumpDebtAccount(snapshot, party, invoiceType, total, paidAmount);
     }
+  }
+
+  void _applyLocalWarehouse(
+    Map<String, dynamic> snapshot,
+    Map<String, dynamic> operation,
+  ) {
+    final warehouses = _list(snapshot['warehouses']);
+    final clientRef = operation['clientRef']?.toString() ?? _uuid.v4();
+    warehouses.add({
+      'id': 'local:$clientRef',
+      'clientRef': clientRef,
+      'name': operation['name']?.toString() ?? '',
+      'code': operation['code']?.toString().isNotEmpty == true
+          ? operation['code'].toString()
+          : 'WH-${clientRef.substring(0, 6).toUpperCase()}',
+      'notes': operation['notes']?.toString() ?? '',
+      'isDefault': false,
+      'isActive': true,
+      'syncStatus': 'pending',
+    });
+    snapshot['warehouses'] = warehouses;
+  }
+
+  void _applyLocalTransfer(
+    Map<String, dynamic> snapshot,
+    Map<String, dynamic> operation,
+  ) {
+    final products = _list(snapshot['products']);
+    final fromId = operation['fromWarehouseId']?.toString();
+    final toId = operation['toWarehouseId']?.toString();
+    for (final raw in _list(operation['items'])) {
+      final productIndex = products.indexWhere(
+        (product) => product['id']?.toString() == raw['productId']?.toString(),
+      );
+      if (productIndex < 0) continue;
+      final product = products[productIndex];
+      final unit = _list(product['units']).firstWhere(
+        (value) => value['id']?.toString() == raw['productUnitId']?.toString(),
+        orElse: () => const {},
+      );
+      final quantity =
+          ((raw['quantity'] as num?)?.toDouble() ?? 0) *
+          ((unit['factorToBase'] as num?)?.toDouble() ?? 1);
+      final stocks = _list(product['warehouseStocks']);
+      for (final entry in [
+        [fromId, -quantity],
+        [toId, quantity],
+      ]) {
+        final index = stocks.indexWhere(
+          (stock) => stock['warehouseId']?.toString() == entry[0],
+        );
+        if (index >= 0) {
+          stocks[index]['quantity'] = _decimal(
+            ((stocks[index]['quantity'] as num?)?.toDouble() ?? 0) +
+                (entry[1] as double),
+            4,
+          );
+        } else if (entry[0] != null) {
+          stocks.add({
+            'warehouseId': entry[0],
+            'quantity': entry[1],
+            'minimumStock': product['minimumStock'] ?? 0,
+          });
+        }
+      }
+      product['warehouseStocks'] = stocks;
+      product['syncStatus'] = 'pending';
+      products[productIndex] = product;
+    }
+    snapshot['products'] = products;
   }
 
   void _applyLocalPayment(

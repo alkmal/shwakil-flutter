@@ -189,7 +189,7 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.label.canManageLocations': 'إدارة الفروع والمواقع',
   'permission_catalog.label.canManageSystemSettings': 'إدارة إعدادات النظام',
   'permission_catalog.label.canManageDebtBook': 'إدارة دفتر الديون',
-  'permission_catalog.label.canAccessStoreManagement': 'الدخول إلى إدارة المحل',
+  'permission_catalog.label.canAccessStoreManagement': 'الدخول إلى إدارة المخزون',
   'permission_catalog.label.canManageStoreInventory':
       'إدارة أصناف ومخزون المحل',
   'permission_catalog.label.canCreateStoreSales': 'إنشاء فواتير البيع',
@@ -279,7 +279,7 @@ const Map<String, String> appStringsAr = {
       'تعديل إعدادات النظام العامة.',
   'permission_catalog.description.canManageDebtBook': 'إدارة دفتر الديون.',
   'permission_catalog.description.canAccessStoreManagement':
-      'السماح بفتح شاشة إدارة المحل وبياناته.',
+      'السماح بفتح شاشة إدارة المخزون وبياناتها.',
   'permission_catalog.description.canManageStoreInventory':
       'إضافة الأصناف والوحدات والباركود ومتابعة المخزون.',
   'permission_catalog.description.canCreateStoreSales':

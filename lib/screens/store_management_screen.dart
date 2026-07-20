@@ -26,7 +26,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   final TextEditingController _productSearchController =
       TextEditingController();
   final TextEditingController _partySearchController = TextEditingController();
-  late final TabController _tabs = TabController(length: 5, vsync: this)
+  late final TabController _tabs = TabController(length: 6, vsync: this)
     ..addListener(() => setState(() {}));
   Map<String, dynamic>? _user;
   Map<String, dynamic> _snapshot = const {};
@@ -41,6 +41,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   AppPermissions get _permissions => AppPermissions.fromUser(_user);
   String get _userId => _user?['id']?.toString() ?? '';
   List<Map<String, dynamic>> get _products => _list(_snapshot['products']);
+  List<Map<String, dynamic>> get _warehouses => _list(_snapshot['warehouses']);
   List<Map<String, dynamic>> get _parties => _list(_snapshot['parties']);
   List<Map<String, dynamic>> get _invoices => _list(_snapshot['invoices']);
   List<Map<String, dynamic>> get _debtBookAccounts =>
@@ -983,6 +984,12 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         ? 'sale'
         : 'purchase';
     String? partyId;
+    String? warehouseId = _warehouses
+        .firstWhere(
+          (warehouse) => warehouse['isDefault'] == true,
+          orElse: () => _warehouses.isNotEmpty ? _warehouses.first : const {},
+        )['id']
+        ?.toString();
     String paymentStatus = 'paid';
     final paid = TextEditingController(text: '0');
     final discount = TextEditingController(text: '0');
@@ -1072,7 +1079,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             ),
       actionLabel: l.text('حفظ الفاتورة', 'Save invoice'),
       canSubmit: () =>
-          lines.isNotEmpty && !(invoiceType == 'purchase' && partyId == null),
+          lines.isNotEmpty &&
+          warehouseId != null &&
+          !(invoiceType == 'purchase' && partyId == null),
       builder: (context, setDialogState) {
         final allowedParties = _parties.where((party) {
           final type = party['type']?.toString();
@@ -1163,6 +1172,25 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                 },
               ),
             const SizedBox(height: 12),
+            if (!quickSale)
+              DropdownButtonFormField<String>(
+                value: warehouseId,
+                decoration: InputDecoration(
+                  labelText: l.text('المخزن', 'Warehouse'),
+                  prefixIcon: const Icon(Icons.warehouse_rounded),
+                ),
+                items: _warehouses
+                    .where((warehouse) => warehouse['isActive'] != false)
+                    .map(
+                      (warehouse) => DropdownMenuItem(
+                        value: warehouse['id']?.toString(),
+                        child: Text(warehouse['name']?.toString() ?? ''),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setDialogState(() => warehouseId = value),
+              ),
+            if (!quickSale) const SizedBox(height: 10),
             if (!quickSale) ...[
               InkWell(
                 onTap: () async {
@@ -1445,11 +1473,17 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         (party) => party['id']?.toString() == partyId,
         orElse: () => const <String, dynamic>{},
       );
+      final selectedWarehouse = _warehouses.firstWhere(
+        (warehouse) => warehouse['id']?.toString() == warehouseId,
+        orElse: () => const <String, dynamic>{},
+      );
       await _store.queueInvoice(
         userId: _userId,
         invoiceType: invoiceType,
         partyId: partyId,
         partyClientRef: selectedParty['clientRef']?.toString(),
+        warehouseId: warehouseId,
+        warehouseClientRef: selectedWarehouse['clientRef']?.toString(),
         paidAmount: paidAmount,
         paymentMethod: 'cash',
         discount: discountValue,
@@ -1533,7 +1567,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       appBar: AppBar(
         title: Text(
           workspace['name']?.toString() ??
-              l.text('إدارة المحل', 'Store management'),
+              l.text('إدارة المخزون', 'Inventory management'),
         ),
         actions: [
           IconButton(
@@ -1561,6 +1595,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               icon: const Icon(Icons.inventory_2_rounded),
             ),
             Tab(
+              text: l.text('المخازن', 'Warehouses'),
+              icon: const Icon(Icons.warehouse_rounded),
+            ),
+            Tab(
               text: l.text('الفواتير', 'Invoices'),
               icon: const Icon(Icons.receipt_long_rounded),
             ),
@@ -1583,13 +1621,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               icon: const Icon(Icons.add),
               label: Text(l.text('صنف جديد', 'New item')),
             )
-          : _tabs.index == 3 && _permissions.canManageStoreDebts
+          : _tabs.index == 2 && _permissions.canManageStoreInventory
+          ? FloatingActionButton.extended(
+              onPressed: _addWarehouse,
+              icon: const Icon(Icons.add_business_rounded),
+              label: Text(l.text('مخزن جديد', 'New warehouse')),
+            )
+          : _tabs.index == 4 && _permissions.canManageStoreDebts
           ? FloatingActionButton.extended(
               onPressed: _addParty,
               icon: const Icon(Icons.person_add),
               label: Text(l.text('حساب جديد', 'New account')),
             )
-          : _tabs.index == 2 &&
+          : _tabs.index == 3 &&
                 (_permissions.canCreateStoreSales ||
                     _permissions.canCreateStorePurchases)
           ? FloatingActionButton.extended(
@@ -1631,6 +1675,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                       children: [
                         _dashboard(),
                         _productsView(),
+                        _warehousesView(),
                         _invoicesView(),
                         _partiesView(),
                         _reportsView(),
@@ -1746,7 +1791,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               leading: const CircleAvatar(
                 child: Icon(Icons.point_of_sale_rounded),
               ),
-              title: Text(l.text('الموظفون والكاشير', 'Employees and cashiers')),
+              title: Text(
+                l.text('الموظفون والكاشير', 'Employees and cashiers'),
+              ),
               subtitle: Text(
                 l.text(
                   'أضف أكثر من كاشير وحدد البيع فقط أو صلاحيات المحل المناسبة لكل موظف.',
@@ -2249,6 +2296,240 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     };
   }
 
+  Widget _warehousesView() {
+    final l = context.loc;
+    return ListView(
+      children: [
+        Text(
+          l.text('المخازن والأرصدة', 'Warehouses and balances'),
+          style: AppTheme.h3,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          l.text(
+            'كل شراء أو بيع مرتبط بمخزن، والتحويل يحفظ أثرًا تدقيقيًا دون تغيير إجمالي المخزون.',
+            'Every purchase and sale is assigned to a warehouse; transfers are fully auditable.',
+          ),
+          style: AppTheme.caption,
+        ),
+        const SizedBox(height: 12),
+        ..._warehouses.map((warehouse) {
+          final id = warehouse['id']?.toString();
+          final stockedProducts = _products
+              .where(
+                (product) => _list(product['warehouseStocks']).any(
+                  (stock) =>
+                      stock['warehouseId']?.toString() == id &&
+                      ((stock['quantity'] as num?)?.toDouble() ?? 0) != 0,
+                ),
+              )
+              .length;
+          final value = _products.fold<double>(0, (sum, product) {
+            final stock = _list(product['warehouseStocks']).firstWhere(
+              (item) => item['warehouseId']?.toString() == id,
+              orElse: () => const {},
+            );
+            return sum +
+                ((stock['quantity'] as num?)?.toDouble() ?? 0) *
+                    ((product['averagePurchaseCost'] as num?)?.toDouble() ?? 0);
+          });
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: ShwakelCard(
+              child: ListTile(
+                leading: CircleAvatar(
+                  child: Icon(
+                    warehouse['isDefault'] == true
+                        ? Icons.storefront_rounded
+                        : Icons.warehouse_rounded,
+                  ),
+                ),
+                title: Text(
+                  '${warehouse['name'] ?? ''}${warehouse['isDefault'] == true ? ' • ${l.text('افتراضي', 'Default')}' : ''}',
+                ),
+                subtitle: Text(
+                  '${l.text('أصناف برصيد', 'Stocked items')}: $stockedProducts • ${l.text('القيمة', 'Value')}: ${_money(value)}',
+                ),
+                trailing: warehouse['isActive'] == false
+                    ? const Icon(Icons.pause_circle_outline)
+                    : null,
+              ),
+            ),
+          );
+        }),
+        if (_permissions.canManageStoreInventory) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _addWarehouse,
+            icon: const Icon(Icons.add_business_rounded),
+            label: Text(l.text('إضافة مخزن', 'Add warehouse')),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            onPressed: _warehouses.length < 2 ? null : _transferStock,
+            icon: const Icon(Icons.swap_horiz_rounded),
+            label: Text(l.text('تحويل بضاعة بين المخازن', 'Transfer stock')),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _addWarehouse() async {
+    final name = TextEditingController();
+    final code = TextEditingController();
+    final notes = TextEditingController();
+    final accepted = await _openFullScreenForm(
+      title: context.loc.text('إضافة مخزن', 'Add warehouse'),
+      actionLabel: context.loc.text('حفظ المخزن', 'Save warehouse'),
+      canSubmit: () => name.text.trim().isNotEmpty,
+      builder: (_, setState) => Column(
+        children: [
+          TextField(
+            controller: name,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: context.loc.text('اسم المخزن', 'Warehouse name'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: code,
+            decoration: InputDecoration(
+              labelText: context.loc.text('رمز اختياري', 'Optional code'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: notes,
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: context.loc.text('ملاحظات', 'Notes'),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true) {
+      await _store.queueWarehouse(
+        userId: _userId,
+        name: name.text,
+        code: code.text,
+        notes: notes.text,
+      );
+      await _showLocalThenSync();
+    }
+    name.dispose();
+    code.dispose();
+    notes.dispose();
+  }
+
+  Future<void> _transferStock() async {
+    String? fromId = _warehouses.first['id']?.toString();
+    String? toId = _warehouses.length > 1
+        ? _warehouses[1]['id']?.toString()
+        : null;
+    final quantity = TextEditingController(text: '1');
+    Map<String, dynamic>? product;
+    final accepted = await _openFullScreenForm(
+      title: context.loc.text('تحويل بين المخازن', 'Warehouse transfer'),
+      actionLabel: context.loc.text('تأكيد التحويل', 'Confirm transfer'),
+      canSubmit: () =>
+          product != null &&
+          fromId != null &&
+          toId != null &&
+          fromId != toId &&
+          (double.tryParse(quantity.text) ?? 0) > 0,
+      builder: (_, setState) => Column(
+        children: [
+          DropdownButtonFormField<String>(
+            value: fromId,
+            decoration: InputDecoration(
+              labelText: context.loc.text('من مخزن', 'From warehouse'),
+            ),
+            items: _warehouses
+                .map(
+                  (w) => DropdownMenuItem(
+                    value: w['id']?.toString(),
+                    child: Text(w['name']?.toString() ?? ''),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setState(() => fromId = value),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: toId,
+            decoration: InputDecoration(
+              labelText: context.loc.text('إلى مخزن', 'To warehouse'),
+            ),
+            items: _warehouses
+                .map(
+                  (w) => DropdownMenuItem(
+                    value: w['id']?.toString(),
+                    child: Text(w['name']?.toString() ?? ''),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setState(() => toId = value),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final selected = await _pickStoreEntry(
+                title: context.loc.text('اختيار الصنف', 'Choose item'),
+                entries: _products,
+                searchHint: context.loc.text('ابحث باسم الصنف', 'Search item'),
+                addLabel: context.loc.text('إضافة صنف جديد', 'Add new item'),
+                onAdd: _addProduct,
+              );
+              if (selected != null) setState(() => product = selected);
+            },
+            icon: const Icon(Icons.search_rounded),
+            label: Text(
+              product?['name']?.toString() ??
+                  context.loc.text('اختيار الصنف', 'Choose item'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: quantity,
+            onChanged: (_) => setState(() {}),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: context.loc.text(
+                'الكمية بالوحدة الأساسية',
+                'Quantity in base unit',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true && product != null) {
+      final unit = _list(product!['units']).firstWhere(
+        (item) => item['isBase'] == true,
+        orElse: () => _list(product!['units']).isNotEmpty
+            ? _list(product!['units']).first
+            : const {},
+      );
+      await _store.queueStockTransfer(
+        userId: _userId,
+        fromWarehouseId: fromId!,
+        toWarehouseId: toId!,
+        items: [
+          {
+            'productId': product!['id'],
+            'productUnitId': unit['id'],
+            'quantity': double.tryParse(quantity.text) ?? 0,
+          },
+        ],
+      );
+      await _showLocalThenSync();
+    }
+    quantity.dispose();
+  }
+
   Widget _productsView() {
     final products = _filterProducts(_products, _productSearchQuery);
     if (_products.isEmpty) {
@@ -2580,6 +2861,23 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
 
     return ListView(
       children: [
+        if (_warehouses.isNotEmpty) ...[
+          Text(l.text('تقرير المخازن', 'Warehouse report'), style: AppTheme.h3),
+          const SizedBox(height: 8),
+          ..._warehouses.map((warehouse) {
+            final warehouseId = warehouse['id']?.toString();
+            final value = _products.fold<double>(0, (sum, product) {
+              final stock = _list(product['warehouseStocks']).firstWhere(
+                (item) => item['warehouseId']?.toString() == warehouseId,
+                orElse: () => const {},
+              );
+              return sum + ((stock['quantity'] as num?)?.toDouble() ?? 0) * ((product['averagePurchaseCost'] as num?)?.toDouble() ?? 0);
+            });
+            final salesTotal = sales.where((invoice) => invoice['warehouseId']?.toString() == warehouseId).fold<double>(0, (sum, invoice) => sum + ((invoice['total'] as num?)?.toDouble() ?? 0));
+            return _reportTile('${warehouse['name'] ?? ''}', '${l.text('قيمة المخزون', 'Inventory value')}: ${_money(value)} • ${l.text('المبيعات', 'Sales')}: ${_money(salesTotal)}');
+          }),
+          const Divider(height: 28),
+        ],
         _reportTile(
           l.text('مبيعات اليوم', "Today's sales"),
           _money(salesIn(const Duration(days: 1))),
