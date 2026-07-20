@@ -192,6 +192,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/sub-users': (context) => const SubUsersScreen(),
   '/debt-book': (context) => const DebtBookScreen(),
   '/store-management': (context) => const StoreManagementScreen(),
+  '/maintenance-management': (context) => const MaintenanceManagementScreen(),
 };
 
 Route<dynamic> _buildNamedRoute(RouteSettings settings) {
@@ -252,6 +253,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
           permissions.canRequestCardPrinting ||
           permissions.canViewInventory,
     '/inventory' => permissions.canViewInventory && permissions.canIssueCards,
+    '/maintenance-management' => permissions.canAccessStoreManagement,
     '/scan-card' || '/scan-card-camera' =>
       permissions.canOpenCardTools || permissions.canReviewCards,
     '/scan-card-offline' ||

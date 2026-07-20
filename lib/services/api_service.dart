@@ -3444,6 +3444,64 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> getMaintenanceSnapshot({
+    String search = '',
+    String status = '',
+  }) async {
+    final response = await _client.get(
+      AppConfig.apiUri('maintenance-management/snapshot', {
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        if (status.trim().isNotEmpty) 'status': status.trim(),
+      }),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createMaintenanceOrder(
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _client.post(
+      AppConfig.apiUri('maintenance-management/orders'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateMaintenanceOrder(
+    String orderId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _client.patch(
+      AppConfig.apiUri('maintenance-management/orders/$orderId'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> addMaintenancePart(
+    String orderId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _client.post(
+      AppConfig.apiUri('maintenance-management/orders/$orderId/parts'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> finalizeMaintenanceOrder(String orderId) async {
+    final response = await _client.post(
+      AppConfig.apiUri('maintenance-management/orders/$orderId/finalize'),
+      headers: await _headers(),
+      body: jsonEncode(const {}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getPublicStores({String? query}) async {
     final response = await _client.get(
       AppConfig.apiUri('public-stores', {

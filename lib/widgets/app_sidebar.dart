@@ -377,6 +377,16 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                           routeName: '/store-management',
                         ),
+                      if (canAccessStoreManagement)
+                        _buildItem(
+                          context,
+                          icon: Icons.build_circle_rounded,
+                          title: l.text(
+                            'إدارة الصيانة',
+                            'Maintenance management',
+                          ),
+                          routeName: '/maintenance-management',
+                        ),
                       if (canViewAffiliateCenter)
                         _buildItem(
                           context,
