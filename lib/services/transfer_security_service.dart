@@ -57,8 +57,7 @@ class TransferSecurityService {
       if (!context.mounted) {
         return const TransferSecurityResult(isVerified: false);
       }
-      if (pinResult.isVerified &&
-          (requireOtpAfterLocalAuth || pinResult.method == 'biometric')) {
+      if (pinResult.isVerified && requireOtpAfterLocalAuth) {
         return _confirmWithOtp(
           context,
           introText: context.loc.tr('services_transfer_security_service.002'),
@@ -74,9 +73,9 @@ class TransferSecurityService {
         if (!context.mounted) {
           return const TransferSecurityResult(isVerified: false);
         }
-        return _confirmWithOtp(
-          context,
-          introText: context.loc.tr('services_transfer_security_service.001'),
+        return const TransferSecurityResult(
+          isVerified: true,
+          method: 'biometric',
         );
       }
     }
@@ -300,6 +299,7 @@ class TransferSecurityService {
         introText ?? context.loc.tr('services_transfer_security_service.010');
     var isSending = false;
     var hasSentOtp = false;
+    var autoSendQueued = false;
     var resendCooldown = 0;
     Timer? resendTimer;
 
@@ -354,6 +354,15 @@ class TransferSecurityService {
             }
           }
 
+          if (!autoSendQueued) {
+            autoSendQueued = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (dialogContext.mounted) {
+                sendOtp();
+              }
+            });
+          }
+
           return AlertDialog(
             title: Text(
               context.loc.tr('services_transfer_security_service.013'),
@@ -389,19 +398,15 @@ class TransferSecurityService {
                   ),
                 ),
                 if (!hasSentOtp || resendCooldown == 0)
-                  OutlinedButton(
+                  TextButton(
                     onPressed: isSending ? null : sendOtp,
                     child: Text(
                       isSending
                           ? context.loc.tr(
                               'services_transfer_security_service.015',
                             )
-                          : hasSentOtp
-                          ? context.loc.tr(
-                              'services_transfer_security_service.016',
-                            )
                           : context.loc.tr(
-                              'services_transfer_security_service.017',
+                              'services_transfer_security_service.016',
                             ),
                     ),
                   )

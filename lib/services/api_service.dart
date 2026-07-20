@@ -489,11 +489,13 @@ class ApiService {
     int page = 1,
     int perPage = 25,
     String sort = 'newest',
+    bool includeFinancialSummary = false,
   }) async {
     final params = <String, String>{
       'page': page.toString(),
       'perPage': perPage.toString(),
       'sort': sort,
+      if (includeFinancialSummary) 'includeFinancialSummary': 'true',
     };
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();

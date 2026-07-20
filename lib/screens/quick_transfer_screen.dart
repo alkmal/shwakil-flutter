@@ -14,6 +14,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/country_selector_field.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -46,6 +47,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   bool _canTransfer = false;
   bool _isLookingUpRecipient = false;
   bool _isTransfering = false;
+  String _selectedCountryCode = PhoneNumberService.countries.first.dialCode;
 
   String _t(String key) => context.loc.tr(key);
 
@@ -110,7 +112,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     try {
       final response = await _api.lookupUserByPhone(
         phone: rawPhone,
-        countryCode: PhoneNumberService.countries.first.dialCode,
+        countryCode: _selectedCountryCode,
       );
       final recipient = Map<String, dynamic>.from(
         response['user'] as Map? ?? const <String, dynamic>{},
@@ -642,6 +644,13 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
               );
               return Column(
                 children: [
+                  CountrySelectorField(
+                    value: _selectedCountryCode,
+                    compact: true,
+                    onChanged: (value) =>
+                        setState(() => _selectedCountryCode = value),
+                  ),
+                  const SizedBox(height: 12),
                   phoneField,
                   const SizedBox(height: 14),
                   TextField(

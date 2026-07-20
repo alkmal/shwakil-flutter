@@ -17,6 +17,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/country_selector_field.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -2777,26 +2778,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               final stacked = constraints.maxWidth < 560;
-              final countryField = DropdownButtonFormField<String>(
-                initialValue: _recipientCountryCode,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: l.text('الدولة', 'Country'),
-                  prefixIcon: const Icon(Icons.public_rounded),
-                ),
-                items: PhoneNumberService.countries.map((country) {
-                  return DropdownMenuItem<String>(
-                    value: country.dialCode,
-                    child: Text(
-                      '${country.name} (+${country.dialCode})',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => _recipientCountryCode = value);
-                },
+              final countryField = CountrySelectorField(
+                value: _recipientCountryCode,
+                labelText: l.text('الدولة', 'Country'),
+                onChanged: (value) =>
+                    setState(() => _recipientCountryCode = value),
               );
               final phoneField = TextField(
                 controller: _allowedPhoneC,

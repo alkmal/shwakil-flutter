@@ -9,6 +9,7 @@ import '../widgets/admin/admin_load_error_card.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/country_selector_field.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -93,6 +94,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         page: _customerPage,
         perPage: 12,
         sort: _sortMode,
+        includeFinancialSummary: _showSummaryInline,
       );
       final pagination = Map<String, dynamic>.from(
         payload['pagination'] as Map? ?? const {},
@@ -153,6 +155,13 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         ),
       ),
     );
+  }
+
+  void _toggleSummary() {
+    setState(() => _showSummaryInline = !_showSummaryInline);
+    if (_showSummaryInline) {
+      _loadCustomers();
+    }
   }
 
   Future<void> _showCreateCustomerDialog() async {
@@ -273,27 +282,14 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                             final stacked = constraints.maxWidth < 380;
                             final countryField = SizedBox(
                               width: stacked ? double.infinity : 130,
-                              child: DropdownButtonFormField<String>(
-                                initialValue: countryCode,
-                                decoration: InputDecoration(
-                                  labelText: l.tr(
-                                    'screens_admin_customers_screen.008',
-                                  ),
+                              child: CountrySelectorField(
+                                value: countryCode,
+                                compact: true,
+                                labelText: l.tr(
+                                  'screens_admin_customers_screen.008',
                                 ),
-                                items: PhoneNumberService.countries
-                                    .map(
-                                      (country) => DropdownMenuItem(
-                                        value: country.dialCode,
-                                        child: Text('+${country.dialCode}'),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  setDialogState(() => countryCode = value);
-                                },
+                                onChanged: (value) =>
+                                    setDialogState(() => countryCode = value),
                               ),
                             );
                             final phoneField = TextField(
@@ -645,9 +641,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         actions: [
           IconButton(
             tooltip: l.tr('screens_admin_customers_screen.049'),
-            onPressed: () {
-              setState(() => _showSummaryInline = !_showSummaryInline);
-            },
+            onPressed: _toggleSummary,
             icon: Icon(
               _showSummaryInline
                   ? Icons.analytics_outlined
@@ -844,9 +838,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 ),
               ),
               TextButton.icon(
-                onPressed: () {
-                  setState(() => _showSummaryInline = !_showSummaryInline);
-                },
+                onPressed: _toggleSummary,
                 icon: Icon(
                   _showSummaryInline
                       ? Icons.expand_less_rounded

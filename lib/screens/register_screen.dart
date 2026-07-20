@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/auth_screen_shell.dart';
+import '../widgets/country_selector_field.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -551,32 +552,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _countrySelector() {
-    return DropdownButtonFormField<String>(
-      initialValue: _selectedCountryCode,
-      isExpanded: true,
-      menuMaxHeight: 420,
-      decoration: const InputDecoration(
-        labelText: 'الدولة',
-        prefixIcon: Icon(Icons.public_rounded, size: 20),
-      ),
-      items: PhoneNumberService.countries
-          .map(
-            (country) => DropdownMenuItem<String>(
-              value: country.dialCode,
-              child: Text(
-                '+${country.dialCode}',
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          )
-          .toList(),
-      selectedItemBuilder: (context) => PhoneNumberService.countries
-          .map((country) => Text('+${country.dialCode}'))
-          .toList(),
-      onChanged: (value) {
-        if (value == null) return;
-        setState(() => _selectedCountryCode = value);
-      },
+    return CountrySelectorField(
+      value: _selectedCountryCode,
+      compact: true,
+      onChanged: (value) => setState(() => _selectedCountryCode = value),
     );
   }
 }

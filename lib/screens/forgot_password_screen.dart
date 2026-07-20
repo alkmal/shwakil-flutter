@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../widgets/responsive_scaffold_container.dart';
+import '../widgets/country_selector_field.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/support_contact_card.dart';
@@ -419,32 +420,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            DropdownButtonFormField<CountryOption>(
-                              initialValue: _selectedCountry,
-                              decoration: InputDecoration(
-                                labelText: l.tr(
-                                  'screens_forgot_password_screen.021',
-                                ),
-                                prefixIcon: const Icon(Icons.public_rounded),
+                            CountrySelectorField(
+                              value: _selectedCountry.dialCode,
+                              labelText: l.tr(
+                                'screens_forgot_password_screen.021',
                               ),
-                              items: PhoneNumberService.countries
-                                  .map(
-                                    (
-                                      country,
-                                    ) => DropdownMenuItem<CountryOption>(
-                                      value: country,
-                                      child: Text(
-                                        '${country.name} (+${country.dialCode})',
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setState(() => _selectedCountry = value);
-                              },
+                              onChanged: (code) => setState(() {
+                                _selectedCountry = PhoneNumberService.countries
+                                    .firstWhere(
+                                      (country) => country.dialCode == code,
+                                    );
+                              }),
                             ),
                             const SizedBox(height: 12),
                             TextField(

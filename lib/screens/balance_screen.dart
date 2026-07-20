@@ -11,6 +11,7 @@ import '../utils/user_display_name.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/country_selector_field.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
@@ -2876,32 +2877,14 @@ class _BalanceScreenState extends State<BalanceScreen>
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
                                       children: [
-                                        DropdownButtonFormField<String>(
-                                          initialValue: countryCode,
-                                          decoration: InputDecoration(
-                                            labelText: l.tr(
-                                              'screens_balance_screen.084',
-                                            ),
+                                        CountrySelectorField(
+                                          value: countryCode,
+                                          labelText: l.tr(
+                                            'screens_balance_screen.084',
                                           ),
-                                          items: PhoneNumberService.countries
-                                              .map(
-                                                (country) => DropdownMenuItem(
-                                                  value: country.dialCode,
-                                                  child: Text(
-                                                    '${country.name} (+${country.dialCode})',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              )
-                                              .toList(),
-                                          onChanged: (value) {
-                                            if (value == null) return;
-                                            setDialogState(
-                                              () => countryCode = value,
-                                            );
-                                          },
+                                          onChanged: (value) => setDialogState(
+                                            () => countryCode = value,
+                                          ),
                                         ),
                                         const SizedBox(height: 10),
                                         TextField(
@@ -2942,32 +2925,15 @@ class _BalanceScreenState extends State<BalanceScreen>
                                     children: [
                                       SizedBox(
                                         width: 156,
-                                        child: DropdownButtonFormField<String>(
-                                          initialValue: countryCode,
-                                          decoration: InputDecoration(
-                                            labelText: l.tr(
-                                              'screens_balance_screen.084',
-                                            ),
+                                        child: CountrySelectorField(
+                                          value: countryCode,
+                                          compact: true,
+                                          labelText: l.tr(
+                                            'screens_balance_screen.084',
                                           ),
-                                          items: PhoneNumberService.countries
-                                              .map(
-                                                (country) => DropdownMenuItem(
-                                                  value: country.dialCode,
-                                                  child: Text(
-                                                    '+${country.dialCode}',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              )
-                                              .toList(),
-                                          onChanged: (value) {
-                                            if (value == null) return;
-                                            setDialogState(
-                                              () => countryCode = value,
-                                            );
-                                          },
+                                          onChanged: (value) => setDialogState(
+                                            () => countryCode = value,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 10),
