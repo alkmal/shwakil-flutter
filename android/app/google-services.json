@@ -9,6 +9,25 @@
       "client_info": {
         "mobilesdk_app_id": "1:786108231752:android:c288712ed8fea3a0f5e87d",
         "android_client_info": {
+          "package_name": "com.alkmal.shwakil.maintenance_trial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMABBniWGbu0BxJKOoNe2jZcJCN0I7QsE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:786108231752:android:c288712ed8fea3a0f5e87d",
+        "android_client_info": {
           "package_name": "com.alkmal.shwakil"
         }
       },
