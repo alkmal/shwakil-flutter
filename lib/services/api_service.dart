@@ -3513,6 +3513,20 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> recordMaintenanceContact(
+    String orderId, {
+    String method = 'call',
+    String result = 'attempted',
+    String note = '',
+  }) async {
+    final response = await _client.post(
+      AppConfig.apiUri('maintenance-management/orders/$orderId/contacts'),
+      headers: await _headers(),
+      body: jsonEncode({'method': method, 'result': result, 'note': note}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getPublicStores({String? query}) async {
     final response = await _client.get(
       AppConfig.apiUri('public-stores', {

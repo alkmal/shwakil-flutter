@@ -647,8 +647,10 @@ class _MaintenanceManagementScreenState
                 children: [
                   IconButton(
                     tooltip: context.loc.text('اتصال', 'Call'),
-                    onPressed: () =>
-                        _call(order['customerPhone']?.toString() ?? ''),
+                    onPressed: () => _call(
+                      order['customerPhone']?.toString() ?? '',
+                      order['id']?.toString() ?? '',
+                    ),
                     icon: const Icon(Icons.call),
                   ),
                   IconButton(
@@ -656,6 +658,15 @@ class _MaintenanceManagementScreenState
                     onPressed: () =>
                         _copy(order['customerPhone']?.toString() ?? ''),
                     icon: const Icon(Icons.copy),
+                  ),
+                  IconButton(
+                    tooltip: context.loc.text(
+                      'نسخ رابط التتبع',
+                      'Copy tracking link',
+                    ),
+                    onPressed: () =>
+                        _copyTracking(order['trackingUrl']?.toString() ?? ''),
+                    icon: const Icon(Icons.link_rounded),
                   ),
                 ],
               ),
@@ -769,7 +780,7 @@ class _MaintenanceManagementScreenState
               (l) => ListTile(
                 leading: const Icon(Icons.history),
                 title: Text(
-                  '${_statusLabel(l['toStatus']?.toString() ?? '')} • ${_map(l['actor'])['name'] ?? ''}',
+                  '${_logLabel(l)} • ${_map(l['actor'])['name'] ?? ''}',
                 ),
                 subtitle: Text('${l['note'] ?? ''}\n${l['createdAt'] ?? ''}'),
               ),
@@ -1103,9 +1114,31 @@ class _MaintenanceManagementScreenState
     }
   }
 
-  Future<void> _call(String phone) async {
+  Future<void> _call(String phone, String orderId) async {
     if (phone.trim().isNotEmpty) {
+      if (orderId.isNotEmpty) {
+        try {
+          await _api.recordMaintenanceContact(orderId);
+        } catch (_) {}
+      }
       await launchUrl(Uri(scheme: 'tel', path: phone.trim()));
+    }
+  }
+
+  Future<void> _copyTracking(String url) async {
+    if (url.trim().isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: url));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.loc.text(
+              'تم نسخ رابط متابعة الصيانة.',
+              'Tracking link copied.',
+            ),
+          ),
+        ),
+      );
     }
   }
 
@@ -1196,6 +1229,22 @@ class _MaintenanceManagementScreenState
         'cancelled': 'ملغاة',
       }[s] ??
       (s.isEmpty ? '-' : s);
+  String _logLabel(Map<String, dynamic> log) {
+    if (log['action'] == 'customer_contacted') {
+      return context.loc.text('تم التواصل مع العميل', 'Customer contacted');
+    }
+    if (log['action'] == 'part_added') {
+      return context.loc.text('إضافة قطعة غيار', 'Part added');
+    }
+    if (log['action'] == 'part_removed') {
+      return context.loc.text('إرجاع قطعة للمخزن', 'Part returned');
+    }
+    if (log['action'] == 'invoice_created') {
+      return context.loc.text('إنشاء الفاتورة', 'Invoice created');
+    }
+    return _statusLabel(log['toStatus']?.toString() ?? '');
+  }
+
   IconData _statusIcon(String s) =>
       {
         'received': Icons.move_to_inbox,
