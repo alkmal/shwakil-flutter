@@ -35,6 +35,12 @@ class _MaintenanceManagementScreenState
   List<Map<String, dynamic>> get _technicianPerformance =>
       _list(_data['technicianPerformance']);
   Map<String, dynamic> get _summary => _map(_data['summary']);
+  Map<String, dynamic> get _permissions => _map(_data['permissions']);
+  bool get _canManageInventory =>
+      _permissions['canManageStoreInventory'] == true;
+  bool get _canCreateSales => _permissions['canCreateStoreSales'] == true;
+  bool get _canViewProfits => _permissions['canViewStoreProfits'] == true;
+  bool get _canViewReports => _permissions['canViewStoreReports'] == true;
 
   @override
   void initState() {
@@ -234,69 +240,92 @@ class _MaintenanceManagementScreenState
           children: [..._orders.map(_orderCard), const SizedBox(height: 80)],
         );
 
-  Widget _reports() => ListView(
-    children: [
-      _periodReport(
-        context.loc.text('اليوم', 'Today'),
-        _map(_summary['today']),
-        Icons.today_rounded,
-      ),
-      _periodReport(
-        context.loc.text('هذا الشهر', 'This month'),
-        _map(_summary['month']),
-        Icons.calendar_month_rounded,
-      ),
-      _periodReport(
-        context.loc.text('هذه السنة', 'This year'),
-        _map(_summary['year']),
-        Icons.date_range_rounded,
-      ),
-      const SizedBox(height: 8),
-      Text(
-        context.loc.text('أداء فنيي الصيانة', 'Technician performance'),
-        style: Theme.of(context).textTheme.titleLarge,
-      ),
-      const SizedBox(height: 8),
-      if (_technicianPerformance.isEmpty)
-        ShwakelCard(
-          padding: const EdgeInsets.all(18),
-          child: Text(
-            context.loc.text(
-              'لا توجد عمليات مسندة لفنيين بعد.',
-              'No assigned maintenance yet.',
+  Widget _reports() => !_canViewReports
+      ? Center(
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline_rounded, size: 42),
+                const SizedBox(height: 10),
+                Text(
+                  context.loc.text(
+                    'لا تملك صلاحية عرض تقارير الصيانة.',
+                    'You do not have permission to view maintenance reports.',
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ..._technicianPerformance.map(
-        (item) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: ShwakelCard(
-            padding: const EdgeInsets.all(14),
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(
-                child: Icon(Icons.engineering_rounded),
+        )
+      : ListView(
+          children: [
+            _periodReport(
+              context.loc.text('اليوم', 'Today'),
+              _map(_summary['today']),
+              Icons.today_rounded,
+            ),
+            _periodReport(
+              context.loc.text('هذا الشهر', 'This month'),
+              _map(_summary['month']),
+              Icons.calendar_month_rounded,
+            ),
+            _periodReport(
+              context.loc.text('هذه السنة', 'This year'),
+              _map(_summary['year']),
+              Icons.date_range_rounded,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.text('أداء فنيي الصيانة', 'Technician performance'),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            if (_technicianPerformance.isEmpty)
+              ShwakelCard(
+                padding: const EdgeInsets.all(18),
+                child: Text(
+                  context.loc.text(
+                    'لا توجد عمليات مسندة لفنيين بعد.',
+                    'No assigned maintenance yet.',
+                  ),
+                ),
               ),
-              title: Text(_map(item['employee'])['name']?.toString() ?? '-'),
-              subtitle: Text(
-                '${context.loc.text('المنجزة', 'Completed')}: ${item['completedCount'] ?? 0}  •  '
-                '${context.loc.text('النشطة', 'Active')}: ${item['activeCount'] ?? 0}  •  '
-                '${context.loc.text('الإيراد', 'Revenue')}: ${_money(item['revenue'])}',
-              ),
-              trailing: Text(
-                _money(item['profit']),
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
+            ..._technicianPerformance.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: ShwakelCard(
+                  padding: const EdgeInsets.all(14),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.engineering_rounded),
+                    ),
+                    title: Text(
+                      _map(item['employee'])['name']?.toString() ?? '-',
+                    ),
+                    subtitle: Text(
+                      '${context.loc.text('المنجزة', 'Completed')}: ${item['completedCount'] ?? 0}  •  '
+                      '${context.loc.text('النشطة', 'Active')}: ${item['activeCount'] ?? 0}  •  '
+                      '${context.loc.text('الإيراد', 'Revenue')}: ${_money(item['revenue'])}',
+                    ),
+                    trailing: _canViewProfits
+                        ? Text(
+                            _money(item['profit']),
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 80),
-    ],
-  );
+            const SizedBox(height: 80),
+          ],
+        );
 
   Widget _metric(String title, dynamic value, IconData icon, Color color) =>
       SizedBox(
@@ -356,15 +385,17 @@ class _MaintenanceManagementScreenState
                 context.loc.text('الإيراد', 'Revenue'),
                 _money(report['revenue']),
               ),
-              _reportValue(
-                context.loc.text('التكلفة', 'Cost'),
-                _money(report['cost']),
-              ),
-              _reportValue(
-                context.loc.text('الربح', 'Profit'),
-                _money(report['profit']),
-                color: Colors.green,
-              ),
+              if (_canViewProfits)
+                _reportValue(
+                  context.loc.text('التكلفة', 'Cost'),
+                  _money(report['cost']),
+                ),
+              if (_canViewProfits)
+                _reportValue(
+                  context.loc.text('الربح', 'Profit'),
+                  _money(report['profit']),
+                  color: Colors.green,
+                ),
             ],
           ),
         ],
@@ -469,23 +500,24 @@ class _MaintenanceManagementScreenState
                     device,
                     context.loc.text('نوع الجهاز *', 'Device type *'),
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _field(
-                          brand,
-                          context.loc.text('الماركة', 'Brand'),
+                  if (_canCreateSales)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _field(
+                            brand,
+                            context.loc.text('الماركة', 'Brand'),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _field(
-                          model,
-                          context.loc.text('الموديل', 'Model'),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _field(
+                            model,
+                            context.loc.text('الموديل', 'Model'),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                   _field(
                     serial,
                     context.loc.text('الرقم التسلسلي', 'Serial number'),
@@ -660,11 +692,12 @@ class _MaintenanceManagementScreenState
                           ((order['paidAmount'] as num?)?.toDouble() ?? 0),
                     ),
                   ),
-                  _reportValue(
-                    context.loc.text('الربح', 'Profit'),
-                    _money(order['profit']),
-                    color: Colors.green,
-                  ),
+                  if (_canViewProfits)
+                    _reportValue(
+                      context.loc.text('الربح', 'Profit'),
+                      _money(order['profit']),
+                      color: Colors.green,
+                    ),
                 ],
               ),
             ),
@@ -681,15 +714,16 @@ class _MaintenanceManagementScreenState
                   icon: const Icon(Icons.edit),
                   label: Text(context.loc.text('تحديث ومتابعة', 'Update')),
                 ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(sheet);
-                    _addPart(order);
-                  },
-                  icon: const Icon(Icons.inventory_2),
-                  label: Text(context.loc.text('سحب قطعة', 'Use part')),
-                ),
-                if (order['invoiceId'] == null)
+                if (_canManageInventory && order['invoiceId'] == null)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(sheet);
+                      _addPart(order);
+                    },
+                    icon: const Icon(Icons.inventory_2),
+                    label: Text(context.loc.text('سحب قطعة', 'Use part')),
+                  ),
+                if (_canCreateSales && order['invoiceId'] == null)
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.pop(sheet);
@@ -711,7 +745,7 @@ class _MaintenanceManagementScreenState
               (p) => ListTile(
                 title: Text(p['productName']?.toString() ?? ''),
                 subtitle: Text('${p['quantity']} ${p['unitName']}'),
-                trailing: order['invoiceId'] == null
+                trailing: _canManageInventory && order['invoiceId'] == null
                     ? IconButton(
                         tooltip: context.loc.text(
                           'إرجاع للمخزن',
@@ -825,35 +859,38 @@ class _MaintenanceManagementScreenState
                           type: TextInputType.number,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _field(
-                          other,
-                          context.loc.text('تكلفة أخرى', 'Other cost'),
-                          type: TextInputType.number,
+                      if (_canViewProfits) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _field(
+                            other,
+                            context.loc.text('تكلفة أخرى', 'Other cost'),
+                            type: TextInputType.number,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _field(
-                          discount,
-                          context.loc.text('الخصم', 'Discount'),
-                          type: TextInputType.number,
+                  if (_canCreateSales)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _field(
+                            discount,
+                            context.loc.text('الخصم', 'Discount'),
+                            type: TextInputType.number,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _field(
-                          paid,
-                          context.loc.text('المدفوع', 'Paid'),
-                          type: TextInputType.number,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _field(
+                            paid,
+                            context.loc.text('المدفوع', 'Paid'),
+                            type: TextInputType.number,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                   _field(logNote, context.loc.text('ملاحظة للسجل', 'Log note')),
                 ],
               ),
@@ -880,10 +917,10 @@ class _MaintenanceManagementScreenState
           'diagnosis': diagnosis.text,
           'workNotes': notes.text,
           'location': location.text,
-          'laborPrice': double.tryParse(labor.text) ?? 0,
-          'otherCost': double.tryParse(other.text) ?? 0,
-          'discount': double.tryParse(discount.text) ?? 0,
-          'paidAmount': double.tryParse(paid.text) ?? 0,
+          if (_canCreateSales) 'laborPrice': double.tryParse(labor.text) ?? 0,
+          if (_canViewProfits) 'otherCost': double.tryParse(other.text) ?? 0,
+          if (_canCreateSales) 'discount': double.tryParse(discount.text) ?? 0,
+          if (_canCreateSales) 'paidAmount': double.tryParse(paid.text) ?? 0,
           'note': logNote.text,
         }),
       );
