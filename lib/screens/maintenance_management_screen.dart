@@ -32,6 +32,8 @@ class _MaintenanceManagementScreenState
   List<Map<String, dynamic>> get _employees => _list(_data['employees']);
   List<Map<String, dynamic>> get _products => _list(_data['products']);
   List<Map<String, dynamic>> get _warehouses => _list(_data['warehouses']);
+  List<Map<String, dynamic>> get _technicianPerformance =>
+      _list(_data['technicianPerformance']);
   Map<String, dynamic> get _summary => _map(_data['summary']);
 
   @override
@@ -248,6 +250,49 @@ class _MaintenanceManagementScreenState
         context.loc.text('هذه السنة', 'This year'),
         _map(_summary['year']),
         Icons.date_range_rounded,
+      ),
+      const SizedBox(height: 8),
+      Text(
+        context.loc.text('أداء فنيي الصيانة', 'Technician performance'),
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      const SizedBox(height: 8),
+      if (_technicianPerformance.isEmpty)
+        ShwakelCard(
+          padding: const EdgeInsets.all(18),
+          child: Text(
+            context.loc.text(
+              'لا توجد عمليات مسندة لفنيين بعد.',
+              'No assigned maintenance yet.',
+            ),
+          ),
+        ),
+      ..._technicianPerformance.map(
+        (item) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: ShwakelCard(
+            padding: const EdgeInsets.all(14),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const CircleAvatar(
+                child: Icon(Icons.engineering_rounded),
+              ),
+              title: Text(_map(item['employee'])['name']?.toString() ?? '-'),
+              subtitle: Text(
+                '${context.loc.text('المنجزة', 'Completed')}: ${item['completedCount'] ?? 0}  •  '
+                '${context.loc.text('النشطة', 'Active')}: ${item['activeCount'] ?? 0}  •  '
+                '${context.loc.text('الإيراد', 'Revenue')}: ${_money(item['revenue'])}',
+              ),
+              trailing: Text(
+                _money(item['profit']),
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       const SizedBox(height: 80),
     ],
@@ -586,6 +631,44 @@ class _MaintenanceManagementScreenState
             _info(context.loc.text('العطل', 'Issue'), order['reportedIssue']),
             _info(context.loc.text('التشخيص', 'Diagnosis'), order['diagnosis']),
             _info(context.loc.text('الموقع', 'Location'), order['location']),
+            ShwakelCard(
+              padding: const EdgeInsets.all(12),
+              child: Wrap(
+                spacing: 22,
+                runSpacing: 10,
+                children: [
+                  _reportValue(
+                    context.loc.text('قطع الغيار', 'Parts'),
+                    _money(order['partsPrice']),
+                  ),
+                  _reportValue(
+                    context.loc.text('أجرة العمل', 'Labor'),
+                    _money(order['laborPrice']),
+                  ),
+                  _reportValue(
+                    context.loc.text('الإجمالي', 'Total'),
+                    _money(order['total']),
+                  ),
+                  _reportValue(
+                    context.loc.text('المدفوع', 'Paid'),
+                    _money(order['paidAmount']),
+                  ),
+                  _reportValue(
+                    context.loc.text('المتبقي', 'Due'),
+                    _money(
+                      ((order['total'] as num?)?.toDouble() ?? 0) -
+                          ((order['paidAmount'] as num?)?.toDouble() ?? 0),
+                    ),
+                  ),
+                  _reportValue(
+                    context.loc.text('الربح', 'Profit'),
+                    _money(order['profit']),
+                    color: Colors.green,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -628,7 +711,19 @@ class _MaintenanceManagementScreenState
               (p) => ListTile(
                 title: Text(p['productName']?.toString() ?? ''),
                 subtitle: Text('${p['quantity']} ${p['unitName']}'),
-                trailing: Text(_money(p['priceTotal'])),
+                trailing: order['invoiceId'] == null
+                    ? IconButton(
+                        tooltip: context.loc.text(
+                          'إرجاع للمخزن',
+                          'Return to inventory',
+                        ),
+                        onPressed: () {
+                          Navigator.pop(sheet);
+                          _removePart(order, p);
+                        },
+                        icon: const Icon(Icons.undo_rounded, color: Colors.red),
+                      )
+                    : Text(_money(p['priceTotal'])),
               ),
             ),
             const Divider(height: 30),
@@ -908,6 +1003,44 @@ class _MaintenanceManagementScreenState
 
   Future<void> _finalize(Map<String, dynamic> order) async {
     await _act(() => _api.finalizeMaintenanceOrder(order['id'].toString()));
+  }
+
+  Future<void> _removePart(
+    Map<String, dynamic> order,
+    Map<String, dynamic> part,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text(
+          context.loc.text('إرجاع القطعة للمخزن', 'Return part to inventory'),
+        ),
+        content: Text(
+          context.loc.text(
+            'سيتم حذف ${part['productName']} من الصيانة وإرجاع الكمية إلى المخزن مع تسجيل الحركة.',
+            '${part['productName']} will be removed and returned to inventory with an audit movement.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: Text(context.loc.text('إلغاء', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: Text(context.loc.text('إرجاع', 'Return')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _act(
+        () => _api.removeMaintenancePart(
+          order['id'].toString(),
+          part['id'].toString(),
+        ),
+      );
+    }
   }
 
   Future<void> _act(Future<Map<String, dynamic>> Function() action) async {

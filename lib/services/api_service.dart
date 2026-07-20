@@ -3493,6 +3493,17 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> removeMaintenancePart(
+    String orderId,
+    String partId,
+  ) async {
+    final response = await _client.delete(
+      AppConfig.apiUri('maintenance-management/orders/$orderId/parts/$partId'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> finalizeMaintenanceOrder(String orderId) async {
     final response = await _client.post(
       AppConfig.apiUri('maintenance-management/orders/$orderId/finalize'),
