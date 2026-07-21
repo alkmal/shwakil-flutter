@@ -185,9 +185,10 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       final refreshed = await _auth.tryRefreshCurrentUser();
       final user = await _auth.currentUser();
       if (!AuthService.hasPermissionSnapshot(user)) {
-        final confirmed = await _confirmDeviceSessionWithOtp();
-        if (confirmed) {
-          await _completeUnlock();
+        final restored = await _auth.refreshTrustedDeviceSession();
+        final restoredUser = restored ? await _auth.currentUser() : user;
+        if (restored && AuthService.hasPermissionSnapshot(restoredUser)) {
+          await _finishLocalUnlock();
           return;
         }
         if (!mounted) {
@@ -205,9 +206,9 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       }
     } catch (error) {
       if (error is AuthRequestException && error.deviceSessionOtpRequired) {
-        final confirmed = await _confirmDeviceSessionWithOtp();
-        if (confirmed) {
-          await _completeUnlock();
+        final restored = await _auth.refreshTrustedDeviceSession();
+        if (restored) {
+          await _finishLocalUnlock();
           return;
         }
         if (!mounted) {
@@ -264,92 +265,14 @@ class _DeviceUnlockScreenState extends State<DeviceUnlockScreen> {
       );
       return;
     }
+    await _finishLocalUnlock();
+  }
+
+  Future<void> _finishLocalUnlock() async {
     await RealtimeNotificationService.start();
     await LocalSecurityService.clearSecuritySetupRequirement();
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, _returnRoute, (route) => false);
-  }
-
-  Future<bool> _confirmDeviceSessionWithOtp() async {
-    final l = context.loc;
-    try {
-      final otpRequest = await _auth.requestDeviceSessionOtp();
-      if (otpRequest.otpRequired == false) {
-        return true;
-      }
-      if (!mounted) {
-        return false;
-      }
-
-      final otpCode = await _showDeviceOtpDialog(
-        otpRequest.message ?? 'تم إرسال رمز التحقق لتأكيد الجهاز.',
-        otpRequest.debugOtpCode,
-      );
-      if (otpCode == null || otpCode.trim().isEmpty) {
-        return false;
-      }
-
-      await _auth.confirmDeviceSessionOtp(otpCode: otpCode);
-      return true;
-    } catch (error) {
-      if (!mounted) {
-        return false;
-      }
-      await AppAlertService.showError(
-        context,
-        title: l.tr('screens_device_unlock_screen.015'),
-        message: ErrorMessageService.sanitize(error),
-      );
-      return false;
-    }
-  }
-
-  Future<String?> _showDeviceOtpDialog(String message, String? debugOtp) async {
-    final l = context.loc;
-    final controller = TextEditingController(text: debugOtp ?? '');
-    try {
-      return showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return AlertDialog(
-            title: Text(l.text('تأكيد الجهاز', 'Confirm device')),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(message),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  maxLength: 8,
-                  decoration: InputDecoration(
-                    labelText: l.text('رمز التحقق', 'Verification code'),
-                    counterText: '',
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(l.text('إلغاء', 'Cancel')),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, controller.text),
-                child: Text(l.text('تأكيد', 'Confirm')),
-              ),
-            ],
-          );
-        },
-      );
-    } finally {
-      controller.dispose();
-    }
   }
 
   String _subtitle(AppLocalizer l) {

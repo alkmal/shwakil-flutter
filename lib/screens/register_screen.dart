@@ -324,6 +324,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return AuthScreenShell(
       title: context.loc.tr('screens_register_screen.009'),
       subtitle: context.loc.tr('main.006'),
+      maxFormWidth: 760,
+      showBrandPanel: false,
       child: _buildRegisterControls(),
     );
   }
@@ -342,20 +344,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Icons.badge_rounded,
             ),
             const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: 132, child: _countrySelector()),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _field(
-                    l.tr('screens_register_screen.017'),
-                    _whatsappC,
-                    Icons.chat_rounded,
-                    type: TextInputType.phone,
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 132, child: _countrySelector()),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Directionality(
+                      textDirection: Directionality.of(context),
+                      child: _field(
+                        l.tr('screens_register_screen.017'),
+                        _whatsappC,
+                        Icons.chat_rounded,
+                        type: TextInputType.phone,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             if ((_pendingReferralCode ?? '').isNotEmpty) ...[
               const SizedBox(height: 16),
