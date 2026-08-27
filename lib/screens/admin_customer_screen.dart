@@ -253,6 +253,11 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       return;
     }
 
+    final security = await TransferSecurityService.confirmTransfer(
+      context,
+      allowOtpFallback: true,
+    );
+    if (!mounted || !security.isVerified) return;
     setState(() => _busy = true);
     try {
       final payload = await _api.updateAdminUserAccountControls(
@@ -289,6 +294,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
         cardScanLimitExempt: _cardScanLimitExempt,
         resetCardScanCounter: _resetCardScanCounter,
         cardAutoRedeemOnScanForced: _cardAutoRedeemOnScanForced,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) return;
       setState(() {

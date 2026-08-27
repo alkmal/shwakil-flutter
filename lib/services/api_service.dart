@@ -1032,6 +1032,9 @@ class ApiService {
     bool cardScanLimitExempt = false,
     bool resetCardScanCounter = false,
     bool cardAutoRedeemOnScanForced = false,
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{
       'removePrintLogo': removePrintLogo,
@@ -1049,6 +1052,11 @@ class ApiService {
       'cardScanLimitExempt': cardScanLimitExempt,
       'resetCardScanCounter': resetCardScanCounter,
       'cardAutoRedeemOnScanForced': cardAutoRedeemOnScanForced,
+      ..._transactionConfirmationPayload(
+        otpCode: otpCode,
+        securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
+      ),
     };
     if (businessName != null) payload['businessName'] = businessName;
     if (fullName != null) payload['fullName'] = fullName;
