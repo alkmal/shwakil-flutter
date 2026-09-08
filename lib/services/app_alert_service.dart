@@ -376,7 +376,7 @@ class AppAlertService {
         ),
       );
     }
-    final supportNumber = _extractWhatsAppNumber(cleanMessage);
+    final supportNumber = _extractSupportPhone(cleanMessage);
     final returnToHomeOnAcknowledge =
         type == AppAlertType.error &&
         _shouldReturnHomeOnAcknowledge(cleanMessage);
@@ -453,8 +453,8 @@ class AppAlertService {
                   width: double.infinity,
                   height: 52,
                   child: OutlinedButton.icon(
-                    onPressed: () => _openWhatsApp(supportNumber),
-                    icon: const Icon(Icons.chat_rounded),
+                    onPressed: () => _openSms(supportNumber),
+                    icon: const Icon(Icons.sms_rounded),
                     label: Text(
                       context.loc.tr('services_app_alert_service.005'),
                       style: const TextStyle(
@@ -667,9 +667,9 @@ class AppAlertService {
     }
   }
 
-  static Future<void> _openWhatsApp(String phone) async {
+  static Future<void> _openSms(String phone) async {
     final normalized = phone.replaceAll(RegExp(r'\D'), '');
-    final uri = Uri.parse('https://wa.me/$normalized');
+    final uri = Uri(scheme: 'sms', path: normalized);
     var opened = false;
     try {
       opened = await launchUrl(
@@ -683,14 +683,13 @@ class AppAlertService {
     if (!opened && context != null && context.mounted) {
       showSnack(
         context,
-        message:
-            'تعذر فتح الشات الآن. تحقق من اتصال الإنترنت أو انسخ الرقم وتواصل يدويًا.',
+        message: 'تعذر فتح رسائل SMS الآن. انسخ الرقم وتواصل يدويًا.',
         type: AppAlertType.error,
       );
     }
   }
 
-  static String? _extractWhatsAppNumber(String message) {
+  static String? _extractSupportPhone(String message) {
     if (!_messageContainsAny(message, 'services_app_alert_service.008')) {
       return null;
     }

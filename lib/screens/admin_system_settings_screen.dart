@@ -364,11 +364,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           section: 'card_quantity_limits',
         ),
         safeLoad<Map<String, dynamic>>(
-          _apiService.getAdminMessageGatewayDashboard(),
-          fallback: const {},
-          section: 'message_gateway',
-        ),
-        safeLoad<Map<String, dynamic>>(
           _apiService.getAdminExternalCardStoreSettings(),
           fallback: const {},
           section: 'external_card_store',
@@ -410,11 +405,8 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       final cardQuantityLimitSettings = Map<String, dynamic>.from(
         results[14] as Map,
       );
-      final messageGatewayDashboard = Map<String, dynamic>.from(
-        results[15] as Map,
-      );
       final externalStorePayload = Map<String, dynamic>.from(
-        results[16] as Map,
+        results[15] as Map,
       );
       final externalStoreSettings = Map<String, dynamic>.from(
         externalStorePayload['externalCardStore'] as Map? ?? const {},
@@ -666,7 +658,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
         _isAuthorized = true;
         _topupPaymentMethods = topupPaymentMethods;
         _withdrawalMethods = withdrawalMethods;
-        _messageGatewayDashboard = messageGatewayDashboard;
         _externalProviderBalance = externalProviderBalance;
         _externalCatalogCategories = externalCatalogCategories;
         _externalCatalogCards = externalCatalogCards;
@@ -1803,7 +1794,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 10,
+      length: 9,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -1856,10 +1847,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       icon: const Icon(Icons.system_update_rounded),
                       text: l.tr('screens_admin_system_settings_screen.054'),
                     ),
-                    const Tab(
-                      icon: Icon(Icons.wifi_tethering_rounded),
-                      text: 'متابعة الرسائل',
-                    ),
                     Tab(
                       icon: const Icon(Icons.add_card_rounded),
                       text: l.tr('screens_admin_system_settings_screen.055'),
@@ -1897,7 +1884,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   children: [
                     _buildContactTab(),
                     _buildAppTab(),
-                    _buildMessagingTab(),
                     _buildTopupTab(),
                     _buildOfflineCardsTab(),
                     _buildPrepaidMultipayTab(),
@@ -1967,7 +1953,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                 TextField(
                   controller: _contactWhatsappController,
                   decoration: InputDecoration(
-                    labelText: l.tr('screens_admin_system_settings_screen.020'),
+                    labelText: l.text('رقم SMS للدعم', 'Support SMS number'),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2022,90 +2008,6 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   title: Text(l.tr('screens_admin_system_settings_screen.146')),
                   subtitle: Text(
                     l.tr('screens_admin_system_settings_screen.147'),
-                  ),
-                ),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: _registrationWhatsappVerificationRequired,
-                  onChanged: null,
-                  title: Text(l.tr('screens_admin_system_settings_screen.148')),
-                  subtitle: Text(
-                    l.tr('screens_admin_system_settings_screen.149'),
-                  ),
-                ),
-                DropdownButtonFormField<String>(
-                  initialValue: _whatsappUsageMode,
-                  decoration: InputDecoration(
-                    labelText: l.tr('screens_admin_system_settings_screen.150'),
-                    helperText: l.tr(
-                      'screens_admin_system_settings_screen.151',
-                    ),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'registration',
-                      child: Text(
-                        l.tr('screens_admin_system_settings_screen.152'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'financial',
-                      child: Text(
-                        l.tr('screens_admin_system_settings_screen.153'),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'all',
-                      child: Text(
-                        l.tr('screens_admin_system_settings_screen.154'),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) => setState(
-                    () =>
-                        _whatsappUsageMode = _normalizeWhatsappUsageMode(value),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: _messageDeliveryPriority,
-                  decoration: InputDecoration(
-                    labelText: l.text(
-                      'أولوية إرسال الرسائل',
-                      'Message delivery priority',
-                    ),
-                    helperText:
-                        'القناة الأولى للرسائل، ويتم استخدام القناة الأخرى تلقائيًا عند الفشل.',
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'whatsapp',
-                      child: Text(l.text('واتساب ثم SMS', 'WhatsApp then SMS')),
-                    ),
-                    const DropdownMenuItem(
-                      value: 'sms',
-                      child: Text('SMS ثم واتساب'),
-                    ),
-                  ],
-                  onChanged: (value) => setState(
-                    () => _messageDeliveryPriority =
-                        _normalizeMessageDeliveryPriority(value),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: _adminAlertsWhatsappEnabled,
-                  onChanged: (value) =>
-                      setState(() => _adminAlertsWhatsappEnabled = value),
-                  title: Text(
-                    l.text(
-                      'تنبيهات الإدارة عبر واتساب',
-                      'Admin alerts via WhatsApp',
-                    ),
-                  ),
-                  subtitle: const Text(
-                    'عند إيقافه تبقى التنبيهات داخل النظام فقط ولا ترسل عبر واتساب.',
                   ),
                 ),
                 SwitchListTile.adaptive(

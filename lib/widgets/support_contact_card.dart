@@ -33,9 +33,9 @@ class SupportContactCard extends StatelessWidget {
     );
   }
 
-  Future<void> _openWhatsapp(BuildContext context) async {
+  Future<void> _openSms(BuildContext context) async {
     final l = context.loc;
-    final uri = Uri.parse('https://wa.me/$phoneNumber');
+    final uri = Uri(scheme: 'sms', path: phoneNumber);
     var opened = false;
     try {
       opened = await launchUrl(
@@ -116,9 +116,9 @@ class SupportContactCard extends StatelessWidget {
             runSpacing: 10,
             children: [
               ElevatedButton.icon(
-                onPressed: () => _openWhatsapp(context),
-                icon: const Icon(Icons.chat_rounded),
-                label: Text(l.tr('widgets_support_contact_card.004')),
+                onPressed: () => _openSms(context),
+                icon: const Icon(Icons.sms_rounded),
+                label: Text(l.text('إرسال SMS', 'Send SMS')),
               ),
               OutlinedButton.icon(
                 onPressed: () => _copyNumber(context),

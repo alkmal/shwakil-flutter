@@ -1926,53 +1926,12 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> getAdminMessageGatewayDashboard() async {
-    final response = await _client.get(
-      AppConfig.apiUri('admin/message-gateway/dashboard'),
-      headers: await _headers(),
-    );
-    return _decodeObject(response);
-  }
-
   Future<Map<String, dynamic>> getAdminDashboard({
     String period = 'daily',
   }) async {
     final response = await _client.get(
       AppConfig.apiUri('admin/dashboard', {'period': period}),
       headers: await _headers(),
-    );
-    return _decodeObject(response);
-  }
-
-  Future<Map<String, dynamic>> toggleWhatsAppGatewayChannel({
-    required String channelKey,
-    required bool enabled,
-  }) async {
-    final response = await _client.post(
-      AppConfig.apiUri('admin/message-gateway/whatsapp/$channelKey/toggle'),
-      headers: await _headers(),
-      body: jsonEncode({'enabled': enabled}),
-    );
-    return _decodeObject(response);
-  }
-
-  Future<Map<String, dynamic>> testWhatsAppGatewayChannel({
-    required String channelKey,
-    String phone = '',
-  }) async {
-    final response = await _client.post(
-      AppConfig.apiUri('admin/message-gateway/whatsapp/$channelKey/test'),
-      headers: await _headers(),
-      body: jsonEncode({if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
-    );
-    return _decodeObject(response);
-  }
-
-  Future<Map<String, dynamic>> testSmsGateway({String phone = ''}) async {
-    final response = await _client.post(
-      AppConfig.apiUri('admin/message-gateway/sms/test'),
-      headers: await _headers(),
-      body: jsonEncode({if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
     );
     return _decodeObject(response);
   }
