@@ -594,6 +594,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               notes: notes,
               otpCode: security.otpCode,
               securityPin: security.securityPin,
+              localAuthMethod: security.method,
             )
           : await _api.deductAdminUserBalance(
               userId: _customer['id'].toString(),
@@ -601,6 +602,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
               notes: notes,
               otpCode: security.otpCode,
               securityPin: security.securityPin,
+              localAuthMethod: security.method,
             );
 
       if (!mounted) {

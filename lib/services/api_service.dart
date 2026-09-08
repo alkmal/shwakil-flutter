@@ -2241,12 +2241,14 @@ class ApiService {
     String notes = '',
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{'amount': amount, 'notes': notes};
     payload.addAll(
       _transactionConfirmationPayload(
         otpCode: otpCode,
         securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
       ),
     );
     final response = await _client.post(
@@ -2263,12 +2265,14 @@ class ApiService {
     String notes = '',
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{'amount': amount, 'notes': notes};
     payload.addAll(
       _transactionConfirmationPayload(
         otpCode: otpCode,
         securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
       ),
     );
     final response = await _client.post(
