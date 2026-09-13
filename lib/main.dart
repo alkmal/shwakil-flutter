@@ -95,7 +95,11 @@ final Map<String, WidgetBuilder> _appRoutes = {
   },
   '/unlock': (context) => const DeviceUnlockScreen(),
   '/balance': (context) => const BalanceScreen(),
-  '/create-card': (context) => const CreateCardScreen(),
+  '/create-card': (context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final options = args is Map ? args : const <String, dynamic>{};
+    return CreateCardScreen(initialCardType: options['cardType']?.toString());
+  },
   '/create-card-quick': (context) => const CreateCardScreen(quickMode: true),
   '/prepaid-multipay-cards': (context) {
     final args = ModalRoute.of(context)?.settings.arguments;
@@ -193,6 +197,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/debt-book': (context) => const DebtBookScreen(),
   '/store-management': (context) => const StoreManagementScreen(),
   '/maintenance-management': (context) => const MaintenanceManagementScreen(),
+  '/subscriptions': (context) => const SubscriptionManagementScreen(),
 };
 
 Route<dynamic> _buildNamedRoute(RouteSettings settings) {
@@ -254,6 +259,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
           permissions.canViewInventory,
     '/inventory' => permissions.canViewInventory && permissions.canIssueCards,
     '/maintenance-management' => permissions.canAccessStoreManagement,
+    '/subscriptions' => permissions.canIssueCards,
     '/scan-card' || '/scan-card-camera' =>
       permissions.canOpenCardTools || permissions.canReviewCards,
     '/scan-card-offline' ||
@@ -814,9 +820,7 @@ class _AdaptiveWebSidebarShell extends StatelessWidget {
                 children: [
                   Positioned.fill(
                     child: Padding(
-                      padding: const EdgeInsets.only(
-                        right: _sidebarWidth + 1,
-                      ),
+                      padding: const EdgeInsets.only(right: _sidebarWidth + 1),
                       child: child,
                     ),
                   ),

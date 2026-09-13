@@ -60,6 +60,7 @@ class _PrepaidMultipayCardsScreenState
   List<Map<String, dynamic>> _cards = const [];
   List<Map<String, dynamic>> _payments = const [];
   final Set<String> _revealedCardIds = <String>{};
+  final Set<String> _printSelection = <String>{};
   String? _selectedCardId;
   String _activityFilter = 'all';
   String _cardsPane = 'list';
@@ -182,6 +183,9 @@ class _PrepaidMultipayCardsScreenState
         _cards = cards;
         _payments = payments;
         _revealedCardIds.removeWhere(
+          (id) => !_cards.any((card) => card['id']?.toString() == id),
+        );
+        _printSelection.removeWhere(
           (id) => !_cards.any((card) => card['id']?.toString() == id),
         );
         if (_selectedCardId == null ||
@@ -1184,6 +1188,102 @@ class _PrepaidMultipayCardsScreenState
       await AppAlertService.showError(
         context,
         title: l.text('تعذر طباعة البطاقة', 'Could Not Print Card'),
+        message: ErrorMessageService.sanitize(error),
+      );
+    }
+  }
+
+  Future<void> _printSelectedPrepaidCards() async {
+    final selectedCards = _cards
+        .where((card) => _printSelection.contains(card['id']?.toString()))
+        .toList(growable: false);
+    if (selectedCards.isEmpty) return;
+
+    final hiddenIds = selectedCards
+        .map((card) => card['id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty && !_revealedCardIds.contains(id))
+        .toList(growable: false);
+    if (hiddenIds.isNotEmpty) {
+      final security = await TransferSecurityService.confirmTransfer(
+        context,
+        allowOtpFallback: true,
+      );
+      if (!mounted || !security.isVerified) return;
+      setState(() => _revealedCardIds.addAll(hiddenIds));
+    }
+
+    try {
+      await _ensurePdfFonts();
+      final pdf = pw.Document();
+      const cardWidth = 85.6 * PdfPageFormat.mm;
+      const cardHeight = 53.98 * PdfPageFormat.mm;
+      const horizontalGap = 4 * PdfPageFormat.mm;
+      const verticalGap = 3 * PdfPageFormat.mm;
+
+      for (var start = 0; start < selectedCards.length; start += 10) {
+        final end = (start + 10).clamp(0, selectedCards.length);
+        final pageCards = selectedCards.sublist(start, end);
+        pdf.addPage(
+          pw.Page(
+            pageFormat: PdfPageFormat.a4,
+            margin: const pw.EdgeInsets.all(5 * PdfPageFormat.mm),
+            theme: pw.ThemeData.withFont(
+              base: _pdfRegularFont!,
+              bold: _pdfBoldFont!,
+            ),
+            textDirection: pw.TextDirection.rtl,
+            build: (_) => pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Center(
+                child: pw.Wrap(
+                  spacing: horizontalGap,
+                  runSpacing: verticalGap,
+                  children: pageCards
+                      .map((card) {
+                        final rawNumber = _resolvedRawCardNumber(card);
+                        final cardNumber = _resolvedDisplayCardNumber(card);
+                        return _buildPrepaidPdfCard(
+                          width: cardWidth,
+                          height: cardHeight,
+                          logoImage: _pdfLogoImage,
+                          cardNumber: cardNumber,
+                          rawNumber: rawNumber,
+                          label: card['label']?.toString() ?? 'بطاقة دفع مسبق',
+                          expiry: card['expiryLabel']?.toString() ?? '-',
+                          ownerName: _cardOwnerName(),
+                          issuerPhone: _cardIssuerLocalPhone(),
+                          checkUrl: AppConfig.prepaidMultipayCheckUri(
+                            rawNumber,
+                          ).toString(),
+                          scanPayload: _prepaidCardBarcodePayload(
+                            card,
+                            paymentAmount: 0,
+                          ),
+                          balance: CurrencyFormatter.ils(
+                            (card['balance'] as num?)?.toDouble() ?? 0,
+                          ),
+                          status: _statusLabel(
+                            card['status']?.toString() ?? 'active',
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      await Printing.layoutPdf(
+        onLayout: (_) async => pdf.save(),
+        name: 'prepaid_cards_a4_${DateTime.now().millisecondsSinceEpoch}',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      await AppAlertService.showError(
+        context,
+        title: context.loc.text('تعذر تجهيز الطباعة', 'Printing failed'),
         message: ErrorMessageService.sanitize(error),
       );
     }
@@ -2313,6 +2413,18 @@ class _PrepaidMultipayCardsScreenState
       appBar: AppBar(
         title: Text(l.tr('screens_prepaid_multipay_cards_screen.050')),
         actions: [
+          if (_printSelection.isNotEmpty && !_isShowingOfflineCards)
+            IconButton(
+              onPressed: _printSelectedPrepaidCards,
+              tooltip: l.text(
+                'طباعة 10 بطاقات لكل A4',
+                'Print 10 cards per A4',
+              ),
+              icon: Badge(
+                label: Text('${_printSelection.length}'),
+                child: const Icon(Icons.print_rounded),
+              ),
+            ),
           if (_canUsePrepaidCards &&
               !_isLoading &&
               !_isShowingOfflineCards &&
@@ -2400,6 +2512,47 @@ class _PrepaidMultipayCardsScreenState
                           ],
                         ],
                       ),
+                      if (_cards.isNotEmpty &&
+                          _canUsePrepaidCards &&
+                          !_isShowingOfflineCards) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => setState(() {
+                                final printable = _cards
+                                    .where((card) {
+                                      final status =
+                                          card['status']?.toString() ?? '';
+                                      return status == 'active' ||
+                                          status == 'frozen';
+                                    })
+                                    .map((card) => card['id']?.toString() ?? '')
+                                    .where((id) => id.isNotEmpty);
+                                _printSelection
+                                  ..clear()
+                                  ..addAll(printable);
+                              }),
+                              icon: const Icon(Icons.select_all_rounded),
+                              label: Text(
+                                l.text(
+                                  'تحديد القابل للطباعة',
+                                  'Select printable',
+                                ),
+                              ),
+                            ),
+                            if (_printSelection.isNotEmpty)
+                              TextButton.icon(
+                                onPressed: () =>
+                                    setState(_printSelection.clear),
+                                icon: const Icon(Icons.close_rounded),
+                                label: Text(l.text('إلغاء التحديد', 'Clear')),
+                              ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       if (!_canManagePrepaidCards &&
                           _selfServiceLimitReached) ...[
@@ -2497,6 +2650,12 @@ class _PrepaidMultipayCardsScreenState
   Widget _buildCardListItem(Map<String, dynamic> card) {
     final isSelected = card['id']?.toString() == _selectedCardId;
     final status = card['status']?.toString() ?? 'active';
+    final cardId = card['id']?.toString() ?? '';
+    final canSelectForPrint =
+        _canUsePrepaidCards &&
+        !_isShowingOfflineCards &&
+        (status == 'active' || status == 'frozen') &&
+        cardId.isNotEmpty;
 
     return ShwakelCard(
       onTap: () => setState(() {
@@ -2547,7 +2706,22 @@ class _PrepaidMultipayCardsScreenState
             ),
           ),
           const SizedBox(width: 12),
-          const Icon(Icons.chevron_left_rounded, color: AppTheme.textSecondary),
+          if (canSelectForPrint)
+            Checkbox(
+              value: _printSelection.contains(cardId),
+              onChanged: (selected) => setState(() {
+                if (selected == true) {
+                  _printSelection.add(cardId);
+                } else {
+                  _printSelection.remove(cardId);
+                }
+              }),
+            )
+          else
+            const Icon(
+              Icons.chevron_left_rounded,
+              color: AppTheme.textSecondary,
+            ),
         ],
       ),
     );

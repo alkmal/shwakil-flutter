@@ -254,13 +254,6 @@ class _AppSidebarState extends State<AppSidebar> {
                   _buildMenuSection(
                     label: l.tr('widgets_app_sidebar.006'),
                     children: [
-                      if (canOpenCardTools)
-                        _buildItem(
-                          context,
-                          icon: Icons.qr_code_scanner_rounded,
-                          title: l.tr('widgets_app_sidebar.008'),
-                          routeName: '/scan-card',
-                        ),
                       if (canIssueCards)
                         _buildItem(
                           context,
@@ -277,6 +270,20 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: Icons.library_add_rounded,
                           title: l.tr('widgets_app_sidebar.047'),
                           routeName: '/create-card',
+                        ),
+                      if (canOpenCardTools)
+                        _buildItem(
+                          context,
+                          icon: Icons.qr_code_scanner_rounded,
+                          title: l.tr('widgets_app_sidebar.008'),
+                          routeName: '/scan-card',
+                        ),
+                      if (canIssueCards)
+                        _buildItem(
+                          context,
+                          icon: Icons.event_repeat_rounded,
+                          title: l.text('إدارة الاشتراكات', 'Subscriptions'),
+                          routeName: '/subscriptions',
                         ),
                       if (permissions.canOfflineCardScan)
                         _buildItem(

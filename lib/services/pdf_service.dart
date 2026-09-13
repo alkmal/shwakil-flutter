@@ -48,11 +48,12 @@ class _DenominationPalette {
 
 class PDFService {
   static final PDFService _instance = PDFService._internal();
-  static const int _cardsPerPage = 35;
-  static const int _rowsPerPage = 7;
+  static const int cardsPerA4Sheet = 90;
+  static const int _cardsPerPage = cardsPerA4Sheet;
+  static const int _rowsPerPage = 18;
   static const int _columnsPerPage = 5;
-  static const double _a4PagePrintMargin = 3.5 * PdfPageFormat.mm;
-  static const double _cardCutGap = 0.6 * PdfPageFormat.mm;
+  static const double _a4PagePrintMargin = 2.5 * PdfPageFormat.mm;
+  static const double _cardCutGap = 0.35 * PdfPageFormat.mm;
   static const PdfColor _pageBackground = PdfColor.fromInt(0xFFF8FAFC);
   static const PdfColor _cardBackground = PdfColor.fromInt(0xFFFFF8EC);
   static const PdfColor _titleColor = PdfColor.fromInt(0xFF16302B);
@@ -700,7 +701,7 @@ class PDFService {
   }
 
   /// Creates a single-page A4 PDF that renders the exact same "small card"
-  /// layout used inside the 35-cards-per-page sheet. This is used for an
+  /// layout used inside the 90-cards-per-page sheet. This is used for an
   /// accurate on-screen preview (rasterized from this PDF) so the user sees
   /// exactly what will be printed.
   Future<pw.Document> createSmallCardSheetPreviewPDF(
@@ -783,155 +784,180 @@ class PDFService {
     required int serialNumber,
   }) {
     final palette = _paletteForCard(card);
-    final showTradeStamp = designSettings.showStamp && _isBalanceCard(card);
-    final topStampAngle = [-0.20, 0.14, -0.10, 0.22][serialNumber % 4];
-    final topStampLeft = [7.0, 18.0, 28.0, 12.0][serialNumber % 4];
-    final topStampTop = [7.0, 10.0, 6.5, 12.0][serialNumber % 4];
+    final isPrivate = _isVisuallyPrivate(card);
+    final logoImage = _defaultLogoImage;
+    final barcodeValue = card.barcode.trim().isEmpty
+        ? 'NO-BARCODE'
+        : card.barcode.trim();
+    final badgeColor = isPrivate
+        ? const PdfColor.fromInt(0xFFBE123C)
+        : const PdfColor.fromInt(0xFF047857);
+    final badgeBackground = isPrivate
+        ? const PdfColor.fromInt(0xFFFFE4E6)
+        : const PdfColor.fromInt(0xFFD1FAE5);
+    final badgeText = isPrivate
+        ? 'خاصة • استخدام'
+        : _isBalanceCard(card)
+        ? 'عامة • رصيد'
+        : _cardBadgeLabel(card);
+
     return pw.Container(
       width: double.infinity,
       height: double.infinity,
       decoration: pw.BoxDecoration(
-        color: _cardBackground,
-        borderRadius: pw.BorderRadius.circular(4),
-        border: pw.Border.all(color: palette.border, width: 1),
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(2.2),
+        border: pw.Border.all(color: palette.border, width: 0.55),
       ),
-      child: pw.Stack(
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Positioned(
-            top: 0,
-            right: 0,
-            left: 0,
-            child: pw.Container(
-              height: 3,
-              decoration: pw.BoxDecoration(
-                color: palette.primary,
-                borderRadius: const pw.BorderRadius.only(
-                  topLeft: pw.Radius.circular(4),
-                  topRight: pw.Radius.circular(4),
-                ),
-              ),
-            ),
-          ),
-          pw.Positioned(
-            top: 8,
-            left: 4,
-            child: pw.Opacity(
-              opacity: 0.12,
-              child: pw.Container(
-                width: 15,
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  shape: pw.BoxShape.circle,
-                  border: pw.Border.all(color: palette.primary, width: 1),
-                ),
-              ),
-            ),
-          ),
-          pw.Positioned(
-            bottom: 6,
-            right: 4,
-            child: pw.Opacity(
-              opacity: 0.10,
-              child: pw.Container(
-                width: 13,
-                height: 13,
-                decoration: pw.BoxDecoration(
-                  shape: pw.BoxShape.circle,
-                  border: pw.Border.all(color: palette.accent, width: 1),
-                ),
-              ),
-            ),
-          ),
-          pw.Positioned.fill(
+          pw.Container(height: 1.6, color: badgeColor),
+          pw.Expanded(
             child: pw.Padding(
-              padding: const pw.EdgeInsets.fromLTRB(3.4, 5.5, 3.4, 7.0),
+              padding: const pw.EdgeInsets.fromLTRB(2.2, 1.4, 2.2, 1.2),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  _topHeader(
-                    palette,
-                    compact: true,
-                    card: card,
-                    printedBy: printedBy,
+                  pw.SizedBox(
+                    height: 9.5,
+                    child: pw.Row(
+                      children: [
+                        if (logoImage != null)
+                          _buildHeaderLogoBox(
+                            logoImage,
+                            size: 9.5,
+                            compact: true,
+                          )
+                        else
+                          pw.Text(
+                            _fallbackBrandName,
+                            style: _textStyle(
+                              fontSize: 4.7,
+                              bold: true,
+                              color: palette.primary,
+                            ),
+                          ),
+                        pw.SizedBox(width: 1.8),
+                        pw.Expanded(
+                          child: pw.FittedBox(
+                            fit: pw.BoxFit.scaleDown,
+                            alignment: pw.Alignment.centerLeft,
+                            child: pw.Text(
+                              _brandName(printedBy),
+                              maxLines: 1,
+                              textDirection: _textDirectionFor(
+                                _brandName(printedBy),
+                              ),
+                              style: _textStyle(
+                                fontSize: 4.1,
+                                bold: true,
+                                color: _titleColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        pw.SizedBox(width: 1.5),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 2.3,
+                            vertical: 1.1,
+                          ),
+                          decoration: pw.BoxDecoration(
+                            color: badgeBackground,
+                            borderRadius: pw.BorderRadius.circular(3),
+                            border: pw.Border.all(
+                              color: badgeColor,
+                              width: 0.35,
+                            ),
+                          ),
+                          child: pw.Text(
+                            badgeText,
+                            maxLines: 1,
+                            textDirection: pw.TextDirection.rtl,
+                            style: _textStyle(
+                              fontSize: 3.6,
+                              bold: true,
+                              color: badgeColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   pw.SizedBox(height: 0.7),
-                  _cardTitleWithLogo(card, palette, compact: true),
-                  pw.SizedBox(height: 0.25),
-                  pw.Text(
-                    _internalUseLabel(card),
-                    maxLines: 1,
-                    textAlign: pw.TextAlign.center,
-                    textDirection: pw.TextDirection.rtl,
-                    style: _textStyle(
-                      fontSize: 3.8,
-                      color: const PdfColor.fromInt(0xFF64748B),
+                  pw.SizedBox(
+                    height: 8.2,
+                    child: pw.FittedBox(
+                      fit: pw.BoxFit.scaleDown,
+                      child: pw.Text(
+                        _cardTitle(card),
+                        maxLines: 1,
+                        textAlign: pw.TextAlign.center,
+                        textDirection: _cardTitleDirection(card),
+                        style: _textStyle(
+                          fontSize: _isTicketCard(card) ? 5.2 : 8.2,
+                          bold: true,
+                          color: _isTicketCard(card)
+                              ? palette.primary
+                              : palette.value,
+                          font: _isTicketCard(card) ? null : _latinBoldFont,
+                        ),
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(height: 0.7),
+                  pw.Expanded(
+                    child: pw.Container(
+                      padding: const pw.EdgeInsets.fromLTRB(1.4, 0.8, 1.4, 0.5),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.white,
+                        borderRadius: pw.BorderRadius.circular(1.8),
+                        border: pw.Border.all(
+                          color: const PdfColor.fromInt(0xFFCBD5E1),
+                          width: 0.35,
+                        ),
+                      ),
+                      child: pw.BarcodeWidget(
+                        barcode: pw.Barcode.code128(),
+                        data: barcodeValue,
+                        drawText: false,
+                        color: PdfColors.black,
+                        backgroundColor: PdfColors.white,
+                      ),
                     ),
                   ),
                   pw.SizedBox(height: 0.45),
-                  _cardBarcodeBlock(
-                    card,
-                    palette,
-                    compact: true,
-                    serialNumber: serialNumber,
-                  ),
-                  if (designSettings.showStamp)
-                    _postBarcodeFooter(compact: true),
-                  pw.Spacer(),
-                  _cardMetadataFooter(
-                    card,
-                    printedBy: printedBy,
-                    serialNumber: serialNumber,
-                    palette: palette,
-                    compact: true,
+                  pw.Row(
+                    children: [
+                      pw.Expanded(
+                        child: pw.Text(
+                          barcodeValue,
+                          maxLines: 1,
+                          textAlign: pw.TextAlign.left,
+                          textDirection: pw.TextDirection.ltr,
+                          style: _textStyle(
+                            fontSize: 3.4,
+                            bold: true,
+                            color: PdfColors.black,
+                            font: pw.Font.courierBold(),
+                          ),
+                        ),
+                      ),
+                      pw.Text(
+                        '#${serialNumber.toString().padLeft(3, '0')} • $_appDomain',
+                        maxLines: 1,
+                        textAlign: pw.TextAlign.right,
+                        textDirection: pw.TextDirection.ltr,
+                        style: _textStyle(
+                          fontSize: 4.2,
+                          color: const PdfColor.fromInt(0xFF64748B),
+                          font: _latinRegularFont,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ),
-          ),
-          if (showTradeStamp)
-            pw.Positioned(
-              left: topStampLeft,
-              top: topStampTop,
-              child: pw.Transform.rotate(
-                angle: topStampAngle,
-                child: pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 3.2,
-                    vertical: 0.5,
-                  ),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(
-                      color: const PdfColor.fromInt(0xFF991B1B),
-                      width: 0.45,
-                    ),
-                    borderRadius: pw.BorderRadius.circular(3),
-                  ),
-                  child: pw.Text(
-                    _resolvedStampText(),
-                    textDirection: pw.TextDirection.rtl,
-                    style: _textStyle(
-                      fontSize: 4.2,
-                      bold: true,
-                      color: const PdfColor.fromInt(0xFF991B1B),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          pw.Positioned(
-            left: 4,
-            right: 4,
-            bottom: 1.9,
-            child: pw.Text(
-              _appDomain,
-              maxLines: 1,
-              textAlign: pw.TextAlign.center,
-              textDirection: pw.TextDirection.ltr,
-              style: _textStyle(
-                fontSize: 4.8,
-                bold: true,
-                color: _titleColor,
-                font: pw.Font.helveticaBold(),
               ),
             ),
           ),

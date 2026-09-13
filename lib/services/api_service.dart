@@ -136,6 +136,50 @@ class ApiService {
     };
   }
 
+  Future<Map<String, dynamic>> getAdminMessageGatewayDashboard() async {
+    final response = await _client.get(
+      AppConfig.apiUri('admin/message-gateway/dashboard'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> toggleWhatsAppGatewayChannel({
+    required String channelKey,
+    required bool enabled,
+  }) async {
+    final response = await _client.post(
+      AppConfig.apiUri(
+        'admin/message-gateway/whatsapp/${Uri.encodeComponent(channelKey)}/toggle',
+      ),
+      headers: await _headers(),
+      body: jsonEncode({'enabled': enabled}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> testWhatsAppGatewayChannel({
+    required String channelKey,
+  }) async {
+    final response = await _client.post(
+      AppConfig.apiUri(
+        'admin/message-gateway/whatsapp/${Uri.encodeComponent(channelKey)}/test',
+      ),
+      headers: await _headers(),
+      body: jsonEncode(const <String, dynamic>{}),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> testSmsGateway() async {
+    final response = await _client.post(
+      AppConfig.apiUri('admin/message-gateway/sms/test'),
+      headers: await _headers(),
+      body: jsonEncode(const <String, dynamic>{}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> getContactInfo() async {
     final stopwatch = Stopwatch()..start();
     final response = await _client

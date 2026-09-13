@@ -47,4 +47,5 @@ export 'debt_book_screen.dart';
 export 'debt_book_customer_screen.dart';
 export 'store_management_screen.dart';
 export 'maintenance_management_screen.dart';
+export 'subscription_management_screen.dart';
 export 'merchant_directions_webview_screen.dart';

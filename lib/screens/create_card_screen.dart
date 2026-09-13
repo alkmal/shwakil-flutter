@@ -23,9 +23,14 @@ import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
 class CreateCardScreen extends StatefulWidget {
-  const CreateCardScreen({super.key, this.quickMode = false});
+  const CreateCardScreen({
+    super.key,
+    this.quickMode = false,
+    this.initialCardType,
+  });
 
   final bool quickMode;
+  final String? initialCardType;
 
   @override
   State<CreateCardScreen> createState() => _CreateCardScreenState();
@@ -92,6 +97,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   List<Map<String, dynamic>> _selectedUsers = [];
   List<String> _selectedPhoneNumbers = [];
   bool _didLoadDependencies = false;
+  String? _requestedCardType;
   int _currentStep = 0;
   String _cardPreviewSignature = '';
   Future<Uint8List>? _cardPreviewFuture;
@@ -110,6 +116,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     }
     _didLoadDependencies = true;
     final args = ModalRoute.of(context)?.settings.arguments;
+    _requestedCardType = widget.initialCardType?.trim().isNotEmpty == true
+        ? widget.initialCardType!.trim()
+        : args is Map
+        ? args['cardType']?.toString().trim()
+        : null;
     if (widget.quickMode || (args is Map && args['quick'] == true)) {
       _quickMode = true;
       _qtyC.text = '1';
@@ -171,6 +182,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         _useAccountLogo =
             user?['printLogoUrl']?.toString().trim().isNotEmpty == true;
         final issuableCardTypes = _issuableCardTypesFromUser(user);
+        if ((_requestedCardType?.isNotEmpty ?? false) &&
+            issuableCardTypes.contains(_requestedCardType)) {
+          _applyCardTypeDefaults(_requestedCardType!);
+          _currentStep = 1;
+          _requestedCardType = null;
+        }
         if (_cardType.isNotEmpty && !issuableCardTypes.contains(_cardType)) {
           _cardType = '';
         }

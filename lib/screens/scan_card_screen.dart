@@ -2457,6 +2457,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   bool _canCurrentUserRedeemCard(VirtualCard card, AppPermissions permissions) {
+    if (!card.isPrivate && (card.cardType == 'standard' || card.isDelivery)) {
+      return permissions.canRedeemCards;
+    }
     if (!permissions.canReadOwnPrivateCardsOnly) {
       return true;
     }

@@ -936,19 +936,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final services = _needsSessionRecovery
-        ? const <_HomeServiceItem>[]
-        : _serviceItems(context);
-    _HomeServiceItem? scanShortcut;
-    for (final item in services) {
-      if (item.kind == _HomeServiceKind.scan) {
-        scanShortcut = item;
-        break;
-      }
-    }
-    final listServices = services
-        .where((item) => item.kind != _HomeServiceKind.scan)
-        .toList(growable: false);
+    final services = _prioritizeServices(
+      _needsSessionRecovery
+          ? const <_HomeServiceItem>[]
+          : _serviceItems(context),
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -976,16 +968,41 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 children: [
                   ResponsiveScaffoldContainer(
                     padding: const EdgeInsets.fromLTRB(0, 20, 0, 28),
-                    child: _buildHomeContent(
-                      context,
-                      scanShortcut: scanShortcut,
-                      listServices: listServices,
-                    ),
+                    child: _buildHomeContent(context, listServices: services),
                   ),
                 ],
               ),
             ),
     );
+  }
+
+  List<_HomeServiceItem> _prioritizeServices(List<_HomeServiceItem> services) {
+    const priority = <_HomeServiceKind, int>{
+      _HomeServiceKind.createCard: 0,
+      _HomeServiceKind.scan: 1,
+      _HomeServiceKind.balance: 2,
+      _HomeServiceKind.prepaidMultipay: 3,
+      _HomeServiceKind.storeManagement: 4,
+      _HomeServiceKind.maintenance: 5,
+      _HomeServiceKind.subscriptions: 6,
+      _HomeServiceKind.transactions: 7,
+      _HomeServiceKind.inventory: 8,
+      _HomeServiceKind.printRequests: 9,
+      _HomeServiceKind.quickTransfer: 10,
+      _HomeServiceKind.merchantReceive: 11,
+      _HomeServiceKind.temporaryTransfer: 12,
+      _HomeServiceKind.debtBook: 13,
+      _HomeServiceKind.externalCardStore: 14,
+      _HomeServiceKind.publicStores: 15,
+      _HomeServiceKind.affiliate: 16,
+      _HomeServiceKind.sync: 17,
+      _HomeServiceKind.security: 18,
+    };
+    final sorted = services.toList(growable: false);
+    sorted.sort(
+      (a, b) => (priority[a.kind] ?? 999).compareTo(priority[b.kind] ?? 999),
+    );
+    return sorted;
   }
 
   Widget _buildSessionRecoveryState() {
@@ -1417,6 +1434,31 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           kind: _HomeServiceKind.storeManagement,
           onTap: () => unawaited(_openOnlineOnlyRoute('/store-management')),
         ),
+      if (canAccessStoreManagement)
+        _HomeServiceItem(
+          title: l.text('إدارة الصيانة', 'Maintenance'),
+          subtitle: l.text(
+            'استلام الأجهزة ومتابعة الإصلاح والقطع والفواتير.',
+            'Receive devices and track repairs, parts and invoices.',
+          ),
+          icon: Icons.home_repair_service_rounded,
+          color: AppTheme.orange,
+          kind: _HomeServiceKind.maintenance,
+          onTap: () =>
+              unawaited(_openOnlineOnlyRoute('/maintenance-management')),
+        ),
+      if (canIssueCards)
+        _HomeServiceItem(
+          title: l.text('إدارة الاشتراكات', 'Subscriptions'),
+          subtitle: l.text(
+            'اشتراكات شهرية للجيم والكهرباء والإنترنت والخدمات.',
+            'Monthly gym, electricity, internet and service plans.',
+          ),
+          icon: Icons.event_repeat_rounded,
+          color: AppTheme.primary,
+          kind: _HomeServiceKind.subscriptions,
+          onTap: () => unawaited(_openOnlineOnlyRoute('/subscriptions')),
+        ),
       if (canViewSecuritySettings)
         _HomeServiceItem(
           title: l.tr('screens_home_screen.029'),
@@ -1744,7 +1786,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Widget _buildHomeContent(
     BuildContext context, {
-    required _HomeServiceItem? scanShortcut,
     required List<_HomeServiceItem> listServices,
   }) {
     return LayoutBuilder(
@@ -1760,14 +1801,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildWelcomeCard(),
-              if (scanShortcut != null) ...[
-                const SizedBox(height: 14),
-                if (!_isVerifiedUser) ...[
-                  _buildAccountVerificationReminder(),
-                  const SizedBox(height: 14),
-                ],
-                _buildScanShortcut(scanShortcut),
+              if (!_isVerifiedUser) ...[
+                const SizedBox(height: 12),
+                _buildAccountVerificationReminder(),
               ],
+              const SizedBox(height: 12),
+              _buildTrustStrip(),
               const SizedBox(height: 18),
               _buildServicesSection(listServices),
             ],
@@ -1781,21 +1820,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(flex: 11, child: _buildWelcomeCard()),
-                if (scanShortcut != null) ...[
-                  const SizedBox(width: 14),
-                  Expanded(
-                    flex: 9,
-                    child: Column(
-                      children: [
-                        if (!_isVerifiedUser) ...[
-                          _buildAccountVerificationReminder(),
-                          const SizedBox(height: 14),
-                        ],
-                        _buildScanShortcut(scanShortcut),
+                const SizedBox(width: 14),
+                Expanded(
+                  flex: 9,
+                  child: Column(
+                    children: [
+                      if (!_isVerifiedUser) ...[
+                        _buildAccountVerificationReminder(),
+                        const SizedBox(height: 12),
                       ],
-                    ),
+                      _buildTrustStrip(),
+                    ],
                   ),
-                ],
+                ),
               ],
             ),
             const SizedBox(height: 18),
@@ -1861,6 +1898,104 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTrustStrip() {
+    final l = context.loc;
+    final items = [
+      (
+        Icons.fact_check_rounded,
+        l.text('سجل موثّق', 'Verified record'),
+        AppTheme.primary,
+      ),
+      (
+        Icons.filter_1_rounded,
+        l.text('فحص لمرة واحدة', 'One-time scan'),
+        AppTheme.success,
+      ),
+      (
+        Icons.phone_android_rounded,
+        l.text('لا يلزم تطبيق للزبون', 'No customer app needed'),
+        AppTheme.highlight,
+      ),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.primaryBorderSoft.withValues(alpha: 0.75),
+        ),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 500;
+          return Flex(
+            direction: compact ? Axis.vertical : Axis.horizontal,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: compact
+                ? CrossAxisAlignment.stretch
+                : CrossAxisAlignment.center,
+            children: [
+              for (var index = 0; index < items.length; index++) ...[
+                if (index > 0)
+                  compact
+                      ? const SizedBox(height: 8)
+                      : const SizedBox(width: 8),
+                _buildTrustItem(
+                  icon: items[index].$1,
+                  label: items[index].$2,
+                  color: items[index].$3,
+                  compact: compact,
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTrustItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool compact,
+  }) {
+    return Row(
+      mainAxisSize: compact ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisAlignment: compact
+          ? MainAxisAlignment.start
+          : MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.11),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 17, color: color),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.caption.copyWith(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w800,
+              height: 1.25,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2259,13 +2394,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         final width = constraints.maxWidth;
         final isPhoneLayout = width < 520;
         final crossAxisCount = isPhoneLayout
-            ? 2
+            ? 3
             : width >= 1180
             ? 4
             : width >= 820
             ? 3
             : 2;
-        final tileExtent = isPhoneLayout ? 132.0 : 142.0;
+        final tileExtent = isPhoneLayout ? 116.0 : 142.0;
         final sectionHeader = Row(
           children: [
             Container(
@@ -2339,7 +2474,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         borderRadius: BorderRadius.circular(20),
         onTap: item.onTap,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppTheme.isPhone(context) ? 5 : 8,
+            vertical: AppTheme.isPhone(context) ? 8 : 10,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -2359,13 +2497,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: AppTheme.isPhone(context) ? 42 : 48,
+                    height: AppTheme.isPhone(context) ? 42 : 48,
                     decoration: BoxDecoration(
                       color: item.color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(item.icon, color: item.color, size: 24),
+                    child: Icon(
+                      item.icon,
+                      color: item.color,
+                      size: AppTheme.isPhone(context) ? 21 : 24,
+                    ),
                   ),
                   if (item.badgeIcon != null)
                     Positioned(
@@ -2392,7 +2534,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                 ],
               ),
-              const SizedBox(height: 9),
+              SizedBox(height: AppTheme.isPhone(context) ? 7 : 9),
               Flexible(
                 child: Text(
                   _compactServiceTitle(item.title),
@@ -2402,7 +2544,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   softWrap: true,
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.textPrimary,
-                    fontSize: 12.5,
+                    fontSize: AppTheme.isPhone(context) ? 11.5 : 12.5,
                     fontWeight: FontWeight.w800,
                     height: 1.24,
                   ),
@@ -2577,6 +2719,8 @@ enum _HomeServiceKind {
   externalCardStore,
   publicStores,
   storeManagement,
+  maintenance,
+  subscriptions,
   security,
 }
 

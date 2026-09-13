@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
+import 'package:excel_community/excel_community.dart' hide Border;
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
@@ -2863,16 +2864,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: _exportProductsCsv,
+                  onPressed: _exportProductsExcel,
                   icon: const Icon(Icons.download_rounded),
-                  label: Text(
-                    context.loc.text('تصدير الأصناف', 'Export items'),
-                  ),
+                  label: Text(context.loc.text('تصدير Excel', 'Export Excel')),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _importProductsCsv,
+                  onPressed: _importProductsFile,
                   icon: const Icon(Icons.upload_file_rounded),
-                  label: Text(context.loc.text('استيراد CSV', 'Import CSV')),
+                  label: Text(
+                    context.loc.text(
+                      'استيراد Excel أو CSV',
+                      'Import Excel/CSV',
+                    ),
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _downloadProductsTemplate,
@@ -2960,11 +2964,22 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     );
   }
 
-  Future<void> _exportProductsCsv() async {
-    final buffer = StringBuffer()
-      ..writeln(
-        '\uFEFFname,base_unit,purchase_price,sale_price,minimum_stock,barcode,stock_quantity',
-      );
+  Future<void> _exportProductsExcel() async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Inventory'];
+    excel.setDefaultSheet('Inventory');
+    if (excel.tables.containsKey('Sheet1')) excel.delete('Sheet1');
+
+    const headers = [
+      'اسم الصنف',
+      'الوحدة الأساسية',
+      'سعر الشراء',
+      'سعر البيع',
+      'الحد الأدنى',
+      'الباركود',
+      'الكمية الحالية',
+    ];
+    sheet.appendRow(headers.map(TextCellValue.new).toList());
     for (final product in _products) {
       final units = _list(product['units']);
       final base = units.firstWhere(
@@ -2972,49 +2987,121 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         orElse: () =>
             units.isNotEmpty ? units.first : const <String, dynamic>{},
       );
-      buffer.writeln(
-        [
-          product['name'],
-          product['baseUnit'],
-          base['purchasePrice'] ?? product['averagePurchaseCost'],
-          product['defaultSalePrice'],
-          product['minimumStock'],
-          base['barcode'],
-          product['stockQuantity'],
-        ].map(_csvCell).join(','),
+      sheet.appendRow([
+        TextCellValue(product['name']?.toString() ?? ''),
+        TextCellValue(product['baseUnit']?.toString() ?? ''),
+        DoubleCellValue(
+          _spreadsheetDouble(
+            base['purchasePrice'] ?? product['averagePurchaseCost'],
+          ),
+        ),
+        DoubleCellValue(_spreadsheetDouble(product['defaultSalePrice'])),
+        DoubleCellValue(_spreadsheetDouble(product['minimumStock'])),
+        TextCellValue(base['barcode']?.toString() ?? ''),
+        DoubleCellValue(_spreadsheetDouble(product['stockQuantity'])),
+      ]);
+    }
+
+    for (var column = 0; column < headers.length; column++) {
+      sheet.setColumnWidth(column, column == 0 ? 28 : 18);
+      final headerCell = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: column, rowIndex: 0),
+      );
+      headerCell.cellStyle = CellStyle(
+        bold: true,
+        fontColorHex: ExcelColor.white,
+        backgroundColorHex: ExcelColor.fromHexString('#0F766E'),
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
       );
     }
-    await _saveCsv(
-      'inventory_${DateTime.now().toIso8601String().substring(0, 10)}',
-      buffer.toString(),
+    sheet.setRowHeight(0, 26);
+    final bytes = excel.encode();
+    if (bytes == null) return;
+    await FileSaver.instance.saveFile(
+      name: 'inventory_${DateTime.now().toIso8601String().substring(0, 10)}',
+      bytes: Uint8List.fromList(bytes),
+      fileExtension: 'xlsx',
+      mimeType: MimeType.microsoftExcel,
     );
   }
 
-  Future<void> _downloadProductsTemplate() => _saveCsv(
-    'inventory_import_template',
-    '\uFEFFname,base_unit,purchase_price,sale_price,minimum_stock,barcode\n'
-        'مثال صنف,piece,10,15,5,123456789\n',
-  );
+  Future<void> _downloadProductsTemplate() async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Import'];
+    excel.setDefaultSheet('Import');
+    if (excel.tables.containsKey('Sheet1')) excel.delete('Sheet1');
+    sheet.appendRow(
+      [
+        'اسم الصنف',
+        'الوحدة الأساسية',
+        'سعر الشراء',
+        'سعر البيع',
+        'الحد الأدنى',
+        'الباركود',
+      ].map(TextCellValue.new).toList(),
+    );
+    sheet.appendRow([
+      TextCellValue('مثال صنف'),
+      TextCellValue('piece'),
+      const DoubleCellValue(10),
+      const DoubleCellValue(15),
+      const DoubleCellValue(5),
+      TextCellValue('123456789'),
+    ]);
+    final bytes = excel.encode();
+    if (bytes == null) return;
+    await FileSaver.instance.saveFile(
+      name: 'inventory_import_template',
+      bytes: Uint8List.fromList(bytes),
+      fileExtension: 'xlsx',
+      mimeType: MimeType.microsoftExcel,
+    );
+  }
 
-  Future<void> _importProductsCsv() async {
+  Future<void> _importProductsFile() async {
     final l = context.loc;
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const ['csv'],
+      allowedExtensions: const ['csv', 'xlsx'],
       withData: true,
     );
     final bytes = picked?.files.single.bytes;
     if (bytes == null) return;
-    final lines = const LineSplitter().convert(
-      utf8.decode(bytes, allowMalformed: true),
-    );
-    if (lines.length < 2) {
+    final extension = picked!.files.single.extension?.toLowerCase() ?? '';
+    late final List<String> rawHeaders;
+    late final List<List<String>> rows;
+    if (extension == 'xlsx') {
+      final workbook = Excel.decodeBytes(bytes);
+      final table = workbook.tables.values.firstWhere(
+        (candidate) => candidate.maxRows > 0,
+        orElse: () => workbook.tables.values.first,
+      );
+      rawHeaders = table.rows.first
+          .map((cell) => cell?.value?.toString() ?? '')
+          .toList(growable: false);
+      rows = table.rows
+          .skip(1)
+          .map(
+            (row) => row
+                .map((cell) => cell?.value?.toString() ?? '')
+                .toList(growable: false),
+          )
+          .toList(growable: false);
+    } else {
+      final lines = const LineSplitter().convert(
+        utf8.decode(bytes, allowMalformed: true),
+      );
+      rawHeaders = lines.isEmpty
+          ? const []
+          : _parseCsvLine(lines.first.replaceFirst('\uFEFF', ''));
+      rows = lines.skip(1).map(_parseCsvLine).toList(growable: false);
+    }
+    if (rawHeaders.isEmpty || rows.isEmpty) {
       _showMessage(l.text('ملف الاستيراد فارغ.', 'The import file is empty.'));
       return;
     }
-    final headers = _parseCsvLine(
-      lines.first.replaceFirst('\uFEFF', ''),
-    ).map((value) => value.trim().toLowerCase()).toList();
+    final headers = rawHeaders.map(_canonicalInventoryHeader).toList();
     final requiredHeaders = [
       'name',
       'base_unit',
@@ -3025,16 +3112,15 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       _showMessage(
         l.text(
           'عناوين الملف غير صحيحة. استخدم نموذج الاستيراد المعتمد.',
-          'Invalid columns. Please use the official import template.',
+          'Invalid columns. Use the template or an Al-Aseel Al-Thahabi item export.',
         ),
       );
       return;
     }
     var imported = 0;
     var skipped = 0;
-    for (final line in lines.skip(1)) {
-      if (line.trim().isEmpty) continue;
-      final values = _parseCsvLine(line);
+    for (final values in rows) {
+      if (values.every((value) => value.trim().isEmpty)) continue;
       String value(String key) {
         final index = headers.indexOf(key);
         return index >= 0 && index < values.length ? values[index].trim() : '';
@@ -3042,8 +3128,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
 
       final name = value('name');
       final baseUnit = value('base_unit');
-      final purchase = double.tryParse(value('purchase_price'));
-      final sale = double.tryParse(value('sale_price'));
+      final purchase = _parseSpreadsheetNumber(value('purchase_price'));
+      final sale = _parseSpreadsheetNumber(value('sale_price'));
       if (name.isEmpty ||
           baseUnit.isEmpty ||
           purchase == null ||
@@ -3065,7 +3151,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         clientRef: existing['clientRef']?.toString(),
         name: name,
         baseUnit: baseUnit,
-        minimumStock: double.tryParse(value('minimum_stock')) ?? 0,
+        minimumStock: _parseSpreadsheetNumber(value('minimum_stock')) ?? 0,
         salePrice: sale,
         units: [
           {
@@ -3090,16 +3176,87 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     );
   }
 
-  Future<void> _saveCsv(String name, String content) =>
-      FileSaver.instance.saveFile(
-        name: name,
-        bytes: Uint8List.fromList(utf8.encode(content)),
-        fileExtension: 'csv',
-        mimeType: MimeType.csv,
-      );
+  String _canonicalInventoryHeader(String raw) {
+    final value = raw
+        .replaceFirst('\uFEFF', '')
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s\-]+'), '_');
+    const aliases = <String, List<String>>{
+      'name': [
+        'name',
+        'item_name',
+        'اسم_الصنف',
+        'اسم_المادة',
+        'المادة',
+        'الصنف',
+        'الوصف',
+      ],
+      'base_unit': [
+        'base_unit',
+        'unit',
+        'الوحدة',
+        'وحدة',
+        'الوحدة_الأساسية',
+        'الوحدة_الرئيسية',
+      ],
+      'purchase_price': [
+        'purchase_price',
+        'cost',
+        'سعر_الشراء',
+        'تكلفة',
+        'سعر_التكلفة',
+        'تكلفة_الشراء',
+      ],
+      'sale_price': ['sale_price', 'price', 'سعر_البيع', 'سعر_المبيع', 'السعر'],
+      'minimum_stock': [
+        'minimum_stock',
+        'min_stock',
+        'الحد_الأدنى',
+        'حد_الطلب',
+        'اقل_كمية',
+      ],
+      'barcode': [
+        'barcode',
+        'bar_code',
+        'الباركود',
+        'باركود',
+        'رقم_الصنف',
+        'كود_الصنف',
+      ],
+      'stock_quantity': [
+        'stock_quantity',
+        'quantity',
+        'الكمية',
+        'الرصيد',
+        'الكمية_الحالية',
+      ],
+    };
+    for (final entry in aliases.entries) {
+      if (entry.value.contains(value)) return entry.key;
+    }
+    return value;
+  }
 
-  String _csvCell(dynamic value) =>
-      '"${(value ?? '').toString().replaceAll('"', '""')}"';
+  double? _parseSpreadsheetNumber(String raw) {
+    const arabic = '٠١٢٣٤٥٦٧٨٩';
+    const persian = '۰۱۲۳۴۵۶۷۸۹';
+    var arabicDigits = raw;
+    for (var index = 0; index < 10; index++) {
+      arabicDigits = arabicDigits
+          .replaceAll(arabic[index], '$index')
+          .replaceAll(persian[index], '$index');
+    }
+    final normalized = arabicDigits
+        .replaceAll('٬', '')
+        .replaceAll(',', '')
+        .replaceAll('٫', '.')
+        .trim();
+    return double.tryParse(normalized);
+  }
+
+  double _spreadsheetDouble(dynamic value) =>
+      value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
 
   List<String> _parseCsvLine(String line) {
     final values = <String>[];
