@@ -2,7 +2,10 @@ import 'package:flutter/foundation.dart';
 
 class AppConfig {
   static const String _productionApiUrl = 'https://shwakil.alkmal.com/api';
-  static const String _localDebugApiUrl = 'https://shwakil.test/api';
+  static const String _localDebugApiUrl = String.fromEnvironment(
+    'LOCAL_API_BASE_URL',
+    defaultValue: 'http://192.168.3.103:8001/api',
+  );
   static const String _trustedClientKey = String.fromEnvironment(
     'API_CLIENT_KEY',
   );
@@ -21,11 +24,7 @@ class AppConfig {
       return [env];
     }
 
-    if (kDebugMode) {
-      return [_localDebugApiUrl];
-    }
-
-    return [_productionApiUrl];
+    return kDebugMode ? [_localDebugApiUrl] : [_productionApiUrl];
   }
 
   static Uri get baseUri => Uri.parse(baseUrl);
