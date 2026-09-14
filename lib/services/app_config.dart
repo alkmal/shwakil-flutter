@@ -4,7 +4,9 @@ class AppConfig {
   static const String _productionApiUrl = 'https://shwakil.alkmal.com/api';
   static const String _localDebugApiUrl = String.fromEnvironment(
     'LOCAL_API_BASE_URL',
-    defaultValue: 'http://192.168.3.103:8001/api',
+    // For a USB-connected debug device, adb reverse maps this to the host.
+    // Override with LOCAL_API_BASE_URL when testing over the LAN.
+    defaultValue: 'http://127.0.0.1:8001/api',
   );
   static const String _trustedClientKey = String.fromEnvironment(
     'API_CLIENT_KEY',
