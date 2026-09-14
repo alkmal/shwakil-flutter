@@ -49,7 +49,9 @@ class ConnectivityService {
     try {
       final response = await _client
           .get(AppConfig.apiUri('health'))
-          .timeout(const Duration(seconds: 3));
+          // Local Laravel/DB startup can be slower than production while
+          // still being healthy; avoid showing a false offline state.
+          .timeout(const Duration(seconds: 10));
       final nextValue = response.statusCode < 500;
       if (nextValue) {
         _consecutiveFailures = 0;
