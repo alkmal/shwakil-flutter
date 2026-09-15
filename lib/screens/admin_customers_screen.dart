@@ -638,35 +638,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_admin_customers_screen.017')),
-        actions: [
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.049'),
-            onPressed: _toggleSummary,
-            icon: Icon(
-              _showSummaryInline
-                  ? Icons.analytics_outlined
-                  : Icons.analytics_rounded,
-            ),
-          ),
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.040'),
-            onPressed: () => _searchFocusNode.requestFocus(),
-            icon: const Icon(Icons.search_rounded),
-          ),
-          if (_canManageUsers)
-            IconButton(
-              tooltip: l.tr('screens_admin_customers_screen.022'),
-              onPressed: _showCreateCustomerDialog,
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-            ),
-          IconButton(
-            tooltip: l.tr('screens_admin_customers_screen.041'),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
-          const AppNotificationAction(),
-          const QuickLogoutAction(),
-        ],
+        actions: _buildAppBarActions(l),
       ),
       drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
@@ -724,6 +696,102 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildAppBarActions(AppLocalizer l) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
+    if (compact) {
+      return [
+        PopupMenuButton<String>(
+          tooltip: l.text('إجراءات العملاء', 'Customer actions'),
+          icon: const Icon(Icons.more_vert_rounded),
+          onSelected: _handleAppBarAction,
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'search',
+              child: ListTile(
+                leading: const Icon(Icons.search_rounded),
+                title: Text(l.tr('screens_admin_customers_screen.040')),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'summary',
+              child: ListTile(
+                leading: Icon(
+                  _showSummaryInline
+                      ? Icons.analytics_outlined
+                      : Icons.analytics_rounded,
+                ),
+                title: Text(l.tr('screens_admin_customers_screen.049')),
+              ),
+            ),
+            if (_canManageUsers)
+              PopupMenuItem(
+                value: 'create',
+                child: ListTile(
+                  leading: const Icon(Icons.person_add_alt_1_rounded),
+                  title: Text(l.tr('screens_admin_customers_screen.022')),
+                ),
+              ),
+            PopupMenuItem(
+              value: 'help',
+              child: ListTile(
+                leading: const Icon(Icons.info_outline_rounded),
+                title: Text(l.tr('screens_admin_customers_screen.041')),
+              ),
+            ),
+          ],
+        ),
+        const AppNotificationAction(),
+        const QuickLogoutAction(),
+      ];
+    }
+    return [
+      IconButton(
+        tooltip: l.tr('screens_admin_customers_screen.049'),
+        onPressed: _toggleSummary,
+        icon: Icon(
+          _showSummaryInline
+              ? Icons.analytics_outlined
+              : Icons.analytics_rounded,
+        ),
+      ),
+      IconButton(
+        tooltip: l.tr('screens_admin_customers_screen.040'),
+        onPressed: () => _searchFocusNode.requestFocus(),
+        icon: const Icon(Icons.search_rounded),
+      ),
+      if (_canManageUsers)
+        IconButton(
+          tooltip: l.tr('screens_admin_customers_screen.022'),
+          onPressed: _showCreateCustomerDialog,
+          icon: const Icon(Icons.person_add_alt_1_rounded),
+        ),
+      IconButton(
+        tooltip: l.tr('screens_admin_customers_screen.041'),
+        onPressed: _showHelpDialog,
+        icon: const Icon(Icons.info_outline_rounded),
+      ),
+      const AppNotificationAction(),
+      const QuickLogoutAction(),
+    ];
+  }
+
+  void _handleAppBarAction(String action) {
+    switch (action) {
+      case 'search':
+        _searchFocusNode.requestFocus();
+        break;
+      case 'summary':
+        _toggleSummary();
+        break;
+      case 'create':
+        _showCreateCustomerDialog();
+        break;
+      case 'help':
+        _showHelpDialog();
+        break;
+    }
   }
 
   Widget _buildPageHeader(int totalCustomers) {

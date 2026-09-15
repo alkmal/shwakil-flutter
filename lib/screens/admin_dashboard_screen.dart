@@ -784,56 +784,79 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required String subtitle,
     String? actionLabel,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: AppTheme.primarySoft,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Icon(
-            Icons.dashboard_customize_rounded,
-            color: AppTheme.primary,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: AppTheme.h2.copyWith(fontSize: 20)),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: AppTheme.bodyAction.copyWith(
-                  color: AppTheme.textSecondary,
-                  height: 1.5,
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 640;
+        final heading = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppTheme.primarySoft,
+                borderRadius: BorderRadius.circular(18),
               ),
-            ],
-          ),
-        ),
-        if (actionLabel != null) ...[
-          const SizedBox(width: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              actionLabel,
-              style: AppTheme.caption.copyWith(
+              child: const Icon(
+                Icons.dashboard_customize_rounded,
                 color: AppTheme.primary,
-                fontWeight: FontWeight.w800,
               ),
             ),
-          ),
-        ],
-      ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTheme.h2.copyWith(fontSize: 20)),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!compact && actionLabel != null) ...[
+              const SizedBox(width: 14),
+              _sectionActionPill(actionLabel),
+            ],
+          ],
+        );
+        if (!compact || actionLabel == null) {
+          return heading;
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            heading,
+            const SizedBox(height: 12),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: _sectionActionPill(actionLabel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _sectionActionPill(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: AppTheme.caption.copyWith(
+          color: AppTheme.primary,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 

@@ -10,6 +10,7 @@ import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/admin/admin_load_error_card.dart';
+import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -320,11 +321,10 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
             _chatRouteSetState = setRouteState;
             return Scaffold(
               backgroundColor: AppTheme.background,
-              body: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-                  child: _chat(),
-                ),
+              body: ResponsiveScaffoldContainer(
+                maxWidth: 1000,
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                child: _chat(),
               ),
             );
           },
@@ -1009,11 +1009,10 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                 ),
               ),
             )
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-                child: _ticketList(compact: false),
-              ),
+          : ResponsiveScaffoldContainer(
+              maxWidth: 1100,
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+              child: _ticketList(compact: false),
             ),
     );
   }
@@ -1194,62 +1193,129 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.border),
       ),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: l.text('رجوع', 'Back'),
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          const SizedBox(width: 4),
-          const CircleAvatar(
-            backgroundColor: AppTheme.primarySoft,
-            child: Icon(Icons.support_agent_rounded, color: AppTheme.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _selected?['title']?.toString() ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyBold,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showInlineActions = constraints.maxWidth >= 700;
+          return Row(
+            children: [
+              IconButton(
+                tooltip: l.text('رجوع', 'Back'),
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+              const SizedBox(width: 4),
+              const CircleAvatar(
+                backgroundColor: AppTheme.primarySoft,
+                child: Icon(
+                  Icons.support_agent_rounded,
+                  color: AppTheme.primary,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '#${_selected?['id']} - ${_selected?['statusLabel'] ?? _selected?['status']}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _selected?['title']?.toString() ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.bodyBold,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '#${_selected?['id']} - ${_selected?['statusLabel'] ?? _selected?['status']}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.caption,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: l.text('تعديل العنوان', 'Edit title'),
-            onPressed: _busy ? null : _openEditTitleDialog,
-            icon: const Icon(Icons.edit_note_rounded),
-          ),
-          IconButton(
-            tooltip: l.text('إضافة متابع', 'Add follower'),
-            onPressed: _busy ? null : _openFollowerDialog,
-            icon: const Icon(Icons.person_add_alt_1_rounded),
-          ),
-          IconButton(
-            tooltip: l.text('تغيير الحالة', 'Change status'),
-            onPressed: _busy ? null : _openStatusDialog,
-            icon: const Icon(Icons.flag_rounded),
-          ),
-          IconButton(
-            tooltip: l.text('تحديث', 'Refresh'),
-            onPressed: _busy ? null : _refreshSelected,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
+              ),
+              if (showInlineActions) ..._adminChatHeaderActions(l),
+              if (!showInlineActions) _adminChatActionsMenu(l),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  List<Widget> _adminChatHeaderActions(AppLocalizer l) => [
+    IconButton(
+      tooltip: l.text('تعديل العنوان', 'Edit title'),
+      onPressed: _busy ? null : _openEditTitleDialog,
+      icon: const Icon(Icons.edit_note_rounded),
+    ),
+    IconButton(
+      tooltip: l.text('إضافة متابع', 'Add follower'),
+      onPressed: _busy ? null : _openFollowerDialog,
+      icon: const Icon(Icons.person_add_alt_1_rounded),
+    ),
+    IconButton(
+      tooltip: l.text('تغيير الحالة', 'Change status'),
+      onPressed: _busy ? null : _openStatusDialog,
+      icon: const Icon(Icons.flag_rounded),
+    ),
+    IconButton(
+      tooltip: l.text('تحديث', 'Refresh'),
+      onPressed: _busy ? null : _refreshSelected,
+      icon: const Icon(Icons.refresh_rounded),
+    ),
+  ];
+
+  Widget _adminChatActionsMenu(AppLocalizer l) {
+    return PopupMenuButton<String>(
+      enabled: !_busy,
+      tooltip: l.text('إجراءات التذكرة', 'Ticket actions'),
+      icon: const Icon(Icons.more_vert_rounded),
+      onSelected: (action) {
+        switch (action) {
+          case 'edit':
+            unawaited(_openEditTitleDialog());
+            break;
+          case 'follower':
+            unawaited(_openFollowerDialog());
+            break;
+          case 'status':
+            unawaited(_openStatusDialog());
+            break;
+          case 'refresh':
+            unawaited(_refreshSelected());
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'edit',
+          child: ListTile(
+            leading: const Icon(Icons.edit_note_rounded),
+            title: Text(l.text('تعديل العنوان', 'Edit title')),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'follower',
+          child: ListTile(
+            leading: const Icon(Icons.person_add_alt_1_rounded),
+            title: Text(l.text('إضافة متابع', 'Add follower')),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'status',
+          child: ListTile(
+            leading: const Icon(Icons.flag_rounded),
+            title: Text(l.text('تغيير الحالة', 'Change status')),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'refresh',
+          child: ListTile(
+            leading: const Icon(Icons.refresh_rounded),
+            title: Text(l.text('تحديث', 'Refresh')),
+          ),
+        ),
+      ],
     );
   }
 
