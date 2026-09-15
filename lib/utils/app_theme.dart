@@ -350,7 +350,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 54),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(borderRadius: radiusMd),
           textStyle: const TextStyle(
             fontSize: 16,
@@ -365,13 +365,68 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: textPrimary,
           side: const BorderSide(color: border),
-          minimumSize: const Size(double.infinity, 52),
+          minimumSize: const Size(0, 50),
           shape: RoundedRectangleBorder(borderRadius: radiusMd),
           textStyle: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
             fontFamily: 'NotoSansArabic',
           ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(0, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: radiusMd),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'NotoSansArabic',
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryDark,
+          minimumSize: const Size(0, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: radiusSm),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'NotoSansArabic',
+          ),
+        ),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        focusElevation: 4,
+        hoverElevation: 4,
+        highlightElevation: 5,
+        shape: StadiumBorder(),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: primary,
+        textColor: textPrimary,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        minVerticalPadding: 10,
+        shape: RoundedRectangleBorder(borderRadius: radiusMd),
+        titleTextStyle: bodyBold.copyWith(fontSize: 15),
+        subtitleTextStyle: caption.copyWith(color: textSecondary),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surface,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        dragHandleColor: border,
+        modalElevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

@@ -146,7 +146,7 @@ class _SubscriptionManagementScreenState
               20 + MediaQuery.viewInsetsOf(context).bottom,
             ),
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
             child: Column(

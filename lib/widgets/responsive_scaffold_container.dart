@@ -26,15 +26,15 @@ class ResponsiveScaffoldContainer extends StatelessWidget {
             ? 32.0
             : width >= 720
             ? 24.0
-            : 14.0;
+            : 16.0;
         // The responsive gutter is a minimum, not an extra inset. Several
         // screens pass their own page padding; adding both values made mobile
         // content unnecessarily narrow (for example 24 + 14 on each side).
         final effectivePadding = EdgeInsets.fromLTRB(
           math.max(horizontalPadding, padding.left),
-          padding.top + (width < 720 ? 2 : 0),
+          padding.top,
           math.max(horizontalPadding, padding.right),
-          padding.bottom + (width < 720 ? 2 : 0),
+          padding.bottom,
         );
         return Align(
           alignment: Alignment.topCenter,

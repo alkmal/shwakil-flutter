@@ -61,12 +61,16 @@ class ShwakelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPhone = AppTheme.isPhone(context);
     final isNested =
         context.dependOnInheritedWidgetOfExactType<_ShwakelCardScope>() != null;
     final safeGradient = AppTheme.webSafeGradient(gradient);
     final effectiveRadius = shape == BoxShape.circle
         ? null
-        : (borderRadius ?? (isNested ? AppTheme.radiusMd : AppTheme.radiusLg));
+        : (borderRadius ??
+              (isNested
+                  ? AppTheme.radiusMd
+                  : BorderRadius.circular(isPhone ? 22 : 28)));
     final backgroundColor = safeGradient == null
         ? (color ??
               (gradient == null
@@ -94,7 +98,13 @@ class ShwakelCard extends StatelessWidget {
             width: width,
             height: height,
             alignment: alignment,
-            padding: padding ?? const EdgeInsets.all(AppTheme.spacingLg),
+            padding:
+                padding ??
+                EdgeInsets.all(
+                  isNested
+                      ? (isPhone ? 12 : AppTheme.spacingMd)
+                      : (isPhone ? AppTheme.spacingMd : AppTheme.spacingLg),
+                ),
             decoration: BoxDecoration(
               color: backgroundColor,
               gradient: safeGradient,
