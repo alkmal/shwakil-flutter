@@ -259,7 +259,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
           permissions.canViewInventory,
     '/inventory' => permissions.canViewInventory && permissions.canIssueCards,
     '/maintenance-management' => permissions.canAccessStoreManagement,
-    '/subscriptions' => permissions.canIssueCards,
+    '/subscriptions' => permissions.canManageSubscriptions,
     '/scan-card' || '/scan-card-camera' =>
       permissions.canOpenCardTools || permissions.canReviewCards,
     '/scan-card-offline' ||

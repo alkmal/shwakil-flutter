@@ -3,6 +3,33 @@ import 'package:virtual_currency_cards/utils/app_permissions.dart';
 
 void main() {
   group('administrative workspace permissions', () {
+    test(
+      'administrators can manage subscriptions without a duplicated flag',
+      () {
+        final permissions = AppPermissions.fromUser({
+          'permissions': {'role': 'admin', 'canIssueCards': false},
+        });
+
+        expect(permissions.canManageSubscriptions, isTrue);
+      },
+    );
+
+    test('card issuers can manage subscriptions', () {
+      final permissions = AppPermissions.fromUser({
+        'permissions': {'canIssueCards': true},
+      });
+
+      expect(permissions.canManageSubscriptions, isTrue);
+    });
+
+    test('regular users cannot open subscription management', () {
+      final permissions = AppPermissions.fromUser({
+        'permissions': {'canIssueCards': false},
+      });
+
+      expect(permissions.canManageSubscriptions, isFalse);
+    });
+
     test('system settings permission owns settings-managed workflows', () {
       final permissions = AppPermissions.fromUser({
         'permissions': {

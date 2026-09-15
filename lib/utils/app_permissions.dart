@@ -127,6 +127,7 @@ class AppPermissions {
   bool get canViewAccountSettings => _raw['canViewAccountSettings'] != false;
   bool get canRequestVerification => _isEnabled('canRequestVerification');
   bool get canIssueCards => _isEnabled('canIssueCards');
+  bool get canManageSubscriptions => canIssueCards || isAdminRole;
   bool get canIssueSubShekelCards => _isEnabled('canIssueSubShekelCards');
   bool get canIssueHighValueCards => _isEnabled('canIssueHighValueCards');
   bool get canIssuePrivateCards => _isEnabled('canIssuePrivateCards');

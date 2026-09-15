@@ -54,7 +54,7 @@ class _SubscriptionManagementScreenState
     try {
       final user = await _auth.currentUser();
       final permissions = AppPermissions.fromUser(user);
-      if (!permissions.canIssueCards) {
+      if (!permissions.canManageSubscriptions) {
         if (mounted) {
           setState(() {
             _authorized = false;

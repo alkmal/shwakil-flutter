@@ -1447,7 +1447,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           onTap: () =>
               unawaited(_openOnlineOnlyRoute('/maintenance-management')),
         ),
-      if (canIssueCards)
+      if (permissions.canManageSubscriptions)
         _HomeServiceItem(
           title: l.text('إدارة الاشتراكات', 'Subscriptions'),
           subtitle: l.text(

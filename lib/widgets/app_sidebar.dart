@@ -278,7 +278,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.008'),
                           routeName: '/scan-card',
                         ),
-                      if (canIssueCards)
+                      if (permissions.canManageSubscriptions)
                         _buildItem(
                           context,
                           icon: Icons.event_repeat_rounded,
