@@ -1794,7 +1794,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
     }
 
     return DefaultTabController(
-      length: 9,
+      length: 10,
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -1848,6 +1848,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                       text: l.tr('screens_admin_system_settings_screen.054'),
                     ),
                     Tab(
+                      icon: const Icon(Icons.notifications_active_rounded),
+                      text: l.text('الرسائل', 'Messages'),
+                    ),
+                    Tab(
                       icon: const Icon(Icons.add_card_rounded),
                       text: l.tr('screens_admin_system_settings_screen.055'),
                     ),
@@ -1884,6 +1888,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                   children: [
                     _buildContactTab(),
                     _buildAppTab(),
+                    _buildMessagingTab(),
                     _buildTopupTab(),
                     _buildOfflineCardsTab(),
                     _buildPrepaidMultipayTab(),
@@ -2107,7 +2112,7 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
           AdminSectionHeader(
             title: l.text('متابعة الرسائل', 'Message tracking'),
             subtitle:
-                'مراقبة واتساب و SMS خلال آخر 24 ساعة مع إيقاف وإعادة تفعيل التوكنات يدويًا.',
+                'مراقبة الإشعارات وOTP وبيانات الحساب خلال آخر 24 ساعة مع إدارة القنوات يدويًا.',
             icon: Icons.wifi_tethering_rounded,
           ),
           const SizedBox(height: 16),

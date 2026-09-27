@@ -2400,7 +2400,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             : width >= 820
             ? 3
             : 2;
-        final tileExtent = isPhoneLayout ? 116.0 : 142.0;
+        // Keep the three-column phone layout compact. A fixed 116px row left
+        // a visible band of empty space when a short label wrapped to one
+        // line; 104px still accommodates the icon and two-line labels.
+        final tileExtent = isPhoneLayout ? 104.0 : 142.0;
         final sectionHeader = Row(
           children: [
             Container(
