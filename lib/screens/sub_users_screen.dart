@@ -331,6 +331,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         notes: notes,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) return;
       setState(() {

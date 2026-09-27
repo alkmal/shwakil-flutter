@@ -788,6 +788,7 @@ class _AdminCardPrintRequestsScreenState
         notes: notes,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       _pendingCreateFingerprint = null;
       _pendingCreateIdempotencyKey = null;

@@ -614,6 +614,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         notes: review.notes,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) {
         return;
@@ -667,6 +668,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         approvalImageBase64: review.imageBase64,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) {
         return;

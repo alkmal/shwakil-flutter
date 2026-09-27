@@ -635,6 +635,7 @@ class ApiService {
     String notes = '',
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{
       'direction': direction,
@@ -645,6 +646,7 @@ class ApiService {
       _transactionConfirmationPayload(
         otpCode: otpCode,
         securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
       ),
     );
     final response = await _client.post(
@@ -881,6 +883,7 @@ class ApiService {
     String notes = '',
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{
       'approvalImageBase64': approvalImageBase64,
@@ -890,6 +893,7 @@ class ApiService {
       _transactionConfirmationPayload(
         otpCode: otpCode,
         securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
       ),
     );
     final response = await _client.post(
@@ -905,6 +909,7 @@ class ApiService {
     required String approvalImageBase64,
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{
       'approvalImageBase64': approvalImageBase64,
@@ -913,6 +918,7 @@ class ApiService {
       _transactionConfirmationPayload(
         otpCode: otpCode,
         securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
       ),
     );
     final response = await _client.post(
@@ -929,6 +935,7 @@ class ApiService {
     String approvalImageBase64 = '',
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final payload = <String, dynamic>{
       if (notes.trim().isNotEmpty) 'notes': notes.trim(),
@@ -939,6 +946,7 @@ class ApiService {
       _transactionConfirmationPayload(
         otpCode: otpCode,
         securityPin: securityPin,
+        localAuthMethod: localAuthMethod,
       ),
     );
     final response = await _client.post(
@@ -1252,6 +1260,7 @@ class ApiService {
     Map<String, dynamic> cardDetails = const {},
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final response = await _client.post(
       AppConfig.apiUri('cards/print-requests'),
@@ -1272,6 +1281,7 @@ class ApiService {
         ..._transactionConfirmationPayload(
           otpCode: otpCode,
           securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
         ),
       }),
     );
@@ -1363,6 +1373,7 @@ class ApiService {
     Map<String, dynamic> cardDetails = const {},
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final response = await _client.post(
       AppConfig.apiUri('admin/card-print-requests'),
@@ -1386,6 +1397,7 @@ class ApiService {
         ..._transactionConfirmationPayload(
           otpCode: otpCode,
           securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
         ),
       }),
     );
@@ -2832,6 +2844,7 @@ class ApiService {
     String notes = '',
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final response = await _client.post(
       AppConfig.apiUri('admin/cards/$cardId/transfer'),
@@ -2842,6 +2855,7 @@ class ApiService {
         ..._transactionConfirmationPayload(
           otpCode: otpCode,
           securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
         ),
       }),
     );
@@ -2858,6 +2872,7 @@ class ApiService {
     String cardId, {
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final response = await _client.delete(
       AppConfig.apiUri('admin/cards/$cardId'),
@@ -2866,6 +2881,7 @@ class ApiService {
         _transactionConfirmationPayload(
           otpCode: otpCode,
           securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
         ),
       ),
     );

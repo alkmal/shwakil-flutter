@@ -618,6 +618,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         approvalImageBase64: review.imageBase64,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) {
         return;

@@ -540,6 +540,7 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                   cardDetails: details,
                   otpCode: security.otpCode,
                   securityPin: security.securityPin,
+                  localAuthMethod: security.method,
                 );
                 if (!dialogContext.mounted) {
                   return;

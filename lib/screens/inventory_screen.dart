@@ -1871,6 +1871,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         id,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       await _load();
       if (mounted) {
@@ -1932,6 +1933,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         id,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       await _load();
       if (mounted) {
@@ -2091,6 +2093,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         targetUserId: target['id']?.toString() ?? '',
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       await _load();
       if (mounted) {
