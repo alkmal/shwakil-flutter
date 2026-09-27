@@ -1092,7 +1092,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         (_pendingOfflineCount > 0 || _isSyncingOfflineWorkspace);
 
     if (OfflineSessionService.isOfflineMode) {
-      return [
+      return _sortHomeServices([
         if (_canOfflineScan && (_isDeviceOnline || _offlineAccessExpired))
           _HomeServiceItem(
             title: _isSyncingOfflineWorkspace
@@ -1144,7 +1144,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canAccessStoreManagement)
           _HomeServiceItem(
-            title: l.text('إدارة المخزون', 'Inventory management'),
+            title: l.text('إدارة المحل', 'Store management'),
             subtitle: l.text(
               'المخزون والمبيعات والمشتريات والديون والتقارير.',
               'Inventory, sales, purchases, debts and reports.',
@@ -1157,9 +1157,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canViewInventory && canIssueCards && _hasOfflineWorkspace)
           _HomeServiceItem(
-            title: l.tr('screens_home_screen.023'),
-            subtitle: _t('screens_home_screen.114'),
-            icon: Icons.inventory_2_rounded,
+            title: l.text('البطاقات', 'Cards'),
+            subtitle: l.text(
+              'إصدار ومتابعة البطاقات والبطاقات المحفوظة.','Issue and manage cards and saved card data.',
+            ),
+            icon: Icons.credit_card_rounded,
             color: AppTheme.textSecondary,
             kind: _HomeServiceKind.inventory,
             onTap: () =>
@@ -1181,11 +1183,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             badgeIcon: Icons.offline_bolt_rounded,
             badgeColor: AppTheme.warning,
           ),
-      ];
+      ]);
     }
 
     if (canReviewCards && !canIssueCards) {
-      return [
+      return _sortHomeServices([
         if (showOfflineSyncAction)
           _HomeServiceItem(
             title: _isSyncingOfflineWorkspace
@@ -1227,7 +1229,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         if (canAccessStoreManagement)
           _HomeServiceItem(
-            title: l.text('إدارة المخزون', 'Inventory management'),
+            title: l.text('إدارة المحل', 'Store management'),
             subtitle: l.text(
               'مخزون وفواتير وديون المحل.',
               'Inventory, invoices and debts.',
@@ -1238,10 +1240,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             onTap: () =>
                 unawaited(_openRoute('/store-management', allowOffline: true)),
           ),
-      ];
+      ]);
     }
 
-    return [
+    return _sortHomeServices([
       if (showOfflineSyncAction)
         _HomeServiceItem(
           title: _isSyncingOfflineWorkspace
@@ -1379,9 +1381,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canViewInventory && canIssueCards)
         _HomeServiceItem(
-          title: l.tr('screens_home_screen.023'),
-          subtitle: l.tr('screens_home_screen.024'),
-          icon: Icons.inventory_2_rounded,
+          title: l.text('البطاقات', 'Cards'),
+          subtitle: l.text(
+            'إصدار ومتابعة البطاقات والبطاقات المحفوظة.',
+            'Issue and manage cards and saved card data.',
+          ),
+          icon: Icons.credit_card_rounded,
           color: AppTheme.textSecondary,
           kind: _HomeServiceKind.inventory,
           onTap: () => unawaited(_openOnlineOnlyRoute('/inventory')),
@@ -1424,7 +1429,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       if (canAccessStoreManagement)
         _HomeServiceItem(
-          title: l.text('إدارة المخزون', 'Inventory management'),
+          title: l.text('إدارة المحل', 'Store management'),
           subtitle: l.text(
             'المخزون والمبيعات والمشتريات والديون والأرباح.',
             'Inventory, sales, purchases, debts and profits.',
@@ -1468,7 +1473,41 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           kind: _HomeServiceKind.security,
           onTap: () => unawaited(_openOnlineOnlyRoute('/security-settings')),
         ),
-    ];
+    ]);
+  }
+
+  List<_HomeServiceItem> _sortHomeServices(
+    List<_HomeServiceItem> services,
+  ) {
+    const priority = <_HomeServiceKind, int>{
+      _HomeServiceKind.createCard: 0,
+      _HomeServiceKind.scan: 1,
+      _HomeServiceKind.balance: 2,
+      _HomeServiceKind.quickTransfer: 3,
+      _HomeServiceKind.merchantReceive: 4,
+      _HomeServiceKind.temporaryTransfer: 5,
+      _HomeServiceKind.prepaidMultipay: 6,
+      _HomeServiceKind.inventory: 7,
+      _HomeServiceKind.printRequests: 8,
+      _HomeServiceKind.transactions: 9,
+      _HomeServiceKind.storeManagement: 10,
+      _HomeServiceKind.maintenance: 11,
+      _HomeServiceKind.subscriptions: 12,
+      _HomeServiceKind.debtBook: 13,
+      _HomeServiceKind.affiliate: 14,
+      _HomeServiceKind.security: 15,
+      _HomeServiceKind.sync: 16,
+      _HomeServiceKind.externalCardStore: 17,
+      _HomeServiceKind.publicStores: 18,
+    };
+    final indexed = services.asMap().entries.toList();
+    indexed.sort((a, b) {
+      final byPriority = (priority[a.value.kind] ?? 99).compareTo(
+        priority[b.value.kind] ?? 99,
+      );
+      return byPriority == 0 ? a.key.compareTo(b.key) : byPriority;
+    });
+    return indexed.map((entry) => entry.value).toList();
   }
 
   Widget _buildWelcomeCard() {
