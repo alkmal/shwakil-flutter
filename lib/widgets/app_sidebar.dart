@@ -295,7 +295,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       if (canViewInventory && canIssueCards)
                         _buildItem(
                           context,
-                          icon: Icons.inventory_2_rounded,
+                          icon: Icons.credit_card_rounded,
                           title: l.text('البطاقات', 'Cards'),
                           routeName: '/inventory',
                         ),
