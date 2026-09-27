@@ -1294,6 +1294,7 @@ class ApiService {
     String notes = '',
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final response = await _client.post(
       AppConfig.apiUri('cards/print-requests/existing'),
@@ -1305,6 +1306,7 @@ class ApiService {
         ..._transactionConfirmationPayload(
           otpCode: otpCode,
           securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
         ),
       }),
     );
@@ -2892,6 +2894,7 @@ class ApiService {
     String cardId, {
     String? otpCode,
     String? securityPin,
+    String? localAuthMethod,
   }) async {
     final response = await _client.delete(
       AppConfig.apiUri('cards/$cardId'),
@@ -2900,6 +2903,7 @@ class ApiService {
         _transactionConfirmationPayload(
           otpCode: otpCode,
           securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
         ),
       ),
     );

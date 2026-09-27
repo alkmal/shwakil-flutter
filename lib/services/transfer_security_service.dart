@@ -95,6 +95,11 @@ class TransferSecurityService {
           introText: context.loc.tr('services_transfer_security_service.002'),
         );
       }
+      // A cancelled or unavailable PIN may use the explicitly enabled OTP
+      // fallback, but never combine PIN and OTP for the same operation.
+      if (!pinResult.isVerified && allowOtpFallback) {
+        return _confirmWithOtp(context);
+      }
       return pinResult;
     }
 

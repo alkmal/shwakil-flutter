@@ -1702,6 +1702,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         notes: notes,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) {
         return;
@@ -1971,6 +1972,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         card.id,
         otpCode: security.otpCode,
         securityPin: security.securityPin,
+        localAuthMethod: security.method,
       );
       if (!mounted) {
         return;
