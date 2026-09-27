@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../localization/index.dart';
+import '../utils/app_theme.dart';
 import 'api_service.dart';
 import 'local_security_service.dart';
+import '../widgets/responsive_scaffold_container.dart';
+import '../widgets/shwakel_card.dart';
 
 class TransferSecurityResult {
   const TransferSecurityResult({
@@ -308,165 +311,200 @@ class TransferSecurityService {
     BuildContext context, {
     String? introText,
   }) async {
-    final apiService = ApiService();
-    final codeController = TextEditingController();
-    var infoText =
-        introText ?? context.loc.tr('services_transfer_security_service.010');
-    var isSending = false;
-    var hasSentOtp = false;
-    var autoSendQueued = false;
-    var resendCooldown = 0;
-    Timer? resendTimer;
-
-    final result = await showDialog<TransferSecurityResult>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setState) {
-          void startResendCooldown() {
-            resendTimer?.cancel();
-            setState(() => resendCooldown = 60);
-            resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-              if (!dialogContext.mounted) {
-                timer.cancel();
-                return;
-              }
-              if (resendCooldown <= 1) {
-                setState(() => resendCooldown = 0);
-                timer.cancel();
-                return;
-              }
-              setState(() => resendCooldown -= 1);
-            });
-          }
-
-          Future<void> sendOtp() async {
-            setState(() => isSending = true);
-            try {
-              final otpResult = await apiService.requestTransferSecurityOtp();
-              if (!dialogContext.mounted) {
-                return;
-              }
-              setState(() {
-                hasSentOtp = true;
-                infoText = otpResult.debugOtpCode == null
-                    ? context.loc.tr('services_transfer_security_service.011')
-                    : context.loc.tr(
-                        'services_transfer_security_service.012',
-                        params: {'code': otpResult.debugOtpCode ?? ''},
-                      );
-                isSending = false;
-              });
-              startResendCooldown();
-            } catch (error) {
-              if (!dialogContext.mounted) {
-                return;
-              }
-              setState(() {
-                infoText = error.toString();
-                isSending = false;
-              });
-            }
-          }
-
-          if (!autoSendQueued) {
-            autoSendQueued = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (dialogContext.mounted) {
-                sendOtp();
-              }
-            });
-          }
-
-          return AlertDialog(
-            title: Text(
-              context.loc.tr('services_transfer_security_service.013'),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(infoText),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: codeController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: context.loc.tr(
-                      'services_transfer_security_service.014',
-                    ),
-                    prefixIcon: const Icon(Icons.sms_rounded),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              _buildDialogActionBar([
-                TextButton(
-                  onPressed: isSending
-                      ? null
-                      : () => Navigator.pop(
-                          dialogContext,
-                          const TransferSecurityResult(isVerified: false),
-                        ),
-                  child: Text(
-                    context.loc.tr('services_transfer_security_service.007'),
-                  ),
-                ),
-                if (!hasSentOtp || resendCooldown == 0)
-                  TextButton(
-                    onPressed: isSending ? null : sendOtp,
-                    child: Text(
-                      isSending
-                          ? context.loc.tr(
-                              'services_transfer_security_service.015',
-                            )
-                          : context.loc.tr(
-                              'services_transfer_security_service.016',
-                            ),
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8),
-                    child: Text(
-                      context.loc.tr(
-                        'services_transfer_security_service.018',
-                        params: {'seconds': '$resendCooldown'},
-                      ),
-                      style: const TextStyle(
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ElevatedButton(
-                  onPressed: () {
-                    final code = codeController.text.trim();
-                    if (code.isEmpty) {
-                      return;
-                    }
-                    Navigator.pop(
-                      dialogContext,
-                      TransferSecurityResult(
-                        isVerified: true,
-                        method: 'otp',
-                        otpCode: code,
-                      ),
-                    );
-                  },
-                  child: Text(
-                    context.loc.tr('services_transfer_security_service.009'),
-                  ),
-                ),
-              ]),
-            ],
-          );
-        },
+    final result = await Navigator.of(context).push<TransferSecurityResult>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _TransferSecurityOtpScreen(introText: introText),
       ),
     );
-
-    codeController.dispose();
-    resendTimer?.cancel();
     return result ?? const TransferSecurityResult(isVerified: false);
+  }
+}
+
+class _TransferSecurityOtpScreen extends StatefulWidget {
+  const _TransferSecurityOtpScreen({this.introText});
+
+  final String? introText;
+
+  @override
+  State<_TransferSecurityOtpScreen> createState() =>
+      _TransferSecurityOtpScreenState();
+}
+
+class _TransferSecurityOtpScreenState
+    extends State<_TransferSecurityOtpScreen> {
+  final _codeController = TextEditingController();
+  final _api = ApiService();
+  Timer? _timer;
+  String? _infoText;
+  String? _errorText;
+  String? _debugCode;
+  int _cooldown = 0;
+  bool _sending = false;
+  bool _sent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _infoText = widget.introText;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _sendOtp();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  void _startCooldown() {
+    _timer?.cancel();
+    setState(() => _cooldown = 60);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _cooldown <= 1) {
+        timer.cancel();
+        if (mounted) setState(() => _cooldown = 0);
+        return;
+      }
+      setState(() => _cooldown--);
+    });
+  }
+
+  Future<void> _sendOtp() async {
+    if (_sending || (_sent && _cooldown > 0)) return;
+    setState(() {
+      _sending = true;
+      _errorText = null;
+    });
+    try {
+      final result = await _api.requestTransferSecurityOtp();
+      if (!mounted) return;
+      setState(() {
+        _sent = true;
+        _sending = false;
+        _debugCode = result.debugOtpCode;
+        _infoText = result.debugOtpCode == null
+            ? context.loc.tr('services_transfer_security_service.011')
+            : context.loc.tr(
+                'services_transfer_security_service.012',
+                params: {'code': result.debugOtpCode ?? ''},
+              );
+      });
+      _startCooldown();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _errorText = error.toString();
+      });
+    }
+  }
+
+  void _verify() {
+    final code = _codeController.text.trim();
+    if (code.length < 4) {
+      setState(
+        () => _errorText = context.loc.tr(
+          'services_transfer_security_service.014',
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).pop(
+      TransferSecurityResult(isVerified: true, method: 'otp', otpCode: code),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l.tr('services_transfer_security_service.013')),
+        leading: IconButton(
+          tooltip: l.tr('services_transfer_security_service.007'),
+          onPressed: _sending
+              ? null
+              : () => Navigator.of(
+                  context,
+                ).pop(const TransferSecurityResult(isVerified: false)),
+          icon: const Icon(Icons.close_rounded),
+        ),
+      ),
+      body: ResponsiveScaffoldContainer(
+        maxWidth: 560,
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+        child: ShwakelCard(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.sms_rounded, size: 54, color: AppTheme.primary),
+              const SizedBox(height: 18),
+              Text(
+                _infoText ?? l.tr('services_transfer_security_service.010'),
+                textAlign: TextAlign.center,
+                style: AppTheme.bodyAction,
+              ),
+              if (_debugCode != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  l.tr(
+                    'services_transfer_security_service.012',
+                    params: {'code': _debugCode!},
+                  ),
+                  textAlign: TextAlign.center,
+                  style: AppTheme.caption.copyWith(color: AppTheme.warning),
+                ),
+              ],
+              const SizedBox(height: 24),
+              TextField(
+                controller: _codeController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                textAlign: TextAlign.center,
+                style: AppTheme.h1.copyWith(color: AppTheme.primary),
+                decoration: InputDecoration(
+                  labelText: l.tr('services_transfer_security_service.014'),
+                  prefixIcon: const Icon(Icons.password_rounded),
+                  counterText: '',
+                ),
+                onSubmitted: (_) => _verify(),
+              ),
+              if (_errorText != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _errorText!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ],
+              const SizedBox(height: 22),
+              FilledButton.icon(
+                onPressed: _sending ? null : _verify,
+                icon: const Icon(Icons.verified_rounded),
+                label: Text(l.tr('services_transfer_security_service.009')),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: _sending || _cooldown > 0 ? null : _sendOtp,
+                child: Text(
+                  _sending
+                      ? l.tr('services_transfer_security_service.015')
+                      : _cooldown > 0
+                      ? l.tr(
+                          'services_transfer_security_service.018',
+                          params: {'seconds': '$_cooldown'},
+                        )
+                      : l.tr('services_transfer_security_service.016'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
