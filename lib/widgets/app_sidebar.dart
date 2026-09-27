@@ -296,7 +296,7 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.inventory_2_rounded,
-                          title: l.tr('widgets_app_sidebar.048'),
+                          title: l.text('البطاقات', 'Cards'),
                           routeName: '/inventory',
                         ),
                       if (canRequestCardPrinting)
@@ -385,8 +385,8 @@ class _AppSidebarState extends State<AppSidebar> {
                           context,
                           icon: Icons.storefront_rounded,
                           title: l.text(
-                            'إدارة المخزون',
-                            'Inventory management',
+                            'إدارة المحل',
+                            'Store management',
                           ),
                           routeName: '/store-management',
                         ),
@@ -502,8 +502,8 @@ class _AppSidebarState extends State<AppSidebar> {
                             context,
                             icon: Icons.store_rounded,
                             title: l.text(
-                              'إدارة المتاجر والمخزون',
-                              'Stores & inventory',
+                              'إدارة المحل',
+                              'Store management',
                             ),
                             routeName: '/store-management',
                           ),
