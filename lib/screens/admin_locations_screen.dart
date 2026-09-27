@@ -272,11 +272,13 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   }
 
   Future<void> _deleteLocation(Map<String, dynamic> location) async {
+    if (_busyId != null) return;
     final l = context.loc;
+    final locationId = location['id']?.toString() ?? '';
+    if (locationId.isEmpty) return;
+    setState(() => _busyId = locationId);
     try {
-      final data = await _apiService.deleteAdminSupportedLocation(
-        location['id'].toString(),
-      );
+      final data = await _apiService.deleteAdminSupportedLocation(locationId);
       if (!mounted) {
         return;
       }
@@ -290,16 +292,19 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
         title: l.tr('screens_admin_locations_screen.017'),
         message: ErrorMessageService.sanitize(error),
       );
+    } finally {
+      if (mounted) setState(() => _busyId = null);
     }
   }
 
   Future<void> _approveLocation(Map<String, dynamic> location) async {
+    if (_busyId != null) return;
     final l = context.loc;
-    setState(() => _busyId = location['id']?.toString());
+    final locationId = location['id']?.toString() ?? '';
+    if (locationId.isEmpty) return;
+    setState(() => _busyId = locationId);
     try {
-      final data = await _apiService.approveAdminSupportedLocation(
-        location['id'].toString(),
-      );
+      final data = await _apiService.approveAdminSupportedLocation(locationId);
       if (!mounted) {
         return;
       }
@@ -321,20 +326,24 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
   }
 
   Future<void> _rejectLocation(Map<String, dynamic> location) async {
+    if (_busyId != null) return;
     final l = context.loc;
+    final locationId = location['id']?.toString() ?? '';
+    if (locationId.isEmpty) return;
+    setState(() => _busyId = locationId);
     final reason = await showRejectionReasonDialog(
       context,
       title: l.tr('shared.rejection_reason_label'),
       confirmText: l.tr('shared.confirm_rejection'),
     );
     if (reason == null) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
 
-    setState(() => _busyId = location['id']?.toString());
     try {
       final data = await _apiService.rejectAdminSupportedLocation(
-        location['id'].toString(),
+        locationId,
         reason: reason,
       );
       if (!mounted) {
@@ -469,6 +478,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                       itemBuilder: (context, index) => AdminLocationCard(
                         location: _locations[index],
                         isSaving:
+                            _busyId == _locations[index]['id']?.toString(),
+                        isDeleting:
                             _busyId == _locations[index]['id']?.toString(),
                         onEdit: () =>
                             _showLocationDialog(location: _locations[index]),

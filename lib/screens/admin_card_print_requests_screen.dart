@@ -198,6 +198,10 @@ class _AdminCardPrintRequestsScreenState
     Map<String, dynamic> request,
     String action,
   ) async {
+    if (_busyId != null) return;
+    final requestId = request['id']?.toString() ?? '';
+    if (requestId.isEmpty) return;
+    setState(() => _busyId = requestId);
     String? rejectionReason;
     if (action == 'reject') {
       rejectionReason = await showRejectionReasonDialog(
@@ -206,28 +210,28 @@ class _AdminCardPrintRequestsScreenState
         confirmText: context.loc.tr('shared.confirm_rejection'),
       );
       if (rejectionReason == null) {
+        if (mounted) setState(() => _busyId = null);
         return;
       }
     }
 
-    setState(() => _busyId = request['id']?.toString());
     try {
       switch (action) {
         case 'approve':
-          await _apiService.approveCardPrintRequest(request['id'].toString());
+          await _apiService.approveCardPrintRequest(requestId);
           break;
         case 'start':
-          await _apiService.startCardPrintRequest(request['id'].toString());
+          await _apiService.startCardPrintRequest(requestId);
           break;
         case 'ready':
-          await _apiService.readyCardPrintRequest(request['id'].toString());
+          await _apiService.readyCardPrintRequest(requestId);
           break;
         case 'complete':
-          await _apiService.completeCardPrintRequest(request['id'].toString());
+          await _apiService.completeCardPrintRequest(requestId);
           break;
         case 'reject':
           await _apiService.rejectCardPrintRequest(
-            request['id'].toString(),
+            requestId,
             notes: rejectionReason ?? '',
           );
           break;

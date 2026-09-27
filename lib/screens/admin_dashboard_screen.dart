@@ -439,7 +439,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const SizedBox.shrink(),
+          title: Text(
+            l.text('لوحة الإدارة', 'Admin dashboard'),
+            style: AppTheme.bodyBold,
+          ),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: AppSidebar.drawerFor(context),
@@ -505,6 +508,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-pending-registrations',
           badge: l.tr('screens_admin_dashboard_screen.089'),
         ),
+      if (permissions.canManageUsers)
+        _AdminEntry(
+          title: l.text('طلبات التوثيق', 'Verification requests'),
+          subtitle: l.text(
+            'مراجعة واعتماد ملفات التوثيق.',
+            'Review and approve verification files.',
+          ),
+          icon: Icons.verified_user_rounded,
+          color: AppTheme.success,
+          routeName: '/admin-verification-requests',
+          badge: l.text('توثيق', 'Verification'),
+        ),
       if (permissions.canViewAdminCardScanReports)
         _AdminEntry(
           title: l.text('تقارير فحص البطاقات', 'Card scan reports'),
@@ -562,6 +577,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           routeName: '/admin-system-settings',
           badge: l.tr('screens_admin_dashboard_screen.027'),
         ),
+      if (permissions.canManageAdminNotifications)
+        _AdminEntry(
+          title: l.text('إشعارات الإدارة', 'Admin notifications'),
+          subtitle: l.text(
+            'إرسال ومتابعة إشعارات المستخدمين.',
+            'Send and track user notifications.',
+          ),
+          icon: Icons.notifications_active_rounded,
+          color: AppTheme.accent,
+          routeName: '/admin-notifications',
+          badge: l.text('إرسال', 'Send'),
+        ),
+      if (permissions.isAdminRole ||
+          permissions.isSupportRole ||
+          permissions.canManageUsers)
+        _AdminEntry(
+          title: l.text('تذاكر التواصل', 'Support tickets'),
+          subtitle: l.text(
+            'فصل ومتابعة محادثات الدعم.',
+            'Manage separated support conversations.',
+          ),
+          icon: Icons.support_agent_rounded,
+          color: AppTheme.secondary,
+          routeName: '/admin-support-tickets',
+          badge: l.text('دعم', 'Support'),
+        ),
       if (permissions.canManagePrepaidMultipayApprovals)
         _AdminEntry(
           title: l.tr('screens_admin_dashboard_screen.090'),
@@ -590,6 +631,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           badge: l.tr('screens_admin_dashboard_screen.031'),
         ),
     ];
+    adminCards.sort(
+      (a, b) => _adminRoutePriority(
+        a.routeName,
+      ).compareTo(_adminRoutePriority(b.routeName)),
+    );
     final debtSummary = Map<String, dynamic>.from(
       _debtBookSnapshot['summary'] as Map? ?? const {},
     );
@@ -608,7 +654,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const SizedBox.shrink(),
+          title: Text(
+            l.text('لوحة الإدارة', 'Admin dashboard'),
+            style: AppTheme.bodyBold,
+          ),
           actions: [
             IconButton(
               tooltip: l.tr('screens_admin_dashboard_screen.056'),
@@ -1645,6 +1694,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   double _num(Object? value) => (value as num?)?.toDouble() ?? 0;
+
+  int _adminRoutePriority(String routeName) {
+    return switch (routeName) {
+      '/topup-requests' => 10,
+      '/withdrawal-requests' => 20,
+      '/admin-card-print-requests' => 30,
+      '/admin-prepaid-multipay-approvals' => 40,
+      '/admin-device-requests' => 50,
+      '/admin-pending-registrations' => 60,
+      '/admin-verification-requests' => 70,
+      '/admin-customers' => 80,
+      '/admin-card-scan-reports' => 90,
+      '/admin-debt-book' => 100,
+      '/admin-locations' => 110,
+      '/admin-notifications' => 120,
+      '/admin-permissions' => 130,
+      '/admin-system-settings' => 140,
+      _ => 999,
+    };
+  }
 
   String _formatInt(Object? value) =>
       '${(value as num?)?.toInt() ?? int.tryParse(value?.toString() ?? '') ?? 0}';

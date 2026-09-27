@@ -204,7 +204,7 @@ Route<dynamic> _buildNamedRoute(RouteSettings settings) {
   final resolvedName = OfflineSessionService.resolveRoute(settings.name);
   final builder = _appRoutes[resolvedName] ?? _appRoutes['/app-shell']!;
 
-  return MaterialPageRoute<void>(
+  return _AppPageRoute<void>(
     settings: RouteSettings(name: resolvedName, arguments: settings.arguments),
     builder: (context) => _OfflineRouteGuard(
       routeName: resolvedName,
@@ -217,6 +217,38 @@ Route<dynamic> _buildNamedRoute(RouteSettings settings) {
       ),
     ),
   );
+}
+
+/// A short, consistent transition keeps the admin workspaces connected
+/// without the heavy default platform animation between approval queues.
+class _AppPageRoute<T> extends PageRouteBuilder<T> {
+  _AppPageRoute({
+    required RouteSettings settings,
+    required WidgetBuilder builder,
+  }) : super(
+         settings: settings,
+         pageBuilder: (context, animation, secondaryAnimation) =>
+             builder(context),
+         transitionDuration: const Duration(milliseconds: 170),
+         reverseTransitionDuration: const Duration(milliseconds: 130),
+         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+           final curved = CurvedAnimation(
+             parent: animation,
+             curve: Curves.easeOutCubic,
+             reverseCurve: Curves.easeInCubic,
+           );
+           return FadeTransition(
+             opacity: curved,
+             child: SlideTransition(
+               position: Tween<Offset>(
+                 begin: const Offset(0.025, 0),
+                 end: Offset.zero,
+               ).animate(curved),
+               child: child,
+             ),
+           );
+         },
+       );
 }
 
 bool _isPublicRoute(String? routeName) {

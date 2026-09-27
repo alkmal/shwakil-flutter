@@ -75,6 +75,10 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
   }
 
   Future<void> _handle(Map<String, dynamic> request, bool approve) async {
+    if (_busyId != null) return;
+    final requestId = request['id']?.toString() ?? '';
+    if (requestId.isEmpty) return;
+    setState(() => _busyId = requestId);
     String notes = '';
     if (!approve) {
       final reason = await showRejectionReasonDialog(
@@ -83,15 +87,15 @@ class _AdminDeviceRequestsScreenState extends State<AdminDeviceRequestsScreen> {
         confirmText: context.loc.tr('shared.confirm_rejection'),
       );
       if (reason == null) {
+        if (mounted) setState(() => _busyId = null);
         return;
       }
       notes = reason;
     }
 
-    setState(() => _busyId = request['id']?.toString());
     try {
       await _apiService.reviewDeviceAccessRequest(
-        request['id'].toString(),
+        requestId,
         approve: approve,
         notes: notes,
       );

@@ -92,11 +92,13 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _approve(Map<String, dynamic> request) async {
+    if (_busyId != null) return;
     final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {
       return;
     }
+    setState(() => _busyId = requestId);
     String deliveryMethod = 'whatsapp';
     final confirmed = await showDialog<bool>(
       context: context,
@@ -147,9 +149,9 @@ class _AdminPendingRegistrationsScreenState
       ),
     );
     if (confirmed != true) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
-    setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingRegistrationRequest(
         requestId,
@@ -184,12 +186,14 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _reject(Map<String, dynamic> request) async {
+    if (_busyId != null) return;
     final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {
       return;
     }
 
+    setState(() => _busyId = requestId);
     final reason = await showRejectionReasonDialog(
       context,
       title: l.tr('screens_admin_pending_registrations_screen.008'),
@@ -198,10 +202,10 @@ class _AdminPendingRegistrationsScreenState
     );
 
     if (reason == null) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
 
-    setState(() => _busyId = requestId);
     try {
       final response = await _apiService.rejectPendingRegistrationRequest(
         requestId,
@@ -235,6 +239,7 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _resendOtp(Map<String, dynamic> request) async {
+    if (_busyId != null) return;
     final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {
@@ -275,6 +280,7 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _confirmWithoutOtp(Map<String, dynamic> request) async {
+    if (_busyId != null) return;
     final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {
@@ -336,6 +342,7 @@ class _AdminPendingRegistrationsScreenState
   }
 
   Future<void> _editWhatsapp(Map<String, dynamic> request) async {
+    if (_busyId != null) return;
     final l = context.loc;
     final requestId = request['id']?.toString() ?? '';
     if (requestId.isEmpty) {

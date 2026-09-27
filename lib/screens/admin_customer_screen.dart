@@ -249,7 +249,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _updateAccount() async {
-    if (!_canManageAccountControls) {
+    if (!_canManageAccountControls || _busy) {
       return;
     }
 
@@ -319,6 +319,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _resendAccountDetails() async {
+    if (_busy) return;
     String deliveryMethod = 'whatsapp';
     final confirmed = await showDialog<bool>(
       context: context,
@@ -393,6 +394,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _sendOtpToUser() async {
+    if (_busy) return;
     final l = context.loc;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -444,7 +446,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _showBalanceAdjustmentDialog({required bool isCredit}) async {
-    if (!widget.canManageUsers) {
+    if (!widget.canManageUsers || _busy) {
       return;
     }
 
@@ -480,6 +482,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                         _customer['username']?.toString() ?? '',
                         style: AppTheme.bodyBold,
                       ),
+                      const SizedBox(height: 10),
+                      _securityFlowHint(isCredit: isCredit),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: amountController,
@@ -630,7 +634,40 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
     }
   }
 
+  Widget _securityFlowHint({required bool isCredit}) {
+    final l = context.loc;
+    final color = isCredit ? AppTheme.primary : AppTheme.warning;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield_rounded, color: color, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l.text(
+                'بعد المتابعة سيطلب النظام وسيلة تحقق واحدة فقط: البصمة، ثم PIN، ثم OTP عند الحاجة.',
+                'One verification method will be requested: biometric, then PIN, then OTP only if needed.',
+              ),
+              style: AppTheme.caption.copyWith(
+                color: AppTheme.textSecondary,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _createPrepaidCardForUser() async {
+    if (_busy) return;
     final l = context.loc;
     final labelController = TextEditingController();
     final amountController = TextEditingController();
@@ -871,7 +908,12 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const SizedBox.shrink(),
+          title: Text(
+            _customerDisplayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.bodyBold,
+          ),
           actions: [
             IconButton(
               tooltip: _showTransactionFilters
@@ -2302,6 +2344,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _downloadVerificationFile(String fileType, String title) async {
+    if (_busy) return;
     final requestId = _verificationRequest?['id']?.toString() ?? '';
     if (requestId.isEmpty) {
       return;
@@ -2503,6 +2546,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       );
 
   Future<void> _savePermissions(Map<String, dynamic> p) async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       // Persist only the permissions keys we are showing (plus those already in payload).
@@ -2549,6 +2593,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _restoreDefaultPermissions() async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       final p = Map<String, dynamic>.from(
@@ -2602,6 +2647,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _saveDevicePolicy() async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       final max = int.tryParse(_maxDevicesController.text) ?? 1;
@@ -2620,16 +2666,21 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   Future<void> _releaseDevice(Map<String, dynamic> d) async {
+    if (_busy) return;
+    setState(() => _busy = true);
     try {
       await _api.releaseAdminUserDevice(
         userId: _customer['id'].toString(),
         deviceRecordId: d['id'].toString(),
       );
-      _loadCustomer();
-    } catch (_) {}
+      await _loadCustomer();
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _approveVerificationRequest() async {
+    if (_busy) return;
     final requestId = _verificationRequest?['id']?.toString() ?? '';
     if (requestId.isEmpty) {
       return;

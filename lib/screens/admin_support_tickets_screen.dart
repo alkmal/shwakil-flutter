@@ -44,6 +44,8 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   String? _loadError;
   bool _busy = false;
   bool _ticketLoading = false;
+  int _ticketRequestId = 0;
+  int _loadRequestId = 0;
   bool _chatRouteOpen = false;
   StateSetter? _chatRouteSetState;
   String _replyAs = 'support';
@@ -124,6 +126,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   Future<void> _openTicket(Map<String, dynamic> ticket) async {
     final id = ticket['id']?.toString() ?? '';
     if (id.isEmpty) return;
+    final requestId = ++_ticketRequestId;
     setState(() {
       _selected = Map<String, dynamic>.from(ticket);
       _ticketLoading = true;
@@ -132,6 +135,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
     try {
       final body = await _api.getAdminSupportTicket(ticketId: id);
       if (!mounted) return;
+      if (requestId != _ticketRequestId) return;
       setState(() {
         _selected = Map<String, dynamic>.from(body['ticket'] as Map);
         _ticketLoading = false;
@@ -140,13 +144,14 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       unawaited(_load());
     } catch (error) {
       if (!mounted) return;
+      if (requestId != _ticketRequestId) return;
       AppAlertService.showError(
         context,
         title: context.loc.text('تعذر فتح التذكرة', 'Could not open ticket'),
         message: ErrorMessageService.sanitize(error),
       );
     } finally {
-      if (mounted) {
+      if (mounted && requestId == _ticketRequestId) {
         setState(() => _ticketLoading = false);
         _refreshChatRoute();
       }
@@ -154,6 +159,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
   }
 
   Future<void> _load() async {
+    final requestId = ++_loadRequestId;
     try {
       if (mounted) {
         setState(() {
@@ -182,6 +188,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       final tickets = List<Map<String, dynamic>>.from(results[0] as List);
       final statuses = List<Map<String, dynamic>>.from(results[1] as List);
       if (!mounted) return;
+      if (requestId != _loadRequestId) return;
       setState(() {
         _authorized = true;
         _loadError = null;
@@ -190,7 +197,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         _statuses = statuses;
       });
     } catch (error) {
-      if (mounted) {
+      if (mounted && requestId == _loadRequestId) {
         setState(() {
           _loadError = ErrorMessageService.sanitize(error);
           _loading = false;

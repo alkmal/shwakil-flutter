@@ -23,6 +23,7 @@ class _AdminVerificationRequestsScreenState
   List<Map<String, dynamic>> _requests = const [];
   bool _isLoading = true;
   bool _isRefreshing = false;
+  String? _busyRequestId;
 
   String _t(String key, {Map<String, String>? params}) =>
       context.loc.tr(key, params: params);
@@ -72,9 +73,10 @@ class _AdminVerificationRequestsScreenState
 
   Future<void> _approveRequest(Map<String, dynamic> request) async {
     final requestId = request['id']?.toString() ?? '';
-    if (requestId.isEmpty) {
+    if (requestId.isEmpty || _busyRequestId != null) {
       return;
     }
+    setState(() => _busyRequestId = requestId);
     try {
       final response = await _apiService.approvePendingVerificationRequest(
         requestId,
@@ -102,12 +104,14 @@ class _AdminVerificationRequestsScreenState
         title: _t('screens_admin_verification_requests_screen.004'),
         message: ErrorMessageService.sanitize(error),
       );
+    } finally {
+      if (mounted) setState(() => _busyRequestId = null);
     }
   }
 
   Future<void> _rejectRequest(Map<String, dynamic> request) async {
     final requestId = request['id']?.toString() ?? '';
-    if (requestId.isEmpty) {
+    if (requestId.isEmpty || _busyRequestId != null) {
       return;
     }
     final notesController = TextEditingController();
@@ -142,6 +146,7 @@ class _AdminVerificationRequestsScreenState
               }
               Navigator.pop(dialogContext);
               try {
+                if (mounted) setState(() => _busyRequestId = requestId);
                 final response = await _apiService
                     .rejectPendingVerificationRequest(requestId, notes: notes);
                 if (!mounted) {
@@ -167,6 +172,8 @@ class _AdminVerificationRequestsScreenState
                   title: _t('screens_admin_verification_requests_screen.012'),
                   message: ErrorMessageService.sanitize(error),
                 );
+              } finally {
+                if (mounted) setState(() => _busyRequestId = null);
               }
             },
             child: Text(_t('screens_admin_verification_requests_screen.013')),
@@ -333,6 +340,7 @@ class _AdminVerificationRequestsScreenState
                   label: _t('screens_admin_verification_requests_screen.013'),
                   icon: Icons.close_rounded,
                   isSecondary: true,
+                  isLoading: _busyRequestId == request['id']?.toString(),
                   onPressed: () => _rejectRequest(request),
                 ),
               ),
@@ -341,6 +349,7 @@ class _AdminVerificationRequestsScreenState
                 child: ShwakelButton(
                   label: _t('screens_admin_verification_requests_screen.028'),
                   icon: Icons.check_circle_rounded,
+                  isLoading: _busyRequestId == request['id']?.toString(),
                   onPressed: () => _approveRequest(request),
                 ),
               ),

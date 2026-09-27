@@ -88,7 +88,20 @@ class _AdminPrepaidMultipayApprovalsScreenState
     Navigator.pushNamed(context, routeName);
   }
 
+  bool _lockCardAction(Map<String, dynamic> card) {
+    if (_actingCardId != null) {
+      return false;
+    }
+    final id = card['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      return false;
+    }
+    setState(() => _actingCardId = id);
+    return true;
+  }
+
   Future<void> _reviewCard(Map<String, dynamic> card, String action) async {
+    if (!_lockCardAction(card)) return;
     final l = context.loc;
     final noteController = TextEditingController();
     try {
@@ -150,7 +163,6 @@ class _AdminPrepaidMultipayApprovalsScreenState
         return;
       }
 
-      setState(() => _actingCardId = card['id']?.toString());
       await _api.reviewAdminPrepaidMultipayApproval(
         cardId: card['id']?.toString() ?? '',
         action: action,
@@ -188,11 +200,13 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _setCardStatus(Map<String, dynamic> card, String action) async {
+    if (!_lockCardAction(card)) return;
     final security = await TransferSecurityService.confirmTransfer(
       context,
       allowOtpFallback: true,
     );
     if (!mounted || !security.isVerified) {
+      if (mounted) setState(() => _actingCardId = null);
       return;
     }
 
@@ -210,6 +224,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _adjustBalance(Map<String, dynamic> card) async {
+    if (!_lockCardAction(card)) return;
     final l = context.loc;
     final amountController = TextEditingController();
     final noteController = TextEditingController();
@@ -301,6 +316,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
   }
 
   Future<void> _cancelCard(Map<String, dynamic> card) async {
+    if (!_lockCardAction(card)) return;
     final l = context.loc;
     final noteController = TextEditingController();
     try {

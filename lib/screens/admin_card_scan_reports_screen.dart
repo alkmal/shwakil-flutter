@@ -286,7 +286,10 @@ class _AdminCardScanReportsScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const SizedBox.shrink(),
+        title: Text(
+          context.loc.text('تقارير فحص البطاقات', 'Card scan reports'),
+          style: AppTheme.bodyBold,
+        ),
         actions: const [AppNotificationAction()],
       ),
       drawer: AppSidebar.drawerFor(context),

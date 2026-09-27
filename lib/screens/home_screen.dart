@@ -1159,7 +1159,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           _HomeServiceItem(
             title: l.text('البطاقات', 'Cards'),
             subtitle: l.text(
-              'إصدار ومتابعة البطاقات والبطاقات المحفوظة.','Issue and manage cards and saved card data.',
+              'إصدار ومتابعة البطاقات والبطاقات المحفوظة.',
+              'Issue and manage cards and saved card data.',
             ),
             icon: Icons.credit_card_rounded,
             color: AppTheme.textSecondary,
@@ -1476,9 +1477,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     ]);
   }
 
-  List<_HomeServiceItem> _sortHomeServices(
-    List<_HomeServiceItem> services,
-  ) {
+  List<_HomeServiceItem> _sortHomeServices(List<_HomeServiceItem> services) {
     const priority = <_HomeServiceKind, int>{
       _HomeServiceKind.createCard: 0,
       _HomeServiceKind.scan: 1,
@@ -2059,6 +2058,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  // Kept for compatibility with older home layouts.
+  // ignore: unused_element
   Widget _buildScanShortcut(_HomeServiceItem item) {
     final experience = _roleExperience;
     return ShwakelCard(

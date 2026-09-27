@@ -1,3 +1,7 @@
+// The PDF service retains alternate card-layout helpers for existing print
+// formats; some are intentionally dormant until their format is selected.
+// ignore_for_file: unused_field, unused_element
+
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;

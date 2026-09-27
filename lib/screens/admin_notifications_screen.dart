@@ -35,6 +35,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   String? _loadError;
   bool _isSending = false;
   bool _isSearchingUsers = false;
+  int _userSearchRequestId = 0;
   String _targetType = 'all';
   String _targetValue = '';
   String _category = 'general';
@@ -214,6 +215,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   Future<void> _searchUsers() async {
+    final requestId = ++_userSearchRequestId;
     final query = _userSearchController.text.trim();
     if (query.isEmpty) {
       setState(() => _userResults = const []);
@@ -230,6 +232,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       if (!mounted) {
         return;
       }
+      if (requestId != _userSearchRequestId) return;
       setState(() {
         _userResults = _listFrom(payload['customers']);
         _isSearchingUsers = false;
@@ -238,6 +241,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       if (!mounted) {
         return;
       }
+      if (requestId != _userSearchRequestId) return;
       setState(() => _isSearchingUsers = false);
       await AppAlertService.showError(
         context,

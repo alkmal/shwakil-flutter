@@ -591,9 +591,12 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Future<void> _approve(String requestId) async {
+    if (_busyId != null || requestId.isEmpty) return;
     final l = context.loc;
+    setState(() => _busyId = requestId);
     final review = await _showWithdrawalReviewDialog(approve: true);
     if (review == null) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
     if (!mounted) {
@@ -604,9 +607,9 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       allowOtpFallback: true,
     );
     if (!mounted || !security.isVerified) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
-    setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingWithdrawalRequest(
         requestId,
@@ -643,9 +646,12 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   }
 
   Future<void> _reject(String requestId) async {
+    if (_busyId != null || requestId.isEmpty) return;
     final l = context.loc;
+    setState(() => _busyId = requestId);
     final review = await _showWithdrawalReviewDialog(approve: false);
     if (review == null) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
     if (!mounted) {
@@ -657,10 +663,10 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       allowOtpFallback: true,
     );
     if (!mounted || !security.isVerified) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
 
-    setState(() => _busyId = requestId);
     try {
       final response = await _apiService.rejectPendingWithdrawalRequest(
         requestId,

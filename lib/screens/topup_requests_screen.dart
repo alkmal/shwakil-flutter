@@ -592,13 +592,16 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Future<void> _approve(String requestId) async {
+    if (_busyId != null || requestId.isEmpty) return;
     final l = context.loc;
+    setState(() => _busyId = requestId);
     final review = await Navigator.of(context).push<_TopupReviewResult>(
       MaterialPageRoute(
         builder: (_) => const _TopupReviewScreen(approve: true),
       ),
     );
     if (review == null) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
     if (!mounted) {
@@ -609,9 +612,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       allowOtpFallback: true,
     );
     if (!mounted || !security.isVerified) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
-    setState(() => _busyId = requestId);
     try {
       final response = await _apiService.approvePendingTopupRequest(
         requestId,
@@ -647,7 +650,9 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   }
 
   Future<void> _reject(String requestId) async {
+    if (_busyId != null || requestId.isEmpty) return;
     final l = context.loc;
+    setState(() => _busyId = requestId);
     final review = await Navigator.of(context).push<_TopupReviewResult>(
       MaterialPageRoute(
         builder: (_) => const _TopupReviewScreen(approve: false),
@@ -655,10 +660,11 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     );
 
     if (review == null) {
+      if (mounted) setState(() => _busyId = null);
       return;
     }
+    if (!mounted) return;
 
-    setState(() => _busyId = requestId);
     try {
       final response = await _apiService.rejectPendingTopupRequest(
         requestId,

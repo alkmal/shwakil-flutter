@@ -1766,7 +1766,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const SizedBox.shrink(),
+          title: Text(
+            l.text('إعدادات النظام', 'System settings'),
+            style: AppTheme.bodyBold,
+          ),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: AppSidebar.drawerFor(context),
@@ -1798,7 +1801,10 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const SizedBox.shrink(),
+          title: Text(
+            l.text('إعدادات النظام', 'System settings'),
+            style: AppTheme.bodyBold,
+          ),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
         drawer: AppSidebar.drawerFor(context),
