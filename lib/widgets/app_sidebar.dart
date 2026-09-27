@@ -295,8 +295,8 @@ class _AppSidebarState extends State<AppSidebar> {
                       if (canViewInventory && canIssueCards)
                         _buildItem(
                           context,
-                          icon: Icons.credit_card_rounded,
-                          title: l.text('البطاقات', 'Cards'),
+                          icon: Icons.layers_rounded,
+                          title: l.text('مخزون البطاقات', 'Card inventory'),
                           routeName: '/inventory',
                         ),
                       if (canRequestCardPrinting)
@@ -321,7 +321,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       if (canOpenPrepaidMultipayCards)
                         _buildItem(
                           context,
-                          icon: Icons.credit_card_rounded,
+                          icon: Icons.contactless_rounded,
                           title: l.tr('widgets_app_sidebar.049'),
                           routeName: '/prepaid-multipay-cards',
                         ),
