@@ -606,6 +606,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           const SizedBox(height: 12),
                         ],
                         if (availableTypes.length > 1) ...[
+                          _buildPrintRequestStepHeader(
+                            number: '1',
+                            title: l.text('نوع البطاقة', 'Card type'),
+                            subtitle: l.text(
+                              'اختر نوع البطاقات التي تريد طلب طباعتها.',
+                              'Choose the type of cards you want to print.',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           Align(
                             alignment: AlignmentDirectional.centerStart,
                             child: Text(
@@ -638,7 +647,12 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
-                                  width: 198,
+                                  width:
+                                      MediaQuery.sizeOf(dialogContext).width <
+                                          560
+                                      ? MediaQuery.sizeOf(dialogContext).width -
+                                            40
+                                      : 198,
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
                                     color: selected
@@ -693,6 +707,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           const SizedBox(height: 12),
                         ],
                         if (availableTypes.length == 1) ...[
+                          _buildPrintRequestStepHeader(
+                            number: '1',
+                            title: l.text('نوع البطاقة', 'Card type'),
+                            subtitle: l.text(
+                              'تم تحديد النوع المتاح لحسابك.',
+                              'The available type for your account is selected.',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
@@ -766,6 +789,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                             ),
                           ),
                         if (cardType == 'delivery') const SizedBox(height: 12),
+                        _buildPrintRequestStepHeader(
+                          number: '2',
+                          title: l.text('بيانات الطلب', 'Request details'),
+                          subtitle: l.text(
+                            'حدد قيمة البطاقة والكمية قبل الانتقال إلى الخيارات الإضافية.',
+                            'Set the card value and quantity before optional details.',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         TextField(
                           controller: valueController,
                           keyboardType: const TextInputType.numberWithOptions(
@@ -778,6 +810,20 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                                 : l.tr(
                                     'screens_card_print_requests_screen.012',
                                   ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: quantityController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: l.tr(
+                              'screens_card_print_requests_screen.013',
+                            ),
+                            helperText: l.tr(
+                              'screens_card_print_requests_screen.095',
+                              params: {'count': '$_minimumCardQuantity'},
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -848,6 +894,18 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                         ),
                         const SizedBox(height: 12),
                         if (requiresTargetedUsers) ...[
+                          _buildPrintRequestStepHeader(
+                            number: '3',
+                            title: l.text(
+                              'المستفيدون والتفاصيل',
+                              'Recipients and details',
+                            ),
+                            subtitle: l.text(
+                              'أضف المستفيدين والبيانات المطلوبة لهذا النوع فقط.',
+                              'Add recipients and only the details required for this type.',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
@@ -1068,17 +1126,15 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
                           ),
                           const SizedBox(height: 12),
                         ],
-                        TextField(
-                          controller: quantityController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: l.tr(
-                              'screens_card_print_requests_screen.013',
-                            ),
-                            helperText: l.tr(
-                              'screens_card_print_requests_screen.095',
-                              params: {'count': '$_minimumCardQuantity'},
-                            ),
+                        _buildPrintRequestStepHeader(
+                          number: requiresTargetedUsers ? '4' : '3',
+                          title: l.text(
+                            'الملاحظات والتأكيد',
+                            'Notes and confirmation',
+                          ),
+                          subtitle: l.text(
+                            'راجع التكلفة ثم أرسل الطلب بعد التحقق الأمني.',
+                            'Review the cost and submit after security confirmation.',
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -1761,6 +1817,42 @@ class _CardPrintRequestsScreenState extends State<CardPrintRequestsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPrintRequestStepHeader({
+    required String number,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppTheme.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: AppTheme.bodyBold.copyWith(color: Colors.white),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTheme.bodyBold),
+              const SizedBox(height: 3),
+              Text(subtitle, style: AppTheme.caption),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

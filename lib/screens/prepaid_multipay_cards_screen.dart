@@ -53,6 +53,7 @@ class _PrepaidMultipayCardsScreenState
   bool _canUsePrepaidNfc = false;
   bool _canManagePrepaidCards = false;
   bool _nfcEnabled = false;
+  double _maxPrepaidCardAmount = 0;
   bool _isShowingOfflineCards = false;
   bool _selfServiceCanCreateCard = true;
   bool _selfServiceLimitReached = false;
@@ -173,6 +174,10 @@ class _PrepaidMultipayCardsScreenState
         _isShowingOfflineCards = false;
         _nfcEnabled =
             ((payload['settings'] as Map?)?['nfc'] as Map?)?['enabled'] == true;
+        _maxPrepaidCardAmount =
+            ((payload['settings'] as Map?)?['maxCardAmount'] as num?)
+                ?.toDouble() ??
+            0;
         _selfServiceMaxCards =
             ((payload['selfService'] as Map?)?['maxActiveCards'] as num?)
                 ?.toInt() ??
@@ -1200,7 +1205,7 @@ class _PrepaidMultipayCardsScreenState
             textDirection: pw.TextDirection.rtl,
             child: pw.Align(
               alignment: pw.Alignment.topLeft,
-              child: _buildPrepaidPdfCard(
+              child: _buildPrepaidPdfCardV2(
                 width: cardWidth,
                 height: cardHeight,
                 logoImage: logoImage,
@@ -1214,6 +1219,7 @@ class _PrepaidMultipayCardsScreenState
                 scanPayload: scanPayload,
                 balance: balance,
                 status: status,
+                maxReloadAmount: _maxPrepaidCardAmount,
               ),
             ),
           ),
@@ -1305,26 +1311,29 @@ class _PrepaidMultipayCardsScreenState
     required double cardWidth,
     required double cardHeight,
   }) {
-    final cardWidgets = cards.map((card) {
-      final rawNumber = _resolvedRawCardNumber(card);
-      return _buildPrepaidPdfCard(
-        width: cardWidth,
-        height: cardHeight,
-        logoImage: _pdfLogoImage,
-        cardNumber: _resolvedDisplayCardNumber(card),
-        rawNumber: rawNumber,
-        label: card['label']?.toString() ?? 'بطاقة دفع مسبق',
-        expiry: card['expiryLabel']?.toString() ?? '-',
-        ownerName: _cardOwnerName(),
-        issuerPhone: _cardIssuerLocalPhone(),
-        checkUrl: AppConfig.prepaidMultipayCheckUri(rawNumber).toString(),
-        scanPayload: _prepaidCardBarcodePayload(card, paymentAmount: 0),
-        balance: CurrencyFormatter.ils(
-          (card['balance'] as num?)?.toDouble() ?? 0,
-        ),
-        status: _statusLabel(card['status']?.toString() ?? 'active'),
-      );
-    }).toList(growable: false);
+    final cardWidgets = cards
+        .map((card) {
+          final rawNumber = _resolvedRawCardNumber(card);
+          return _buildPrepaidPdfCardV2(
+            width: cardWidth,
+            height: cardHeight,
+            logoImage: _pdfLogoImage,
+            cardNumber: _resolvedDisplayCardNumber(card),
+            rawNumber: rawNumber,
+            label: card['label']?.toString() ?? 'بطاقة دفع مسبق',
+            expiry: card['expiryLabel']?.toString() ?? '-',
+            ownerName: _cardOwnerName(),
+            issuerPhone: _cardIssuerLocalPhone(),
+            checkUrl: AppConfig.prepaidMultipayCheckUri(rawNumber).toString(),
+            scanPayload: _prepaidCardBarcodePayload(card, paymentAmount: 0),
+            balance: CurrencyFormatter.ils(
+              (card['balance'] as num?)?.toDouble() ?? 0,
+            ),
+            status: _statusLabel(card['status']?.toString() ?? 'active'),
+            maxReloadAmount: _maxPrepaidCardAmount,
+          );
+        })
+        .toList(growable: false);
 
     final rows = <pw.TableRow>[];
     for (var row = 0; row < 5; row++) {
@@ -1355,6 +1364,288 @@ class _PrepaidMultipayCardsScreenState
     );
   }
 
+  pw.Widget _buildPrepaidPdfCardV2({
+    required double width,
+    required double height,
+    required pw.MemoryImage? logoImage,
+    required String cardNumber,
+    required String rawNumber,
+    required String label,
+    required String expiry,
+    required String ownerName,
+    required String issuerPhone,
+    required String checkUrl,
+    required String scanPayload,
+    required String balance,
+    required String status,
+    required double maxReloadAmount,
+  }) {
+    final cleanNumber = rawNumber.replaceAll(RegExp(r'\D+'), '');
+    final barcodeData = cleanNumber.isNotEmpty ? cleanNumber : scanPayload;
+    final maxReload = maxReloadAmount > 0
+        ? CurrencyFormatter.ils(maxReloadAmount)
+        : '-';
+    final normalizedLabel = label.trim().isEmpty
+        ? 'بطاقة دفع مسبق'
+        : label.trim();
+
+    return pw.Container(
+      width: width,
+      height: height,
+      padding: const pw.EdgeInsets.all(2.4 * PdfPageFormat.mm),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        border: pw.Border.all(
+          color: const PdfColor.fromInt(AppTheme.primaryBorderValue),
+          width: 1.6,
+        ),
+        borderRadius: pw.BorderRadius.circular(7),
+      ),
+      child: pw.Stack(
+        children: [
+          pw.Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  if (logoImage != null)
+                    pw.Image(
+                      logoImage,
+                      width: 10 * PdfPageFormat.mm,
+                      height: 10 * PdfPageFormat.mm,
+                      fit: pw.BoxFit.contain,
+                    ),
+                  pw.SizedBox(width: 4),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      children: [
+                        pw.Text(
+                          'شواكل',
+                          style: pw.TextStyle(
+                            font: _pdfBoldFont,
+                            fontSize: 11,
+                            color: const PdfColor.fromInt(
+                              AppTheme.primaryValue,
+                            ),
+                          ),
+                        ),
+                        pw.Text(
+                          normalizedLabel,
+                          maxLines: 1,
+                          style: pw.TextStyle(
+                            font: _pdfBoldFont,
+                            fontSize: 5.2,
+                            color: const PdfColor.fromInt(0xFF334155),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor.fromInt(0xFFE6FFFA),
+                      borderRadius: pw.BorderRadius.circular(9),
+                    ),
+                    child: pw.Text(
+                      status,
+                      style: pw.TextStyle(
+                        font: _pdfBoldFont,
+                        fontSize: 4.5,
+                        color: const PdfColor.fromInt(AppTheme.primaryValue),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          pw.Positioned(
+            top: 10.5 * PdfPageFormat.mm,
+            left: 0,
+            right: 0,
+            child: pw.Text(
+              cardNumber,
+              textAlign: pw.TextAlign.center,
+              textDirection: pw.TextDirection.ltr,
+              style: pw.TextStyle(
+                font: _pdfBoldFont,
+                fontSize: 9.2,
+                color: const PdfColor.fromInt(AppTheme.primaryValue),
+              ),
+            ),
+          ),
+          pw.Positioned(
+            top: 16.5 * PdfPageFormat.mm,
+            left: 0,
+            right: 0,
+            child: pw.Container(
+              height: 15 * PdfPageFormat.mm,
+              padding: const pw.EdgeInsets.fromLTRB(4, 3, 4, 2),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.white,
+                border: pw.Border.all(
+                  color: const PdfColor.fromInt(AppTheme.primaryBorderValue),
+                  width: 0.8,
+                ),
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Column(
+                children: [
+                  pw.SizedBox(
+                    height: 10.5 * PdfPageFormat.mm,
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.code128(),
+                      data: barcodeData,
+                      drawText: false,
+                    ),
+                  ),
+                  pw.SizedBox(height: 1),
+                  pw.Text(
+                    cleanNumber.isEmpty ? cardNumber : cleanNumber,
+                    textDirection: pw.TextDirection.ltr,
+                    style: pw.TextStyle(
+                      font: pw.Font.courierBold(),
+                      fontSize: 4.7,
+                      color: const PdfColor.fromInt(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          pw.Positioned(
+            top: 33 * PdfPageFormat.mm,
+            left: 0,
+            right: 0,
+            child: pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  _pdfInfoCell('الرصيد', balance),
+                  pw.SizedBox(width: 3),
+                  _pdfInfoCell('الحد الأعلى للشحن', maxReload),
+                  pw.SizedBox(width: 3),
+                  _pdfInfoCell('ينتهي', expiry),
+                ],
+              ),
+            ),
+          ),
+          pw.Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'شواكل - بطاقة دفع مسبق',
+                        textDirection: pw.TextDirection.rtl,
+                        style: pw.TextStyle(
+                          font: _pdfBoldFont,
+                          fontSize: 4.2,
+                          color: const PdfColor.fromInt(AppTheme.primaryValue),
+                        ),
+                      ),
+                      pw.Text(
+                        checkUrl,
+                        maxLines: 1,
+                        textDirection: pw.TextDirection.ltr,
+                        style: const pw.TextStyle(
+                          fontSize: 3.1,
+                          color: PdfColor.fromInt(0xFF475569),
+                        ),
+                      ),
+                      if (issuerPhone.isNotEmpty)
+                        pw.Text(
+                          issuerPhone,
+                          textDirection: pw.TextDirection.ltr,
+                          style: const pw.TextStyle(
+                            fontSize: 3.1,
+                            color: PdfColor.fromInt(0xFF64748B),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(width: 3),
+                pw.Container(
+                  width: 7 * PdfPageFormat.mm,
+                  height: 7 * PdfPageFormat.mm,
+                  padding: const pw.EdgeInsets.all(1),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(2),
+                  ),
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: scanPayload,
+                    drawText: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _pdfInfoCell(String title, String value) {
+    return pw.Expanded(
+      child: pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: pw.BoxDecoration(
+          color: const PdfColor.fromInt(0xFFF0FDFA),
+          border: pw.Border.all(
+            color: const PdfColor.fromInt(AppTheme.primaryBorderValue),
+            width: 0.5,
+          ),
+          borderRadius: pw.BorderRadius.circular(3),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          mainAxisAlignment: pw.MainAxisAlignment.center,
+          children: [
+            pw.Text(
+              title,
+              maxLines: 1,
+              style: const pw.TextStyle(
+                fontSize: 3.6,
+                color: PdfColor.fromInt(0xFF64748B),
+              ),
+            ),
+            pw.Text(
+              value,
+              maxLines: 1,
+              style: pw.TextStyle(
+                font: _pdfBoldFont,
+                fontSize: 4.8,
+                color: const PdfColor.fromInt(AppTheme.primaryValue),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Kept for compatibility with previously generated print layouts.
+  // ignore: unused_element
   pw.Widget _buildPrepaidPdfCard({
     required double width,
     required double height,
@@ -2519,9 +2810,7 @@ class _PrepaidMultipayCardsScreenState
               tooltip: l.tr('screens_prepaid_multipay_cards_screen.017'),
               icon: const Icon(Icons.add_card_rounded),
             ),
-          if (_canUsePrepaidCards &&
-              !_isLoading &&
-              !_isShowingOfflineCards)
+          if (_canUsePrepaidCards && !_isLoading && !_isShowingOfflineCards)
             IconButton(
               onPressed: _scanAndReloadPrepaidCard,
               tooltip: l.text('شحن بطاقة بالباركود', 'Reload by barcode'),
