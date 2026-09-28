@@ -173,6 +173,8 @@ const Map<String, String> appStringsEn = {
       'Manage card print requests',
   'permission_catalog.label.canUsePrepaidMultipayCards':
       'Use prepaid multipay cards',
+  'permission_catalog.label.canReloadAnyPrepaidMultipayCard':
+      'Reload any prepaid card',
   'permission_catalog.label.canAcceptPrepaidMultipayPayments':
       'Accept prepaid multipay payments',
   'permission_catalog.label.canUsePrepaidMultipayNfc':
@@ -254,6 +256,8 @@ const Map<String, String> appStringsEn = {
       'Manage, approve, prepare, and deliver print requests.',
   'permission_catalog.description.canUsePrepaidMultipayCards':
       'Use prepaid multipay cards in the app.',
+  'permission_catalog.description.canReloadAnyPrepaidMultipayCard':
+      'Allow barcode reloads for prepaid cards not created by this user.',
   'permission_catalog.description.canAcceptPrepaidMultipayPayments':
       'Accept prepaid multipay payments as a merchant.',
   'permission_catalog.description.canUsePrepaidMultipayNfc':

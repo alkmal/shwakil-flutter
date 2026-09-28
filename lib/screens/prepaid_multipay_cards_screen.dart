@@ -14,6 +14,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
+import '../widgets/barcode_scanner_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
 
@@ -418,6 +419,48 @@ class _PrepaidMultipayCardsScreenState
       if (mounted) {
         setState(() => _isReloading = false);
       }
+    }
+  }
+
+  Future<void> _scanAndReloadPrepaidCard() async {
+    Map<String, dynamic>? scannedCard;
+    final l = context.loc;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => BarcodeScannerDialog(
+        title: l.text('شحن بطاقة بالباركود', 'Reload by barcode'),
+        description: l.text(
+          'وجّه الكاميرا إلى باركود بطاقة الدفع المسبق.',
+          'Point the camera at the prepaid card barcode.',
+        ),
+        resultTitle: l.text('تم العثور على البطاقة', 'Card found'),
+        height: 360,
+        showFrame: true,
+        backgroundColor: Colors.transparent,
+        onScanResolved: (value) async {
+          final payload = await _api.lookupPrepaidMultipayCardForReload(value);
+          final card = Map<String, dynamic>.from(payload['card'] as Map);
+          scannedCard = card;
+          return BarcodeScannerDialogResult(
+            headline: card['label']?.toString().trim().isNotEmpty == true
+                ? card['label'].toString()
+                : l.text('بطاقة دفع مسبق', 'Prepaid card'),
+            description: l.text(
+              'الرصيد الحالي: ${CurrencyFormatter.ils((card['balance'] as num?)?.toDouble() ?? 0)}',
+              'Current balance: ${CurrencyFormatter.ils((card['balance'] as num?)?.toDouble() ?? 0)}',
+            ),
+            color: AppTheme.success,
+            icon: Icons.credit_score_rounded,
+            primaryActionLabel: l.text('متابعة الشحن', 'Continue reload'),
+            primaryActionIcon: Icons.add_card_rounded,
+            onPrimaryAction: () async => null,
+          );
+        },
+      ),
+    );
+    if (scannedCard != null && mounted) {
+      await _showReloadCardDialog(scannedCard!);
     }
   }
 
@@ -2452,6 +2495,14 @@ class _PrepaidMultipayCardsScreenState
               onPressed: _showCreateCardDialog,
               tooltip: l.tr('screens_prepaid_multipay_cards_screen.017'),
               icon: const Icon(Icons.add_card_rounded),
+            ),
+          if (_canUsePrepaidCards &&
+              !_isLoading &&
+              !_isShowingOfflineCards)
+            IconButton(
+              onPressed: _scanAndReloadPrepaidCard,
+              tooltip: l.text('شحن بطاقة بالباركود', 'Reload by barcode'),
+              icon: const Icon(Icons.qr_code_scanner_rounded),
             ),
           const AppNotificationAction(),
           const QuickLogoutAction(),

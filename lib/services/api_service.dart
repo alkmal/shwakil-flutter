@@ -4009,6 +4009,18 @@ class ApiService {
     return body;
   }
 
+  Future<Map<String, dynamic>> lookupPrepaidMultipayCardForReload(
+    String barcode,
+  ) async {
+    final response = await _client.get(
+      AppConfig.apiUri(
+        'prepaid-multipay-cards/lookup/${Uri.encodeComponent(barcode.trim())}/reload',
+      ),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> renewPrepaidMultipayCard({
     required String cardId,
     String? otpCode,

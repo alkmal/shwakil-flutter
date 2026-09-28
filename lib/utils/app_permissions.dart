@@ -57,6 +57,7 @@ class AppPermissions {
     'canReviewCards',
     'canResellCards',
     'canUsePrepaidMultipayCards',
+    'canReloadAnyPrepaidMultipayCard',
     'canAcceptPrepaidMultipayPayments',
     'canUsePrepaidMultipayNfc',
     'canUseExternalCardStore',
@@ -155,6 +156,8 @@ class AppPermissions {
   bool get canResellCards => _isEnabled('canResellCards');
   bool get canUsePrepaidMultipayCards =>
       _isEnabled('canUsePrepaidMultipayCards');
+  bool get canReloadAnyPrepaidMultipayCard =>
+      _isEnabled('canReloadAnyPrepaidMultipayCard');
   bool get canAcceptPrepaidMultipayPayments =>
       _isEnabled('canAcceptPrepaidMultipayPayments');
   bool get canUsePrepaidMultipayNfc => _isEnabled('canUsePrepaidMultipayNfc');

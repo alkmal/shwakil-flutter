@@ -172,6 +172,8 @@ const Map<String, String> appStringsAr = {
       'إدارة طلبات طباعة البطاقات',
   'permission_catalog.label.canUsePrepaidMultipayCards':
       'استخدام بطاقات الدفع المسبق',
+  'permission_catalog.label.canReloadAnyPrepaidMultipayCard':
+      'شحن أي بطاقة دفع مسبق',
   'permission_catalog.label.canAcceptPrepaidMultipayPayments':
       'قبول دفع البطاقات المسبقة',
   'permission_catalog.label.canUsePrepaidMultipayNfc':
@@ -250,6 +252,8 @@ const Map<String, String> appStringsAr = {
       'إدارة واعتماد تجهيز وتسليم طلبات الطباعة.',
   'permission_catalog.description.canUsePrepaidMultipayCards':
       'استخدام بطاقات الدفع المسبق داخل التطبيق.',
+  'permission_catalog.description.canReloadAnyPrepaidMultipayCard':
+      'السماح بشحن بطاقة عبر الباركود حتى لو لم ينشئها المستخدم.',
   'permission_catalog.description.canAcceptPrepaidMultipayPayments':
       'استقبال مدفوعات الدفع المسبق كتاجر.',
   'permission_catalog.description.canUsePrepaidMultipayNfc':

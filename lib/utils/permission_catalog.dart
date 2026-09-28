@@ -59,6 +59,7 @@ class PermissionCatalog {
         'canTransfer',
         'canWithdraw',
         'canUsePrepaidMultipayCards',
+        'canReloadAnyPrepaidMultipayCard',
         'canAcceptPrepaidMultipayPayments',
         'canUsePrepaidMultipayNfc',
         'canRequestCardPrinting',
