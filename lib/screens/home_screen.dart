@@ -1831,10 +1831,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildWelcomeCard(),
+        const SizedBox(height: 12),
         if (!_isVerifiedUser) _buildAccountVerificationReminder(),
         if (!_isVerifiedUser) const SizedBox(height: 12),
-        _buildTrustStrip(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 6),
         _buildServicesSection(listServices),
       ],
     );
@@ -1895,104 +1896,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTrustStrip() {
-    final l = context.loc;
-    final items = [
-      (
-        Icons.fact_check_rounded,
-        l.text('سجل موثّق', 'Verified record'),
-        AppTheme.primary,
-      ),
-      (
-        Icons.filter_1_rounded,
-        l.text('فحص لمرة واحدة', 'One-time scan'),
-        AppTheme.success,
-      ),
-      (
-        Icons.phone_android_rounded,
-        l.text('لا يلزم تطبيق للزبون', 'No customer app needed'),
-        AppTheme.highlight,
-      ),
-    ];
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.primaryBorderSoft.withValues(alpha: 0.75),
-        ),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 500;
-          return Flex(
-            direction: compact ? Axis.vertical : Axis.horizontal,
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: compact
-                ? CrossAxisAlignment.stretch
-                : CrossAxisAlignment.center,
-            children: [
-              for (var index = 0; index < items.length; index++) ...[
-                if (index > 0)
-                  compact
-                      ? const SizedBox(height: 8)
-                      : const SizedBox(width: 8),
-                _buildTrustItem(
-                  icon: items[index].$1,
-                  label: items[index].$2,
-                  color: items[index].$3,
-                  compact: compact,
-                ),
-              ],
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTrustItem({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required bool compact,
-  }) {
-    return Row(
-      mainAxisSize: compact ? MainAxisSize.max : MainAxisSize.min,
-      mainAxisAlignment: compact
-          ? MainAxisAlignment.start
-          : MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.11),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 17, color: color),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.caption.copyWith(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.w800,
-              height: 1.25,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
