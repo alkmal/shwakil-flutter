@@ -66,6 +66,7 @@ class _PrepaidMultipayCardsScreenState
   String _activityFilter = 'all';
   String _cardsPane = 'list';
   bool _showCardTechnicalDetails = false;
+  bool _showAdvancedCardActions = false;
   bool _didApplyInitialAction = false;
   String _ownerUserId = '';
   pw.Font? _pdfRegularFont;
@@ -1260,8 +1261,6 @@ class _PrepaidMultipayCardsScreenState
       final pdf = pw.Document();
       const cardWidth = 85.6 * PdfPageFormat.mm;
       const cardHeight = 53.98 * PdfPageFormat.mm;
-      const horizontalGap = 4 * PdfPageFormat.mm;
-      const verticalGap = 3 * PdfPageFormat.mm;
 
       for (var start = 0; start < selectedCards.length; start += 10) {
         final end = (start + 10).clamp(0, selectedCards.length);
@@ -1277,41 +1276,10 @@ class _PrepaidMultipayCardsScreenState
             textDirection: pw.TextDirection.rtl,
             build: (_) => pw.Directionality(
               textDirection: pw.TextDirection.rtl,
-              child: pw.Center(
-                child: pw.Wrap(
-                  spacing: horizontalGap,
-                  runSpacing: verticalGap,
-                  children: pageCards
-                      .map((card) {
-                        final rawNumber = _resolvedRawCardNumber(card);
-                        final cardNumber = _resolvedDisplayCardNumber(card);
-                        return _buildPrepaidPdfCard(
-                          width: cardWidth,
-                          height: cardHeight,
-                          logoImage: _pdfLogoImage,
-                          cardNumber: cardNumber,
-                          rawNumber: rawNumber,
-                          label: card['label']?.toString() ?? 'بطاقة دفع مسبق',
-                          expiry: card['expiryLabel']?.toString() ?? '-',
-                          ownerName: _cardOwnerName(),
-                          issuerPhone: _cardIssuerLocalPhone(),
-                          checkUrl: AppConfig.prepaidMultipayCheckUri(
-                            rawNumber,
-                          ).toString(),
-                          scanPayload: _prepaidCardBarcodePayload(
-                            card,
-                            paymentAmount: 0,
-                          ),
-                          balance: CurrencyFormatter.ils(
-                            (card['balance'] as num?)?.toDouble() ?? 0,
-                          ),
-                          status: _statusLabel(
-                            card['status']?.toString() ?? 'active',
-                          ),
-                        );
-                      })
-                      .toList(growable: false),
-                ),
+              child: _buildPrepaidPdfGrid(
+                pageCards,
+                cardWidth: cardWidth,
+                cardHeight: cardHeight,
               ),
             ),
           ),
@@ -1330,6 +1298,61 @@ class _PrepaidMultipayCardsScreenState
         message: ErrorMessageService.sanitize(error),
       );
     }
+  }
+
+  pw.Widget _buildPrepaidPdfGrid(
+    List<Map<String, dynamic>> cards, {
+    required double cardWidth,
+    required double cardHeight,
+  }) {
+    final cardWidgets = cards.map((card) {
+      final rawNumber = _resolvedRawCardNumber(card);
+      return _buildPrepaidPdfCard(
+        width: cardWidth,
+        height: cardHeight,
+        logoImage: _pdfLogoImage,
+        cardNumber: _resolvedDisplayCardNumber(card),
+        rawNumber: rawNumber,
+        label: card['label']?.toString() ?? 'بطاقة دفع مسبق',
+        expiry: card['expiryLabel']?.toString() ?? '-',
+        ownerName: _cardOwnerName(),
+        issuerPhone: _cardIssuerLocalPhone(),
+        checkUrl: AppConfig.prepaidMultipayCheckUri(rawNumber).toString(),
+        scanPayload: _prepaidCardBarcodePayload(card, paymentAmount: 0),
+        balance: CurrencyFormatter.ils(
+          (card['balance'] as num?)?.toDouble() ?? 0,
+        ),
+        status: _statusLabel(card['status']?.toString() ?? 'active'),
+      );
+    }).toList(growable: false);
+
+    final rows = <pw.TableRow>[];
+    for (var row = 0; row < 5; row++) {
+      final children = <pw.Widget>[];
+      for (var column = 0; column < 2; column++) {
+        final index = row * 2 + column;
+        children.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(
+              horizontal: 2 * PdfPageFormat.mm,
+              vertical: 1.3 * PdfPageFormat.mm,
+            ),
+            child: index < cardWidgets.length
+                ? cardWidgets[index]
+                : pw.SizedBox(width: cardWidth, height: cardHeight),
+          ),
+        );
+      }
+      rows.add(pw.TableRow(children: children));
+    }
+
+    return pw.Table(
+      columnWidths: {
+        0: pw.FixedColumnWidth(cardWidth + 4 * PdfPageFormat.mm),
+        1: pw.FixedColumnWidth(cardWidth + 4 * PdfPageFormat.mm),
+      },
+      children: rows,
+    );
   }
 
   pw.Widget _buildPrepaidPdfCard({
@@ -2677,6 +2700,7 @@ class _PrepaidMultipayCardsScreenState
                 _cardsPane = 'list';
                 _activityFilter = 'all';
                 _showCardTechnicalDetails = false;
+                _showAdvancedCardActions = false;
               }),
               icon: const Icon(Icons.arrow_back_rounded),
             ),
@@ -2732,6 +2756,7 @@ class _PrepaidMultipayCardsScreenState
         _selectedCardId = card['id']?.toString();
         _activityFilter = 'all';
         _showCardTechnicalDetails = false;
+        _showAdvancedCardActions = false;
         _cardsPane = 'details';
       }),
       color: isSelected ? AppTheme.surfaceMuted : Colors.white,
@@ -2919,7 +2944,9 @@ class _PrepaidMultipayCardsScreenState
                       l.tr('screens_prepaid_multipay_cards_screen.069'),
                     ),
                   ),
-                if (status == 'active' && showNfcActions)
+                if (_showAdvancedCardActions &&
+                    status == 'active' &&
+                    showNfcActions)
                   FilledButton.icon(
                     onPressed: _isWritingNfcPayment
                         ? null
@@ -2931,7 +2958,9 @@ class _PrepaidMultipayCardsScreenState
                           : l.tr('screens_prepaid_multipay_cards_screen.071'),
                     ),
                   ),
-                if (status == 'active' && showAdvancedNfcTools)
+                if (_showAdvancedCardActions &&
+                    status == 'active' &&
+                    showAdvancedNfcTools)
                   OutlinedButton.icon(
                     onPressed: _isWritingNfc
                         ? null
@@ -2943,7 +2972,7 @@ class _PrepaidMultipayCardsScreenState
                           : l.tr('screens_prepaid_multipay_cards_screen.073'),
                     ),
                   ),
-                if (showAdvancedNfcTools)
+                if (_showAdvancedCardActions && showAdvancedNfcTools)
                   OutlinedButton.icon(
                     onPressed: _isRegisteringNfc
                         ? null
@@ -2981,7 +3010,7 @@ class _PrepaidMultipayCardsScreenState
                           : l.tr('screens_prepaid_multipay_cards_screen.002'),
                     ),
                   ),
-                if (canRenew)
+                if (_showAdvancedCardActions && canRenew)
                   FilledButton.icon(
                     onPressed: () => _renewCard(card),
                     icon: const Icon(Icons.autorenew_rounded),
@@ -2989,7 +3018,7 @@ class _PrepaidMultipayCardsScreenState
                       l.tr('screens_prepaid_multipay_cards_screen.027'),
                     ),
                   ),
-                if (canEditCard)
+                if (_showAdvancedCardActions && canEditCard)
                   OutlinedButton.icon(
                     onPressed: () => _editCardDetails(card),
                     icon: const Icon(Icons.edit_rounded),
@@ -3000,7 +3029,23 @@ class _PrepaidMultipayCardsScreenState
               ],
             ),
           ),
-          if (canManageLifecycle) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => setState(
+              () => _showAdvancedCardActions = !_showAdvancedCardActions,
+            ),
+            icon: Icon(
+              _showAdvancedCardActions
+                  ? Icons.expand_less_rounded
+                  : Icons.more_horiz_rounded,
+            ),
+            label: Text(
+              _showAdvancedCardActions
+                  ? l.text('إخفاء الإجراءات المتقدمة', 'Hide advanced actions')
+                  : l.text('المزيد من الإجراءات', 'More actions'),
+            ),
+          ),
+          if (_showAdvancedCardActions && canManageLifecycle) ...[
             const SizedBox(height: 14),
             _buildDetailsSection(
               title: l.text(
