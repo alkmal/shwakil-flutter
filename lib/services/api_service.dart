@@ -3831,6 +3831,19 @@ class ApiService {
     return _decodeObject(response);
   }
 
+  Future<Map<String, dynamic>> updateAdminPrepaidCardNotifications({
+    required String cardId,
+    required bool enabled,
+    String phone = '',
+  }) async {
+    final response = await _client.post(
+      AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/notifications'),
+      headers: await _headers(),
+      body: jsonEncode({'enabled': enabled, if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
+    );
+    return _decodeObject(response);
+  }
+
   Future<Map<String, dynamic>> cancelAdminPrepaidMultipayCard({
     required String cardId,
     String? note,
