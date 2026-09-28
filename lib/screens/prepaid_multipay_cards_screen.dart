@@ -3200,123 +3200,117 @@ class _PrepaidMultipayCardsScreenState
           _buildDetailsSection(
             title: l.text('إجراءات البطاقة', 'Card Actions'),
             icon: Icons.tune_rounded,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
+            child: _buildCardActionGrid([
+              OutlinedButton.icon(
+                onPressed: () => _toggleCardNumber(card),
+                icon: Icon(
+                  _revealedCardIds.contains(card['id']?.toString() ?? '')
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                ),
+                label: Text(
+                  _revealedCardIds.contains(card['id']?.toString() ?? '')
+                      ? l.tr('screens_prepaid_multipay_cards_screen.066')
+                      : l.tr('screens_prepaid_multipay_cards_screen.067'),
+                ),
+              ),
+              if (canShowForDirectPayment)
                 OutlinedButton.icon(
-                  onPressed: () => _toggleCardNumber(card),
-                  icon: Icon(
-                    _revealedCardIds.contains(card['id']?.toString() ?? '')
-                        ? Icons.visibility_off_rounded
-                        : Icons.visibility_rounded,
-                  ),
+                  onPressed: () => _showCardForDirectPayment(card),
+                  icon: const Icon(Icons.smartphone_rounded),
                   label: Text(
-                    _revealedCardIds.contains(card['id']?.toString() ?? '')
-                        ? l.tr('screens_prepaid_multipay_cards_screen.066')
-                        : l.tr('screens_prepaid_multipay_cards_screen.067'),
+                    l.tr('screens_prepaid_multipay_cards_screen.068'),
                   ),
                 ),
-                if (canShowForDirectPayment)
-                  OutlinedButton.icon(
-                    onPressed: () => _showCardForDirectPayment(card),
-                    icon: const Icon(Icons.smartphone_rounded),
-                    label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.068'),
-                    ),
+              if (canPrintCard)
+                OutlinedButton.icon(
+                  onPressed: () => _printPrepaidCard(card),
+                  icon: const Icon(Icons.print_rounded),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.069'),
                   ),
-                if (canPrintCard)
-                  OutlinedButton.icon(
-                    onPressed: () => _printPrepaidCard(card),
-                    icon: const Icon(Icons.print_rounded),
-                    label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.069'),
-                    ),
+                ),
+              if (_showAdvancedCardActions &&
+                  status == 'active' &&
+                  showNfcActions)
+                FilledButton.icon(
+                  onPressed: _isWritingNfcPayment
+                      ? null
+                      : () => _publishHcePaymentAuthorization(card),
+                  icon: const Icon(Icons.contactless_rounded),
+                  label: Text(
+                    _isWritingNfcPayment
+                        ? l.tr('screens_prepaid_multipay_cards_screen.070')
+                        : l.tr('screens_prepaid_multipay_cards_screen.071'),
                   ),
-                if (_showAdvancedCardActions &&
-                    status == 'active' &&
-                    showNfcActions)
-                  FilledButton.icon(
-                    onPressed: _isWritingNfcPayment
-                        ? null
-                        : () => _publishHcePaymentAuthorization(card),
-                    icon: const Icon(Icons.contactless_rounded),
-                    label: Text(
-                      _isWritingNfcPayment
-                          ? l.tr('screens_prepaid_multipay_cards_screen.070')
-                          : l.tr('screens_prepaid_multipay_cards_screen.071'),
-                    ),
+                ),
+              if (_showAdvancedCardActions &&
+                  status == 'active' &&
+                  showAdvancedNfcTools)
+                OutlinedButton.icon(
+                  onPressed: _isWritingNfc ? null : () => _writeCardToNfc(card),
+                  icon: const Icon(Icons.sensors_rounded),
+                  label: Text(
+                    _isWritingNfc
+                        ? l.tr('screens_prepaid_multipay_cards_screen.072')
+                        : l.tr('screens_prepaid_multipay_cards_screen.073'),
                   ),
-                if (_showAdvancedCardActions &&
-                    status == 'active' &&
-                    showAdvancedNfcTools)
-                  OutlinedButton.icon(
-                    onPressed: _isWritingNfc
-                        ? null
-                        : () => _writeCardToNfc(card),
-                    icon: const Icon(Icons.sensors_rounded),
-                    label: Text(
-                      _isWritingNfc
-                          ? l.tr('screens_prepaid_multipay_cards_screen.072')
-                          : l.tr('screens_prepaid_multipay_cards_screen.073'),
-                    ),
+                ),
+              if (_showAdvancedCardActions && showAdvancedNfcTools)
+                OutlinedButton.icon(
+                  onPressed: _isRegisteringNfc
+                      ? null
+                      : () => _revokeThisNfcDevice(card),
+                  icon: const Icon(Icons.link_off_rounded),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.074'),
                   ),
-                if (_showAdvancedCardActions && showAdvancedNfcTools)
-                  OutlinedButton.icon(
-                    onPressed: _isRegisteringNfc
-                        ? null
-                        : () => _revokeThisNfcDevice(card),
-                    icon: const Icon(Icons.link_off_rounded),
-                    label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.074'),
-                    ),
+                ),
+              if (canUseForPayment)
+                FilledButton.icon(
+                  onPressed: () => _openUnifiedScanner(openCamera: false),
+                  icon: const Icon(Icons.contactless_rounded),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.075'),
                   ),
-                if (canUseForPayment)
-                  FilledButton.icon(
-                    onPressed: () => _openUnifiedScanner(openCamera: false),
-                    icon: const Icon(Icons.contactless_rounded),
-                    label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.075'),
-                    ),
+                ),
+              if (canUseForPayment)
+                OutlinedButton.icon(
+                  onPressed: () => _openUnifiedScanner(),
+                  icon: const Icon(Icons.point_of_sale_rounded),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.076'),
                   ),
-                if (canUseForPayment)
-                  OutlinedButton.icon(
-                    onPressed: () => _openUnifiedScanner(),
-                    icon: const Icon(Icons.point_of_sale_rounded),
-                    label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.076'),
-                    ),
+                ),
+              if (canReload)
+                OutlinedButton.icon(
+                  onPressed: _isReloading
+                      ? null
+                      : () => _showReloadCardDialog(card),
+                  icon: const Icon(Icons.add_card_rounded),
+                  label: Text(
+                    _isReloading
+                        ? l.tr('screens_prepaid_multipay_cards_screen.077')
+                        : l.tr('screens_prepaid_multipay_cards_screen.002'),
                   ),
-                if (canReload)
-                  OutlinedButton.icon(
-                    onPressed: _isReloading
-                        ? null
-                        : () => _showReloadCardDialog(card),
-                    icon: const Icon(Icons.add_card_rounded),
-                    label: Text(
-                      _isReloading
-                          ? l.tr('screens_prepaid_multipay_cards_screen.077')
-                          : l.tr('screens_prepaid_multipay_cards_screen.002'),
-                    ),
+                ),
+              if (_showAdvancedCardActions && canRenew)
+                FilledButton.icon(
+                  onPressed: () => _renewCard(card),
+                  icon: const Icon(Icons.autorenew_rounded),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.027'),
                   ),
-                if (_showAdvancedCardActions && canRenew)
-                  FilledButton.icon(
-                    onPressed: () => _renewCard(card),
-                    icon: const Icon(Icons.autorenew_rounded),
-                    label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.027'),
-                    ),
+                ),
+              if (_showAdvancedCardActions && canEditCard)
+                OutlinedButton.icon(
+                  onPressed: () => _editCardDetails(card),
+                  icon: const Icon(Icons.edit_rounded),
+                  label: Text(
+                    l.tr('screens_prepaid_multipay_cards_screen.039'),
                   ),
-                if (_showAdvancedCardActions && canEditCard)
-                  OutlinedButton.icon(
-                    onPressed: () => _editCardDetails(card),
-                    icon: const Icon(Icons.edit_rounded),
-                    label: Text(
-                      l.tr('screens_prepaid_multipay_cards_screen.039'),
-                    ),
-                  ),
-              ],
-            ),
+                ),
+            ]),
           ),
           const SizedBox(height: 8),
           TextButton.icon(
@@ -3539,6 +3533,36 @@ class _PrepaidMultipayCardsScreenState
           );
         },
       ),
+    );
+  }
+
+  Widget _buildCardActionGrid(List<Widget> actions) {
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth < 600 ? 2 : 3;
+        const gap = 8.0;
+        final itemWidth =
+            (constraints.maxWidth - (gap * (columns - 1))) / columns;
+        final lastRowHasOneItem = actions.length % columns == 1;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (var index = 0; index < actions.length; index++)
+              SizedBox(
+                width: index == actions.length - 1 && lastRowHasOneItem
+                    ? constraints.maxWidth
+                    : itemWidth,
+                child: actions[index],
+              ),
+          ],
+        );
+      },
     );
   }
 
