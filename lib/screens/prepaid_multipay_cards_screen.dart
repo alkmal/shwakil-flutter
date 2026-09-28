@@ -3336,36 +3336,32 @@ class _PrepaidMultipayCardsScreenState
                 'Status & Security Management',
               ),
               icon: Icons.admin_panel_settings_rounded,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (status == 'active')
-                    OutlinedButton.icon(
-                      onPressed: () => _updateStatus(card, 'freeze'),
-                      icon: const Icon(Icons.pause_circle_rounded),
-                      label: Text(
-                        l.tr('screens_prepaid_multipay_cards_screen.031'),
-                      ),
+              child: _buildCardActionGrid([
+                if (status == 'active')
+                  OutlinedButton.icon(
+                    onPressed: () => _updateStatus(card, 'freeze'),
+                    icon: const Icon(Icons.pause_circle_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.031'),
                     ),
-                  if (status == 'frozen')
-                    OutlinedButton.icon(
-                      onPressed: () => _updateStatus(card, 'activate'),
-                      icon: const Icon(Icons.play_circle_rounded),
-                      label: Text(
-                        l.tr('screens_prepaid_multipay_cards_screen.032'),
-                      ),
+                  ),
+                if (status == 'frozen')
+                  OutlinedButton.icon(
+                    onPressed: () => _updateStatus(card, 'activate'),
+                    icon: const Icon(Icons.play_circle_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.032'),
                     ),
-                  if (status == 'active' || status == 'frozen')
-                    OutlinedButton.icon(
-                      onPressed: () => _changeSecurityCode(card),
-                      icon: const Icon(Icons.password_rounded),
-                      label: Text(
-                        l.tr('screens_prepaid_multipay_cards_screen.078'),
-                      ),
+                  ),
+                if (status == 'active' || status == 'frozen')
+                  OutlinedButton.icon(
+                    onPressed: () => _changeSecurityCode(card),
+                    icon: const Icon(Icons.password_rounded),
+                    label: Text(
+                      l.tr('screens_prepaid_multipay_cards_screen.078'),
                     ),
-                ],
-              ),
+                  ),
+              ]),
             ),
           ],
           const SizedBox(height: 18),
