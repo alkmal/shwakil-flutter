@@ -3835,11 +3835,22 @@ class ApiService {
     required String cardId,
     required bool enabled,
     String phone = '',
+    String? otpCode,
+    String? securityPin,
+    String? localAuthMethod,
   }) async {
     final response = await _client.post(
       AppConfig.apiUri('admin/prepaid-multipay/cards/$cardId/notifications'),
       headers: await _headers(),
-      body: jsonEncode({'enabled': enabled, if (phone.trim().isNotEmpty) 'phone': phone.trim()}),
+      body: jsonEncode({
+        'enabled': enabled,
+        if (phone.trim().isNotEmpty) 'phone': phone.trim(),
+        ..._transactionConfirmationPayload(
+          otpCode: otpCode,
+          securityPin: securityPin,
+          localAuthMethod: localAuthMethod,
+        ),
+      }),
     );
     return _decodeObject(response);
   }

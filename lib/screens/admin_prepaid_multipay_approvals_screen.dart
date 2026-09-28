@@ -372,6 +372,110 @@ class _AdminPrepaidMultipayApprovalsScreenState
     }
   }
 
+  Future<void> _configureNotifications(Map<String, dynamic> card) async {
+    if (!_lockCardAction(card)) return;
+    final l = context.loc;
+    final current = Map<String, dynamic>.from(
+      card['notifications'] as Map? ?? const {},
+    );
+    final phoneController = TextEditingController(
+      text: current['phone']?.toString() ?? '',
+    );
+    var enabled = current['enabled'] == true;
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(
+              l.text('إشعارات حركات البطاقة', 'Card transaction alerts'),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: enabled,
+                  title: Text(l.text('تفعيل الإشعارات', 'Enable alerts')),
+                  subtitle: Text(
+                    l.text(
+                      'أول 10 إشعارات شهريًا مجانية، ثم 0.20 شيكل للإشعار.',
+                      'First 10 alerts each month are free, then 0.20 ILS per alert.',
+                    ),
+                  ),
+                  onChanged: (value) => setDialogState(() => enabled = value),
+                ),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: l.text(
+                      'رقم الهاتف المرتبط',
+                      'Linked phone number',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l.text(
+                    'الحركات الأقل من 5 شيكل تُجمع حتى يتجاوز مجموعها 5 شيكل.',
+                    'Transactions below 5 ILS are grouped until their total exceeds 5 ILS.',
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l.text('إلغاء', 'Cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l.text('حفظ', 'Save')),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      final security = await TransferSecurityService.confirmTransfer(
+        context,
+        allowOtpFallback: true,
+      );
+      if (!mounted || !security.isVerified) return;
+      await _api.updateAdminPrepaidCardNotifications(
+        cardId: card['id']?.toString() ?? '',
+        enabled: enabled,
+        phone: phoneController.text,
+        otpCode: security.otpCode,
+        securityPin: security.securityPin,
+        localAuthMethod: security.method,
+      );
+      await _load();
+      if (mounted) {
+        await AppAlertService.showSuccess(
+          context,
+          title: l.text('تم الحفظ', 'Saved'),
+          message: l.text(
+            'تم تحديث إعدادات إشعارات البطاقة.',
+            'Card alert settings updated.',
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        await AppAlertService.showError(
+          context,
+          title: l.text('تعذر الحفظ', 'Save failed'),
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+    } finally {
+      phoneController.dispose();
+      if (mounted) setState(() => _actingCardId = null);
+    }
+  }
+
   Future<void> _runAdminAction(
     Map<String, dynamic> card, {
     required String title,
@@ -676,6 +780,41 @@ class _AdminPrepaidMultipayApprovalsScreenState
               style: AppTheme.bodyAction,
             ),
           ],
+          const SizedBox(height: 8),
+          Builder(
+            builder: (context) {
+              final alerts = Map<String, dynamic>.from(
+                card['notifications'] as Map? ?? const {},
+              );
+              return Row(
+                children: [
+                  Icon(
+                    alerts['enabled'] == true
+                        ? Icons.notifications_active_rounded
+                        : Icons.notifications_off_rounded,
+                    size: 18,
+                    color: alerts['enabled'] == true
+                        ? AppTheme.success
+                        : Theme.of(context).colorScheme.outline,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      alerts['enabled'] == true
+                          ? 'إشعارات مفعلة · مجاني متبقٍ: ${alerts['freeRemainingThisMonth'] ?? 0}'
+                          : 'إشعارات الحركات متوقفة',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: acting
+                        ? null
+                        : () => _configureNotifications(card),
+                    child: const Text('الإشعارات'),
+                  ),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 10,
