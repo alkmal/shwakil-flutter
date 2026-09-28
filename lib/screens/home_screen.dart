@@ -1509,6 +1509,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return indexed.map((entry) => entry.value).toList();
   }
 
+  // Kept as a reusable welcome component for optional desktop onboarding layouts.
+  // ignore: unused_element
   Widget _buildWelcomeCard() {
     final greeting = _t('screens_home_screen.084');
     final displayName = _displayName;
@@ -1826,58 +1828,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     BuildContext context, {
     required List<_HomeServiceItem> listServices,
   }) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final mediaQuery = MediaQuery.of(context);
-        final isLandscapePhone =
-            mediaQuery.orientation == Orientation.landscape &&
-            constraints.maxWidth < 1100;
-        final useWideLayout = constraints.maxWidth >= 900;
-
-        if (!isLandscapePhone && !useWideLayout) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildWelcomeCard(),
-              if (!_isVerifiedUser) ...[
-                const SizedBox(height: 12),
-                _buildAccountVerificationReminder(),
-              ],
-              const SizedBox(height: 12),
-              _buildTrustStrip(),
-              const SizedBox(height: 18),
-              _buildServicesSection(listServices),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 11, child: _buildWelcomeCard()),
-                const SizedBox(width: 14),
-                Expanded(
-                  flex: 9,
-                  child: Column(
-                    children: [
-                      if (!_isVerifiedUser) ...[
-                        _buildAccountVerificationReminder(),
-                        const SizedBox(height: 12),
-                      ],
-                      _buildTrustStrip(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            _buildServicesSection(listServices),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!_isVerifiedUser) _buildAccountVerificationReminder(),
+        if (!_isVerifiedUser) const SizedBox(height: 12),
+        _buildTrustStrip(),
+        const SizedBox(height: 18),
+        _buildServicesSection(listServices),
+      ],
     );
   }
 
