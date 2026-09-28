@@ -1591,7 +1591,7 @@ class _PrepaidMultipayCardsScreenState
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Text(
-                          'شواكل - بطاقة رقمية موثقة',
+                          'شواكل - بطاقة دفع مسبق',
                           textAlign: pw.TextAlign.right,
                           textDirection: pw.TextDirection.rtl,
                           style: pw.TextStyle(
@@ -1610,6 +1610,25 @@ class _PrepaidMultipayCardsScreenState
                             font: pw.Font.helveticaBold(),
                             fontSize: 4.7,
                             color: const PdfColor.fromInt(0xFF16302B),
+                          ),
+                        ),
+                        pw.SizedBox(height: 1),
+                        pw.Text(
+                          'رسوم الإصدار والاشتراك: 2 شيكل تخصم من قيمة البطاقة.',
+                          maxLines: 1,
+                          textDirection: pw.TextDirection.rtl,
+                          style: const pw.TextStyle(
+                            fontSize: 3.7,
+                            color: PdfColor.fromInt(0xFF64748B),
+                          ),
+                        ),
+                        pw.Text(
+                          'الاستخدام: مرّر البطاقة للتاجر وأدخل الرقم السري. لا تشارك الرقم السري.',
+                          maxLines: 1,
+                          textDirection: pw.TextDirection.rtl,
+                          style: const pw.TextStyle(
+                            fontSize: 3.7,
+                            color: PdfColor.fromInt(0xFF64748B),
                           ),
                         ),
                         pw.SizedBox(height: 1),
