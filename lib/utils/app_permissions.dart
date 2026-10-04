@@ -14,6 +14,15 @@ class AppPermissions {
       }
     }
 
+    // بعض الجلسات القديمة تحفظ isSubUser أعلى كائن المستخدم بدل كائن
+    // permissions؛ يجب أن تبقى صلاحيات التابع ظاهرة بعد تحديث التطبيق.
+    if (!merged.containsKey('isSubUser') && user['isSubUser'] != null) {
+      merged['isSubUser'] = user['isSubUser'];
+    }
+    if (!merged.containsKey('parentUserId') && user['parentUserId'] != null) {
+      merged['parentUserId'] = user['parentUserId'];
+    }
+
     if (!merged.containsKey('role') && user['role'] != null) {
       merged['role'] = user['role'];
     }
@@ -76,6 +85,8 @@ class AppPermissions {
     'canEditStorePrices',
     'canViewStoreProfits',
     'canViewStoreReports',
+    'canViewExternalTransfers',
+    'canReviewExternalTransfers',
     'canViewPublicStores',
     'canBuyPublicStoreProducts',
     'canPublishStorefront',
@@ -114,18 +125,35 @@ class AppPermissions {
     if (value == null) {
       return defaultValue;
     }
-    return value == true || value == 1 || value == '1';
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    final normalized = value.toString().trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized.isEmpty) {
+      return false;
+    }
+    return defaultValue;
   }
 
   bool get canViewBalance => _isEnabled('canViewBalance');
   bool get canViewTransactions => _isEnabled('canViewTransactions');
   bool get canViewInventory => _isEnabled('canViewInventory');
   bool get canViewQuickTransfer => canTransfer;
-  bool get canViewContact => _raw['canViewContact'] != false;
-  bool get canViewLocations => _raw['canViewLocations'] != false;
-  bool get canViewUsagePolicy => _raw['canViewUsagePolicy'] != false;
-  bool get canViewSecuritySettings => _raw['canViewSecuritySettings'] != false;
-  bool get canViewAccountSettings => _raw['canViewAccountSettings'] != false;
+  bool get canViewContact => _isEnabled('canViewContact', defaultValue: true);
+  bool get canViewLocations =>
+      _isEnabled('canViewLocations', defaultValue: true);
+  bool get canViewUsagePolicy =>
+      _isEnabled('canViewUsagePolicy', defaultValue: true);
+  bool get canViewSecuritySettings =>
+      _isEnabled('canViewSecuritySettings', defaultValue: true);
+  bool get canViewAccountSettings =>
+      _isEnabled('canViewAccountSettings', defaultValue: true);
   bool get canRequestVerification => _isEnabled('canRequestVerification');
   bool get canIssueCards => _isEnabled('canIssueCards');
   bool get canManageSubscriptions => canIssueCards || isAdminRole;
@@ -183,10 +211,13 @@ class AppPermissions {
   bool get canFinanceTopup => _isEnabled('canFinanceTopup');
   bool get canManageMarketingAccounts =>
       _isEnabled('canManageMarketingAccounts');
-  bool get canManageDebtBook => _isEnabled('canManageDebtBook');
+  bool get isPrimaryTrader => !isSubUser && !isAdminRole;
+  bool get canManageDebtBook =>
+      _isEnabled('canManageDebtBook') || isPrimaryTrader;
   bool get _hasStoreOwnerFallback => isAdminRole || canManageDebtBook;
   bool get canAccessStoreManagement =>
       _isEnabled('canAccessStoreManagement') ||
+      isPrimaryTrader ||
       _hasStoreOwnerFallback ||
       canManageStoreInventory ||
       canCreateStoreSales ||
@@ -207,6 +238,10 @@ class AppPermissions {
       _isEnabled('canViewStoreProfits') || _hasStoreOwnerFallback;
   bool get canViewStoreReports =>
       _isEnabled('canViewStoreReports') || _hasStoreOwnerFallback;
+  bool get canViewExternalTransfers =>
+      _isEnabled('canViewExternalTransfers') || isAdminRole || isPrimaryTrader;
+  bool get canReviewExternalTransfers =>
+      _isEnabled('canReviewExternalTransfers') || isAdminRole;
   bool get canViewPublicStores =>
       _isEnabled('canViewPublicStores', defaultValue: true);
   bool get canBuyPublicStoreProducts => _isEnabled('canBuyPublicStoreProducts');
@@ -240,8 +275,11 @@ class AppPermissions {
       _isEnabled('canExportCustomerTransactions');
 
   String get role => _raw['role']?.toString().trim().toLowerCase() ?? '';
+  bool get isSubUser =>
+      _isEnabled('isSubUser') ||
+      (_raw['parentUserId']?.toString().trim().isNotEmpty ?? false);
   bool get isAdminRole =>
-      _raw['isAdmin'] == true ||
+      _isEnabled('isAdmin') ||
       role == 'admin' ||
       role == 'super_admin' ||
       role == 'technical_admin';

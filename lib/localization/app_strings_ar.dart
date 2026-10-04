@@ -201,6 +201,8 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.label.canEditStorePrices': 'تعديل أسعار الشراء والبيع',
   'permission_catalog.label.canViewStoreProfits': 'مشاهدة أرباح المحل',
   'permission_catalog.label.canViewStoreReports': 'مشاهدة تقارير المحل',
+  'permission_catalog.label.canViewExternalTransfers': 'عرض التحويلات الخارجية',
+  'permission_catalog.label.canReviewExternalTransfers': 'مراجعة التحويلات الخارجية',
   'permission_catalog.label.canViewPublicStores': 'عرض المتاجر العامة',
   'permission_catalog.label.canBuyPublicStoreProducts':
       'الشراء من المتاجر العامة',

@@ -773,6 +773,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getTopupRequests({
     String? status,
+    String? accountingStatus,
     String query = '',
     int page = 1,
     int perPage = 8,
@@ -783,6 +784,9 @@ class ApiService {
     };
     if (status != null && status.trim().isNotEmpty && status.trim() != 'all') {
       params['status'] = status.trim();
+    }
+    if (accountingStatus != null && accountingStatus.trim().isNotEmpty && accountingStatus.trim() != 'all') {
+      params['accountingStatus'] = accountingStatus.trim();
     }
     if (query.trim().isNotEmpty) {
       params['q'] = query.trim();
@@ -2115,6 +2119,9 @@ class ApiService {
       message: body['message']?.toString(),
       whatsapp: body['whatsapp']?.toString(),
       debugOtpCode: body['debugOtpCode']?.toString(),
+      otpRequired: body['otpRequired'] is bool
+          ? body['otpRequired'] as bool
+          : null,
     );
   }
 
@@ -4018,6 +4025,76 @@ class ApiService {
       ),
       headers: await _headers(),
     );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getTopupRequestsReport({String? from, String? to, String? employeeId, String? period}) async {
+    final params = <String, String>{
+      if (from != null && from.trim().isNotEmpty) 'from': from.trim(),
+      if (to != null && to.trim().isNotEmpty) 'to': to.trim(),
+      if (employeeId != null && employeeId.trim().isNotEmpty) 'employeeId': employeeId.trim(),
+      if (period != null && period.trim().isNotEmpty) 'period': period.trim(),
+    };
+    final response = await _client.get(AppConfig.apiUri('admin/topup-requests/report', params), headers: await _headers());
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateTopupFollowUp({
+    required String requestId,
+    required String deliveryStatus,
+    required bool checked,
+    String notes = '',
+    String? accountingStatus,
+    double? profitRate,
+    double? profitAmount,
+    String accountingNotes = '',
+  }) async {
+    final response = await _client.post(
+      AppConfig.apiUri('admin/topup-requests/$requestId/follow-up'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'deliveryStatus': deliveryStatus,
+        'checked': checked,
+        if (notes.trim().isNotEmpty) 'notes': notes.trim(),
+        if (accountingStatus != null) 'accountingStatus': accountingStatus,
+        if (profitRate != null) 'profitRate': profitRate,
+        if (profitAmount != null) 'profitAmount': profitAmount,
+        if (accountingNotes.trim().isNotEmpty) 'accountingNotes': accountingNotes.trim(),
+      }),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> deleteTopupRequest(String requestId) async {
+    final response = await _client.delete(
+      AppConfig.apiUri('admin/topup-requests/$requestId'),
+      headers: await _headers(),
+    );
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getExternalTransfers({Map<String, String>? filters}) async {
+    final response = await _client.get(AppConfig.apiUri('external-transfers', filters), headers: await _headers());
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> getExternalTransfersReport({Map<String, String>? filters}) async {
+    final response = await _client.get(AppConfig.apiUri('external-transfers/report', filters), headers: await _headers());
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> createExternalTransfer(Map<String, dynamic> payload) async {
+    final response = await _client.post(AppConfig.apiUri('external-transfers'), headers: await _headers(), body: jsonEncode(payload));
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> updateExternalTransfer(String id, Map<String, dynamic> payload) async {
+    final response = await _client.put(AppConfig.apiUri('external-transfers/$id'), headers: await _headers(), body: jsonEncode(payload));
+    return _decodeObject(response);
+  }
+
+  Future<Map<String, dynamic>> deleteExternalTransfer(String id) async {
+    final response = await _client.delete(AppConfig.apiUri('external-transfers/$id'), headers: await _headers());
     return _decodeObject(response);
   }
 

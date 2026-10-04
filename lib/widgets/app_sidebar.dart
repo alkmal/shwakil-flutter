@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -30,6 +32,7 @@ class AppSidebar extends StatefulWidget {
 }
 
 class _AppSidebarState extends State<AppSidebar> {
+  static DateTime? _lastPermissionRefreshAt;
   final AuthService _authService = AuthService();
   Map<String, dynamic>? _user = AuthService.peekCurrentUser();
 
@@ -40,11 +43,29 @@ class _AppSidebarState extends State<AppSidebar> {
   }
 
   Future<void> _loadUser() async {
+    // Permission changes made by the owner/admin must reach an already-open
+    // client too. Refresh at most once per minute to avoid a request for every
+    // drawer created while navigating on mobile.
+    final now = DateTime.now();
+    final lastRefresh = _lastPermissionRefreshAt;
+    if (lastRefresh == null || now.difference(lastRefresh).inSeconds >= 60) {
+      _lastPermissionRefreshAt = now;
+      try {
+        await _authService.tryRefreshCurrentUser();
+      } catch (_) {
+        // Keep the last cached permission snapshot when offline or unavailable.
+      }
+    }
     final user = await _authService.currentUser();
     if (!mounted) {
       return;
     }
     if (_user?['id']?.toString() == user?['id']?.toString() &&
+        _user?['role']?.toString() == user?['role']?.toString() &&
+        _user?['isSubUser']?.toString() == user?['isSubUser']?.toString() &&
+        _user?['parentUserId']?.toString() ==
+            user?['parentUserId']?.toString() &&
+        jsonEncode(_user?['permissions']) == jsonEncode(user?['permissions']) &&
         _user?['balance']?.toString() == user?['balance']?.toString() &&
         _user?['transferVerificationStatus']?.toString() ==
             user?['transferVerificationStatus']?.toString()) {
@@ -101,9 +122,11 @@ class _AppSidebarState extends State<AppSidebar> {
     final verificationStatus =
         _user?['transferVerificationStatus']?.toString() ?? 'unverified';
     final permissions = AppPermissions.fromUser(_user);
+    // الحساب الرئيسي هو مساحة التاجر. أدوات البطاقات والمتاجر العامة لا تظهر
+    // في قائمته، بينما تبقى خاضعة للصلاحيات عند الحسابات التابعة.
+    final isPrimaryTrader = permissions.isPrimaryTrader;
 
     final canViewContact = permissions.canViewContact;
-    final canViewLocations = permissions.canViewLocations;
     final canViewNotifications =
         permissions.canViewTransactions || permissions.canViewBalance;
     final canViewBalance = permissions.canViewBalance;
@@ -125,6 +148,9 @@ class _AppSidebarState extends State<AppSidebar> {
     final canViewAccountSettings = permissions.canViewAccountSettings;
     final canRequestVerification = permissions.canRequestVerification;
     final hasAdminWorkspaceAccess = permissions.hasAdminWorkspaceAccess;
+    // صلاحيات دفتر الديون أو إدارة المحل لا تجعل التاجر مساحة إدارة كاملة.
+    // مساحة الإدارة والتقارير الإدارية تظهر للإدارة/الأدوار الإدارية فقط.
+    final showAdminWorkspace = !isPrimaryTrader && hasAdminWorkspaceAccess;
     final isOfflineMode = OfflineSessionService.isOfflineMode;
     const headerGradient = LinearGradient(
       colors: [AppTheme.secondary, AppTheme.primary],
@@ -208,6 +234,16 @@ class _AppSidebarState extends State<AppSidebar> {
                         title: l.tr('widgets_app_sidebar.044'),
                         routeName: '/notifications',
                       ),
+                    if (!isOfflineMode && permissions.canViewExternalTransfers)
+                      _buildItem(
+                        context,
+                        icon: Icons.account_balance_wallet_rounded,
+                        title: l.text(
+                          'متابعة التحويلات الخارجية',
+                          'External transfer follow-up',
+                        ),
+                        routeName: '/external-transfers',
+                      ),
                   ],
                 ),
                 if (!isOfflineMode) ...[
@@ -254,7 +290,7 @@ class _AppSidebarState extends State<AppSidebar> {
                   _buildMenuSection(
                     label: l.tr('widgets_app_sidebar.006'),
                     children: [
-                      if (canIssueCards)
+                      if (!isPrimaryTrader && canIssueCards)
                         _buildItem(
                           context,
                           icon: Icons.add_card_rounded,
@@ -264,51 +300,53 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                           routeName: '/create-card-quick',
                         ),
-                      if (canIssueCards)
+                      if (!isPrimaryTrader && canIssueCards)
                         _buildItem(
                           context,
                           icon: Icons.library_add_rounded,
                           title: l.tr('widgets_app_sidebar.047'),
                           routeName: '/create-card',
                         ),
-                      if (canOpenCardTools)
+                      if (!isPrimaryTrader && canOpenCardTools)
                         _buildItem(
                           context,
                           icon: Icons.qr_code_scanner_rounded,
                           title: l.tr('widgets_app_sidebar.008'),
                           routeName: '/scan-card',
                         ),
-                      if (permissions.canManageSubscriptions)
+                      if (!isPrimaryTrader &&
+                          permissions.canManageSubscriptions)
                         _buildItem(
                           context,
                           icon: Icons.event_repeat_rounded,
                           title: l.text('إدارة الاشتراكات', 'Subscriptions'),
                           routeName: '/subscriptions',
                         ),
-                      if (permissions.canOfflineCardScan)
+                      if (!isPrimaryTrader && permissions.canOfflineCardScan)
                         _buildItem(
                           context,
                           icon: Icons.cloud_sync_rounded,
                           title: l.tr('widgets_app_sidebar.053'),
                           routeName: '/offline-sync',
                         ),
-                      if (canViewInventory && canIssueCards)
+                      if (!isPrimaryTrader && canViewInventory && canIssueCards)
                         _buildItem(
                           context,
                           icon: Icons.layers_rounded,
                           title: l.text('مخزون البطاقات', 'Card inventory'),
                           routeName: '/inventory',
                         ),
-                      if (canRequestCardPrinting)
+                      if (!isPrimaryTrader && canRequestCardPrinting)
                         _buildItem(
                           context,
                           icon: Icons.print_rounded,
                           title: l.tr('widgets_app_sidebar.007'),
                           routeName: '/card-print-requests',
                         ),
-                      if (canIssueCards ||
-                          canRequestCardPrinting ||
-                          canViewInventory)
+                      if (!isPrimaryTrader &&
+                          (canIssueCards ||
+                              canRequestCardPrinting ||
+                              canViewInventory))
                         _buildItem(
                           context,
                           icon: Icons.analytics_rounded,
@@ -318,21 +356,21 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                           routeName: '/card-usage-report',
                         ),
-                      if (canOpenPrepaidMultipayCards)
+                      if (!isPrimaryTrader && canOpenPrepaidMultipayCards)
                         _buildItem(
                           context,
                           icon: Icons.contactless_rounded,
                           title: l.tr('widgets_app_sidebar.049'),
                           routeName: '/prepaid-multipay-cards',
                         ),
-                      if (canOpenExternalCardStore)
+                      if (!isPrimaryTrader && canOpenExternalCardStore)
                         _buildItem(
                           context,
                           icon: Icons.storefront_rounded,
                           title: l.text('متجر البطاقات', 'Card store'),
                           routeName: '/external-card-store',
                         ),
-                      if (canViewPublicStores)
+                      if (!isPrimaryTrader && canViewPublicStores)
                         _buildItem(
                           context,
                           icon: Icons.store_mall_directory_rounded,
@@ -373,24 +411,21 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.013'),
                           routeName: '/security-settings',
                         ),
-                      if (canManageDebtBook)
+                      if (isPrimaryTrader || canManageDebtBook)
                         _buildItem(
                           context,
                           icon: Icons.menu_book_rounded,
                           title: l.tr('widgets_app_sidebar.040'),
                           routeName: '/debt-book',
                         ),
-                      if (canAccessStoreManagement)
+                      if (isPrimaryTrader || canAccessStoreManagement)
                         _buildItem(
                           context,
                           icon: Icons.storefront_rounded,
-                          title: l.text(
-                            'إدارة المحل',
-                            'Store management',
-                          ),
+                          title: l.text('إدارة المحل', 'Store management'),
                           routeName: '/store-management',
                         ),
-                      if (canAccessStoreManagement)
+                      if (isPrimaryTrader || canAccessStoreManagement)
                         _buildItem(
                           context,
                           icon: Icons.build_circle_rounded,
@@ -409,7 +444,7 @@ class _AppSidebarState extends State<AppSidebar> {
                         ),
                     ],
                   ),
-                  if (hasAdminWorkspaceAccess) ...[
+                  if (showAdminWorkspace) ...[
                     _buildMenuSection(
                       label: l.tr('widgets_app_sidebar.014'),
                       children: [
@@ -501,10 +536,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           _buildItem(
                             context,
                             icon: Icons.store_rounded,
-                            title: l.text(
-                              'إدارة المحل',
-                              'Store management',
-                            ),
+                            title: l.text('إدارة المحل', 'Store management'),
                             routeName: '/store-management',
                           ),
                         if (permissions.canManageLocations)
@@ -570,13 +602,6 @@ class _AppSidebarState extends State<AppSidebar> {
                         title: l.text('تذاكر التواصل', 'Support tickets'),
                         routeName: '/support-tickets',
                       ),
-                      if (canViewLocations)
-                        _buildItem(
-                          context,
-                          icon: Icons.storefront_rounded,
-                          title: l.tr('widgets_app_sidebar.023'),
-                          routeName: '/approved-merchants',
-                        ),
                     ],
                   ),
                 ],

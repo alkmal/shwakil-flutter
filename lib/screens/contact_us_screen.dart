@@ -54,6 +54,8 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     final contact = _contact ?? ContactInfoService.fallbackContact();
     final title = ContactInfoService.title(contact);
     final phone = ContactInfoService.supportWhatsapp(contact);
+    final phoneDigits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final displayPhone = phoneDigits.isEmpty ? phone : '+$phoneDigits';
     final email = ContactInfoService.supportEmail(contact);
     final address = ContactInfoService.address(contact);
 
@@ -72,10 +74,10 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               _buildSupportHero(),
               const SizedBox(height: 24),
               _buildContactItem(
-                icon: Icons.sms_rounded,
-                label: l.text('رسائل SMS', 'SMS messages'),
-                value: phone,
-                url: phone.isEmpty ? null : 'sms:$phone',
+                icon: Icons.chat_rounded,
+                label: l.text('التواصل المباشر والواتساب', 'Direct contact & WhatsApp'),
+                value: displayPhone,
+                url: phoneDigits.isEmpty ? null : 'https://wa.me/$phoneDigits',
                 color: AppTheme.success,
               ),
               const SizedBox(height: 16),

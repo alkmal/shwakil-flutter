@@ -203,6 +203,8 @@ const Map<String, String> appStringsEn = {
   'permission_catalog.label.canEditStorePrices': 'Edit store prices',
   'permission_catalog.label.canViewStoreProfits': 'View store profits',
   'permission_catalog.label.canViewStoreReports': 'View store reports',
+  'permission_catalog.label.canViewExternalTransfers': 'View external transfers',
+  'permission_catalog.label.canReviewExternalTransfers': 'Review external transfers',
   'permission_catalog.label.canViewPublicStores': 'View public stores',
   'permission_catalog.label.canBuyPublicStoreProducts':
       'Buy from public stores',

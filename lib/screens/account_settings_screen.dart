@@ -908,6 +908,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final confirmation = await TransferSecurityService.confirmTransfer(
       context,
       allowOtpFallback: true,
+      allowNoPhoneAccount: true,
     );
     if (!mounted || !confirmation.isVerified) {
       return;

@@ -187,6 +187,7 @@ final Map<String, WidgetBuilder> _appRoutes = {
   '/admin-permissions': (context) => const AdminPermissionsScreen(),
   '/withdrawal-requests': (context) => const WithdrawalRequestsScreen(),
   '/topup-requests': (context) => const TopupRequestsScreen(),
+  '/external-transfers': (context) => const ExternalTransferFollowupsScreen(),
   '/usage-policy': (context) => const UsagePolicyScreen(),
   '/contact-us': (context) => const ContactUsScreen(),
   '/supported-locations': (context) => const SupportedLocationsScreen(),
@@ -307,6 +308,7 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
       permissions.canWithdraw || permissions.canReviewWithdrawals,
     '/topup-requests' =>
       permissions.canReviewTopups || permissions.canFinanceTopup,
+    '/external-transfers' => permissions.canViewExternalTransfers,
     '/security-settings' => permissions.canViewSecuritySettings,
     '/account-settings' => permissions.canViewAccountSettings,
     '/account-verification' => permissions.canRequestVerification,
@@ -339,7 +341,9 @@ bool _routeAllowedForUser(String routeName, Map<String, dynamic>? user) {
     '/admin-debt-book' => permissions.canManageDebtBook,
     '/admin-card-print-requests' => permissions.canManageCardPrintRequests,
     '/admin-card-scan-reports' => permissions.canViewAdminCardScanReports,
-    _ => true,
+    // لا تسمح بمسارات غير معروفة بالمرور تلقائياً؛ المسارات العامة مستثناة
+    // صراحة أعلاه وكل المسارات المسجلة الأخرى لها شرط وصول واضح هنا.
+    _ => false,
   };
 }
 

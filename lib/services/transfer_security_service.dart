@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../localization/index.dart';
 import '../utils/app_theme.dart';
 import 'api_service.dart';
+import 'auth_service.dart';
 import 'local_security_service.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
@@ -42,8 +43,19 @@ class TransferSecurityService {
     BuildContext context, {
     bool requireOtpAfterLocalAuth = false,
     bool allowOtpFallback = false,
+    bool allowNoPhoneAccount = false,
   }) async {
     final hasPin = await LocalSecurityService.hasPin();
+    if (allowNoPhoneAccount && !hasPin) {
+      final user = await AuthService().currentUser();
+      final whatsapp = user?['whatsapp']?.toString().trim() ?? '';
+      if (whatsapp.isEmpty) {
+        return const TransferSecurityResult(
+          isVerified: true,
+          method: 'no_phone_account',
+        );
+      }
+    }
     final biometricEnabled = await LocalSecurityService.isBiometricEnabled();
     final canUseBiometrics =
         biometricEnabled && await LocalSecurityService.canUseBiometrics();
@@ -386,6 +398,15 @@ class _TransferSecurityOtpScreenState
     try {
       final result = await _api.requestTransferSecurityOtp();
       if (!mounted) return;
+      if (result.otpRequired == false) {
+        Navigator.of(context).pop(
+          const TransferSecurityResult(
+            isVerified: true,
+            method: 'no_phone_account',
+          ),
+        );
+        return;
+      }
       setState(() {
         _sent = true;
         _sending = false;

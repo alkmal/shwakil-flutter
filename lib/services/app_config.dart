@@ -17,6 +17,12 @@ class AppConfig {
     if (env.isNotEmpty) {
       return env;
     }
+    // The same release build is used from the local Laravel host and from
+    // production. When opened on localhost, keep API calls on that host.
+    if (kIsWeb &&
+        (Uri.base.host == '127.0.0.1' || Uri.base.host == 'localhost')) {
+      return '${Uri.base.origin}/api';
+    }
     return kDebugMode ? _localDebugApiUrl : _productionApiUrl;
   }
 
@@ -24,6 +30,11 @@ class AppConfig {
     const env = String.fromEnvironment('API_BASE_URL');
     if (env.isNotEmpty) {
       return [env];
+    }
+
+    if (kIsWeb &&
+        (Uri.base.host == '127.0.0.1' || Uri.base.host == 'localhost')) {
+      return ['${Uri.base.origin}/api'];
     }
 
     return kDebugMode ? [_localDebugApiUrl] : [_productionApiUrl];

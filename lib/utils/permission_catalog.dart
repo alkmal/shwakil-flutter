@@ -98,6 +98,8 @@ class PermissionCatalog {
         'canEditStorePrices',
         'canViewStoreProfits',
         'canViewStoreReports',
+        'canViewExternalTransfers',
+        'canReviewExternalTransfers',
         'canViewPublicStores',
         'canBuyPublicStoreProducts',
         'canPublishStorefront',
