@@ -308,6 +308,17 @@ class StoreManagementService {
         final snapshot = await api.syncStoreManagement([
           _operationPayload(operation),
         ]);
+        final applied = (snapshot['applied'] as List? ?? const [])
+            .whereType<Map>()
+            .any(
+              (item) =>
+                  item['opId']?.toString() == operation['opId']?.toString(),
+            );
+        if (!applied) {
+          throw StateError(
+            'لم يؤكد الخادم تطبيق العملية ${operation['opId'] ?? ''}.',
+          );
+        }
         latestSnapshot = snapshot;
         final index = remaining.indexWhere(
           (item) => _samePendingOperation(item, operation),

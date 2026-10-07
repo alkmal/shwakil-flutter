@@ -57,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   String? _shownAnnouncementVersionInSession;
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
   bool _routeSubscribed = false;
+  Timer? _offlineSyncRetryTimer;
 
   @override
   void initState() {
@@ -66,6 +67,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _handleConnectivityChanged,
     );
     _loadUser();
+    _offlineSyncRetryTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (mounted) _maybeSyncOfflineWorkspaceInBackground();
+    });
     _balanceSubscription = RealtimeNotificationService.balanceUpdatesStream
         .listen((_) {
           if (mounted) _loadUser();
@@ -92,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void dispose() {
     _balanceSubscription?.cancel();
+    _offlineSyncRetryTimer?.cancel();
     ConnectivityService.instance.isOnline.removeListener(
       _handleConnectivityChanged,
     );
@@ -691,44 +696,48 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             (item) => Map<String, dynamic>.from(item as Map),
           ),
         );
-        final rejectedBarcodes = <String>{
-          for (final item in resultItems)
-            if (item['ok'] != true) (item['barcode'] ?? '').toString(),
-        }..remove('');
         final acceptedBarcodes = <String>{
           for (final item in resultItems)
             if (item['ok'] == true) (item['barcode'] ?? '').toString(),
         }..remove('');
         final syncedAt = DateTime.now().toIso8601String();
-        final historyEntries = queuedBeforeSync.map((entry) {
-          final barcode = entry['barcode']?.toString() ?? '';
-          Map<String, dynamic>? matchedResult;
-          for (final item in resultItems) {
-            if (item['barcode']?.toString() == barcode) {
-              matchedResult = item;
-              break;
-            }
-          }
-          final ok = matchedResult?['ok'] == true;
-          return {
-            ...entry,
-            'status': ok ? 'confirmed' : 'rejected',
-            'message': matchedResult?['message']?.toString(),
-            'syncedAt': syncedAt,
-            'confirmedOffline': true,
-          };
-        }).toList();
+        final historyEntries = queuedBeforeSync
+            .where(
+              (entry) => resultItems.any(
+                (item) =>
+                    item['barcode']?.toString() == entry['barcode']?.toString(),
+              ),
+            )
+            .map((entry) {
+              final barcode = entry['barcode']?.toString() ?? '';
+              Map<String, dynamic>? matchedResult;
+              for (final item in resultItems) {
+                if (item['barcode']?.toString() == barcode) {
+                  matchedResult = item;
+                  break;
+                }
+              }
+              final ok = matchedResult?['ok'] == true;
+              return {
+                ...entry,
+                'status': ok ? 'confirmed' : 'rejected',
+                'message': matchedResult?['message']?.toString(),
+                'syncedAt': syncedAt,
+                'confirmedOffline': true,
+              };
+            })
+            .toList();
         final rejectedHistoryEntries = historyEntries
             .where((item) => item['status'] == 'rejected')
             .toList();
         rejectedSyncCount = rejectedHistoryEntries.length;
 
-        await _offlineCardService.replaceRedeemQueue(
+        await _offlineCardService.acknowledgeRedeems(
           userId,
           queuedBeforeSync
               .where(
                 (item) =>
-                    rejectedBarcodes.contains(item['barcode']?.toString()),
+                    acceptedBarcodes.contains(item['barcode']?.toString()),
               )
               .toList(),
         );
@@ -736,10 +745,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           userId,
           rejectedHistoryEntries,
         );
-        await _offlineCardService.appendSyncHistory(
-          userId,
-          rejectedHistoryEntries,
-        );
+        await _offlineCardService.appendSyncHistory(userId, historyEntries);
         await _offlineCardService.removeCardsByBarcode(
           userId: userId,
           barcodes: acceptedBarcodes,

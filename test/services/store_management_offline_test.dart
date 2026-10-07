@@ -667,6 +667,9 @@ class _PartialSyncApi extends ApiService {
       throw Exception('offline test failure');
     }
     return {
+      'applied': [
+        {'opId': operations.single['opId']},
+      ],
       'workspace': {
         'id': 'server-workspace',
         'name': 'المحل',
@@ -689,6 +692,9 @@ class _StockSnapshotApi extends ApiService {
   Future<Map<String, dynamic>> syncStoreManagement(
     List<Map<String, dynamic>> operations,
   ) async => {
+    'applied': [
+      {'opId': operations.single['opId']},
+    ],
     'workspace': {'id': 'server-workspace', 'name': 'المحل', 'currency': 'ILS'},
     'products': [
       {
@@ -734,6 +740,9 @@ class _MaintenanceOrderApi extends ApiService {
   ) async {
     actions.add(operations.single['action'] as String);
     return {
+      'applied': [
+        {'opId': operations.single['opId']},
+      ],
       'workspace': {
         'id': 'server-workspace',
         'name': 'المحل',

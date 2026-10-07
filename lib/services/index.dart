@@ -21,6 +21,7 @@ export 'location_audit_service.dart';
 export 'thermal_printer_service.dart';
 export 'offline_card_service.dart';
 export 'offline_transfer_code_service.dart';
+export 'external_transfer_offline_service.dart';
 export 'offline_session_service.dart';
 export 'connectivity_service.dart';
 export 'debt_book_service.dart';

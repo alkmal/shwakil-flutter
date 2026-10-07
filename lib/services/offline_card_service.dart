@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -5,6 +6,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/index.dart';
 import '../localization/app_localization.dart';
@@ -23,6 +25,8 @@ class OfflineCardService {
   static const int _defaultMaxPendingCount = 50;
   static const int _defaultSyncIntervalMinutes = 60;
   static const int _revealedCardRetryDelayMinutes = 5;
+  static const Uuid _uuid = Uuid();
+  static final Map<String, Future<void>> _queueTails = {};
   static final AesGcm _cipher = AesGcm.with256bits();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
@@ -526,11 +530,58 @@ class OfflineCardService {
   }
 
   Future<void> enqueueRedeem(String userId, Map<String, dynamic> entry) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = '$_redeemKeyPrefix$userId';
-    final queue = await _decodeStoredList(prefs.getString(key));
-    queue.add(entry);
-    await prefs.setString(key, await _encodeStoredList(queue));
+    await _withQueueLock(userId, () async {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '$_redeemKeyPrefix$userId';
+      final queue = await _decodeStoredList(prefs.getString(key));
+      queue.add({...entry, 'queueId': entry['queueId'] ?? _uuid.v4()});
+      await prefs.setString(key, await _encodeStoredList(queue));
+    });
+  }
+
+  Future<void> acknowledgeRedeems(
+    String userId,
+    List<Map<String, dynamic>> acknowledged,
+  ) async {
+    if (acknowledged.isEmpty) return;
+    final identities = acknowledged.map(_redeemIdentity).toSet();
+    await _withQueueLock(userId, () async {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '$_redeemKeyPrefix$userId';
+      final queue = await _decodeStoredList(prefs.getString(key));
+      final remaining = queue
+          .where((item) => !identities.contains(_redeemIdentity(item)))
+          .toList();
+      if (remaining.isEmpty) {
+        await prefs.remove(key);
+      } else {
+        await prefs.setString(key, await _encodeStoredList(remaining));
+      }
+    });
+  }
+
+  String _redeemIdentity(Map<String, dynamic> item) {
+    final queueId = item['queueId']?.toString();
+    if (queueId != null && queueId.isNotEmpty) return queueId;
+    return '${item['barcode'] ?? ''}|${item['queuedAt'] ?? ''}';
+  }
+
+  Future<T> _withQueueLock<T>(
+    String userId,
+    Future<T> Function() action,
+  ) async {
+    final previous = _queueTails[userId] ?? Future<void>.value();
+    final gate = Completer<void>();
+    _queueTails[userId] = gate.future;
+    await previous;
+    try {
+      return await action();
+    } finally {
+      gate.complete();
+      if (identical(_queueTails[userId], gate.future)) {
+        _queueTails.remove(userId);
+      }
+    }
   }
 
   Future<void> clearRedeemQueue(String userId) async {

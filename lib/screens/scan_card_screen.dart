@@ -76,7 +76,9 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _offlineAccessExpired = false;
   bool _clearedExpiredOfflineCards = false;
   bool _isSyncingOfflineCards = false;
+  bool _isSyncingOfflineNfc = false;
   bool _isPreparingScreen = true;
+  Timer? _offlineQueueRetryTimer;
   bool _showManualEntry = false;
   bool _showAdditionalOptions = false;
   bool _autoRedeemOnScan = false;
@@ -138,6 +140,12 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     ConnectivityService.instance.isOnline.addListener(
       _handleConnectivityChanged,
     );
+    _offlineQueueRetryTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (mounted && !_isDeviceOffline) {
+        unawaited(_syncOfflineCardsForCurrentUser());
+        unawaited(_syncOfflineNfcPayments());
+      }
+    });
     _load();
     if (widget.initialBarcode?.isNotEmpty == true) {
       _bcC.text = widget.initialBarcode!;
@@ -162,6 +170,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     ConnectivityService.instance.isOnline.removeListener(
       _handleConnectivityChanged,
     );
+    _offlineQueueRetryTimer?.cancel();
     _bcC.dispose();
     super.dispose();
   }
@@ -594,40 +603,44 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
             (item) => Map<String, dynamic>.from(item as Map),
           ),
         );
-        final rejectedBarcodes = <String>{
-          for (final item in resultItems)
-            if (item['ok'] != true) (item['barcode'] ?? '').toString(),
-        }..remove('');
         final acceptedBarcodes = <String>{
           for (final item in resultItems)
             if (item['ok'] == true) (item['barcode'] ?? '').toString(),
         }..remove('');
         final syncedAt = DateTime.now().toIso8601String();
-        final historyEntries = queuedBeforeSync.map((entry) {
-          final barcode = entry['barcode']?.toString() ?? '';
-          Map<String, dynamic>? matchedResult;
-          for (final item in resultItems) {
-            if (item['barcode']?.toString() == barcode) {
-              matchedResult = item;
-              break;
-            }
-          }
-          final ok = matchedResult?['ok'] == true;
-          return {
-            ...entry,
-            'status': ok ? 'confirmed' : 'rejected',
-            'message': matchedResult?['message']?.toString(),
-            'syncedAt': syncedAt,
-            'confirmedOffline': true,
-          };
-        }).toList();
+        final historyEntries = queuedBeforeSync
+            .where(
+              (entry) => resultItems.any(
+                (item) =>
+                    item['barcode']?.toString() == entry['barcode']?.toString(),
+              ),
+            )
+            .map((entry) {
+              final barcode = entry['barcode']?.toString() ?? '';
+              Map<String, dynamic>? matchedResult;
+              for (final item in resultItems) {
+                if (item['barcode']?.toString() == barcode) {
+                  matchedResult = item;
+                  break;
+                }
+              }
+              final ok = matchedResult?['ok'] == true;
+              return {
+                ...entry,
+                'status': ok ? 'confirmed' : 'rejected',
+                'message': matchedResult?['message']?.toString(),
+                'syncedAt': syncedAt,
+                'confirmedOffline': true,
+              };
+            })
+            .toList();
 
-        await _offlineCardService.replaceRedeemQueue(
+        await _offlineCardService.acknowledgeRedeems(
           userId,
           queuedBeforeSync
               .where(
                 (item) =>
-                    rejectedBarcodes.contains(item['barcode']?.toString()),
+                    acceptedBarcodes.contains(item['barcode']?.toString()),
               )
               .toList(),
         );
@@ -2287,9 +2300,8 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     PrepaidMultipayNfcPaymentAuthorization authorization,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    final existing = _decodeOfflineNfcQueue(
-      prefs.getString(_offlineNfcQueueKey),
-    );
+    final queueKey = await _offlineNfcQueueStorageKey(prefs);
+    final existing = _decodeOfflineNfcQueue(prefs.getString(queueKey));
     existing.add({
       'signedPayload': authorization.signedPayload,
       'signature': authorization.signature,
@@ -2299,50 +2311,79 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       'acceptedAt': DateTime.now().toUtc().toIso8601String(),
       'queuedAt': DateTime.now().toUtc().toIso8601String(),
     });
-    await prefs.setString(_offlineNfcQueueKey, jsonEncode(existing));
+    await prefs.setString(queueKey, jsonEncode(existing));
+  }
+
+  Future<String> _offlineNfcQueueStorageKey(SharedPreferences prefs) async {
+    final userId = _user?['id']?.toString().trim() ?? '';
+    if (userId.isEmpty) return _offlineNfcQueueKey;
+    final key = '${_offlineNfcQueueKey}_$userId';
+    if (!prefs.containsKey(key) && prefs.containsKey(_offlineNfcQueueKey)) {
+      final legacy = prefs.getString(_offlineNfcQueueKey);
+      if (legacy != null) await prefs.setString(key, legacy);
+      await prefs.remove(_offlineNfcQueueKey);
+    }
+    return key;
   }
 
   Future<void> _syncOfflineNfcPayments() async {
-    if (_isDeviceOffline) {
+    if (_isDeviceOffline || _isSyncingOfflineNfc) {
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
-    final queue = _decodeOfflineNfcQueue(prefs.getString(_offlineNfcQueueKey));
-    if (queue.isEmpty) {
-      return;
-    }
-
-    final remaining = <Map<String, dynamic>>[];
-    var synced = 0;
-    for (final item in queue) {
-      try {
-        await _api.acceptPrepaidMultipayNfcPayment(
-          signedPayload: item['signedPayload']?.toString() ?? '',
-          signature: item['signature']?.toString() ?? '',
-          idempotencyKey: item['idempotencyKey']?.toString() ?? '',
-          merchantDeviceId: item['merchantDeviceId']?.toString(),
-          acceptedAt: item['acceptedAt']?.toString(),
-          offlineAccepted: true,
-        );
-        synced++;
-      } catch (_) {
-        remaining.add(item);
+    _isSyncingOfflineNfc = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final queueKey = await _offlineNfcQueueStorageKey(prefs);
+      final queue = _decodeOfflineNfcQueue(prefs.getString(queueKey));
+      if (queue.isEmpty) {
+        return;
       }
-    }
 
-    await prefs.setString(_offlineNfcQueueKey, jsonEncode(remaining));
-    if (!mounted || synced == 0) {
-      return;
+      final remaining = <Map<String, dynamic>>[];
+      var synced = 0;
+      for (final item in queue) {
+        try {
+          await _api.acceptPrepaidMultipayNfcPayment(
+            signedPayload: item['signedPayload']?.toString() ?? '',
+            signature: item['signature']?.toString() ?? '',
+            idempotencyKey: item['idempotencyKey']?.toString() ?? '',
+            merchantDeviceId: item['merchantDeviceId']?.toString(),
+            acceptedAt: item['acceptedAt']?.toString(),
+            offlineAccepted: true,
+          );
+          synced++;
+        } catch (_) {
+          remaining.add(item);
+        }
+      }
+
+      final syncedKeys = queue
+          .where((item) => !remaining.contains(item))
+          .map((item) => item['idempotencyKey']?.toString() ?? '')
+          .where((key) => key.isNotEmpty)
+          .toSet();
+      final currentQueue = _decodeOfflineNfcQueue(prefs.getString(queueKey));
+      final stillPending = currentQueue
+          .where(
+            (item) => !syncedKeys.contains(item['idempotencyKey']?.toString()),
+          )
+          .toList();
+      await prefs.setString(queueKey, jsonEncode(stillPending));
+      if (!mounted || synced == 0) {
+        return;
+      }
+      final l = context.loc;
+      await AppAlertService.showSuccess(
+        context,
+        title: l.text('تمت مزامنة الدفع', 'Payment Synced'),
+        message: l.text(
+          'تم اعتماد $synced عملية دفع بدون تلامس محفوظة.',
+          '$synced saved contactless payment(s) have been approved.',
+        ),
+      );
+    } finally {
+      _isSyncingOfflineNfc = false;
     }
-    final l = context.loc;
-    await AppAlertService.showSuccess(
-      context,
-      title: l.text('تمت مزامنة الدفع', 'Payment Synced'),
-      message: l.text(
-        'تم اعتماد $synced عملية دفع بدون تلامس محفوظة.',
-        '$synced saved contactless payment(s) have been approved.',
-      ),
-    );
   }
 
   List<Map<String, dynamic>> _decodeOfflineNfcQueue(String? raw) {

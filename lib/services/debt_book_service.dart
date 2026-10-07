@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
@@ -15,6 +16,7 @@ class DebtBookService {
   static final AesGcm _cipher = AesGcm.with256bits();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const Uuid _uuid = Uuid();
+  static final Map<String, Future<void>> _queueTails = {};
 
   Future<Map<String, dynamic>> getSnapshot(String userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -58,7 +60,10 @@ class DebtBookService {
   }
 
   Future<bool> hasPendingOperations(String userId) async {
-    final queue = await getPendingOperations(userId);
+    final queue = await _withQueueLock(
+      userId,
+      () => getPendingOperations(userId),
+    );
     return queue.isNotEmpty;
   }
 
@@ -85,8 +90,21 @@ class DebtBookService {
       return refreshFromServer(userId: userId, api: api);
     }
     final response = await api.syncDebtBook(queue);
-    await replaceSnapshot(userId, response);
-    await clearPendingOperations(userId);
+    final applied = (response['applied'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => item['opId']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    await _withQueueLock(userId, () async {
+      final current = await getPendingOperations(userId);
+      final next = current
+          .where((item) => !applied.contains(item['opId']?.toString()))
+          .toList();
+      if (applied.isNotEmpty) await _storePendingOperations(userId, next);
+      // A partial acknowledgement means there are still local edits to show.
+      // Keep that snapshot intact; the next successful full sync replaces it.
+      if (next.isEmpty) await replaceSnapshot(userId, response);
+    });
     return getSnapshot(userId);
   }
 
@@ -492,11 +510,44 @@ class DebtBookService {
     String userId,
     Map<String, dynamic> operation,
   ) async {
+    await _withQueueLock(userId, () async {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '$_queueKeyPrefix$userId';
+      final queue = await _decodeStoredList(prefs.getString(key));
+      queue.add(operation);
+      await prefs.setString(key, await _encodeStoredList(queue));
+    });
+  }
+
+  Future<void> _storePendingOperations(
+    String userId,
+    List<Map<String, dynamic>> operations,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final key = '$_queueKeyPrefix$userId';
-    final queue = await _decodeStoredList(prefs.getString(key));
-    queue.add(operation);
-    await prefs.setString(key, await _encodeStoredList(queue));
+    if (operations.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, await _encodeStoredList(operations));
+    }
+  }
+
+  Future<T> _withQueueLock<T>(
+    String userId,
+    Future<T> Function() action,
+  ) async {
+    final previous = _queueTails[userId] ?? Future<void>.value();
+    final completer = Completer<void>();
+    _queueTails[userId] = completer.future;
+    await previous;
+    try {
+      return await action();
+    } finally {
+      completer.complete();
+      if (identical(_queueTails[userId], completer.future)) {
+        _queueTails.remove(userId);
+      }
+    }
   }
 
   Future<String> _encodeStoredList(List<Map<String, dynamic>> payload) async {

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
+import 'package:excel_community/excel_community.dart' hide Border;
 
 import '../services/index.dart';
 import '../utils/app_theme.dart';
@@ -22,6 +23,8 @@ class ExternalTransferFollowupsScreen extends StatefulWidget {
 class _ExternalTransferFollowupsScreenState
     extends State<ExternalTransferFollowupsScreen> {
   final _api = ApiService();
+  final _auth = AuthService();
+  final _offline = ExternalTransferOfflineService();
   List<Map<String, dynamic>> _rows = [];
   List<Map<String, dynamic>> _employees = [];
   Map<String, dynamic> _totals = {};
@@ -37,13 +40,15 @@ class _ExternalTransferFollowupsScreenState
   DateTime? _to;
   Timer? _liveRefresh;
   bool _loadedOnce = false;
+  bool _loadingRows = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _load();
     // تحديث شبه فوري للحالات والإضافات الجديدة للحسابات المرتبطة بالمحل.
-    _liveRefresh = Timer.periodic(const Duration(seconds: 8), (_) {
+    _liveRefresh = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted && !_loading) _load(silent: true);
     });
   }
@@ -55,29 +60,118 @@ class _ExternalTransferFollowupsScreenState
   }
 
   Future<void> _load({bool silent = false}) async {
+    if (_loadingRows) return;
+    _loadingRows = true;
     if (!silent) setState(() => _loading = true);
     try {
+      final user = await _auth.currentUser();
+      final userId = user?['id']?.toString();
+      if (userId == null || userId.isEmpty) {
+        throw StateError('تعذر تحديد الحساب الحالي.');
+      }
+      _currentUserId = userId;
+      if (ConnectivityService.instance.isOnline.value) {
+        await _offline.syncPending(userId: userId, api: _api);
+      }
       final previous = {
         for (final row in _rows)
           '${row['id']}': '${row['delivery_status']}:${row['reviewed']}',
       };
-      final body = await _api.getExternalTransfers(
-        filters: {
-          if (_from != null) 'from': _date(_from!),
-          if (_to != null) 'to': _date(_to!),
-          if (_status != 'all') 'status': _status,
-          if (_reviewed != 'all') 'reviewed': _reviewed,
-          if (_employeeId != 'all') 'employeeId': _employeeId,
-        },
+      final filters = <String, String>{
+        if (_from != null) 'from': _date(_from!),
+        if (_to != null) 'to': _date(_to!),
+        if (_status != 'all') 'status': _status,
+        if (_reviewed != 'all') 'reviewed': _reviewed,
+        if (_employeeId != 'all') 'employeeId': _employeeId,
+      };
+      final cacheScope = jsonEncode(filters);
+      Map<String, dynamic> body;
+      try {
+        body = await _api.getExternalTransfers(filters: filters);
+        await _offline.saveSnapshot(userId, body, scope: cacheScope);
+      } catch (_) {
+        if (await ConnectivityService.instance.checkNow()) rethrow;
+        body =
+            await _offline.getSnapshot(userId, scope: cacheScope) ??
+            {
+              'transfers': <dynamic>[],
+              'employees': <dynamic>[],
+              'totals': <String, dynamic>{},
+              'canCreate': _canCreate,
+              'canManage': _canManage,
+              'canReview': _canReview,
+              'isSubUser': _isSubUser,
+            };
+      }
+      final pending = await _offline.getPending(userId);
+      final localRows = pending
+          .map((op) {
+            final payload = Map<String, dynamic>.from(op['payload'] as Map);
+            final queuedAt =
+                op['queuedAt']?.toString() ?? DateTime.now().toIso8601String();
+            return <String, dynamic>{
+              'id': op['localId'],
+              'client_ref': op['clientRef'],
+              'beneficiary_name': payload['beneficiaryName'],
+              'beneficiary_mobile': payload['beneficiaryMobile'],
+              'amount': payload['amount'],
+              'destination_type': payload['destinationType'],
+              'destination_name': payload['destinationName'] ?? '',
+              'destination_account': payload['destinationAccount'] ?? '',
+              'notes': payload['notes'] ?? '',
+              'delivery_status': 'pending',
+              'reviewed': false,
+              'created_by_user_id': userId,
+              'created_by_name': user?['name'] ?? user?['username'] ?? 'أنا',
+              'created_at': queuedAt,
+              'offline_pending': true,
+              'sync_status': op['syncStatus'] ?? 'pending',
+            };
+          })
+          .where((row) {
+            final created = DateTime.tryParse('${row['created_at']}');
+            if (_from != null &&
+                (created == null ||
+                    created.isBefore(
+                      DateTime(_from!.year, _from!.month, _from!.day),
+                    ))) {
+              return false;
+            }
+            if (_to != null &&
+                (created == null ||
+                    created.isAfter(
+                      DateTime(_to!.year, _to!.month, _to!.day, 23, 59, 59),
+                    ))) {
+              return false;
+            }
+            if (_status != 'all' && _status != 'pending') return false;
+            if (_reviewed == '1') return false;
+            if (_employeeId != 'all' && _employeeId != userId) return false;
+            return true;
+          })
+          .toList();
+      final serverRows = List<Map<String, dynamic>>.from(
+        (body['transfers'] as List? ?? []).map(
+          (e) => Map<String, dynamic>.from(e as Map),
+        ),
       );
+      final mergedRows = [...localRows, ...serverRows];
+      final totals = Map<String, dynamic>.from(body['totals'] as Map? ?? {});
+      totals['count'] =
+          (int.tryParse('${totals['count'] ?? 0}') ?? 0) + localRows.length;
+      totals['unreviewed'] =
+          (int.tryParse('${totals['unreviewed'] ?? 0}') ?? 0) +
+          localRows.length;
+      totals['amount'] =
+          (double.tryParse('${totals['amount'] ?? 0}') ?? 0) +
+          localRows.fold<double>(
+            0,
+            (s, r) => s + (double.tryParse('${r['amount']}') ?? 0),
+          );
       if (!mounted) return;
       setState(() {
-        _rows = List<Map<String, dynamic>>.from(
-          (body['transfers'] as List? ?? []).map(
-            (e) => Map<String, dynamic>.from(e as Map),
-          ),
-        );
-        _totals = Map<String, dynamic>.from(body['totals'] as Map? ?? {});
+        _rows = mergedRows;
+        _totals = totals;
         _employees = List<Map<String, dynamic>>.from(
           (body['employees'] as List? ?? []).map(
             (e) => Map<String, dynamic>.from(e as Map),
@@ -107,13 +201,16 @@ class _ExternalTransferFollowupsScreenState
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        if (!silent)
+        if (!silent) {
           AppAlertService.showError(
             context,
             title: 'تعذر التحميل',
             message: ErrorMessageService.sanitize(e),
           );
+        }
       }
+    } finally {
+      _loadingRows = false;
     }
   }
 
@@ -154,30 +251,69 @@ class _ExternalTransferFollowupsScreenState
   }
 
   Future<void> _exportCsv() async {
-    String cell(dynamic value) =>
-        '"${(value ?? '').toString().replaceAll('"', '""')}"';
-    final lines = <String>[
-      '\uFEFF${['المستفيد', 'الجوال', 'القيمة', 'الجهة', 'الحساب', 'الحالة', 'تمت المراجعة', 'بواسطة', 'التاريخ'].map(cell).join(',')}',
-      ..._rows.map(
-        (r) => [
-          r['beneficiary_name'],
-          r['beneficiary_mobile'],
-          r['amount'],
-          r['destination_name'],
-          r['destination_account'],
-          r['delivery_status'],
-          r['reviewed'] == true || r['reviewed'] == 1 ? 'نعم' : 'لا',
-          r['created_by_name'],
-          r['created_at'],
-        ].map(cell).join(','),
-      ),
+    final excel = Excel.createExcel();
+    const sheetName = 'التحويلات الخارجية';
+    final sheet = excel[sheetName];
+    excel.setDefaultSheet(sheetName);
+    if (excel.tables.containsKey('Sheet1')) excel.delete('Sheet1');
+    const headers = [
+      'المستفيد',
+      'الجوال',
+      'القيمة',
+      'الجهة',
+      'الحساب',
+      'حالة الوصول',
+      'المراجعة',
+      'بواسطة',
+      'التاريخ',
+      'مزامنة محلية',
     ];
+    sheet.appendRow(headers.map(TextCellValue.new).toList());
+    for (final row in _rows) {
+      final status = switch (row['delivery_status']?.toString()) {
+        'arrived' => 'وصلت',
+        'not_arrived' => 'لم تصل',
+        _ => 'معلقة',
+      };
+      sheet.appendRow([
+        TextCellValue(row['beneficiary_name']?.toString() ?? ''),
+        TextCellValue(row['beneficiary_mobile']?.toString() ?? ''),
+        DoubleCellValue(double.tryParse('${row['amount']}') ?? 0),
+        TextCellValue(row['destination_name']?.toString() ?? ''),
+        TextCellValue(row['destination_account']?.toString() ?? ''),
+        TextCellValue(status),
+        TextCellValue(
+          row['reviewed'] == true || row['reviewed'] == 1 ? 'نعم' : 'لا',
+        ),
+        TextCellValue(row['created_by_name']?.toString() ?? ''),
+        TextCellValue(row['created_at']?.toString() ?? ''),
+        TextCellValue(
+          row['offline_pending'] == true ? 'بانتظار المزامنة' : 'تمت',
+        ),
+      ]);
+    }
+    for (var column = 0; column < headers.length; column++) {
+      sheet.setColumnWidth(column, column == 0 || column == 3 ? 24 : 18);
+      final cell = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: column, rowIndex: 0),
+      );
+      cell.cellStyle = CellStyle(
+        bold: true,
+        fontColorHex: ExcelColor.white,
+        backgroundColorHex: ExcelColor.fromHexString('#0F766E'),
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+    }
+    sheet.setRowHeight(0, 26);
+    final bytes = excel.encode();
+    if (bytes == null) return;
     await FileSaver.instance.saveFile(
       name:
           'external_transfers_${DateTime.now().toIso8601String().substring(0, 10)}',
-      bytes: Uint8List.fromList(utf8.encode(lines.join('\n'))),
-      fileExtension: 'csv',
-      mimeType: MimeType.csv,
+      bytes: Uint8List.fromList(bytes),
+      fileExtension: 'xlsx',
+      mimeType: MimeType.microsoftExcel,
     );
   }
 
@@ -188,25 +324,52 @@ class _ExternalTransferFollowupsScreenState
     );
     if (result == null) return;
     try {
-      await _api.createExternalTransfer(result);
+      final userId =
+          _currentUserId ?? (await _auth.currentUser())?['id']?.toString();
+      if (userId == null || userId.isEmpty) {
+        throw StateError('تعذر تحديد الحساب الحالي.');
+      }
+      final operation = await _offline.enqueue(userId: userId, payload: result);
+      if (ConnectivityService.instance.isOnline.value) {
+        await _offline.syncPending(userId: userId, api: _api);
+      }
+      final stillPending = (await _offline.getPending(
+        userId,
+      )).any((item) => item['clientRef'] == operation['clientRef']);
       await _load();
-      if (mounted)
+      if (mounted && !stillPending) {
         AppAlertService.showSuccess(
           context,
           title: 'تمت الإضافة',
           message: 'تمت إضافة العملية للمتابعة.',
         );
+      } else if (mounted) {
+        AppAlertService.showSnack(
+          context,
+          message: 'حُفظت العملية محلياً وستتم مزامنتها عند عودة الاتصال.',
+          type: AppAlertType.info,
+        );
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppAlertService.showError(
           context,
           title: 'تعذر الحفظ',
           message: ErrorMessageService.sanitize(e),
         );
+      }
     }
   }
 
   Future<void> _edit(Map<String, dynamic> row) async {
+    if (row['offline_pending'] == true) {
+      AppAlertService.showSnack(
+        context,
+        message: 'تعذر تعديل العملية قبل مزامنتها.',
+        type: AppAlertType.info,
+      );
+      return;
+    }
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => _ExternalTransferDialog(initial: row),
@@ -246,7 +409,16 @@ class _ExternalTransferFollowupsScreenState
     );
     if (confirmed != true) return;
     try {
-      await _api.deleteExternalTransfer('${row['id']}');
+      if (row['offline_pending'] == true) {
+        final userId = _currentUserId;
+        if (userId == null) return;
+        await _offline.deletePending(
+          userId: userId,
+          clientRef: '${row['client_ref']}',
+        );
+      } else {
+        await _api.deleteExternalTransfer('${row['id']}');
+      }
       await _load();
     } catch (e) {
       if (mounted) {
@@ -264,6 +436,14 @@ class _ExternalTransferFollowupsScreenState
     String status,
     bool reviewed,
   ) async {
+    if (row['offline_pending'] == true) {
+      AppAlertService.showSnack(
+        context,
+        message: 'ستتاح مراجعة الحالة بعد مزامنة العملية.',
+        type: AppAlertType.info,
+      );
+      return;
+    }
     try {
       await _api.updateExternalTransfer('${row['id']}', {
         'deliveryStatus': status,
@@ -271,12 +451,13 @@ class _ExternalTransferFollowupsScreenState
       });
       await _load();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppAlertService.showError(
           context,
           title: 'تعذر التحديث',
           message: ErrorMessageService.sanitize(e),
         );
+      }
     }
   }
 
@@ -324,12 +505,13 @@ class _ExternalTransferFollowupsScreenState
         ),
       );
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         AppAlertService.showError(
           context,
           title: 'تعذر التقرير',
           message: ErrorMessageService.sanitize(e),
         );
+      }
     }
   }
 
@@ -524,9 +706,9 @@ class _ExternalTransferFollowupsScreenState
                     ),
                     const SizedBox(height: 12),
                     if (_rows.isEmpty)
-                      ShwakelCard(
-                        padding: const EdgeInsets.all(24),
-                        child: const Center(
+                      const ShwakelCard(
+                        padding: EdgeInsets.all(24),
+                        child: Center(
                           child: Text('لا توجد تحويلات خارجية مسجلة.'),
                         ),
                       ),
@@ -542,6 +724,7 @@ class _ExternalTransferFollowupsScreenState
       Chip(label: Text('$label: $value'));
 
   Widget _row(Map<String, dynamic> row) {
+    final offlinePending = row['offline_pending'] == true;
     final status = row['delivery_status']?.toString() ?? 'pending';
     final reviewed = row['reviewed'] == true || row['reviewed'] == 1;
     final statusText = switch (status) {
@@ -607,6 +790,12 @@ class _ExternalTransferFollowupsScreenState
                       ),
                       visualDensity: VisualDensity.compact,
                     ),
+                    if (offlinePending)
+                      const Chip(
+                        avatar: Icon(Icons.cloud_upload_outlined, size: 15),
+                        label: Text('بانتظار المزامنة'),
+                        visualDensity: VisualDensity.compact,
+                      ),
                   ],
                 ),
                 if (_canManage) ...[
@@ -631,7 +820,7 @@ class _ExternalTransferFollowupsScreenState
               'بواسطة: ${row['created_by_name'] ?? ''} • ${row['notes'] ?? ''}',
               style: AppTheme.caption,
             ),
-            if (_canReview)
+            if (_canReview && !offlinePending)
               Wrap(
                 spacing: 8,
                 children: [
@@ -820,8 +1009,9 @@ class _ExternalTransferDialogState extends State<_ExternalTransferDialog> {
             final parsedAmount = double.tryParse(amount.text);
             if (name.text.trim().isEmpty ||
                 mobile.text.trim().isEmpty ||
-                parsedAmount == null)
+                parsedAmount == null) {
               return;
+            }
             Navigator.pop(context, {
               'beneficiaryName': name.text.trim(),
               'beneficiaryMobile': mobile.text.trim(),
