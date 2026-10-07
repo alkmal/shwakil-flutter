@@ -176,8 +176,11 @@ class StoreManagementService {
       if (order['invoiceId'] != null) {
         throw StateError('فاتورة الصيانة منشأة مسبقًا.');
       }
-      if (((order['paidAmount'] as num?)?.toDouble() ?? 0) >
-          ((order['total'] as num?)?.toDouble() ?? 0)) {
+      final paidAmount = data.containsKey('paidAmount')
+          ? (data['paidAmount'] as num?)?.toDouble() ?? 0
+          : (order['paidAmount'] as num?)?.toDouble() ?? 0;
+      if (paidAmount < 0 ||
+          paidAmount > ((order['total'] as num?)?.toDouble() ?? 0)) {
         throw StateError('المبلغ المدفوع لا يمكن أن يتجاوز إجمالي الصيانة.');
       }
     }
@@ -1285,6 +1288,11 @@ class StoreManagementService {
             ..._list(order['contacts']),
           ];
         } else if (action == 'finalize') {
+          order['paidAmount'] =
+              (op['paidAmount'] as num?)?.toDouble() ??
+              (order['paidAmount'] as num?)?.toDouble() ??
+              0.0;
+          _recalculateLocalMaintenanceOrder(order);
           order['invoiceId'] = 'local:${op['clientRef']}';
           order['pendingSync'] = true;
         }

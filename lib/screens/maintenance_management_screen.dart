@@ -31,11 +31,14 @@ class _MaintenanceManagementScreenState
   Map<String, dynamic> _data = const {};
   bool _loading = true;
   String? _error;
+  String? _syncError;
   String _status = '';
   String? _userId;
   String _actorName = '';
   int _pendingCount = 0;
   bool _offline = false;
+  bool _loadInProgress = false;
+  Timer? _syncRetryTimer;
   AppPermissions _appPermissions = AppPermissions.fromUser(null);
 
   List<Map<String, dynamic>> get _orders => _list(_data['orders']);
@@ -68,11 +71,27 @@ class _MaintenanceManagementScreenState
     if (ConnectivityService.instance.isOnline.value && _pendingCount > 0) {
       unawaited(_load());
     }
+    _scheduleSyncRetry();
     if (mounted) setState(() {});
+  }
+
+  void _scheduleSyncRetry() {
+    _syncRetryTimer?.cancel();
+    if (!mounted ||
+        !ConnectivityService.instance.isOnline.value ||
+        _pendingCount == 0) {
+      return;
+    }
+    _syncRetryTimer = Timer(const Duration(seconds: 20), () {
+      if (mounted && ConnectivityService.instance.isOnline.value) {
+        unawaited(_load());
+      }
+    });
   }
 
   @override
   void dispose() {
+    _syncRetryTimer?.cancel();
     ConnectivityService.instance.isOnline.removeListener(_handleConnectivity);
     _tabs.dispose();
     _search.dispose();
@@ -101,6 +120,8 @@ class _MaintenanceManagementScreenState
   }
 
   Future<void> _load() async {
+    if (_loadInProgress) return;
+    _loadInProgress = true;
     if (mounted) {
       setState(() {
         _loading = true;
@@ -109,7 +130,15 @@ class _MaintenanceManagementScreenState
     }
     try {
       if (_userId != null) {
-        await _offlineStore.syncPending(userId: _userId!, api: _api);
+        try {
+          await _offlineStore.syncPending(userId: _userId!, api: _api);
+          _syncError = null;
+        } catch (error) {
+          // A rejected queued operation must not make a reachable maintenance
+          // API look offline. Load the live snapshot and keep retrying the
+          // operation so the user can continue working online.
+          _syncError = ErrorMessageService.sanitize(error);
+        }
       }
       final data = await _api.getMaintenanceSnapshot(
         search: _search.text,
@@ -130,6 +159,7 @@ class _MaintenanceManagementScreenState
               .where((e) => e['entity'] == 'maintenance')
               .length;
         });
+        _scheduleSyncRetry();
       }
     } catch (e) {
       final cached = _userId == null
@@ -148,7 +178,10 @@ class _MaintenanceManagementScreenState
               .length;
           _error = cached.isEmpty ? ErrorMessageService.sanitize(e) : null;
         });
+        _scheduleSyncRetry();
       }
+    } finally {
+      _loadInProgress = false;
     }
   }
 
@@ -165,21 +198,24 @@ class _MaintenanceManagementScreenState
         if (_offline || _pendingCount > 0)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Chip(
-              avatar: Icon(
-                _offline ? Icons.cloud_off_rounded : Icons.sync_rounded,
-                size: 17,
-              ),
-              label: Text(
-                _offline
-                    ? context.loc.text(
-                        'دون إنترنت • $_pendingCount معلّق',
-                        'Offline • $_pendingCount pending',
-                      )
-                    : context.loc.text(
-                        '$_pendingCount بانتظار المزامنة',
-                        '$_pendingCount pending',
-                      ),
+            child: Tooltip(
+              message: _syncError,
+              child: Chip(
+                avatar: Icon(
+                  _offline ? Icons.cloud_off_rounded : Icons.sync_rounded,
+                  size: 17,
+                ),
+                label: Text(
+                  _offline
+                      ? context.loc.text(
+                          'دون إنترنت • $_pendingCount معلّق',
+                          'Offline • $_pendingCount pending',
+                        )
+                      : context.loc.text(
+                          '$_pendingCount بانتظار المزامنة',
+                          '$_pendingCount pending',
+                        ),
+                ),
               ),
             ),
           ),
@@ -1342,7 +1378,14 @@ class _MaintenanceManagementScreenState
   }
 
   Future<void> _finalize(Map<String, dynamic> order) async {
-    final paidAmount = (order['paidAmount'] as num?)?.toDouble() ?? 0;
+    final existingPaid = (order['paidAmount'] as num?)?.toDouble() ?? 0;
+    final total = (order['total'] as num?)?.toDouble() ?? 0;
+    var paymentStatus = existingPaid >= total
+        ? 'paid'
+        : existingPaid > 0
+        ? 'partial'
+        : 'unpaid';
+    final partialAmount = TextEditingController(text: '$existingPaid');
     String? paymentMethodId = _paymentMethods.firstOrNull?['id']?.toString();
     final accepted = await showDialog<bool>(
       context: context,
@@ -1363,8 +1406,58 @@ class _MaintenanceManagementScreenState
                 Text(
                   '${context.loc.text('الإجمالي', 'Total')}: ${order['total']}',
                 ),
-                Text('${context.loc.text('المدفوع', 'Paid')}: $paidAmount'),
-                if (paidAmount > 0) ...[
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: paymentStatus,
+                  decoration: InputDecoration(
+                    labelText: context.loc.text(
+                      'حالة الفاتورة',
+                      'Invoice status',
+                    ),
+                    prefixIcon: const Icon(Icons.receipt_long_rounded),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'paid',
+                      child: Text(
+                        context.loc.text('مدفوعة بالكامل', 'Paid in full'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'partial',
+                      child: Text(
+                        context.loc.text('مدفوعة جزئيًا', 'Partially paid'),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'unpaid',
+                      child: Text(context.loc.text('غير مدفوعة', 'Unpaid')),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setDialogState(() => paymentStatus = value ?? 'unpaid'),
+                ),
+                if (paymentStatus == 'partial') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: partialAmount,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: context.loc.text(
+                        'المبلغ المدفوع',
+                        'Amount paid',
+                      ),
+                      prefixIcon: const Icon(Icons.payments_outlined),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                ],
+                if (paymentStatus != 'unpaid') ...[
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
                     initialValue: paymentMethodId,
@@ -1396,7 +1489,13 @@ class _MaintenanceManagementScreenState
               child: Text(context.loc.text('إلغاء', 'Cancel')),
             ),
             FilledButton(
-              onPressed: paidAmount <= 0 || paymentMethodId != null
+              onPressed:
+                  (paymentStatus == 'unpaid' ||
+                      (paymentMethodId != null &&
+                          (paymentStatus != 'partial' ||
+                              ((double.tryParse(partialAmount.text) ?? 0) > 0 &&
+                                  (double.tryParse(partialAmount.text) ?? 0) <
+                                      total))))
                   ? () => Navigator.pop(dialog, true)
                   : null,
               child: Text(context.loc.text('إنشاء الفاتورة', 'Create invoice')),
@@ -1405,7 +1504,16 @@ class _MaintenanceManagementScreenState
         ),
       ),
     );
-    if (accepted != true) return;
+    if (accepted != true) {
+      partialAmount.dispose();
+      return;
+    }
+    final paidAmount = paymentStatus == 'paid'
+        ? total
+        : paymentStatus == 'partial'
+        ? (double.tryParse(partialAmount.text) ?? 0)
+        : 0.0;
+    partialAmount.dispose();
     final method = _paymentMethods.firstWhere(
       (item) => item['id']?.toString() == paymentMethodId,
       orElse: () => const <String, dynamic>{},
@@ -1414,13 +1522,14 @@ class _MaintenanceManagementScreenState
       () => _queueMaintenance(
         'finalize',
         order: order,
-        data: paidAmount > 0
-            ? {
-                'paymentMethodId': paymentMethodId,
-                'paymentMethodClientRef': method['clientRef']?.toString(),
-                'paymentMethod': method['name']?.toString(),
-              }
-            : const {},
+        data: {
+          'paidAmount': paidAmount,
+          if (paidAmount > 0) ...{
+            'paymentMethodId': paymentMethodId,
+            'paymentMethodClientRef': method['clientRef']?.toString(),
+            'paymentMethod': method['name']?.toString(),
+          },
+        },
       ),
     );
   }
