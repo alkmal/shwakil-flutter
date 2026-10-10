@@ -70,10 +70,11 @@ class _ExternalTransferFollowupsScreenState
         throw StateError('تعذر تحديد الحساب الحالي.');
       }
       _currentUserId = userId;
-      final isSubUser = user?['is_sub_user'] == true ||
+      final isSubUser =
+          user?['is_sub_user'] == true ||
           (user?['parent_user_id']?.toString().isNotEmpty ?? false);
       final ownerId = isSubUser
-          ? user?['parent_user_id']?.toString() ?? ''
+          ? (user?['parent_user_id']?.toString() ?? '')
           : userId;
       await ExternalAppNotificationService().setActiveWorkspaceId(
         isSubUser ? null : ownerId,
