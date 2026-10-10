@@ -357,6 +357,24 @@ class _MaintenanceManagementScreenState
         style: Theme.of(context).textTheme.titleLarge,
       ),
       const SizedBox(height: 8),
+      if (_orders.isEmpty)
+        ShwakelCard(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              const Icon(Icons.build_circle_outlined, color: AppTheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  context.loc.text(
+                    'لا توجد أجهزة قيد الصيانة حاليًا. ابدأ باستلام جهاز جديد لتظهر متابعته هنا.',
+                    'No devices are being serviced yet. Receive a device to start tracking it here.',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ..._orders.take(8).map(_orderCard),
       const SizedBox(height: 80),
     ],
@@ -459,32 +477,39 @@ class _MaintenanceManagementScreenState
           ],
         );
 
-  Widget _metric(String title, dynamic value, IconData icon, Color color) =>
-      SizedBox(
-        width: 220,
-        child: ShwakelCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: color.withValues(alpha: .12),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title),
-                  Text(
-                    '${value ?? 0}',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ],
-              ),
-            ],
-          ),
+  Widget _metric(String title, dynamic value, IconData icon, Color color) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final metricWidth = screenWidth < 360
+        ? screenWidth - 32
+        : screenWidth < 520
+        ? (screenWidth - 42) / 2
+        : 220.0;
+    return SizedBox(
+      width: metricWidth,
+      child: ShwakelCard(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: color.withValues(alpha: .12),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title),
+                Text(
+                  '${value ?? 0}',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ],
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   Widget _periodReport(
     String title,

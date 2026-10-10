@@ -625,15 +625,9 @@ class _ExternalTransferFollowupsScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'التحويلات الخارجية',
-                                  style: AppTheme.h3,
-                                ),
-                              ),
-                              PopupMenuButton<String>(
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final reportMenu = PopupMenuButton<String>(
                                 icon: const Icon(Icons.bar_chart_rounded),
                                 tooltip: 'التقرير',
                                 onSelected: _showReport,
@@ -651,25 +645,74 @@ class _ExternalTransferFollowupsScreenState
                                     child: Text('تقرير شهري'),
                                   ),
                                 ],
-                              ),
-                              if (_canCreate)
-                                FilledButton.icon(
-                                  onPressed: _add,
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('إضافة عملية'),
-                                ),
-                              if (_canReview)
+                              );
+                              final actions = <Widget>[
+                                if (_canCreate)
+                                  FilledButton.icon(
+                                    onPressed: _add,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('إضافة عملية'),
+                                  ),
+                                if (_canReview)
+                                  OutlinedButton.icon(
+                                    onPressed: _markDayReviewed,
+                                    icon: const Icon(Icons.done_all),
+                                    label: const Text('اعتماد مراجعة الفترة'),
+                                  ),
                                 OutlinedButton.icon(
-                                  onPressed: _markDayReviewed,
-                                  icon: const Icon(Icons.done_all),
-                                  label: const Text('اعتماد مراجعة الفترة'),
+                                  onPressed: _rows.isEmpty ? null : _exportCsv,
+                                  icon: const Icon(
+                                    Icons.file_download_outlined,
+                                  ),
+                                  label: const Text('تصدير Excel'),
                                 ),
-                              OutlinedButton.icon(
-                                onPressed: _rows.isEmpty ? null : _exportCsv,
-                                icon: const Icon(Icons.file_download_outlined),
-                                label: const Text('تصدير Excel'),
-                              ),
-                            ],
+                              ];
+                              if (constraints.maxWidth < 900) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'التحويلات الخارجية',
+                                            style: AppTheme.h3,
+                                          ),
+                                        ),
+                                        reportMenu,
+                                      ],
+                                    ),
+                                    if (actions.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: actions,
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              }
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'التحويلات الخارجية',
+                                      style: AppTheme.h3,
+                                    ),
+                                  ),
+                                  reportMenu,
+                                  ...actions.map(
+                                    (action) => Padding(
+                                      padding: const EdgeInsetsDirectional.only(
+                                        start: 8,
+                                      ),
+                                      child: action,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                           const SizedBox(height: 12),
                           Wrap(
