@@ -24,18 +24,22 @@ class QuickTransferScreen extends StatefulWidget {
     super.key,
     this.initialTab = 0,
     this.merchantReceiveOnly = false,
+    this.authService,
+    this.apiService,
   });
 
   final int initialTab;
   final bool merchantReceiveOnly;
+  final AuthService? authService;
+  final ApiService? apiService;
 
   @override
   State<QuickTransferScreen> createState() => _QuickTransferScreenState();
 }
 
 class _QuickTransferScreenState extends State<QuickTransferScreen> {
-  final AuthService _auth = AuthService();
-  final ApiService _api = ApiService();
+  late final AuthService _auth;
+  late final ApiService _api;
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
 
@@ -54,6 +58,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   @override
   void initState() {
     super.initState();
+    _auth = widget.authService ?? AuthService();
+    _api = widget.apiService ?? ApiService();
     _load();
   }
 
@@ -89,6 +95,9 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   });
 
   Future<void> _lookupRecipient() async {
+    if (_isLookingUpRecipient || _isTransfering || !_canTransfer) {
+      return;
+    }
     final rawPhone = _phoneController.text.trim();
     final amount = double.tryParse(_amountController.text.trim()) ?? 0;
     if (rawPhone.isEmpty) {
@@ -99,7 +108,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
       );
       return;
     }
-    if (amount <= 0) {
+    if (!amount.isFinite || amount <= 0) {
       await AppAlertService.showError(
         context,
         title: _t('screens_quick_transfer_screen.049'),
@@ -152,7 +161,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
     }
 
     final amount = double.tryParse(_amountController.text.trim()) ?? 0;
-    if (amount <= 0) {
+    if (!amount.isFinite || amount <= 0) {
       await AppAlertService.showError(
         context,
         title: _t('screens_quick_transfer_screen.049'),
@@ -674,7 +683,8 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
             icon: Icons.arrow_forward_rounded,
             gradient: AppTheme.primaryGradient,
             isLoading: _isLookingUpRecipient || _isTransfering,
-            onPressed: (_canTransfer && !_isTransfering)
+            onPressed:
+                (_canTransfer && !_isTransfering && !_isLookingUpRecipient)
                 ? _lookupRecipient
                 : null,
           ),

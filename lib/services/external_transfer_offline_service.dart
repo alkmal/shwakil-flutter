@@ -60,18 +60,22 @@ class ExternalTransferOfflineService {
   Future<Map<String, dynamic>> enqueue({
     required String userId,
     required Map<String, dynamic> payload,
+    String? clientRef,
   }) async {
-    final clientRef = _uuid.v4();
+    final resolvedClientRef = clientRef?.trim().isNotEmpty == true
+        ? clientRef!.trim()
+        : _uuid.v4();
     final operation = <String, dynamic>{
-      'clientRef': clientRef,
-      'localId': 'local:$clientRef',
-      'payload': <String, dynamic>{...payload, 'clientRef': clientRef},
+      'clientRef': resolvedClientRef,
+      'localId': 'local:$resolvedClientRef',
+      'payload': <String, dynamic>{...payload, 'clientRef': resolvedClientRef},
       'queuedAt': DateTime.now().toIso8601String(),
       'syncStatus': 'pending',
     };
     await _withLock(userId, () async {
-      final queue = await getPending(userId)
-        ..add(operation);
+      final queue = await getPending(userId);
+      if (queue.any((item) => item['clientRef'] == resolvedClientRef)) return;
+      queue.add(operation);
       await _writeQueue(userId, queue);
     });
     return operation;

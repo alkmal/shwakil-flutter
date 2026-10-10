@@ -1,7 +1,9 @@
 package com.alkmal.shwakil
 
 import android.content.Intent
+import android.content.ComponentName
 import android.net.Uri
+import android.provider.Settings
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -15,6 +17,7 @@ class MainActivity : FlutterFragmentActivity() {
         private const val HCE_PREFS = "shwakil_hce_payment"
         private const val HCE_PAYLOAD_KEY = "payload"
         private const val HCE_EXPIRES_AT_KEY = "expires_at"
+        private const val EXTERNAL_NOTIFICATIONS_CHANNEL = "com.alkmal.shwakil/external_notifications"
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -62,6 +65,104 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(true)
                 }
 
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            EXTERNAL_NOTIFICATIONS_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            val prefs = getSharedPreferences(ExternalAppNotificationListenerService.PREFS, MODE_PRIVATE)
+            when (call.method) {
+                "hasAccess" -> {
+                    val enabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+                        ?.split(':')
+                        ?.any { ComponentName.unflattenFromString(it)?.packageName == packageName } == true
+                    result.success(enabled)
+                }
+                "openAccessSettings" -> {
+                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    result.success(true)
+                }
+                "getApps" -> {
+                    val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                    val apps = packageManager.queryIntentActivities(launcher, 0)
+                        .mapNotNull { info ->
+                            val appInfo = info.activityInfo?.applicationInfo ?: return@mapNotNull null
+                            if (appInfo.packageName == packageName) return@mapNotNull null
+                            mapOf(
+                                "packageName" to appInfo.packageName,
+                                "appName" to appInfo.loadLabel(packageManager).toString()
+                            )
+                        }
+                        .distinctBy { it["packageName"] }
+                        .sortedBy { it["appName"].toString().lowercase() }
+                    result.success(apps)
+                }
+                "getSelectedPackages" -> {
+                    var packages = prefs.getStringSet(ExternalAppNotificationListenerService.SELECTED_PACKAGES, emptySet()) ?: emptySet()
+                    if (!prefs.getBoolean(ExternalAppNotificationListenerService.SELECTION_INITIALIZED, false)) {
+                        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                        val recommended = packageManager.queryIntentActivities(launcher, 0)
+                            .mapNotNull { info ->
+                                val appInfo = info.activityInfo?.applicationInfo ?: return@mapNotNull null
+                                val appName = appInfo.loadLabel(packageManager).toString()
+                                val label = (appName + " " + appInfo.packageName).lowercase()
+                                val looksLikeBank = listOf("bank", "بنك", "مصرف").any(label::contains)
+                                val looksLikeJawwalPay = listOf("jawwal pay", "jawwalpay", "جوال باي").any(label::contains)
+                                val looksLikePalPay = listOf("palpay", "pal pay", "بال باي").any(label::contains)
+                                if (appInfo.packageName != packageName && (looksLikeBank || looksLikeJawwalPay || looksLikePalPay)) appInfo.packageName else null
+                            }.toSet()
+                        packages = recommended
+                        prefs.edit()
+                            .putStringSet(ExternalAppNotificationListenerService.SELECTED_PACKAGES, packages)
+                            .putBoolean(ExternalAppNotificationListenerService.SELECTION_INITIALIZED, packages.isNotEmpty())
+                            .apply()
+                    }
+                    result.success(packages.toList())
+                }
+                "setSelectedPackages" -> {
+                    val packages = call.argument<List<String>>("packages")?.toSet() ?: emptySet()
+                    prefs.edit()
+                        .putStringSet(ExternalAppNotificationListenerService.SELECTED_PACKAGES, packages)
+                        .putBoolean(ExternalAppNotificationListenerService.SELECTION_INITIALIZED, true)
+                        .apply()
+                    result.success(true)
+                }
+                "setActiveWorkspaceId" -> {
+                    val workspaceId = call.argument<String>("workspaceId")?.trim().orEmpty()
+                    prefs.edit().putString(ExternalAppNotificationListenerService.ACTIVE_WORKSPACE_ID, workspaceId.takeIf { it.isNotEmpty() }).apply()
+                    result.success(true)
+                }
+                "getPendingEvents" -> {
+                    val events = prefs.getString(ExternalAppNotificationListenerService.PENDING_EVENTS, "[]") ?: "[]"
+                    result.success(org.json.JSONArray(events).let { json ->
+                        (0 until json.length()).map { json.getJSONObject(it).let { item ->
+                            mapOf(
+                                "eventId" to item.optString("eventId"),
+                                "workspaceId" to item.optString("workspaceId"),
+                                "notificationKey" to item.optString("notificationKey"),
+                                "packageName" to item.optString("packageName"),
+                                "appName" to item.optString("appName"),
+                                "title" to item.optString("title"),
+                                "message" to item.optString("message"),
+                                "postedAt" to item.optLong("postedAt")
+                            )
+                        } }
+                    })
+                }
+                "acknowledgeEvents" -> {
+                    val ids = call.argument<List<String>>("eventIds")?.toSet() ?: emptySet()
+                    val old = org.json.JSONArray(prefs.getString(ExternalAppNotificationListenerService.PENDING_EVENTS, "[]") ?: "[]")
+                    val kept = org.json.JSONArray()
+                    for (index in 0 until old.length()) {
+                        val event = old.getJSONObject(index)
+                        if (event.optString("eventId") !in ids) kept.put(event)
+                    }
+                    prefs.edit().putString(ExternalAppNotificationListenerService.PENDING_EVENTS, kept.toString()).apply()
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }

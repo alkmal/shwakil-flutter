@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../localization/app_localization.dart';
 import '../utils/app_theme.dart';
+import '../services/error_message_service.dart';
 import 'shwakel_button.dart';
 import 'shwakel_card.dart';
 
@@ -78,10 +79,18 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
-        unawaited(_controller.stop());
+        unawaited(_stopScanner());
         break;
       case AppLifecycleState.detached:
         break;
+    }
+  }
+
+  Future<void> _stopScanner() async {
+    try {
+      await _controller.stop();
+    } catch (_) {
+      // Permission prompts and disposal can race with lifecycle changes.
     }
   }
 
@@ -140,8 +149,8 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
       _isResolving = true;
       _resolvedResult = null;
     });
-    await _controller.stop();
     try {
+      await _stopScanner();
       final result = await widget.onScanResolved?.call(value);
       if (!mounted) {
         return;
@@ -214,6 +223,15 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
       setState(() {
         _resolvedResult = nextResult;
       });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _resolvedResult = BarcodeScannerDialogResult.error(
+            headline: context.loc.tr('widgets_barcode_scanner_dialog.002'),
+            message: ErrorMessageService.sanitize(error),
+          );
+        });
+      }
     } finally {
       if (mounted) {
         setState(() => _isRunningPrimaryAction = false);
@@ -361,25 +379,41 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog>
             Positioned(
               top: 14,
               left: 14,
-              child: FilledButton.tonalIcon(
-                onPressed: () async {
-                  await _controller.toggleTorch();
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() {
-                    _torchEnabled = !_torchEnabled;
-                  });
-                },
-                icon: Icon(
-                  _torchEnabled
-                      ? Icons.flash_off_rounded
-                      : Icons.flash_on_rounded,
-                ),
-                label: Text(
-                  _torchEnabled
-                      ? context.loc.tr('widgets_barcode_scanner_dialog.005')
-                      : context.loc.tr('widgets_barcode_scanner_dialog.006'),
+              child: ValueListenableBuilder<MobileScannerState>(
+                valueListenable: _controller,
+                builder: (context, scannerState, _) => FilledButton.tonalIcon(
+                  onPressed:
+                      !scannerState.isRunning ||
+                          scannerState.torchState == TorchState.unavailable
+                      ? null
+                      : () async {
+                          try {
+                            await _controller.toggleTorch();
+                            if (mounted) {
+                              setState(() => _torchEnabled = !_torchEnabled);
+                            }
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    ErrorMessageService.sanitize(error),
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  icon: Icon(
+                    _torchEnabled
+                        ? Icons.flash_off_rounded
+                        : Icons.flash_on_rounded,
+                  ),
+                  label: Text(
+                    _torchEnabled
+                        ? context.loc.tr('widgets_barcode_scanner_dialog.005')
+                        : context.loc.tr('widgets_barcode_scanner_dialog.006'),
+                  ),
                 ),
               ),
             ),
@@ -638,6 +672,26 @@ class _ScannerErrorView extends StatelessWidget {
 
   final String? message;
 
+  String _friendlyMessage(BuildContext context) {
+    final raw = message?.toLowerCase() ?? '';
+    final normalized = raw.replaceAll(RegExp(r'[^a-z]'), '');
+    if (normalized.contains('notfound') || raw.contains('device not found')) {
+      return context.loc.text(
+        'لم يتم العثور على كاميرا. يمكنك إغلاق النافذة وإدخال رقم البطاقة يدوياً.',
+        'No camera was found. Close this window and enter the card number manually.',
+      );
+    }
+    if (raw.contains('notallowed') ||
+        raw.contains('permission') ||
+        raw.contains('denied')) {
+      return context.loc.text(
+        'اسمح للموقع باستخدام الكاميرا من إعدادات المتصفح، ثم افتح الماسح مجدداً.',
+        'Allow camera access in your browser settings, then open the scanner again.',
+      );
+    }
+    return context.loc.tr('widgets_barcode_scanner_dialog.010');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -660,9 +714,7 @@ class _ScannerErrorView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            message?.trim().isNotEmpty == true
-                ? message!
-                : context.loc.tr('widgets_barcode_scanner_dialog.010'),
+            _friendlyMessage(context),
             style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
             textAlign: TextAlign.center,
           ),

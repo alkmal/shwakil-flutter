@@ -4056,9 +4056,9 @@ class ApiService {
         'deliveryStatus': deliveryStatus,
         'checked': checked,
         if (notes.trim().isNotEmpty) 'notes': notes.trim(),
-        if (accountingStatus != null) 'accountingStatus': accountingStatus,
-        if (profitRate != null) 'profitRate': profitRate,
-        if (profitAmount != null) 'profitAmount': profitAmount,
+        'accountingStatus': ?accountingStatus,
+        'profitRate': ?profitRate,
+        'profitAmount': ?profitAmount,
         if (accountingNotes.trim().isNotEmpty) 'accountingNotes': accountingNotes.trim(),
       }),
     );

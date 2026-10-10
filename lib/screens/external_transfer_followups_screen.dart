@@ -70,6 +70,18 @@ class _ExternalTransferFollowupsScreenState
         throw StateError('تعذر تحديد الحساب الحالي.');
       }
       _currentUserId = userId;
+      final isSubUser = user?['is_sub_user'] == true ||
+          (user?['parent_user_id']?.toString().isNotEmpty ?? false);
+      final ownerId = isSubUser
+          ? user?['parent_user_id']?.toString() ?? ''
+          : userId;
+      await ExternalAppNotificationService().setActiveWorkspaceId(
+        isSubUser ? null : ownerId,
+      );
+      if (ConnectivityService.instance.isOnline.value) {
+        await _offline.syncPending(userId: userId, api: _api);
+      }
+      if (!isSubUser) await _importCapturedNotifications(userId, ownerId);
       if (ConnectivityService.instance.isOnline.value) {
         await _offline.syncPending(userId: userId, api: _api);
       }
@@ -112,6 +124,12 @@ class _ExternalTransferFollowupsScreenState
             return <String, dynamic>{
               'id': op['localId'],
               'client_ref': op['clientRef'],
+              'record_type': payload['recordType'] ?? 'transfer',
+              'source_app_name': payload['sourceAppName'],
+              'source_notification_title': payload['sourceNotificationTitle'],
+              'source_notification_message':
+                  payload['sourceNotificationMessage'],
+              'source_notification_at': payload['sourceNotificationAt'],
               'beneficiary_name': payload['beneficiaryName'],
               'beneficiary_mobile': payload['beneficiaryMobile'],
               'amount': payload['amount'],
@@ -211,6 +229,66 @@ class _ExternalTransferFollowupsScreenState
       }
     } finally {
       _loadingRows = false;
+    }
+  }
+
+  Future<void> _importCapturedNotifications(
+    String userId,
+    String ownerId,
+  ) async {
+    final capture = ExternalAppNotificationService();
+    if (!capture.isSupported || !await capture.hasNotificationAccess()) return;
+    final events = await capture.getPendingEvents();
+    if (events.isEmpty) return;
+    final existingRefs = (await _offline.getPending(userId))
+        .map((operation) => operation['clientRef']?.toString())
+        .whereType<String>()
+        .toSet();
+    final acknowledged = <String>[];
+    for (final event in events) {
+      final eventId = event['eventId']?.toString().trim() ?? '';
+      if (eventId.isEmpty) continue;
+      // Capture is bound to the merchant workspace where the notification
+      // appeared; never upload an old device event to another signed-in shop.
+      if (event['workspaceId']?.toString() != ownerId) continue;
+      final clientRef = 'notification-$eventId';
+      if (!existingRefs.contains(clientRef)) {
+        final postedAt = int.tryParse('${event['postedAt'] ?? ''}');
+        await _offline.enqueue(
+          userId: userId,
+          clientRef: clientRef,
+          payload: {
+            'recordType': 'app_notification',
+            'sourceNotificationKey': eventId,
+            'sourceAppPackage': event['packageName']?.toString() ?? '',
+            'sourceAppName': event['appName']?.toString() ?? 'تطبيق',
+            'sourceNotificationTitle': event['title']?.toString() ?? '',
+            'sourceNotificationMessage': event['message']?.toString() ?? '',
+            if (postedAt != null && postedAt > 0)
+              'sourceNotificationAt': DateTime.fromMillisecondsSinceEpoch(
+                postedAt,
+              ).toIso8601String(),
+          },
+        );
+        existingRefs.add(clientRef);
+      }
+      acknowledged.add(eventId);
+    }
+    await capture.acknowledgeEvents(acknowledged);
+  }
+
+  Future<void> _showAppNotificationSettings() async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _ExternalAppNotificationSettingsDialog(),
+    );
+    if (saved == true && mounted) {
+      AppAlertService.showSnack(
+        context,
+        message: 'تم حفظ إعدادات متابعة إشعارات التطبيقات.',
+        type: AppAlertType.success,
+      );
+      await _load();
     }
   }
 
@@ -521,7 +599,16 @@ class _ExternalTransferFollowupsScreenState
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('متابعة التحويلات الخارجية'),
-        actions: const [AppNotificationAction(), QuickLogoutAction()],
+        actions: [
+          if (_canManage)
+            IconButton(
+              onPressed: _showAppNotificationSettings,
+              tooltip: 'إعدادات إشعارات التطبيقات',
+              icon: const Icon(Icons.notifications_active_outlined),
+            ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: AppSidebar.drawerFor(context),
       body: _loading
@@ -725,6 +812,7 @@ class _ExternalTransferFollowupsScreenState
 
   Widget _row(Map<String, dynamic> row) {
     final offlinePending = row['offline_pending'] == true;
+    final isAppNotification = row['record_type'] == 'app_notification';
     final status = row['delivery_status']?.toString() ?? 'pending';
     final reviewed = row['reviewed'] == true || row['reviewed'] == 1;
     final statusText = switch (status) {
@@ -748,24 +836,28 @@ class _ExternalTransferFollowupsScreenState
               children: [
                 Expanded(
                   child: Text(
-                    '${row['beneficiary_name'] ?? ''} — ${row['beneficiary_mobile'] ?? ''}',
+                    isAppNotification
+                        ? 'إشعار تطبيق: ${row['source_app_name'] ?? row['beneficiary_name'] ?? ''}'
+                        : '${row['beneficiary_name'] ?? ''} — ${row['beneficiary_mobile'] ?? ''}',
                     style: AppTheme.bodyBold,
                   ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      '${row['amount'] ?? 0}',
-                      style: AppTheme.bodyBold.copyWith(
-                        fontSize: 18,
-                        color: AppTheme.primary,
+                    if (!isAppNotification) ...[
+                      Text(
+                        '${row['amount'] ?? 0}',
+                        style: AppTheme.bodyBold.copyWith(
+                          fontSize: 18,
+                          color: AppTheme.primary,
+                        ),
                       ),
-                    ),
-                    const Text(
-                      'القيمة',
-                      style: TextStyle(fontSize: 11, color: Colors.black54),
-                    ),
+                      const Text(
+                        'القيمة',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Chip(
                       avatar: Icon(
@@ -799,11 +891,12 @@ class _ExternalTransferFollowupsScreenState
                   ],
                 ),
                 if (_canManage) ...[
-                  IconButton(
-                    onPressed: () => _edit(row),
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'تعديل',
-                  ),
+                  if (!isAppNotification)
+                    IconButton(
+                      onPressed: () => _edit(row),
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'تعديل',
+                    ),
                   IconButton(
                     onPressed: () => _delete(row),
                     icon: const Icon(Icons.delete_outline),
@@ -813,13 +906,31 @@ class _ExternalTransferFollowupsScreenState
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              '${row['destination_name'] ?? ''} • ${row['destination_account'] ?? ''}',
-            ),
-            Text(
-              'بواسطة: ${row['created_by_name'] ?? ''} • ${row['notes'] ?? ''}',
-              style: AppTheme.caption,
-            ),
+            if (isAppNotification) ...[
+              if ((row['source_notification_title'] ?? '')
+                  .toString()
+                  .isNotEmpty)
+                Text(
+                  '${row['source_notification_title']}',
+                  style: AppTheme.bodyBold,
+                ),
+              SelectableText(
+                (row['source_notification_message'] ?? row['notes'] ?? '')
+                    .toString(),
+              ),
+              Text(
+                'من ${row['created_by_name'] ?? ''} • ${row['source_notification_at'] ?? row['created_at'] ?? ''}',
+                style: AppTheme.caption,
+              ),
+            ] else ...[
+              Text(
+                '${row['destination_name'] ?? ''} • ${row['destination_account'] ?? ''}',
+              ),
+              Text(
+                'بواسطة: ${row['created_by_name'] ?? ''} • ${row['notes'] ?? ''}',
+                style: AppTheme.caption,
+              ),
+            ],
             if (_canReview && !offlinePending)
               Wrap(
                 spacing: 8,
@@ -849,6 +960,181 @@ class _ExternalTransferFollowupsScreenState
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ExternalAppNotificationSettingsDialog extends StatefulWidget {
+  const _ExternalAppNotificationSettingsDialog();
+
+  @override
+  State<_ExternalAppNotificationSettingsDialog> createState() =>
+      _ExternalAppNotificationSettingsDialogState();
+}
+
+class _ExternalAppNotificationSettingsDialogState
+    extends State<_ExternalAppNotificationSettingsDialog> {
+  final _capture = ExternalAppNotificationService();
+  List<Map<String, dynamic>> _apps = [];
+  Set<String> _selected = {};
+  bool _hasAccess = false;
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    if (!_capture.isSupported) {
+      setState(() => _loading = false);
+      return;
+    }
+    try {
+      final results = await Future.wait([
+        _capture.getApps(),
+        _capture.getSelectedPackages(),
+        _capture.hasNotificationAccess(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _apps = results[0] as List<Map<String, dynamic>>;
+        _selected = (results[1] as List<String>).toSet();
+        _hasAccess = results[2] as bool;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _requestAccess() async {
+    await _capture.openNotificationAccessSettings();
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await _load();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await _capture.setSelectedPackages(_selected.toList());
+      if (mounted) Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) {
+        setState(() => _saving = false);
+        AppAlertService.showError(
+          context,
+          title: 'تعذر حفظ الإعدادات',
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_capture.isSupported) {
+      return AlertDialog(
+        title: const Text('إشعارات التطبيقات'),
+        content: const Text(
+          'التقاط إشعارات التطبيقات متاح في تطبيق أندرويد فقط، ولا يعمل من نسخة الويب أو iPhone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      );
+    }
+    return AlertDialog(
+      title: const Text('إشعارات التطبيقات البنكية'),
+      content: SizedBox(
+        width: 460,
+        child: _loading
+            ? const SizedBox(
+                height: 180,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'اقتُرحت تطبيقات Jawwal Pay وPalPay وتطبيقات البنوك المثبتة تلقائيًا عند أول فتح. عنوان الإشعار ونصه سيُحفظان ضمن متابعة التحويلات ويظهران للتاجر الرئيسي والتابعين المخولين بعرضها.',
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: ListTile(
+                      leading: Icon(
+                        _hasAccess ? Icons.verified_user : Icons.security,
+                      ),
+                      title: Text(
+                        _hasAccess
+                            ? 'صلاحية قراءة الإشعارات مفعلة'
+                            : 'فعّل صلاحية الوصول للإشعارات',
+                      ),
+                      subtitle: const Text(
+                        'يمكن إيقافها في أي وقت من إعدادات أندرويد.',
+                      ),
+                      trailing: TextButton(
+                        onPressed: _requestAccess,
+                        child: Text(_hasAccess ? 'الإعدادات' : 'فتح الإعدادات'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('الإشعارات المختارة ستُشارك مع مساحة المتجر.'),
+                  const SizedBox(height: 6),
+                  Flexible(
+                    child: _apps.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'لم يتم العثور على تطبيقات قابلة للاختيار.',
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _apps.length,
+                            itemBuilder: (context, index) {
+                              final app = _apps[index];
+                              final packageName =
+                                  app['packageName']?.toString() ?? '';
+                              return CheckboxListTile(
+                                value: _selected.contains(packageName),
+                                title: Text(
+                                  app['appName']?.toString() ?? packageName,
+                                ),
+                                subtitle: Text(packageName),
+                                dense: true,
+                                onChanged: packageName.isEmpty
+                                    ? null
+                                    : (value) => setState(() {
+                                        if (value == true) {
+                                          _selected.add(packageName);
+                                        } else {
+                                          _selected.remove(packageName);
+                                        }
+                                      }),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          onPressed: _loading || _saving ? null : _save,
+          child: Text(_saving ? 'جار الحفظ…' : 'حفظ الاختيار'),
+        ),
+      ],
     );
   }
 }

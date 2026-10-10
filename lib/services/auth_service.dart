@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_config.dart';
 import 'app_version_service.dart';
 import 'error_message_service.dart';
+import 'external_app_notification_service.dart';
 import 'local_security_service.dart';
 import 'network_client_service.dart';
 
@@ -523,6 +524,11 @@ class AuthService {
       // Server logout is best-effort. A network/auth failure must never keep
       // local credentials after the user explicitly requested logout.
     } finally {
+      try {
+        await ExternalAppNotificationService().setActiveWorkspaceId(null);
+      } catch (_) {
+        // Android may not have initialized the optional notification channel.
+      }
       _cachedToken = null;
       _cachedUser = null;
       _cachedRefreshToken = null;

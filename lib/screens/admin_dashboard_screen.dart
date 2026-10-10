@@ -758,6 +758,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildHero({required String fullName, required int sectionCount}) {
     return ShwakelCard(
+      width: double.infinity,
       padding: const EdgeInsets.all(28),
       gradient: AppTheme.heroGradient,
       shadowLevel: ShwakelShadowLevel.premium,

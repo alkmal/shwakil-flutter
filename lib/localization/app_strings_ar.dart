@@ -202,7 +202,8 @@ const Map<String, String> appStringsAr = {
   'permission_catalog.label.canViewStoreProfits': 'مشاهدة أرباح المحل',
   'permission_catalog.label.canViewStoreReports': 'مشاهدة تقارير المحل',
   'permission_catalog.label.canViewExternalTransfers': 'عرض التحويلات الخارجية',
-  'permission_catalog.label.canReviewExternalTransfers': 'مراجعة التحويلات الخارجية',
+  'permission_catalog.label.canReviewExternalTransfers':
+      'مراجعة التحويلات الخارجية',
   'permission_catalog.label.canViewPublicStores': 'عرض المتاجر العامة',
   'permission_catalog.label.canBuyPublicStoreProducts':
       'الشراء من المتاجر العامة',
@@ -1315,12 +1316,12 @@ const Map<String, String> appStringsAr = {
 
   'screens_inventory_screen.015': 'لا توجد بطاقات في هذا القسم',
 
-  'screens_inventory_screen.016': 'لم يتم العثور على نتائج.',
+  'screens_inventory_screen.016': 'تم إرسال طلب الطباعة.',
 
   'screens_inventory_screen.017':
-      'يمكنك هنا متابعة حالة كل بطاقة وتفاصيلها بشكل مبسط.',
+      'سيتم حذف البطاقة وإرجاع قيمتها إلى رصيد حسابك فوراً.',
 
-  'screens_inventory_screen.018': 'لا توجد بطاقات مطابقة حالياً.',
+  'screens_inventory_screen.018': 'تم حذف البطاقة وإرجاع قيمتها إلى الرصيد.',
   'screens_topup_requests_screen.025': 'راجع طلبات الشحن وحدث حالتها بسرعة.',
   'screens_topup_requests_screen.026': 'هل تريد اعتماد الطلب؟',
   'screens_topup_requests_screen.027':
@@ -1789,31 +1790,31 @@ const Map<String, String> appStringsAr = {
   'widgets_admin_withdrawal_request_card.003': 'تاريخ الطلب: {date}',
   'widgets_admin_withdrawal_request_card.004': 'اعتماد',
   'widgets_admin_withdrawal_request_card.005': 'رفض',
-  'screens_admin_dashboard_screen.003': 'الإحصائيات',
-  'screens_admin_dashboard_screen.004': 'ملخص النشاط التشغيلي',
+  'screens_admin_dashboard_screen.003': 'الإدارة',
+  'screens_admin_dashboard_screen.004': 'طلبات طباعة البطاقات',
   'screens_admin_dashboard_screen.005':
-      'تابع أهم الأرقام اليومية من لوحة واحدة وبطريقة واضحة.',
-  'screens_admin_dashboard_screen.006': 'طلبات اليوم',
+      'راجع الطلب ثم تابع الطباعة والتجهيز حتى الإكمال.',
+  'screens_admin_dashboard_screen.006': 'إدارة العملاء',
   'screens_admin_dashboard_screen.007':
-      'عدد الطلبات التي تم تسجيلها خلال هذا اليوم.',
-  'screens_admin_dashboard_screen.008': 'المستخدمون النشطون',
+      'ابحث عن العملاء وافتح ملفاتهم وأضف مستخدماً جديداً.',
+  'screens_admin_dashboard_screen.008': 'طلبات الأجهزة',
   'screens_admin_dashboard_screen.009':
-      'إجمالي المستخدمين الذين نفذوا عمليات اليوم.',
-  'screens_admin_dashboard_screen.010': 'إجمالي السحب',
+      'راجع طلبات ربط الأجهزة الجديدة واعتمادها.',
+  'screens_admin_dashboard_screen.010': 'طلبات السحب',
   'screens_admin_dashboard_screen.011':
-      'مجموع طلبات السحب التي تمت أو ما زالت قيد المراجعة.',
-  'screens_admin_dashboard_screen.012': 'إجمالي الشحنات',
+      'اعتمد طلبات السحب أو ارفضها من الشاشة المخصصة.',
+  'screens_admin_dashboard_screen.012': 'طلبات الشحن',
   'screens_admin_dashboard_screen.013':
-      'مجموع طلبات الشحن خلال الفترة الحالية.',
-  'screens_admin_dashboard_screen.014': 'آخر التحديثات',
+      'راجع طلبات الشحن واعتمدها أو ارفضها.',
+  'screens_admin_dashboard_screen.014': 'الفروع والمواقع',
   'screens_admin_dashboard_screen.015':
-      'راجع أحدث العمليات والتنبيهات المهمة التي تحتاج متابعة فورية.',
-  'screens_admin_dashboard_screen.016': 'الحالة العامة',
+      'أدر الفروع والمواقع المدعومة من شاشة واحدة.',
+  'screens_admin_dashboard_screen.016': 'إعدادات النظام',
   'screens_admin_dashboard_screen.017':
-      'مؤشرات سريعة تساعدك على متابعة أداء النظام.',
-  'screens_admin_dashboard_screen.018': 'روابط سريعة',
+      'إعدادات التسجيل والدعم والسياسات وطرق الشحن.',
+  'screens_admin_dashboard_screen.018': 'قوالب الصلاحيات',
   'screens_admin_dashboard_screen.019':
-      'انتقل إلى أهم الشاشات الإدارية من هنا بدون خطوات إضافية.',
+      'حدد ما يستطيع كل مستوى عضوية عرضه واستخدامه.',
   'screens_quick_transfer_screen.023': 'أدخل رقم هاتف للبحث عن المستلم.',
   'screens_quick_transfer_screen.024': 'تعذر العثور على المستخدم',
   'screens_quick_transfer_screen.025': 'تعذر تحديد حساب المستلم.',

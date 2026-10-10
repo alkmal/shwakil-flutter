@@ -37,7 +37,7 @@ class CreateCardScreen extends StatefulWidget {
 }
 
 class _CreateCardScreenState extends State<CreateCardScreen> {
-  static const int _cardsPerA4Page = 35;
+  static const int _cardsPerA4Page = PDFService.cardsPerA4Sheet;
   static const double _trialCardsLimit = 100;
   static const int _printTitleMaxLength = 24;
   static const String _lastPrintTitleKey = 'create_card.last_print_title';

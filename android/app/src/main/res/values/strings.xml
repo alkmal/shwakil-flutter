@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">شواكل</string>
+    <string name="external_notification_listener_label">متابعة إشعارات التطبيقات المحددة داخل شواكل</string>
 </resources>

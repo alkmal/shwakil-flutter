@@ -1021,8 +1021,8 @@ class _BalanceScreenState extends State<BalanceScreen>
           if (_tabController.index == 2)
             IconButton(
               tooltip: _showHistoryFilters
-                  ? l.tr('screens_balance_screen.073')
-                  : l.tr('screens_balance_screen.074'),
+                  ? l.text('إخفاء الفلاتر', 'Hide filters')
+                  : l.text('إظهار الفلاتر', 'Show filters'),
               onPressed: () =>
                   setState(() => _showHistoryFilters = !_showHistoryFilters),
               icon: Icon(

@@ -260,7 +260,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   color: AppTheme.textTertiary,
                 ),
                 const SizedBox(height: 14),
-                Text(l.tr('screens_inventory_screen.015'), style: AppTheme.h3),
+                Text(
+                  l.text(
+                    'لا تملك صلاحية عرض مخزون البطاقات.',
+                    'You do not have permission to view card inventory.',
+                  ),
+                  style: AppTheme.h3,
+                ),
               ],
             ),
           ),
@@ -274,7 +280,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         title: Text(l.tr('screens_inventory_screen.001')),
         actions: [
           IconButton(
-            tooltip: l.tr('screens_inventory_screen.018'),
+            tooltip: l.text('بحث وفلاتر البطاقات', 'Card search and filters'),
             onPressed: _openInventoryTools,
             icon: const Icon(Icons.tune_rounded),
           ),
@@ -603,7 +609,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
               const SizedBox(height: 12),
               ToolToggleHint(
-                message: l.tr('screens_inventory_screen.018'),
+                message: l.text(
+                  'لا توجد بطاقات مطابقة حالياً.',
+                  'No matching cards were found.',
+                ),
                 icon: Icons.filter_alt_rounded,
               ),
             ],

@@ -67,6 +67,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   bool _isReadingNfc = false;
   bool _routeSubscribed = false;
   bool _autoScannerOpened = false;
+  bool _scannerDialogOpen = false;
   bool _autoNfcReadStarted = false;
   bool _initialBarcodeHandled = false;
   int _availableOfflineTransferSlots = 0;
@@ -200,10 +201,13 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
       await Future.wait<void>([
         _refreshOfflineCardStatus(),
         _loadOfflineTransferSlotCount(),
-        _ensureOfflineTemporaryTransferSlots(),
-        _syncOfflineNfcPayments(),
       ]);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isPreparingScreen = false);
       _maybeOpenScannerAutomatically();
+      unawaited(_prepareBackgroundScanData());
       if (widget.openTemporaryTransferCreator && mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -225,6 +229,18 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
         setState(() => _isPreparingScreen = false);
         _maybeSearchInitialBarcode();
       }
+    }
+  }
+
+  Future<void> _prepareBackgroundScanData() async {
+    try {
+      await Future.wait<void>([
+        _ensureOfflineTemporaryTransferSlots(),
+        _syncOfflineNfcPayments(),
+      ]);
+    } catch (_) {
+      // Background preparation must not block camera or manual scanning.
+      // Queued work remains available for the periodic retry.
     }
   }
 
@@ -371,6 +387,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
 
   void _maybeOpenScannerAutomatically() {
     if (!mounted ||
+        !_canAccessScanScreen ||
         _autoScannerOpened ||
         !widget.autoOpenScanner ||
         widget.initialBarcode?.isNotEmpty == true) {
@@ -378,7 +395,7 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
     }
     _autoScannerOpened = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
         unawaited(_openScannerDialog());
       }
     });
@@ -2116,32 +2133,40 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
   }
 
   Future<void> _openScannerDialog() async {
-    if (widget.offlineMode && !await _ensureOfflineAccessReady()) {
+    if (_scannerDialogOpen || _isPreparingScreen || !_canAccessScanScreen) {
       return;
     }
-    if (await _promptMoveOnlineIfAvailable(
-      actionLabel: _t('screens_scan_card_screen.077'),
-    )) {
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
+    _scannerDialogOpen = true;
+    try {
+      if (widget.offlineMode && !await _ensureOfflineAccessReady()) {
+        return;
+      }
+      if (await _promptMoveOnlineIfAvailable(
+        actionLabel: _t('screens_scan_card_screen.077'),
+      )) {
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
 
-    final l = context.loc;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (_) => BarcodeScannerDialog(
-        title: l.tr('screens_scan_card_screen.001'),
-        description: l.tr('screens_scan_card_screen.041'),
-        resultTitle: l.tr('screens_scan_card_screen.081'),
-        height: 360,
-        showFrame: true,
-        backgroundColor: Colors.transparent,
-        onScanResolved: _resolveScannerDialogResult,
-      ),
-    );
+      final l = context.loc;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) => BarcodeScannerDialog(
+          title: l.tr('screens_scan_card_screen.001'),
+          description: l.tr('screens_scan_card_screen.041'),
+          resultTitle: l.tr('screens_scan_card_screen.081'),
+          height: 360,
+          showFrame: true,
+          backgroundColor: Colors.transparent,
+          onScanResolved: _resolveScannerDialogResult,
+        ),
+      );
+    } finally {
+      _scannerDialogOpen = false;
+    }
   }
 
   Future<void> _readNfcFromUnifiedScanner() async {
@@ -2369,7 +2394,10 @@ class _ScanCardScreenState extends State<ScanCardScreen> with RouteAware {
           )
           .toList();
       await prefs.setString(queueKey, jsonEncode(stillPending));
-      if (!mounted || synced == 0) {
+      if (!mounted ||
+          synced == 0 ||
+          _scannerDialogOpen ||
+          ModalRoute.of(context)?.isCurrent != true) {
         return;
       }
       final l = context.loc;

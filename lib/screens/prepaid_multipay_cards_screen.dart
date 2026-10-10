@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
+import '../utils/card_print_layout.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
@@ -1189,13 +1190,15 @@ class _PrepaidMultipayCardsScreenState
       final status = _statusLabel(card['status']?.toString() ?? 'active');
       final logoImage = _pdfLogoImage;
       final pdf = pw.Document();
-      const cardWidth = 85.6 * PdfPageFormat.mm;
-      const cardHeight = 53.98 * PdfPageFormat.mm;
+      final cardWidth = CardPrintLayout.cardWidth;
+      final cardHeight = CardPrintLayout.cardHeight;
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(8 * PdfPageFormat.mm),
+          margin: const pw.EdgeInsets.all(
+            CardPrintLayout.margin + CardPrintLayout.cutGap,
+          ),
           theme: pw.ThemeData.withFont(
             base: _pdfRegularFont!,
             bold: _pdfBoldFont!,
@@ -1227,6 +1230,8 @@ class _PrepaidMultipayCardsScreenState
       );
 
       await Printing.layoutPdf(
+        format: PdfPageFormat.a4,
+        dynamicLayout: false,
         onLayout: (_) async => pdf.save(),
         name: 'prepaid_multipay_card_${card['id'] ?? ''}',
       );
@@ -1265,16 +1270,23 @@ class _PrepaidMultipayCardsScreenState
     try {
       await _ensurePdfFonts();
       final pdf = pw.Document();
-      const cardWidth = 85.6 * PdfPageFormat.mm;
-      const cardHeight = 53.98 * PdfPageFormat.mm;
+      final cardWidth = CardPrintLayout.cardWidth;
+      final cardHeight = CardPrintLayout.cardHeight;
 
-      for (var start = 0; start < selectedCards.length; start += 10) {
-        final end = (start + 10).clamp(0, selectedCards.length);
+      for (
+        var start = 0;
+        start < selectedCards.length;
+        start += CardPrintLayout.cardsPerSheet
+      ) {
+        final end = (start + CardPrintLayout.cardsPerSheet).clamp(
+          0,
+          selectedCards.length,
+        );
         final pageCards = selectedCards.sublist(start, end);
         pdf.addPage(
           pw.Page(
             pageFormat: PdfPageFormat.a4,
-            margin: const pw.EdgeInsets.all(5 * PdfPageFormat.mm),
+            margin: const pw.EdgeInsets.all(CardPrintLayout.margin),
             theme: pw.ThemeData.withFont(
               base: _pdfRegularFont!,
               bold: _pdfBoldFont!,
@@ -1293,6 +1305,8 @@ class _PrepaidMultipayCardsScreenState
       }
 
       await Printing.layoutPdf(
+        format: PdfPageFormat.a4,
+        dynamicLayout: false,
         onLayout: (_) async => pdf.save(),
         name: 'prepaid_cards_a4_${DateTime.now().millisecondsSinceEpoch}',
       );
@@ -1336,15 +1350,15 @@ class _PrepaidMultipayCardsScreenState
         .toList(growable: false);
 
     final rows = <pw.TableRow>[];
-    for (var row = 0; row < 5; row++) {
+    for (var row = 0; row < CardPrintLayout.rows; row++) {
       final children = <pw.Widget>[];
-      for (var column = 0; column < 2; column++) {
-        final index = row * 2 + column;
+      for (var column = 0; column < CardPrintLayout.columns; column++) {
+        final index = row * CardPrintLayout.columns + column;
         children.add(
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(
-              horizontal: 2 * PdfPageFormat.mm,
-              vertical: 1.3 * PdfPageFormat.mm,
+              horizontal: CardPrintLayout.cutGap,
+              vertical: CardPrintLayout.cutGap,
             ),
             child: index < cardWidgets.length
                 ? cardWidgets[index]
@@ -1357,8 +1371,8 @@ class _PrepaidMultipayCardsScreenState
 
     return pw.Table(
       columnWidths: {
-        0: pw.FixedColumnWidth(cardWidth + 4 * PdfPageFormat.mm),
-        1: pw.FixedColumnWidth(cardWidth + 4 * PdfPageFormat.mm),
+        for (var column = 0; column < CardPrintLayout.columns; column++)
+          column: pw.FixedColumnWidth(CardPrintLayout.cellWidth),
       },
       children: rows,
     );
@@ -1380,6 +1394,106 @@ class _PrepaidMultipayCardsScreenState
     required String status,
     required double maxReloadAmount,
   }) {
+    if (width < 50 * PdfPageFormat.mm) {
+      pw.Widget text(String value, double size, {bool bold = false}) =>
+          pw.FittedBox(
+            fit: pw.BoxFit.scaleDown,
+            child: pw.Text(
+              value,
+              maxLines: 1,
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(
+                font: bold ? _pdfBoldFont : _pdfRegularFont,
+                fontSize: size,
+                color: const PdfColor.fromInt(0xFF16302B),
+              ),
+            ),
+          );
+      return pw.Container(
+        width: width,
+        height: height,
+        padding: const pw.EdgeInsets.all(3),
+        decoration: pw.BoxDecoration(
+          color: const PdfColor.fromInt(0xFFFFF8EC),
+          border: pw.Border.all(color: const PdfColor.fromInt(0xFF0F766E)),
+          borderRadius: pw.BorderRadius.circular(4),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            pw.SizedBox(
+              height: 10,
+              child: text('شواكل - بطاقة دفع مسبق', 5.5, bold: true),
+            ),
+            pw.SizedBox(
+              height: 35,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  if (logoImage != null)
+                    pw.Image(
+                      logoImage,
+                      width: 34,
+                      height: 34,
+                      fit: pw.BoxFit.contain,
+                    ),
+                  pw.SizedBox(width: 3),
+                  pw.Expanded(
+                    child: text(
+                      balance.replaceAll(RegExp(r'[\u2066\u2069]'), ''),
+                      16,
+                      bold: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 7, child: text(label, 4.5)),
+            pw.SizedBox(
+              height: 7,
+              child: pw.FittedBox(
+                child: pw.Text(
+                  rawNumber,
+                  textDirection: pw.TextDirection.ltr,
+                  style: pw.TextStyle(
+                    font: pw.Font.courierBold(),
+                    fontSize: 5.5,
+                  ),
+                ),
+              ),
+            ),
+            pw.Container(
+              height: 20,
+              padding: const pw.EdgeInsets.all(2),
+              color: PdfColors.white,
+              child: pw.BarcodeWidget(
+                barcode: pw.Barcode.code128(),
+                data: rawNumber,
+                drawText: false,
+              ),
+            ),
+            pw.SizedBox(
+              height: 8,
+              child: text('ينتهي: $expiry', 5, bold: true),
+            ),
+            pw.Spacer(),
+            pw.SizedBox(height: 6, child: text(ownerName, 4.5)),
+            pw.SizedBox(
+              height: 7,
+              child: pw.Center(
+                child: pw.Text(
+                  'shwakil.alkmal.com',
+                  style: pw.TextStyle(
+                    font: pw.Font.helveticaBold(),
+                    fontSize: 4.8,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final cleanNumber = rawNumber.replaceAll(RegExp(r'\D+'), '');
     final barcodeData = cleanNumber.isNotEmpty ? cleanNumber : scanPayload;
     final maxReload = maxReloadAmount > 0
@@ -2792,10 +2906,7 @@ class _PrepaidMultipayCardsScreenState
           if (_printSelection.isNotEmpty && !_isShowingOfflineCards)
             IconButton(
               onPressed: _printSelectedPrepaidCards,
-              tooltip: l.text(
-                'طباعة 10 بطاقات لكل A4',
-                'Print 10 cards per A4',
-              ),
+              tooltip: l.text('طباعة 35 بطاقة لكل A4', 'Print 35 cards per A4'),
               icon: Badge(
                 label: Text('${_printSelection.length}'),
                 child: const Icon(Icons.print_rounded),

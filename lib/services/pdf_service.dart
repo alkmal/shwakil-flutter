@@ -12,6 +12,8 @@ import 'package:printing/printing.dart';
 import '../models/index.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/card_print_layout.dart';
+import '../utils/card_denomination_color.dart';
 
 class CardDesignSettings {
   bool showLogo;
@@ -52,12 +54,12 @@ class _DenominationPalette {
 
 class PDFService {
   static final PDFService _instance = PDFService._internal();
-  static const int cardsPerA4Sheet = 90;
+  static const int cardsPerA4Sheet = CardPrintLayout.cardsPerSheet;
   static const int _cardsPerPage = cardsPerA4Sheet;
-  static const int _rowsPerPage = 18;
-  static const int _columnsPerPage = 5;
-  static const double _a4PagePrintMargin = 2.5 * PdfPageFormat.mm;
-  static const double _cardCutGap = 0.35 * PdfPageFormat.mm;
+  static const int _rowsPerPage = CardPrintLayout.rows;
+  static const int _columnsPerPage = CardPrintLayout.columns;
+  static const double _a4PagePrintMargin = CardPrintLayout.margin;
+  static const double _cardCutGap = CardPrintLayout.cutGap;
   static const PdfColor _pageBackground = PdfColor.fromInt(0xFFF8FAFC);
   static const PdfColor _cardBackground = PdfColor.fromInt(0xFFFFF8EC);
   static const PdfColor _titleColor = PdfColor.fromInt(0xFF16302B);
@@ -134,7 +136,9 @@ class PDFService {
 
     if (logoUrl.isNotEmpty) {
       try {
-        final response = await http.get(Uri.parse(logoUrl));
+        final response = await http
+            .get(Uri.parse(logoUrl))
+            .timeout(const Duration(seconds: 8));
         if (response.statusCode >= 200 && response.statusCode < 300) {
           _accountLogoImage = pw.MemoryImage(
             Uint8List.fromList(response.bodyBytes),
@@ -176,9 +180,20 @@ class PDFService {
   }
 
   _DenominationPalette _paletteForCard(VirtualCard card) {
-    final roundedValue = card.value.round();
-    final index = roundedValue > 0 ? (roundedValue - 1) % _palettes.length : 0;
-    return _palettes[index];
+    final color = CardDenominationColor.forValue(card.value);
+    final primary = PdfColor.fromInt(color.toARGB32());
+    PdfColor tint(double white) => PdfColor(
+      primary.red * (1 - white) + white,
+      primary.green * (1 - white) + white,
+      primary.blue * (1 - white) + white,
+    );
+    return _DenominationPalette(
+      primary: primary,
+      value: primary,
+      soft: tint(.92),
+      border: tint(.55),
+      accent: tint(.25),
+    );
   }
 
   String _resolvedStampText() {
@@ -404,7 +419,7 @@ class PDFService {
     final logoSize = compact ? 34.0 : 72.0;
     final titleFontSize = isTicket
         ? (compact ? 6.6 : 12.0)
-        : (compact ? 12.2 : 23.0);
+        : (compact ? 19.0 : 23.0);
     final logoImage = _accountLogoImage ?? _defaultLogoImage;
 
     return pw.Container(
@@ -669,6 +684,9 @@ class PDFService {
     List<VirtualCard> cards, {
     String? printedBy,
   }) async {
+    if (cards.isEmpty) {
+      throw ArgumentError('لا توجد بطاقات للطباعة.');
+    }
     await _ensureFontsLoaded();
     final pdf = pw.Document();
     for (int i = 0; i < cards.length; i += _cardsPerPage) {
@@ -705,7 +723,7 @@ class PDFService {
   }
 
   /// Creates a single-page A4 PDF that renders the exact same "small card"
-  /// layout used inside the 90-cards-per-page sheet. This is used for an
+  /// layout used inside the 35-cards-per-page sheet. This is used for an
   /// accurate on-screen preview (rasterized from this PDF) so the user sees
   /// exactly what will be printed.
   Future<pw.Document> createSmallCardSheetPreviewPDF(
@@ -789,177 +807,125 @@ class PDFService {
   }) {
     final palette = _paletteForCard(card);
     final isPrivate = _isVisuallyPrivate(card);
-    final logoImage = _defaultLogoImage;
-    final barcodeValue = card.barcode.trim().isEmpty
-        ? 'NO-BARCODE'
-        : card.barcode.trim();
-    final badgeColor = isPrivate
-        ? const PdfColor.fromInt(0xFFBE123C)
-        : const PdfColor.fromInt(0xFF047857);
-    final badgeBackground = isPrivate
-        ? const PdfColor.fromInt(0xFFFFE4E6)
-        : const PdfColor.fromInt(0xFFD1FAE5);
-    final badgeText = isPrivate
-        ? 'خاصة • استخدام'
-        : _isBalanceCard(card)
-        ? 'عامة • رصيد'
-        : _cardBadgeLabel(card);
+    final origin = (printedBy ?? '').trim();
+    pw.Widget line(String text, {double size = 4.5, PdfColor? color}) =>
+        pw.FittedBox(
+          fit: pw.BoxFit.scaleDown,
+          child: pw.Text(
+            text,
+            maxLines: 1,
+            textDirection: _textDirectionFor(text),
+            style: _textStyle(fontSize: size, color: color),
+          ),
+        );
 
     return pw.Container(
       width: double.infinity,
       height: double.infinity,
       decoration: pw.BoxDecoration(
-        color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(2.2),
-        border: pw.Border.all(color: palette.border, width: 0.55),
+        color: _cardBackground,
+        borderRadius: pw.BorderRadius.circular(4),
+        border: pw.Border.all(color: palette.border, width: 0.8),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Container(height: 1.6, color: badgeColor),
+          pw.Container(height: 2.4, color: palette.primary),
           pw.Expanded(
             child: pw.Padding(
-              padding: const pw.EdgeInsets.fromLTRB(2.2, 1.4, 2.2, 1.2),
+              padding: const pw.EdgeInsets.fromLTRB(3.4, 2, 3.4, 2),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  pw.SizedBox(
-                    height: 9.5,
-                    child: pw.Row(
-                      children: [
-                        if (logoImage != null)
-                          _buildHeaderLogoBox(
-                            logoImage,
-                            size: 9.5,
-                            compact: true,
-                          )
-                        else
-                          pw.Text(
-                            _fallbackBrandName,
-                            style: _textStyle(
-                              fontSize: 4.7,
-                              bold: true,
-                              color: palette.primary,
-                            ),
-                          ),
-                        pw.SizedBox(width: 1.8),
-                        pw.Expanded(
-                          child: pw.FittedBox(
-                            fit: pw.BoxFit.scaleDown,
-                            alignment: pw.Alignment.centerLeft,
-                            child: pw.Text(
-                              _brandName(printedBy),
-                              maxLines: 1,
-                              textDirection: _textDirectionFor(
-                                _brandName(printedBy),
-                              ),
-                              style: _textStyle(
-                                fontSize: 4.1,
-                                bold: true,
-                                color: _titleColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        pw.SizedBox(width: 1.5),
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(
-                            horizontal: 2.3,
-                            vertical: 1.1,
-                          ),
-                          decoration: pw.BoxDecoration(
-                            color: badgeBackground,
-                            borderRadius: pw.BorderRadius.circular(3),
-                            border: pw.Border.all(
-                              color: badgeColor,
-                              width: 0.35,
-                            ),
-                          ),
-                          child: pw.Text(
-                            badgeText,
-                            maxLines: 1,
-                            textDirection: pw.TextDirection.rtl,
-                            style: _textStyle(
-                              fontSize: 3.6,
-                              bold: true,
-                              color: badgeColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                  pw.Container(
+                    height: 10,
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 3),
+                    decoration: pw.BoxDecoration(
+                      color: isPrivate
+                          ? const PdfColor.fromInt(0xFFFFE4E6)
+                          : palette.soft,
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: line(
+                      'شواكل - ${_cardBadgeLabel(card)}',
+                      size: 5.1,
+                      color: isPrivate
+                          ? const PdfColor.fromInt(0xFFBE123C)
+                          : palette.primary,
                     ),
                   ),
-                  pw.SizedBox(height: 0.7),
+                  pw.SizedBox(height: 1),
+                  _cardTitleWithLogo(card, palette, compact: true),
+                  if (card.validUntil == null)
+                    pw.SizedBox(
+                      height: 5,
+                      child: line(_internalUseLabel(card), size: 3.8),
+                    ),
+                  _cardBarcodeBlock(
+                    card,
+                    palette,
+                    compact: true,
+                    serialNumber: serialNumber,
+                  ),
+                  if (designSettings.showStamp) ...[
+                    pw.SizedBox(height: 4),
+                    pw.SizedBox(
+                      height: 14,
+                      child: pw.Center(
+                        child: pw.Transform.rotate(
+                          angle: -0.14,
+                          child: pw.Container(
+                            width: 72,
+                            height: 11,
+                            padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 3,
+                              vertical: 1,
+                            ),
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(
+                                color: const PdfColor.fromInt(0xFF991B1B),
+                                width: .8,
+                              ),
+                              borderRadius: pw.BorderRadius.circular(2),
+                            ),
+                            child: line(
+                              _isBalanceCard(card)
+                                  ? _resolvedStampText()
+                                  : _trustedDigitalCardText,
+                              size: 5.5,
+                              color: const PdfColor.fromInt(0xFF991B1B),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  pw.Spacer(),
                   pw.SizedBox(
-                    height: 8.2,
-                    child: pw.FittedBox(
-                      fit: pw.BoxFit.scaleDown,
+                    height: 6,
+                    child: line(
+                      'الجهة: ${origin.isEmpty ? _brandName(printedBy) : origin}',
+                      color: palette.primary,
+                    ),
+                  ),
+                  if (card.validUntil != null)
+                    pw.SizedBox(
+                      height: 6,
+                      child: line('صالح حتى: ${_dateLabel(card.validUntil!)}'),
+                    ),
+                  pw.SizedBox(
+                    height: 7,
+                    child: pw.Center(
                       child: pw.Text(
-                        _cardTitle(card),
-                        maxLines: 1,
-                        textAlign: pw.TextAlign.center,
-                        textDirection: _cardTitleDirection(card),
-                        style: _textStyle(
-                          fontSize: _isTicketCard(card) ? 5.2 : 8.2,
-                          bold: true,
-                          color: _isTicketCard(card)
-                              ? palette.primary
-                              : palette.value,
-                          font: _isTicketCard(card) ? null : _latinBoldFont,
-                        ),
-                      ),
-                    ),
-                  ),
-                  pw.SizedBox(height: 0.7),
-                  pw.Expanded(
-                    child: pw.Container(
-                      padding: const pw.EdgeInsets.fromLTRB(1.4, 0.8, 1.4, 0.5),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        borderRadius: pw.BorderRadius.circular(1.8),
-                        border: pw.Border.all(
-                          color: const PdfColor.fromInt(0xFFCBD5E1),
-                          width: 0.35,
-                        ),
-                      ),
-                      child: pw.BarcodeWidget(
-                        barcode: pw.Barcode.code128(),
-                        data: barcodeValue,
-                        drawText: false,
-                        color: PdfColors.black,
-                        backgroundColor: PdfColors.white,
-                      ),
-                    ),
-                  ),
-                  pw.SizedBox(height: 0.45),
-                  pw.Row(
-                    children: [
-                      pw.Expanded(
-                        child: pw.Text(
-                          barcodeValue,
-                          maxLines: 1,
-                          textAlign: pw.TextAlign.left,
-                          textDirection: pw.TextDirection.ltr,
-                          style: _textStyle(
-                            fontSize: 3.4,
-                            bold: true,
-                            color: PdfColors.black,
-                            font: pw.Font.courierBold(),
-                          ),
-                        ),
-                      ),
-                      pw.Text(
-                        '#${serialNumber.toString().padLeft(3, '0')} • $_appDomain',
-                        maxLines: 1,
-                        textAlign: pw.TextAlign.right,
+                        _appDomain,
                         textDirection: pw.TextDirection.ltr,
                         style: _textStyle(
-                          fontSize: 4.2,
-                          color: const PdfColor.fromInt(0xFF64748B),
-                          font: _latinRegularFont,
+                          fontSize: 4.8,
+                          bold: true,
+                          font: _latinBoldFont,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -972,13 +938,13 @@ class PDFService {
 
   Future<void> printCards(List<VirtualCard> cards, {String? printedBy}) async {
     final pdf = await createMultiCardPDF(cards, printedBy: printedBy);
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+    await printPdfBytes(await pdf.save());
   }
 
   Future<void> printPdfBytes(Uint8List pdfBytes) async {
     await Printing.layoutPdf(
+      format: PdfPageFormat.a4,
+      dynamicLayout: false,
       onLayout: (PdfPageFormat format) async => pdfBytes,
     );
   }
