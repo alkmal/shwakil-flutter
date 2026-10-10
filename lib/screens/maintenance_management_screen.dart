@@ -328,6 +328,7 @@ class _MaintenanceManagementScreenState
   Widget _dashboard() => ListView(
     children: [
       Wrap(
+        alignment: WrapAlignment.center,
         spacing: 10,
         runSpacing: 10,
         children: [
