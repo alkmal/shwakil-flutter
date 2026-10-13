@@ -373,7 +373,7 @@ class _AppSidebarState extends State<AppSidebar> {
                   _buildMenuSection(
                     label: l.tr('widgets_app_sidebar.006'),
                     children: [
-                      if (!isPrimaryTrader && canIssueCards)
+                      if (canIssueCards)
                         _buildItem(
                           context,
                           icon: Icons.add_card_rounded,
@@ -383,7 +383,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                           routeName: '/create-card-quick',
                         ),
-                      if (!isPrimaryTrader && canIssueCards)
+                      if (canIssueCards)
                         _buildItem(
                           context,
                           icon: Icons.library_add_rounded,
@@ -395,44 +395,45 @@ class _AppSidebarState extends State<AppSidebar> {
                         _buildItem(
                           context,
                           icon: Icons.camera_alt_rounded,
-                          title: l.text('فتح الكاميرا', 'Open camera'),
+                          title: l.text(
+                            'فحص بطاقة بالكاميرا',
+                            'Scan card with camera',
+                          ),
                           routeName: isOfflineMode
                               ? '/scan-card-offline-camera'
                               : '/scan-card-camera',
                         ),
-                      if (!isPrimaryTrader &&
-                          permissions.canManageSubscriptions)
+                      if (permissions.canManageSubscriptions)
                         _buildItem(
                           context,
                           icon: Icons.event_repeat_rounded,
                           title: l.text('إدارة الاشتراكات', 'Subscriptions'),
                           routeName: '/subscriptions',
                         ),
-                      if (!isPrimaryTrader && permissions.canOfflineCardScan)
+                      if (permissions.canOfflineCardScan)
                         _buildItem(
                           context,
                           icon: Icons.cloud_sync_rounded,
                           title: l.tr('widgets_app_sidebar.053'),
                           routeName: '/offline-sync',
                         ),
-                      if (!isPrimaryTrader && canViewInventory && canIssueCards)
+                      if (canViewInventory && canIssueCards)
                         _buildItem(
                           context,
                           icon: Icons.layers_rounded,
                           title: l.text('مخزون البطاقات', 'Card inventory'),
                           routeName: '/inventory',
                         ),
-                      if (!isPrimaryTrader && canRequestCardPrinting)
+                      if (canRequestCardPrinting)
                         _buildItem(
                           context,
                           icon: Icons.print_rounded,
                           title: l.tr('widgets_app_sidebar.007'),
                           routeName: '/card-print-requests',
                         ),
-                      if (!isPrimaryTrader &&
-                          (canIssueCards ||
-                              canRequestCardPrinting ||
-                              canViewInventory))
+                      if (canIssueCards ||
+                          canRequestCardPrinting ||
+                          canViewInventory)
                         _buildItem(
                           context,
                           icon: Icons.analytics_rounded,
@@ -442,21 +443,21 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                           routeName: '/card-usage-report',
                         ),
-                      if (!isPrimaryTrader && canOpenPrepaidMultipayCards)
+                      if (canOpenPrepaidMultipayCards)
                         _buildItem(
                           context,
                           icon: Icons.contactless_rounded,
                           title: l.tr('widgets_app_sidebar.049'),
                           routeName: '/prepaid-multipay-cards',
                         ),
-                      if (!isPrimaryTrader && canOpenExternalCardStore)
+                      if (canOpenExternalCardStore)
                         _buildItem(
                           context,
                           icon: Icons.storefront_rounded,
                           title: l.text('متجر البطاقات', 'Card store'),
                           routeName: '/external-card-store',
                         ),
-                      if (!isPrimaryTrader && canViewPublicStores)
+                      if (canViewPublicStores)
                         _buildItem(
                           context,
                           icon: Icons.store_mall_directory_rounded,

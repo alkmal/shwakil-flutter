@@ -936,8 +936,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   List<_HomeServiceItem> _prioritizeServices(List<_HomeServiceItem> services) {
     const priority = <_HomeServiceKind, int>{
-      _HomeServiceKind.scan: 0,
-      _HomeServiceKind.createCard: 1,
+      _HomeServiceKind.createCard: 0,
+      _HomeServiceKind.scan: 1,
       _HomeServiceKind.balance: 2,
       _HomeServiceKind.prepaidMultipay: 3,
       _HomeServiceKind.storeManagement: 4,
@@ -1696,9 +1696,119 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         const SizedBox(height: 12),
         if (!_isVerifiedUser) _buildAccountVerificationReminder(),
         if (!_isVerifiedUser) const SizedBox(height: 12),
+        if (_canOpenCardTools) ...[
+          _buildQuickScanAndCardActions(context),
+          const SizedBox(height: 12),
+        ],
         const SizedBox(height: 6),
         _buildServicesSection(listServices),
       ],
+    );
+  }
+
+  Widget _buildQuickScanAndCardActions(BuildContext context) {
+    final l = context.loc;
+    final canIssueCards = AppPermissions.fromUser(_user).canIssueCards;
+
+    return ShwakelCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(24),
+      shadowLevel: ShwakelShadowLevel.medium,
+      borderColor: AppTheme.primary.withValues(alpha: 0.16),
+      color: AppTheme.primary.withValues(alpha: 0.04),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 560;
+
+          final iconBox = Container(
+            width: isCompact ? 50 : 56,
+            height: isCompact ? 50 : 56,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.camera_alt_rounded,
+              color: AppTheme.primary,
+              size: 26,
+            ),
+          );
+
+          final textBlock = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l.text('فحص بطاقة بالكاميرا', 'Scan card with camera'),
+                style: AppTheme.bodyBold.copyWith(fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l.text(
+                  'افتح الكاميرا لقراءة الباركود فورًا أو أدخل البطاقة السريعة.',
+                  'Open camera to scan barcode directly or create a quick card.',
+                ),
+                style: AppTheme.caption.copyWith(
+                  color: AppTheme.textSecondary,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          );
+
+          final scanButton = ShwakelButton(
+            label: l.text('فتح الكاميرا', 'Open camera'),
+            icon: Icons.camera_alt_rounded,
+            onPressed: _openScanScreen,
+          );
+
+          final quickCreateButton = canIssueCards
+              ? ShwakelButton(
+                  label: l.text('إنشاء بطاقة سريعة', 'Quick card'),
+                  icon: Icons.add_card_rounded,
+                  isSecondary: true,
+                  onPressed: () =>
+                      unawaited(_openOnlineOnlyRoute('/create-card-quick')),
+                )
+              : null;
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    iconBox,
+                    const SizedBox(width: 12),
+                    Expanded(child: textBlock),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(width: double.infinity, child: scanButton),
+                if (quickCreateButton != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(width: double.infinity, child: quickCreateButton),
+                ],
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              iconBox,
+              const SizedBox(width: 14),
+              Expanded(child: textBlock),
+              const SizedBox(width: 14),
+              if (quickCreateButton != null) ...[
+                quickCreateButton,
+                const SizedBox(width: 8),
+              ],
+              scanButton,
+            ],
+          );
+        },
+      ),
     );
   }
 

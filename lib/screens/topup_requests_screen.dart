@@ -39,6 +39,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   bool _isRefreshing = false;
   bool _isAuthorized = false;
   bool _isPrincipalAdmin = false;
+  bool _showFilters = false;
   String? _busyId;
   _TopupStatusFilter _filter = _TopupStatusFilter.all;
   _AccountingFilter _accountingFilter = _AccountingFilter.all;
@@ -207,7 +208,21 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_topup_requests_screen.002')),
-        actions: [const AppNotificationAction(), const QuickLogoutAction()],
+        actions: [
+          IconButton(
+            tooltip: _showFilters
+                ? l.text('إخفاء الفلاتر', 'Hide filters')
+                : l.text('الفلاتر', 'Filters'),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
@@ -251,51 +266,36 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         .where((item) => item['status']?.toString() == 'pending')
         .length;
     return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.add_card_rounded, color: AppTheme.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  context.loc.tr('screens_topup_requests_screen.002'),
-                  style: AppTheme.bodyBold,
-                ),
+              const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                context.loc.text('الملخص', 'Summary'),
+                style: AppTheme.bodyBold,
               ),
+              const Spacer(),
               IconButton(
                 tooltip: 'تقارير التحويلات',
                 onPressed: _showTransferReport,
-                icon: const Icon(Icons.bar_chart_rounded),
+                icon: const Icon(Icons.bar_chart_rounded, size: 20),
               ),
               IconButton(
                 tooltip: 'تصدير التقرير',
                 onPressed: _exportTransferReport,
-                icon: const Icon(Icons.download_rounded),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$_totalRequests',
-                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
-                ),
+                icon: const Icon(Icons.download_rounded, size: 20),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _buildOverviewChip(
                 context.loc.tr('screens_topup_requests_screen.038'),
@@ -339,17 +339,19 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
           const SizedBox(height: 12),
         ],
         _buildOverviewCard(),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.border),
+        if (_showFilters) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: _buildFilterBar(),
           ),
-          child: _buildFilterBar(),
-        ),
+        ],
       ],
     );
   }

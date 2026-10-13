@@ -30,6 +30,7 @@ class _IssuedCardUsageReportScreenState
   String _scope = 'all';
   int _page = 1;
   int _lastPage = 1;
+  Map<String, dynamic> _summary = const {};
   List<Map<String, dynamic>> _items = const [];
   StateSetter? _toolsSetState;
 
@@ -80,6 +81,9 @@ class _IssuedCardUsageReportScreenState
     if (!mounted) return;
     setState(() {
       _authorized = true;
+      _summary = Map<String, dynamic>.from(
+        payload['summary'] as Map? ?? const {},
+      );
       _items = List<Map<String, dynamic>>.from(
         (payload['items'] as List? ?? const []).map(
           (item) => Map<String, dynamic>.from(item as Map),
@@ -129,23 +133,92 @@ class _IssuedCardUsageReportScreenState
                     ),
                   ],
                 )
-              : _items.isEmpty
-              ? ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [_emptyState()],
-                )
               : ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: _items.length + 1,
+                  itemCount: _items.length + (_summary.isNotEmpty ? 2 : 1),
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    if (index < _items.length) {
-                      return _row(_items[index]);
+                    if (_summary.isNotEmpty && index == 0) {
+                      return _summaryGrid();
+                    }
+                    final adjustedIndex = _summary.isNotEmpty ? index - 1 : index;
+                    if (_items.isEmpty) {
+                      return _emptyState();
+                    }
+                    if (adjustedIndex < _items.length) {
+                      return _row(_items[adjustedIndex]);
                     }
                     return _pagination();
                   },
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryGrid() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _metric(
+          'إجمالي البطاقات',
+          _int('totalCards'),
+          Icons.credit_card_rounded,
+        ),
+        _metric('المستخدمة', _int('usedCards'), Icons.task_alt_rounded),
+        _metric('المستخدمة اليوم', _int('usedToday'), Icons.today_rounded),
+        _metric(
+          'قيمة مستخدمة',
+          CurrencyFormatter.ils(
+            (_summary['usedAmount'] as num?)?.toDouble() ?? 0,
+          ),
+          Icons.payments_rounded,
+          isText: true,
+        ),
+      ],
+    );
+  }
+
+  String _int(String key) => '${(_summary[key] as num?)?.toInt() ?? 0}';
+
+  Widget _metric(
+    String label,
+    String value,
+    IconData icon, {
+    bool isText = false,
+  }) {
+    return SizedBox(
+      width: 170,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderLight),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppTheme.primary, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label, style: AppTheme.caption),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: isText
+                        ? AppTheme.bodyBold.copyWith(fontSize: 13)
+                        : AppTheme.h3.copyWith(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

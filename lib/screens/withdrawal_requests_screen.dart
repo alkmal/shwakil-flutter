@@ -35,6 +35,7 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
   bool _isLoading = true;
   bool _isRefreshing = false;
   bool _isAuthorized = false;
+  bool _showFilters = false;
   String? _busyId;
   _StatusFilter _filter = _StatusFilter.all;
   int _page = 1;
@@ -193,7 +194,21 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(l.tr('screens_withdrawal_requests_screen.001')),
-        actions: [const AppNotificationAction(), const QuickLogoutAction()],
+        actions: [
+          IconButton(
+            tooltip: _showFilters
+                ? l.text('إخفاء الفلاتر', 'Hide filters')
+                : l.text('الفلاتر', 'Filters'),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          const AppNotificationAction(),
+          const QuickLogoutAction(),
+        ],
       ),
       drawer: AppSidebar.drawerFor(context),
       body: RefreshIndicator(
@@ -237,25 +252,24 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
         .where((item) => item['status']?.toString() == 'pending')
         .length;
     return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.outbox_rounded, color: AppTheme.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  context.loc.tr('screens_withdrawal_requests_screen.001'),
-                  style: AppTheme.bodyBold,
-                ),
+              const Icon(Icons.outbox_rounded, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                context.loc.text('الملخص', 'Summary'),
+                style: AppTheme.bodyBold,
               ),
+              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: 10,
+                  vertical: 6,
                 ),
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.08),
@@ -263,15 +277,15 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
                 ),
                 child: Text(
                   '$_totalRequests',
-                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
+                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary, fontSize: 13),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _buildOverviewChip(
                 context.loc.tr('screens_withdrawal_requests_screen.035'),
@@ -315,17 +329,19 @@ class _WithdrawalRequestsScreenState extends State<WithdrawalRequestsScreen> {
           const SizedBox(height: 12),
         ],
         _buildOverviewCard(),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.border),
+        if (_showFilters) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: _buildFilterBar(),
           ),
-          child: _buildFilterBar(),
-        ),
+        ],
       ],
     );
   }

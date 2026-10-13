@@ -36,6 +36,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   bool _canManageUsers = false;
   bool _canManageMarketingAccounts = false;
   bool _showSummaryInline = false;
+  bool _showSearch = false;
   String? _loadError;
   String? _resendBusyId;
   String? _otpBusyId;
@@ -661,8 +662,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   child: LinearProgressIndicator(minHeight: 3),
                 ),
               _buildPageHeader(totalCustomers),
-              const SizedBox(height: 16),
-              _buildSearchPanel(totalCustomers),
+              if (_showSearch || _searchController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSearchPanel(totalCustomers),
+              ],
               if (_showSummaryInline) ...[
                 const SizedBox(height: 16),
                 _buildOverviewCard(totalCustomers),
@@ -757,9 +760,18 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         ),
       ),
       IconButton(
-        tooltip: l.tr('screens_admin_customers_screen.040'),
-        onPressed: () => _searchFocusNode.requestFocus(),
-        icon: const Icon(Icons.search_rounded),
+        tooltip: _showSearch
+            ? l.text('إخفاء البحث', 'Hide search')
+            : l.tr('screens_admin_customers_screen.040'),
+        onPressed: () {
+          setState(() => _showSearch = !_showSearch);
+          if (_showSearch) {
+            _searchFocusNode.requestFocus();
+          }
+        },
+        icon: Icon(
+          _showSearch ? Icons.search_off_rounded : Icons.search_rounded,
+        ),
       ),
       if (_canManageUsers)
         IconButton(
@@ -780,7 +792,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   void _handleAppBarAction(String action) {
     switch (action) {
       case 'search':
-        _searchFocusNode.requestFocus();
+        setState(() => _showSearch = !_showSearch);
+        if (_showSearch) {
+          _searchFocusNode.requestFocus();
+        }
         break;
       case 'summary':
         _toggleSummary();
