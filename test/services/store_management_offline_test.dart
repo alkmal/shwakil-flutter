@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -163,6 +165,53 @@ void main() {
     expect((snapshot['payments'] as List).first['amount'], 30.0);
     expect((snapshot['parties'] as List).first['receivableBalance'], 0.0);
   });
+
+  test(
+    'offline supplier payment queues when purchase balance is hidden',
+    () async {
+      final service = StoreManagementService();
+      const userId = 'offline-hidden-purchase-payment-user';
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        'store_management_snapshot_$userId',
+        jsonEncode({
+          'invoices': [
+            {
+              'id': 'purchase-1',
+              'clientRef': 'purchase-ref',
+              'type': 'purchase',
+              'partyId': 'supplier-1',
+              'total': null,
+              'paidAmount': null,
+              'dueAmount': null,
+              'paymentStatus': 'partial',
+            },
+          ],
+          'payments': <Map<String, dynamic>>[],
+          'parties': [
+            {'id': 'supplier-1', 'payableBalance': 10.0},
+          ],
+          'products': <Map<String, dynamic>>[],
+          'warehouses': <Map<String, dynamic>>[],
+          'paymentMethods': <Map<String, dynamic>>[],
+        }),
+      );
+
+      await service.queuePayment(
+        userId: userId,
+        invoiceId: 'purchase-1',
+        partyId: 'supplier-1',
+        direction: 'out',
+        amount: 6,
+      );
+
+      final snapshot = await service.getSnapshot(userId);
+      expect((snapshot['invoices'] as List).single['dueAmount'], isNull);
+      expect((snapshot['payments'] as List).single['amount'], 6.0);
+      expect((snapshot['parties'] as List).single['payableBalance'], 10.0);
+      expect(await service.getPendingOperations(userId), hasLength(1));
+    },
+  );
 
   test(
     'offline maintenance parts cannot exceed cached warehouse stock',

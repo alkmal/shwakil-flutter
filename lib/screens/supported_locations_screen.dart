@@ -41,12 +41,14 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
         _apiService.getSupportedLocationsDashboard(),
         _authService.currentUser(),
-        TransactionLocationService.currentPosition(),
+        TransactionLocationService.currentPositionIfPermitted().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => null,
+        ),
       ]);
       final dashboard = Map<String, dynamic>.from(
         results[0] as Map<String, dynamic>,
@@ -336,7 +338,7 @@ class _SupportedLocationsScreenState extends State<SupportedLocationsScreen> {
       ),
       drawer: AppSidebar.drawerFor(context),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShwakelPageLoadingContent()
           : RefreshIndicator(
               onRefresh: _load,
               child: SingleChildScrollView(

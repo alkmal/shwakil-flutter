@@ -214,7 +214,8 @@ class AppPermissions {
   bool get isPrimaryTrader => !isSubUser && !isAdminRole;
   bool get canManageDebtBook =>
       _isEnabled('canManageDebtBook') || isPrimaryTrader;
-  bool get _hasStoreOwnerFallback => isAdminRole || canManageDebtBook;
+  bool get _hasStoreOwnerFallback =>
+      isAdminRole || (!isSubUser && canManageDebtBook);
   bool get canAccessStoreManagement =>
       _isEnabled('canAccessStoreManagement') ||
       isPrimaryTrader ||
@@ -233,9 +234,11 @@ class AppPermissions {
   bool get canManageStoreDebts =>
       _isEnabled('canManageStoreDebts') || _hasStoreOwnerFallback;
   bool get canEditStorePrices =>
-      _isEnabled('canEditStorePrices') || _hasStoreOwnerFallback;
+      !isSubUser &&
+      (_isEnabled('canEditStorePrices') || _hasStoreOwnerFallback);
   bool get canViewStoreProfits =>
-      _isEnabled('canViewStoreProfits') || _hasStoreOwnerFallback;
+      !isSubUser &&
+      (_isEnabled('canViewStoreProfits') || _hasStoreOwnerFallback);
   bool get canViewStoreReports =>
       _isEnabled('canViewStoreReports') || _hasStoreOwnerFallback;
   bool get canViewExternalTransfers =>

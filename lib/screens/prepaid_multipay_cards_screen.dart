@@ -2935,7 +2935,7 @@ class _PrepaidMultipayCardsScreenState
       body: ResponsiveScaffoldContainer(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const ShwakelPageLoadingContent()
             : !_isAuthorized || !hasAnySection
             ? _buildUnauthorized()
             : Column(

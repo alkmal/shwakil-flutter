@@ -31,6 +31,89 @@ class AppSidebar extends StatefulWidget {
   State<AppSidebar> createState() => _AppSidebarState();
 }
 
+/// Keeps navigation and a clear status visible while a screen waits for its
+/// first API response. A bare spinner made slow requests look like a blank
+/// page and left mobile users without a way to move elsewhere.
+class ShwakelPageLoadingScaffold extends StatelessWidget {
+  const ShwakelPageLoadingScaffold({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(l.text('تحميل الصفحة', 'Loading page')),
+        actions: const [AppNotificationAction(), QuickLogoutAction()],
+      ),
+      drawer: AppSidebar.drawerFor(context),
+      body: const ShwakelPageLoadingContent(),
+    );
+  }
+}
+
+/// Clear, compact loading feedback for a screen that already owns its app bar
+/// and navigation. Keeping it inside the page body preserves the page actions
+/// and navigation while its first request is pending.
+class ShwakelPageLoadingContent extends StatelessWidget {
+  const ShwakelPageLoadingContent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.loc;
+    return SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 34,
+                    height: 34,
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    l.text('جارٍ تحميل بيانات الشاشة', 'Loading screen data'),
+                    textAlign: TextAlign.center,
+                    style: AppTheme.bodyAction.copyWith(
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l.text(
+                      'سيظهر المحتوى هنا فور اكتمال التحميل.',
+                      'The content will appear as soon as loading finishes.',
+                    ),
+                    textAlign: TextAlign.center,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AppSidebarState extends State<AppSidebar> {
   static DateTime? _lastPermissionRefreshAt;
   final AuthService _authService = AuthService();
@@ -307,12 +390,15 @@ class _AppSidebarState extends State<AppSidebar> {
                           title: l.tr('widgets_app_sidebar.047'),
                           routeName: '/create-card',
                         ),
-                      if (!isPrimaryTrader && canOpenCardTools)
+                      if ((!isOfflineMode && canOpenCardTools) ||
+                          (isOfflineMode && permissions.canOfflineCardScan))
                         _buildItem(
                           context,
-                          icon: Icons.qr_code_scanner_rounded,
-                          title: l.tr('widgets_app_sidebar.008'),
-                          routeName: '/scan-card',
+                          icon: Icons.camera_alt_rounded,
+                          title: l.text('فتح الكاميرا', 'Open camera'),
+                          routeName: isOfflineMode
+                              ? '/scan-card-offline-camera'
+                              : '/scan-card-camera',
                         ),
                       if (!isPrimaryTrader &&
                           permissions.canManageSubscriptions)

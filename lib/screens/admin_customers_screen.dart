@@ -583,7 +583,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         _customers.length;
 
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
 
     if (_loadError != null && !_isAuthorized) {

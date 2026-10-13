@@ -2099,7 +2099,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_isLoadingUser) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
 
     if (!_isAuthorized) {

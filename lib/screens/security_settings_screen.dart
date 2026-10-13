@@ -153,7 +153,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
 
     return DefaultTabController(

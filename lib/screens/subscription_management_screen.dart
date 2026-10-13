@@ -31,6 +31,7 @@ class _SubscriptionManagementScreenState
   bool _authorized = false;
   String? _error;
   String _filter = 'all';
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -47,7 +48,7 @@ class _SubscriptionManagementScreenState
   Future<void> _load() async {
     if (mounted) {
       setState(() {
-        _loading = true;
+        _loading = _subscriptions.isEmpty;
         _error = null;
       });
     }
@@ -240,6 +241,17 @@ class _SubscriptionManagementScreenState
         title: Text(l.text('إدارة الاشتراكات', 'Subscriptions')),
         actions: [
           IconButton(
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            tooltip: _showFilters
+                ? l.text('إخفاء الفلاتر', 'Hide filters')
+                : l.text('الفلاتر', 'Filters'),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
+          IconButton(
             onPressed: _loading ? null : _load,
             tooltip: l.text('تحديث', 'Refresh'),
             icon: const Icon(Icons.refresh_rounded),
@@ -258,7 +270,7 @@ class _SubscriptionManagementScreenState
       body: ResponsiveScaffoldContainer(
         padding: AppTheme.pagePadding(context, top: 12),
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const ShwakelPageLoadingContent()
             : !_authorized
             ? Center(child: Text(l.text('لا تملك الصلاحية.', 'No access.')))
             : _error != null
@@ -268,10 +280,10 @@ class _SubscriptionManagementScreenState
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
-                    _summary(),
-                    const SizedBox(height: 14),
-                    _filters(),
-                    const SizedBox(height: 14),
+                    if (_showFilters) ...[
+                      _filters(),
+                      const SizedBox(height: 14),
+                    ],
                     if (_visibleSubscriptions.isEmpty)
                       _emptyState()
                     else
@@ -280,59 +292,6 @@ class _SubscriptionManagementScreenState
                   ],
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _summary() {
-    final active = _subscriptions.where((card) => !_isExpired(card)).length;
-    final expiring = _subscriptions.where(_isExpiringSoon).length;
-    final expired = _subscriptions.where(_isExpired).length;
-    final items = [
-      (context.loc.text('نشط', 'Active'), '$active', Icons.verified_rounded),
-      (
-        context.loc.text('قريب الانتهاء', 'Expiring'),
-        '$expiring',
-        Icons.schedule_rounded,
-      ),
-      (
-        context.loc.text('منتهي', 'Expired'),
-        '$expired',
-        Icons.event_busy_rounded,
-      ),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: constraints.maxWidth < 700 ? 3 : 3,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          mainAxisExtent: constraints.maxWidth < 420 ? 96 : 108,
-        ),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return ShwakelCard(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(item.$3, color: AppTheme.primary, size: 24),
-                const SizedBox(height: 6),
-                Text(item.$2, style: AppTheme.h3),
-                Text(
-                  item.$1,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: AppTheme.caption.copyWith(fontSize: 11),
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
@@ -493,23 +452,14 @@ class _SubscriptionManagementScreenState
         ),
         const SizedBox(height: 12),
         Text(
-          context.loc.text('لا توجد اشتراكات مطابقة', 'No subscriptions found'),
-          style: AppTheme.h3,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          context.loc.text(
-            'أنشئ اشتراكًا للجيم أو الإنترنت أو الكهرباء أو أي خدمة دورية.',
-            'Create a gym, internet, electricity or recurring service plan.',
-          ),
+          _subscriptions.isEmpty
+              ? context.loc.text('لا توجد اشتراكات مسجلة.', 'No subscriptions.')
+              : context.loc.text(
+                  'لا توجد نتائج مطابقة.',
+                  'No matching results.',
+                ),
           textAlign: TextAlign.center,
-          style: AppTheme.bodyAction,
-        ),
-        const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: _createSubscription,
-          icon: const Icon(Icons.add_rounded),
-          label: Text(context.loc.text('إنشاء اشتراك', 'Create subscription')),
+          style: AppTheme.h3,
         ),
       ],
     ),

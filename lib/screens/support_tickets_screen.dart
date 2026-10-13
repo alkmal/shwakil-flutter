@@ -595,7 +595,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
     final content = _pendingTicketId.isNotEmpty || _phoneOtpPending
         ? _otpStep()

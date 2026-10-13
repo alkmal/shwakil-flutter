@@ -30,6 +30,23 @@ void main() {
       expect(permissions.canManageSubscriptions, isFalse);
     });
 
+    test('sub-users never inherit purchase-price or profit visibility', () {
+      final permissions = AppPermissions.fromUser({
+        'permissions': {
+          'isSubUser': true,
+          'parentUserId': '42',
+          'canManageDebtBook': true,
+          'canCreateStorePurchases': true,
+          'canEditStorePrices': true,
+          'canViewStoreProfits': true,
+        },
+      });
+
+      expect(permissions.canCreateStorePurchases, isTrue);
+      expect(permissions.canEditStorePrices, isFalse);
+      expect(permissions.canViewStoreProfits, isFalse);
+    });
+
     test('system settings permission owns settings-managed workflows', () {
       final permissions = AppPermissions.fromUser({
         'permissions': {

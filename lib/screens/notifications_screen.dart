@@ -341,123 +341,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                   const SizedBox(height: 18),
                   _buildFilters(true),
-                  const SizedBox(height: 12),
-                  _buildStatsGrid(),
                 ],
               ),
             );
           },
         );
       },
-    );
-  }
-
-  Widget _buildStatsGrid() {
-    final stats = _buildQuickStats();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = constraints.maxWidth >= 560
-            ? (constraints.maxWidth - 12) / 2
-            : constraints.maxWidth;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: stats
-              .map(
-                (stat) =>
-                    SizedBox(width: itemWidth, child: _buildStatCard(stat)),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-
-  List<_NotificationStat> _buildQuickStats() {
-    final financialCount = _notifications
-        .where(_isFinancialNotification)
-        .length;
-    final accountCount = _notifications.where(_isAccountNotification).length;
-    final adminCount = _notifications.where(_isAdminNotification).length;
-    final readCount = _notifications
-        .where((item) => item['isRead'] == true)
-        .length;
-    return [
-      _NotificationStat(
-        label: context.loc.tr('screens_notifications_screen.027'),
-        value: '$_unreadCount',
-        hint: context.loc.tr('screens_notifications_screen.028'),
-        icon: Icons.mark_email_unread_rounded,
-        color: AppTheme.error,
-      ),
-      _NotificationStat(
-        label: context.loc.tr('screens_notifications_screen.029'),
-        value: '$financialCount',
-        hint: context.loc.tr('screens_notifications_screen.030'),
-        icon: Icons.account_balance_wallet_rounded,
-        color: AppTheme.primary,
-      ),
-      _NotificationStat(
-        label: context.loc.tr('screens_notifications_screen.047'),
-        value: '$accountCount',
-        hint: context.loc.tr('screens_notifications_screen.048'),
-        icon: Icons.verified_user_rounded,
-        color: AppTheme.secondary,
-      ),
-      _NotificationStat(
-        label: context.loc.tr('screens_notifications_screen.063'),
-        value: '$adminCount',
-        hint: context.loc.tr('screens_notifications_screen.064'),
-        icon: Icons.admin_panel_settings_rounded,
-        color: AppTheme.warning,
-      ),
-      _NotificationStat(
-        label: context.loc.tr('screens_notifications_screen.031'),
-        value: '$readCount',
-        hint: context.loc.tr('screens_notifications_screen.032'),
-        icon: Icons.done_all_rounded,
-        color: AppTheme.success,
-      ),
-    ];
-  }
-
-  Widget _buildStatCard(_NotificationStat item) {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(26),
-      shadowLevel: ShwakelShadowLevel.medium,
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(item.icon, color: item.color, size: 28),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.label,
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.value,
-                  style: AppTheme.h3.copyWith(color: item.color),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1266,22 +1155,6 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-class _NotificationStat {
-  const _NotificationStat({
-    required this.label,
-    required this.value,
-    required this.hint,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final String hint;
-  final IconData icon;
-  final Color color;
-}
-
 enum _NotificationKind { financial, account, admin, general }
 
 _NotificationKind _notificationKind(Map<String, dynamic> item) {
@@ -1320,15 +1193,6 @@ _NotificationKind _notificationKind(Map<String, dynamic> item) {
 
   return _NotificationKind.general;
 }
-
-bool _isFinancialNotification(Map<String, dynamic> item) =>
-    _notificationKind(item) == _NotificationKind.financial;
-
-bool _isAccountNotification(Map<String, dynamic> item) =>
-    _notificationKind(item) == _NotificationKind.account;
-
-bool _isAdminNotification(Map<String, dynamic> item) =>
-    _notificationKind(item) == _NotificationKind.admin;
 
 Color _notificationCategoryColor(_NotificationKind kind) {
   return switch (kind) {

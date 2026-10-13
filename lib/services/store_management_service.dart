@@ -1915,24 +1915,30 @@ class StoreManagementService {
     String? partyId = operation['partyId']?.toString();
     final partyClientRef = operation['partyClientRef']?.toString();
     String direction = operation['direction']?.toString() ?? 'in';
+    var invoiceBalanceHidden = false;
     if (invoiceIndex >= 0) {
       final invoice = invoices[invoiceIndex];
       partyId ??= invoice['partyId']?.toString();
       direction = invoice['type'] == 'purchase' ? 'out' : 'in';
-      final total = (invoice['total'] as num?)?.toDouble() ?? 0;
-      final oldPaid = (invoice['paidAmount'] as num?)?.toDouble() ?? 0;
-      amount = min(amount, max(0, total - oldPaid));
-      final paid = _money((oldPaid + amount).clamp(0, total));
-      final due = _money(total - paid);
-      invoice['paidAmount'] = paid;
-      invoice['dueAmount'] = due;
-      invoice['paymentStatus'] = paid <= 0
-          ? 'unpaid'
-          : paid >= total
-          ? 'paid'
-          : 'partial';
-      invoice['syncStatus'] = 'pending';
-      invoices[invoiceIndex] = invoice;
+      final totalValue = invoice['total'];
+      if (totalValue is num) {
+        final total = totalValue.toDouble();
+        final oldPaid = (invoice['paidAmount'] as num?)?.toDouble() ?? 0;
+        amount = min(amount, max(0, total - oldPaid));
+        final paid = _money((oldPaid + amount).clamp(0, total));
+        final due = _money(total - paid);
+        invoice['paidAmount'] = paid;
+        invoice['dueAmount'] = due;
+        invoice['paymentStatus'] = paid <= 0
+            ? 'unpaid'
+            : paid >= total
+            ? 'paid'
+            : 'partial';
+        invoice['syncStatus'] = 'pending';
+        invoices[invoiceIndex] = invoice;
+      } else if (invoice['type'] == 'purchase') {
+        invoiceBalanceHidden = true;
+      }
     }
     payments.insert(0, {
       'id': id,
@@ -1958,7 +1964,7 @@ class StoreManagementService {
           (partyClientRef != null &&
               item['clientRef']?.toString() == partyClientRef),
     );
-    if (partyIndex >= 0) {
+    if (partyIndex >= 0 && !invoiceBalanceHidden) {
       partyId = parties[partyIndex]['id']?.toString() ?? partyId;
       _bumpPartyPayment(parties, partyId ?? '', direction, amount);
       final party = parties.firstWhere(

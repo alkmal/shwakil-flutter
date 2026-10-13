@@ -247,10 +247,7 @@ class _AdminCardScanReportsScreenState
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: AppTheme.background,
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const ShwakelPageLoadingScaffold();
     }
 
     if (_loadError != null && !_authorized) {

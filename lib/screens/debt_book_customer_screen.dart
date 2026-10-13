@@ -9,6 +9,7 @@ import '../services/index.dart';
 import '../utils/app_theme.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/user_display_name.dart';
+import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
@@ -372,7 +373,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
     if (!mounted) return;
     setState(() {
       _user = user;
-      _loading = true;
+      _loading = _customer == null;
     });
     if (user == null || user['id'] == null) {
       if (!mounted) return;
@@ -948,7 +949,7 @@ class _DebtBookCustomerScreenState extends State<DebtBookCustomerScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShwakelPageLoadingContent()
           : customer == null
           ? Center(child: Text(_t('screens_debt_book_customer_screen.051')))
           : ResponsiveScaffoldContainer(

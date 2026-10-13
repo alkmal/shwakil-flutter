@@ -9,6 +9,7 @@ import 'package:excel_community/excel_community.dart' hide Border;
 
 import '../services/index.dart';
 import '../utils/app_permissions.dart';
+import '../utils/store_management_privacy.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
@@ -64,6 +65,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   Map<String, dynamic> get _summary => _snapshot['summary'] is Map
       ? Map<String, dynamic>.from(_snapshot['summary'] as Map)
       : const {};
+
   String get _syncedAt => _snapshot['syncedAt']?.toString() ?? '';
   String get _syncedAtLabel {
     final parsed = DateTime.tryParse(_syncedAt);
@@ -112,14 +114,16 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       final userId = user?['id']?.toString() ?? '';
       final local = await _store.getSnapshot(userId);
       final pending = await _store.getPendingOperations(userId);
-      final publicOrders = permissions.canManagePublicStorefront
-          ? await _fetchPublicOrders()
-          : const <Map<String, dynamic>>[];
       if (mounted) {
         setState(() {
           _user = user;
-          _snapshot = local;
-          _publicOrders = publicOrders;
+          _snapshot = StoreManagementPrivacy.redactSnapshotForStaff(
+            local,
+            canViewProfits: permissions.canViewStoreProfits,
+          );
+          if (!permissions.canManagePublicStorefront) {
+            _publicOrders = const [];
+          }
           _pending = pending;
           _loading = local.isEmpty;
         });
@@ -142,16 +146,24 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     });
     try {
       final snapshot = await _store.syncPending(userId: _userId, api: _api);
-      final publicOrders = _permissions.canManagePublicStorefront
-          ? await _fetchPublicOrders()
-          : const <Map<String, dynamic>>[];
-      final pending = await _store.getPendingOperations(_userId);
       if (!mounted) return;
       setState(() {
-        _snapshot = snapshot;
-        _publicOrders = publicOrders;
-        _pending = pending;
+        _snapshot = StoreManagementPrivacy.redactSnapshotForStaff(
+          snapshot,
+          canViewProfits: _permissions.canViewStoreProfits,
+        );
         _loading = false;
+      });
+      final results = await Future.wait<dynamic>([
+        _permissions.canManagePublicStorefront
+            ? _fetchPublicOrders().catchError((_) => _publicOrders)
+            : Future.value(const <Map<String, dynamic>>[]),
+        _store.getPendingOperations(_userId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _publicOrders = List<Map<String, dynamic>>.from(results[0] as List);
+        _pending = List<Map<String, dynamic>>.from(results[1] as List);
         _syncing = false;
       });
     } catch (error) {
@@ -160,7 +172,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
       final pending = await _store.getPendingOperations(_userId);
       if (!mounted) return;
       setState(() {
-        _snapshot = local;
+        _snapshot = StoreManagementPrivacy.redactSnapshotForStaff(
+          local,
+          canViewProfits: _permissions.canViewStoreProfits,
+        );
         _pending = pending;
         _loading = false;
         _syncing = false;
@@ -176,7 +191,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     if (!mounted) return;
     setState(() {
       _pending = pending;
-      _snapshot = snapshot;
+      _snapshot = StoreManagementPrivacy.redactSnapshotForStaff(
+        snapshot,
+        canViewProfits: _permissions.canViewStoreProfits,
+      );
     });
   }
 
@@ -324,7 +342,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final pending = await _store.getPendingOperations(_userId);
     if (mounted) {
       setState(() {
-        _snapshot = local;
+        _snapshot = StoreManagementPrivacy.redactSnapshotForStaff(
+          local,
+          canViewProfits: _permissions.canViewStoreProfits,
+        );
         _pending = pending;
         _loading = false;
       });
@@ -619,21 +640,26 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
               label: Text(l.text('قراءة من الكاميرا', 'Scan with camera')),
             ),
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: purchasePrice,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: l.text(
-                'سعر شراء الوحدة الأساسية',
-                'Base unit purchase price',
+          if (_permissions.canEditStorePrices &&
+              _permissions.canViewStoreProfits) ...[
+            const SizedBox(height: 10),
+            TextField(
+              controller: purchasePrice,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              helperText: l.text(
-                'يستخدم تلقائيًا عند فواتير الشراء.',
-                'Used automatically in purchase invoices.',
+              decoration: InputDecoration(
+                labelText: l.text(
+                  'سعر شراء الوحدة الأساسية',
+                  'Base unit purchase price',
+                ),
+                helperText: l.text(
+                  'يستخدم تلقائيًا عند فواتير الشراء.',
+                  'Used automatically in purchase invoices.',
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 10),
           TextField(
             controller: salePrice,
@@ -1746,9 +1772,15 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
   }
 
   Future<void> _recordInvoicePayment(Map<String, dynamic> invoice) async {
+    final hiddenPurchase =
+        invoice['type'] == 'purchase' && !_permissions.canViewStoreProfits;
     final due = (invoice['dueAmount'] as num?)?.toDouble() ?? 0;
-    if (due <= 0 || !_permissions.canManageStoreDebts) return;
-    final amount = TextEditingController(text: due.toStringAsFixed(2));
+    if ((!hiddenPurchase && due <= 0) || !_permissions.canManageStoreDebts) {
+      return;
+    }
+    final amount = TextEditingController(
+      text: hiddenPurchase ? '' : due.toStringAsFixed(2),
+    );
     String? paymentMethodId = _activePaymentMethods.firstOrNull?['id']
         ?.toString();
     final l = context.loc;
@@ -1767,7 +1799,12 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: l.text('المبلغ المدفوع', 'Amount paid'),
-              helperText: '${l.text('المتبقي', 'Remaining')} ${_money(due)}',
+              helperText: hiddenPurchase
+                  ? l.text(
+                      'أدخل المبلغ المطلوب سداده؛ سيتحقق النظام من الرصيد.',
+                      'Enter the payment amount; the system will validate the balance.',
+                    )
+                  : '${l.text('المتبقي', 'Remaining')} ${_money(due)}',
             ),
           ),
           const SizedBox(height: 10),
@@ -1908,7 +1945,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
             )
           : null,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShwakelPageLoadingContent()
           : ResponsiveScaffoldContainer(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2970,10 +3007,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     excel.setDefaultSheet('Inventory');
     if (excel.tables.containsKey('Sheet1')) excel.delete('Sheet1');
 
-    const headers = [
+    final headers = [
       'اسم الصنف',
       'الوحدة الأساسية',
-      'سعر الشراء',
+      if (_permissions.canViewStoreProfits) 'سعر الشراء',
       'سعر البيع',
       'الحد الأدنى',
       'الباركود',
@@ -2987,19 +3024,21 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
         orElse: () =>
             units.isNotEmpty ? units.first : const <String, dynamic>{},
       );
-      sheet.appendRow([
+      final row = <CellValue>[
         TextCellValue(product['name']?.toString() ?? ''),
         TextCellValue(product['baseUnit']?.toString() ?? ''),
-        DoubleCellValue(
-          _spreadsheetDouble(
-            base['purchasePrice'] ?? product['averagePurchaseCost'],
+        if (_permissions.canViewStoreProfits)
+          DoubleCellValue(
+            _spreadsheetDouble(
+              base['purchasePrice'] ?? product['averagePurchaseCost'],
+            ),
           ),
-        ),
         DoubleCellValue(_spreadsheetDouble(product['defaultSalePrice'])),
         DoubleCellValue(_spreadsheetDouble(product['minimumStock'])),
         TextCellValue(base['barcode']?.toString() ?? ''),
         DoubleCellValue(_spreadsheetDouble(product['stockQuantity'])),
-      ]);
+      ];
+      sheet.appendRow(row);
     }
 
     for (var column = 0; column < headers.length; column++) {
@@ -3031,20 +3070,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
     final sheet = excel['Import'];
     excel.setDefaultSheet('Import');
     if (excel.tables.containsKey('Sheet1')) excel.delete('Sheet1');
-    sheet.appendRow(
-      [
-        'اسم الصنف',
-        'الوحدة الأساسية',
-        'سعر الشراء',
-        'سعر البيع',
-        'الحد الأدنى',
-        'الباركود',
-      ].map(TextCellValue.new).toList(),
-    );
+    final headers = [
+      'اسم الصنف',
+      'الوحدة الأساسية',
+      if (_permissions.canViewStoreProfits) 'سعر الشراء',
+      'سعر البيع',
+      'الحد الأدنى',
+      'الباركود',
+    ];
+    sheet.appendRow(headers.map(TextCellValue.new).toList());
     sheet.appendRow([
       TextCellValue('مثال صنف'),
       TextCellValue('piece'),
-      const DoubleCellValue(10),
+      if (_permissions.canViewStoreProfits) const DoubleCellValue(10),
       const DoubleCellValue(15),
       const DoubleCellValue(5),
       TextCellValue('123456789'),
@@ -3325,12 +3363,28 @@ class _StoreManagementScreenState extends State<StoreManagementScreen>
                         style: AppTheme.bodyBold,
                       ),
                       subtitle: Text(
-                        '${context.loc.text('الكاشير', 'Cashier')}: ${item['cashierName'] ?? ''}\n${context.loc.text('المتبقي', 'Remaining')}: ${_money(item['dueAmount'])} • ${_syncLabel(item)}',
+                        item['type'] == 'purchase' &&
+                                !_permissions.canViewStoreProfits
+                            ? '${context.loc.text('الكاشير', 'Cashier')}: ${item['cashierName'] ?? ''}\n${context.loc.text('تفاصيل أسعار الشراء خاصة بالحساب الرئيسي', 'Purchase prices are private to the primary account')} • ${_syncLabel(item)}'
+                            : '${context.loc.text('الكاشير', 'Cashier')}: ${item['cashierName'] ?? ''}\n${context.loc.text('المتبقي', 'Remaining')}: ${_money(item['dueAmount'])} • ${_syncLabel(item)}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: Text(_money(item['total'])),
-                      onTap: () => _recordInvoicePayment(item),
+                      trailing: Text(
+                        item['type'] == 'purchase' &&
+                                !_permissions.canViewStoreProfits
+                            ? '—'
+                            : _money(item['total']),
+                      ),
+                      onTap:
+                          _permissions.canManageStoreDebts &&
+                              (item['type'] == 'purchase' &&
+                                      !_permissions.canViewStoreProfits ||
+                                  ((item['dueAmount'] as num?)?.toDouble() ??
+                                          0) >
+                                      0)
+                          ? () => _recordInvoicePayment(item)
+                          : null,
                     ),
                   );
                 },

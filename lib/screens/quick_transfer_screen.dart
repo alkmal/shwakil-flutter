@@ -534,7 +534,7 @@ class _QuickTransferScreenState extends State<QuickTransferScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
     if (!_canTransfer) {
       return Scaffold(

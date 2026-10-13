@@ -26,6 +26,7 @@ class TopupRequestsScreen extends StatefulWidget {
 }
 
 enum _TopupStatusFilter { all, pending, approved, rejected }
+
 enum _AccountingFilter { all, unreviewed, settled }
 
 class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
@@ -162,7 +163,7 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
 
     if (!_isAuthorized) {
@@ -374,49 +375,46 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
           },
         ),
         const SizedBox(height: 16),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _TopupStatusFilter.values.map((filter) {
-              final isSelected = _filter == filter;
-              final label = switch (filter) {
-                _TopupStatusFilter.all => l.tr(
-                  'screens_topup_requests_screen.004',
-                ),
-                _TopupStatusFilter.pending => l.tr(
-                  'screens_topup_requests_screen.005',
-                ),
-                _TopupStatusFilter.approved => l.tr(
-                  'screens_topup_requests_screen.006',
-                ),
-                _TopupStatusFilter.rejected => l.tr(
-                  'screens_topup_requests_screen.007',
-                ),
-              };
-              return Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: ChoiceChip(
-                  label: Text(label),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (!selected) {
-                      return;
-                    }
-                    setState(() {
-                      _filter = filter;
-                      _page = 1;
-                    });
-                    _load(preserveContent: true);
-                  },
-                  selectedColor: AppTheme.primary,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppTheme.textSecondary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.start,
+          children: _TopupStatusFilter.values.map((filter) {
+            final isSelected = _filter == filter;
+            final label = switch (filter) {
+              _TopupStatusFilter.all => l.tr(
+                'screens_topup_requests_screen.004',
+              ),
+              _TopupStatusFilter.pending => l.tr(
+                'screens_topup_requests_screen.005',
+              ),
+              _TopupStatusFilter.approved => l.tr(
+                'screens_topup_requests_screen.006',
+              ),
+              _TopupStatusFilter.rejected => l.tr(
+                'screens_topup_requests_screen.007',
+              ),
+            };
+            return ChoiceChip(
+              label: Text(label),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (!selected) {
+                  return;
+                }
+                setState(() {
+                  _filter = filter;
+                  _page = 1;
+                });
+                _load(preserveContent: true);
+              },
+              selectedColor: AppTheme.primary,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          }).toList(),
         ),
         const SizedBox(height: 10),
         Align(
@@ -434,7 +432,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                 label: Text(label),
                 selected: selected,
                 onSelected: (_) {
-                  setState(() { _accountingFilter = filter; _page = 1; });
+                  setState(() {
+                    _accountingFilter = filter;
+                    _page = 1;
+                  });
                   _load(preserveContent: true);
                 },
               );
@@ -493,7 +494,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                     onPressed: _busyId == request['id']
                         ? null
                         : () => _deleteRequest(request['id']?.toString() ?? ''),
-                    icon: const Icon(Icons.delete_outline, color: AppTheme.error),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppTheme.error,
+                    ),
                   ),
               ],
             ),
@@ -554,14 +558,17 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                     onChanged: _busyId == request['id']
                         ? null
                         : (value) => _updateFollowUp(
-                              request,
-                              checked: value ?? false,
-                              deliveryStatus: request['deliveryStatus']?.toString() ?? 'unknown',
-                            ),
+                            request,
+                            checked: value ?? false,
+                            deliveryStatus:
+                                request['deliveryStatus']?.toString() ??
+                                'unknown',
+                          ),
                   ),
                   const Expanded(child: Text('تمت مراجعة وصول التحويل')),
                   PopupMenuButton<String>(
-                    initialValue: request['deliveryStatus']?.toString() ?? 'unknown',
+                    initialValue:
+                        request['deliveryStatus']?.toString() ?? 'unknown',
                     onSelected: (value) => _updateFollowUp(
                       request,
                       checked: request['followUpChecked'] == true,
@@ -569,7 +576,10 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
                     ),
                     itemBuilder: (_) => const [
                       PopupMenuItem(value: 'received', child: Text('وصلت')),
-                      PopupMenuItem(value: 'not_received', child: Text('لم تصل')),
+                      PopupMenuItem(
+                        value: 'not_received',
+                        child: Text('لم تصل'),
+                      ),
                       PopupMenuItem(value: 'unknown', child: Text('غير محدد')),
                     ],
                     child: Text(switch (request['deliveryStatus']?.toString()) {
@@ -583,14 +593,28 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
             ),
             if (_isPrincipalAdmin) ...[
               const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: Text('الربح: ${CurrencyFormatter.ils((request['profitAmount'] as num?)?.toDouble() ?? 0)} (${(request['profitRate'] as num?)?.toStringAsFixed(2) ?? '0'}%)')),
-                TextButton.icon(
-                  onPressed: request['accountingStatus'] == 'settled' || _busyId == request['id'] ? null : () => _settleAccounting(request),
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: Text(request['accountingStatus'] == 'settled' ? 'تمت المحاسبة' : 'تأكيد المحاسبة'),
-                ),
-              ]),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'الربح: ${CurrencyFormatter.ils((request['profitAmount'] as num?)?.toDouble() ?? 0)} (${(request['profitRate'] as num?)?.toStringAsFixed(2) ?? '0'}%)',
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed:
+                        request['accountingStatus'] == 'settled' ||
+                            _busyId == request['id']
+                        ? null
+                        : () => _settleAccounting(request),
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: Text(
+                      request['accountingStatus'] == 'settled'
+                          ? 'تمت المحاسبة'
+                          : 'تأكيد المحاسبة',
+                    ),
+                  ),
+                ],
+              ),
             ],
             if (isPending) ...[
               const SizedBox(height: 16),
@@ -629,70 +653,174 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     try {
       report = await _apiService.getTopupRequestsReport();
     } catch (error) {
-      if (mounted) AppAlertService.showError(context, title: 'تعذر تحميل التقرير', message: ErrorMessageService.sanitize(error));
+      if (mounted) {
+        AppAlertService.showError(
+          context,
+          title: 'تعذر تحميل التقرير',
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
       return;
     }
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     var selectedPeriod = 'day';
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) {
-        final totals = Map<String, dynamic>.from(report['totals'] as Map? ?? const {});
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 8),
-          contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-          title: Row(children: [
-            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: .12), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.bar_chart_rounded, color: AppTheme.primary)),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('تقرير التحويلات والمحاسبة')),
-          ]),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            DropdownButtonFormField<String>(
-              initialValue: selectedPeriod,
-              decoration: const InputDecoration(labelText: 'نوع التقرير'),
-              items: const [
-                DropdownMenuItem(value: 'day', child: Text('يومي')),
-                DropdownMenuItem(value: 'week', child: Text('أسبوعي')),
-                DropdownMenuItem(value: 'month', child: Text('شهري')),
-              ],
-              onChanged: (value) async {
-                if (value == null) return;
-                selectedPeriod = value;
-                try {
-                  report = await _apiService.getTopupRequestsReport(period: selectedPeriod);
-                  setDialogState(() {});
-                } catch (_) {}
-              },
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final totals = Map<String, dynamic>.from(
+            report['totals'] as Map? ?? const {},
+          );
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
             ),
-            const SizedBox(height: 12),
-            Wrap(spacing: 10, runSpacing: 10, children: [
-              _reportMetric('التحويلات', '${totals['transfers'] ?? 0}', AppTheme.primary),
-              _reportMetric('القيم', CurrencyFormatter.ils((totals['amount'] as num?)?.toDouble() ?? 0), AppTheme.info),
-              _reportMetric('الأرباح', CurrencyFormatter.ils((totals['profit'] as num?)?.toDouble() ?? 0), AppTheme.success),
-              _reportMetric('غير مراجعة', '${totals['unreviewed'] ?? 0}', AppTheme.warning),
-              _reportMetric('تمت المحاسبة', '${totals['settled'] ?? 0}', AppTheme.success),
-            ]),
-          ]),
-          actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق'))],
-        );
-      }),
+            titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 8),
+            contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.bar_chart_rounded,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('تقرير التحويلات والمحاسبة')),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedPeriod,
+                  decoration: const InputDecoration(labelText: 'نوع التقرير'),
+                  items: const [
+                    DropdownMenuItem(value: 'day', child: Text('يومي')),
+                    DropdownMenuItem(value: 'week', child: Text('أسبوعي')),
+                    DropdownMenuItem(value: 'month', child: Text('شهري')),
+                  ],
+                  onChanged: (value) async {
+                    if (value == null) return;
+                    selectedPeriod = value;
+                    try {
+                      report = await _apiService.getTopupRequestsReport(
+                        period: selectedPeriod,
+                      );
+                      setDialogState(() {});
+                    } catch (_) {}
+                  },
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _reportMetric(
+                      'التحويلات',
+                      '${totals['transfers'] ?? 0}',
+                      AppTheme.primary,
+                    ),
+                    _reportMetric(
+                      'القيم',
+                      CurrencyFormatter.ils(
+                        (totals['amount'] as num?)?.toDouble() ?? 0,
+                      ),
+                      AppTheme.info,
+                    ),
+                    _reportMetric(
+                      'الأرباح',
+                      CurrencyFormatter.ils(
+                        (totals['profit'] as num?)?.toDouble() ?? 0,
+                      ),
+                      AppTheme.success,
+                    ),
+                    _reportMetric(
+                      'غير مراجعة',
+                      '${totals['unreviewed'] ?? 0}',
+                      AppTheme.warning,
+                    ),
+                    _reportMetric(
+                      'تمت المحاسبة',
+                      '${totals['settled'] ?? 0}',
+                      AppTheme.success,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('إغلاق'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Future<void> _exportTransferReport() async {
     try {
       final report = await _apiService.getTopupRequestsReport(period: 'day');
-      final rows = List<Map<String, dynamic>>.from((report['rows'] as List? ?? const []).map((item) => Map<String, dynamic>.from(item as Map)));
-      final buffer = StringBuffer('\uFEFFالفترة,الموظف,عدد التحويلات,إجمالي القيم,إجمالي الأرباح,غير مراجعة,تمت المحاسبة\n');
+      final rows = List<Map<String, dynamic>>.from(
+        (report['rows'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      final buffer = StringBuffer(
+        '\uFEFFالفترة,الموظف,عدد التحويلات,إجمالي القيم,إجمالي الأرباح,غير مراجعة,تمت المحاسبة\n',
+      );
       for (final row in rows) {
-        final values = [row['period'], row['employeeName'], row['transfers'], row['totalAmount'], row['totalProfit'], row['unreviewed'], row['settled']];
-        buffer.writeln(values.map((value) => '"${(value ?? '').toString().replaceAll('"', '""')}"').join(','));
+        final values = [
+          row['period'],
+          row['employeeName'],
+          row['transfers'],
+          row['totalAmount'],
+          row['totalProfit'],
+          row['unreviewed'],
+          row['settled'],
+        ];
+        buffer.writeln(
+          values
+              .map(
+                (value) =>
+                    '"${(value ?? '').toString().replaceAll('"', '""')}"',
+              )
+              .join(','),
+        );
       }
-      await FileSaver.instance.saveFile(name: 'shwakel_transfer_report_${DateTime.now().toIso8601String().substring(0, 10)}', bytes: Uint8List.fromList(utf8.encode(buffer.toString())), fileExtension: 'csv', mimeType: MimeType.csv);
-      if (mounted) AppAlertService.showSuccess(context, title: 'تم التصدير', message: 'تم حفظ تقرير التحويلات بصيغة CSV.');
+      await FileSaver.instance.saveFile(
+        name:
+            'shwakel_transfer_report_${DateTime.now().toIso8601String().substring(0, 10)}',
+        bytes: Uint8List.fromList(utf8.encode(buffer.toString())),
+        fileExtension: 'csv',
+        mimeType: MimeType.csv,
+      );
+      if (mounted) {
+        AppAlertService.showSuccess(
+          context,
+          title: 'تم التصدير',
+          message: 'تم حفظ تقرير التحويلات بصيغة CSV.',
+        );
+      }
     } catch (error) {
-      if (mounted) AppAlertService.showError(context, title: 'تعذر التصدير', message: ErrorMessageService.sanitize(error));
+      if (mounted) {
+        AppAlertService.showError(
+          context,
+          title: 'تعذر التصدير',
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
     }
   }
 
@@ -700,12 +828,27 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     return Container(
       width: 145,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withValues(alpha: .18))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: AppTheme.caption.copyWith(color: AppTheme.textSecondary)),
-        const SizedBox(height: 5),
-        Text(value, style: AppTheme.bodyBold.copyWith(color: color), maxLines: 1, overflow: TextOverflow.ellipsis),
-      ]),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: .18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            style: AppTheme.bodyBold.copyWith(color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
@@ -722,11 +865,38 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     try {
       final amount = (request['amount'] as num?)?.toDouble() ?? 0;
       final rate = (request['profitRate'] as num?)?.toDouble() ?? 0;
-      final profit = (request['profitAmount'] as num?)?.toDouble() ?? amount * rate / 100;
-      await _apiService.updateTopupFollowUp(requestId: id, deliveryStatus: request['deliveryStatus']?.toString() ?? 'unknown', checked: request['followUpChecked'] == true, accountingStatus: 'settled', profitRate: rate, profitAmount: profit);
-      if (mounted) { setState(() { request['accountingStatus'] = 'settled'; request['profitAmount'] = profit; }); AppAlertService.showSuccess(context, title: 'تمت المحاسبة', message: 'تم اعتماد مستحقات الموظف.'); }
-    } catch (error) { if (mounted) AppAlertService.showError(context, title: 'تعذر الحفظ', message: ErrorMessageService.sanitize(error)); }
-    finally { if (mounted) setState(() => _busyId = null); }
+      final profit =
+          (request['profitAmount'] as num?)?.toDouble() ?? amount * rate / 100;
+      await _apiService.updateTopupFollowUp(
+        requestId: id,
+        deliveryStatus: request['deliveryStatus']?.toString() ?? 'unknown',
+        checked: request['followUpChecked'] == true,
+        accountingStatus: 'settled',
+        profitRate: rate,
+        profitAmount: profit,
+      );
+      if (mounted) {
+        setState(() {
+          request['accountingStatus'] = 'settled';
+          request['profitAmount'] = profit;
+        });
+        AppAlertService.showSuccess(
+          context,
+          title: 'تمت المحاسبة',
+          message: 'تم اعتماد مستحقات الموظف.',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        AppAlertService.showError(
+          context,
+          title: 'تعذر الحفظ',
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
   }
 
   Future<void> _deleteRequest(String id) async {
@@ -737,8 +907,14 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         title: const Text('حذف سجل التحويل؟'),
         content: const Text('سيتم حذف السجل غير المعتمد نهائيًا.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
         ],
       ),
     );
@@ -746,10 +922,25 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
     setState(() => _busyId = id);
     try {
       await _apiService.deleteTopupRequest(id);
-      if (mounted) { AppAlertService.showSuccess(context, title: 'تم الحذف', message: 'تم حذف السجل.'); await _load(); }
+      if (mounted) {
+        AppAlertService.showSuccess(
+          context,
+          title: 'تم الحذف',
+          message: 'تم حذف السجل.',
+        );
+        await _load();
+      }
     } catch (error) {
-      if (mounted) AppAlertService.showError(context, title: 'تعذر الحذف', message: ErrorMessageService.sanitize(error));
-    } finally { if (mounted) setState(() => _busyId = null); }
+      if (mounted) {
+        AppAlertService.showError(
+          context,
+          title: 'تعذر الحذف',
+          message: ErrorMessageService.sanitize(error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
   }
 
   Future<void> _updateFollowUp(
@@ -771,10 +962,18 @@ class _TopupRequestsScreenState extends State<TopupRequestsScreen> {
         request['followUpChecked'] = checked;
         request['deliveryStatus'] = deliveryStatus;
       });
-      AppAlertService.showSuccess(context, title: 'تم التحديث', message: 'تم حفظ متابعة وصول التحويل.');
+      AppAlertService.showSuccess(
+        context,
+        title: 'تم التحديث',
+        message: 'تم حفظ متابعة وصول التحويل.',
+      );
     } catch (error) {
       if (mounted) {
-        AppAlertService.showError(context, title: 'تعذر التحديث', message: ErrorMessageService.sanitize(error));
+        AppAlertService.showError(
+          context,
+          title: 'تعذر التحديث',
+          message: ErrorMessageService.sanitize(error),
+        );
       }
     } finally {
       if (mounted) setState(() => _busyId = null);

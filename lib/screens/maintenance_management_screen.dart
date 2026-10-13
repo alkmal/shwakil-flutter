@@ -37,6 +37,7 @@ class _MaintenanceManagementScreenState
   String _actorName = '';
   int _pendingCount = 0;
   bool _offline = false;
+  bool _showFilters = false;
   bool _loadInProgress = false;
   Timer? _syncRetryTimer;
   AppPermissions _appPermissions = AppPermissions.fromUser(null);
@@ -124,7 +125,7 @@ class _MaintenanceManagementScreenState
     _loadInProgress = true;
     if (mounted) {
       setState(() {
-        _loading = true;
+        _loading = _data.isEmpty;
         _error = null;
       });
     }
@@ -193,8 +194,19 @@ class _MaintenanceManagementScreenState
       currentRouteName: '/maintenance-management',
     ),
     appBar: AppBar(
-      title: Text(context.loc.text('إدارة الصيانة', 'Maintenance management')),
+      title: Text(context.loc.text('الصيانة', 'Maintenance')),
       actions: [
+        IconButton(
+          tooltip: _showFilters
+              ? context.loc.text('إخفاء الفلاتر', 'Hide filters')
+              : context.loc.text('الفلاتر', 'Filters'),
+          onPressed: () => setState(() => _showFilters = !_showFilters),
+          icon: Icon(
+            _showFilters
+                ? Icons.filter_alt_off_rounded
+                : Icons.filter_alt_rounded,
+          ),
+        ),
         if (_offline || _pendingCount > 0)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -241,8 +253,7 @@ class _MaintenanceManagementScreenState
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _header(),
-          const SizedBox(height: 12),
+          if (_showFilters) ...[_header(), const SizedBox(height: 12)],
           TabBar(
             controller: _tabs,
             tabs: [
@@ -327,32 +338,6 @@ class _MaintenanceManagementScreenState
 
   Widget _dashboard() => ListView(
     children: [
-      Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          _metric(
-            context.loc.text('قيد المتابعة', 'Active'),
-            _summary['active'],
-            Icons.engineering_rounded,
-            Colors.blue,
-          ),
-          _metric(
-            context.loc.text('بانتظار العميل', 'Waiting customer'),
-            _summary['waitingCustomer'],
-            Icons.phone_in_talk_rounded,
-            Colors.orange,
-          ),
-          _metric(
-            context.loc.text('جاهزة للتسليم', 'Ready'),
-            _summary['completed'],
-            Icons.task_alt_rounded,
-            Colors.green,
-          ),
-        ],
-      ),
-      const SizedBox(height: 14),
       Text(
         context.loc.text('آخر الصيانات', 'Latest maintenance'),
         style: Theme.of(context).textTheme.titleLarge,
@@ -368,8 +353,8 @@ class _MaintenanceManagementScreenState
               Expanded(
                 child: Text(
                   context.loc.text(
-                    'لا توجد أجهزة قيد الصيانة حاليًا. ابدأ باستلام جهاز جديد لتظهر متابعته هنا.',
-                    'No devices are being serviced yet. Receive a device to start tracking it here.',
+                    'لا توجد عمليات صيانة مسجلة.',
+                    'No maintenance orders.',
                   ),
                 ),
               ),
@@ -477,40 +462,6 @@ class _MaintenanceManagementScreenState
             const SizedBox(height: 80),
           ],
         );
-
-  Widget _metric(String title, dynamic value, IconData icon, Color color) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final metricWidth = screenWidth < 360
-        ? screenWidth - 32
-        : screenWidth < 520
-        ? (screenWidth - 42) / 2
-        : 220.0;
-    return SizedBox(
-      width: metricWidth,
-      child: ShwakelCard(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withValues(alpha: .12),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title),
-                Text(
-                  '${value ?? 0}',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _periodReport(
     String title,

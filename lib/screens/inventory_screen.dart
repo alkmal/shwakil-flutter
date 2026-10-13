@@ -15,7 +15,6 @@ import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
 import '../widgets/thermal_card_ticket.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -53,7 +52,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   bool _isOfflineData = false;
   Set<String> _revealedBarcodes = const <String>{};
   Map<String, dynamic>? _offlineOverview;
-  Map<String, dynamic> _summary = const {};
   String _actionStatusMessage = '';
   StateSetter? _inventoryToolsSetState;
 
@@ -81,7 +79,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() => _isLoading = _cards.isEmpty);
     final requestedPage = _page;
     try {
       final user = await _authService.currentUser();
@@ -223,7 +221,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _isOfflineData = isOfflineData;
         _revealedBarcodes = revealedBarcodes;
         _offlineOverview = offlineOverview;
-        _summary = summary;
         _isLoading = false;
       });
     } catch (_) {
@@ -237,7 +234,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
 
     if (!_isAuthorized) {
@@ -309,8 +306,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 itemBuilder: (context, index) {
                   final item = _inventoryListItemAt(index);
                   switch (item.kind) {
-                    case _InventoryListItemKind.overview:
-                      return _buildOverviewCard();
                     case _InventoryListItemKind.filters:
                       return _buildFiltersPanel();
                     case _InventoryListItemKind.resultsHeader:
@@ -468,8 +463,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      _buildOverviewCard(),
-                      const SizedBox(height: 12),
                       _buildFiltersPanel(),
                       const SizedBox(height: 12),
                       _buildResultsHeader(),
@@ -521,105 +514,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Future<bool> _confirmCardOutputSecurity() async {
     final security = await TransferSecurityService.confirmTransfer(context);
     return mounted && security.isVerified;
-  }
-
-  Widget _buildOverviewCard() {
-    final l = context.loc;
-    final unusedCount = (_summary['unusedCount'] as num?)?.toInt() ?? 0;
-    final usedCount = (_summary['usedCount'] as num?)?.toInt() ?? 0;
-    final archivedCount = (_summary['archivedCount'] as num?)?.toInt() ?? 0;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(24),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 520;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Flex(
-                direction: isCompact ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: isCompact
-                    ? CrossAxisAlignment.start
-                    : CrossAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.inventory_2_rounded,
-                    color: AppTheme.primary,
-                  ),
-                  SizedBox(
-                    width: isCompact ? 0 : 12,
-                    height: isCompact ? 10 : 0,
-                  ),
-                  if (isCompact)
-                    Text(
-                      l.tr('screens_inventory_screen.002'),
-                      style: AppTheme.bodyBold,
-                    )
-                  else
-                    Expanded(
-                      child: Text(
-                        l.tr('screens_inventory_screen.002'),
-                        style: AppTheme.bodyBold,
-                      ),
-                    ),
-                  SizedBox(
-                    width: isCompact ? 0 : 12,
-                    height: isCompact ? 12 : 0,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '$_totalCards',
-                      style: AppTheme.bodyBold.copyWith(
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _buildOverviewChip(
-                    l.tr('screens_inventory_screen.034'),
-                    '$unusedCount',
-                    AppTheme.success,
-                  ),
-                  _buildOverviewChip(
-                    l.tr('screens_inventory_screen.035'),
-                    '$usedCount',
-                    AppTheme.warning,
-                  ),
-                  _buildOverviewChip(
-                    l.tr('screens_inventory_screen.036'),
-                    '$archivedCount',
-                    AppTheme.error,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ToolToggleHint(
-                message: l.text(
-                  'لا توجد بطاقات مطابقة حالياً.',
-                  'No matching cards were found.',
-                ),
-                icon: Icons.filter_alt_rounded,
-              ),
-            ],
-          );
-        },
-      ),
-    );
   }
 
   Widget _buildFiltersPanel() {
@@ -2418,7 +2312,6 @@ class _InventoryListItem {
 }
 
 enum _InventoryListItemKind {
-  overview,
   filters,
   resultsHeader,
   offlineBanner,

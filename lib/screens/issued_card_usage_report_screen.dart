@@ -30,7 +30,6 @@ class _IssuedCardUsageReportScreenState
   String _scope = 'all';
   int _page = 1;
   int _lastPage = 1;
-  Map<String, dynamic> _summary = const {};
   List<Map<String, dynamic>> _items = const [];
   StateSetter? _toolsSetState;
 
@@ -81,9 +80,6 @@ class _IssuedCardUsageReportScreenState
     if (!mounted) return;
     setState(() {
       _authorized = true;
-      _summary = Map<String, dynamic>.from(
-        payload['summary'] as Map? ?? const {},
-      );
       _items = List<Map<String, dynamic>>.from(
         (payload['items'] as List? ?? const []).map(
           (item) => Map<String, dynamic>.from(item as Map),
@@ -192,11 +188,7 @@ class _IssuedCardUsageReportScreenState
                         ),
                       ),
                       const SizedBox(height: 18),
-                      _headerCard(),
-                      const SizedBox(height: 14),
                       _filtersCard(),
-                      const SizedBox(height: 14),
-                      _summaryGrid(),
                     ],
                   ),
                 );
@@ -216,32 +208,6 @@ class _IssuedCardUsageReportScreenState
         'لا تملك صلاحية عرض تقارير استخدام البطاقات.',
         style: AppTheme.bodyBold,
         textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _headerCard() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(22),
-      borderRadius: BorderRadius.circular(24),
-      gradient: const LinearGradient(
-        colors: [AppTheme.secondary, AppTheme.primary],
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'استخدام البطاقات',
-            style: AppTheme.h2.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'تابع الحالة والاستخدام بسرعة.',
-            style: AppTheme.bodyAction.copyWith(color: Colors.white70),
-          ),
-        ],
       ),
     );
   }
@@ -320,74 +286,6 @@ class _IssuedCardUsageReportScreenState
             label: const Text('تطبيق'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _summaryGrid() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        _metric(
-          'إجمالي البطاقات',
-          _int('totalCards'),
-          Icons.credit_card_rounded,
-        ),
-        _metric('المستخدمة', _int('usedCards'), Icons.task_alt_rounded),
-        _metric('المستخدمة اليوم', _int('usedToday'), Icons.today_rounded),
-        _metric('الخاصة', _int('privateCards'), Icons.lock_rounded),
-        _metric('العامة', _int('publicCards'), Icons.public_rounded),
-        _metric(
-          'قيمة مستخدمة',
-          CurrencyFormatter.ils(
-            (_summary['usedAmount'] as num?)?.toDouble() ?? 0,
-          ),
-          Icons.payments_rounded,
-          isText: true,
-        ),
-      ],
-    );
-  }
-
-  String _int(String key) => '${(_summary[key] as num?)?.toInt() ?? 0}';
-
-  Widget _metric(
-    String label,
-    String value,
-    IconData icon, {
-    bool isText = false,
-  }) {
-    return SizedBox(
-      width: 190,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.borderLight),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppTheme.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: AppTheme.caption),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: isText
-                        ? AppTheme.bodyBold.copyWith(fontSize: 13)
-                        : AppTheme.h3,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

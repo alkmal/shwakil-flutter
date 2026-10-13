@@ -50,8 +50,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canCreateStoreSales': false,
     'canCreateStorePurchases': false,
     'canManageStoreDebts': false,
-    'canEditStorePrices': false,
-    'canViewStoreProfits': false,
     'canViewStoreReports': false,
     'canManagePublicStorefront': false,
     'canViewPublicStores': true,
@@ -73,8 +71,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
     'canCreateStoreSales',
     'canCreateStorePurchases',
     'canManageStoreDebts',
-    'canEditStorePrices',
-    'canViewStoreProfits',
     'canViewStoreReports',
     'canManagePublicStorefront',
     'canViewPublicStores',
@@ -165,8 +161,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
       'canCreateStoreSales',
       'canCreateStorePurchases',
       'canManageStoreDebts',
-      'canEditStorePrices',
-      'canViewStoreProfits',
       'canViewStoreReports',
       'canManagePublicStorefront',
     };
@@ -366,7 +360,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           title: Text(context.loc.tr('screens_sub_users_screen.093')),
           actions: const [AppNotificationAction(), QuickLogoutAction()],
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const ShwakelPageLoadingContent(),
       );
     }
 
@@ -988,6 +982,14 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
                 onPressed: () => _applyStoreRole('manager'),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.loc.text(
+              'أسعار الشراء والجملة وهوامش الربح متاحة للحساب الرئيسي فقط، ولا تظهر للتابعين أو موظفي الكاشير.',
+              'Purchase and wholesale prices and profit margins are visible only to the primary account, never to sub-users or cashiers.',
+            ),
+            style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 14),
           ..._permissionKeysOrder.map(

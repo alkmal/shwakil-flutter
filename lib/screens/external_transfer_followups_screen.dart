@@ -27,12 +27,12 @@ class _ExternalTransferFollowupsScreenState
   final _offline = ExternalTransferOfflineService();
   List<Map<String, dynamic>> _rows = [];
   List<Map<String, dynamic>> _employees = [];
-  Map<String, dynamic> _totals = {};
   bool _loading = true;
   bool _canManage = false;
   bool _canCreate = false;
   bool _isSubUser = false;
   bool _canReview = false;
+  bool _showFilters = false;
   String _status = 'all';
   String _reviewed = 'all';
   String _employeeId = 'all';
@@ -175,22 +175,9 @@ class _ExternalTransferFollowupsScreenState
         ),
       );
       final mergedRows = [...localRows, ...serverRows];
-      final totals = Map<String, dynamic>.from(body['totals'] as Map? ?? {});
-      totals['count'] =
-          (int.tryParse('${totals['count'] ?? 0}') ?? 0) + localRows.length;
-      totals['unreviewed'] =
-          (int.tryParse('${totals['unreviewed'] ?? 0}') ?? 0) +
-          localRows.length;
-      totals['amount'] =
-          (double.tryParse('${totals['amount'] ?? 0}') ?? 0) +
-          localRows.fold<double>(
-            0,
-            (s, r) => s + (double.tryParse('${r['amount']}') ?? 0),
-          );
       if (!mounted) return;
       setState(() {
         _rows = mergedRows;
-        _totals = totals;
         _employees = List<Map<String, dynamic>>.from(
           (body['employees'] as List? ?? []).map(
             (e) => Map<String, dynamic>.from(e as Map),
@@ -599,8 +586,17 @@ class _ExternalTransferFollowupsScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('متابعة التحويلات الخارجية'),
+        title: const Text('التحويلات الخارجية'),
         actions: [
+          IconButton(
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            tooltip: _showFilters ? 'إخفاء الفلاتر' : 'الفلاتر',
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+          ),
           if (_canManage)
             IconButton(
               onPressed: _showAppNotificationSettings,
@@ -613,7 +609,7 @@ class _ExternalTransferFollowupsScreenState
       ),
       drawer: AppSidebar.drawerFor(context),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShwakelPageLoadingContent()
           : RefreshIndicator(
               onRefresh: _load,
               child: ResponsiveScaffoldContainer(
@@ -714,124 +710,116 @@ class _ExternalTransferFollowupsScreenState
                               );
                             },
                           ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 8,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: () => _pickDate(true),
-                                icon: const Icon(Icons.date_range),
-                                label: Text(
-                                  _from == null ? 'من تاريخ' : _date(_from!),
+                          if (_showFilters) ...[
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => _pickDate(true),
+                                  icon: const Icon(Icons.date_range),
+                                  label: Text(
+                                    _from == null ? 'من تاريخ' : _date(_from!),
+                                  ),
                                 ),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () => _pickDate(false),
-                                icon: const Icon(Icons.event),
-                                label: Text(
-                                  _to == null ? 'إلى تاريخ' : _date(_to!),
+                                OutlinedButton.icon(
+                                  onPressed: () => _pickDate(false),
+                                  icon: const Icon(Icons.event),
+                                  label: Text(
+                                    _to == null ? 'إلى تاريخ' : _date(_to!),
+                                  ),
                                 ),
-                              ),
-                              if (_from != null || _to != null)
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _from = null;
-                                      _to = null;
-                                    });
-                                    _load();
-                                  },
-                                  child: const Text('مسح التاريخ'),
-                                ),
-                              _metric('العدد', '${_totals['count'] ?? 0}'),
-                              _metric('القيمة', '${_totals['amount'] ?? 0}'),
-                              _metric(
-                                'غير مراجعة',
-                                '${_totals['unreviewed'] ?? 0}',
-                              ),
-                              _metric(
-                                'لم تصل',
-                                '${_totals['notArrived'] ?? 0}',
-                              ),
-                              DropdownButton<String>(
-                                value: _status,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'all',
-                                    child: Text('كل الحالات'),
+                                if (_from != null || _to != null)
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _from = null;
+                                        _to = null;
+                                      });
+                                      _load();
+                                    },
+                                    child: const Text('مسح التاريخ'),
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'pending',
-                                    child: Text('قيد المتابعة'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'arrived',
-                                    child: Text('وصلت'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'not_arrived',
-                                    child: Text('لم تصل'),
-                                  ),
-                                ],
-                                onChanged: (v) {
-                                  if (v != null) {
-                                    setState(() => _status = v);
-                                    _load();
-                                  }
-                                },
-                              ),
-                              DropdownButton<String>(
-                                value: _reviewed,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'all',
-                                    child: Text('كل المراجعات'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: '0',
-                                    child: Text('غير مراجعة'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: '1',
-                                    child: Text('تمت المراجعة'),
-                                  ),
-                                ],
-                                onChanged: (v) {
-                                  if (v != null) {
-                                    setState(() => _reviewed = v);
-                                    _load();
-                                  }
-                                },
-                              ),
-                              if (!_isSubUser && _employees.length > 1)
                                 DropdownButton<String>(
-                                  value: _employeeId,
-                                  hint: const Text('التابع / المنفذ'),
-                                  items: [
-                                    const DropdownMenuItem(
+                                  value: _status,
+                                  items: const [
+                                    DropdownMenuItem(
                                       value: 'all',
-                                      child: Text('كل التابعين'),
+                                      child: Text('كل الحالات'),
                                     ),
-                                    ..._employees.map(
-                                      (employee) => DropdownMenuItem(
-                                        value: '${employee['id']}',
-                                        child: Text(
-                                          employee['name']?.toString() ??
-                                              'مستخدم',
-                                        ),
-                                      ),
+                                    DropdownMenuItem(
+                                      value: 'pending',
+                                      child: Text('قيد المتابعة'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'arrived',
+                                      child: Text('وصلت'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'not_arrived',
+                                      child: Text('لم تصل'),
                                     ),
                                   ],
                                   onChanged: (v) {
                                     if (v != null) {
-                                      setState(() => _employeeId = v);
+                                      setState(() => _status = v);
                                       _load();
                                     }
                                   },
                                 ),
-                            ],
-                          ),
+                                DropdownButton<String>(
+                                  value: _reviewed,
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'all',
+                                      child: Text('كل المراجعات'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '0',
+                                      child: Text('غير مراجعة'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '1',
+                                      child: Text('تمت المراجعة'),
+                                    ),
+                                  ],
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setState(() => _reviewed = v);
+                                      _load();
+                                    }
+                                  },
+                                ),
+                                if (!_isSubUser && _employees.length > 1)
+                                  DropdownButton<String>(
+                                    value: _employeeId,
+                                    hint: const Text('التابع / المنفذ'),
+                                    items: [
+                                      const DropdownMenuItem(
+                                        value: 'all',
+                                        child: Text('كل التابعين'),
+                                      ),
+                                      ..._employees.map(
+                                        (employee) => DropdownMenuItem(
+                                          value: '${employee['id']}',
+                                          child: Text(
+                                            employee['name']?.toString() ??
+                                                'مستخدم',
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    onChanged: (v) {
+                                      if (v != null) {
+                                        setState(() => _employeeId = v);
+                                        _load();
+                                      }
+                                    },
+                                  ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -851,9 +839,6 @@ class _ExternalTransferFollowupsScreenState
     );
   }
 
-  Widget _metric(String label, String value) =>
-      Chip(label: Text('$label: $value'));
-
   Widget _row(Map<String, dynamic> row) {
     final offlinePending = row['offline_pending'] == true;
     final isAppNotification = row['record_type'] == 'app_notification';
@@ -869,6 +854,19 @@ class _ExternalTransferFollowupsScreenState
       'not_arrived' => Colors.red,
       _ => Colors.blue,
     };
+    final destinationDetails = [
+      row['destination_name']?.toString().trim() ?? '',
+      row['destination_account']?.toString().trim() ?? '',
+    ].where((value) => value.isNotEmpty).join(' • ');
+    final creator = row['created_by_name']?.toString().trim() ?? '';
+    final rawNotes = row['notes']?.toString().trim() ?? '';
+    final notes = RegExp(r'^[\s•·\-.,،؛:]+$').hasMatch(rawNotes)
+        ? ''
+        : rawNotes;
+    final attribution = [
+      if (creator.isNotEmpty) 'بواسطة: $creator',
+      if (notes.isNotEmpty) notes,
+    ].join(' • ');
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: ShwakelCard(
@@ -967,13 +965,9 @@ class _ExternalTransferFollowupsScreenState
                 style: AppTheme.caption,
               ),
             ] else ...[
-              Text(
-                '${row['destination_name'] ?? ''} • ${row['destination_account'] ?? ''}',
-              ),
-              Text(
-                'بواسطة: ${row['created_by_name'] ?? ''} • ${row['notes'] ?? ''}',
-                style: AppTheme.caption,
-              ),
+              if (destinationDetails.isNotEmpty) Text(destinationDetails),
+              if (attribution.isNotEmpty)
+                Text(attribution, style: AppTheme.caption),
             ],
             if (_canReview && !offlinePending)
               Wrap(

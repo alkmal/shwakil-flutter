@@ -13,11 +13,11 @@ import '../widgets/admin/admin_enums.dart';
 import '../widgets/admin/admin_pagination_footer.dart';
 import '../widgets/admin/admin_section_header.dart';
 import '../widgets/admin/admin_transaction_audit_card.dart';
+import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_button.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class AdminCustomerScreen extends StatefulWidget {
   const AdminCustomerScreen({
@@ -862,7 +862,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   @override
   Widget build(BuildContext context) {
     if (_firstLoad) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
     final tabs = <Tab>[
       Tab(
@@ -1287,13 +1287,6 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                     )
                   : null,
             ),
-            if (!_showTransactionFilters) ...[
-              const SizedBox(height: 8),
-              ToolToggleHint(
-                message: _t('screens_admin_customer_screen.077'),
-                icon: Icons.filter_alt_rounded,
-              ),
-            ],
             const SizedBox(height: 16),
             if (_busy)
               const Center(child: CircularProgressIndicator())

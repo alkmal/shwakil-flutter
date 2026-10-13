@@ -67,7 +67,7 @@ class _UsagePolicyScreenState extends State<UsagePolicyScreen> {
       ),
       drawer: AppSidebar.drawerFor(context),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShwakelPageLoadingContent()
           : SingleChildScrollView(
               child: ResponsiveScaffoldContainer(
                 padding: const EdgeInsets.all(AppTheme.spacingLg),

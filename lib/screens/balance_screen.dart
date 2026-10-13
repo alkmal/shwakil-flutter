@@ -31,6 +31,7 @@ class _BalanceScreenState extends State<BalanceScreen>
   Map<String, dynamic> _balanceSummary = const {};
   List<dynamic> _transactions = const [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
   _BalanceAuditFilter _auditFilter = _BalanceAuditFilter.all;
   int _page = 1;
   static const int _perPage = 8;
@@ -146,11 +147,18 @@ class _BalanceScreenState extends State<BalanceScreen>
         _balanceSummary = const {};
         _transactions = const [];
         _isLoading = false;
+        _isRefreshing = false;
       });
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _user = cachedUser;
+      // The cached user already includes the latest known balance. Render the
+      // workspace immediately and refresh its statement in the background.
+      if (cachedUser != null) _isLoading = false;
+      _isRefreshing = true;
+    });
     final requestedPage = _page;
     try {
       final results = await Future.wait<dynamic>([
@@ -191,10 +199,14 @@ class _BalanceScreenState extends State<BalanceScreen>
         _page = normalizedPage;
         _lastPage = lastPage;
         _isLoading = false;
+        _isRefreshing = false;
       });
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isRefreshing = false;
+      });
       _showMessage(
         ErrorMessageService.sanitize(error),
         isError: true,
@@ -1006,10 +1018,7 @@ class _BalanceScreenState extends State<BalanceScreen>
     }
 
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: AppTheme.background,
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const ShwakelPageLoadingScaffold();
     }
 
     final l = context.loc;
@@ -1018,6 +1027,17 @@ class _BalanceScreenState extends State<BalanceScreen>
       appBar: AppBar(
         title: Text(l.tr('screens_balance_screen.020')),
         actions: [
+          if (_isRefreshing)
+            const Padding(
+              padding: EdgeInsetsDirectional.only(end: 10),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
           if (_tabController.index == 2)
             IconButton(
               tooltip: _showHistoryFilters

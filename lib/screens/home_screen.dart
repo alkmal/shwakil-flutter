@@ -140,36 +140,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return UserDisplayName.fromMap(_user, fallback: username);
   }
 
-  String get _roleLabel {
-    return _user?['roleLabel']?.toString().trim() ??
-        _user?['role']?.toString().trim() ??
-        '';
-  }
-
   _RoleExperience get _roleExperience {
     final l = context.loc;
     final permissions = AppPermissions.fromUser(_user);
     final role = permissions.role;
     if (permissions.isDriverRole || permissions.canOfflineCardScan) {
       return _RoleExperience(
-        title: l.text('مساحة السائق', 'Driver Workspace'),
-        subtitle: l.text(
-          'فحص سريع ومزامنة واضحة.',
-          'Fast scanning and clear sync.',
-        ),
-        icon: Icons.local_shipping_rounded,
         gradient: const LinearGradient(
           colors: [AppTheme.secondary, AppTheme.primary],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
-        accent: AppTheme.accent,
         servicesTitle: l.text('مهام السائق', 'Driver Tasks'),
-        scanTitle: l.text('فحص بطاقة', 'Scan Card'),
-        scanSubtitle: l.text(
-          'افتح الكاميرا وابدأ مباشرة.',
-          'Open the camera and start immediately.',
-        ),
       );
     }
     if (permissions.canIssueCards ||
@@ -177,45 +159,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         permissions.canAcceptPrepaidMultipayPayments ||
         role == 'merchant') {
       return _RoleExperience(
-        title: l.text('مساحة التاجر', 'Merchant Workspace'),
-        subtitle: l.text(
-          'أدوات البيع والبطاقات في مكان واحد.',
-          'Sales and card tools in one place.',
-        ),
-        icon: Icons.storefront_rounded,
         gradient: const LinearGradient(
           colors: [AppTheme.primary, AppTheme.primaryLight],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
-        accent: AppTheme.primary,
         servicesTitle: l.text('أدوات التاجر', 'Merchant Tools'),
-        scanTitle: l.text('قبول أو فحص بطاقة', 'Accept or Scan Card'),
-        scanSubtitle: l.text(
-          'نفذ العملية الأساسية بدون خطوات إضافية.',
-          'Run the core action without extra steps.',
-        ),
       );
     }
     return _RoleExperience(
-      title: l.text('مساحة المستخدم', 'User Workspace'),
-      subtitle: l.text(
-        'رصيدك وتحويلاتك بشكل مختصر.',
-        'Your balance and transfers at a glance.',
-      ),
-      icon: Icons.account_circle_rounded,
       gradient: const LinearGradient(
         colors: [AppTheme.secondary, AppTheme.primary],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),
-      accent: AppTheme.primary,
       servicesTitle: l.text('الخدمات', 'Services'),
-      scanTitle: l.text('فحص بطاقة', 'Scan Card'),
-      scanSubtitle: l.text(
-        'استخدم البطاقة أو تحقق منها بسرعة.',
-        'Use or verify a card quickly.',
-      ),
     );
   }
 
@@ -231,12 +189,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _user?['transferVerificationStatus']?.toString().trim().toLowerCase() ??
         '';
     return verificationStatus == 'pending';
-  }
-
-  String get _verificationLabel {
-    return _isVerifiedUser
-        ? context.loc.tr('screens_balance_screen.036')
-        : context.loc.tr('screens_balance_screen.037');
   }
 
   Future<void> _loadUser() {
@@ -964,7 +916,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       ),
       drawer: _needsSessionRecovery ? null : AppSidebar.drawerFor(context),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShwakelPageLoadingContent()
           : _needsSessionRecovery
           ? _buildSessionRecoveryState()
           : RefreshIndicator(
@@ -984,8 +936,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   List<_HomeServiceItem> _prioritizeServices(List<_HomeServiceItem> services) {
     const priority = <_HomeServiceKind, int>{
-      _HomeServiceKind.createCard: 0,
-      _HomeServiceKind.scan: 1,
+      _HomeServiceKind.scan: 0,
+      _HomeServiceKind.createCard: 1,
       _HomeServiceKind.balance: 2,
       _HomeServiceKind.prepaidMultipay: 3,
       _HomeServiceKind.storeManagement: 4,
@@ -1520,9 +1472,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   Widget _buildWelcomeCard() {
     final greeting = _t('screens_home_screen.084');
     final displayName = _displayName;
-    final roleLabel = _roleLabel.isEmpty
-        ? _t('screens_home_screen.085')
-        : _roleLabel;
     final experience = _roleExperience;
     final userLogoUrl = _user?['printLogoUrl']?.toString().trim() ?? '';
     final balance = (_user?['balance'] as num?)?.toDouble() ?? 0;
@@ -1540,66 +1489,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           final isCompact = constraints.maxWidth < 520;
           final logoSize = isCompact ? 64.0 : 72.0;
           final logoImageSize = isCompact ? 38.0 : 44.0;
-          Widget infoChip({
-            required IconData icon,
-            required String label,
-            required Color color,
-          }) {
-            return Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isCompact ? 10 : 12,
-                vertical: isCompact ? 8 : 10,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 16, color: color),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: AppTheme.caption.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final metaBlock = Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              infoChip(
-                icon: experience.icon,
-                label: experience.title,
-                color: Colors.white,
-              ),
-              if (roleLabel != experience.title)
-                infoChip(
-                  icon: Icons.badge_rounded,
-                  label: roleLabel,
-                  color: Colors.white,
-                ),
-              infoChip(
-                icon: _isVerifiedUser
-                    ? Icons.verified_rounded
-                    : Icons.pending_outlined,
-                label: _verificationLabel,
-                color: _isVerifiedUser
-                    ? AppTheme.successTextOnDark
-                    : AppTheme.warningTextOnDark,
-              ),
-            ],
-          );
           final logo = Container(
             width: logoSize,
             height: logoSize,
@@ -1688,16 +1577,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                   ],
                 ),
-                SizedBox(height: isCompact ? 6 : 8),
-                Text(
-                  _t('screens_home_screen.094'),
-                  textAlign: TextAlign.start,
-                  style: AppTheme.bodyAction.copyWith(
-                    color: Colors.white.withValues(alpha: 0.86),
-                    height: 1.4,
-                    fontSize: isCompact ? 14 : 15,
-                  ),
-                ),
                 if (_canOfflineScan) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -1746,18 +1625,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 6),
-                    Text(
-                      experience.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.caption.copyWith(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    metaBlock,
                   ],
                 ),
               ),
@@ -1798,23 +1665,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               ),
                             ),
                           ],
-                          const SizedBox(height: 6),
-                          Text(
-                            experience.subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTheme.caption.copyWith(
-                              color: Colors.white.withValues(alpha: 0.82),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                metaBlock,
               ],
               SizedBox(height: isCompact ? 12 : 16),
               balanceCard,
@@ -1923,167 +1778,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       itemBuilder: (context, index) => crossAxisCount == 1
           ? _buildServiceListItem(services[index])
           : _buildCompactServiceTile(services[index]),
-    );
-  }
-
-  // Kept for compatibility with older home layouts.
-  // ignore: unused_element
-  Widget _buildScanShortcut(_HomeServiceItem item) {
-    final experience = _roleExperience;
-    return ShwakelCard(
-      onTap: item.onTap,
-      padding: const EdgeInsets.all(22),
-      borderRadius: BorderRadius.circular(24),
-      shadowLevel: ShwakelShadowLevel.medium,
-      borderColor: item.color.withValues(alpha: 0.16),
-      color: item.color.withValues(alpha: 0.04),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 560;
-          final cta = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: item.color.withValues(alpha: 0.14)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.camera_alt_rounded, size: 18, color: item.color),
-                const SizedBox(width: 6),
-                Text(
-                  experience.scanTitle,
-                  style: AppTheme.caption.copyWith(
-                    color: item.color,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          );
-          final quickCreateCta = AppPermissions.fromUser(_user).canIssueCards
-              ? InkWell(
-                  borderRadius: BorderRadius.circular(999),
-                  onTap: () =>
-                      unawaited(_openOnlineOnlyRoute('/create-card-quick')),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: AppTheme.primary.withValues(alpha: 0.14),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.add_card_rounded,
-                          size: 18,
-                          color: AppTheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          context.loc.text(
-                            'إنشاء بطاقة سريعة',
-                            'Quick Card Creation',
-                          ),
-                          style: AppTheme.caption.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : null;
-          final iconBox = Container(
-            width: 62,
-            height: 62,
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(item.icon, color: item.color, size: 30),
-          );
-
-          final textBlock = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                experience.scanTitle,
-                style: AppTheme.bodyBold.copyWith(fontSize: 17),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                experience.scanSubtitle,
-                style: AppTheme.bodyAction.copyWith(height: 1.45),
-              ),
-            ],
-          );
-
-          return ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 148),
-            child: isCompact
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          iconBox,
-                          const SizedBox(width: 14),
-                          Expanded(child: textBlock),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(width: double.infinity, child: cta),
-                      if (quickCreateCta != null) ...[
-                        const SizedBox(height: 10),
-                        SizedBox(width: double.infinity, child: quickCreateCta),
-                      ],
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      iconBox,
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [textBlock],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(width: 190, child: cta),
-                            if (quickCreateCta != null) ...[
-                              const SizedBox(height: 10),
-                              SizedBox(width: 190, child: quickCreateCta),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-          );
-        },
-      ),
     );
   }
 
@@ -2548,16 +2242,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           maxLines: isCompact ? 2 : 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.subtitle,
-                          style: AppTheme.bodyAction.copyWith(
-                            height: isCompact ? 1.25 : 1.35,
-                            fontSize: isCompact ? 12.5 : null,
-                          ),
-                          maxLines: isCompact ? 2 : 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
                       ],
                     ),
                   ),
@@ -2636,23 +2320,8 @@ enum _HomeServiceKind {
 }
 
 class _RoleExperience {
-  const _RoleExperience({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.gradient,
-    required this.accent,
-    required this.servicesTitle,
-    required this.scanTitle,
-    required this.scanSubtitle,
-  });
+  const _RoleExperience({required this.gradient, required this.servicesTitle});
 
-  final String title;
-  final String subtitle;
-  final IconData icon;
   final LinearGradient gradient;
-  final Color accent;
   final String servicesTitle;
-  final String scanTitle;
-  final String scanSubtitle;
 }

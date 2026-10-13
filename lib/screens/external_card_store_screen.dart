@@ -357,7 +357,7 @@ class _ExternalCardStoreScreenState extends State<ExternalCardStoreScreen> {
       ),
       drawer: AppSidebar.drawerFor(context),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShwakelPageLoadingContent()
           : RefreshIndicator(
               onRefresh: () => _load(),
               child: SingleChildScrollView(

@@ -102,7 +102,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
     }
     setState(() {
       _user = user;
-      _loading = true;
+      _loading = _snapshot.isEmpty;
     });
 
     if (user == null || user['id'] == null) {
@@ -496,7 +496,7 @@ class _DebtBookScreenState extends State<DebtBookScreen> {
               )
             : null,
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const ShwakelPageLoadingContent()
             : !permissions.canManageDebtBook
             ? Center(
                 child: Padding(

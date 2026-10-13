@@ -14,7 +14,6 @@ import '../widgets/app_sidebar.dart';
 import '../widgets/app_top_actions.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 import 'debt_book_customer_screen.dart';
 
 class AdminDebtBookScreen extends StatefulWidget {
@@ -553,7 +552,7 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
           ),
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const ShwakelPageLoadingContent()
             : !permissions.canManageDebtBook
             ? Center(child: Text(_t('screens_admin_debt_book_screen.021')))
             : ResponsiveScaffoldContainer(
@@ -571,16 +570,6 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ShwakelCard(
-            padding: const EdgeInsets.all(18),
-            withBorder: true,
-            borderColor: AppTheme.borderLight,
-            child: Text(
-              _t('screens_admin_debt_book_screen.023'),
-              style: AppTheme.bodyAction,
-            ),
-          ),
-          const SizedBox(height: 16),
           if (_showFilters)
             ShwakelCard(
               padding: const EdgeInsets.all(18),
@@ -641,11 +630,6 @@ class _AdminDebtBookScreenState extends State<AdminDebtBookScreen> {
                   ),
                 ],
               ),
-            )
-          else
-            ToolToggleHint(
-              message: _t('screens_admin_debt_book_screen.044'),
-              icon: Icons.filter_alt_rounded,
             ),
           const SizedBox(height: 16),
           if (_customers.isEmpty)

@@ -112,7 +112,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
 
     if (_loadError != null && !_isAuthorized) {

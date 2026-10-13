@@ -16,7 +16,6 @@ import '../widgets/app_top_actions.dart';
 import '../widgets/rejection_reason_dialog.dart';
 import '../widgets/responsive_scaffold_container.dart';
 import '../widgets/shwakel_card.dart';
-import '../widgets/tool_toggle_hint.dart';
 
 class AdminCardPrintRequestsScreen extends StatefulWidget {
   const AdminCardPrintRequestsScreen({super.key});
@@ -34,7 +33,6 @@ class _AdminCardPrintRequestsScreenState
   final _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _requests = const [];
-  Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
   bool _isBootstrapping = true;
   bool _isAuthorized = false;
@@ -43,6 +41,7 @@ class _AdminCardPrintRequestsScreenState
   int _lastPage = 1;
   String? _busyId;
   bool _isRefreshing = false;
+  bool _showFilters = false;
   bool _isCreatingRequest = false;
   String? _pendingCreateFingerprint;
   String? _pendingCreateIdempotencyKey;
@@ -159,9 +158,6 @@ class _AdminCardPrintRequestsScreenState
       setState(() {
         _isAuthorized = true;
         _requests = requests;
-        _summary = Map<String, dynamic>.from(
-          payload['summary'] as Map? ?? const {},
-        );
         _page = normalizedPage;
         _lastPage = lastPage;
         _isLoading = false;
@@ -820,7 +816,7 @@ class _AdminCardPrintRequestsScreenState
   Widget build(BuildContext context) {
     final l = context.loc;
     if (_isBootstrapping) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ShwakelPageLoadingScaffold();
     }
 
     if (!_isAuthorized) {
@@ -860,11 +856,15 @@ class _AdminCardPrintRequestsScreenState
         title: Text(l.tr('screens_admin_card_print_requests_screen.001')),
         actions: [
           IconButton(
-            tooltip: context.loc.tr(
-              'screens_admin_card_print_requests_screen.040',
+            tooltip: _showFilters
+                ? l.text('إخفاء الفلاتر', 'Hide filters')
+                : l.text('الفلاتر', 'Filters'),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters
+                  ? Icons.filter_alt_off_rounded
+                  : Icons.filter_alt_rounded,
             ),
-            onPressed: _showHelpDialog,
-            icon: const Icon(Icons.info_outline_rounded),
           ),
           const AppNotificationAction(),
           const QuickLogoutAction(),
@@ -877,22 +877,21 @@ class _AdminCardPrintRequestsScreenState
           padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: _isLoading || _requests.isEmpty
-                ? 4
-                : _requests.length + 4,
+            itemCount:
+                (_showFilters ? 1 : 0) +
+                (_isRefreshing ? 1 : 0) +
+                (_isLoading || _requests.isEmpty ? 1 : _requests.length + 1),
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              if (index == 0) {
-                return _buildOverviewCard();
-              }
-              if (index == 1) {
+              var contentIndex = index;
+              if (_showFilters && contentIndex == 0) {
                 return _buildFiltersCard();
               }
-              if (index == 2) {
-                return _isRefreshing
-                    ? const LinearProgressIndicator(minHeight: 3)
-                    : const SizedBox.shrink();
+              if (_showFilters) contentIndex--;
+              if (_isRefreshing && contentIndex == 0) {
+                return const LinearProgressIndicator(minHeight: 3);
               }
+              if (_isRefreshing) contentIndex--;
               if (_isLoading) {
                 return const Center(
                   child: Padding(
@@ -902,9 +901,6 @@ class _AdminCardPrintRequestsScreenState
                 );
               }
               if (_requests.isEmpty) {
-                if (index != 3) {
-                  return const SizedBox.shrink();
-                }
                 return ShwakelCard(
                   padding: const EdgeInsets.all(28),
                   child: Center(
@@ -917,7 +913,7 @@ class _AdminCardPrintRequestsScreenState
                   ),
                 );
               }
-              final requestIndex = index - 3;
+              final requestIndex = contentIndex;
               if (requestIndex < _requests.length) {
                 return _buildRequestCard(_requests[requestIndex]);
               }
@@ -943,203 +939,113 @@ class _AdminCardPrintRequestsScreenState
     );
   }
 
-  Widget _buildOverviewCard() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.print_rounded, color: AppTheme.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  context.loc.tr(
-                    'screens_admin_card_print_requests_screen.001',
-                  ),
-                  style: AppTheme.bodyBold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${_requests.length}',
-                  style: AppTheme.bodyBold.copyWith(color: AppTheme.primary),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            context.loc.tr(
-              'screens_admin_card_print_requests_screen.041',
-              params: {
-                'review':
-                    '${(_summary['pendingReviewCount'] as num?)?.toInt() ?? 0}',
-                'approved':
-                    '${(_summary['approvedCount'] as num?)?.toInt() ?? 0}',
-                'completed':
-                    '${(_summary['completedCount'] as num?)?.toInt() ?? 0}',
-              },
-            ),
-            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          ToolToggleHint(
-            message: context.loc.tr(
-              'screens_admin_card_print_requests_screen.042',
-            ),
-            icon: Icons.filter_alt_rounded,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFiltersCard() {
     final l = context.loc;
     return ShwakelCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.loc.tr('screens_admin_card_print_requests_screen.039'),
-            style: AppTheme.h2,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.loc.tr('screens_admin_card_print_requests_screen.042'),
-            style: AppTheme.bodyAction.copyWith(color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final stacked = constraints.maxWidth < 760;
-              final searchField = TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: l.tr(
-                    'screens_admin_card_print_requests_screen.search_label',
-                  ),
-                  prefixIcon: const Icon(Icons.search_rounded),
-                ),
-                onChanged: (_) {
-                  _searchDebounce?.cancel();
-                  _searchDebounce = Timer(
-                    const Duration(milliseconds: 550),
-                    () {
-                      if (!mounted) {
-                        return;
-                      }
-                      _submitSearch();
-                    },
-                  );
-                },
-                onSubmitted: (_) {
-                  _page = 1;
-                  _submitSearch(force: true);
-                },
-              );
-              final filterField = DropdownButtonFormField<String>(
-                initialValue: _status,
-                decoration: InputDecoration(
-                  labelText: l.tr(
-                    'screens_admin_card_print_requests_screen.003',
-                  ),
-                ),
-                items: [
-                  DropdownMenuItem(
-                    value: 'all',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.004'),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'pending_review',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.005'),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'approved',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.006'),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'printing',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.007'),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'ready',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.008'),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'completed',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.009'),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'rejected',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.010'),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'archive',
-                    child: Text(
-                      l.tr('screens_admin_card_print_requests_screen.029'),
-                    ),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _status = value;
-                    _page = 1;
-                  });
-                  _load(preserveContent: true);
-                },
-              );
-
-              if (stacked) {
-                return Column(
-                  children: [
-                    searchField,
-                    const SizedBox(height: 12),
-                    filterField,
-                  ],
-                );
-              }
-
-              return Column(
-                children: [
-                  searchField,
-                  const SizedBox(height: 12),
-                  filterField,
-                ],
-              );
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stacked = constraints.maxWidth < 760;
+          final searchField = TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              labelText: l.tr(
+                'screens_admin_card_print_requests_screen.search_label',
+              ),
+              prefixIcon: const Icon(Icons.search_rounded),
+            ),
+            onChanged: (_) {
+              _searchDebounce?.cancel();
+              _searchDebounce = Timer(const Duration(milliseconds: 550), () {
+                if (!mounted) {
+                  return;
+                }
+                _submitSearch();
+              });
             },
-          ),
-        ],
+            onSubmitted: (_) {
+              _page = 1;
+              _submitSearch(force: true);
+            },
+          );
+          final filterField = DropdownButtonFormField<String>(
+            initialValue: _status,
+            decoration: InputDecoration(
+              labelText: l.tr('screens_admin_card_print_requests_screen.003'),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 'all',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.004'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'pending_review',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.005'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'approved',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.006'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'printing',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.007'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'ready',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.008'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'completed',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.009'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'rejected',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.010'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'archive',
+                child: Text(
+                  l.tr('screens_admin_card_print_requests_screen.029'),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _status = value;
+                _page = 1;
+              });
+              _load(preserveContent: true);
+            },
+          );
+
+          if (stacked) {
+            return Column(
+              children: [searchField, const SizedBox(height: 12), filterField],
+            );
+          }
+
+          return Column(
+            children: [searchField, const SizedBox(height: 12), filterField],
+          );
+        },
       ),
     );
   }
@@ -1524,28 +1430,6 @@ class _AdminCardPrintRequestsScreenState
       onPressed: busy ? null : onPressed,
       child: Text(
         busy ? l.tr('screens_admin_card_print_requests_screen.028') : label,
-      ),
-    );
-  }
-
-  Future<void> _showHelpDialog() {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          context.loc.tr('screens_admin_card_print_requests_screen.043'),
-        ),
-        content: Text(
-          context.loc.tr('screens_admin_card_print_requests_screen.044'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              context.loc.tr('screens_admin_card_print_requests_screen.045'),
-            ),
-          ),
-        ],
       ),
     );
   }
