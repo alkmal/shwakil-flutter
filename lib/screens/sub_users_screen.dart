@@ -32,7 +32,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   bool _isDisabled = false;
   bool _canViewSubUsers = false;
   bool _canManageSubUsers = false;
-  bool _showStats = false;
   late final Map<String, bool> _permissions = _defaultPermissions();
 
   static Map<String, bool> _defaultPermissions() => {
@@ -456,11 +455,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   Widget _buildUsersTab() {
     return ListView(
       children: [
-        if (_canManageSubUsers) ...[
-          _buildInlineGuideCard(),
-          const SizedBox(height: 18),
-        ],
-        if (_showStats) ...[_buildStatsRow(), const SizedBox(height: 18)],
         if (!_canManageSubUsers) ...[
           ShwakelCard(
             padding: const EdgeInsets.all(18),
@@ -477,138 +471,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
   }
 
   Widget _buildManageTab() {
-    return ListView(
-      children: [
-        _buildManageWorkspace(),
-        const SizedBox(height: 18),
-        _buildForm(),
-      ],
-    );
-  }
-
-  Widget _buildInlineGuideCard() {
-    return ShwakelCard(
-      padding: const EdgeInsets.all(18),
-      color: AppTheme.surface,
-      withBorder: true,
-      borderColor: AppTheme.borderLight,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppTheme.primarySoft,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.view_compact_alt_rounded,
-              color: AppTheme.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.loc.tr('screens_sub_users_screen.097'),
-                  style: AppTheme.h3,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  context.loc.tr('screens_sub_users_screen.098'),
-                  style: AppTheme.bodyAction,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          ShwakelButton(
-            label: _showStats
-                ? context.loc.tr('screens_sub_users_screen.130')
-                : context.loc.tr('screens_sub_users_screen.129'),
-            icon: _showStats
-                ? Icons.visibility_off_rounded
-                : Icons.query_stats_rounded,
-            isSecondary: true,
-            onPressed: () => setState(() => _showStats = !_showStats),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildManageWorkspace() {
-    final isEditing = _editing != null;
-    return ShwakelCard(
-      padding: const EdgeInsets.all(18),
-      color: AppTheme.surface,
-      withBorder: true,
-      borderColor: AppTheme.borderLight,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: isEditing
-                      ? LinearGradient(
-                          colors: [
-                            AppTheme.accent.withValues(alpha: 0.92),
-                            AppTheme.highlight,
-                          ],
-                        )
-                      : AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  isEditing
-                      ? Icons.edit_rounded
-                      : Icons.person_add_alt_1_rounded,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isEditing
-                          ? context.loc.tr('screens_sub_users_screen.099')
-                          : context.loc.tr('screens_sub_users_screen.100'),
-                      style: AppTheme.h3,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      isEditing
-                          ? context.loc.tr('screens_sub_users_screen.101')
-                          : context.loc.tr('screens_sub_users_screen.102'),
-                      style: AppTheme.bodyAction,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (isEditing) ...[
-            const SizedBox(height: 16),
-            ShwakelButton(
-              label: context.loc.tr('screens_sub_users_screen.052'),
-              icon: Icons.refresh_rounded,
-              isSecondary: true,
-              onPressed: _resetForm,
-            ),
-          ],
-        ],
-      ),
-    );
+    return ListView(children: [_buildForm()]);
   }
 
   Widget _buildUsersSection() {
@@ -619,7 +482,7 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           title: context.loc.tr('screens_sub_users_screen.096'),
           subtitle: _subUsers.isEmpty
               ? context.loc.tr('screens_sub_users_screen.103')
-              : context.loc.tr('screens_sub_users_screen.104'),
+              : '',
           icon: Icons.manage_accounts_rounded,
         ),
         const SizedBox(height: 14),
@@ -647,11 +510,9 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
         children: [
           _buildSectionHeading(
             title: _editing == null
-                ? context.loc.tr('screens_sub_users_screen.105')
-                : context.loc.tr('screens_sub_users_screen.106'),
-            subtitle: _editing == null
-                ? context.loc.tr('screens_sub_users_screen.107')
-                : context.loc.tr('screens_sub_users_screen.108'),
+                ? context.loc.text('إضافة تابع جديد', 'Add sub-user')
+                : context.loc.text('تعديل بيانات التابع', 'Edit sub-user'),
+            subtitle: '',
             icon: _editing == null
                 ? Icons.person_add_alt_1_rounded
                 : Icons.edit_rounded,
@@ -682,113 +543,6 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
           ),
           const SizedBox(height: 18),
           _buildActionsRow(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    final activeUsers = _subUsers
-        .where((user) => user['isDisabled'] != true)
-        .length;
-    final disabledUsers = _subUsers.length - activeUsers;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 760;
-        final children = [
-          _buildStatCard(
-            title: context.loc.tr('screens_sub_users_screen.109'),
-            value: _subUsers.length.toString(),
-            hint: context.loc.tr('screens_sub_users_screen.110'),
-            icon: Icons.groups_rounded,
-            accent: AppTheme.primary,
-            background: AppTheme.surface,
-          ),
-          _buildStatCard(
-            title: context.loc.tr('screens_sub_users_screen.111'),
-            value: activeUsers.toString(),
-            hint: context.loc.tr('screens_sub_users_screen.112'),
-            icon: Icons.verified_user_rounded,
-            accent: AppTheme.success,
-            background: AppTheme.successLight,
-          ),
-          _buildStatCard(
-            title: context.loc.tr('screens_sub_users_screen.113'),
-            value: disabledUsers.toString(),
-            hint: context.loc.tr('screens_sub_users_screen.114'),
-            icon: Icons.pause_circle_outline_rounded,
-            accent: AppTheme.warning,
-            background: AppTheme.warningLight,
-          ),
-        ];
-
-        if (compact) {
-          return Column(
-            children: [
-              for (var i = 0; i < children.length; i++) ...[
-                children[i],
-                if (i != children.length - 1) const SizedBox(height: 12),
-              ],
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            for (var i = 0; i < children.length; i++) ...[
-              Expanded(child: children[i]),
-              if (i != children.length - 1) const SizedBox(width: 12),
-            ],
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required String hint,
-    required IconData icon,
-    required Color accent,
-    required Color background,
-  }) {
-    return ShwakelCard(
-      color: background,
-      withBorder: true,
-      borderColor: accent.withValues(alpha: 0.14),
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(icon, color: accent, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTheme.caption.copyWith(color: accent)),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: AppTheme.h2.copyWith(
-                    fontSize: 24,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(hint, style: AppTheme.caption),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -1427,8 +1181,10 @@ class _SubUsersScreenState extends State<SubUsersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: AppTheme.h2.copyWith(fontSize: 20)),
-              const SizedBox(height: 4),
-              Text(subtitle, style: AppTheme.caption.copyWith(fontSize: 14)),
+              if (subtitle.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(subtitle, style: AppTheme.caption.copyWith(fontSize: 14)),
+              ],
             ],
           ),
         ),

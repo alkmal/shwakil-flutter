@@ -26,8 +26,8 @@ class _AdminPrepaidMultipayApprovalsScreenState
 
   Map<String, dynamic>? _user;
   List<Map<String, dynamic>> _cards = const [];
-  Map<String, dynamic> _summary = const {};
   bool _isLoading = true;
+  bool _showFilters = false;
   String? _loadError;
   String? _actingCardId;
   String _statusFilter = 'all';
@@ -58,9 +58,6 @@ class _AdminPrepaidMultipayApprovalsScreenState
         _cards = (payload['cards'] as List? ?? const [])
             .map((item) => Map<String, dynamic>.from(item as Map))
             .toList();
-        _summary = Map<String, dynamic>.from(
-          payload['summary'] as Map? ?? const {},
-        );
       });
     } catch (error) {
       if (!mounted) {
@@ -519,7 +516,7 @@ class _AdminPrepaidMultipayApprovalsScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(l.text('إدارة البطاقات المسبقة', 'Manage prepaid cards')),
+        title: Text(l.text('بطاقات مسبقة', 'Prepaid cards')),
         actions: [
           if (permissions.canUsePrepaidMultipayCards)
             IconButton(
@@ -527,6 +524,16 @@ class _AdminPrepaidMultipayApprovalsScreenState
               tooltip: l.text('إضافة بطاقة', 'Add card'),
               icon: const Icon(Icons.add_card_rounded),
             ),
+          IconButton(
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: Icon(
+              _showFilters ? Icons.filter_list_off_rounded : Icons.tune_rounded,
+              color: _statusFilter != 'all' || _searchController.text.isNotEmpty
+                  ? AppTheme.primary
+                  : null,
+            ),
+            tooltip: l.text('الفلاتر', 'Filters'),
+          ),
           IconButton(
             onPressed: _isLoading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
@@ -546,16 +553,6 @@ class _AdminPrepaidMultipayApprovalsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  l.text('إدارة البطاقات المسبقة', 'Manage prepaid cards'),
-                  style: AppTheme.h2,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'كل البطاقات المسبقة في قائمة واحدة مع التحكم بالرصيد والحالة.',
-                  style: AppTheme.bodyAction,
-                ),
-                const SizedBox(height: 16),
                 if (_isLoading)
                   const Padding(
                     padding: EdgeInsets.all(40),
@@ -576,8 +573,10 @@ class _AdminPrepaidMultipayApprovalsScreenState
                     AdminLoadErrorCard(message: _loadError!, onRetry: _load),
                     const SizedBox(height: 12),
                   ],
-                  _buildFiltersAndSummary(),
-                  const SizedBox(height: 12),
+                  if (_showFilters) ...[
+                    _buildFilters(),
+                    const SizedBox(height: 12),
+                  ],
                   if (_cards.isEmpty)
                     ShwakelCard(
                       padding: const EdgeInsets.all(20),
@@ -605,35 +604,13 @@ class _AdminPrepaidMultipayApprovalsScreenState
     );
   }
 
-  Widget _buildFiltersAndSummary() {
+  Widget _buildFilters() {
     final l = context.loc;
     return ShwakelCard(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _info('الكل', '${(_summary['count'] as num?)?.toInt() ?? 0}'),
-              _info(
-                'معلقة',
-                '${(_summary['pendingCount'] as num?)?.toInt() ?? 0}',
-              ),
-              _info(
-                'نشطة',
-                '${(_summary['activeCount'] as num?)?.toInt() ?? 0}',
-              ),
-              _info(
-                'الرصيد',
-                CurrencyFormatter.ils(
-                  (_summary['totalBalance'] as num?)?.toDouble() ?? 0,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
           DropdownButtonFormField<String>(
             initialValue: _statusFilter,
             decoration: InputDecoration(labelText: l.text('الحالة', 'Status')),
